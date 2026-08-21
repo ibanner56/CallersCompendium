@@ -20,6 +20,7 @@ Map<String, Object?> _dance({
   String? formationBase,
   String? formationDetail,
   String? direction,
+  String? mixer,
   String? progression,
   String? phraseStructure,
   List<String>? callingNotes,
@@ -38,6 +39,7 @@ Map<String, Object?> _dance({
   if (formationBase != null) map['FormationBase'] = formationBase;
   if (formationDetail != null) map['FormationDetail'] = formationDetail;
   if (direction != null) map['Direction'] = direction;
+  if (mixer != null) map['Mixer?'] = mixer;
   if (progression != null) map['Progression'] = progression;
   if (phraseStructure != null) map['PhraseStructure'] = phraseStructure;
   if (callingNotes != null) map['CallingNotes'] = callingNotes;
@@ -473,6 +475,13 @@ void main() {
         );
       });
 
+      test('classifies quadruplet formations', () async {
+        final draft = await _importOne(
+          jsonEncode(_dance(formationBase: 'Quadruplet')),
+        );
+        expect(draft.dance.formation.shape, FormationShape.quadruplet);
+      });
+
       test('resolves Becket direction from the Direction field', () async {
         final ccw = await _importOne(
           jsonEncode(
@@ -507,6 +516,107 @@ void main() {
         expect(
           weird.issues.any((i) => i.code == 'callersbox_direction_unmapped'),
           isTrue,
+        );
+      });
+
+      group('mixer inference (issue #732)', () {
+        test('Mixer? == "Yes" sets mixer, regardless of formation', () async {
+          // Explicit source flag on a non-mixer formation still counts.
+          final d = await _importOne(
+            jsonEncode(
+              _dance(formationBase: 'Duple Minor - Improper', mixer: 'Yes'),
+            ),
+          );
+          expect(d.dance.formation.shape, FormationShape.dupleImproper);
+          expect(d.dance.mixer, isTrue);
+        });
+
+        test(
+          'Mixer? is truthy case-insensitively and after trimming',
+          () async {
+            for (final raw in ['Yes', ' yes ', 'YES']) {
+              final d = await _importOne(jsonEncode(_dance(mixer: raw)));
+              expect(
+                d.dance.mixer,
+                isTrue,
+                reason: 'Mixer? "$raw" should be true',
+              );
+            }
+          },
+        );
+
+        test('blank Mixer? on a plain formation leaves mixer false', () async {
+          final blank = await _importOne(
+            jsonEncode(
+              _dance(formationBase: 'Duple Minor - Improper', mixer: ''),
+            ),
+          );
+          expect(blank.dance.mixer, isFalse);
+
+          final absent = await _importOne(
+            jsonEncode(_dance(formationBase: 'Duple Minor - Improper')),
+          );
+          expect(absent.dance.mixer, isFalse);
+        });
+
+        test(
+          'does not widen truthiness beyond the source vocabulary',
+          () async {
+            // The corpus only ever has "" or "Yes"; "1"/"true" must NOT count.
+            for (final raw in ['1', 'true', 'y']) {
+              final d = await _importOne(jsonEncode(_dance(mixer: raw)));
+              expect(
+                d.dance.mixer,
+                isFalse,
+                reason: 'Mixer? "$raw" is outside the source vocabulary',
+              );
+            }
+          },
+        );
+
+        test(
+          'infers mixer for a blank-flag Circle Mixer (data-entry omission)',
+          () async {
+            // 21 Circle Mixers in the mirror have a blank Mixer? despite the
+            // formation name. The formation-based inference corrects that.
+            final d = await _importOne(
+              jsonEncode(_dance(formationBase: 'Circle Mixer', mixer: '')),
+            );
+            expect(d.dance.formation.shape, FormationShape.circleMixer);
+            expect(d.dance.mixer, isTrue);
+          },
+        );
+
+        test(
+          'infers mixer for a blank-flag Scatter Mixer (data-entry omission)',
+          () async {
+            final d = await _importOne(
+              jsonEncode(_dance(formationBase: 'Scatter Mixer', mixer: '')),
+            );
+            expect(d.dance.formation.shape, FormationShape.scatterMixer);
+            expect(d.dance.mixer, isTrue);
+          },
+        );
+
+        test(
+          'does NOT infer mixer for a Sicilian Circle (589 are non-mixers)',
+          () async {
+            // Inferring mixer from sicilianCircle would mislabel the corpus's
+            // 589 correctly-non-mixer Sicilian Circles. Only an explicit
+            // Mixer? == "Yes" flags a Sicilian Circle as a mixer.
+            final blank = await _importOne(
+              jsonEncode(_dance(formationBase: 'Sicilian Circle', mixer: '')),
+            );
+            expect(blank.dance.formation.shape, FormationShape.sicilianCircle);
+            expect(blank.dance.mixer, isFalse);
+
+            final flagged = await _importOne(
+              jsonEncode(
+                _dance(formationBase: 'Sicilian Circle', mixer: 'Yes'),
+              ),
+            );
+            expect(flagged.dance.mixer, isTrue);
+          },
         );
       });
 

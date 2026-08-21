@@ -313,5 +313,242 @@ void main() {
         expect(unchanged, isNotNull);
       },
     );
+
+    test(
+      'confident match + identical figures + different source: returns needsConfirmationIdentical, nothing written (red-run)',
+      () async {
+        // RED (naive regression): removing the `else if (sources differ)` guard
+        // restores the duplicate() fallthrough, creating a second dance →
+        // hasLength(2). GREEN: import() returns needsConfirmationIdentical and
+        // writes nothing.
+        // Existing dance has Caller's Box provenance; incoming plan is ContraDB
+        // → sources genuinely differ, so the cross-source dialog fires.
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-id-identical',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+          provenance: Provenance(
+            source: ProvenanceSource.callersbox,
+            importedAt: now,
+          ),
+        );
+        await repos.dances.create(existing);
+
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-identical',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: [customFigure('neighbors balance and swing')], // SAME
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '11111',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.97, confident: true),
+          ]),
+        );
+
+        final result = await ContraDbOnline().import(repos, plan);
+
+        expect(result.kind, OnlineImportKind.needsConfirmationIdentical);
+        expect(result.danceId, existing.id);
+        // Nothing written — user must confirm before we commit.
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(1));
+      },
+    );
+
+    test(
+      'confident match + identical figures + link resolution: updates existing, no second dance',
+      () async {
+        // User chose "Same dance" in the cross-source duplicate dialog (issue
+        // #811). The existing dance is linked to the incoming record; no second
+        // dance is created.
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-id-link',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+          provenance: Provenance(
+            source: ProvenanceSource.callersbox,
+            importedAt: now,
+          ),
+        );
+        await repos.dances.create(existing);
+
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-link',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: [customFigure('neighbors balance and swing')], // SAME
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '22222',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.97, confident: true),
+          ]),
+        );
+
+        final result = await ContraDbOnline().import(
+          repos,
+          plan,
+          ambiguousResolution: DedupeResolution.link(existing.id),
+          now: now,
+        );
+
+        expect(result.kind, OnlineImportKind.created);
+        final saved = await repos.dances.listAll();
+        // Only the original dance exists — the incoming record updated it.
+        expect(saved, hasLength(1));
+        // The dance id is preserved (program slots still reference it).
+        expect(saved.first.id, existing.id);
+      },
+    );
+
+    test(
+      'confident match + identical figures + same source: falls through to duplicate (no prompt)',
+      () async {
+        // A same-source re-import with drifted externalId produces an ambiguous
+        // verdict (not reimport) but must NOT trigger the cross-source dialog.
+        // Guard: existing.provenance.source == incoming source → falls through.
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-id-same-source',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+          provenance: Provenance(
+            source: ProvenanceSource.contradb,
+            importedAt: now,
+          ),
+        );
+        await repos.dances.create(existing);
+
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-same-source',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: [customFigure('neighbors balance and swing')], // SAME
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '99999', // drifted
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.97, confident: true),
+          ]),
+        );
+
+        final result = await ContraDbOnline().import(repos, plan);
+
+        // Falls through: no prompt, second copy created.
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+      },
+    );
+
+    test(
+      'confident match + identical figures + null provenance (hand-entered): falls through to duplicate (no prompt)',
+      () async {
+        // A hand-entered dance has null provenance. Triggering the cross-source
+        // dialog for it would falsely assert "from a different source". Guard:
+        // existing.provenance == null → falls through to duplicate().
+        final repos = openTestRepositories();
+        final existing = Dance(
+          id: 'existing-id-hand-entered',
+          title: 'The Rendezvous',
+          form: DanceForm.contra,
+          formation: const Formation(FormationShape.dupleImproper),
+          status: DanceStatus.active,
+          figures: [customFigure('neighbors balance and swing')],
+          hook: '',
+          createdAt: now,
+          updatedAt: now,
+          // provenance: null — hand-entered
+        );
+        await repos.dances.create(existing);
+
+        final plan = ImportRecordPlan(
+          draft: StructuredDraft(
+            dance: Dance(
+              id: 'draft-hand-entered',
+              title: 'The Rendezvous',
+              form: DanceForm.contra,
+              formation: const Formation(FormationShape.dupleImproper),
+              status: DanceStatus.active,
+              figures: [customFigure('neighbors balance and swing')], // SAME
+              hook: '',
+              createdAt: now,
+              updatedAt: now,
+            ),
+            raw: const RawRecord(
+              source: ProvenanceSource.contradb,
+              externalId: '77777',
+              payload: '{}',
+            ),
+          ),
+          verdict: DedupeVerdict.ambiguous([
+            DedupeCandidate(danceId: existing.id, score: 0.97, confident: true),
+          ]),
+        );
+
+        final result = await ContraDbOnline().import(repos, plan);
+
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmationIdentical));
+        expect(result.kind, isNot(OnlineImportKind.needsConfirmation));
+        final saved = await repos.dances.listAll();
+        expect(saved, hasLength(2));
+      },
+    );
   });
 }

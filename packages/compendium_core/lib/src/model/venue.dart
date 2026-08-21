@@ -1,5 +1,7 @@
 import 'package:meta/meta.dart';
 
+import 'provenance.dart';
+
 /// A reusable venue (a hall, church, grange, festival site, …) that programs
 /// reference. A first-class entity like [Choreographer]/[PublishedSource] — many
 /// programs can be held at the same venue, so address/contact/schedule edits
@@ -39,6 +41,7 @@ class Venue {
     String? contact2Name,
     String? contact2Phone,
     String? contact2Email,
+    this.provenance,
   }) : address1 = _normalize(address1),
        address2 = _normalize(address2),
        city = _normalize(city),
@@ -129,11 +132,28 @@ class Venue {
   /// Secondary contact's email; nullable.
   final String? contact2Email;
 
+  /// Import provenance: where this venue record came from, under what
+  /// `(source, externalId)` pair. Null for user-created venues and for venues
+  /// imported before schema v26. When non-null, the importer can recognise a
+  /// previously-imported venue by its exact provenance key instead of relying
+  /// on the content fingerprint, enabling dedupe for shared bundles where the
+  /// postal address has been redacted.
+  final Provenance? provenance;
+
   /// A one-line human label for the venue — the app-side equivalent of CC's
   /// stored `VenueDisplay_c`, but computed (never persisted) so it always
   /// reflects the current fields. Concatenates [name], [address1], [city],
   /// [stateProv] and [country] (in that order), skipping any that are null,
   /// joined by ", ". Since [name] is always present, this is never empty.
+  ///
+  /// **Not safe on an export path as-is.** Four of those five fields
+  /// ([address1], [city], [stateProv], [country]) are classified
+  /// `EgressClass.deviceLocal` in the privacy registry, so this label carries
+  /// data that must not leave the device — reading it straight off a stored
+  /// record and putting the result in a shared file, printed page or clipboard
+  /// is a leak, and one that happened (issue #853). On-screen use is fine; that
+  /// is what the label is for. Any export must pass the venue through
+  /// `sanitizeVenueForShare` **first**, after which this collapses to [name].
   String get displayName =>
       [name, address1, city, stateProv, country].whereType<String>().join(', ');
 
@@ -191,6 +211,8 @@ class Venue {
     bool clearContact2Phone = false,
     String? contact2Email,
     bool clearContact2Email = false,
+    Provenance? provenance,
+    bool clearProvenance = false,
   }) => Venue(
     id: id,
     name: name ?? this.name,
@@ -228,6 +250,7 @@ class Venue {
     contact2Email: clearContact2Email
         ? null
         : (contact2Email ?? this.contact2Email),
+    provenance: clearProvenance ? null : (provenance ?? this.provenance),
   );
 
   @override

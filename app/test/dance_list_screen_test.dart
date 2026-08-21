@@ -1,12 +1,10 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -53,8 +51,6 @@ Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos, {
   Dialect? activeDialect,
-  ValueListenable<int>? refreshTrigger,
-  ValueNotifier<int>? collectionRefresh,
   bool sortIgnoreArticles = true,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
@@ -86,18 +82,13 @@ Future<void> _pumpScreen(
               notifier: notifier,
               child: SortIgnoreArticlesScope(
                 notifier: sortIgnoreArticlesNotifier,
-                child: collectionRefresh == null
-                    ? child!
-                    : CollectionRefreshScope(
-                        revision: collectionRefresh,
-                        child: child!,
-                      ),
+                child: child!,
               ),
             ),
           ),
         ),
       ),
-      home: DanceListScreen(refreshTrigger: refreshTrigger),
+      home: const DanceListScreen(),
     ),
   );
 }
@@ -143,6 +134,16 @@ Future<void> _addPhraseMove(
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
+  ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
+    final db = openWidgetTestDatabase();
+    addTearDown(db.close);
+    final dances = _CountingDances(db, contraTaxonomy);
+    return (
+      repos: CompendiumRepositories(db, contraTaxonomy, dances: dances),
+      dances: dances,
+    );
+  }
+
   testWidgets('shows a loading skeleton before data resolves', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
@@ -173,9 +174,11 @@ void main() {
     'renders title, authors, formation chip, and tags, with a live count',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Folk Process'),
       );
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Beginner-friendly'));
       await repos.dances.create(
         _dance(
@@ -272,9 +275,7 @@ void main() {
         _dance(id: 'd2', title: 'Zephyr', createdAt: DateTime.utc(2026)),
       );
 
-      final refreshTrigger = ValueNotifier<int>(0);
-      addTearDown(refreshTrigger.dispose);
-      await _pumpScreen(tester, repos, refreshTrigger: refreshTrigger);
+      await _pumpScreen(tester, repos);
       await tester.pumpAndSettle();
 
       // Opens in the seeded default (recently-added ⇒ newest first).
@@ -287,20 +288,231 @@ void main() {
       await tester.pumpAndSettle();
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
 
-      // A refresh re-runs _boot; the user's in-session sort must survive (the
-      // saved default must not re-seed over it).
-      refreshTrigger.value = 1;
+      // A refresh must not re-seed the saved default over the user's
+      // in-session choice.
+      //
+      // The refresh is driven by a WRITE, not by a notifier. This screen no
+      // longer takes a `refreshTrigger` (issue #768 moved it to
+      // `CollectionData.watch`), so bumping a notifier here would reach
+      // nothing and the assertion would hold for the trivial reason that
+      // nothing happened — a false green, which is what this test had become.
+      //
+      // The write has to reach the seeding path, which is narrower than "the
+      // stream emitted": `_afterFirstData` (and so `_seedDefaultSort`) runs
+      // only when the incoming snapshot could change the result set or its
+      // order. A first attempt at this test wrote a `tags` row — that emits,
+      // but leaves `dancesById` equal, so the seeding path never ran and the
+      // test was inert. The mutation run below is what exposed that.
+      //
+      // Editing an existing dance's non-title field does reach it, and cannot
+      // reorder a title sort, so the sort's survival is the only variable.
+      final edited = (await repos.dances.getById('d1'))!;
+      await repos.dances.update(edited.copyWith(callingNotes: 'edited'));
       await tester.pumpAndSettle();
       expect(_titles(tester), ['Aardvark', 'Zephyr']);
     },
   );
 
+  group('"Last used" default sort (issue #895)', () {
+    testWidgets(
+      'opens in the last-used sort AND direction when the default is '
+      '"Last used" — even when the stored key equals the historical default',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          kLastUsedSortSentinel,
+        );
+        // The stored last-used KEY is `title` — the same as the screen's
+        // initial `_sort` — so a key-only comparison (the pre-fix
+        // `sort != _sort` guard) would treat this as "nothing changed" and
+        // skip applying the stored DIRECTION, silently opening ascending
+        // instead of the descending direction actually last used. This is
+        // the half-restore trap recorded against `dance_list_screen.dart:589`.
+        await repos.settings.set(
+          kLastUsedCollectionSortKey,
+          CollectionSort.title.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortDirectionKey,
+          SortDirection.descending.name,
+        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Aardvark'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Zephyr'));
+
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Zephyr', 'Aardvark']);
+      },
+    );
+
+    testWidgets('a fixed (non-"Last used") default always opens at its natural '
+        'direction, regardless of what was last used in the list', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      // The default stays the fixed concrete sort `title`; only the
+      // last-used keys (which a "Last used" default would have read) carry
+      // a different direction. They must be ignored.
+      await repos.settings.set(
+        kDefaultCollectionSortKey,
+        CollectionSort.title.name,
+      );
+      await repos.settings.set(
+        kLastUsedCollectionSortKey,
+        CollectionSort.title.name,
+      );
+      await repos.settings.set(
+        kLastUsedCollectionSortDirectionKey,
+        SortDirection.descending.name,
+      );
+      await repos.dances.create(_dance(id: 'd1', title: 'Aardvark'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Zephyr'));
+
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(_titles(tester), ['Aardvark', 'Zephyr']);
+    });
+
+    testWidgets('changing the sort in-list persists it as last-used (key and '
+        'direction)', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+      await _pumpScreen(tester, repos);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.sort));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Recently added').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortKey),
+        CollectionSort.recentlyAdded.name,
+      );
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+        CollectionSort.recentlyAdded.searchSort.defaultDirection.name,
+      );
+
+      // Flipping the direction toggle persists the new direction under the
+      // same (unchanged) sort key.
+      await tester.tap(find.byKey(const ValueKey('collection-sort-direction')));
+      await tester.pumpAndSettle();
+
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortKey),
+        CollectionSort.recentlyAdded.name,
+      );
+      expect(
+        await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+        isNot(CollectionSort.recentlyAdded.searchSort.defaultDirection.name),
+      );
+    });
+
+    testWidgets(
+      'selecting "Best match" (relevance) during a bare full-text search '
+      'does not overwrite the stored last-used sort',
+      (tester) async {
+        final repos = openTestRepositories();
+        // A prior last-used value exists — the durable choice this guard
+        // exists to protect from an incidental, query-scoped selection.
+        await repos.settings.set(
+          kLastUsedCollectionSortKey,
+          CollectionSort.author.name,
+        );
+        await repos.settings.set(
+          kLastUsedCollectionSortDirectionKey,
+          SortDirection.ascending.name,
+        );
+        await repos.dances.create(_dance(id: 'd1', title: 'Alpha Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Beta Waltz'));
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+
+        // A bare full-text query makes "Best match" (relevance) available.
+        await _search(tester, 'Al');
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Best match').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          await repos.settings.get(kLastUsedCollectionSortKey),
+          CollectionSort.author.name,
+          reason:
+              'Relevance is only meaningful for the active bare-FTS query, '
+              'never a durable last-used choice; persisting it would erase '
+              'the sort the user was actually using.',
+        );
+        expect(
+          await repos.settings.get(kLastUsedCollectionSortDirectionKey),
+          SortDirection.ascending.name,
+        );
+      },
+    );
+
+    testWidgets(
+      'a late default-sort seed read does not clobber a sort the user already '
+      'chose in-session',
+      (tester) async {
+        final opened = openTestRepositoriesWithDelayedSettingsRead();
+        final repos = opened.repos;
+        final settings = opened.settings;
+        // A FIXED (non-"Last used") default: only `kDefaultCollectionSortKey`
+        // decides the seeded sort here, and — unlike the last-used keys —
+        // nothing the user does in the list writes back to it. So a stale
+        // read of it, resumed after the user has already chosen a different
+        // sort, is a genuine "old value overwrites a newer choice" race, not
+        // one the user's own write incidentally self-heals.
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          CollectionSort.recentlyAdded.name,
+        );
+        // Distinct `createdAt` values: with identical ones, `recentlyAdded`
+        // and `title` order would coincide for this data and the test could
+        // pass for the wrong reason regardless of whether the guard exists.
+        await repos.dances.create(
+          _dance(id: 'd1', title: 'Aardvark', createdAt: DateTime.utc(2025)),
+        );
+        await repos.dances.create(
+          _dance(id: 'd2', title: 'Zephyr', createdAt: DateTime.utc(2026)),
+        );
+
+        // Hold the seed's mode read open so the user can act while it is
+        // still in flight — the exact race `_sortUserSet` exists to guard.
+        settings.holdNextRead(kDefaultCollectionSortKey);
+        await _pumpScreen(tester, repos);
+        await tester.pumpAndSettle();
+        await settings.readStarted;
+
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Title').last);
+        await tester.pumpAndSettle();
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+
+        // Let the stale default-sort read resolve. It must not overwrite the
+        // user's in-session choice of Title with the fixed `recentlyAdded`
+        // default it was reading.
+        settings.releaseRead();
+        await tester.pumpAndSettle();
+
+        expect(_titles(tester), ['Aardvark', 'Zephyr']);
+      },
+    );
+  });
+
   testWidgets(
     'issue #340: a dance added externally with a new author appears — and the '
-    'new author joins the filter — after CollectionRefreshScope fires, without '
-    'a manual reload',
+    'new author joins the filter — from the collection stream, without a '
+    'manual reload',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Folk Process'),
       );
@@ -308,9 +520,7 @@ void main() {
         _dance(id: 'd1', title: 'Chase the Squirrel', authorIds: const ['c1']),
       );
 
-      final collectionRefresh = ValueNotifier<int>(0);
-      addTearDown(collectionRefresh.dispose);
-      await _pumpScreen(tester, repos, collectionRefresh: collectionRefresh);
+      await _pumpScreen(tester, repos);
       await tester.pumpAndSettle();
 
       // Baseline: only the seeded dance and its author are present.
@@ -337,18 +547,18 @@ void main() {
       await tester.pumpAndSettle();
 
       // Simulate an import: a new dance by a brand-new author lands in the
-      // collection out-of-band, then the app-level signal fires.
+      // collection out-of-band.
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c2', name: 'Grace Hopper'),
       );
       await repos.dances.create(
         _dance(id: 'd2', title: 'Petronella', authorIds: const ['c2']),
       );
-      collectionRefresh.value++;
       await tester.pumpAndSettle();
 
-      // The list re-booted: the imported dance shows and the count updated,
-      // with no navigation or manual reload.
+      // The stream delivered the imported dance and updated the count, with no
+      // navigation or manual reload.
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('2 dances'), findsOneWidget);
 
@@ -370,6 +580,41 @@ void main() {
       expect(find.text('Petronella'), findsOneWidget);
       expect(find.text('Chase the Squirrel'), findsNothing);
       expect(find.text('1 dance'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'issue #768 guard: a batch rating change reloads the collection once via '
+    'the stream, not a second time through a manual reload path',
+    (tester) async {
+      final counted = countingRepos();
+      await counted.repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+      await _pumpScreen(tester, counted.repos);
+      await tester.pumpAndSettle();
+
+      expect(counted.dances.loads, 1, reason: 'initial CollectionData.load');
+
+      await tester.tap(find.byKey(const ValueKey('batch-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-set-rating')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-rating-option-4')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('batch-rating-confirm')));
+      await tester.pumpAndSettle();
+
+      expect((await counted.repos.dances.getById('d1'))!.rating, 4);
+      expect(
+        counted.dances.loads,
+        2,
+        reason:
+            'one write must trigger one reload from CollectionData.watch, with '
+            'no extra manual reload on top of the stream',
+      );
     },
   );
 
@@ -476,8 +721,35 @@ void main() {
     expect(find.text('1 dance'), findsOneWidget);
   });
 
+  testWidgets('title scope excludes figure-only matches', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'title', title: 'Swing Title'));
+    await repos.dances.create(
+      _dance(
+        id: 'figure',
+        title: 'Plain Title',
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Title').last);
+    await tester.pumpAndSettle();
+    await _search(tester, 'swing');
+
+    expect(find.text('Swing Title'), findsOneWidget);
+    expect(find.text('Plain Title'), findsNothing);
+  });
+
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Classic'));
     await repos.dances.create(
       _dance(id: 'd1', title: 'Chase the Squirrel', tagIds: const ['t1']),
@@ -497,6 +769,7 @@ void main() {
 
   testWidgets('different facets AND together', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Classic'));
     // contra + t1  → matches; square + t1 → no; contra + no tag → no.
     await repos.dances.create(
@@ -524,8 +797,11 @@ void main() {
 
   testWidgets('multiple tags OR within the tag facet', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Alpha'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Beta'));
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't3', name: 'Gamma'));
     await repos.dances.create(
       _dance(id: 'a', title: 'Has Alpha', tagIds: const ['t1']),
@@ -550,6 +826,7 @@ void main() {
 
   testWidgets('a choice custom-field facet filters the list', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'diff',
@@ -587,7 +864,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha Chase'));
 
     await _pumpScreen(tester, repos);
     await tester.pumpAndSettle();
@@ -599,8 +876,8 @@ void main() {
     await tester.tapAt(const Offset(10, 10)); // dismiss the menu
     await tester.pumpAndSettle();
 
-    // Bare full-text query → relevance offered.
-    await _search(tester, 'chase');
+    // A short bare full-text query uses the prefix index and keeps relevance.
+    await _search(tester, 'Al');
     await tester.tap(find.byIcon(Icons.sort));
     await tester.pumpAndSettle();
     expect(find.text('Best match'), findsOneWidget);
@@ -1182,6 +1459,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1210,6 +1488,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1229,6 +1508,7 @@ void main() {
 
     testWidgets('No grouping returns to the flat list', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1254,6 +1534,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Bouncy'));
       await repos.dances.create(
         _dance(id: 'a', title: 'Apple', tagIds: const ['t1']),
@@ -1272,4 +1553,16 @@ void main() {
       expect(find.bySemanticsLabel('Other, 1 dance'), findsOneWidget);
     });
   });
+}
+
+class _CountingDances extends DanceRepository {
+  _CountingDances(super.db, super.taxonomy);
+
+  int loads = 0;
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) {
+    loads++;
+    return super.listAll(includeDeleted: includeDeleted);
+  }
 }

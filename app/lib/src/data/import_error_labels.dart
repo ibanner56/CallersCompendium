@@ -1,5 +1,6 @@
 import '../../l10n/app_localizations.dart';
 import 'import_io.dart';
+import 'title_list_import.dart';
 
 /// Localized presentation of the typed import/fetch errors and import-source
 /// labels raised by the Flutter-free data layer (`import_io.dart`,
@@ -110,4 +111,51 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
       ImportSourceKind.contraDb => l10n.importSourceLabelContraDb,
       ImportSourceKind.callersCompanionUsr =>
         l10n.importSourceLabelCallersCompanionUsr,
+      ImportSourceKind.titleList => l10n.importSourceLabelTitleList,
+      ImportSourceKind.publishedCollection =>
+        l10n.importSourceLabelPublishedCollection,
     };
+
+/// Localized refusal for a pasted title list that tripped a hard cap
+/// ([TitleListTooLargeException]).
+///
+/// The paste is refused outright rather than truncated, so the too-many-titles
+/// message names the cap and how many titles were actually pasted, letting the
+/// user see how far over they are instead of guessing.
+///
+/// The raw-size refusal deliberately names **no** number: it caps the *length of
+/// the pasted text*, not the number of titles, and a paste of very long lines
+/// can trip it with far fewer than [kMaxTitleListTitles] titles — so citing that
+/// limit would misdescribe why the paste was refused (raised in review of PR
+/// #842). Note the cap is in UTF-16 code units, not bytes.
+String titleListTooLargeMessage(
+  AppLocalizations l10n,
+  TitleListTooLargeException error,
+) => switch (error.rejection) {
+  TitleListRejection.tooManyTitles => l10n.importTitleListTooManyTitles(
+    error.count,
+    kMaxTitleListTitles,
+  ),
+  TitleListRejection.textTooLong => l10n.importTitleListTextTooLong,
+};
+
+/// Localized explanation of why a pasted title produced nothing importable
+/// (issue #823).
+///
+/// These are kept distinct rather than collapsed into one "not found" because
+/// they call for different follow-up: a fetch error is worth retrying, a title
+/// the source has never heard of is not, and several exact matches means the
+/// source *has* it but cannot say which one was meant. Like every other message
+/// here they are generic prose — no URL, no raw server text (CWE-209).
+String titleListNotFoundReasonMessage(
+  AppLocalizations l10n,
+  TitleListNotFoundReason reason,
+) => switch (reason) {
+  TitleListNotFoundReason.noResults => l10n.importTitleListReasonNoResults,
+  TitleListNotFoundReason.noExactMatch =>
+    l10n.importTitleListReasonNoExactMatch,
+  TitleListNotFoundReason.multipleExactMatches =>
+    l10n.importTitleListReasonMultipleExactMatches,
+  TitleListNotFoundReason.fetchError => l10n.importTitleListReasonFetchError,
+  TitleListNotFoundReason.lineTooLong => l10n.importTitleListReasonLineTooLong,
+};

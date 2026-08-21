@@ -107,6 +107,14 @@ are grouped as a **Meanwhile**, with one side per simultaneous figure, sharing a
 single beat count instead of adding up. See
 [Write & edit dances](./authoring.md#meanwhile-figures).
 
+## Mixer
+
+A dance in which you **change partners** each time through, so over the course
+of the dance you dance with many different people rather than staying with one
+partner. It's a property you can set on any dance in the editor, kept separate
+from the [formation](#formation): a mixer can be danced in many shapes, and not
+every circle dance is a mixer. (Nothing to do with an audio or kitchen mixer.)
+
 ## Move
 
 The underlying named action behind a [figure](#figure) — for example a swing, a

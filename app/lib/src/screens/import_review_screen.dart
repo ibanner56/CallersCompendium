@@ -3,14 +3,18 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/collection_refresh_scope.dart';
+import '../data/callersbox_online.dart';
 import '../data/import_diagnostic_labels.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
+import '../data/online_search.dart';
+import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
+import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/figure_diff_view.dart';
 import 'dance_editor_screen.dart';
@@ -54,22 +58,38 @@ class SharedBundleImport {
   final int entityCount;
 }
 
+/// A verified published archive seeded directly into the review flow. The
+/// archive bytes were authenticated by the catalog service; this class only
+/// carries the decoded text and manifest-authoritative metadata to planning.
+@immutable
+class PublishedCollectionSeed {
+  const PublishedCollectionSeed({required this.json, required this.metadata});
+
+  final String json;
+  final PublishedCollectionMetadata metadata;
+}
+
 /// The adapter-agnostic in-app import experience (ROADMAP 6.3): pick or paste a
 /// source payload, [ImportPipeline.plan] it non-destructively, review every
 /// discovered record (with its parse quality, issues, and dedupe verdict),
 /// resolve any ambiguous matches, commit, and offer an undo.
 ///
 /// The screen takes a list of selectable [ImportSource]s so it is not tied to
-/// any one source; this wires the generic [GenericJsonAdapter] ("Caller's
-/// Compendium JSON", the default), the [CallersBoxAdapter] ("The Caller's Box"),
-/// the [ContraDbHtmlAdapter] ("ContraDB"), and the byte-based
+/// any one source; this wires a pasted list of dance titles ("a list of titles",
+/// issue #823), the [CallersBoxAdapter] ("The Caller's Box", the source selected
+/// on open), the [ContraDbHtmlAdapter] ("ContraDB"), the generic
+/// [GenericJsonAdapter] ("Caller's Compendium JSON"), and the byte-based
 /// [CallersCompanionUsrAdapter] ("a Caller's Companion .USR file"). The `.USR`
 /// source picks a binary file (bytes, not text) and — uniquely — commits and
 /// undoes **programs** alongside dances via [CallersCompanionUsrImporter]; every
-/// other source is dance-only text. The user picks the source explicitly (a
-/// dropdown) so a bare id — which has no host to auto-detect — routes
-/// unambiguously. A fresh adapter is built per plan because adapters may hold
-/// per-discovery state.
+/// other source is dance-only. The title-list source is the only one whose
+/// payload is typed rather than picked or fetched, and the only one that plans
+/// through [resolveTitleList] instead of an adapter — but it still commits
+/// through the same review/consent step as everything else, so nothing it
+/// resolves is written until the user confirms. The user picks the source
+/// explicitly (a dropdown) so a bare id — which has no host to auto-detect —
+/// routes unambiguously. A fresh adapter is built per plan because adapters may
+/// hold per-discovery state.
 class ImportReviewScreen extends StatefulWidget {
   const ImportReviewScreen({
     super.key,
@@ -77,11 +97,32 @@ class ImportReviewScreen extends StatefulWidget {
     this.picker,
     this.bytePicker,
     this.fetcher,
+    this.onlineService,
     this.onClose,
     this.sharedBundle,
-  }) : assert(sources.length > 0, 'at least one import source is required');
+    this.publishedCollection,
+    this.programAmbiguousImport,
+    this.onProgramCommitted,
+  }) : assert(sources.length > 0, 'at least one import source is required'),
+       assert(
+         programAmbiguousImport == null || onProgramCommitted != null,
+         'programAmbiguousImport requires onProgramCommitted — otherwise a '
+         'committed candidate can never be linked back into its program slot',
+       ),
+       assert(
+         programAmbiguousImport == null || sharedBundle == null,
+         'programAmbiguousImport and sharedBundle are two different seeding '
+         'paths and are never combined by any caller',
+       ),
+       assert(
+         publishedCollection == null ||
+             (sharedBundle == null && programAmbiguousImport == null),
+         'publishedCollection is a standalone verified seed',
+       );
 
-  /// The selectable import sources; the first is selected by default.
+  /// The selectable import sources. The screen opens on the one marked
+  /// [ImportSource.preselected], falling back to the first when none is —
+  /// order and default selection are deliberately separate (issue #823).
   final List<ImportSource> sources;
 
   /// Test seam for choosing a file; defaults to [pickImportFile] (native
@@ -97,6 +138,11 @@ class ImportReviewScreen extends StatefulWidget {
   /// GET). Widget tests inject canned text or a throwing fake so no real
   /// network call is made.
   final UrlFetcher? fetcher;
+
+  /// Test seam for the online source a pasted title list is resolved against;
+  /// defaults to a real [CallersBoxOnline]. Widget tests inject a fake so no
+  /// real search or per-dance fetch is made.
+  final OnlineSearchService? onlineService;
 
   /// Invoked to dismiss the screen when it is **embedded** (e.g. in the
   /// Collection blade's detail pane) rather than pushed as a route.
@@ -115,6 +161,25 @@ class ImportReviewScreen extends StatefulWidget {
   /// offers a transient Undo snackbar. When null the screen behaves exactly as
   /// the manual import flows do.
   final SharedBundleImport? sharedBundle;
+
+  /// A verified signed collection whose archive should open directly in review.
+  final PublishedCollectionSeed? publishedCollection;
+
+  /// Program-import lines online resolution could not confidently resolve
+  /// (issue #943), pre-previewed non-committingly. When non-null the screen
+  /// seeds these as review rows — one per candidate, grouped under their
+  /// pasted line — skipping the manual input phase entirely (mirrors
+  /// [sharedBundle]'s seeding). Never combined with [sharedBundle] by any
+  /// caller. Requires [onProgramCommitted].
+  final ProgramAmbiguousImport? programAmbiguousImport;
+
+  /// Invoked once, right before the screen dismisses, after a successful
+  /// (non-undone) commit of a [programAmbiguousImport] seed. Keys are
+  /// [ProgramAmbiguousLine.originalLineIndex]; a line absent from the map had
+  /// no candidate committed (every candidate was left at skip, or none
+  /// previewed) and stays a note. Never invoked when [programAmbiguousImport]
+  /// is null.
+  final void Function(Map<int, String> danceIdsByLineIndex)? onProgramCommitted;
 
   @override
   State<ImportReviewScreen> createState() => _ImportReviewScreenState();
@@ -147,9 +212,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   late final CompendiumRepositories _repos;
   bool _started = false;
 
-  /// The currently selected import source (defaults to the first). Governs
-  /// which adapter parses the payload and how URL-mode input is transformed.
-  late ImportSource _selected = widget.sources.first;
+  /// The currently selected import source. Defaults to the source that marks
+  /// itself [ImportSource.preselected], falling back to the first — order and
+  /// default selection are deliberately separate (issue #823), so the dropdown
+  /// can lead with the title list while the screen opens on The Caller's Box.
+  ///
+  /// The "at most one preselected" precondition is asserted in [initState]
+  /// rather than the constructor, because the check is not a potentially-const
+  /// expression and [ImportReviewScreen]'s constructor is `const`.
+  late ImportSource _selected = widget.sources.firstWhere(
+    (s) => s.preselected,
+    orElse: () => widget.sources.first,
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    assert(
+      // `preselected` names the one source the screen opens on. Two of them
+      // would silently make the choice order-dependent again — the exact
+      // coupling `preselected` exists to break (issue #823) — so fail fast
+      // rather than let a custom or refactored list decide by position.
+      widget.sources.where((s) => s.preselected).length <= 1,
+      'at most one import source may be preselected',
+    );
+    _pasteController.addListener(_onPasteChanged);
+  }
 
   /// Set once the user picks a source from the dropdown themselves. After that
   /// the URL field stops auto-detecting/overriding the source (manual choice
@@ -167,9 +255,132 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// sources plan/commit from these bytes instead of [_pasteController]'s text.
   Uint8List? _payloadBytes;
 
+  /// A [SharedBundleImport] decoded from the current paste-field text when
+  /// that text is a valid [CompendiumArchive] that carries programs.
+  /// Maintained by [_onPasteChanged], which fires on every controller change
+  /// (programmatic or user). Null when the text is absent, not an archive,
+  /// or decodes to an archive with no programs.
+  ///
+  /// **Never write directly.** [_onPasteChanged] is the sole writer; it keeps
+  /// this in sync with [_pasteController.text] automatically.
+  SharedBundleImport? _cachedPickedBundle;
+
+  /// The text value that produced [_cachedPickedBundle]. Used by
+  /// [_onPasteChanged] to skip a re-decode when the text has not changed.
+  String _lastDecodedText = '';
+
+  /// Returns [_cachedPickedBundle], which is always in sync with the current
+  /// paste-field text. Non-null only when the paste field holds a valid
+  /// [CompendiumArchive] with programs.
+  ///
+  /// Manual-picker shared-bundle sites route through this accessor so they
+  /// cannot diverge from each other.
+  SharedBundleImport? get _effectivePickedBundle => _cachedPickedBundle;
+
+  /// The shared-bundle archive represented by the current paste-field text.
+  ///
+  /// The immutable [widget.sharedBundle] is authoritative only while the text is
+  /// still the JSON seeded by the share target. After "Try another" returns the
+  /// user to the editable input and they change the text, routing must follow
+  /// the listener-maintained live decode instead of silently committing the
+  /// original shared bundle (issue #880).
+  SharedBundleImport? get _effectiveSharedBundle {
+    final sharedBundle = widget.sharedBundle;
+    if (sharedBundle != null && _pasteController.text == sharedBundle.json) {
+      return sharedBundle;
+    }
+    return _effectivePickedBundle;
+  }
+
+  /// Listener registered on [_pasteController] in [initState]. Re-decodes the
+  /// paste-field text whenever it changes and updates [_cachedPickedBundle].
+  ///
+  /// A cheap pre-screen (`contains('"programs"')`) skips the full decode for
+  /// text that cannot possibly be an archive with programs — title lists, plain
+  /// JSON, and any bundle without programs. This screens out all text this app
+  /// serialises that does not carry programs. It does not guarantee that every
+  /// text that passes the screen is valid (a parse error leaves [bundle] null),
+  /// and it does not handle JSON with escaped key characters (`\u0070rograms`),
+  /// which no [CompendiumArchive] serialiser produces but a conforming JSON
+  /// parser would accept. That edge is near-zero in practice and is not handled.
+  void _onPasteChanged() {
+    final text = _pasteController.text;
+    if (text == _lastDecodedText) return;
+    _lastDecodedText = text;
+    SharedBundleImport? bundle;
+    if (text.contains('"programs"')) {
+      try {
+        final result = decodeArchive(text);
+        final hasRootError = result.errors.any(
+          (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
+        );
+        if (!hasRootError && result.archive.programs.isNotEmpty) {
+          bundle = SharedBundleImport(
+            json: text,
+            archive: result.archive,
+            entityCount: compendiumArchiveEntityCount(result.archive),
+          );
+        }
+      } catch (_) {
+        // diagnostics: silent — not a decodable archive; leave bundle null,
+        // the dance-only path handles it unchanged and GenericJsonAdapter will
+        // report the error at plan time (which is logged there instead).
+      }
+    }
+    // The listener fires synchronously inside TextEditingController.value =,
+    // which is called before the onChanged callback at the TextField. That
+    // callback calls setState(), which schedules a rebuild. Because the
+    // listener fires first, _cachedPickedBundle is already current by the time
+    // the rebuild reads it from the build-path sites (_buildReview,
+    // _showSoftCapWarning, _buildSoftCapWarning, _buildRow). Do not call
+    // setState here: the rebuild is already scheduled by onChanged, and calling
+    // it a second time from the listener would double-schedule unnecessarily.
+    // If the onChanged setState were ever removed, this listener would need its
+    // own setState to trigger a rebuild for the build-path reads.
+    _cachedPickedBundle = bundle;
+  }
+
   /// True when the selected source imports from a picked binary file rather than
   /// pasted/fetched text (governs the input UI and which plan path runs).
   bool get _isByteSource => _selected.bytePicker != null;
+
+  /// True when the selected source's payload is typed by the user rather than
+  /// picked or fetched (the pasted title list, issue #823). Governs the input
+  /// affordances and routes planning through [resolveTitleList] instead of an
+  /// adapter.
+  bool get _isPastedTextSource => _selected.pastedTextOnly;
+
+  /// The resolved pasted title list awaiting review, or `null` for every other
+  /// source. Carries the rows for titles that produced nothing importable, which
+  /// have no place in [_batch] but must still be shown (issue #823).
+  ///
+  /// Changed **only** in lockstep with [_batch] — set by [_adoptBatch], cleared
+  /// by [_resetToInput] — so it never describes a batch other than the one under
+  /// review. Assigning it anywhere else reintroduces the leak raised in review of
+  /// PR #842, where a resolution outlived its plan and another source's review
+  /// rendered this one's already-owned / not-found groups and summary counts.
+  TitleListResolution? _titleList;
+
+  /// Row index → [ProgramAmbiguousLine.originalLineIndex], for a row seeded
+  /// from [ImportReviewScreen.programAmbiguousImport]; empty list otherwise.
+  /// Parallel to `_batch.records` — index `i` here describes `_batch!.records[i]`.
+  /// Rows sharing the same line index are the candidates for one pasted
+  /// program line, in the order [buildProgramAmbiguousImport] previewed them.
+  List<int> _programLineOfRow = const [];
+
+  /// Progress through the title-list online lookups as `(done, total)`, or
+  /// `null` when no title-list resolution is running.
+  (int, int)? _titleListProgress;
+
+  /// Set when the user cancels an in-flight title-list resolution; read by the
+  /// resolver between titles so the run stops without issuing further requests.
+  /// Nothing is ever written during resolution, so a cancel simply discards the
+  /// partial work.
+  bool _titleListCancelled = false;
+
+  /// User-presentable message from the last refused paste (a hard cap tripped),
+  /// or `null`.
+  String? _titleListError;
 
   /// The source URL the current payload was fetched from, stashed on
   /// [ImportRequest.uri] for provenance. Cleared whenever the payload is
@@ -212,20 +423,41 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _started = true;
       _repos = RepositoriesScope.of(context);
       final bundle = widget.sharedBundle;
-      if (bundle != null) {
+      final published = widget.publishedCollection;
+      if (published != null) {
+        _lastDecodedText = published.json;
+        _pasteController.text = published.json;
+        _sourceUri = null;
+        _plan();
+      } else if (bundle != null) {
         // Share-target intake (issue #432): the bundle was already decoded and
         // validated Dart-side. Seed it and plan immediately so the user lands
         // on the review/consent list — skipping the manual input phase — with
         // nothing written until they confirm.
+        //
+        // Prime _lastDecodedText before the controller write so _onPasteChanged
+        // short-circuits at the identity check and skips the redundant decode.
+        // _cachedPickedBundle stays null, which is correct: while the text is
+        // unchanged, _effectiveSharedBundle returns widget.sharedBundle without
+        // consulting the cache. If the user edits after "Try another", the
+        // listener decodes the new text and _effectiveSharedBundle follows it.
+        _lastDecodedText = bundle.json;
         _pasteController.text = bundle.json;
         _sourceUri = null;
         _plan();
+      } else if (widget.programAmbiguousImport != null) {
+        // Program-import fallback ambiguity (issue #943): skip the manual
+        // input phase entirely, mirroring the sharedBundle seeding above —
+        // there is no adapter to run, only already-previewed candidates to
+        // lay out for review.
+        _adoptProgramAmbiguousSeed(widget.programAmbiguousImport!);
       }
     }
   }
 
   @override
   void dispose() {
+    _pasteController.removeListener(_onPasteChanged);
     _pasteController.dispose();
     _urlController.dispose();
     super.dispose();
@@ -242,11 +474,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _pasteController.text = text;
       // A freshly picked file replaces any URL-sourced payload; drop stale
       // provenance so this import is recorded as file/paste (uri == null).
+      // _onPasteChanged fires synchronously and updates _cachedPickedBundle.
       _sourceUri = null;
-      setState(() {});
-    } on ImportFileTooLargeException catch (e) {
+    } on ImportFileTooLargeException catch (e, stackTrace) {
       // Untrusted input rejected before it was read into memory — tell the user
       // plainly (accessible SnackBar) and leave the input untouched.
+      logCaughtError(e, stackTrace, source: 'import_review_screen._chooseFile');
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
@@ -272,7 +505,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       final bytes = await picker();
       if (!mounted || bytes == null) return;
       setState(() => _payloadBytes = bytes);
-    } on ImportFileTooLargeException catch (e) {
+    } on ImportFileTooLargeException catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._chooseUsrFile',
+      );
       messenger.showSnackBar(
         SnackBar(
           key: const ValueKey('import-file-too-large'),
@@ -293,7 +531,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final String target;
     try {
       target = _selected.urlBuilder?.call(input) ?? input;
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._fetchFromUrl.buildUrl',
+      );
       setState(() => _fetchError = importErrorMessage(l10n, e));
       return;
     }
@@ -310,16 +553,29 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // the human URL/id the user typed.
         _sourceUri = target;
       });
-    } on UrlFetchException catch (e) {
+    } on UrlFetchException catch (e, stackTrace) {
       if (!mounted) return;
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._fetchFromUrl.fetch',
+      );
       setState(() => _fetchError = importErrorMessage(l10n, e));
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (!mounted) return;
       // Never surface the raw error to the user (CWE-209); keep it for debug
       // logging only and show a generic, localized fetch-failure message.
       if (kDebugMode) {
         debugPrint('Import URL fetch failed: $e');
       }
+      // Same CWE-209 caution as the debug-only print above: an arbitrary
+      // fetch-transport error is not known log-safe, so only its shape is
+      // recorded (issue #963).
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._fetchFromUrl.fetch',
+      );
       setState(() => _fetchError = l10n.importErrorUnreachable);
     } finally {
       if (mounted) setState(() => _fetching = false);
@@ -334,6 +590,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     } else if (payload.trim().isEmpty) {
       return;
     }
+    if (_isPastedTextSource) return _planTitleList(payload);
     setState(() {
       _phase = _Phase.planning;
       _planError = null;
@@ -351,26 +608,200 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         request,
         index: index,
       );
-      final titles = {
-        for (final e in await _repos.dances.listIdsAndTitles()) e.id: e.title,
-      };
-      final confidentDiffs = await _computeConfidentDiffs(batch);
+      await _adoptBatch(batch);
+    } catch (e, stackTrace) {
       if (!mounted) return;
-      setState(() {
-        _batch = batch;
-        _titlesById = titles;
-        _confidentDiffs = confidentDiffs;
-        _choices = [for (final plan in batch.records) _defaultChoice(plan)];
-        _committed.clear();
-        _phase = _Phase.review;
-      });
-    } catch (e) {
-      if (!mounted) return;
+      // `payload`/`bytes` here is the raw pasted/fetched/file content the user
+      // supplied; a parse error from `pipeline.plan` (e.g. an adapter's own
+      // ArchiveError) can echo fragments of it (see `docs/dev/localization.md`
+      // on `ArchiveError(message:)` carrying internal diagnostics). It's
+      // neither redacted by `CrashRedactor` (which only strips DB-known
+      // content, emails/phones/paths) nor DB-derived, so only the error's
+      // shape is recorded here, not its message (issue #963).
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._plan',
+      );
       setState(() {
         _planError = e;
         _phase = _Phase.review;
       });
     }
+  }
+
+  /// Plans a pasted list of dance titles (issue #823): each title is matched
+  /// against the local collection and, failing that, looked up online and
+  /// previewed — but **never committed**. The importable results become ordinary
+  /// review rows with the usual dedupe verdicts and per-row actions; the titles
+  /// that produced nothing importable are kept in [_titleList] and rendered as
+  /// their own informative groups, so no pasted title silently vanishes.
+  ///
+  /// A hard cap trips before any network access and leaves the user on the input
+  /// screen with the list intact.
+  Future<void> _planTitleList(String payload) async {
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _phase = _Phase.planning;
+      _planError = null;
+      _titleListError = null;
+      _titleListCancelled = false;
+      // Deliberately NOT (0, 0): how many titles need looking up isn't known
+      // until the local-match stage has run, and a paste where everything is
+      // already in the collection never looks up any. Staying null keeps the
+      // generic spinner until the first real progress report arrives.
+      _titleListProgress = null;
+    });
+    try {
+      final resolution = await resolveTitleList(
+        payload,
+        service: widget.onlineService ?? CallersBoxOnline(),
+        repos: _repos,
+        onProgress: (done, total) {
+          if (!mounted || total == 0) return;
+          setState(() => _titleListProgress = (done, total));
+        },
+        isCancelled: () => _titleListCancelled || !mounted,
+      );
+      if (!mounted) return;
+      await _adoptBatch(resolution.batch, titleList: resolution);
+    } on TitleListTooLargeException catch (e, stackTrace) {
+      if (!mounted) return;
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'import_review_screen._planTitleList',
+      );
+      setState(() {
+        _resetToInput();
+        _titleListError = titleListTooLargeMessage(l10n, e);
+      });
+    } on TitleListCancelled {
+      // diagnostics: silent — user-initiated cancellation (the `isCancelled`
+      // callback tripped), not a failure; nothing to log.
+      if (!mounted) return;
+      setState(_resetToInput);
+    } catch (e, stackTrace) {
+      if (!mounted) return;
+      // Same pasted-content caution as `_plan` above: `payload` is raw pasted
+      // text, so only the error's shape is recorded, not its message.
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'import_review_screen._planTitleList',
+      );
+      setState(() {
+        _planError = e;
+        _phase = _Phase.review;
+        _titleListProgress = null;
+      });
+    }
+  }
+
+  /// Adopts a freshly planned [batch] into the review phase: default choices,
+  /// the local title lookup for candidate names, and the issue #686 confident
+  /// diffs. Shared by the adapter path and the title-list path so the two can
+  /// never drift in how a planned record is presented.
+  ///
+  /// [titleList] is the pasted-title resolution that produced [batch], or null
+  /// for every other source. It is assigned **here**, alongside `_batch`, rather
+  /// than by the caller, so the invariant *"`_titleList` always describes the
+  /// current `_batch`"* holds by construction: adopting any batch without one
+  /// clears it. A `_titleList` that outlived its plan would render another
+  /// source's review with this one's already-owned / not-found groups and
+  /// summary counts (raised in review of PR #842).
+  ///
+  /// That leak is **latent today, not live**: `_titleList` only becomes non-null
+  /// immediately before this method moves the screen to [_Phase.review], and
+  /// there is no route from a *successful* review back to [_Phase.input] — the
+  /// only returns are the cap refusal and the cancel (which clears it), plus the
+  /// error screen's "try another", which is unreachable after a success. So no
+  /// plan can currently start with a stale value. Coupling the two assignments
+  /// is deliberate precisely because that argument is incidental: adding a
+  /// back-to-input affordance to the grouped review — a plausible next change —
+  /// would otherwise make the leak live, and nothing would have caught it.
+  Future<void> _adoptBatch(
+    ImportBatchResult batch, {
+    TitleListResolution? titleList,
+  }) async {
+    final titles = batch.records.isEmpty
+        // Nothing to review means nothing to name: `_titlesById` only labels
+        // candidate/re-import targets on a row, so loading the collection's
+        // titles for an empty batch is a read whose result is never read.
+        ? const <String, String>{}
+        : {
+            for (final e in await _repos.dances.listIdsAndTitles())
+              e.id: e.title,
+          };
+    final confidentDiffs = await _computeConfidentDiffs(batch);
+    if (!mounted) return;
+    setState(() {
+      _batch = batch;
+      // Set together with _batch, never separately — see this method's doc.
+      _titleList = titleList;
+      _titlesById = titles;
+      _confidentDiffs = confidentDiffs;
+      _choices = [for (final plan in batch.records) _defaultChoice(plan)];
+      _committed.clear();
+      _titleListProgress = null;
+      _phase = _Phase.review;
+    });
+  }
+
+  /// Seeds the review directly from a [ProgramAmbiguousImport] (issue #943):
+  /// flattens every line's previewed candidates into one batch, in line order,
+  /// via [_adoptBatch] — then forces every row's choice to skip regardless of
+  /// its verdict's usual default. Unlike every other source, nothing here
+  /// should ever auto-select: an ambiguous program line has no single
+  /// "obvious" candidate by definition (that is precisely why it is
+  /// ambiguous), so [_defaultChoice]'s isNew → create default would otherwise
+  /// silently import the FIRST candidate of every line the instant the review
+  /// opens.
+  Future<void> _adoptProgramAmbiguousSeed(ProgramAmbiguousImport seed) async {
+    final records = <ImportRecordPlan>[];
+    final lineOfRow = <int>[];
+    for (final line in seed.lines) {
+      for (final plan in line.candidates) {
+        records.add(plan);
+        lineOfRow.add(line.originalLineIndex);
+      }
+    }
+    await _adoptBatch(ImportBatchResult(records: records));
+    if (!mounted) return;
+    setState(() {
+      _programLineOfRow = lineOfRow;
+      for (final choice in _choices) {
+        choice.kind = _ActionKind.skip;
+      }
+    });
+  }
+
+  /// Returns to the input step, discarding the planned batch and everything
+  /// describing it.
+  ///
+  /// The counterpart to [_adoptBatch]: that method sets [_batch] and
+  /// [_titleList] together, this one clears them together. **Every** path back
+  /// to [_Phase.input] routes through here — both back-to-input buttons, the
+  /// cap refusal, and the cancel — because clearing discipline spread across
+  /// call sites is precisely what caused the leak raised in review of PR #842,
+  /// and a manual exit that merely *looks* equivalent is how the same defect
+  /// came back a second time. A fifth exit added later gets the invariant for
+  /// free.
+  ///
+  /// Deliberately does not clear [_titleListError]: the cap refusal resets and
+  /// *then* sets it, and the message belongs to the input step it returns to.
+  ///
+  /// Caller is responsible for being inside a [setState].
+  void _resetToInput() {
+    _phase = _Phase.input;
+    _batch = null;
+    _titleList = null;
+    _programLineOfRow = const [];
+    _titleListProgress = null;
+    _planError = null;
+    // _cachedPickedBundle is maintained by _onPasteChanged and does not need
+    // explicit clearing here; it stays valid as long as the paste text is
+    // unchanged, and will update if the text is later modified.
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -490,12 +921,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     }
   }
 
-  /// Builds the batch actually committed plus its resolutions map; skipped rows
-  /// are omitted so nothing is written for them.
-  (ImportBatchResult, Map<int, DedupeResolution>, int) _buildCommitBatch() {
+  /// Builds the batch actually committed plus its resolutions map; skipped
+  /// rows are omitted so nothing is written for them. Also returns, in acted
+  /// order, which original row index produced each acted entry — needed by
+  /// [_commit] to map a [ImportReviewScreen.programAmbiguousImport] seed's
+  /// committed ids back to its line indices (issue #943).
+  ///
+  /// Within one program-ambiguity line ([_programLineOfRow]), only the FIRST
+  /// non-skip row is honoured — including one already committed via the
+  /// per-row Edit action. A user who set more than one candidate to a
+  /// non-skip action would otherwise import the same pasted line twice, which
+  /// [ProgramAmbiguousLine]'s own doc comment says can never happen. This is a
+  /// backstop, not a UI affordance: the candidate rows have no mutual-exclusion
+  /// control of their own, and every one is an ordinary review row.
+  (ImportBatchResult, Map<int, DedupeResolution>, int, List<int>)
+  _buildCommitBatch() {
     final batch = _batch!;
     final acted = <ImportRecordPlan>[];
+    final actedRowIndices = <int>[];
     final resolutions = <int, DedupeResolution>{};
+    // Seed with lines whose candidate already committed via per-row Edit, so
+    // a different candidate for the same line can never ALSO import here.
+    final decidedProgramLines = <int>{
+      for (var i = 0; i < batch.records.length; i++)
+        if (_committed.contains(i) && i < _programLineOfRow.length)
+          _programLineOfRow[i],
+    };
     var skipped = 0;
     for (var i = 0; i < batch.records.length; i++) {
       // Rows already committed via the per-row Edit action are excluded so the
@@ -506,12 +957,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         skipped++;
         continue;
       }
+      if (i < _programLineOfRow.length &&
+          !decidedProgramLines.add(_programLineOfRow[i])) {
+        // Another candidate for this line already committed to a non-skip
+        // choice (or committed on its own via Edit); this one no-ops.
+        skipped++;
+        continue;
+      }
       final (plan, resolution) = planned;
       final j = acted.length;
       acted.add(plan);
+      actedRowIndices.add(i);
       if (resolution != null) resolutions[j] = resolution;
     }
-    return (ImportBatchResult(records: acted), resolutions, skipped);
+    return (
+      ImportBatchResult(records: acted),
+      resolutions,
+      skipped,
+      actedRowIndices,
+    );
   }
 
   /// Commits just row [i] on its own (honouring its chosen resolution) and then
@@ -558,21 +1022,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _phase = _Phase.review;
         _committed.add(i);
       });
-      // Refresh the live Collection so the committed dance appears immediately.
-      CollectionRefreshScope.bump(context);
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => DanceEditorScreen(danceId: danceId),
         ),
       );
       if (!mounted) return;
-      // Edits made in the editor also need to surface in the live Collection.
-      CollectionRefreshScope.bump(context);
     } catch (e, stackTrace) {
       if (!mounted) return;
       if (kDebugMode) {
         debugPrint('Import commit-for-edit failed: $e\n$stackTrace');
       }
+      logCaughtError(e, stackTrace, source: 'import_review_screen._editRow');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -584,7 +1045,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Future<void> _commit() async {
-    final (commitBatch, resolutions, skipped) = _buildCommitBatch();
+    final (commitBatch, resolutions, skipped, actedRowIndices) =
+        _buildCommitBatch();
     setState(() => _phase = _Phase.committing);
     final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
     // Commit/undo routing is gated on the concrete adapter type — NOT on
@@ -592,7 +1054,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
     final adapter = _selected.adapterFactory();
-    final sharedBundle = widget.sharedBundle;
+    final sharedBundle = _effectiveSharedBundle;
     try {
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
@@ -623,7 +1085,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         );
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
-        CollectionRefreshScope.bump(context);
         await _showResult(
           session: result.danceSession,
           skipped: skipped,
@@ -635,6 +1096,34 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // the file's InsertCall call buttons. Runs after the result dialog so
         // it never blocks the dance/program import; declining seeds nothing.
         await _maybeSeedShorthands(archive);
+      } else if (adapter is PublishedCollectionAdapter) {
+        final metadata = adapter.metadata;
+        final importer = PublishedCollectionImporter(pipeline);
+        final result = await importer.commit(
+          commitBatch,
+          metadata: metadata,
+          now: DateTime.now().toUtc(),
+          newId: uuidV4,
+          resolutions: resolutions,
+        );
+        try {
+          await _repos.collectionImports.record(result.event);
+        } catch (_) {
+          // diagnostics: silent — the outer commit handler presents a safe
+          // localized error after compensating the imported batch.
+          // The event is part of the published import's all-or-nothing
+          // contract. Remove the just-committed dances before surfacing the
+          // failure so an event-less import cannot remain.
+          await pipeline.undo(result.session);
+          rethrow;
+        }
+        if (!mounted) return;
+        setState(() => _phase = _Phase.review);
+        await _showResult(
+          session: result.session,
+          skipped: skipped,
+          onUndo: () => pipeline.undo(result.session),
+        );
       } else {
         final session = await pipeline.commit(
           commitBatch,
@@ -646,12 +1135,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Leave the progress phase before showing the (awaited) result dialog so
         // no indeterminate spinner animates behind it.
         setState(() => _phase = _Phase.review);
-        // Refresh the live Collection so imported dances appear immediately.
-        CollectionRefreshScope.bump(context);
         await _showResult(
           session: session,
           skipped: skipped,
           onUndo: () => pipeline.undo(session),
+          programResults: _programCommitResults(session, actedRowIndices),
         );
       }
     } catch (e, stackTrace) {
@@ -659,6 +1147,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       if (kDebugMode) {
         debugPrint('Import commit failed: $e\n$stackTrace');
       }
+      logCaughtError(e, stackTrace, source: 'import_review_screen._commit');
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -667,6 +1156,27 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
     }
+  }
+
+  /// Maps a just-committed [session]'s successful records back to
+  /// [ProgramAmbiguousLine.originalLineIndex] (issue #943), for
+  /// [ImportReviewScreen.onProgramCommitted]. `null` when this review was not
+  /// seeded from a [ImportReviewScreen.programAmbiguousImport] — distinct from
+  /// an empty map, which would mean a program seed where nothing committed.
+  Map<int, String>? _programCommitResults(
+    ImportSession session,
+    List<int> actedRowIndices,
+  ) {
+    if (_programLineOfRow.isEmpty) return null;
+    final results = <int, String>{};
+    for (var j = 0; j < session.records.length; j++) {
+      final record = session.records[j];
+      if (!record.succeeded || record.danceId == null) continue;
+      final rowIndex = actedRowIndices[j];
+      if (rowIndex >= _programLineOfRow.length) continue;
+      results[_programLineOfRow[rowIndex]] = record.danceId!;
+    }
+    return results;
   }
 
   /// Opt-in, previewed shorthand seeding from a Caller's Companion file's
@@ -718,9 +1228,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         await controller.upsert(mapping);
         seeded++;
       } catch (e, stackTrace) {
-        // Bounds/duplicate backstop — never surface a raw error to the user
-        // (this is an optional background step), but log it so an unexpected
-        // failure is diagnosable.
+        // diagnostics: silent — bounds/duplicate backstop; never surface a raw
+        // error to the user (this is an optional background step, and the
+        // token/mapping content is unvalidated pasted import content, so it
+        // isn't logged either — see `_plan`'s `logCaughtErrorTypeOnly` note
+        // above for why raw pasted content isn't recorded). Debug-only print
+        // remains for local diagnosis.
         if (kDebugMode) {
           debugPrint('Shorthand seed upsert failed: $e\n$stackTrace');
         }
@@ -764,8 +1277,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     setState(() => _phase = _Phase.review);
-    // Refresh the live Collection so the imported rows appear immediately.
-    CollectionRefreshScope.bump(context);
     await _showSharedBundleUndo(result: result, importer: importer);
   }
 
@@ -781,10 +1292,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
-    // Capture the refresh notifier now: the snackbar (and its Undo) outlives
-    // this screen once we pop back to the shell, so the async Undo callback
-    // can't read it from this (by then defunct) context.
-    final refresh = CollectionRefreshScope.maybeOf(context);
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
@@ -800,7 +1307,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         // Idempotent: a repeated tap (or a tap after another undo) is a no-op.
         if (result.isUndone) return;
         await importer.undo(result);
-        refresh?.value++;
       },
     );
 
@@ -819,6 +1325,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     required int skipped,
     required Future<void> Function() onUndo,
     CcUsrImportResult? ccResult,
+    Map<int, String>? programResults,
   }) async {
     final l10n = AppLocalizations.of(context);
     var created = 0, reimported = 0, linked = 0, duplicated = 0, varied = 0;
@@ -879,6 +1386,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 l10n.importReviewSummaryVariation(varied),
               ),
               _summaryLine('Skipped', l10n.importReviewSummarySkipped(skipped)),
+              // A pasted title list's non-importable answers would otherwise be
+              // lost with the review screen when it auto-dismisses after a
+              // commit — and "which of these do I already have?" is worth
+              // keeping (issue #823). Null for every other source.
+              if (_titleList != null) ...[
+                const SizedBox(height: 8),
+                _summaryLine(
+                  'AlreadyOwned',
+                  l10n.importReviewSummaryAlreadyOwned(
+                    _titleList!.countIn(TitleListGroup.alreadyInCollection),
+                  ),
+                ),
+                _summaryLine(
+                  'NotFound',
+                  l10n.importReviewSummaryNotFound(
+                    _titleList!.countIn(TitleListGroup.notFound),
+                  ),
+                ),
+              ],
               if (ccResult != null) ...[
                 const SizedBox(height: 8),
                 _summaryLine(
@@ -959,8 +1485,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
     if (!mounted) return;
     if (undone) {
-      // Undo reverted the DB; refresh again and stay for another attempt.
-      CollectionRefreshScope.bump(context);
+      // Undo reverted the DB; refresh again and stay for another attempt. An
+      // archive undo removes imported programs as well as dances; the program
+      // views pick that up from their own streams (issue #768).
       setState(() => _phase = _Phase.review);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -969,6 +1496,12 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
       );
     } else {
+      // Program-import fallback ambiguity (issue #943): report which lines
+      // resolved before dismissing, so the caller can link those dances into
+      // program slots. Never fired on an undone commit — nothing was kept.
+      if (programResults != null) {
+        widget.onProgramCommitted?.call(programResults);
+      }
       // Embedded (onClose provided): dismiss via the shell — it has no route to
       // pop. Pushed (onClose null): pop this screen's route as before.
       final onClose = widget.onClose;
@@ -1015,16 +1548,60 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         ),
         body: switch (_phase) {
           _Phase.input => _buildInput(context),
-          _Phase.planning => const Center(
-            key: ValueKey('import-planning'),
-            child: CircularProgressIndicator(),
-          ),
+          _Phase.planning => _buildPlanning(context),
           _Phase.committing => const Center(
             key: ValueKey('import-committing'),
             child: CircularProgressIndicator(),
           ),
           _Phase.review => _buildReview(context),
         },
+      ),
+    );
+  }
+
+  /// The planning spinner. A pasted title list additionally shows how far
+  /// through the batch it is and a Cancel, because it makes one online lookup
+  /// per unmatched title — a bare indeterminate spinner would leave a long list
+  /// looking hung with no way out. Nothing has been written at this point, so
+  /// cancelling simply discards the partial work.
+  ///
+  /// A paste with **nothing to look up** — every title already in the collection
+  /// or rejected by the per-line bounds — falls back to the generic spinner. It
+  /// has no batch to report and nothing to cancel, so "Searching 0 of 0…" beside
+  /// a Cancel button would be both meaningless and untrue.
+  Widget _buildPlanning(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final progress = _titleListProgress;
+    if (progress == null) {
+      return const Center(
+        key: ValueKey('import-planning'),
+        child: CircularProgressIndicator(),
+      );
+    }
+    final (done, total) = progress;
+    return Center(
+      key: const ValueKey('import-planning'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(value: done / total),
+          const SizedBox(height: 16),
+          Semantics(
+            liveRegion: true,
+            child: Text(
+              l10n.importReviewTitleListProgress(done, total),
+              key: const ValueKey('import-titles-progress'),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            key: const ValueKey('import-titles-cancel'),
+            onPressed: _titleListCancelled
+                ? null
+                : () => setState(() => _titleListCancelled = true),
+            child: Text(l10n.commonCancel),
+          ),
+        ],
       ),
     );
   }
@@ -1039,6 +1616,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // `_sourceUri` under the user, and so planning can't start on stale input.
     final busy = _picking || _fetching;
     final isUrlSource = _selected.urlBuilder != null;
+    final titlePreflight = _isPastedTextSource
+        ? preflightTitleList(_pasteController.text)
+        : null;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -1073,6 +1653,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                       // them when switching so a `.USR` can't plan through a
                       // text adapter (or vice versa).
                       _payloadBytes = null;
+                      // A cap refusal belongs to the title-list source; it must
+                      // not linger over a different source's input.
+                      _titleListError = null;
                     });
                   },
             items: [
@@ -1115,6 +1698,78 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   const SizedBox(width: 6),
                   Text(l10n.importReviewFileReady(_payloadBytes!.length)),
                 ],
+              ),
+            ),
+        ] else if (_isPastedTextSource) ...[
+          Text(
+            l10n.importReviewDancesFromSource(
+              importSourceLabel(l10n, _selected.kind),
+            ),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(l10n.importReviewTitleListSubtitle),
+          const SizedBox(height: 16),
+          TextField(
+            key: const ValueKey('import-titles-field'),
+            controller: _pasteController,
+            minLines: 6,
+            maxLines: 14,
+            enabled: !busy,
+            onChanged: (_) {
+              // A fresh edit invalidates any prior cap refusal, and the live
+              // count below has to keep up with what is actually in the box.
+              _sourceUri = null;
+              setState(() => _titleListError = null);
+            },
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              labelText: l10n.importReviewPasteTitles,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            l10n.importReviewTitleListCount(titlePreflight!.distinctTitleCount),
+            key: const ValueKey('import-titles-count'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (titlePreflight.duplicateLines > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                l10n.importReviewTitleListDuplicates(
+                  titlePreflight.duplicateLines,
+                ),
+                key: const ValueKey('import-titles-duplicates'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          if (_titleListError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Semantics(
+                container: true,
+                liveRegion: true,
+                child: Row(
+                  key: const ValueKey('import-titles-error'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        _titleListError!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ] else ...[
@@ -1256,14 +1911,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (batch == null) return const SizedBox.shrink();
 
     final unreadable = batch.errors;
+    final titleList = _titleList;
     if (batch.records.isEmpty) {
+      // A pasted title list with nothing importable is not a dead end (issue
+      // #823): the whole point of listing every pasted title is that "you
+      // already have these six, and these two couldn't be found" is a useful
+      // answer in itself. Fall through to the grouped review instead of the
+      // generic "no dances" message.
+      if (titleList != null && titleList.rows.isNotEmpty) {
+        return _buildTitleListOnlyReview(context, titleList);
+      }
       // A shared bundle can legitimately carry programs but no dances (e.g. a
       // program of only free-text/announcement slots). It passed intake (which
       // rejects only a bundle with neither dances nor programs), so the review
       // must still let the user consent to importing the programs — dead-ending
       // on "no dances" would regress the pre-#432 behavior that imported such
-      // bundles. Only fall through here when there is nothing importable at all.
-      final sharedBundle = widget.sharedBundle;
+      // bundles. Also applies to a manually picked .ccshare (issue #852).
+      // Only fall through here when there is nothing importable at all.
+      final sharedBundle = _effectiveSharedBundle;
       if (unreadable.isEmpty &&
           sharedBundle != null &&
           sharedBundle.archive.programs.isNotEmpty) {
@@ -1290,6 +1955,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       for (var i = 0; i < _choices.length; i++)
         if (!_committed.contains(i) && _choices[i].kind != _ActionKind.skip) i,
     ].length;
+    // A shared bundle (share-target or manual pick, issue #852/#869) commits
+    // programs regardless of how dance rows are dispositioned, so the button
+    // gate must account for programs — not just the dance count. Mirrors the
+    // identical check at the top of this method that routes zero-dance archives
+    // to _buildSharedProgramsOnlyReview.
+    final effectiveBundle = _effectiveSharedBundle;
+    final programCount = effectiveBundle?.archive.programs.length ?? 0;
+    final hasPrograms = programCount > 0;
     // How many *distinct* existing local dances a commit would overwrite (issue
     // #446): the unique re-import target ids across rows the user has set to
     // "Re-import onto …", excluding rows already committed on their own via
@@ -1315,8 +1988,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             children: [
               if (_showSoftCapWarning) _buildSoftCapWarning(context),
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
-              for (var i = 0; i < batch.records.length; i++)
+              if (titleList != null) _buildTitleListSummary(context, titleList),
+              for (var i = 0; i < batch.records.length; i++) ...[
+                if (_isFirstRowOfProgramLine(i))
+                  _buildProgramLineHeading(context, i),
                 _buildRow(context, i, batch.records[i]),
+              ],
+              if (titleList != null)
+                ..._buildTitleListGroups(context, titleList),
             ],
           ),
         ),
@@ -1331,6 +2010,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                   _buildOverwriteWarning(context, overwriteCount),
                   const SizedBox(height: 8),
                 ],
+                if (hasPrograms) ...[
+                  Text(
+                    l10n.importReviewWillImportPrograms(programCount),
+                    key: const ValueKey('import-programs-label'),
+                  ),
+                  const SizedBox(height: 4),
+                ],
                 Row(
                   children: [
                     Expanded(
@@ -1344,7 +2030,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     ),
                     FilledButton.icon(
                       key: const ValueKey('import-commit-button'),
-                      onPressed: importable == 0 ? null : _commit,
+                      onPressed: (importable == 0 && !hasPrograms)
+                          ? null
+                          : _commit,
                       icon: const Icon(Icons.download_done),
                       label: Text(l10n.importAction),
                     ),
@@ -1358,10 +2046,200 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
-  /// Whether the shared bundle exceeds the soft entity cap (issue #432). Only
-  /// ever true on the share-target path (a manual import has no [sharedBundle]).
+  /// The review body for a pasted title list that produced **nothing**
+  /// importable — every title was either already in the collection or could not
+  /// be found (issue #823).
+  ///
+  /// Deliberately not the generic "no dances found" dead end: that answer
+  /// ("which of these do I already have?") is worth showing on its own, and a
+  /// caller who pasted twelve titles and got none needs to see which six she
+  /// owns and which two the app couldn't find, because those need completely
+  /// different follow-up.
+  ///
+  /// It carries a Back affordance for the same reason the generic dead end does:
+  /// there is no Import button on this screen, so without one the only way on is
+  /// to close the whole import and start again — losing the answer she just
+  /// asked for. Returning here resets the same state the generic message's
+  /// button does.
+  Widget _buildTitleListOnlyReview(
+    BuildContext context,
+    TitleListResolution titleList,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return ListView(
+      key: const ValueKey('import-review-list'),
+      padding: const EdgeInsets.all(12),
+      children: [
+        _buildTitleListSummary(context, titleList),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            l10n.importReviewTitleListNothingToImport,
+            key: const ValueKey('import-titles-nothing-to-import'),
+          ),
+        ),
+        ..._buildTitleListGroups(context, titleList),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              key: const ValueKey('import-back-to-input'),
+              onPressed: () => setState(_resetToInput),
+              icon: const Icon(Icons.arrow_back),
+              label: Text(l10n.commonBack),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// The banner heading the title-list review: how many titles were pasted and
+  /// how they split across the three groups, so the shape of the answer is
+  /// legible before scrolling.
+  Widget _buildTitleListSummary(
+    BuildContext context,
+    TitleListResolution titleList,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final owned = titleList.countIn(TitleListGroup.alreadyInCollection);
+    final notFound = titleList.countIn(TitleListGroup.notFound);
+    final toImport = titleList.countIn(TitleListGroup.toImport);
+    final parts = <String>[
+      l10n.importReviewTitleListToImport(toImport),
+      l10n.importReviewTitleListOwned(owned),
+      l10n.importReviewTitleListNotFound(notFound),
+    ];
+    return Container(
+      key: const ValueKey('import-titles-summary'),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            l10n.importReviewTitleListPasted(titleList.rows.length),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          const SizedBox(height: 4),
+          Text(parts.join(' · ')),
+          if (titleList.duplicateLines > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                l10n.importReviewTitleListDuplicates(titleList.duplicateLines),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// The two non-actionable groups, in the order a caller reads them: the
+  /// dances she already owns, then the ones nothing could be found for. Both are
+  /// omitted when empty. Each row states *why* it is here, because "already had
+  /// it" and "couldn't find it" need completely different follow-up (issue
+  /// #823).
+  List<Widget> _buildTitleListGroups(
+    BuildContext context,
+    TitleListResolution titleList,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final owned = titleList.rowsIn(TitleListGroup.alreadyInCollection).toList();
+    final notFound = titleList.rowsIn(TitleListGroup.notFound).toList();
+    return [
+      if (owned.isNotEmpty)
+        _buildTitleListGroup(
+          context,
+          key: 'owned',
+          icon: Icons.library_add_check_outlined,
+          heading: l10n.importReviewTitleListOwned(owned.length),
+          rows: owned,
+          detail: (row) => switch (row.localMatchCount) {
+            1 =>
+              row.localAuthors.isEmpty
+                  ? l10n.importReviewTitleListOwnedUnknownAuthor
+                  : l10n.importReviewTitleListOwnedBy(
+                      row.localAuthors.join(', '),
+                    ),
+            _ => l10n.importReviewTitleListOwnedMany(row.localMatchCount),
+          },
+        ),
+      if (notFound.isNotEmpty)
+        _buildTitleListGroup(
+          context,
+          key: 'not-found',
+          icon: Icons.search_off_outlined,
+          heading: l10n.importReviewTitleListNotFound(notFound.length),
+          rows: notFound,
+          detail: (row) => titleListNotFoundReasonMessage(l10n, row.reason!),
+        ),
+    ];
+  }
+
+  Widget _buildTitleListGroup(
+    BuildContext context, {
+    required String key,
+    required IconData icon,
+    required String heading,
+    required List<TitleListRow> rows,
+    required String Function(TitleListRow) detail,
+  }) {
+    final theme = Theme.of(context);
+    return Card(
+      key: ValueKey('import-titles-group-$key'),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(heading, style: theme.textTheme.titleSmall),
+                ),
+              ],
+            ),
+            for (final row in rows)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Column(
+                  key: ValueKey('import-titles-$key-${row.title}'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(row.title, style: theme.textTheme.bodyLarge),
+                    Text(
+                      detail(row),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Whether the shared bundle exceeds the soft entity cap (issue #432). True
+  /// on the OS share-target path ([widget.sharedBundle]) and also when the
+  /// current paste-field text decodes to a bundle with programs
+  /// ([_effectivePickedBundle], issue #852). The banner tracks the current
+  /// paste-field text via [_onPasteChanged], so it updates whenever the text
+  /// changes.
   bool get _showSoftCapWarning {
-    final bundle = widget.sharedBundle;
+    final bundle = _effectiveSharedBundle;
     return bundle != null && bundle.entityCount > kSharedBundleSoftCapEntities;
   }
 
@@ -1375,7 +2253,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final l10n = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final message = l10n.sharedImportSoftCapWarning(
-      widget.sharedBundle!.entityCount,
+      _effectiveSharedBundle!.entityCount,
     );
     return Semantics(
       container: true,
@@ -1529,6 +2407,45 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  /// Whether row [i] is the first row of a program-ambiguity line (issue
+  /// #943) — the point at which [_buildProgramLineHeading] should render.
+  bool _isFirstRowOfProgramLine(int i) {
+    if (i >= _programLineOfRow.length) return false;
+    return i == 0 || _programLineOfRow[i - 1] != _programLineOfRow[i];
+  }
+
+  /// The heading introducing one program-ambiguity line's candidate rows
+  /// (issue #943): the pasted line text, so the user can see which line these
+  /// candidates are for before choosing one (or leaving them all skipped,
+  /// keeping the line a note).
+  Widget _buildProgramLineHeading(BuildContext context, int i) {
+    final l10n = AppLocalizations.of(context);
+    final lineIndex = _programLineOfRow[i];
+    final lineText = widget.programAmbiguousImport!.lines
+        .firstWhere((l) => l.originalLineIndex == lineIndex)
+        .lineText;
+    return Padding(
+      key: ValueKey('import-program-line-$lineIndex'),
+      padding: const EdgeInsets.only(top: 12, bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(Icons.help_outline, size: 18),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              l10n.importReviewProgramAmbiguousLine(lineText),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRow(BuildContext context, int i, ImportRecordPlan plan) {
     final l10n = AppLocalizations.of(context);
     final draft = plan.draft;
@@ -1588,8 +2505,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // #266). It is suppressed for a shared bundle (issue #432) so a
               // shared file can never write before the single batch Import
               // consent, and so every imported row is covered by the transient
-              // batch Undo.
-              if (widget.sharedBundle == null) ...[
+              // batch Undo. Also suppressed for a manually picked .ccshare with
+              // programs (_effectiveSharedBundle, issue #852/#880) for the same
+              // reason, and for a program-ambiguity candidate (issue #943):
+              // [_showResult] only reports [ImportReviewScreen.onProgramCommitted]
+              // from the batch commit path, so an Edit-committed candidate would
+              // create a dance the program screen never learns about and can
+              // never link into its slot.
+              if (_effectiveSharedBundle == null &&
+                  i >= _programLineOfRow.length) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -1846,11 +2770,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             const SizedBox(height: 16),
             OutlinedButton(
               key: const ValueKey('import-back-to-input'),
-              onPressed: () => setState(() {
-                _phase = _Phase.input;
-                _batch = null;
-                _planError = null;
-              }),
+              onPressed: () => setState(_resetToInput),
               child: Text(l10n.importReviewTryAnother),
             ),
           ],

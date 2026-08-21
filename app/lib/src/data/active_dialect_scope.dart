@@ -45,6 +45,15 @@ class ActiveDialectScope extends InheritedNotifier<ValueNotifier<Dialect>> {
     return scope.notifier!.value;
   }
 
+  /// Returns the active dialect, or `null` if no [ActiveDialectScope] is
+  /// present in the widget tree. Use when a dialect is desirable but not
+  /// required — callers fall back to [Dialect.larksRobins].
+  static Dialect? maybeOf(BuildContext context) {
+    final scope = context
+        .dependOnInheritedWidgetOfExactType<ActiveDialectScope>();
+    return scope?.notifier?.value;
+  }
+
   /// Returns the underlying notifier so callers can change the active dialect.
   /// Does *not* register a rebuild dependency — for read-and-mutate use only.
   static ValueNotifier<Dialect> notifierOf(BuildContext context) {

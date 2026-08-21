@@ -292,12 +292,95 @@ void main() {
       expect(pProv.sourceVersion, '2.3');
     });
 
+    test('composite phrase structures survive archive round-trips', () {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        dances: [
+          Dance(
+            id: 'composite',
+            title: 'Composite Phrases',
+            phraseStructure: '3*8*2 + 1*4*2',
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+
+      final encoded = encodeArchive(archive);
+      final result = decodeArchive(encoded);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      expect(result.warnings, isEmpty);
+      expect(result.archive.dances.single.phraseStructure.raw, '3*8*2 + 1*4*2');
+      expect(encodeArchive(result.archive), encoded);
+    });
+
     test('an empty archive round-trips', () {
       final archive = CompendiumArchive(exportedAt: DateTime.utc(2026));
       final result = decodeArchive(encodeArchive(archive));
       expect(result.hasErrors, isFalse);
       expect(result.archive, archive);
       expect(encodeArchive(result.archive), encodeArchive(archive));
+    });
+
+    group('mixer flag (issue #732)', () {
+      Dance mixerDance({required bool mixer}) => Dance(
+        id: 'dm',
+        title: 'Mixer Test',
+        mixer: mixer,
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+
+      test('a mixer=true dance survives encode -> decode', () {
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026),
+          dances: [mixerDance(mixer: true)],
+        );
+        final result = decodeArchive(encodeArchive(archive));
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(result.archive.dances.single.mixer, isTrue);
+      });
+
+      test('mixer=true is emitted into the encoded JSON', () {
+        final json =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(
+                      exportedAt: DateTime.utc(2026),
+                      dances: [mixerDance(mixer: true)],
+                    ),
+                  ),
+                )
+                as Map<String, Object?>;
+        final dance = (json['dances'] as List)
+            .cast<Map<String, Object?>>()
+            .single;
+        expect(dance['mixer'], isTrue);
+      });
+
+      test('an archive with no mixer key decodes to mixer=false', () {
+        // Tolerant additive decode: older archives predate the field, so the
+        // key is simply absent and must default to false — this is why the
+        // archive format needs no version bump.
+        final json =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(
+                      exportedAt: DateTime.utc(2026),
+                      dances: [mixerDance(mixer: true)],
+                    ),
+                  ),
+                )
+                as Map<String, Object?>;
+        final dance = (json['dances'] as List)
+            .cast<Map<String, Object?>>()
+            .single;
+        dance.remove('mixer');
+        final result = decodeArchive(jsonEncode(json));
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(result.archive.dances.single.mixer, isFalse);
+      });
     });
 
     test('a choice field with many options round-trips (issue #373)', () {
@@ -1075,5 +1158,131 @@ void main() {
         kMaxWalkthroughSnippetLength,
       );
     });
+  });
+
+  // ---------------------------------------------------------------------------
+  // shareable field exclusion (#780)
+  // ---------------------------------------------------------------------------
+
+  group('shareable field exclusion (issue #780)', () {
+    CompendiumArchive archiveWithExclusion() {
+      final shareable = CustomFieldDef(
+        id: 'f_shared',
+        key: 'region',
+        label: 'Region',
+        type: CustomFieldType.text,
+        shareable: true,
+      );
+      final private = CustomFieldDef(
+        id: 'f_private',
+        key: 'email',
+        label: 'Organiser email',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      final dance = Dance(
+        id: 'd1',
+        title: 'Test Dance',
+        customFields: [
+          CustomFieldValue(fieldId: 'f_shared', value: 'New England'),
+          CustomFieldValue(fieldId: 'f_private', value: 'secret@example.com'),
+        ],
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      );
+      return CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 1, 1),
+        customFields: [shareable, private],
+        dances: [dance],
+      );
+    }
+
+    test('non-shareable field def is absent from encoded JSON', () {
+      final archive = archiveWithExclusion();
+      final json = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      final fields = (json['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      final ids = fields.map((f) => f['id'] as String).toList();
+      expect(ids, contains('f_shared'));
+      expect(
+        ids,
+        isNot(contains('f_private')),
+        reason: 'non-shareable field must not appear in the encoded archive',
+      );
+    });
+
+    test(
+      'dance values for non-shareable field are absent from encoded JSON',
+      () {
+        final archive = archiveWithExclusion();
+        final json = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+        final dances = (json['dances'] as List).cast<Map<String, Object?>>();
+        final values = (dances.single['customFields'] as List)
+            .cast<Map<String, Object?>>();
+        final fieldIds = values.map((v) => v['fieldId'] as String).toList();
+        expect(fieldIds, contains('f_shared'));
+        expect(
+          fieldIds,
+          isNot(contains('f_private')),
+          reason:
+              'values for non-shareable field must not appear in dance JSON',
+        );
+      },
+    );
+
+    test('shareable field and its values are present in encoded JSON', () {
+      // Regression guard: the shareable path must not be accidentally excluded.
+      final archive = archiveWithExclusion();
+      final json = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      final fields = (json['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      expect(
+        fields.any((f) => f['id'] == 'f_shared'),
+        isTrue,
+        reason: 'shareable field must still appear in the encoded archive',
+      );
+      final dances = (json['dances'] as List).cast<Map<String, Object?>>();
+      final values = (dances.single['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      expect(
+        values.any((v) => v['fieldId'] == 'f_shared'),
+        isTrue,
+        reason: 'value for shareable field must still appear in dance JSON',
+      );
+    });
+
+    test(
+      'all-shareable archive is bit-identical to baseline (no exclusions)',
+      () {
+        // Archives that contain no non-shareable fields must produce output
+        // identical to before the #780 change — no observer can tell this PR
+        // was installed from an archive export alone.
+        final baseline =
+            _sampleArchive(); // all fields have shareable=true (default)
+        final encoded = encodeArchive(baseline);
+        final decoded = decodeArchive(encoded);
+        expect(decoded.hasErrors, isFalse);
+        // Round-trip: re-encoding a decoded archive must match.
+        expect(encodeArchive(decoded.archive), encoded);
+      },
+    );
+
+    test(
+      'decoded archive from a non-shareable-field source has shareable=true',
+      () {
+        // An archive that excluded a field has no entry for it. When the decoded
+        // archive is stored and re-exported, the stored fields all have
+        // shareable=true (the default). This verifies the decode path's implicit
+        // default.
+        final archive = archiveWithExclusion();
+        final encoded = encodeArchive(archive); // excludes f_private
+        final decoded = decodeArchive(encoded);
+        expect(decoded.hasErrors, isFalse);
+        // Only f_shared survived encoding, and decoded fields default to shareable.
+        expect(decoded.archive.customFields, hasLength(1));
+        expect(decoded.archive.customFields.single.id, 'f_shared');
+        expect(decoded.archive.customFields.single.shareable, isTrue);
+      },
+    );
   });
 }

@@ -66,6 +66,9 @@ class ProcessRunner {
       final result = await Process.run(executable, arguments);
       return result.exitCode == 0;
     } on Object {
+      // diagnostics: silent — fail-closed per this method's documented
+      // contract (see doc comment above); the boolean return already conveys
+      // failure to the caller.
       return false;
     }
   }
@@ -82,6 +85,9 @@ class ProcessRunner {
       );
       return true;
     } on Object {
+      // diagnostics: silent — fail-closed per this method's documented
+      // contract (see doc comment above); the boolean return already conveys
+      // failure to the caller.
       return false;
     }
   }
@@ -124,8 +130,12 @@ Future<HandoffResult> handoffArtifactToOs(
         return HandoffResult.failed;
     }
   } on ProcessException {
+    // diagnostics: silent — fail-closed; `HandoffResult.failed` already
+    // conveys failure to the caller.
     return HandoffResult.failed;
   } on Object {
+    // diagnostics: silent — fail-closed; `HandoffResult.failed` already
+    // conveys failure to the caller.
     return HandoffResult.failed;
   }
 }

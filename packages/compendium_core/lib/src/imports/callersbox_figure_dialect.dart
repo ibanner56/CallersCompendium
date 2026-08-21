@@ -1,5 +1,7 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/move_def.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_parser.dart';
@@ -35,24 +37,76 @@ import 'figure_text_scrub.dart';
 /// `()`/`[]` recognition-only annotation strip. Pass this as the `frontEnd` to
 /// [parseFigureLine]/[parseFigureLines] to recognize the full TCB dialect.
 ///
-/// Pre-recognizer order is not correctness-critical: each requires a distinct
-/// anchor (`hey` / `circulate:` / `square through <n>` / `gate` / `courtesy
-/// turn` / `walk forward` / `chain` / `promenade` / `right (and) left through`)
-/// plus a successful resolution to its own move, so no two can claim the same
-/// line.
+/// **Pre-recognizer ordering.** The first thirteen entries (through
+/// `_singleFileCircleRecognizer`) all anchor on a move keyword, and all
+/// require a successful resolution to their own move, so in most cases
+/// order is not correctness-critical.  Three overlapping anchor pairs each
+/// resolve safely without a fixed ordering:
+///
+/// 1. `_balanceHandAnnotation` and `_balancePairHandAnnotation` share the
+///    `\bbalance\b` anchor but match mutually exclusive annotation shapes:
+///    `_balanceHandRe` matches a single cell `(RH)`/`(LH)` (no comma);
+///    `_balancePairHandRe` requires a comma-separated pair `(MRH,WLH)`.
+///    Neither regex can match what the other requires.
+///
+/// 2. `_starPromenadeAnnotation` / `_promenadeAnnotation`: `\bpromenades?\b`
+///    can match a `star promenade` line, but that line resolves to
+///    `star_promenade`, so `_promenadeAnnotation` (which pins `promenade`)
+///    declines it.  Listed star-first so the ordering reads the way the
+///    precedence works.
+///
+/// 3. `_promenadeAnnotation` / `_singleFileCircleRecognizer`: `promenade`
+///    can match a single-file circle line, but `_promenadeAnnotation`
+///    declines it because the full "single file promenade …" phrase does
+///    not resolve to `promenade`.  Listed specific-first.
+///
+/// **The last three entries are order-dependent.** `_perRoleChoreoAnnotation`
+/// and `_proseAnnotation` have no move anchor; either can claim any structured
+/// line that carries the right annotation shape.  `_perRoleChoreoAnnotation`
+/// MUST precede `_proseAnnotation`: it synthesises per-role bodies like
+/// `W roll R, M side-step L` into canonical role tokens; if `_proseAnnotation`
+/// claimed them first they would be frozen verbatim as gendered shorthand
+/// (`scrubFigureText` does not map bare `W`/`M`).  `_sideRunAnnotation` is
+/// kept last deliberately so the general `;`-run consume claims whatever the
+/// bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
     _circulate,
     _squareThroughPassList,
+    _balanceHandAnnotation,
+    _balancePairHandAnnotation,
     _gateAnnotation,
     _courtesyTurnAnnotation,
     _walkForwardAnnotation,
     _chainAnnotation,
+    _starPromenadeAnnotation,
     _promenadeAnnotation,
     _rightLeftThroughAnnotation,
+    // Single-file circle recognition (taxonomy v27, issue #840): "Single file
+    // promenade clockwise/counterclockwise" maps to `circle` with `turn:
+    // left/right` and `singleFile: true`. Listed before `_sideRunAnnotation`
+    // so the general `;`-run consume sees a structured result rather than raw
+    // text when this fires. Listed after `_promenadeAnnotation` — the anchor
+    // overlaps (`promenade`), but this fires on the FULL phrase including
+    // "single file" prefix, so it does not claim plain promenade lines.
+    //
+    // Non-decodable places fractions are handled by [_declineSingleFileCircle]
+    // BEFORE this recognizer fires, so they never reach _promenadeAnnotation.
+    _singleFileCircleRecognizer,
+    // Per-role choreography annotations (#744): synthesise before the general
+    // prose pass so `W roll R, M side-step L` becomes canonical role tokens
+    // rather than verbatim gendered shorthand.
+    _perRoleChoreoAnnotation,
+    // General prose annotations (#744): shape-gated verbatim preserve for any
+    // structured figure with lowercase-containing annotations.
+    _proseAnnotation,
+    // LAST, deliberately: the general `;`-run consume (#843) claims whatever
+    // the bespoke decoders above left behind, so none of them loses a line.
+    _sideRunAnnotation,
   ],
-  recognitionNormalize: _stripAnnotations,
+  recognitionNormalize: _tcbRecognitionNormalize,
+  declineToCustom: _declineSingleFileCircle,
 );
 
 /// Parses a compound figure line, splitting it on TOP-LEVEL `;` separators and
@@ -698,6 +752,80 @@ String _stripAnnotations(String lowercased) => lowercased
     .replaceAll(RegExp(r'\([^)]*\)'), ' ')
     .replaceAll(RegExp(r'\[[^\]]*\]'), ' ');
 
+/// TCB's recognition-only normalization: the shared `()`/`[]` annotation strip
+/// ([_stripAnnotations]) plus one TCB-specific idiom.
+///
+/// TCB appends **`around the major set`** as a path descriptor on directed
+/// promenade lines — `Neighbor promenade counterclockwise around the major set`
+/// (dance id 64). It carries no param (the standard promenade already travels
+/// the major set), so the shared `_promenade` recognizer would reject the line
+/// for the leftover words and drop it to custom. Strip it for RECOGNITION only,
+/// scoped to lines that actually mention `promenade` so the same descriptor on
+/// another move — a courtesy-turn `face clockwise around the major set` clause,
+/// which must stay custom — is untouched. The custom fallback runs on the
+/// un-normalized scrubbed text, so an unrecognised promenade line still keeps
+/// the phrase verbatim. This idiom is TCB-specific and deliberately lives in
+/// the TCB dialect, not in the source-neutral shared recognizer.
+String _tcbRecognitionNormalize(String lowercased) {
+  final stripped = _stripAnnotations(lowercased);
+  if (!_promenadeAnchor.hasMatch(stripped)) return stripped;
+  return stripped.replaceAll(_promenadeMajorSetTail, ' ');
+}
+
+final RegExp _promenadeMajorSetTail = RegExp(
+  r'\baround\s+the\s+major\s+set\b',
+  caseSensitive: false,
+);
+
+// --- Balance hand annotation extraction (#870) --------------------------------
+
+/// Pre-recognizer that extracts `(RH)` / `(LH)` hand annotations from TCB
+/// balance lines before [_stripAnnotations] drops them.
+///
+/// TCB writes `Neighbor balance (RH)` or `Partner balance (LH)` on ~1,066
+/// corpus lines. Without this, the `(RH)` parenthetical is stripped by
+/// [_stripAnnotations] before the shared `_balance` recognizer runs, and the
+/// hand is silently lost — the structured figure carries no hand while the
+/// custom fallback (which reads the un-normalized text) would have kept it.
+///
+/// The annotation is **consumed** into the `hand` param, not preserved as a
+/// note: the parenthetical states a hand the taxonomy now models (#870), and
+/// duplicating parsed data into prose is the outcome #744's triage rules out.
+///
+/// Returns `null` (→ the normal path) unless the line contains a `balance`
+/// anchor AND a `(RH)` or `(LH)` annotation AND the annotation-stripped text
+/// resolves to the `balance` move through the shared recognizers.
+FigureMatch? _balanceHandAnnotation(String scrubbed) {
+  if (!_balanceAnchor.hasMatch(scrubbed)) return null;
+  final handMatch = _balanceHandRe.firstMatch(scrubbed);
+  if (handMatch == null) return null;
+  final handCode = handMatch.group(1)!.toUpperCase();
+  final hand = handCode == 'RH' ? 'right' : 'left';
+
+  // Strip the hand annotation AND any other annotations, then run the shared
+  // recognizer to confirm this is a `balance` line (not, say, "balance the
+  // ring" or a custom balance-wave form).
+  final stripped = scrubbed.replaceFirst(handMatch.group(0)!, ' ').trim();
+  final match = recognizeSharedFigureLine(
+    stripped,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'balance') return null;
+
+  return FigureMatch(
+    'balance',
+    params: {...match.params, 'hand': hand},
+    note: match.note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+final RegExp _balanceAnchor = RegExp(r'\bbalance\b', caseSensitive: false);
+
+/// Matches `(RH)` or `(LH)` — the TCB hand annotation on balance lines.
+/// Case-insensitive, bounded to exactly two characters inside the parens.
+final RegExp _balanceHandRe = RegExp(r'\(\s*([RrLl][Hh])\s*\)');
+
 // --- Gate annotation preservation (taxonomy v22) -----------------------------
 
 /// TCB states which side of a gate MOVES in a trailing parenthetical —
@@ -1039,14 +1167,842 @@ FigureMatch? _rightLeftThroughAnnotation(String scrubbed) {
 }
 
 final RegExp _chainAnchor = RegExp(r'\bchains?\b', caseSensitive: false);
-final RegExp _promenadeAnchor = RegExp(
-  r'\bpromenades?\b',
-  caseSensitive: false,
-);
 final RegExp _rightLeftThroughAnchor = RegExp(
   r'\bright\s+(and\s+)?left\s+through\b',
   caseSensitive: false,
 );
+
+// --- Star-promenade center annotation (taxonomy v26, #843) -------------------
+
+/// TCB states the CENTER of a star promenade in a trailing parenthetical —
+/// `Neighbor star promenade 1/2 (WR)`, `Partner star promenade 3/4 (ML)` — and
+/// [_stripAnnotations] drops it for recognition.
+///
+/// **Why this is a note and not a param.** The parenthetical does NOT qualify
+/// `who`. `(WR)` notates *"the women have right hands in the center"*, while
+/// `who` names the dancer you PICK UP on the side. The two facts coexist, and
+/// TCB's own flutterwheel decomposition shows both in one figure:
+///
+/// ```
+/// (8) Neighbor flutterwheel  ->  (4) Women allemande right 1/2
+///                            +  (4) Neighbor star promenade 1/2 (WR)
+/// ```
+///
+/// `who` is `neighbors`; `(WR)` names the women. Different sets. Until taxonomy
+/// v26 the center hand lived in a `star_promenade.hand` param that rendered
+/// beside the subject — *"Neighbor star promenade right ½"* — implying a
+/// right-hand connection with the NEIGHBOR when the right-hand connection is
+/// between the two dancers in the center. The owner removed the param on
+/// 2026-08-06; this pre-recognizer is what keeps the fact the param used to
+/// (mis)carry.
+///
+/// **The note stores CANONICAL ROLE TOKENS, never `W`/`M`.** `role2s by the
+/// right in the center` renders as *"Robins by the right in the center"* under
+/// larks/robins and *"Ladies …"* under a gendered dialect, because notes go
+/// through the renderer's `renderFreeText` role substitution. A literal `W`
+/// would be frozen gendered text forever, in every dialect, permanently.
+///
+/// **`who` is never written or overwritten here.** It comes from the prose
+/// subject via the shared recognizer, which is the whole point of the ruling:
+/// the annotation names a different set, so letting it reach `who` would
+/// reintroduce the exact confusion v26 removed.
+///
+/// Conservative, and shares [_annotatedMatch] with the gate / courtesy-turn /
+/// walk-forward / chain paths — so the OWASP caps (`_maxAnnotations`,
+/// `_maxAnnotationNote`, the per-run length bound in `_annotationRe`, rune-safe
+/// truncation) are the SAME ones and this adds no new bound. An annotation that
+/// is not exactly one `<people-code><R|L>` cell — a multi-cell run, an unmapped
+/// people code (`O`, `Ph`, `SRN`, …), a missing or non-`R`/`L` tail — is
+/// PRESERVED VERBATIM as the note rather than approximated onto a role token
+/// that means something else. That mirrors `_gateAnnotation`'s treatment of
+/// `(men stay put)`: prefer-custom applied at param granularity.
+FigureMatch? _starPromenadeAnnotation(String scrubbed) {
+  final base = _annotatedMatch(
+    scrubbed,
+    _starPromenadeAnchor,
+    'star_promenade',
+  );
+  if (base == null) return null;
+
+  final phrases = <String>[];
+  for (final body in base.annotations) {
+    phrases.add(_centerHandPhrase(body) ?? body);
+  }
+  final note = _joinAnnotations(phrases);
+  if (note == null) return null;
+  return _withAnnotationNote(base.match, note);
+}
+
+/// `<people-code><R|L>` → `<canonical role token> by the <hand> in the center`,
+/// or `null` when the body is not exactly one such cell (the caller then keeps
+/// it verbatim).
+///
+/// Deliberately STRICTER than the pass-list decoders: a star promenade has one
+/// center, so a `;`-run states something this phrasing cannot express, and is
+/// left verbatim rather than being collapsed onto its first cell.
+String? _centerHandPhrase(String body) {
+  final cell = body.trim().toLowerCase();
+  if (cell.length < 2 || cell.contains(';')) return null;
+  final handChar = cell[cell.length - 1];
+  final hand = handChar == 'r'
+      ? 'right'
+      : handChar == 'l'
+      ? 'left'
+      : null;
+  if (hand == null) return null;
+  final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+  if (who == null) return null;
+  return '$who by the $hand in the center';
+}
+
+final RegExp _starPromenadeAnchor = RegExp(
+  r'\bstar\s+promenades?\b',
+  caseSensitive: false,
+);
+
+final RegExp _promenadeAnchor = RegExp(
+  r'\bpromenades?\b',
+  caseSensitive: false,
+);
+
+// --- Single-file circle recognition (taxonomy v27, issue #840 / #749) --------
+
+/// TCB writes a single-file circulation around the ring as a promenade with a
+/// rotation direction: `Single file promenade clockwise` (= circle left) and
+/// `Single file promenade counterclockwise` (= circle right).
+///
+/// **Mapping to taxonomy.** These map to `circle` with `turn: 'left'` /
+/// `turn: 'right'` and `singleFile: true`. The choice of `circle` (not
+/// `promenade`) is consistent with the taxonomy's own reasoning for the flag
+/// (`contra_taxonomy.dart`: a single-file circulation around the ring is a
+/// single-file CIRCLE; `turn` already covers left/right).
+///
+/// **Clockwise = left** (counter-intuitive, but correct for contra): a circle
+/// left travels clockwise when viewed from above. This mapping is documented
+/// here explicitly because a future reader will otherwise assume it is inverted.
+///
+/// An optional fractional count or whole-number `N places` after the direction
+/// word is recognised as `places` (tolerant-decode). Supported forms:
+/// - Whole numbers: `4 places`, `3 places`, bare `4`
+/// - Slash fractions (N/4 or N/2 notation): `3/4` → 3, `1/2` → 2, `1/4` → 1
+/// - Glyph fractions: `¾` → 3, `½` → 2, `¼` → 1
+/// - Mixed-number glyphs: `1½` → 6, `1¼` → 5, `1¾` → 7
+/// Anything else the decoder can't resolve is left in the note as source text.
+/// Non-decodable fractions (⅓, 1/3, etc.) decline to custom rather than
+/// landing in the note — see [_declineSingleFileCircle].
+/// The regex places slash/glyph alternatives before the bare-integer
+/// alternative so that `3/4` is never mis-parsed as `3` with `/4` orphaned.
+///
+/// A trailing `(…)` annotation is NOT stripped before this recognizer fires —
+/// pre-recognizers run on the raw scrubbed text, before `_normalize` applies
+/// [_stripAnnotations] (`figure_parser.dart:116`). If the annotation survives
+/// the direction+places parse it lands in the note, which is correct: `(NL)`
+/// in `Single file promenade clockwise (NL)` is a caller's annotation and
+/// belongs in the note field.
+
+/// Vetoes TCB "Single file promenade clockwise/counterclockwise {fraction}"
+/// lines where the places fraction is present but not decodable as a quarter
+/// count, so they reach the custom fallback rather than being structured.
+///
+/// **Why this veto is necessary.** The pre-recognizer list runs in declaration
+/// order and `_promenadeAnnotation` fires before `_singleFileCircleRecognizer`.
+/// Its anchor (`\bpromenades?\b`) matches this phrase, so returning `null` from
+/// the circle recognizer would hand the line to `_promenadeAnnotation` and
+/// structure it as a `promenade` — wrong move, wrong count. The veto runs
+/// BEFORE every pre-recognizer (`figure_parser.dart:241`), so it intercepts
+/// the line first and forces custom. The pattern mirrors
+/// [_declineStarPromenade] in `contradb_figure_dialect.dart`.
+///
+/// Only fires when `_placesRe` matches a token that `_parsePlaces` cannot
+/// decode — i.e. a non-quarter fraction (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) or an unmapped slash
+/// denominator (e.g. 1/3). Decodable fractions (¼ ½ ¾ 1¼ 1½ 1¾, 1/4 3/4
+/// etc.) and plain integers pass through and are structured normally.
+bool _declineSingleFileCircle(String scrubbed) {
+  final lower = scrubbed.toLowerCase().trim();
+  const prefix = 'single file promenade ';
+  if (!lower.startsWith(prefix)) return false;
+  final rest = lower.substring(prefix.length).trimLeft();
+
+  final String tail;
+  if (rest.startsWith('clockwise')) {
+    tail = rest.substring('clockwise'.length).trimLeft();
+  } else if (rest.startsWith('counterclockwise')) {
+    tail = rest.substring('counterclockwise'.length).trimLeft();
+  } else {
+    return false;
+  }
+
+  if (tail.isEmpty) return false;
+  final m = _placesRe.firstMatch(tail);
+  if (m == null) return false;
+  return _parsePlaces(m.group(0)!) == null; // matched but undecodable
+}
+
+FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
+  // `source` and `lower` are always the same length: both trim the same text,
+  // so suffix arithmetic `source.substring(source.length - tail.length)`
+  // recovers source casing without a length-mismatch risk.
+  final source = scrubbed.trim();
+  final lower = source.toLowerCase();
+  const prefix = 'single file promenade ';
+  if (!lower.startsWith(prefix)) return null;
+  final rest = lower.substring(prefix.length).trimLeft();
+
+  String turn;
+  String tail;
+  if (rest.startsWith('clockwise')) {
+    turn = 'left'; // circle left = clockwise
+    tail = rest.substring('clockwise'.length).trimLeft();
+  } else if (rest.startsWith('counterclockwise')) {
+    turn = 'right'; // circle right = counterclockwise
+    tail = rest.substring('counterclockwise'.length).trimLeft();
+  } else {
+    return null;
+  }
+
+  final params = <String, Object?>{'turn': turn, 'singleFile': true};
+
+  // Optionally consume a places count. The regex is ordered so that slash
+  // fractions (3/4) and glyph fractions (¾) match as units before the
+  // bare-integer alternative. Lines with a matched-but-undecodable fraction
+  // are intercepted by [_declineSingleFileCircle] before this recognizer
+  // fires, so the null branch here is unreachable in production — but it is
+  // kept as a defensive guard in case the veto and the recognizer ever drift
+  // (e.g. one is widened without updating the other's prefix/direction logic).
+  final placesMatch = _placesRe.firstMatch(tail);
+  if (placesMatch != null) {
+    final p = _parsePlaces(placesMatch.group(0)!);
+    if (p != null) {
+      params['places'] = p;
+      tail = tail.substring(placesMatch.end).trimLeft();
+    }
+    // p == null: veto should have caught this; fall through with no places
+    // rather than structuring incorrectly.
+  }
+
+  // Recover original source casing: `source` and `lower` are trimmed from the
+  // same string and thus equal in length, so `source.length - tail.length`
+  // gives the correct offset into the untransformed text.
+  final String note;
+  if (tail.isEmpty) {
+    note = '';
+  } else {
+    note = source.substring(source.length - tail.length).trim();
+  }
+
+  return FigureMatch(
+    'circle',
+    params: params,
+    note: note.isEmpty ? null : note,
+  );
+}
+
+// Matches a slash fraction (N/4 notation), a fraction glyph, a mixed-number
+// glyph (e.g. 1½), or a whole-number `N places` at the START of a string.
+// Slash fractions and glyph fractions are placed BEFORE the bare-integer
+// alternative so that `3/4` matches as a unit rather than alt-1 claiming `3`
+// and leaving `/4` as an orphan in the note.
+// The slash arm is general (`N/M`) so any denominator matches as a unit;
+// _parsePlaces decides which fractions it knows.
+// Used by both _declineSingleFileCircle and _singleFileCircleRecognizer.
+final RegExp _placesRe = RegExp(
+  r'^(?:[0-9]+\s*/\s*[0-9]+|[½¾¼⅓⅔⅛⅜⅝⅞]|[0-9]+\s*[½¾¼]|[0-9]+)\s*(?:places?)?',
+  caseSensitive: false,
+);
+
+int? _parsePlaces(String raw) {
+  final trimmed = raw
+      .replaceAll(RegExp(r'\s*places?\s*$', caseSensitive: false), '')
+      .replaceAll(RegExp(r'\s+'), '')
+      .trim();
+  // Slash fractions: N/4 and N/2 only (quarter-place resolution).
+  const slashMap = {'1/4': 1, '2/4': 2, '3/4': 3, '4/4': 4, '1/2': 2};
+  final slash = slashMap[trimmed];
+  if (slash != null) return slash;
+  // Whole integer only. Decimals are not present in the TCB corpus (verified
+  // across 396 "Single file promenade" lines) so the decimal alternative was
+  // dropped from _placesRe; double.tryParse is therefore unreachable here.
+  final n = int.tryParse(trimmed);
+  if (n != null) return n;
+  // Fraction glyphs and mixed-number glyphs — quarters only, per owner ruling
+  // (2026-08-11): non-quarter fractions (⅓ ⅔ ⅛ ⅜ ⅝ ⅞) have no integer place
+  // count and decline to custom, matching figure_parser.dart's _takePlaces rule:
+  // "Only quarter fractions land on a whole place; eighth-turns have no integer
+  // place and are left for the custom fallback — the place count is never
+  // rounded or fabricated."
+  return const {'½': 2, '¾': 3, '¼': 1, '1½': 6, '1¼': 5, '1¾': 7}[trimmed];
+}
+
+// --- Balance role-hand pair annotation (#744) ---------------------------------
+
+/// Synthesises a note from TCB's paired-hand balance annotation —
+/// `(MRH,WLH)` or `(MLH,WRH)` — recording which set holds which hand in
+/// a balanced wave. [_stripAnnotations] drops the parenthetical for
+/// recognition; this pre-recognizer preserves it as a canonical note so the
+/// handedness survives structuring and renders in the reader's dialect.
+///
+/// **Pattern.** Each cell is `<people-code><hand-letter>H`
+/// (e.g. `MRH` = role1s by the right, `WLH` = role2s by the left). Two cells
+/// joined by a comma, inside one pair of parens. Each cell is decoded through
+/// [tcbPassPeople] (same map the hey and star-promenade decoders use),
+/// producing canonical `role1s`/`role2s` tokens that [renderFreeText] maps to
+/// the reader's active dialect.
+///
+/// **Note template:** `'$who by the $hand'` per cell, joined `', '` —
+/// e.g. `MRH,WLH` → `role1s by the right, role2s by the left`. The
+/// wave formation is deliberately NOT stated: the source annotates handedness
+/// only and asserting a formation would fabricate.
+///
+/// Fires only when (a) the line has a `balance` anchor, (b) it carries a
+/// comma-joined two-cell H-annotation, AND (c) the annotation-stripped text
+/// resolves to the `balance` move.
+FigureMatch? _balancePairHandAnnotation(String scrubbed) {
+  if (!_balanceAnchor.hasMatch(scrubbed)) return null;
+  final pairMatch = _balancePairHandRe.firstMatch(scrubbed);
+  if (pairMatch == null) return null;
+
+  // Each cell: people_code + hand_letter + 'h' (case-folded below).
+  final cell1 = pairMatch.group(1)!.toLowerCase(); // e.g. 'mrh'
+  final cell2 = pairMatch.group(2)!.toLowerCase(); // e.g. 'wlh'
+  if (!cell1.endsWith('h') || !cell2.endsWith('h')) return null;
+
+  // Strip the trailing 'h'; last remaining char is the hand letter (r/l).
+  final ph1 = cell1.substring(0, cell1.length - 1); // e.g. 'mr'
+  final ph2 = cell2.substring(0, cell2.length - 1); // e.g. 'wl'
+  // Require at least two chars so bare 'r'/'l' (single-hand codes already
+  // handled by [_balanceHandAnnotation]) are excluded.
+  if (ph1.length < 2 || ph2.length < 2) return null;
+
+  final handChar1 = ph1[ph1.length - 1];
+  final handChar2 = ph2[ph2.length - 1];
+  if ((handChar1 != 'r' && handChar1 != 'l') ||
+      (handChar2 != 'r' && handChar2 != 'l')) {
+    return null;
+  }
+
+  final who1 = tcbPassPeople[ph1.substring(0, ph1.length - 1)];
+  final who2 = tcbPassPeople[ph2.substring(0, ph2.length - 1)];
+  if (who1 == null || who2 == null) return null;
+
+  final hand1 = handChar1 == 'r' ? 'right' : 'left';
+  final hand2 = handChar2 == 'r' ? 'right' : 'left';
+
+  // Strip the pair annotation and confirm the base resolves to `balance`.
+  final stripped = scrubbed.replaceFirst(pairMatch.group(0)!, ' ').trim();
+  final match = recognizeSharedFigureLine(
+    stripped,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null || match.moveId != 'balance') return null;
+
+  return _withAnnotationNote(match, '$who1 by the $hand1, $who2 by the $hand2');
+}
+
+/// Matches a two-cell comma-joined hand annotation: each cell is 2–3
+/// alphanumeric characters total, ending in `H` (`MRH`, `WLH`, `MLH`,
+/// `WRH`). The `{1,2}H` quantifier (before the trailing `H`) is an OWASP
+/// import-hygiene cap — every full-permission corpus cell is exactly 3 chars;
+/// cells outside 2–3 total chars do not match and the line takes the normal
+/// path. Case-insensitive.
+final RegExp _balancePairHandRe = RegExp(
+  r'\(\s*([A-Za-z0-9]{1,2}h)\s*,\s*([A-Za-z0-9]{1,2}h)\s*\)',
+  caseSensitive: false,
+);
+
+// --- Per-role choreography annotation (#744) ----------------------------------
+
+/// Synthesises a note from TCB's per-role choreography annotation —
+/// `(W roll R, M side-step L)`, `(W roll L, M side-step R)`, etc. — which
+/// records which dancer set performs which action in a roll-away figure.
+/// [_stripAnnotations] drops it for recognition; this pre-recognizer
+/// preserves it as a canonical note with role tokens so it renders in the
+/// reader's dialect rather than freezing as gendered shorthand.
+///
+/// **Pattern.** Two comma-separated clauses, each: an uppercase role letter
+/// (`W` or `M`), an optional digit, a lowercase action phrase (`roll`,
+/// `side-step`, `step aside`), and an optional uppercase direction (`R`/`L`).
+/// The role letter is decoded through [tcbPassPeople] (`w`→`role2s`,
+/// `m`→`role1s`); direction `R`/`L` maps to `right`/`left`; the action
+/// phrase is preserved verbatim.
+///
+/// No move anchor is required — the annotation pattern is specific enough
+/// that false positives are essentially zero, and the 796 corpus instances
+/// span a small number of moves.
+///
+/// Fires when (a) at least one annotation matches the two-clause pattern AND
+/// (b) the annotation-stripped text resolves to any structured move. Prose
+/// annotations on the same line are preserved verbatim alongside the
+/// synthesised note; all-uppercase/code-like annotations are skipped by the
+/// shape rule (see [_proseAnnotation]).
+FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
+  final annotations = _parenAnnotations(scrubbed);
+  if (annotations.isEmpty) return null;
+
+  var hasSynthesized = false;
+  final notes = <String>[];
+
+  for (final body in annotations) {
+    final synthesized = _synthesizePerRoleChoreo(body);
+    if (synthesized != null) {
+      hasSynthesized = true;
+      notes.add(synthesized);
+    } else if (_annotationBodyHasLowercase(body) &&
+        !_looksLikePerRoleBody(body)) {
+      // Genuine prose (not a per-role body that failed to synthesise): preserve
+      // verbatim alongside any synthesised notes on the same line.
+      //
+      // `_looksLikePerRoleBody` blocks digit-bearing forms like
+      // `M1 past M3, W1 past W2` that match the structural pattern but have
+      // couple-specific people codes with no representable mapping.  Those
+      // decline here rather than freezing gendered shorthand in a note.
+      notes.add(body);
+    }
+    // All-uppercase / code-like: shape rule skips.
+    // Per-role pattern that failed to synthesise: blocked above — declines.
+  }
+
+  // Delegation guard: only claim this line if at least one per-role annotation
+  // was successfully synthesised.  Without this, a line with only prose
+  // annotations (e.g. `(in center)` on a swing) would be claimed here and
+  // produce a note identical to what `_proseAnnotation` — which fires next —
+  // would produce anyway.  The guard is structural (not note-content): removing
+  // it does not change what note is stored, only which function "claims" the
+  // line.  The shape discrimination that keeps shorthand out of notes is tested
+  // by the `_proseAnnotation` red-run in callersbox_prose_annotations_test.dart.
+  if (!hasSynthesized) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+
+  return _withAnnotationNote(match, _joinAnnotations(notes));
+}
+
+/// Parses a two-clause per-role choreography body and returns the canonical
+/// note, or `null` when the body does not match the pattern.
+String? _synthesizePerRoleChoreo(String body) {
+  final commaIdx = body.indexOf(',');
+  if (commaIdx < 0) return null;
+  final clause1 = _parsePerRoleClause(body.substring(0, commaIdx));
+  final clause2 = _parsePerRoleClause(body.substring(commaIdx + 1));
+  if (clause1 == null || clause2 == null) return null;
+  return '${clause1.render()}, ${clause2.render()}';
+}
+
+/// Parses a single per-role clause: `[WM]\d? <action> [RL]?`.
+_PerRoleClause? _parsePerRoleClause(String clause) {
+  clause = clause.trim();
+  final m = _perRoleClauseRe.firstMatch(clause);
+  if (m == null) return null;
+  final who = tcbPassPeople[(m.group(1)! + (m.group(2) ?? '')).toLowerCase()];
+  if (who == null) return null;
+
+  var rest = m.group(3)!.trim();
+  if (rest.isEmpty) return null;
+
+  // Strip optional uppercase direction from the end.
+  String? dir;
+  if (rest.length >= 3 && rest[rest.length - 2] == ' ') {
+    final last = rest[rest.length - 1];
+    if (last == 'R') {
+      dir = 'right';
+      rest = rest.substring(0, rest.length - 2).trim();
+    } else if (last == 'L') {
+      dir = 'left';
+      rest = rest.substring(0, rest.length - 2).trim();
+    }
+  }
+
+  if (rest.isEmpty) return null;
+  // Action must start with a lowercase letter (excludes all-caps codes).
+  final firstCode = rest.codeUnitAt(0);
+  if (firstCode < 97 || firstCode > 122) return null; // 'a'..'z'
+
+  return _PerRoleClause(who: who, action: rest, dir: dir);
+}
+
+class _PerRoleClause {
+  const _PerRoleClause({required this.who, required this.action, this.dir});
+  final String who;
+  final String action;
+  final String? dir;
+
+  String render() => dir == null ? '$who $action' : '$who $action $dir';
+}
+
+/// Matches `[WM]` (optional digit) followed by the rest of the clause.
+final RegExp _perRoleClauseRe = RegExp(r'^([WM])(\d?)\s+(.+)$');
+
+/// True iff [body] looks structurally like a two-clause per-role annotation
+/// (e.g. `W roll R, M side-step L`) even when the people codes are unmapped.
+///
+/// Used in [_perRoleChoreoAnnotation] to prevent verbatim preservation of
+/// digit-bearing forms like `M1 past M3, W1 past W2` whose couple-specific
+/// codes (`M1`, `W2`) have no representable mapping in the dancer-set
+/// vocabulary.  Such bodies decline rather than freezing gendered shorthand
+/// in a note.
+bool _looksLikePerRoleBody(String body) {
+  final commaIdx = body.indexOf(',');
+  if (commaIdx < 0) return false;
+  return _perRoleClauseRe.hasMatch(body.substring(0, commaIdx).trim()) &&
+      _perRoleClauseRe.hasMatch(body.substring(commaIdx + 1).trim());
+}
+
+// --- General prose annotation preservation (#744) ----------------------------
+
+/// Preserves TCB `(prose)` annotations as notes on structured figures
+/// (#744 prose remainder). Fires for any structured figure that carries at
+/// least one annotation whose body contains a lowercase ASCII letter.
+///
+/// **Scope: `(…)` only.** Uses [_parenAnnotations] — [_annotationRe] would
+/// also match `[…]` bodies (TCB's formation/who-performs context markers),
+/// which have a different payload and must not become prose notes.
+///
+/// **Shape rule.** Shorthand is all-uppercase / code-like (`OR;PL`, `SRNR`);
+/// prose has lowercase words (`in center`, `along the set`). The rule has
+/// been measured over the full #744 corpus (4,318 dropped annotations):
+///   - **0 false-preserves**: no shorthand annotation carries a lowercase
+///     letter, so the rule never preserves code-like annotations as prose.
+///   - **132 false-skips**: annotations in the census catch-all (`free_prose`)
+///     that the rule skips — `2H`, `R`, `L`, `M1+W2 3/4, W1+M2 1 & 1/4` —
+///     are all uppercase/numeric shorthand. The shape rule is MORE accurate
+///     than the census catch-all for these 132 cases: they should be skipped.
+///
+/// Annotations that are handled by more specific pre-recognizers (balance
+/// hand, star-promenade center, per-role choreo) never reach this path
+/// because those pre-recognizers fire first and claim the whole line.
+///
+/// Returns null (→ the normal path) unless (a) at least one annotation passes
+/// the shape rule AND (b) the annotation-stripped text resolves to any
+/// structured move.
+FigureMatch? _proseAnnotation(String scrubbed) {
+  final annotations = _parenAnnotations(scrubbed);
+  // Shape gate: lowercase-containing bodies are prose.
+  // `_looksLikePerRoleBody` additionally excludes per-role bodies that failed
+  // synthesis (e.g. digit-bearing `M1 past M3, W1 past W2`) so they are never
+  // frozen as gendered shorthand in a verbatim note.
+  final prose = annotations
+      .where((b) => _annotationBodyHasLowercase(b) && !_looksLikePerRoleBody(b))
+      .toList();
+  if (prose.isEmpty) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+
+  return _withAnnotationNote(match, _joinAnnotations(prose));
+}
+
+/// True iff [body] contains at least one lowercase ASCII letter (`a`–`z`).
+/// Used as the shape-rule discriminant: prose has lowercase words; shorthand
+/// is all-uppercase / code-like.
+bool _annotationBodyHasLowercase(String body) =>
+    body.codeUnits.any((c) => c >= 97 && c <= 122); // 'a'..'z'
+
+// --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
+
+/// Consumes TCB's `;`-run shorthand — `(ML)`, `(NR;PL)`, `(WR;PL;MR;N2L~)` —
+/// into the resolved move's OWN slots, instead of letting [_stripAnnotations]
+/// drop it and the taxonomy fill a default that may contradict the source.
+///
+/// **Why a general decoder rather than another per-move pre-recognizer.** Four
+/// consume paths already exist ([_hey], [grandRightAndLeftFromPassList],
+/// [_squareThroughPassList], and the adapter's balance-a-wave decoder), each
+/// tied to one move because each LOWERS the run onto a bespoke structure — a
+/// hey's ricochet slots, one `pull_by_dancers` per pass. This one does not
+/// lower anything: it reads the same notation and fills whatever slots the
+/// move it landed on happens to declare. Writing eleven more pre-recognizers
+/// for the eleven remaining move keys would duplicate one cell walk eleven
+/// times and still miss the twelfth move somebody adds later.
+///
+/// **The slot lookup asks the TAXONOMY, keyed on `ParamKind`.** #870 introduced
+/// the pattern (query the resolved `MoveDef` rather than maintain a hardcoded
+/// move list that drifts whenever a move gains or loses a slot) but keyed on the
+/// literal param NAME `hand`. That is not portable here: of the twenty moves
+/// with a side slot, seven name it `shoulder` and two name it `centerHand`, so
+/// a name check would silently miss nine of them. [_sideSlot] therefore looks
+/// for the single param whose kind is `handedness` or `shoulder`.
+///
+/// **Values are written even when they equal the taxonomy default** (owner
+/// ruling). The decode either fires on a run or it does not; `if (decoded !=
+/// default) apply` is a strange thing to write, and storing what the source
+/// SAID rather than what we assumed means the value survives a future change of
+/// default. This is byte-identical at both identity layers — `renderCanonical`
+/// and `figureCanonicalKey` both build from `Taxonomy.effectiveParams`, which
+/// fills defaults — so it raises no spurious #686 "Variation?" prompt. The
+/// INVERSE value does change the key, but it should: the stored choreography
+/// contradicted its source.
+///
+/// **Dancer identity (Part C).** The same cells name dancers, so `who`/`who2`
+/// are filled too, on the moves that declare them. Two-pass moves alternate:
+/// odd 1-based positions name `who`, even positions name `who2`. `pass_through`
+/// declares NO `who`, so its dancer code has nowhere to go and is dropped —
+/// which is the status quo for that half of the annotation, minus the wrong
+/// shoulder. (Preserving it as a note instead would add one to ~2,048 figures
+/// across 1,773 dances; that is a visible change at corpus scale and is the
+/// owner's call, not this decoder's.)
+///
+/// **Declines (returns `null` → the ordinary annotation-stripped path) when:**
+///   * the line has no `(...)` annotation, or more than one;
+///   * the annotation is not entirely `<people-code><R|L>` cells, or any
+///     people code is absent from [tcbPassPeople] (`O`, `Ph`, `SRN`, `C1`–`C3`,
+///     out-of-range neighbors/shadows) — never approximated onto a token that
+///     means something else;
+///   * the sides do not alternate by position parity, which is the model both
+///     two-pass renderers implement;
+///   * a `square_through` 4-code list is not periodic (`code[2] == code[0]`,
+///     `code[3] == code[1]`), or the run states MORE passes than the move
+///     models — a `square_through` cell count that disagrees with `places`, a
+///     run past two cells on a move declaring `who2`, or any multi-cell run on
+///     a single-pass move. See [_runShapeIsModelled], which is authoritative
+///     for the exact rule.
+///
+///     **A `cross_trails` run of ONE cell is accepted, not declined.** The
+///     corpus shape is `?R;?L`, but the rule implemented is "at most two
+///     cells", deliberately — declining a one-cell run would replace the pass
+///     the source DID state with a taxonomy default, which is strictly worse
+///     than leaving the unstated pass defaulted. The reasoning, with the
+///     measured render comparison, is on [_runShapeIsModelled]; this list
+///     previously described the stricter rule that was considered and rejected;
+///   * the resolved move declares no side slot at all;
+///   * the shared recognizer ALREADY resolved the side from prose and the
+///     annotation CONTRADICTS it — `Neighbor allemande left 1 (NR)`. The line
+///     then keeps today's reading: the PROSE value stands and the annotation is
+///     dropped, because prose is the authoritative statement and the fall-
+///     through is exactly what happens now. Note this is a fall-through, NOT a
+///     decline to custom: forcing custom here would regress a line that
+///     structures today, which is a bigger loss than not consuming one
+///     contradictory annotation.
+///
+/// Runs LAST among the pre-recognizers, so every bespoke decoder above keeps
+/// the lines it already claims. Bounding is [_boundedPassListCells]'s, shared
+/// with every other pass-list path (OWASP: imported text is untrusted, and the
+/// cap runs before the split allocates).
+FigureMatch? _sideRunAnnotation(String scrubbed) {
+  final lower = scrubbed.toLowerCase();
+  final open = lower.indexOf('(');
+  if (open == -1) return null;
+  final close = lower.indexOf(')', open + 1);
+  if (close == -1) return null;
+  // A second parenthetical means extra structure we do not model -> decline.
+  if (lower.indexOf('(', close + 1) != -1) return null;
+
+  final cells = _boundedPassListCellsIn(lower, open, close);
+  if (cells == null || cells.isEmpty || cells.length > kMaxPassListCells) {
+    return null;
+  }
+
+  // Decode every cell before consulting the taxonomy: a run we cannot fully
+  // account for declines outright, so no line is ever partially structured.
+  final decoded = <_SideCell>[];
+  String? sideBase;
+  for (var i = 0; i < cells.length; i++) {
+    // The `~` partial-last-pass marker is informational only (ratified) and is
+    // dropped here exactly as the hey decoder drops it.
+    final cell = cells[i].endsWith('~')
+        ? cells[i].substring(0, cells[i].length - 1)
+        : cells[i];
+    if (cell.length < 2) return null;
+    final sideChar = cell[cell.length - 1];
+    final side = sideChar == 'r'
+        ? 'right'
+        : sideChar == 'l'
+        ? 'left'
+        : null;
+    if (side == null) return null;
+    final who = tcbPassPeople[cell.substring(0, cell.length - 1)];
+    if (who == null) return null;
+
+    // Sides alternate by parity; derive the base (position-1) side and require
+    // every later cell to agree — a run that does not alternate is malformed.
+    final position = i + 1;
+    final impliedBase = position.isOdd ? side : _otherShoulder(side);
+    if (sideBase == null) {
+      sideBase = impliedBase;
+    } else if (sideBase != impliedBase) {
+      return null;
+    }
+    decoded.add(_SideCell(who, side));
+  }
+  if (sideBase == null) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+  final def = contraTaxonomy.resolve(match.moveId);
+  if (def == null) return null;
+
+  final slot = _sideSlot(def);
+  if (slot == null) return null;
+
+  // Structural invariants (Part C). A violation is an unmodeled variant:
+  // decline rather than structure something the renderer cannot say.
+  if (!_runShapeIsModelled(match.moveId, def, match.params, decoded)) {
+    return null;
+  }
+
+  // Never silently overwrite a side the grammar itself resolved from prose. If
+  // they agree, keep it; if they contradict, decline the RUN — the line then
+  // falls through to the ordinary reading and keeps its prose-stated side. It
+  // does NOT become custom.
+  final stated = match.params[slot];
+  if (stated is String && stated != sideBase) return null;
+
+  final params = <String, Object?>{...match.params, slot: sideBase};
+
+  // Dancer identity (Part C), only into slots the move actually declares.
+  // Odd 1-based positions name `who`, even positions `who2` — the alternation
+  // both two-pass renderers implement.
+  final who1 = _consistentWho(decoded, odd: true);
+  final who2 = _consistentWho(decoded, odd: false);
+  if (who1 == null) return null; // positions disagree -> ambiguous -> decline.
+  if (def.params.containsKey('who') && !match.params.containsKey('who')) {
+    params['who'] = who1;
+  }
+  if (who2 != null &&
+      def.params.containsKey('who2') &&
+      !match.params.containsKey('who2')) {
+    params['who2'] = who2;
+  }
+
+  return FigureMatch(
+    match.moveId,
+    params: params,
+    note: match.note,
+    assumedSubject: match.assumedSubject,
+  );
+}
+
+/// One decoded `<people-code><R|L>` cell: the dancer it names and the side.
+class _SideCell {
+  const _SideCell(this.who, this.side);
+  final String who;
+  final String side;
+}
+
+/// The name of [def]'s single side param — the one whose kind is
+/// `handedness` or `shoulder` — or `null` when it has none, or more than one.
+///
+/// Keyed on `ParamKind` rather than the literal name `hand`, because of the
+/// twenty moves with a side slot seven call it `shoulder` and two call it
+/// `centerHand`.
+///
+/// **More than one is treated as "no slot", and the consequence is a SILENT
+/// fall-through — not a loud failure and not a custom figure.** Returning null
+/// here makes [_sideRunAnnotation] decline, so the line is handed to the shared
+/// recognizer and still structures; it simply keeps the taxonomy's default for
+/// the side instead of the value the run stated. Nothing is logged, nothing
+/// throws, and no test fails.
+///
+/// That is deliberate, and it is the same disposition every other decline in
+/// this decoder has: an unmapped people code, a non-alternating run and an
+/// unmodelled cell count all fall through the same way. Consuming a run into an
+/// arbitrarily-chosen one of two side params would assert a fact about the
+/// wrong axis of the figure, which is worse than not consuming it — and a move
+/// with two side slots is a taxonomy shape nothing here can interpret, so
+/// declining is the honest answer rather than a stopgap.
+///
+/// The cost, stated plainly because it is a real one: if such a move is ever
+/// added, every run on it stops being consumed and nobody finds out. If that
+/// becomes undesirable the fix belongs in the taxonomy's own validation, where
+/// a two-side-slot MoveDef could be rejected at the source, not here — this
+/// function sees one move at a time and has no standing to declare a taxonomy
+/// shape illegal.
+///
+/// (An earlier version of this comment claimed the line "stays custom" and that
+/// the failure is "loud". Both were false: it structures, and it is silent.)
+String? _sideSlot(MoveDef def) {
+  String? found;
+  for (final entry in def.params.entries) {
+    final kind = entry.value.kind;
+    if (kind != ParamKind.handedness && kind != ParamKind.shoulder) continue;
+    if (found != null) return null;
+    found = entry.key;
+  }
+  return found;
+}
+
+/// The dancer named at every odd (or even) 1-based position, or `null` when
+/// those positions disagree — or, for the even case, when there are none.
+String? _consistentWho(List<_SideCell> cells, {required bool odd}) {
+  String? who;
+  for (var i = 0; i < cells.length; i++) {
+    if ((i + 1).isOdd != odd) continue;
+    if (who == null) {
+      who = cells[i].who;
+    } else if (who != cells[i].who) {
+      return null;
+    }
+  }
+  return who;
+}
+
+/// Whether a decoded run matches the structural model the resolved move's
+/// renderer implements. A cell is a PASS, so a run states as many passes as it
+/// has cells, and a move that models fewer cannot carry it.
+///
+/// - **`square_through`**: the cell count must equal `places`. `Square through
+///   3 (N2R;SL)` names two passes for a three-pass figure, so the third pass's
+///   dancer would have to be inferred — which is precisely what #799 declined
+///   to guess, and this decoder must not undo that ruling by the side door.
+///   The 4-code lists are additionally required to be periodic (`code[2] ==
+///   code[0]`, `code[3] == code[1]`), matching the renderer's "then repeat"
+///   model; the parity check upstream forces the SIDES to alternate but would
+///   let a list whose DANCERS break the period through.
+/// - **A move declaring `who2`** models two passes, so AT MOST two cells —
+///   `<= 2`, deliberately, not `== 2`.
+///
+///   The asymmetry with `square_through` above is real and worth stating,
+///   because "at most" otherwise reads as an unconsidered `<=`. The difference
+///   is whether the source CONTRADICTS itself. `Square through 3` states its
+///   pass count in prose, so a two-cell list disagrees with the line's own
+///   arity and the missing pass would have to be invented — decline. A
+///   `cross_trails` line states no count anywhere, so a one-cell run is merely
+///   INCOMPLETE, and consuming what the source did state is strictly better
+///   than discarding it.
+///
+///   Measured, because the reverse is easy to assume. For
+///   `Cross trail through (NR)`:
+///     consumed (`<= 2`): "neighbors cross trails across neighbors"
+///     declined (`== 2`): "partners cross trails across neighbors"
+///   `who2` renders from its `neighbors` default EITHER WAY — declining does
+///   not suppress it, because a bare `Cross trails` renders the same default
+///   already. What declining changes is pass ONE, from the `neighbors` the
+///   source stated to the `partners` default. So `== 2` would introduce a
+///   falsehood about the pass the source DID state, in order to avoid
+///   defaulting the pass it did not. That is a worse trade, not a safer one.
+///
+///   The residual hazard is honest and unfixed here: nothing downstream
+///   distinguishes a source-stated `who2` from a defaulted one. That is a
+///   property of the taxonomy's defaults, not of this decoder, and it predates
+///   it. **Latent in the corpus**: of the cell-shaped annotations on
+///   cross-trail lines, ZERO are single-cell (verified directly against the
+///   mirror), so no imported dance takes this path today.
+/// - **A move with no `who2`** (e.g. `pass_through`, `allemande`) models ONE
+///   pass. A multi-cell run on such a line describes choreography the move
+///   cannot express, so it declines rather than collapsing onto its first cell.
+bool _runShapeIsModelled(
+  String moveId,
+  MoveDef def,
+  Map<String, Object?> params,
+  List<_SideCell> cells,
+) {
+  if (moveId == 'square_through') {
+    final places = params['places'] ?? def.params['places']?.defaultValue;
+    if (places is! int || cells.length != places) return false;
+    for (var i = 2; i < cells.length; i++) {
+      if (cells[i].who != cells[i - 2].who) return false;
+    }
+    return true;
+  }
+  return def.params.containsKey('who2') ? cells.length <= 2 : cells.length == 1;
+}
 
 /// Bounded extractor for `()`/`[]` annotation contents, in source order.
 ///
@@ -1076,6 +2032,42 @@ String? _joinAnnotations(List<String> kept) {
 /// unbounded capture; a longer parenthetical simply doesn't match and the line
 /// takes the normal (annotation-stripped or custom) path.
 final RegExp _annotationRe = RegExp(r'\(([^()]{0,120})\)|\[([^\[\]]{0,120})\]');
+
+/// Round-paren-only variant of [_annotationRe]: captures `(…)` bodies only.
+///
+/// The three new #744 pre-recognizers ([_balancePairHandAnnotation],
+/// [_perRoleChoreoAnnotation], [_proseAnnotation]) use this instead of
+/// [_annotationRe] so that `[…]` annotations — TCB's "who performs" / formation
+/// context markers, handled separately by [callersbox_adapter.dart] — are never
+/// mistakenly preserved as prose notes.  [_annotationRe] (which matches both
+/// bracket kinds) is retained for [_annotatedMatch], whose existing callers were
+/// designed with both kinds in mind.
+final RegExp _parenAnnotationRe = RegExp(r'\(([^()]{0,120})\)');
+
+/// Matches a `[…]` square-bracket span (non-nested), used to strip `[…]`
+/// content before extracting `(…)` bodies — otherwise a `(…)` nested inside
+/// a `[…]` (e.g. `[Heads (ones+fours)]`) would be wrongly extracted as prose.
+final RegExp _squareBracketRe = RegExp(r'\[[^\[\]]*\]');
+
+/// Like [_annotations] but restricted to round-paren `(…)` bodies only.
+/// Used by the #744 prose-preservation pre-recognizers.
+///
+/// `[…]` spans are stripped first so that `(…)` bodies nested inside a `[…]`
+/// (e.g. `[Heads (ones+fours)]`, `[Groups of three (twos+M1, threes+W1)]`) are
+/// not mistakenly extracted as prose annotations. Measured: 89 such occurrences
+/// in the Permission:full corpus.
+List<String> _parenAnnotations(String scrubbed) {
+  final noSquare = scrubbed.replaceAll(_squareBracketRe, ' ');
+  final out = <String>[];
+  for (final m in _parenAnnotationRe.allMatches(noSquare)) {
+    if (out.length >= _maxAnnotations) break;
+    final body = m.group(1)!.trim();
+    if (body.isEmpty || _numericOnly.hasMatch(body)) continue;
+    out.add(body);
+  }
+  return out;
+}
+
 final RegExp _numericOnly = RegExp(r'^\d+$');
 const int _maxAnnotations = 8;
 const int _maxAnnotationNote = 200;
@@ -1121,21 +2113,60 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 /// reads the SAME codes out of a `(NR,WL)` wave annotation — so there is
 /// exactly one map. Public for that cross-file reuse; treat it as read-only.
 ///
-/// A code with no entry here is NOT approximated: the decoder that reads it
-/// declines the whole line to custom (prefer-custom / never fabricate). The
-/// deliberate omissions, per `Glossary.htm`:
+/// A code with no entry here is NOT approximated — every decoder that reads
+/// this map declines the run rather than guessing a token (prefer-custom /
+/// never fabricate). **What "declines" then costs depends on the decoder**, and
+/// the distinction is worth stating because it used to be described here as
+/// always meaning "custom", which was never quite true and is now broadly
+/// untrue:
+///
+/// - **The run IS the figure's structure** — [_hey], and
+///   [grandRightAndLeftFromPassList]. Without the pass list there is nothing to
+///   build, so the line goes to the custom fallback. `Hey 1/2 (P6R;P7L)` is
+///   custom.
+/// - **The run only ADDS params** — [_squareThroughPassList] (#799) and the
+///   general [_sideRunAnnotation] (#843). The line still structures through the
+///   shared recognizer; it simply keeps the taxonomy's defaults instead of the
+///   values the run states. `Square through 2 (C1R;C2L)` stays a
+///   `square_through`, and `Pass through along (OR)` stays a `pass_through`.
+///
+/// Either way no token is invented, which is the property that matters. The
+/// second bullet already applied to `square_through` before #843; that issue's
+/// general decoder widened the population it covers to every move with a side
+/// slot.
+///
+/// Notable mappings and the deliberate omissions, per `Glossary.htm`:
 /// - `C1`/`C2`/`C3` — the glossary's *"Corners (square)"* are a DIFFERENT
 ///   concept from its separate *"First/second corners"* entry ("First corners
 ///   are man one and woman two"), which is what [ParamVocab]'s
 ///   `firstCorners`/`secondCorners` model. C1 is "the non-partner next to you",
 ///   C2 "the person across from you", C3 "the remaining person" — a square/
 ///   four-face-four relationship the taxonomy has no token for.
-/// - `P2`…`P6`, `P0`, `P-n` — a mixer's *future/previous* partners ("The next
-///   partner in your direction of progression is P2"); no vocabulary token.
+/// - `P0`, `P2`–`P5` — a mixer's previous/future partners (taxonomy v24,
+///   issue #732). These map to `prevPartners`, `nextPartners`, `thirdPartners`,
+///   `fourthPartners`, `fifthPartners` respectively (see entries below).
+///   `P6`+ and every `P-n` are absent from this map; the decoder that reads
+///   them declines the run (see the bucket list above for what declining costs
+///   per decoder — custom for some, still-structures for others).
 /// - `N5`+, `N-1`, `N-2`, `S3`+, `S-n` — beyond the modelled neighbor/shadow
 ///   depth.
 /// - `Ph*` (phantoms), `TB*` (trail buddy), `SR*` (same-role), and bare `R`/`L`
 ///   (states a hand but no dancer at all).
+/// - `O` — the glossary's *"opposite"* (`docs/research/callersbox.md`), the
+///   most common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and
+///   `SRN` 17). It is listed here because its absence was previously
+///   undocumented, which read as an oversight rather than a decision: the code
+///   is real, and a reader checking the glossary against this map would find it
+///   missing with no reason given.
+///
+///   Two separate things, and only one of them is a ruling:
+///   - **No `opposites` token — ruling by @ibanner56, confirmed 2026-08-11.**
+///     `O` is primarily meaningful for non-duple formations (squares), which
+///     are not a current priority; addressing them is not immediately pressing.
+///   - **No token added *for now* — derived, not chosen.** Given the ruling,
+///     the correct behaviour requires no code change: an unmapped code declines
+///     the run per the bucket list above, which is already what happens. This
+///     is a DOCUMENTATION fix only.
 const Map<String, String> tcbPassPeople = {
   'm': 'role1s',
   'w': 'role2s',
@@ -1143,6 +2174,17 @@ const Map<String, String> tcbPassPeople = {
   // Glossary (Partners (mixers)): "Your current partner is P1." So `P1` is the
   // same person the bare `P` names.
   'p1': 'partners',
+  // Glossary (Partners (mixers)): "Your previous partner is P0."
+  'p0': 'prevPartners',
+  // Glossary (Partners (mixers)): "The next partner in your direction of
+  // progression is P2, then P3, and so forth." Taxonomy v24 (issue #732) adds
+  // tokens for P0 and P2–P5. P6+ and every P-n have no token and are absent
+  // from this map, so the decoder that reads them declines the run (see the
+  // doc above for what declining costs per decoder — it is not always custom).
+  'p2': 'nextPartners',
+  'p3': 'thirdPartners',
+  'p4': 'fourthPartners',
+  'p5': 'fifthPartners',
   'n': 'neighbors',
   'n0': 'prevNeighbors',
   // N1 is the current neighbor (glossary: callersbox.md L51; mirrors the
@@ -1284,6 +2326,10 @@ FigureMatch? _squareThroughPassList(String scrubbed) {
   if (close == -1) return null;
   // A second parenthetical means extra structure we do not model -> decline.
   if (lower.indexOf('(', close + 1) != -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
@@ -1373,6 +2419,10 @@ FigureMatch? _hey(String scrubbed) {
   if (open == -1) return null;
   final close = lower.indexOf(')', open + 1);
   if (close == -1) return null;
+  // Measure the span before taking the substring — see
+  // [_boundedPassListCellsIn]. `passText` is used for more than the cell split
+  // here, so the same O(1) bound is applied inline rather than via that helper.
+  if (close - open - 1 > _maxPassListChars) return null;
   final passText = lower.substring(open + 1, close);
   final outside = '${lower.substring(0, open)} ${lower.substring(close + 1)}';
 
@@ -1523,13 +2573,42 @@ const int _maxPassListChars = kMaxPassListCells * 24;
 /// of `;` (or one enormous "cell") must be rejected by a guard that runs before
 /// the allocation, not after it: every pass-list decoder used to `split(';')`
 /// first and check the cell count afterwards, so the oversized list was built
-/// and only then discarded. The [_maxPassListChars] length cap fixes the class
-/// in O(1) — with the raw text capped, both the resulting list and every
-/// substring are provably small. Callers still apply their own exact cell-count
-/// rules (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+/// and only then discarded. The [_maxPassListChars] length cap fixes that in
+/// O(1) — with the raw text capped, both the resulting list and every substring
+/// are provably small. Callers still apply their own exact cell-count rules
+/// (`== places`, `>= 2`, `<= kMaxPassListCells`) to the returned cells.
+///
+/// **This guards the SPLIT, not the caller's own substring.** A caller holding
+/// `lower.substring(open + 1, close)` has already allocated the payload before
+/// this function can see it, so a caller with the parenthesis indices must use
+/// [_boundedPassListCellsIn], which measures the span first. This entry point
+/// is for callers whose text is already in hand.
 List<String>? _boundedPassListCells(String passText) {
   if (passText.length > _maxPassListChars) return null;
   return passText.split(';').map((c) => c.trim()).toList();
+}
+
+/// [_boundedPassListCells] for a pass list still inside its parentheses:
+/// measures the span FIRST and only then takes the substring.
+///
+/// Callers used to hold `lower.substring(open + 1, close)`, so a hostile
+/// `Pass through (` + megabytes + `)` allocated the whole payload and discarded
+/// it one line later — the guard ran *after* the allocation it is documented as
+/// preventing. Passing `(open, close)` makes the bound genuinely O(1):
+/// `close - open - 1` is exactly the length the substring would have.
+///
+/// **Being precise about severity, because overstating it would be its own
+/// defect.** This is not an amplification, and not a fix for a measurable
+/// slowdown. `lower` already holds a lowercased copy of the entire line, so the
+/// marginal cost was one further transient O(payload) allocation among several
+/// — benchmarked at ~1,370ms vs ~1,390ms for five parses of a 1.2 MB payload,
+/// i.e. indistinguishable from noise. What was actually broken is the STATED
+/// PROPERTY: a guard whose doc promises it runs before the allocation, and did
+/// not. The value is that the property is now true for the next caller, who may
+/// not already have the line materialised.
+List<String>? _boundedPassListCellsIn(String lower, int open, int close) {
+  if (close - open - 1 > _maxPassListChars) return null;
+  return _boundedPassListCells(lower.substring(open + 1, close));
 }
 
 /// The shorthand name preserved on the FIRST emitted pass. The decomposition
@@ -1565,10 +2644,10 @@ const String _grandRightAndLeftNote = 'grand right and left';
 ///   qualifier, a second parenthetical (`(ones and twos begin with neighbor…)`)
 ///   or any other leftover prose;
 /// - any cell is not `<people-code><R|L>` with the people code present in
-///   [tcbPassPeople] — square corners (`C1`..`C3`), mixer partner series
-///   (`P2`..`P6`), out-of-range neighbors/shadows, phantoms, trail buddies and
-///   bare `R`/`L` (a hand with no dancer) therefore all stay custom rather than
-///   being approximated onto a token that means something else;
+///   [tcbPassPeople] — square corners (`C1`..`C3`), out-of-range mixer partner
+///   codes (`P6`+/`P-n`), out-of-range neighbors/shadows, phantoms, trail
+///   buddies and bare `R`/`L` (a hand with no dancer) therefore all stay custom
+///   rather than being approximated onto a token that means something else;
 /// - [beats] does not divide evenly by the pass count. An even split is
 ///   arithmetic the source corroborates (TCB's 4 beats over 2 passes == ContraDB's
 ///   2 + 2); an UNEVEN split would invent a per-pass duration nothing states, so
@@ -1658,7 +2737,7 @@ List<_GrandRightAndLeftPass>? _decodeGrandRightAndLeftPasses(String scrubbed) {
     if (words[i] != _grandRightAndLeftWords[i]) return null;
   }
 
-  final cells = _boundedPassListCells(lower.substring(open + 1, close));
+  final cells = _boundedPassListCellsIn(lower, open, close);
   if (cells == null || cells.length < 2 || cells.length > kMaxPassListCells) {
     return null;
   }

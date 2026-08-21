@@ -13,7 +13,8 @@ import 'package:compendium_core/compendium_core.dart';
 /// any source can't be read, the returned future *fails* so the caller aborts
 /// the scrubbed export rather than emitting one that is silently missing terms
 /// — which would leak exactly the content it was meant to strip, while still
-/// being labelled "scrubbed". See `DiagnosticsSection._export`.
+/// being labelled "scrubbed". See `_export` in the diagnostics settings section
+/// (`screens/settings/diagnostics_section.dart`).
 ///
 /// Empty and very short strings are dropped: the redactor already ignores terms
 /// below its minimum length, and blank titles/notes would otherwise be useless

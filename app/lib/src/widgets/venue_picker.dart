@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../screens/venue_editor_sheet.dart';
 import 'responsive_autocomplete.dart';
 
@@ -11,11 +14,15 @@ import 'responsive_autocomplete.dart';
 /// program editor's "enriched" venue mode to choose (or inline-create) the
 /// venue a program links to via `Program.venueId`.
 ///
-/// Loads `venues.listAll()` itself (ordered by name) so the host screen only
-/// has to hold the selected id. Reports selection changes via [onChanged]
-/// (`null` clears the link). "Add new venue…" opens [VenueEditorSheet], upserts
-/// the result, then selects it. Follows the type-ahead + inline-create
-/// conventions of `NamePicker`/`CollectionPicker`.
+/// Subscribes to `venues.watchAll()` itself (ordered by name) so the host
+/// screen only has to hold the selected id, and so a venue written anywhere
+/// else reaches this list without being routed here (issue #768). Reports
+/// selection changes via [onChanged] (`null` clears the link). "Add new
+/// venue…" opens [VenueEditorSheet], upserts the result, **waits for it to
+/// arrive on the stream**, then selects it — see `_createNew` for why that
+/// wait is an ordering invariant rather than a freshness one. Follows the
+/// type-ahead + inline-create conventions of
+/// `NamePicker`/`CollectionPicker`.
 class VenuePicker extends StatefulWidget {
   const VenuePicker({
     super.key,
@@ -41,38 +48,87 @@ class _VenuePickerState extends State<VenuePicker> {
   List<Venue> _venues = const [];
   Object? _error;
 
+  /// The live venue catalogue (issue #768).
+  ///
+  /// This picker is embedded in [ProgramEditorScreen], which has been
+  /// stream-driven since the Collection conversion — so before this change the
+  /// parent's reference data was reactive while the venue list inside it was
+  /// not.
+  StreamSubscription<List<Venue>>? _venuesSub;
+
+  /// Completed by the listener when a venue this widget is waiting for appears
+  /// in an emitted list. See [_createNew] for why the wait exists.
+  ({String id, Completer<void> arrived})? _pendingCreate;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      _load();
+      _subscribe();
     }
   }
 
-  Future<void> _load() async {
+  void _subscribe() {
+    _venuesSub = _repos.venues.watchAll().listen(
+      (venues) {
+        final pending = _pendingCreate;
+        if (pending != null && venues.any((v) => v.id == pending.id)) {
+          _pendingCreate = null;
+          if (!pending.arrived.isCompleted) pending.arrived.complete();
+        }
+        if (!mounted) return;
+        setState(() {
+          _venues = venues;
+          _loading = false;
+          _error = null;
+        });
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        if (kDebugMode) {
+          debugPrint('Could not load venues: $error\n$stackTrace');
+        }
+        logCaughtError(error, stackTrace, source: 'venue_picker._subscribe');
+        // Settle any pending create so `_createNew` cannot await forever; it
+        // notifies the parent regardless, which is better than stranding the
+        // venue the user just made.
+        final pending = _pendingCreate;
+        _pendingCreate = null;
+        if (pending != null && !pending.arrived.isCompleted) {
+          pending.arrived.complete();
+        }
+        if (!mounted) return;
+        setState(() {
+          _error = error;
+          _loading = false;
+        });
+      },
+    );
+  }
+
+  /// Retry after a load error: the stream may have terminated with it, so a
+  /// fresh subscription is opened rather than waiting for an emit that a closed
+  /// source will never produce.
+  void _retry() {
+    unawaited(_venuesSub?.cancel());
+    _venuesSub = null;
     setState(() {
       _loading = true;
       _error = null;
     });
-    try {
-      final venues = await _repos.venues.listAll();
-      if (!mounted) return;
-      setState(() {
-        _venues = venues;
-        _loading = false;
-      });
-    } catch (error, stackTrace) {
-      if (kDebugMode) {
-        debugPrint('Could not load venues: $error\n$stackTrace');
-      }
-      if (!mounted) return;
-      setState(() {
-        _error = error;
-        _loading = false;
-      });
+    _subscribe();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_venuesSub?.cancel());
+    final pending = _pendingCreate;
+    _pendingCreate = null;
+    if (pending != null && !pending.arrived.isCompleted) {
+      pending.arrived.complete();
     }
+    super.dispose();
   }
 
   Venue? get _selected {
@@ -87,12 +143,29 @@ class _VenuePickerState extends State<VenuePicker> {
   Future<void> _createNew(String seedName) async {
     // Prefill the sheet's name with what the user typed so inline-create is one
     // step. The sheet returns the built venue (with a freshly minted id) or
-    // null on cancel; we upsert it, reload, and select it.
+    // null on cancel; we upsert it, wait for it to arrive, then select it.
     final created = await VenueEditorSheet.show(context, seedName: seedName);
     if (created == null || !mounted) return;
+
+    // ## Why this waits, when the rest of the conversion deletes waits
+    //
+    // Everywhere else in this change a write is simply made and the stream is
+    // left to deliver it. Here the ORDER is load-bearing: `onChanged` tells the
+    // parent to select this id, the parent rebuilds this widget with it, and
+    // `_selected` looks the id up in `_venues`. Notify before the emit lands
+    // and that lookup misses — rendering the `venue-picker-unresolved` card,
+    // which says the linked venue no longer exists, immediately after the user
+    // created it.
+    //
+    // So the wait is not for freshness, which the stream handles; it is for the
+    // invariant that the parent is only told about a venue this widget can
+    // already render. The completer is settled by the listener, by the error
+    // handler, and by `dispose` — every path that ends the wait settles it, the
+    // same rule the program panes follow for their first-value futures.
+    final pending = (id: created.id, arrived: Completer<void>());
+    _pendingCreate = pending;
     await _repos.venues.upsert(created);
-    if (!mounted) return;
-    await _load();
+    await pending.arrived.future;
     if (!mounted) return;
     widget.onChanged(created.id);
   }
@@ -123,7 +196,7 @@ class _VenuePickerState extends State<VenuePicker> {
         child: Row(
           children: [
             Expanded(child: Text(l10n.venueLoadError)),
-            TextButton(onPressed: _load, child: Text(l10n.commonRetry)),
+            TextButton(onPressed: _retry, child: Text(l10n.commonRetry)),
           ],
         ),
       );

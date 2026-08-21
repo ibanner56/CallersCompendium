@@ -31,6 +31,11 @@ Future<void> showAddToProgramSheet(
   final l10n = AppLocalizations.of(context);
   final messenger = ScaffoldMessenger.of(context);
   final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
+  // Captured up-front, like the messenger above: this sheet pops before its
+  // undo callback runs, so none of these can be resolved from a context by
+  // then. A refresh notifier used to be captured here for the same reason and
+  // no longer is — the undo is a write, and every view of it watches the
+  // database (issue #768).
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -214,6 +219,10 @@ Future<void> _selectProgram(
   await repositories.programs.update(
     fresh.copyWith(slots: [...fresh.slots, newSlot], updatedAt: now),
   );
+  // The dance's calling history and its "called N times" badge are both derived
+  // from program slots (issue #768, gaps 1 and 2). Neither this write nor its
+  // Undo broadcasts: both views watch `program_slots` directly, so the write is
+  // the whole notification.
   if (sheetContext.mounted) Navigator.of(sheetContext).pop();
   showUndoSnackBar(
     messenger,

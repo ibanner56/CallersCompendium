@@ -35,12 +35,68 @@ class Taxonomy {
         }
       }
     }
+    // Build the inverse-pair lookup table from aliases that declare one.
+    // Each alias with an inversePairId pins exactly ONE param on a two-valued
+    // axis; the lookup maps (moveId, paramKey, oppositeValue) → counterpartId
+    // in BOTH directions.
+    final pairs = <String, _InversePairEntry>{};
+    for (final alias in aliases) {
+      final inversePairId = alias.inversePairId;
+      if (inversePairId == null) continue;
+      // Validate that the inversePairId resolves to a known move or alias —
+      // a typo here would let resolvedMoveId rewrite persisted figures to a
+      // non-existent id during the one-time migration, silently corrupting
+      // user data with the done marker preventing a retry.
+      if (!this.moves.containsKey(inversePairId) &&
+          !this.aliases.containsKey(inversePairId)) {
+        throw ArgumentError(
+          'alias "${alias.id}" declares inversePairId "$inversePairId" '
+          'which is neither a known move nor a known alias',
+        );
+      }
+      if (alias.pinnedParams.length != 1) {
+        throw ArgumentError(
+          'alias "${alias.id}" declares an inversePairId but pins '
+          '${alias.pinnedParams.length} params (expected exactly 1)',
+        );
+      }
+      final paramKey = alias.pinnedParams.keys.single;
+      final pinnedValue = alias.pinnedParams[paramKey];
+      // Alias side: when the pinned param takes the OPPOSITE value, re-route
+      // to the inverse pair id.
+      pairs[alias.id] = _InversePairEntry(
+        paramKey: paramKey,
+        pinnedValue: pinnedValue,
+        inversePairId: inversePairId,
+      );
+      // Target side: when the target move takes the ALIAS's pinned value,
+      // re-route to the alias. A duplicate target would half-register the
+      // second pair and silently break the "both directions" guarantee.
+      if (pairs.containsKey(alias.targetMove)) {
+        throw ArgumentError(
+          'alias "${alias.id}" declares inversePairId targeting '
+          '"${alias.targetMove}", but that target already has an '
+          'inverse-pair entry from another alias',
+        );
+      }
+      pairs[alias.targetMove] = _InversePairEntry(
+        paramKey: paramKey,
+        pinnedValue: pinnedValue,
+        inversePairId: alias.id,
+      );
+    }
+    _inversePairs = Map.unmodifiable(pairs);
   }
 
   final int version;
   final DanceForm form;
   final Map<String, MoveDef> moves;
   final Map<String, MoveAlias> aliases;
+
+  /// Lookup table for inverse-pair re-routing, built from aliases with
+  /// [MoveAlias.inversePairId]. Key: move id (alias OR target). Value: the
+  /// param key, the alias's pinned value, and the counterpart id.
+  late final Map<String, _InversePairEntry> _inversePairs;
 
   /// Neutral `beats` fallback surfaced by [effectiveParams] for an unknown
   /// move that carries no explicit count. Mirrors the custom/free-text move's
@@ -104,6 +160,37 @@ class Taxonomy {
     return effective;
   }
 
+  /// Returns the move id [figure] should carry given its effective params.
+  ///
+  /// For inverse-pair aliases (`box_the_gnat` ⇄ `swat_the_flea` on `hand`,
+  /// `do_si_do` ⇄ `see_saw` on `shoulder`), the move id routes to the half
+  /// whose pin matches the effective param value. Returns [figure.move]
+  /// unchanged when no re-routing applies.
+  ///
+  /// Call at **write time** (import, editor save) rather than on every read —
+  /// `effectiveParams` is on the hot path and is deliberately untouched.
+  /// Canonical keys are unaffected because both halves of a pair resolve to
+  /// the same [MoveDef] id.
+  String resolvedMoveId(Figure figure) {
+    final pair = _inversePairs[figure.move];
+    if (pair == null) return figure.move;
+    final effective = effectiveParams(figure);
+    final value = effective[pair.paramKey];
+    // For the ALIAS side (e.g. swat_the_flea pins hand=left):
+    //   If the effective value differs from the pin → re-route to inversePairId.
+    // For the TARGET side (e.g. box_the_gnat, no pin):
+    //   If the effective value EQUALS the alias's pin → re-route to the alias.
+    final alias = aliases[figure.move];
+    if (alias != null) {
+      // Figure is on the alias side: re-route if the effective value differs
+      // from the pinned value.
+      return value != pair.pinnedValue ? pair.inversePairId : figure.move;
+    }
+    // Figure is on the target (MoveDef) side: re-route if the effective value
+    // equals the alias's pinned value.
+    return value == pair.pinnedValue ? pair.inversePairId : figure.move;
+  }
+
   /// Validates a figure against this taxonomy.
   ///
   /// Errors: unknown move, unknown param name, out-of-domain param value.
@@ -162,4 +249,26 @@ class Taxonomy {
     }
     return issues;
   }
+}
+
+/// Internal descriptor for one half of an inverse-pair alias relationship.
+@immutable
+class _InversePairEntry {
+  const _InversePairEntry({
+    required this.paramKey,
+    required this.pinnedValue,
+    required this.inversePairId,
+  });
+
+  /// The param axis the pair pivots on (e.g. `'hand'`, `'shoulder'`).
+  final String paramKey;
+
+  /// The value the alias pins (e.g. `'left'`). For the target (MoveDef) side
+  /// this is the value that triggers re-routing TO the alias; for the alias
+  /// side this is the value that keeps the alias and a departure triggers
+  /// re-routing to [inversePairId].
+  final Object? pinnedValue;
+
+  /// The counterpart id to re-route to when the effective param disagrees.
+  final String inversePairId;
 }

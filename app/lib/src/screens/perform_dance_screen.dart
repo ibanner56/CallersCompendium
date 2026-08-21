@@ -116,7 +116,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           if (enabled != _autoSize) setState(() => _autoSize = enabled);
         })
         .catchError((_) {
-          // Read failure: keep the on-by-default value; nothing to restore.
+          // diagnostics: silent — auto-size pref read failed; keeps on-by-default value.
         });
     _a11yPrefs = PerformA11yPrefsStore(settings);
     _a11yPrefs!
@@ -132,20 +132,32 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           });
         })
         .catchError((_) {
-          // Read/parse failure: keep defaults; nothing to restore.
+          // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
         });
   }
 
   void _persistTextScale() {
-    _a11yPrefs?.saveTextScale(_textScale).catchError((_) {});
+    _a11yPrefs
+        ?.saveTextScale(_textScale)
+        .catchError(
+          (_) {},
+        ); // diagnostics: silent — text-scale persist failed; best-effort.
   }
 
   void _persistStageMode() {
-    _a11yPrefs?.saveStageMode(_stageMode).catchError((_) {});
+    _a11yPrefs
+        ?.saveStageMode(_stageMode)
+        .catchError(
+          (_) {},
+        ); // diagnostics: silent — stage-mode persist failed; best-effort.
   }
 
   void _persistCanonicalView() {
-    _a11yPrefs?.saveCanonicalView(_canonicalView).catchError((_) {});
+    _a11yPrefs
+        ?.saveCanonicalView(_canonicalView)
+        .catchError(
+          (_) {},
+        ); // diagnostics: silent — canonical-view persist failed; best-effort.
   }
 
   void _decreaseTextSize() {

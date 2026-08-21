@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -261,8 +264,28 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(clipboardText, isNotNull);
-      expect(clipboardText, contains(_venue.displayName));
+      // The linked venue wins over the free text, but only its public name
+      // travels: `Venue.displayName` is `name, address1, city, stateProv,
+      // country`, and those seven address columns are classified deviceLocal
+      // in the privacy registry, so the export routes the venue through
+      // `sanitizeVenueForShare` first (issue #853).
+      expect(clipboardText, contains('Grange Hall'));
       expect(clipboardText, isNot(contains('Town Hall')));
+      for (final leaked in const [
+        '123 Main St',
+        'Room 2',
+        'Montpelier',
+        'VT',
+        'USA',
+        '05602',
+        '1234',
+      ]) {
+        expect(
+          clipboardText,
+          isNot(contains(leaked)),
+          reason: 'venue address field "$leaked" must not reach a set list',
+        );
+      }
     });
 
     testWidgets('Copy set list falls back to free text when link unresolved', (
@@ -753,7 +776,14 @@ void main() {
               venueId: 'v2',
               slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
             ),
-            {'v2': Venue(id: 'v2', name: 'Bare Hall', city: 'Montpelier')},
+            {
+              'v2': Venue(
+                id: 'v2',
+                name: 'Bare Hall',
+                city: 'Montpelier',
+                eventName: 'Second Saturday Contra',
+              ),
+            },
             dir,
             (p) => captured = p,
           ),
@@ -774,7 +804,11 @@ void main() {
           File(captured!.files!.single.path).readAsStringSync(),
         ).archive.venues.single;
         expect(venue.name, 'Bare Hall');
-        expect(venue.city, 'Montpelier');
+        // Descriptive fields are `shareable` and travel.
+        expect(venue.eventName, 'Second Saturday Contra');
+        // The address block is classified deviceLocal, so it is stripped
+        // unconditionally — there is no consent path for it (issue #853).
+        expect(venue.city, isNull);
       },
     );
 
@@ -963,6 +997,191 @@ void main() {
     });
   });
 
+  group('Export as JSON file (issue #853)', () {
+    testWidgets('menu lists it between Copy set list and Export / print PDF', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      await tester.pumpWidget(
+        _shareBundleMenu(_program(), const {}, dir, (_) {}),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+
+      // Document order of the menu's ListTiles is the order the user sees.
+      // The issue specifies the JSON action's position exactly, so assert the
+      // whole sequence rather than mere presence.
+      final titles = tester
+          .widgetList<ListTile>(find.byType(ListTile))
+          .map((t) => (t.title! as Text).data)
+          .toList();
+      expect(titles, const [
+        'Share set list (text)',
+        'Share (program + dances)',
+        'Copy set list',
+        'Export as JSON file',
+        'Export / print PDF',
+      ]);
+    });
+
+    testWidgets('is omitted when there is no dance resolver', (tester) async {
+      // Same gate as the bundle action: nothing to embed without `danceFor`.
+      await _pumpMenu(tester, _program());
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Export as JSON file'), findsNothing);
+    });
+
+    testWidgets('shares a .json file carrying the program and its dances', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('share_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      ShareParams? captured;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 1, text: 'Break'),
+              ProgramSlot(id: 's3', position: 2, danceId: 'd2'),
+            ],
+          ),
+          const {},
+          dir,
+          (params) => captured = params,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      final files = captured!.files!;
+      expect(files, hasLength(1));
+      expect(files.single.mimeType, 'application/json');
+      expect(files.single.path, endsWith('.json'));
+      expect(files.single.path, isNot(endsWith('.ccshare')));
+      expect(captured!.fileNameOverrides, ['Friday_Contra.json']);
+
+      final archive = decodeArchive(
+        File(files.single.path).readAsStringSync(),
+      ).archive;
+      expect(archive.programs.single.id, 'p1');
+      expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd2'});
+    });
+
+    testWidgets('emits the same payload as the .ccshare action', (
+      tester,
+    ) async {
+      // The whole point of the action is a second *file name* for the existing
+      // bytes. If the two payloads ever diverge, a second program JSON format
+      // has been introduced by accident — which is exactly what this asserts
+      // against.
+      final dir = Directory.systemTemp.createTempSync('share_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      // Every entity kind the bundle can carry must actually be present, or
+      // the comparison is vacuous for the missing ones: a payload fork that
+      // dropped, say, the choreographers would compare equal against a fixture
+      // whose dances have no authors. So: two dances, one of them credited,
+      // a resolvable choreographer, and a linked venue.
+      final authored = Dance(
+        id: 'd3',
+        title: 'Ada\'s Whim',
+        authorIds: const ['c1'],
+        figures: [
+          Figure(move: 'swing', params: const {'beats': 16, 'who': 'partners'}),
+        ],
+        sourceCitations: const [],
+        customFields: const [],
+        createdAt: _now,
+        updatedAt: _now,
+      );
+      final choreographer = Choreographer(
+        id: 'c1',
+        name: 'Ada Caller',
+        website: 'https://ada.example',
+      );
+      final program = _program(
+        venueId: 'v1',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
+        ],
+      );
+
+      Future<Map<String, Object?>> payloadFor(String menuLabel) async {
+        ShareParams? captured;
+        await tester.pumpWidget(
+          MaterialApp(
+            localizationsDelegates: testLocalizationsDelegates,
+            supportedLocales: testSupportedLocales,
+            home: Scaffold(
+              appBar: AppBar(
+                actions: [
+                  ProgramExportMenu(
+                    program: program,
+                    titleFor: _titles,
+                    venuesById: {'v1': _venue},
+                    danceFor: (id) => id == 'd3' ? authored : _danceFor(id),
+                    choreographerFor: (id) => id == 'c1' ? choreographer : null,
+                    bundleFileWriter: (json, fileName) async {
+                      final file = File('${dir.path}/$fileName');
+                      file.writeAsStringSync(json);
+                      return XFile(file.path, mimeType: 'application/json');
+                    },
+                    shareInvoker: (params) async => captured = params,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(menuLabel));
+        await tester.pumpAndSettle();
+        // The venue has contact fields, so the consent dialog appears; confirm
+        // with nothing ticked, identically for both actions.
+        await tester.tap(
+          find.byKey(const ValueKey('venue-contact-share-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        final raw = File(captured!.files!.single.path).readAsStringSync();
+        return jsonDecode(raw) as Map<String, Object?>
+          // `exportedAt` is stamped at build time, so it necessarily differs
+          // between two separate invocations; everything else must match.
+          ..remove('exportedAt');
+      }
+
+      final bundle = await payloadFor('Share (program + dances)');
+      final json = await payloadFor('Export as JSON file');
+
+      // Guard the guard: a comparison of two empty-ish payloads would pass
+      // whatever the code did, so assert the fixture really exercised every
+      // entity list before comparing them.
+      expect((bundle['programs']! as List), hasLength(1));
+      expect((bundle['dances']! as List), hasLength(2));
+      expect((bundle['choreographers']! as List), hasLength(1));
+      expect((bundle['venues']! as List), hasLength(1));
+
+      expect(json, equals(bundle));
+    });
+  });
+
   group('buildProgramPdf', () {
     testWidgets('produces a non-empty PDF document', (tester) async {
       final bytes = await buildProgramPdf(
@@ -1086,6 +1305,447 @@ void main() {
       expect(bytes, isNotEmpty);
       // A valid PDF begins with the "%PDF" magic header.
       expect(String.fromCharCodes(bytes.take(4)), '%PDF');
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Figures-inclusion prompt (issue #853, asks 2 & 3)
+  // ---------------------------------------------------------------------------
+  // Guard: a dance fixture used here MUST have non-empty figures so the tests
+  // are not vacuous. Each test asserts this individually before using it.
+  final danceWithFigures = _dances['d1']!;
+
+  group('figures-inclusion prompt', () {
+    /// Builds a menu that has a danceFor resolver, so _hasFigures can fire.
+    Widget figuresMenu({
+      required Program program,
+      required void Function(ShareParams) onShare,
+      void Function()? onPdf,
+    }) => MaterialApp(
+      localizationsDelegates: testLocalizationsDelegates,
+      supportedLocales: testSupportedLocales,
+      home: Scaffold(
+        appBar: AppBar(
+          actions: [
+            ProgramExportMenu(
+              program: program,
+              titleFor: _titles,
+              danceFor: _danceFor,
+              shareInvoker: (params) async => onShare(params),
+              pdfLayouter: ({required name, required onLayout}) async =>
+                  onPdf?.call(),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    testWidgets('prompt shown when program has dances with figures', (
+      tester,
+    ) async {
+      // Mutation that would catch a regression: if the _hasFigures guard is
+      // removed and the prompt is never shown, find.byKey returns nothing.
+      assert(
+        danceWithFigures.figures.isNotEmpty,
+        'guard: fixture must have figures',
+      );
+      ShareParams? captured;
+      await tester.pumpWidget(
+        figuresMenu(
+          program: _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          onShare: (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share set list (text)'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('program-figures-prompt-dialog')),
+        findsOneWidget,
+      );
+      // Dialog is open — share not yet invoked.
+      expect(captured, isNull);
+    });
+
+    testWidgets(
+      'prompt NOT shown when no dances have figures → proceeds as set-list-only',
+      (tester) async {
+        // d2 has no figures. Mutation: if _hasFigures always returns true, the
+        // dialog appears → share is not invoked → captured stays null → assertion
+        // on captured being non-null fails.
+        ShareParams? captured;
+        await tester.pumpWidget(
+          figuresMenu(
+            program: _program(
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd2')],
+            ),
+            onShare: (p) => captured = p,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+
+        // No dialog; share proceeds immediately.
+        expect(
+          find.byKey(const ValueKey('program-figures-prompt-dialog')),
+          findsNothing,
+        );
+        expect(captured, isNotNull);
+        // Output is set-list-only (no figure cards).
+        expect(captured!.text, isNotNull);
+        expect(captured!.text, contains('The Nice Combination'));
+        expect(captured!.text, isNot(contains('---')));
+      },
+    );
+
+    testWidgets('Cancel on prompt aborts the share — captured stays null', (
+      tester,
+    ) async {
+      // Mutation: remove the null-check on _figuresConsent result → share
+      // proceeds after cancel → captured becomes non-null → assertion fails.
+      ShareParams? captured;
+      await tester.pumpWidget(
+        figuresMenu(
+          program: _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          onShare: (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share set list (text)'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('program-figures-prompt-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(captured, isNull);
+    });
+
+    testWidgets('"Set list only" → share text has no figure cards', (
+      tester,
+    ) async {
+      // Mutation: make "set list only" fall through to _plainTextWithFigures →
+      // text contains "---" separator → assertion fails.
+      assert(
+        danceWithFigures.figures.isNotEmpty,
+        'guard: fixture must have figures',
+      );
+      ShareParams? captured;
+      await tester.pumpWidget(
+        figuresMenu(
+          program: _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          onShare: (p) => captured = p,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share set list (text)'));
+      await tester.pumpAndSettle();
+
+      // Confirm with default (set list only).
+      await tester.tap(
+        find.byKey(const ValueKey('program-figures-prompt-confirm')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(captured, isNotNull);
+      expect(captured!.text, contains('Rory O\'More'));
+      // No separator that marks an appended dance card.
+      expect(captured!.text, isNot(contains('---')));
+    });
+
+    testWidgets(
+      '"Set list and figures" → share text includes figure card for dance with figures',
+      (tester) async {
+        // Mutation: remove the figures append in _plainTextWithFigures → "---"
+        // separator absent → assertion fails.
+        assert(
+          danceWithFigures.figures.isNotEmpty,
+          'guard: fixture must have figures',
+        );
+        ShareParams? captured;
+        await tester.pumpWidget(
+          figuresMenu(
+            program: _program(
+              slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+            ),
+            onShare: (p) => captured = p,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+
+        // Choose "Set list and figures".
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        expect(captured!.text, contains('Rory O\'More'));
+        // Figure card separator and the dance title appear in the appendix.
+        expect(captured!.text, contains('---'));
+      },
+    );
+
+    testWidgets(
+      'alternate dance labeled "Alternate" in set-list-and-figures share',
+      (tester) async {
+        // Mutation: remove the alternate label in _plainTextWithFigures →
+        // "Alternate" absent from text → assertion fails.
+        assert(
+          danceWithFigures.figures.isNotEmpty,
+          'guard: fixture must have figures',
+        );
+        // Use a note-only primary so d1 (with figures) appears as the alternate.
+        ShareParams? captured;
+        await tester.pumpWidget(
+          figuresMenu(
+            program: _program(
+              slots: [
+                ProgramSlot(id: 's1', position: 0, text: 'opener'),
+                ProgramSlot(id: 's2', position: 1, danceId: 'd1', isAlt: true),
+              ],
+            ),
+            onShare: (p) => captured = p,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Share set list (text)'));
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(captured, isNotNull);
+        // The alternate dance should be labelled in the appendix, and the title
+        // must appear exactly once in the figure appendix — the mark is on the
+        // separator line ("--- Alternate") and danceToPlainText emits the title.
+        // Mutation that would catch a regression: removing the isAlternate check
+        // causes the separator to be plain "---" and "Alternate" is absent.
+        // The exact-once count in the appendix catches the double-title bug where
+        // "Alternate: <title>" was printed before the card that also opens with
+        // the title.
+        expect(captured!.text, contains('Alternate'));
+        final appendix = captured!.text!.split('---').last;
+        final titleOccurrences = 'Rory O\'More'.allMatches(appendix).length;
+        expect(
+          titleOccurrences,
+          1,
+          reason:
+              'alternate title must appear exactly once in the figure appendix',
+        );
+      },
+    );
+
+    testWidgets(
+      'PDF path: "Set list and figures" → appendDances reaches the PDF builder',
+      (tester) async {
+        // The previous version of this test only checked that the pdfLayouter
+        // spy was invoked — which stayed GREEN when appendDances was removed,
+        // because the spy ignored its onLayout argument entirely. Found by a
+        // deliberate mutation audit of merged code.
+        //
+        // This version captures the onLayout closure from both the "set list
+        // and figures" path and the "set list only" path, calls each, and
+        // compares their byte sizes. Both closures are built through _exportPdf
+        // with identical parameters (same program, same formatDate, same
+        // labels), so the comparison is a true differential: any size difference
+        // comes from appendDances alone.
+        //
+        // A bare buildProgramPdf call was considered as the baseline but
+        // rejected: _exportPdf passes formatDate and programExportLabels, so a
+        // bare call and the export-path call produce different byte counts even
+        // with no appendix — any size delta wouldn't be attributable to
+        // appendDances. Using two closures from the same _exportPdf call
+        // eliminates that ambiguity.
+        //
+        // Mutation that would catch a regression: remove appendDances from the
+        // buildProgramPdf call in _exportPdf. Both closures then call
+        // buildProgramPdf with identical arguments and produce identical bytes:
+        //   Expected: a value greater than <N>   (measured ~8894 at time of writing)
+        //   Actual: <N>   (both paths produce identical bytes)
+        assert(
+          danceWithFigures.figures.isNotEmpty,
+          'guard: fixture must have figures',
+        );
+        final prog = _program(
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        );
+
+        LayoutCallback? capturedWithFigures;
+        LayoutCallback? capturedSetListOnly;
+
+        final widget = MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                ProgramExportMenu(
+                  program: prog,
+                  titleFor: _titles,
+                  danceFor: _danceFor,
+                  shareInvoker: (params) async {},
+                  pdfLayouter: ({required name, required onLayout}) async {
+                    // Called exactly twice: first tap → capturedWithFigures,
+                    // second tap → capturedSetListOnly (order matches taps below).
+                    // Fail loudly on a third call — a silent overwrite would let
+                    // the test pass against the wrong closure, the same defect
+                    // this PR exists to fix one level up.
+                    if (capturedWithFigures == null) {
+                      capturedWithFigures = onLayout;
+                    } else if (capturedSetListOnly == null) {
+                      capturedSetListOnly = onLayout;
+                    } else {
+                      fail(
+                        'pdfLayouter called more than twice — unexpected invocation',
+                      );
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpWidget(widget);
+        await tester.pumpAndSettle();
+
+        // ── First export: "Set list and figures" ──────────────────────────
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('program-figures-prompt-dialog')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(
+            const ValueKey('program-figures-prompt-set-list-and-figures'),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        // ── Second export: "Set list only" ────────────────────────────────
+        await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Export / print PDF'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('program-figures-prompt-dialog')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-set-list-only')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('program-figures-prompt-confirm')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(capturedWithFigures, isNotNull);
+        expect(capturedSetListOnly, isNotNull);
+
+        final withFiguresBytes = await capturedWithFigures!(PdfPageFormat.a4);
+        final setListOnlyBytes = await capturedSetListOnly!(PdfPageFormat.a4);
+
+        // A PDF with a figure appendix is larger than the set-list-only PDF
+        // built through the identical construction path. Proves appendDances
+        // reached buildProgramPdf, but does not verify appendix contents —
+        // any additional bytes satisfy it. For the guarded regression
+        // (appendDances dropped entirely), the comparison discriminates
+        // correctly.
+        expect(
+          withFiguresBytes.length,
+          greaterThan(setListOnlyBytes.length),
+          reason:
+              'PDF with figures must be larger than set-list-only PDF; '
+              'equal length means appendDances was silently dropped',
+        );
+      },
+    );
+
+    testWidgets('PDF path: Cancel on figures prompt → pdf layouter NOT invoked', (
+      tester,
+    ) async {
+      // Mutation: remove null-check on _figuresConsent → PDF is invoked after
+      // cancel → pdfInvoked flips to true → assertion fails.
+      // Note: this test asserts on invocation, not content — that's correct
+      // here because the question is "did cancel abort the export", not "what
+      // did the PDF contain". Checked by mutation audit: goes RED when the
+      // null-guard is removed. The content question is covered by the test above.
+      var pdfInvoked = false;
+      await tester.pumpWidget(
+        figuresMenu(
+          program: _program(
+            slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+          ),
+          onShare: (_) {},
+          onPdf: () => pdfInvoked = true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export / print PDF'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(pdfInvoked, isFalse);
     });
   });
 }

@@ -213,7 +213,7 @@ Flutter deployment docs (<https://docs.flutter.dev/deployment>).
 |----------|-----------------------|-----------------------------------|
 | Linux    | AppImage + `tar.gz` (baseline); **Snap** (Flutter-documented); Flathub | None — Linux has no OS-trust-warning model (all free) |
 | macOS    | Direct notarized `dmg`/`zip` (recommended); Mac App Store | Apple Developer Program **$99/yr** (both paths) |
-| Windows  | (0) Unsigned installer+`zip` on GitHub Releases (free) → (a) Microsoft Store MSIX (~$19 one-time) → (b) Azure Trusted Signing (~$120/yr) → (c) Certum OSS (~$70–100/yr) → (d) OV (~$100–400/yr) → (e) EV (~$300–700/yr) | Rises with route; see below |
+| Windows  | Azure Trusted Signing for the installer + `zip` when configured; unsigned fallback on GitHub Releases → Microsoft Store MSIX / other certificate routes | Azure service cost when enabled; see below |
 | Android  | Release APK signed with a self-generated upload keystore (official Flutter mechanism); F-Droid; optional Play Store | Self-managed keystore (free); Play $25 one-time (optional) |
 | iOS      | App Store / TestFlight | Apple Developer Program **$99/yr** |
 
@@ -227,22 +227,22 @@ APK. (Flutter: *Build and release an Android app*.)
 
 **Windows.** Cheapest → priciest *trusted* routes:
 
-- **(0) FREE** — ship an unsigned installer + `zip` on GitHub Releases and
-  document the SmartScreen **"More info → Run anyway"** step. Flutter's docs
-  **explicitly state publishing via the Microsoft Store is not required**; a
-  self-distributed app is fully supported. (Flutter: *Build and release a Windows
-  desktop app*.)
+- **Azure Trusted Signing** — the release workflow signs the Windows `.exe` and
+  `.dll` bundle before creating the portable `zip`, then signs the Inno Setup
+  installer. If the repository variables are absent, it preserves the unsigned
+  fallback and documents the SmartScreen **"More info → Run anyway"** step.
+  Flutter's docs **explicitly state publishing via the Microsoft Store is not
+  required**; a self-distributed app is fully supported. (Flutter: *Build and
+  release a Windows desktop app*.)
 - **(a) Microsoft Store (MSIX)** — ~**$19 one-time** individual developer
   account; **the Store signs the MSIX**, so no standalone Authenticode
   certificate is needed. Built via the `msix` pub package + the `msstore` CLI
   (GitHub-Actions-automatable). This is the **cheapest cert-backed trusted route
   and the recommended first paid step** if/when Windows trust is wanted.
   Trade-off: Store certification and Store-based distribution/updates.
-- **(b) Azure Trusted Signing** — ~**$9.99/mo (~$120/yr)**; signs a self-hosted
-  installer, no HSM to manage.
-- **(c) Certum Open Source code-signing** — ~**$70–100/yr**.
-- **(d) OV certificate** — ~**$100–400/yr** (HSM-backed).
-- **(e) EV certificate** — ~**$300–700/yr**; grants instant SmartScreen
+- **(b) Certum Open Source code-signing** — ~**$70–100/yr**.
+- **(c) OV certificate** — ~**$100–400/yr** (HSM-backed).
+- **(d) EV certificate** — ~**$300–700/yr**; grants instant SmartScreen
   reputation.
 
 A **sideloaded (non-Store) MSIX still needs a trusted certificate**; only a
@@ -268,6 +268,13 @@ Program (**$99/yr**). (Flutter: *Build and release a macOS app*.)
 > notarytool credentials are all present; otherwise the leg produces the same
 > UNSIGNED artifacts as before. See
 > [docs/dev/releasing.md](../dev/releasing.md#macos-developer-id-signed--notarized).
+
+> **Windows Trusted Signing is implemented (gated on repository variables).**
+> The release workflow uses GitHub OIDC with the configured federated Entra
+> application/service principal,
+> signs the Windows bundle and generated installer in WUS2, and retains the
+> unsigned fallback when the variables are absent. See
+> [docs/dev/releasing.md](../dev/releasing.md#windows-azure-trusted-signing).
 
 **iOS.** Flutter's iOS deployment doc covers App Store / TestFlight distribution
 via Xcode; there is **no sideload or unsigned path** — Apple is the only channel.
@@ -398,8 +405,9 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   acceptable; it must be honored by the Stage-1 client PR.
 - **Escalation flags to resolve before store submission / Stage 2:**
   - **Apple Developer Program ($99/yr)** — gates macOS notarization and iOS.
-  - **Windows Authenticode certificate** — gates SmartScreen-clean installers and
-    WinSparkle-signed updates.
+  - **Windows Trusted Signing configuration** — gates SmartScreen-clean
+    installers and WinSparkle-signed updates; the workflow is wired but remains
+    unsigned when its repository variables are absent.
   - **Android keystore custody policy** — who holds the signing key and how it is
     stored/rotated (a lost key blocks all future updates).
   - **Bundle-id mismatch — RESOLVED.** Android/Linux previously used

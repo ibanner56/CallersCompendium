@@ -16,14 +16,22 @@
 ///    here" ([ProgramMatrix.isProgramDebut]). A move used by several dances is
 ///    a debut only on the earliest row; the collapsed custom column debuts on
 ///    its first appearance too.
-///  * **Same-figure-same-phrase collision** (per cell): the move repeats, in
-///    the same phrase (A1/A2/B1/B2…), in a *strictly-adjacent* dance (the row
-///    immediately above or below in program order) — the repeat a caller wants
-///    to reconsider ([ProgramMatrix.isPhraseCollision]). Phrase positions are
-///    derived from cumulative **effective** beats ([Taxonomy.effectiveParams],
-///    so figures with no explicitly-stored count still land in the right
-///    phrase) and threaded through [MatrixRow.phraseLabelsByMove]; the
-///    un-comparable custom column never collides.
+///  * **Same-figure collision** (per cell): the move repeats in a
+///    *strictly-adjacent* dance (the row immediately above or below in program
+///    order) — the repeat a caller wants to reconsider
+///    ([ProgramMatrix.isCollision]). Positions are derived from cumulative
+///    **effective** beats ([Taxonomy.effectiveParams], so figures with no
+///    explicitly-stored count still land correctly) and threaded through
+///    [MatrixRow.phraseLabelsByMove] / [MatrixRow.beatSpansByMove]; the
+///    un-comparable custom column never collides. [ProgramMatrix.collisionMode]
+///    (issue #962) selects which of two comparisons decides a collision:
+///     * [MatrixCollisionMode.exactBeats] (the default): the move's beat
+///       *span* actually overlaps between the two dances — guards against,
+///       say, one dance's 8-count swing and another's 10-count swing landing
+///       in the same named phrase without their beats overlapping at all.
+///     * [MatrixCollisionMode.phrase]: the move merely *starts* in the same
+///       named phrase (A1/A2/B1/B2…) — the original (#582) behaviour, kept as
+///       an opt-in via the "exact beat overlap" setting.
 library;
 
 import 'package:collection/collection.dart';
@@ -35,8 +43,10 @@ import '../model/dance.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
+import '../model/phrase_structure.dart';
 import '../taxonomy/contra_taxonomy.dart';
 import '../taxonomy/taxonomy.dart';
+import 'matrix_column_config.dart';
 
 /// What kind of move a [MatrixColumn] represents, so the UI can label and
 /// order it appropriately.
@@ -54,12 +64,27 @@ enum MatrixColumnKind {
   custom,
 
   /// A sub-column of a move that is split by one of its params so callers can
-  /// see variety at a glance: `swing` is split by role (`who`) and `hey` by
-  /// length. The column's [MatrixColumn.moveId] is a compound key
-  /// (`<baseMoveId>:<variant>`, e.g. `swing:partner`, `hey:full`); the parent
-  /// move and the variant are carried in [MatrixColumn.baseMoveId] /
-  /// [MatrixColumn.variant] so the label function can render the header.
+  /// see variety at a glance: `swing`, `allemande`, and `chain` are split by
+  /// role (`who`) — `swing` additionally by its `prefix` (none/balance/
+  /// meltdown) — and `hey` by length (issue #933). The column's
+  /// [MatrixColumn.moveId] is a compound key (`<baseMoveId>:<variant>`, e.g.
+  /// `swing:partner`, `swing:partner:balance`, `allemande:larks`, `hey:full`);
+  /// the parent move and the variant are carried in [MatrixColumn.baseMoveId]
+  /// / [MatrixColumn.variant] so the label function can render the header.
   split,
+
+  /// A user-defined [ParameterizedColumn] (issue #935) — a specific figure
+  /// captured with priority over the built-in columns (Phase 4). Its
+  /// [MatrixColumn.moveId] is the opaque `param:<uuid>` id; it has no built-in
+  /// label, so [matrixColumnLabel] renders its header from
+  /// [MatrixColumnConfig.renames]. Defined in Phase 2; routing is Phase 4.
+  parameterized,
+
+  /// A user-defined [CompoundColumn] (issue #935) — a contiguous figure
+  /// sequence flagged per dance (Phase 5). Its [MatrixColumn.moveId] is the
+  /// opaque `compound:<uuid>` id, labelled from
+  /// [MatrixColumnConfig.renames]. Defined in Phase 2; matching is Phase 5.
+  compound,
 }
 
 /// The parent move id for [swingColumnKey]-style split columns.
@@ -68,11 +93,19 @@ const String swingMoveId = 'swing';
 /// The parent move id for [heyColumnKey]-style split columns.
 const String heyMoveId = 'hey';
 
+/// The parent move id for [allemandeColumnKey]-style split columns
+/// (issue #933).
+const String allemandeMoveId = 'allemande';
+
+/// The parent move id for [chainColumnKey]-style split columns (issue #933).
+const String chainMoveId = 'chain';
+
 /// Swing role variants in header order: [swingBaselineVariants] first (always
-/// shown), then the present-only variants. Anything not mapped lands in
-/// `other` so nothing is silently dropped.
+/// shown for swing — see [buildProgramMatrix]'s baseline behaviour), then the
+/// present-only variants shared by swing, allemande, and chain's role split.
+/// Anything not mapped lands in `other` so nothing is silently dropped.
 const List<String> swingBaselineVariants = ['partner', 'neighbor'];
-const List<String> _swingPresentOnlyVariants = [
+const List<String> _roleGroupPresentOnlyVariants = [
   'larks',
   'robins',
   'shadow',
@@ -84,16 +117,36 @@ const List<String> _swingPresentOnlyVariants = [
 ];
 const List<String> _swingVariantOrder = [
   ...swingBaselineVariants,
-  ..._swingPresentOnlyVariants,
+  ..._roleGroupPresentOnlyVariants,
+];
+
+/// Role-group variant order for [allemandeMoveId] / [chainMoveId] split
+/// columns (issue #933): present-only — unlike swing (which appears in nearly
+/// every dance and so gets a fixed partner/neighbor baseline), most programs
+/// use zero or one allemande/chain role, so neither is a baseline here.
+/// `partner`/`neighbor` still come first when present, for the same
+/// left-to-right reading order as swing.
+const List<String> _roleVariantOrder = [
+  ...swingBaselineVariants,
+  ..._roleGroupPresentOnlyVariants,
 ];
 
 /// Hey length variants in header order (both present-only — no baseline).
 const List<String> _heyVariantOrder = ['half', 'full'];
 
-/// Maps a swing's `who` value (defaulting to the taxonomy default `partners`
-/// when unset) to its role-group variant.
-String _swingRoleVariant(Object? who) {
-  switch (who ?? 'partners') {
+/// Swing's `prefix` variants that get their own sub-column, in header order.
+/// `none` is NOT here — it folds into the bare role column (`swing:<role>`),
+/// unchanged from before issue #933's split, so every pre-existing
+/// `swing:<role>`-keyed assertion keeps testing exactly what it tested.
+const List<String> _swingPrefixVariantOrder = ['balance', 'meltdown'];
+
+/// Maps a dancer-set `who` value to its role-group variant, shared by swing,
+/// allemande, and chain's role split (issue #933 mirrors swing/hey's existing
+/// split mechanism onto allemande/chain). Callers pass the ALREADY-resolved
+/// effective value (taxonomy default / alias pin folded in via
+/// [Taxonomy.effectiveParams]) — this function does no defaulting of its own.
+String _roleVariant(Object? who) {
+  switch (who) {
     case 'partners':
       return 'partner';
     case 'neighbors':
@@ -133,12 +186,49 @@ String _heyLengthVariant(Object? length) {
   }
 }
 
-/// Compound column key for a swing of the given [who] role.
-String swingColumnKey(Object? who) => '$swingMoveId:${_swingRoleVariant(who)}';
+/// Normalizes a swing's `prefix` value to a split-column suffix, or `null` for
+/// `none` (folds into the bare role column). An unrecognized/missing value is
+/// treated as `none`, matching the taxonomy default.
+String? _swingPrefixVariant(Object? prefix) {
+  switch (prefix) {
+    case 'balance':
+      return 'balance';
+    case 'meltdown':
+      return 'meltdown';
+    default:
+      return null;
+  }
+}
+
+/// Compound column key for a swing of the given [who] role and [prefix]
+/// (`none`/`balance`/`meltdown`, defaulting to `none` when omitted or
+/// unrecognized — issue #933). A `none` prefix folds into the bare role
+/// column (`swing:<role>`); `balance`/`meltdown` widen it to
+/// `swing:<role>:<prefix>`. Defaults [who] to `partners` — the taxonomy's own
+/// default for `swing.who` — when omitted.
+String swingColumnKey(Object? who, [Object? prefix]) {
+  final role = _roleVariant(who ?? 'partners');
+  final prefixVariant = _swingPrefixVariant(prefix);
+  return prefixVariant == null
+      ? '$swingMoveId:$role'
+      : '$swingMoveId:$role:$prefixVariant';
+}
 
 /// Compound column key for a hey of the given [length].
 String heyColumnKey(Object? length) =>
     '$heyMoveId:${_heyLengthVariant(length)}';
+
+/// Compound column key for an allemande of the given [who] role (issue #933).
+/// Defaults to `neighbors` — the taxonomy's own default for `allemande.who`
+/// — when [who] is omitted.
+String allemandeColumnKey(Object? who) =>
+    '$allemandeMoveId:${_roleVariant(who ?? 'neighbors')}';
+
+/// Compound column key for a chain of the given [who] role (issue #933).
+/// Defaults to `role2s` — the taxonomy's own default for `chain.who` — when
+/// [who] is omitted.
+String chainColumnKey(Object? who) =>
+    '$chainMoveId:${_roleVariant(who ?? 'role2s')}';
 
 /// One column of the matrix: a move (or the collapsed custom bucket).
 @immutable
@@ -192,6 +282,70 @@ class MatrixColumn {
 const SetEquality<String> _setEq = SetEquality<String>();
 const MapEquality<String, Set<String>> _phraseMapEq =
     MapEquality<String, Set<String>>(values: _setEq);
+const ListEquality<BeatSpan> _beatSpanListEq = ListEquality<BeatSpan>();
+const MapEquality<String, List<BeatSpan>> _beatSpanMapEq =
+    MapEquality<String, List<BeatSpan>>(values: _beatSpanListEq);
+
+/// A figure's cumulative-beat extent within a dance: `[start, start + beats)`.
+/// [beats] is the figure's **effective** beat count ([Taxonomy.effectiveParams]),
+/// so a figure with no explicitly-stored count still carries a real span.
+/// [beats] may be `0` (e.g. `form_long_waves`, a bare formation label) — such a
+/// figure is compared as a single **point** at [start] rather than an empty
+/// range (see the overlap rule at [ProgramMatrix.isCollision]).
+@immutable
+class BeatSpan {
+  const BeatSpan(this.start, this.beats)
+    : assert(start >= 0, 'start must be >= 0'),
+      assert(beats >= 0, 'beats must be >= 0');
+
+  /// Cumulative beat offset at which the figure starts (0-based).
+  final int start;
+
+  /// The figure's effective beat length. May be 0 (see class doc).
+  final int beats;
+
+  /// Whether this span overlaps [other] under the exact-beat-overlap rule
+  /// (issue #962): half-open range intersection for two non-zero-length spans;
+  /// a zero-length span is treated as a **point** that must fall within (or
+  /// equal, for two zero-length spans) the other span. This point treatment is
+  /// a deliberate departure from [labelForFigure]'s backward phrase tie-break —
+  /// that rule exists to choose between two *named buckets* at a boundary, and
+  /// there are no buckets in exact-overlap mode to tie-break between.
+  bool overlaps(BeatSpan other) {
+    if (beats == 0 && other.beats == 0) return start == other.start;
+    if (beats == 0) {
+      return other.start <= start && start < other.start + other.beats;
+    }
+    if (other.beats == 0) {
+      return start <= other.start && other.start < start + beats;
+    }
+    return start < other.start + other.beats && other.start < start + beats;
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is BeatSpan && other.start == start && other.beats == beats;
+
+  @override
+  int get hashCode => Object.hash(start, beats);
+
+  @override
+  String toString() => 'BeatSpan($start, +$beats)';
+}
+
+/// Which comparison decides a same-figure collision between two
+/// strictly-adjacent dances (issue #962). See [ProgramMatrix.isCollision].
+enum MatrixCollisionMode {
+  /// The move's beat span actually overlaps between the two dances. The
+  /// default: guards against e.g. one dance's 8-count swing and another's
+  /// 10-count swing landing in the same named phrase without their beats
+  /// overlapping at all.
+  exactBeats,
+
+  /// The move merely starts in the same named phrase (A1/A2/B1/B2…) in both
+  /// dances — the original (#582) behaviour, now opt-in.
+  phrase,
+}
 
 /// One row of the matrix: a dance and the moves it contains.
 @immutable
@@ -202,12 +356,17 @@ class MatrixRow {
     required this.firstMoveId,
     required Set<String> presentMoveIds,
     Map<String, Set<String>> phraseLabelsByMove = const {},
+    Map<String, List<BeatSpan>> beatSpansByMove = const {},
     this.half,
     this.formation = const Formation(FormationShape.dupleImproper),
   }) : presentMoveIds = Set.unmodifiable(presentMoveIds),
        phraseLabelsByMove = Map.unmodifiable({
          for (final entry in phraseLabelsByMove.entries)
            entry.key: Set.unmodifiable(entry.value),
+       }),
+       beatSpansByMove = Map.unmodifiable({
+         for (final entry in beatSpansByMove.entries)
+           entry.key: List<BeatSpan>.unmodifiable(entry.value),
        });
 
   final String danceId;
@@ -231,13 +390,23 @@ class MatrixRow {
   /// derived from cumulative **effective** beats (taxonomy defaults folded in
   /// via [Taxonomy.effectiveParams]), so a figure whose beat count isn't
   /// explicitly stored still lands in the right phrase. A move used in more
-  /// than one phrase carries every label. Drives the same-figure-same-phrase
-  /// collision check ([ProgramMatrix.isPhraseCollision]).
+  /// than one phrase carries every label. Drives the phrase-mode collision
+  /// check ([ProgramMatrix.isCollision] with [MatrixCollisionMode.phrase]).
   ///
-  /// The collapsed [customMove] column is intentionally **absent** here: custom
-  /// (free-text) figures aren't reliably comparable, so distinct customs that
-  /// happen to share a phrase must not read as the *same* figure repeating.
+  /// The collapsed [customMove] and compound columns are intentionally
+  /// **absent** here: custom (free-text) figures aren't reliably comparable,
+  /// and compound columns are per-dance booleans rather than comparable figure
+  /// occurrences.
   final Map<String, Set<String>> phraseLabelsByMove;
+
+  /// For each comparable move (column key) present in the dance, every
+  /// occurrence's [BeatSpan] (cumulative effective-beat start + length). Drives
+  /// the default exact-beat-overlap collision check ([ProgramMatrix.isCollision]
+  /// with [MatrixCollisionMode.exactBeats], issue #962). Computed alongside
+  /// [phraseLabelsByMove] from the same beat cursor; the collapsed [customMove]
+  /// and compound columns are excluded here for the same reason they are
+  /// excluded there.
+  final Map<String, List<BeatSpan>> beatSpansByMove;
 
   /// The dance's formation (Becket, 4x4, triplet, …) — surfaced as its own
   /// pinned column in the matrix (#663), never folded into [presentMoveIds]
@@ -258,7 +427,8 @@ class MatrixRow {
       other.half == half &&
       other.formation == formation &&
       _setEq.equals(other.presentMoveIds, presentMoveIds) &&
-      _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove);
+      _phraseMapEq.equals(other.phraseLabelsByMove, phraseLabelsByMove) &&
+      _beatSpanMapEq.equals(other.beatSpansByMove, beatSpansByMove);
 
   @override
   int get hashCode => Object.hash(
@@ -269,6 +439,7 @@ class MatrixRow {
     formation,
     _setEq.hash(presentMoveIds),
     _phraseMapEq.hash(phraseLabelsByMove),
+    _beatSpanMapEq.hash(beatSpansByMove),
   );
 }
 
@@ -281,10 +452,17 @@ class ProgramMatrix {
     required this.columns,
     required this.rows,
     this.programDebutRowByMove = const {},
+    this.collisionMode = MatrixCollisionMode.exactBeats,
   });
 
   final List<MatrixColumn> columns;
   final List<MatrixRow> rows;
+
+  /// Which comparison [isCollision] uses (issue #962). Defaults to
+  /// [MatrixCollisionMode.exactBeats] — the product default changed by #962;
+  /// [MatrixCollisionMode.phrase] restores the original (#582) behaviour via
+  /// the "flag exact beat overlap only" setting when the caller turns it off.
+  final MatrixCollisionMode collisionMode;
 
   /// For each move (column key, including [customMove]) present in any dance,
   /// the index of the first [rows] entry — in program order — whose dance
@@ -314,17 +492,51 @@ class ProgramMatrix {
       programDebutRowByMove[columns[colIndex].moveId] == rowIndex;
 
   /// Whether the move at [rows]`[rowIndex]` × [columns]`[colIndex]` is a
-  /// **same-figure-same-phrase collision** with a strictly-adjacent dance: the
-  /// same move appears, in the *same* phrase (A1/A2/B1/B2…), in the dance
-  /// immediately above OR below this one in program order.
+  /// **same-figure collision** with a strictly-adjacent dance: the same move
+  /// appears in the dance immediately above OR below this one in program
+  /// order, under whichever comparison [collisionMode] selects:
   ///
-  /// Adjacency is strictly the previous/next row (issue #582's locked design —
-  /// not a configurable window). The collapsed [customMove] column never
-  /// collides (custom figures aren't reliably comparable), because
-  /// [MatrixRow.phraseLabelsByMove] omits it. Returns `false` when the move
-  /// isn't present in this cell.
-  bool isPhraseCollision(int rowIndex, int colIndex) {
+  ///  * [MatrixCollisionMode.exactBeats] (the default, issue #962): the move's
+  ///    beat span actually overlaps ([BeatSpan.overlaps]) with an occurrence in
+  ///    the neighbouring dance — the beat count itself, not just the named
+  ///    phrase it starts in.
+  ///  * [MatrixCollisionMode.phrase] (issue #582's original behaviour): the
+  ///    move merely *starts* in the same phrase (A1/A2/B1/B2…) as an
+  ///    occurrence in the neighbouring dance.
+  ///
+  /// Adjacency is strictly the previous/next row in both modes (issue #582's
+  /// locked design — not a configurable window). The collapsed [customMove] and
+  /// compound columns never collide in either mode (custom figures aren't
+  /// reliably comparable, and compounds are per-dance booleans), because
+  /// neither [MatrixRow.phraseLabelsByMove] nor [MatrixRow.beatSpansByMove]
+  /// carries them. Returns `false` when the move isn't present in this cell.
+  bool isCollision(int rowIndex, int colIndex) {
+    final kind = columns[colIndex].kind;
+    if (kind == MatrixColumnKind.custom || kind == MatrixColumnKind.compound) {
+      return false;
+    }
     final moveId = columns[colIndex].moveId;
+    return switch (collisionMode) {
+      MatrixCollisionMode.exactBeats => _isExactBeatCollision(rowIndex, moveId),
+      MatrixCollisionMode.phrase => _isPhraseCollision(rowIndex, moveId),
+    };
+  }
+
+  bool _isExactBeatCollision(int rowIndex, String moveId) {
+    final here = rows[rowIndex].beatSpansByMove[moveId];
+    if (here == null || here.isEmpty) return false;
+    for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
+      if (neighbor < 0 || neighbor >= rows.length) continue;
+      final there = rows[neighbor].beatSpansByMove[moveId];
+      if (there == null) continue;
+      for (final h in here) {
+        if (there.any(h.overlaps)) return true;
+      }
+    }
+    return false;
+  }
+
+  bool _isPhraseCollision(int rowIndex, String moveId) {
     final here = rows[rowIndex].phraseLabelsByMove[moveId];
     if (here == null || here.isEmpty) return false;
     for (final neighbor in [rowIndex - 1, rowIndex + 1]) {
@@ -336,23 +548,95 @@ class ProgramMatrix {
   }
 }
 
-/// Column key for a [figure]: custom figures all map to [customMove]; `swing`
-/// and `hey` map to compound `<move>:<variant>` keys ([swingColumnKey] /
-/// [heyColumnKey]) so they split into per-role / per-length sub-columns; every
-/// other figure maps to its raw move id (aliases are intentionally NOT resolved
-/// here — a "see saw" column stays distinct from "do si do", and
-/// `meltdown_swing` keeps its own key rather than folding into a swing role
-/// column, matching how the renderer shows aliases under their own name).
-String columnKeyForFigure(Figure figure) {
+/// Column key for a [figure] under [taxonomy] and optional [config]: a matching
+/// parameterized column captures the figure before the built-in route. Custom
+/// figures all map to
+/// [customMove]; `swing` maps to a compound `swing:<role>` key (widened to
+/// `swing:<role>:<prefix>` for a `balance`/`meltdown` prefix); `allemande` and
+/// `chain` map to `allemande:<role>` / `chain:<role>`; `hey` maps to
+/// `hey:<length>` (issue #933 extends the existing swing/hey split mechanism
+/// to allemande, chain, and swing's prefix). Every other figure maps to its
+/// raw move id — aliases are intentionally NOT resolved for a non-split
+/// target, so a "see saw" column stays distinct from "do si do" — EXCEPT when
+/// a parameterized column captures the alias's canonical target, or when its
+/// target move is itself split, like `meltdown_swing` -> `swing`: reading
+/// [Taxonomy.effectiveParams] (which folds the alias's pinned params in)
+/// naturally routes it to `swing:<role>:meltdown` instead of a stray column of
+/// its own, with no special-case code needed here.
+String columnKeyForFigure(
+  Figure figure,
+  Taxonomy taxonomy, [
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+]) {
   if (figure.isCustom) return customMove;
-  switch (figure.move) {
+  final canonicalId = taxonomy.resolve(figure.move)?.id;
+  if (canonicalId != null && config.parameterized.isNotEmpty) {
+    final effective = taxonomy.effectiveParams(figure);
+    ParameterizedColumn? best;
+    var bestSpecificity = -1;
+    for (final column in config.parameterized) {
+      if (column.baseMove != canonicalId) continue;
+      final matches = column.params.entries.every(
+        (entry) =>
+            effective.containsKey(entry.key) &&
+            effective[entry.key] == entry.value,
+      );
+      if (!matches) continue;
+      final specificity = column.params.length;
+      if (specificity > bestSpecificity) {
+        best = column;
+        bestSpecificity = specificity;
+      }
+    }
+    if (best != null) return best.id;
+  }
+  switch (canonicalId) {
     case swingMoveId:
-      return swingColumnKey(figure.params['who']);
+      final effective = taxonomy.effectiveParams(figure);
+      return swingColumnKey(effective['who'], effective['prefix']);
     case heyMoveId:
       return heyColumnKey(figure.params['length']);
+    case allemandeMoveId:
+      return allemandeColumnKey(taxonomy.effectiveParams(figure)['who']);
+    case chainMoveId:
+      return chainColumnKey(taxonomy.effectiveParams(figure)['who']);
     default:
       return figure.move;
   }
+}
+
+bool _stepMatchesFigure(Figure figure, StepMatcher step, Taxonomy taxonomy) {
+  final canonicalId = taxonomy.resolve(figure.move)?.id;
+  if (canonicalId != step.move) return false;
+  final effective = taxonomy.effectiveParams(figure);
+  return step.params.entries.every(
+    (entry) =>
+        effective.containsKey(entry.key) && effective[entry.key] == entry.value,
+  );
+}
+
+bool _containsCompoundRun(
+  List<Figure> figures,
+  CompoundColumn compound,
+  Taxonomy taxonomy,
+) {
+  final steps = compound.steps;
+  if (steps.length < 2 || steps.length > figures.length) return false;
+  for (var start = 0; start <= figures.length - steps.length; start++) {
+    var matches = true;
+    for (var offset = 0; offset < steps.length; offset++) {
+      if (!_stepMatchesFigure(
+        figures[start + offset],
+        steps[offset],
+        taxonomy,
+      )) {
+        matches = false;
+        break;
+      }
+    }
+    if (matches) return true;
+  }
+  return false;
 }
 
 /// Effective beat length of [figure] under [taxonomy], for phrase math: the
@@ -377,16 +661,32 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// [taxonomy] (defaults to [contraTaxonomy]) to order and classify columns.
 ///
 /// Column order: taxonomy canonical order (the [Taxonomy.moves] definition
-/// order) for known moves that appear, then any unknown move ids (sorted, for
-/// determinism), then a single trailing custom column when any custom figure is
-/// present. This is stable — it doesn't reshuffle as the program changes —
-/// and groups related moves the way the taxonomy authors intended.
+/// order) for known moves that appear, then any alias-only ids in taxonomy
+/// alias-declaration order (e.g. `see_saw`, `swat_the_flea` — an alias whose
+/// target move is itself split, like `meltdown_swing`, never reaches this
+/// bucket; see [columnKeyForFigure]), then any truly unknown move ids (sorted,
+/// for determinism), then a single trailing custom column when any custom
+/// figure is present. This is stable — it doesn't reshuffle as the program
+/// changes — and groups related moves the way the taxonomy authors intended.
 ///
-/// The `swing` and `hey` moves are split into sub-columns at their taxonomy
-/// position: swing into per-role columns (`partner`, `neighbor` always shown as
-/// a fixed baseline whenever the program has any dances, then `larks`, `robins`,
-/// `shadow`, `ones`, `twos`, `corners`, `same`, `other` present-only, in that
-/// order); hey into `half` then `full`, both present-only.
+/// `swing`, `allemande`, `chain`, and `hey` are split into sub-columns at
+/// their taxonomy position (issue #933): swing and allemande/chain split by
+/// role (`who`) into per-role columns (`larks`, `robins`, `shadow`, `ones`,
+/// `twos`, `corners`, `same`, `other`, in that order); swing additionally
+/// splits each role by `prefix` into a bare (`none`-prefix) column plus
+/// `balance`/`meltdown` sub-columns. `partner`/`neighbor`'s BARE column is a
+/// legacy baseline, shown whenever the program has any dances unless every
+/// plain candidate for that role was captured by a parameterized column; every
+/// other swing role's bare column,
+/// and every role's `balance`/`meltdown` sub-column regardless of role, is
+/// present-only — so a program with only a `larks` swing that is ALWAYS
+/// balance-prefixed shows `larks bal & swing` but no empty plain `larks
+/// swing` column beside it (matching the present-only convention `hey` and
+/// every non-baseline swing role already followed before this split). Only
+/// `partner`/`neighbor`'s bare column is ever shown without a corresponding
+/// present figure. Allemande/chain have no baseline at all, since most
+/// programs use zero or one role for either. Hey splits into `half` then
+/// `full`, both present-only.
 ///
 /// Presence is boolean (a repeated move counts once, matching CC's checklist
 /// semantics). Figure-less or deleted dances still produce a row (with an empty
@@ -400,10 +700,29 @@ MatrixColumn _splitColumn(String baseMoveId, String variant) => MatrixColumn(
 /// break). It must be exactly the same length as [dances] — a mismatch throws
 /// [ArgumentError] (enforced at runtime, in release builds too). Omit it to
 /// leave every row's [MatrixRow.half] `null`.
+///
+/// [collisionMode] sets [ProgramMatrix.collisionMode] (issue #962), defaulting
+/// to [MatrixCollisionMode.exactBeats] — the callers deriving the on-screen
+/// matrix and its PDF export both read this from the "flag exact beat overlap
+/// only" setting.
+///
+/// [config] applies the app-wide [MatrixColumnConfig] (issue #935): matching
+/// parameterized columns replace built-in membership; matching compound
+/// sequences add present-only boolean columns; and hidden/reordered ids are
+/// transformed at display time. Compound matching scans each dance's original
+/// [Dance.figures] for a strictly-adjacent run and never changes the routed
+/// first figure. Presence, program-debut, collision, and first-figure analysis
+/// are computed over every routed/custom column and are independent of display
+/// hiding/reordering. [MatrixColumnConfig.renames] is a label-only override
+/// applied by [matrixColumnLabel].
+/// [config] defaults to [MatrixColumnConfig.empty], which reproduces the matrix
+/// exactly as it built before this config existed.
 ProgramMatrix buildProgramMatrix(
   List<Dance> dances, {
   Taxonomy? taxonomy,
   List<ProgramHalf?>? halves,
+  MatrixCollisionMode collisionMode = MatrixCollisionMode.exactBeats,
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
 }) {
   final tax = taxonomy ?? contraTaxonomy;
   if (halves != null && halves.length != dances.length) {
@@ -417,34 +736,64 @@ ProgramMatrix buildProgramMatrix(
   final rows = <MatrixRow>[];
   final present = <String>{};
   var hasCustom = false;
+  final plainSwingBaselineCandidates = <String>{};
+  final compoundIds = {for (final compound in config.compound) compound.id};
 
   for (var i = 0; i < dances.length; i++) {
     final dance = dances[i];
     final rowMoves = <String>{};
     final phraseLabels = <String, Set<String>>{};
-    // Phrase positions are derived from cumulative *effective* beats
+    final beatSpans = <String, List<BeatSpan>>{};
+    // Phrase/beat positions are derived from cumulative *effective* beats
     // ([Taxonomy.effectiveParams]) — the taxonomy defaults and unknown-move
     // fallback the rest of the analysis uses — NOT raw [Figure.beats] (which is
     // 0 when a figure carries no explicitly-stored count, mislabelling every
     // such figure as A1 and producing false collisions). A figure is labelled
     // by the phrase it *starts* in; every figure (custom included) advances the
-    // beat cursor so later figures land in the right phrase.
+    // beat cursor so later figures land in the right phrase/position.
     final structure = dance.phraseStructure;
     var beat = 0;
     for (final figure in dance.figures) {
-      final key = columnKeyForFigure(figure);
+      final key = columnKeyForFigure(figure, tax, config);
+      final canonicalId = tax.resolve(figure.move)?.id;
+      if (canonicalId == swingMoveId) {
+        final effective = tax.effectiveParams(figure);
+        final fallbackKey = swingColumnKey(
+          effective['who'],
+          effective['prefix'],
+        );
+        if (swingBaselineVariants.any(
+          (variant) => '$swingMoveId:$variant' == fallbackKey,
+        )) {
+          plainSwingBaselineCandidates.add(fallbackKey);
+        }
+      }
+      final effBeats = _effectiveBeats(tax, figure);
       rowMoves.add(key);
       if (key == customMove) {
         hasCustom = true;
+      } else if (compoundIds.contains(key)) {
+        // Compound ids are per-dance booleans and are never collision
+        // candidates, just like the collapsed custom column.
       } else {
         present.add(key);
-        // Track the phrase in which this move starts so strictly-adjacent
-        // dances can be checked for same-figure-same-phrase collisions. Custom
-        // figures are excluded (their column is un-comparable) but still
-        // advance the beat cursor below.
-        (phraseLabels[key] ??= <String>{}).add(structure.labelAtBeat(beat));
+        // Track the phrase in which this move starts, and its exact beat
+        // span, so strictly-adjacent dances can be checked for same-figure
+        // collisions under either [MatrixCollisionMode]. Custom and compound
+        // columns are excluded (they are un-comparable) but still advance the
+        // beat cursor below.
+        (phraseLabels[key] ??= <String>{}).add(
+          labelForFigure(beat, effBeats, structure),
+        );
+        (beatSpans[key] ??= <BeatSpan>[]).add(BeatSpan(beat, effBeats));
       }
-      beat += _effectiveBeats(tax, figure);
+      beat += effBeats;
+    }
+    for (final compound in config.compound) {
+      if (_containsCompoundRun(dance.figures, compound, tax)) {
+        rowMoves.add(compound.id);
+        present.add(compound.id);
+      }
     }
     rows.add(
       MatrixRow(
@@ -452,9 +801,10 @@ ProgramMatrix buildProgramMatrix(
         title: dance.title,
         firstMoveId: dance.figures.isEmpty
             ? null
-            : columnKeyForFigure(dance.figures.first),
+            : columnKeyForFigure(dance.figures.first, tax, config),
         presentMoveIds: rowMoves,
         phraseLabelsByMove: phraseLabels,
+        beatSpansByMove: beatSpans,
         half: halves == null ? null : halves[i],
         formation: dance.formation,
       ),
@@ -464,16 +814,33 @@ ProgramMatrix buildProgramMatrix(
   final columns = <MatrixColumn>[];
   final hasDances = dances.isNotEmpty;
 
-  // Known moves in taxonomy definition order. `swing` and `hey` expand into
-  // their split sub-columns (grouped, in variant order) in place of a single
-  // column; every other known move emits one column when present.
+  // Known moves in taxonomy definition order. `swing`, `allemande`, `chain`,
+  // and `hey` expand into their split sub-columns (grouped, in variant order)
+  // in place of a single column (issue #933); every other known move emits
+  // one column when present.
   for (final id in tax.moves.keys) {
     if (id == swingMoveId) {
+      // For EACH role variant: the bare (none-prefix) column is a fixed
+      // baseline ONLY for partner/neighbor (`hasDances`); every other role's
+      // bare column is present-only, keyed independently of its
+      // balance/meltdown sub-columns — so a role that's ALWAYS prefixed
+      // (e.g. only ever a `larks bal & swing`) shows just that sub-column,
+      // never an empty plain `larks swing` beside it (issue #933 code
+      // review: confirmed intentional, matching `hey`'s present-only
+      // convention, and locked in by a test).
       for (final variant in _swingVariantOrder) {
-        final present0 = present.remove('$swingMoveId:$variant');
         final baseline = swingBaselineVariants.contains(variant);
-        if (baseline ? hasDances : present0) {
+        final baseKey = '$swingMoveId:$variant';
+        final basePresent = present.remove(baseKey);
+        final keepBaseline =
+            !plainSwingBaselineCandidates.contains(baseKey) || basePresent;
+        if (baseline ? hasDances && keepBaseline : basePresent) {
           columns.add(_splitColumn(swingMoveId, variant));
+        }
+        for (final prefixVariant in _swingPrefixVariantOrder) {
+          if (present.remove('$swingMoveId:$variant:$prefixVariant')) {
+            columns.add(_splitColumn(swingMoveId, '$variant:$prefixVariant'));
+          }
         }
       }
     } else if (id == heyMoveId) {
@@ -482,14 +849,44 @@ ProgramMatrix buildProgramMatrix(
           columns.add(_splitColumn(heyMoveId, variant));
         }
       }
+    } else if (id == allemandeMoveId) {
+      for (final variant in _roleVariantOrder) {
+        if (present.remove('$allemandeMoveId:$variant')) {
+          columns.add(_splitColumn(allemandeMoveId, variant));
+        }
+      }
+    } else if (id == chainMoveId) {
+      for (final variant in _roleVariantOrder) {
+        if (present.remove('$chainMoveId:$variant')) {
+          columns.add(_splitColumn(chainMoveId, variant));
+        }
+      }
     } else if (present.remove(id)) {
       columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
     }
   }
 
-  // Anything left in `present` is an unknown move id (not in the taxonomy),
-  // sorted for deterministic output.
-  final unknown = present.toList()..sort();
+  // Aliases whose TARGET move is not itself split (e.g. `see_saw` ->
+  // `do_si_do`, `swat_the_flea` -> `box_the_gnat`) keep their own column,
+  // distinct from their target's ([columnKeyForFigure] never resolves them) —
+  // but they ARE taxonomy entities, not unrecognized ids, so they're
+  // classified [MatrixColumnKind.known] (issue #933) rather than falling into
+  // the sorted-unknown bucket below, ordered here in taxonomy alias
+  // declaration order. An alias whose target IS split (`meltdown_swing` ->
+  // `swing`) never reaches this loop: [columnKeyForFigure] folds it into the
+  // target's split column via its pinned param, so its raw alias id is never
+  // added to `present`.
+  for (final alias in tax.aliases.values) {
+    if (present.remove(alias.id)) {
+      columns.add(MatrixColumn(moveId: alias.id, kind: MatrixColumnKind.known));
+    }
+  }
+
+  // Anything left in `present` other than declared parameterized ids is an
+  // unknown move id (not in the taxonomy), sorted for deterministic output.
+  final customIds = config.customColumnIds;
+  final unknown = present.where((id) => !customIds.contains(id)).toList()
+    ..sort();
   for (final id in unknown) {
     columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.unknown));
   }
@@ -499,6 +896,24 @@ ProgramMatrix buildProgramMatrix(
     columns.add(
       const MatrixColumn(moveId: customMove, kind: MatrixColumnKind.custom),
     );
+  }
+
+  for (final parameterized in config.parameterized) {
+    if (present.remove(parameterized.id)) {
+      columns.add(
+        MatrixColumn(
+          moveId: parameterized.id,
+          kind: MatrixColumnKind.parameterized,
+        ),
+      );
+    }
+  }
+  for (final compound in config.compound) {
+    if (present.remove(compound.id)) {
+      columns.add(
+        MatrixColumn(moveId: compound.id, kind: MatrixColumnKind.compound),
+      );
+    }
   }
 
   // Program debut per move: the first row (program order) whose dance contains
@@ -511,11 +926,53 @@ ProgramMatrix buildProgramMatrix(
     }
   }
 
+  // Apply the app-wide column config to DISPLAY only (issue #935): hide, then
+  // reorder. Analysis maps above are built over every column and stay intact.
+  final displayColumns = _applyColumnConfig(columns, config);
+
   return ProgramMatrix(
-    columns: columns,
+    columns: displayColumns,
     rows: rows,
     programDebutRowByMove: programDebutRowByMove,
+    collisionMode: collisionMode,
   );
+}
+
+/// Applies [config]'s [MatrixColumnConfig.hidden] and [MatrixColumnConfig.order]
+/// to a built column list, returning the columns to display. Hidden ids are
+/// dropped; the rest are ordered by their id's position in
+/// [MatrixColumnConfig.order], with ids absent from `order` keeping their
+/// original relative order **after** the listed ones (a stable partition —
+/// never `List.sort`, which is not guaranteed stable). Ids in `order`/`hidden`
+/// that aren't present in [columns] are inert. Returns [columns] unchanged for
+/// the empty (default) config — today's behaviour, no allocation on the hot path.
+List<MatrixColumn> _applyColumnConfig(
+  List<MatrixColumn> columns,
+  MatrixColumnConfig config,
+) {
+  if (config.isEmpty) return columns;
+
+  final visible = config.hidden.isEmpty
+      ? columns
+      : [
+          for (final c in columns)
+            if (!config.hidden.contains(c.moveId)) c,
+        ];
+
+  if (config.order.isEmpty) return visible;
+
+  final orderIndex = <String, int>{};
+  for (var i = 0; i < config.order.length; i++) {
+    orderIndex.putIfAbsent(config.order[i], () => i);
+  }
+
+  final listed = <MatrixColumn>[];
+  final unlisted = <MatrixColumn>[];
+  for (final c in visible) {
+    (orderIndex.containsKey(c.moveId) ? listed : unlisted).add(c);
+  }
+  listed.sort((a, b) => orderIndex[a.moveId]!.compareTo(orderIndex[b.moveId]!));
+  return [...listed, ...unlisted];
 }
 
 /// Human label for a matrix [column] under [dialect], routed through the same
@@ -524,30 +981,63 @@ ProgramMatrix buildProgramMatrix(
 ///
 /// - custom → "Custom";
 /// - split → the parent move's dialect-aware name qualified by the variant:
-///   swing role columns read `<role> <swing>` ('partner swing', 'lark swing',
-///   …) — larks/robins route through [FigureRenderer.displayToken] so role
-///   dialects (Larks/Robins, Gents/Ladies, …) are honoured; hey columns read
-///   `<length> <hey>` ('half hey' / 'full hey');
-/// - known → dialect move substitution when present and side-independent,
-///   otherwise the move's canonical display name. Side-dependent substitutions
-///   (those using `%S`, which need a specific figure's shoulder/hand) can't be
-///   resolved at the column level, so they fall back to the canonical display
-///   name;
-/// - unknown → the raw move id (nothing silently dropped).
+///   swing/allemande/chain role columns read `<role> <move>` ('partner swing',
+///   'lark allemande', …) — larks/robins route through
+///   [FigureRenderer.displayToken] so role dialects (Larks/Robins,
+///   Gents/Ladies, …) are honoured; swing's `balance`/`meltdown` prefix
+///   widens the move word to a short HEADER-ONLY form (`bal & swing`,
+///   `meltdown swing` — issue #933); hey columns read `<length> <hey>`
+///   ('half hey' / 'full hey');
+/// - known → an ALIAS column (e.g. `see_saw`) is labelled under its OWN
+///   display name, never its target's — resolving through to the target
+///   would make two visually distinct figures share one header (issue #933).
+///   The dialect-substitution lookup keys off the CANONICAL move id either
+///   way (matching [FigureRenderer.displayMoveName]'s rule, since
+///   `dialect.moves` is keyed by canonical id, not alias id). Side-dependent
+///   substitutions (those using `%S`, which need a specific figure's
+///   shoulder/hand) can't be resolved at the column level, so they fall back
+///   to the display name;
+/// - unknown → the raw move id (nothing silently dropped);
+/// - parameterized / compound → the user-defined header from
+///   [MatrixColumnConfig.renames] (Phase 4/5 columns have no built-in label),
+///   falling back to the raw id if none is set.
+///
+/// [config] supplies renames (issue #935): a [MatrixColumnConfig.renames] entry
+/// for [column]'s id **overrides** every default above, so a caller can rename
+/// any column — built-in or custom — with one code path. Defaults to
+/// [MatrixColumnConfig.empty] so existing callers and tests are unaffected.
 String matrixColumnLabel(
   MatrixColumn column,
   Taxonomy taxonomy,
-  Dialect dialect,
-) {
+  Dialect dialect, {
+  MatrixColumnConfig config = MatrixColumnConfig.empty,
+}) {
+  final rename = config.renames[column.moveId];
+  if (rename != null) return rename;
+  switch (column.kind) {
+    case MatrixColumnKind.parameterized:
+    case MatrixColumnKind.compound:
+      // No built-in label; a header comes only from renames (handled above).
+      // Fall back to the raw id so nothing renders blank before Phase 3's UI
+      // guarantees a label.
+      return column.moveId;
+    case MatrixColumnKind.custom:
+    case MatrixColumnKind.split:
+    case MatrixColumnKind.known:
+    case MatrixColumnKind.unknown:
+      break;
+  }
   if (column.isCustom) return 'Custom';
   if (column.isSplit) return _splitColumnLabel(column, taxonomy, dialect);
   final def = taxonomy.resolve(column.moveId);
   if (def == null) return column.moveId;
-  final substitution = dialect.moves[column.moveId];
+  final alias = taxonomy.aliases[column.moveId];
+  final displayName = alias?.displayName ?? def.displayName;
+  final substitution = dialect.moves[def.id];
   if (substitution != null && !substitution.contains('%S')) {
     return substitution;
   }
-  return def.displayName;
+  return displayName;
 }
 
 /// Dialect-aware display word for a (taxonomy-known) [moveId] — the same
@@ -559,45 +1049,148 @@ String _splitMoveWord(String moveId, Taxonomy taxonomy, Dialect dialect) {
   return taxonomy.resolve(moveId)?.displayName ?? moveId;
 }
 
+/// Dialect-aware role-group column label: `<role term> <moveWord>` (e.g.
+/// 'partner swing', 'lark allemande'), shared by swing/allemande/chain's role
+/// split (issue #933 mirrors swing's existing role split onto
+/// allemande/chain). Role columns honour the active dialect's role term
+/// (singular) for larks/robins; `same` reads 'same-role'; an unrecognized
+/// role (`other`) reads `<moveWord> (other)` rather than a role prefix, since
+/// there's no role term to show.
+String _roleColumnLabel(String role, String moveWord, Dialect dialect) {
+  switch (role) {
+    // Role columns honour the active dialect's role term (singular). `spec`
+    // is intentionally `null`: role1/role2 are in [roleTokens], so
+    // [FigureRenderer.displayToken] resolves them from the dialect's role
+    // term alone and never consults `spec`.
+    case 'larks':
+      return '${FigureRenderer.displayToken('role1', null, dialect)} '
+          '$moveWord';
+    case 'robins':
+      return '${FigureRenderer.displayToken('role2', null, dialect)} '
+          '$moveWord';
+    case 'partner':
+      return 'partner $moveWord';
+    case 'neighbor':
+      return 'neighbor $moveWord';
+    case 'shadow':
+      return 'shadow $moveWord';
+    case 'ones':
+      return 'ones $moveWord';
+    case 'twos':
+      return 'twos $moveWord';
+    case 'corners':
+      return 'corners $moveWord';
+    case 'same':
+      return 'same-role $moveWord';
+    default:
+      return '$moveWord (other)';
+  }
+}
+
 /// Header for a [MatrixColumnKind.split] column.
 String _splitColumnLabel(
   MatrixColumn column,
   Taxonomy taxonomy,
   Dialect dialect,
 ) {
-  final variant = column.variant;
-  if (column.baseMoveId == swingMoveId) {
-    final swing = _splitMoveWord(swingMoveId, taxonomy, dialect);
-    final whoSpec = taxonomy.resolve(swingMoveId)?.params['who'];
-    switch (variant) {
-      // Role columns honour the active dialect's role term (singular).
-      case 'larks':
-        return '${FigureRenderer.displayToken('role1', whoSpec, dialect)} '
-            '$swing';
-      case 'robins':
-        return '${FigureRenderer.displayToken('role2', whoSpec, dialect)} '
-            '$swing';
-      case 'partner':
-        return 'partner $swing';
-      case 'neighbor':
-        return 'neighbor $swing';
-      case 'shadow':
-        return 'shadow $swing';
-      case 'ones':
-        return 'ones $swing';
-      case 'twos':
-        return 'twos $swing';
-      case 'corners':
-        return 'corners $swing';
-      case 'same':
-        return 'same-role $swing';
-      default:
-        return '$swing (other)';
-    }
-  }
+  final variant = column.variant!;
   if (column.baseMoveId == heyMoveId) {
     // variant is 'half' / 'full'.
     return '$variant ${_splitMoveWord(heyMoveId, taxonomy, dialect)}';
   }
-  return column.moveId;
+  if (column.baseMoveId == allemandeMoveId) {
+    return _roleColumnLabel(
+      variant,
+      _splitMoveWord(allemandeMoveId, taxonomy, dialect),
+      dialect,
+    );
+  }
+  if (column.baseMoveId == chainMoveId) {
+    return _roleColumnLabel(
+      variant,
+      _splitMoveWord(chainMoveId, taxonomy, dialect),
+      dialect,
+    );
+  }
+  // swing: variant is `<role>` (prefix `none`) or `<role>:<prefix>` (issue
+  // #933's balance/meltdown prefix split). The prefix word here is a short
+  // HEADER-ONLY abbreviation ('bal &' for balance) distinct from the figure
+  // renderer's fuller wording ('balance and'/'balance &' — see
+  // `renderer.dart`'s `_renderPrefix`): the 64px column header has no room
+  // for the longer form (maintainer decision), so the two intentionally
+  // diverge rather than sharing one vocabulary.
+  final parts = variant.split(':');
+  final role = parts[0];
+  final prefix = parts.length > 1 ? parts[1] : null;
+  final swing = _splitMoveWord(swingMoveId, taxonomy, dialect);
+  final moveWord = switch (prefix) {
+    'balance' => 'bal & $swing',
+    'meltdown' => 'meltdown $swing',
+    _ => swing,
+  };
+  return _roleColumnLabel(role, moveWord, dialect);
+}
+
+/// The parent move ids that [buildProgramMatrix] expands into split columns.
+const Set<String> _splitParentMoveIds = {
+  swingMoveId,
+  heyMoveId,
+  allemandeMoveId,
+  chainMoveId,
+};
+
+/// Every **possible** built-in matrix column under [taxonomy], in the same
+/// order [buildProgramMatrix] would emit them if every move were present
+/// (issue #935). This is the enumeration Phase 3's column editor lists and
+/// Phase 4/5 match against — the built-in matrix is present-only and derived at
+/// build time, so there is no stored structure to read the configurable columns
+/// from; this reconstructs the full set.
+///
+/// Emits, in order: for each move in [Taxonomy.moves] definition order, either
+/// its split sub-columns (swing: every role, each as a bare column plus its
+/// `balance`/`meltdown` sub-columns; hey: `half`/`full`; allemande/chain: every
+/// role) or a single [MatrixColumnKind.known] column; then each alias whose
+/// target move is **not** itself split (a split-target alias folds into the
+/// target's split column and never gets its own — see [columnKeyForFigure]);
+/// then the single trailing [customMove] bucket. The emitted [MatrixColumn.moveId]
+/// strings are exactly the ids used as column keys elsewhere (`swing:partner`,
+/// `swing:partner:balance`, `hey:full`, `do_si_do`, `customMove`, …), so a
+/// config keyed by them lines up with a built matrix's columns.
+List<MatrixColumn> builtInColumnCatalog(Taxonomy taxonomy) {
+  final columns = <MatrixColumn>[];
+  for (final id in taxonomy.moves.keys) {
+    if (id == swingMoveId) {
+      for (final variant in _swingVariantOrder) {
+        columns.add(_splitColumn(swingMoveId, variant));
+        for (final prefixVariant in _swingPrefixVariantOrder) {
+          columns.add(_splitColumn(swingMoveId, '$variant:$prefixVariant'));
+        }
+      }
+    } else if (id == heyMoveId) {
+      for (final variant in _heyVariantOrder) {
+        columns.add(_splitColumn(heyMoveId, variant));
+      }
+    } else if (id == allemandeMoveId) {
+      for (final variant in _roleVariantOrder) {
+        columns.add(_splitColumn(allemandeMoveId, variant));
+      }
+    } else if (id == chainMoveId) {
+      for (final variant in _roleVariantOrder) {
+        columns.add(_splitColumn(chainMoveId, variant));
+      }
+    } else {
+      columns.add(MatrixColumn(moveId: id, kind: MatrixColumnKind.known));
+    }
+  }
+
+  for (final alias in taxonomy.aliases.values) {
+    final targetId = taxonomy.resolve(alias.id)?.id;
+    if (targetId != null && _splitParentMoveIds.contains(targetId)) continue;
+    columns.add(MatrixColumn(moveId: alias.id, kind: MatrixColumnKind.known));
+  }
+
+  columns.add(
+    const MatrixColumn(moveId: customMove, kind: MatrixColumnKind.custom),
+  );
+  return columns;
 }

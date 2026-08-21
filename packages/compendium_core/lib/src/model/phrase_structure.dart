@@ -6,48 +6,95 @@ import 'figure.dart';
 /// Musical phrase structure of a dance.
 ///
 /// Persisted as a compact string on the dance (`""` = the standard
-/// 4×16-beat A1 A2 B1 B2; otherwise The Caller's Box `phrases*bars*beatsPerBar`
-/// convention, e.g. `6*8*2` for a 48-bar dance). Section labels (A1, B2, …)
-/// are **derived** from cumulative figure beats against this structure — never
-/// stored — so reordering figures or editing beats stays consistent.
+/// 4×16-beat A1 A2 B1 B2; otherwise one or more ordered
+/// `phrases*bars*beatsPerBar` components separated by ` + `, e.g. `6*8*2` or
+/// `3*8*2 + 1*4*2`). Section labels (A1, B2, …) are **derived** from cumulative
+/// figure beats against this structure — never stored — so reordering figures
+/// or editing beats stays consistent.
 @immutable
 class PhraseStructure {
-  const PhraseStructure._(this.phraseCount, this.beatsPerPhrase, this.raw);
+  const PhraseStructure._(this.components, this.raw);
 
   /// The standard contra structure: 4 phrases of 16 beats (A1 A2 B1 B2).
-  static const PhraseStructure standard = PhraseStructure._(4, 16, '');
+  static const PhraseStructure standard = PhraseStructure._([
+    PhraseComponent._(4, 8, 2),
+  ], '');
 
   /// Parses a phrase-structure string.
   ///
-  /// Accepts `""` (standard) or `phrases*bars*beatsPerBar` with positive
-  /// integers. Throws [FormatException] otherwise.
+  /// Accepts `""` (standard), a `phrases*bars*beatsPerBar` component, or
+  /// ordered components separated by `+`. Component numbers must be positive
+  /// integers; whitespace is allowed around, but not inside, a component.
+  /// Throws [FormatException] otherwise.
   factory PhraseStructure.parse(String raw) {
     final trimmed = raw.trim();
     if (trimmed.isEmpty) return standard;
-    final parts = trimmed.split('*');
-    if (parts.length != 3) {
+
+    final componentStrings = trimmed.split('+');
+    if (componentStrings.any((component) => component.trim().isEmpty)) {
       throw FormatException(
-        'expected "phrases*bars*beatsPerBar", got "$raw"',
+        'expected one or more "phrases*bars*beatsPerBar" components, '
+        'got "$raw"',
         raw,
       );
     }
-    final numbers = parts.map(int.tryParse).toList();
-    if (numbers.any((n) => n == null || n <= 0)) {
+
+    return PhraseStructure._(
+      List.unmodifiable([
+        for (final component in componentStrings)
+          _parseComponent(component.trim(), raw),
+      ]),
+      trimmed,
+    );
+  }
+
+  static PhraseComponent _parseComponent(String component, String raw) {
+    final match = RegExp(r'^(\d+)\*(\d+)\*(\d+)$').firstMatch(component);
+    if (match == null) {
+      throw FormatException(
+        'expected "phrases*bars*beatsPerBar" component, got "$raw"',
+        raw,
+      );
+    }
+
+    final numbers = [
+      int.tryParse(match.group(1)!),
+      int.tryParse(match.group(2)!),
+      int.tryParse(match.group(3)!),
+    ];
+    if (numbers.any((number) => number == null || number <= 0)) {
       throw FormatException(
         'phrase structure parts must be positive integers: "$raw"',
         raw,
       );
     }
-    return PhraseStructure._(numbers[0]!, numbers[1]! * numbers[2]!, trimmed);
+    return PhraseComponent._(numbers[0]!, numbers[1]!, numbers[2]!);
   }
 
-  final int phraseCount;
-  final int beatsPerPhrase;
+  /// Ordered phrase components, retained exactly enough to preserve uneven
+  /// source phrasing and derive its beat boundaries.
+  final List<PhraseComponent> components;
+
+  /// The total number of phrases across all [components].
+  int get phraseCount =>
+      components.fold(0, (count, component) => count + component.phraseCount);
+
+  /// Beats in every phrase when [components] are uniform; otherwise `null`.
+  ///
+  /// Callers that need section derivation must use [labelAtBeat] or
+  /// [isPhraseBoundary], which account for each component's own length.
+  int? get beatsPerPhrase {
+    final first = components.first.beatsPerPhrase;
+    return components.every((component) => component.beatsPerPhrase == first)
+        ? first
+        : null;
+  }
 
   /// The persisted representation (`""` for standard).
   final String raw;
 
-  int get totalBeats => phraseCount * beatsPerPhrase;
+  int get totalBeats =>
+      components.fold(0, (total, component) => total + component.totalBeats);
 
   /// Phrase labels: paired letters (A1 A2 B1 B2 C1 C2 …), the convention for
   /// contra/ECD music. An odd phrase count leaves the last pair incomplete,
@@ -62,20 +109,102 @@ class PhraseStructure {
   /// the structure wrap (dances are repeated to the tune).
   String labelAtBeat(int beat) {
     if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
-    return labels[(beat % totalBeats) ~/ beatsPerPhrase];
+    return labels[_phraseIndexAtBeat(beat)];
+  }
+
+  /// Whether [beat] falls at the start of a phrase, wrapping at the end of the
+  /// structure as [labelAtBeat] does.
+  bool isPhraseBoundary(int beat) {
+    if (beat < 0) throw ArgumentError.value(beat, 'beat', 'must be >= 0');
+    var offset = beat % totalBeats;
+    if (offset == 0) return true;
+
+    for (final component in components) {
+      if (offset < component.totalBeats) {
+        return offset % component.beatsPerPhrase == 0;
+      }
+      offset -= component.totalBeats;
+    }
+    throw StateError('could not find phrase boundary for beat $beat');
+  }
+
+  int _phraseIndexAtBeat(int beat) {
+    var offset = beat % totalBeats;
+    var phraseIndex = 0;
+    for (final component in components) {
+      if (offset < component.totalBeats) {
+        return phraseIndex + offset ~/ component.beatsPerPhrase;
+      }
+      offset -= component.totalBeats;
+      phraseIndex += component.phraseCount;
+    }
+    throw StateError('could not find phrase for beat $beat');
   }
 
   @override
   bool operator ==(Object other) =>
       other is PhraseStructure &&
+      other.components.length == components.length &&
+      _sameComponents(other.components, components);
+
+  @override
+  int get hashCode => Object.hashAll(components);
+
+  @override
+  String toString() => 'PhraseStructure($raw)';
+}
+
+bool _sameComponents(List<PhraseComponent> left, List<PhraseComponent> right) {
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
+/// One uniform run within a [PhraseStructure].
+@immutable
+class PhraseComponent {
+  const PhraseComponent._(this.phraseCount, this.bars, this.beatsPerBar);
+
+  /// Number of adjacent phrases in this component.
+  final int phraseCount;
+
+  /// Bars in each phrase.
+  final int bars;
+
+  /// Beats in each bar.
+  final int beatsPerBar;
+
+  /// Beats in each phrase in this component.
+  int get beatsPerPhrase => bars * beatsPerBar;
+
+  /// Beats across this complete component.
+  int get totalBeats => phraseCount * beatsPerPhrase;
+
+  @override
+  bool operator ==(Object other) =>
+      other is PhraseComponent &&
       other.phraseCount == phraseCount &&
-      other.beatsPerPhrase == beatsPerPhrase;
+      other.bars == bars &&
+      other.beatsPerBar == beatsPerBar;
 
   @override
-  int get hashCode => Object.hash(phraseCount, beatsPerPhrase);
+  int get hashCode => Object.hash(phraseCount, bars, beatsPerBar);
+}
 
-  @override
-  String toString() => 'PhraseStructure($phraseCount x $beatsPerPhrase beats)';
+/// Returns the phrase label for a figure starting at [beat] with [figureBeats]
+/// beats, using [structure] to map beats to labels.
+///
+/// For non-zero-length figures the start beat determines the label — the
+/// calling convention is "the phrase it starts in". For **zero-length** figures
+/// the tie is resolved backward: the figure belongs to the phrase that just
+/// ended, not the one that follows. Exception: beat 0 has no preceding phrase,
+/// so a zero-beat figure there stays in the first phrase.
+String labelForFigure(int beat, int figureBeats, PhraseStructure structure) {
+  if (figureBeats == 0 && beat > 0 && structure.isPhraseBoundary(beat)) {
+    return structure.labelAtBeat(beat - 1);
+  }
+  return structure.labelAtBeat(beat);
 }
 
 /// A figure's derived position within the phrase structure.
@@ -97,6 +226,9 @@ class SectionedFigure {
 
   /// Label of the phrase in which this figure *starts* (e.g. `A2`). Figures
   /// may span phrase boundaries; the start phrase is the calling convention.
+  /// Zero-beat figures at a phrase boundary (beat > 0) are attributed to the
+  /// preceding phrase — they sit between two phrases and musically belong with
+  /// the one that just ended.
   final String label;
 }
 
@@ -124,7 +256,7 @@ List<SectionedFigure> deriveSections(
         index: i,
         figure: figures[i],
         startBeat: beat,
-        label: structure.labelAtBeat(beat),
+        label: labelForFigure(beat, figures[i].beats, structure),
       ),
     );
     // One list element → one beat advance. For a meanwhile container this is

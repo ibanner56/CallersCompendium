@@ -13,6 +13,12 @@ const Set<String> roleTokens = {'role1', 'role2', 'role1s', 'role2s'};
 final RegExp _placeholder = RegExp(r'\{(\w+)\}');
 final RegExp _camelBoundary = RegExp(r'(?<=[a-z])(?=[A-Z])');
 
+/// Shape of the single-dancer identity tokens ([ParamVocab.singleDancers]) —
+/// one couple (`ones`/`twos`) × one role. Unlike [roleTokens] these are
+/// COMPOUND, so a whole-token membership test never matches them and the
+/// embedded role would never be substituted (issue #832).
+final RegExp _singleDancerShape = RegExp(r'^(ones|twos)(Role[12])$');
+
 /// Signature of a DISPLAY-ONLY base-line renderer (see
 /// [FigureRenderer._displayBaseRenderers]). Rebuilds the whole terse line for a
 /// move that adopts ContraDB's `words()` sentence structure verbatim, using the
@@ -249,7 +255,8 @@ class FigureRenderer {
     // `words()` sentence structure verbatim (not a suffix), so the whole terse
     // line is rebuilt rather than expanded from `renderTemplate`. Gated behind
     // `!forCanonical` so `renderCanonical` keeps expanding the template and
-    // stays byte-for-byte stable (the dedupe/FTS invariant).
+    // stays byte-for-byte stable — EXCEPT for the three moves below that have
+    // explicit canonical overrides.
     if (!forCanonical) {
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
@@ -264,6 +271,131 @@ class FigureRenderer {
             : _stripSubjectMark(line);
       }
     }
+    // CANONICAL overrides (taxonomy v27, issue #749): three moves that include
+    // grip or singleFile tokens in their FTS-indexed canonical text. These run
+    // only when forCanonical is true; the display path above handles the
+    // non-canonical case via _displayBaseRenderers.
+    //
+    // `star` is safe to use the same renderer as display (no display-only
+    // polish: no _subjectWho, no direction silencing, no assumed marker).
+    //
+    // `promenade` and `circle` are NOT un-gated from the display entry because
+    // the display entry applies direction silencing and subject omission that
+    // would degrade ordinary-promenade FTS (e.g. "partners promenade across"
+    // would lose `who` and `dir` from the search index). The canonical blocks
+    // below use dedicated logic for each move.
+    if (forCanonical) {
+      if (def.id == 'star') {
+        // Canonical mirrors the display entry for star: no display-only polish
+        // exists, so the same word-order applies to both paths.
+        final canonicalLine = _collapseSpaces(
+          _displayBaseRenderers['star']!(
+            this,
+            def,
+            params,
+            Dialect.canonical,
+            false,
+            false,
+          ),
+        );
+        return canonicalLine;
+      }
+      if (def.id == 'promenade') {
+        // Canonical (v30 #989): unlike display, canonical NEVER silences a
+        // concrete default — that is the whole point of this block (see the
+        // class comment above: "who ... across" stays even at the `across`
+        // default, so the FTS index reflects the stated direction). `turn`
+        // follows the same rule: it is suppressed ONLY at the `unspecified`
+        // sentinel (meaning "not stated" — the same suppression `destination`
+        // already gets), never merely for equalling its own default. This is
+        // why a plain, all-default promenade still renders "partners
+        // promenade across" (turn's default is a real value, not the
+        // sentinel, so it now ALSO appears: "partners promenade
+        // counterclockwise across").
+        //
+        // singleFile drops `who` (importer artefact, no choreographic
+        // content) — unchanged from v29 (#921).
+        //
+        // v30 (#989) re-gated the destination clause from `singleFile==true`
+        // to `dir != 'across'` (see the taxonomy doc comment on
+        // `promenade.destination`). A stored `destination` on a
+        // `dir=='across'` figure (reachable from pre-v30 singleFile+across
+        // imports) is KEPT but no longer rendered — an accepted, deliberate
+        // data-shape divergence, not a migration.
+        final dirRaw = params['dir'];
+        final dir = _displayScalar(dirRaw);
+        final turnRaw = params['turn'];
+        final turn = _isUnspecified(turnRaw) ? '' : _displayScalar(turnRaw);
+        final destRaw = params['destination'];
+        final dest =
+            (dirRaw == 'across' || _isUnspecified(destRaw) || destRaw == null)
+            ? ''
+            : 'to ${_displayScalar(destRaw)}';
+        if (params['singleFile'] == true) {
+          return _collapseSpaces(
+            [
+              'single file promenade',
+              turn,
+              dir,
+              dest,
+            ].where((s) => s.isNotEmpty).join(' '),
+          );
+        }
+        final whoRaw = params['who'];
+        final who = _renderValue(
+          'who',
+          whoRaw,
+          def.params['who'],
+          Dialect.canonical,
+          verbose,
+          decimals,
+          true,
+        );
+        return _collapseSpaces(
+          [
+            who,
+            'promenade',
+            turn,
+            dir,
+            dest,
+          ].where((s) => s.isNotEmpty).join(' '),
+        );
+      }
+      if (def.id == 'circle' && params['singleFile'] == true) {
+        // Canonical: "single file promenade {left|right} {places} (circle,
+        // {clockwise|counterclockwise})" — phrased as "promenade" to match TCB
+        // source text; the parenthetical retains "circle" in the FTS index so
+        // this figure is findable by "circle" searches.
+        //
+        // v30 (#989): `turn` now renders its raw stored value (`left`/`right`)
+        // instead of being substituted to a spin word — but the spin word is
+        // NOT dropped from the index: it moves into the parenthetical
+        // (widened from "(circle)" to "(circle, clockwise)"), preserving the
+        // TCB source's own wording ("single file promenade clockwise …",
+        // `callersbox_figure_dialect.dart:1316-1365`) as a searchable token.
+        // Clockwise = left (contra convention: circling left travels
+        // clockwise).
+        final turnRaw = params['turn'];
+        final turn = _displayScalar(turnRaw);
+        final spinWord = turnRaw == 'left'
+            ? 'clockwise'
+            : turnRaw == 'right'
+            ? 'counterclockwise'
+            : turn; // tolerant-decode fallback
+        final placesRaw = params['places'];
+        final places = placesRaw is int
+            ? _formatPlaces(placesRaw)
+            : _displayScalar(placesRaw);
+        return _collapseSpaces(
+          [
+            'single file promenade',
+            turn,
+            places,
+            spinWord.isEmpty ? '(circle)' : '(circle, $spinWord)',
+          ].where((s) => s.isNotEmpty).join(' '),
+        );
+      }
+    }
     // Aliases render under their own name (a "see saw" is not shown as
     // "do si do"); dialect move substitution is still keyed canonically.
     final alias = taxonomy.aliases[figure.move];
@@ -271,6 +403,10 @@ class FigureRenderer {
     // Params pinned by an alias are baked into its display name (e.g.
     // "meltdown swing" pins prefix=meltdown), so they must not be rendered a
     // second time as a template token — otherwise the word would double up.
+    // Since v25 (#870), this invariant is ENFORCED at write time by
+    // Taxonomy.resolvedMoveId: a figure whose effective param contradicts the
+    // alias pin is re-routed to the correct half of the pair before it
+    // reaches the renderer, so the pin and the data can never disagree.
     final pinned = alias?.pinnedParams ?? const <String, Object?>{};
     final rendered = def.renderTemplate.replaceAllMapped(_placeholder, (m) {
       final name = m[1]!;
@@ -284,6 +420,24 @@ class FigureRenderer {
         );
       }
       if (pinned.containsKey(name)) return '';
+      // `chain.hand` (#976): silenced on BOTH paths — not display-only, unlike
+      // every other entry in this loop — when it equals the side [who]
+      // already implies (`chainHandForWho`). A stated hand that CONTRADICTS
+      // the role reading still renders, hyphenated (`left-hand`/`right-hand`,
+      // matching ContraDB's `shand + "-hand"`). This cannot go through
+      // `_isDisplaySilenced`/`_silencedDefaultParams`: that mechanism compares
+      // against the SPEC default, not a sibling param, and `chain`'s one slot
+      // there already holds `dir`. See the taxonomy's v28 note for why
+      // silencing canonical text too is the deliberate exception here.
+      if (def.id == 'chain' && name == 'hand') {
+        final rawHand = params[name];
+        if (rawHand is! String || rawHand == ParamVocab.unspecified) {
+          return '';
+        }
+        final who = params['who'];
+        final impliedHand = who is String ? chainHandForWho(who) : null;
+        return rawHand == impliedHand ? '' : '$rawHand-hand';
+      }
       // Display-only omission of a param whose value equals its silenced
       // default (direction/facing) or the move's default subject.
       if (!forCanonical && _isDisplaySilenced(def, name, params[name])) {
@@ -389,7 +543,7 @@ class FigureRenderer {
   /// - default-subject omission: `who` is omitted when it equals the move's
   ///   `who` default, for the moves in [_omitDefaultSubject] (ContraDB
   ///   `upOrDownTheHallWords` `who === "everyone" ? "" : swho`, plus
-  ///   star_promenade's role-subject omission).
+  ///   star_promenade's default-subject omission).
   bool _isDisplaySilenced(MoveDef def, String name, Object? value) {
     if (name == 'who' && _omitDefaultSubject.contains(def.id)) {
       return value == def.params['who']?.defaultValue;
@@ -420,12 +574,16 @@ class FigureRenderer {
 
   /// DISPLAY-ONLY rendering of a single dancer/role [token] for the
   /// [_displayBaseRenderers] base lines: role tokens map to the dialect role
-  /// term (canonical token when unmapped), [Dialect.dancers] substitutions
-  /// win next, then positional dancer sets read as the PR1 singular subject
-  /// (`partners` → `partner`), else the token humanizes. Mirrors the
-  /// display-path branch of [_renderValue]; never used by the canonical render.
+  /// term (canonical token when unmapped), single-dancer identities take
+  /// [_singleDancerTerm] (substitution, else `<first|second> <role>`),
+  /// [Dialect.dancers] substitutions win next, then positional dancer sets read
+  /// as the PR1 singular subject (`partners` → `partner`), else the token
+  /// humanizes. Mirrors the display-path branch of [_renderValue]; never used
+  /// by the canonical render.
   String _displayDancer(String token, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return single;
     final substitution = dialect.dancers[token];
     if (substitution != null) return substitution;
     return _singularDancerSets[token] ?? _humanize(token);
@@ -435,10 +593,13 @@ class FigureRenderer {
   /// for clauses whose verb agrees with the group (hey's `meetTarget`:
   /// "until neighbors meet"). Like [_displayDancer] but WITHOUT the singular
   /// subject collapse (`neighbors` stays `neighbors`, not `neighbor`), mirroring
-  /// ContraDB `dancerSubstitution` which keeps the plural term. Role tokens and
-  /// [Dialect.dancers] substitutions win first (both already plural).
+  /// ContraDB `dancerSubstitution` which keeps the plural term. Role tokens,
+  /// single-dancer identities and [Dialect.dancers] substitutions win first (a
+  /// single-dancer identity names one dancer, so it has no plural form to keep).
   String _displayGroup(String token, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return single;
     final substitution = dialect.dancers[token];
     if (substitution != null) return substitution;
     return _humanize(token);
@@ -500,22 +661,49 @@ class FigureRenderer {
     return other == null ? 'others' : _displayDancer(other, dialect);
   }
 
-  /// DISPLAY-ONLY: label for a single-dancer identity [token] (`onesRole1` …),
-  /// as `<first|second> <role singular>` — e.g. `first lark` under
-  /// larks/robins, `first role1` under the canonical dialect. Mirrors
-  /// ContraDB's `chooser_dancer` "first/second gentlespoon/ladle" naming
-  /// (`app/javascript/libfigure/chooser.js` @13f38a5). The ordinal (ones→first,
-  /// twos→second) is fixed structural vocabulary; the role word is the active
-  /// dialect's role term. A token that does not match the
+  /// DISPLAY-ONLY: the DEFAULT label for a single-dancer identity [token]
+  /// (`onesRole1` …), as `<first|second> <role singular>` — e.g. `first lark`
+  /// under larks/robins, `first role1` under the canonical dialect. Returns
+  /// `null` for every other token, so callers can chain it ahead of their own
+  /// fallback. Mirrors ContraDB's `chooser_dancer` "first/second
+  /// gentlespoon/ladle" naming (`app/javascript/libfigure/chooser.js`
+  /// @13f38a5). The ordinal (ones→first, twos→second) is fixed structural
+  /// vocabulary; the role word is the active dialect's role term.
+  ///
+  /// DELIBERATELY IGNORES [Dialect.dancers]: this is the wording a token reads
+  /// as with NO substitution set. The dialect editor labels its substitution
+  /// rows with it, and must show the default rather than echoing the override
+  /// the user is editing in the adjacent field. Rendering callers want
+  /// [_singleDancerTerm], which lets a substitution win.
+  static String? singleDancerDefaultTerm(String token, Dialect dialect) {
+    final match = _singleDancerShape.firstMatch(token);
+    if (match == null) return null;
+    final ordinal = match[1] == 'ones' ? 'first' : 'second';
+    final role = match[2]!.toLowerCase(); // Role1 -> role1
+    return '$ordinal ${_roleTerm(role, dialect)}';
+  }
+
+  /// DISPLAY-ONLY label for a single-dancer identity [token]: a
+  /// [Dialect.dancers] substitution wins, else [singleDancerDefaultTerm].
+  /// `null` for every other token.
+  ///
+  /// THE one single-dancer path for the display renderer — every site that used
+  /// to fall through to [_humanize] for these compound tokens (issue #832)
+  /// calls this. Consulting the substitution map makes the `<ordinal> <role>`
+  /// construction the DEFAULT rather than the only outcome, matching
+  /// [_displayDancer]/[_displayGroup], which have always let a substitution win.
+  static String? _singleDancerTerm(String token, Dialect dialect) =>
+      _singleDancerShape.hasMatch(token)
+      ? (dialect.dancers[token] ?? singleDancerDefaultTerm(token, dialect))
+      : null;
+
+  /// DISPLAY-ONLY: label for a single-dancer identity [value], via
+  /// [_singleDancerTerm]. A value that does not match the
   /// `(ones|twos)(Role1|Role2)` shape falls back to [_displayDancer] so unknown
   /// values are still surfaced, not blanked.
   String _singleDancerLabel(Object? value, Dialect dialect) {
     if (value is! String) return _displaySubject(value, dialect);
-    final match = RegExp(r'^(ones|twos)(Role[12])$').firstMatch(value);
-    if (match == null) return _displayDancer(value, dialect);
-    final ordinal = match[1] == 'ones' ? 'first' : 'second';
-    final role = match[2]!.toLowerCase(); // Role1 -> role1
-    return '$ordinal ${_roleTerm(role, dialect)}';
+    return _singleDancerTerm(value, dialect) ?? _displayDancer(value, dialect);
   }
 
   /// Display name for [moveId] under [dialect] for the dance editor / figure
@@ -547,13 +735,22 @@ class FigureRenderer {
 
   /// Display string for a single vocabulary [token] under [dialect], for use in
   /// the dance editor's param choices/labels. Role tokens render as the
-  /// dialect's role term (canonical token when unmapped); [ParamKind.dancerSet]
+  /// dialect's role term (canonical token when unmapped); single-dancer
+  /// identities (`twosRole2`) take [_singleDancerTerm]; [ParamKind.dancerSet]
   /// / [ParamKind.dancerPair] tokens use [Dialect.dancers] (else humanized);
   /// every other token (structural params such as `shoulder`, `direction`) is
   /// humanized. Under [Dialect.canonical] the result equals the plain humanized
-  /// / canonical form.
+  /// / canonical form, except for a single-dancer identity, which reads
+  /// `second role2` (its canonical-vocabulary default) rather than the raw
+  /// `twos role2` — issue #832.
+  ///
+  /// The single-dancer branch is NOT spec-gated, mirroring [roleTokens]: these
+  /// four are a closed structural vocabulary, so the label is right whatever
+  /// spec (or none) the caller has to hand.
   static String displayToken(String token, ParamSpec? spec, Dialect dialect) {
     if (roleTokens.contains(token)) return _roleTerm(token, dialect);
+    final single = _singleDancerTerm(token, dialect);
+    if (single != null) return single;
     if (spec != null &&
         (spec.kind == ParamKind.dancerSet ||
             spec.kind == ParamKind.dancerPair)) {
@@ -607,6 +804,16 @@ class FigureRenderer {
     if (value is String &&
         (spec?.kind == ParamKind.dancerSet ||
             spec?.kind == ParamKind.dancerPair)) {
+      // Display-only: a single-dancer identity reads as its substitution, else
+      // `<first|second> <role term>` (issue #832). GATED ON !forCanonical — the
+      // canonical render must keep emitting the humanized raw token
+      // ("twos role2"), because that text is persisted to
+      // `dance_figures.canonicalText` / `dance_fts` and is the dedupe key.
+      // Changing it would be a migration + derived rebuild, not a display fix.
+      if (!forCanonical) {
+        final single = _singleDancerTerm(value, dialect);
+        if (single != null) return single;
+      }
       final substitution = dialect.dancers[value];
       if (substitution != null) return substitution;
       // Display-only: positional dancer sets read as singular subjects
@@ -733,12 +940,13 @@ class FigureRenderer {
   /// (`app/javascript/libfigure/param.js` @13f38a5) for the `dir` (set
   /// direction) params, and the `facing`/`march_forward` "forward" default for
   /// the hall moves. A non-default value still renders. `cross_trails` is
-  /// intentionally absent — it is out of PR1 scope. The canonical render is
-  /// never affected (it keeps `pass through along`, `everyone down the hall
+  /// intentionally absent — it is out of PR1 scope. `pass_through`'s default
+  /// direction silencing is handled by its `_displayBaseRenderers` entry (which
+  /// also handles the shoulder), so it is intentionally absent here. The
+  /// canonical render is never affected (it keeps `everyone down the hall
   /// forward`, etc.).
   static const Map<String, String> _silencedDefaultParams = {
     // ContraDB set_direction_along → silences default 'along'.
-    'pass_through': 'dir',
     'pull_by_direction': 'dir',
     // ContraDB set_direction_across/acrossish → silences default 'across'.
     'right_left_through': 'dir',
@@ -753,9 +961,18 @@ class FigureRenderer {
   /// move's `who` default. Mirrors ContraDB `upOrDownTheHallWords`
   /// (`who === "everyone" ? "" : swho`) for the hall moves, ContraDB's
   /// `everyone`-omitting subject rendering for `turn_alone`/`rory_o_more`, and
-  /// star_promenade's role-subject omission (ContraDB drops the gentlespoons
-  /// subject there). This omission is NOT generalized to other role subjects.
-  /// A non-default `who` still renders.
+  /// star_promenade's subject omission (ContraDB drops the gentlespoons subject
+  /// there). This omission is NOT generalized to other subjects. A non-default
+  /// `who` still renders.
+  ///
+  /// **star_promenade's entry no longer describes a ROLE-subject omission**
+  /// (taxonomy v26, #843). Its `who` now means the dancer you PICK UP on the
+  /// side, so the norm for an imported figure is a RELATIONSHIP value
+  /// (`neighbors`/`partners`) — which is non-default and therefore renders.
+  /// The `role1s` default it silences is now the residue of the old ContraDB
+  /// reading rather than the common case, and ContraDB star promenades no
+  /// longer import as this move at all. The entry is kept so a figure that
+  /// really does carry the default subject renders as it always did.
   static const Set<String> _omitDefaultSubject = {
     'down_the_hall',
     'up_the_hall',
@@ -772,6 +989,12 @@ class FigureRenderer {
   /// The canonical render keeps the bare `{move}` display name.
   static const Map<String, String> _displayMoveNameOverrides = {
     'shoulder_round': '%S shoulder round',
+    // ContraDB `figureGenericWords` always emits every non-who/bal/beats param,
+    // so the shoulder appears unconditionally. `%S` expands to the side word
+    // ("right" / "left" / "*"); ContraDB `stringParamShoulders` appends
+    // "shoulders" making "right shoulders" etc. The canonical render keeps the
+    // bare `{move}` display name (template: `{who} {move}`).
+    'pass_by': 'pass by %S shoulders',
   };
 
   /// DISPLAY-ONLY singular forms for the positional dancer-set vocabulary that
@@ -790,6 +1013,11 @@ class FigureRenderer {
     'nextNeighbors': 'next neighbor',
     'thirdNeighbors': 'third neighbor',
     'fourthNeighbors': 'fourth neighbor',
+    'prevPartners': 'prev partner',
+    'nextPartners': 'next partner',
+    'thirdPartners': 'third partner',
+    'fourthPartners': 'fourth partner',
+    'fifthPartners': 'fifth partner',
   };
 
   /// DISPLAY-ONLY base-line renderers that adopt ContraDB `libfigure`
@@ -1501,8 +1729,8 @@ class FigureRenderer {
     // Marjorie). `none` (the default / unspecified value) emits no clause so
     // a plain star is unchanged. The grip labels are fixed calling vocabulary;
     // an unexpected non-null grip humanizes (surfacing malformed data) rather
-    // than silently vanishing. `renderCanonical` is unaffected — it keeps
-    // expanding `renderTemplate` (`{move} {hand} {places}`) byte-for-byte.
+    // than silently vanishing. Emitted in ALL render paths including
+    // `renderCanonical` since taxonomy v27 (issue #749 Gap B).
     'star': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final hand = _displayScalar(params['hand']);
@@ -1525,61 +1753,166 @@ class FigureRenderer {
         places,
       ].where((s) => s.isNotEmpty).join(' ');
     },
-    // `promenade.singleFile` (taxonomy v18, issue #634): a true single-file
-    // promenade (nose-to-tail around the major set) differs materially from
-    // the ordinary partnered promenade — "single file {move}" mirrors the
-    // ContraDB source text ("single file promenade along major set to new
-    // neighbors"). `dir` is dropped (no direction in source). `who` is
-    // suppressed at the taxonomy default ('partners') to match the import
-    // path; an explicit non-default `who` is surfaced before the move name.
-    // Both cases route through `_renderMoveName` so Dialect.moves overrides
-    // apply uniformly. For the ordinary (singleFile: false) case the base line
-    // reproduces the existing template expansion {who} promenade {dir}
-    // including the direction-silencing rule for the `across` default.
-    // `renderCanonical` keeps expanding `renderTemplate` ({who} {move} {dir})
-    // and is unaffected.
+    // `promenade.singleFile` (taxonomy v18 #634, updated v27 #749, v29 #921
+    // destination, v30 #989 turn):
+    //
+    // DISPLAY (singleFile=true): "single file {move} {turn} {dir} [to
+    // {destination}]" with `who` DROPPED (importer artefact carrying no
+    // choreographic information) and `dir` ALWAYS included (even the `across`
+    // default) — unchanged since v27. `turn` (v30) uses the same
+    // stated-vs-silenced rule as the non-singleFile branch below.
+    //
+    // DISPLAY (singleFile=false, v30 #989): the pure-default combination
+    // (`dir=='across' && turn=='counterclockwise'`) silences both tokens.
+    // A non-default `turn` or a stated `destination` shows both tokens. The
+    // `along` direction also shows the concrete default turn, while other
+    // non-default directions show only the direction when the turn remains
+    // at its default. These cases preserve the implemented v30 behavior:
+    //   - dir=across, turn=ccw (defaults): "partner promenade" (unchanged)
+    //   - dir=along, turn=ccw (only dir stated): "partner promenade
+    //     counterclockwise along" (the `along` exception shows the default)
+    //   - dir=rightDiagonal, turn=ccw (only dir stated): "partner promenade
+    //     right diagonal" (other non-default directions leave the default
+    //     turn silent)
+    //   - dir=across, turn=cw (only turn stated): "neighbor promenade
+    //     clockwise across" — turn being non-default un-silences `across` too
+    //     (a bare "clockwise" alone doesn't say what's being turned across)
+    //   - dir=rightDiagonal, turn=ccw, destination=prevNeighbors: "partner
+    //     promenade counterclockwise right diagonal to prev neighbors" — a
+    //     stated destination un-silences turn even though it's the default,
+    //     because "to prev neighbors" alone doesn't say which way they travel
+    // The `along` exception is intentional: the taxonomy cannot distinguish
+    // "turn not stated" from "turn stated as its own default" because v30's
+    // default is concrete, not the sentinel (see `contra_taxonomy.dart`).
+    // Other non-default directions therefore keep the default turn silent
+    // unless a non-default turn or destination supplies the additional
+    // statement.
+    //
+    // CANONICAL: handled by the `if (forCanonical)` block in `_render` (not by
+    // this entry). Canonical never silences a concrete default (existing
+    // invariant — `renderer_test.dart` "renderCanonical is unchanged"), so it
+    // always includes `dir` (unchanged since pre-v27) and now always includes
+    // `turn` too UNLESS `turn` is the `unspecified` sentinel (mirroring how
+    // `destination`'s sentinel already suppresses there) — never silenced for
+    // merely equalling its own default, unlike display.
     'promenade': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final dirRaw = params['dir'];
+      final turnRaw = params['turn'];
+      final dirDefault = def.params['dir']?.defaultValue;
+      final turnDefault = def.params['turn']?.defaultValue;
+      final destRaw = params['destination'];
+      // v30 (#989): destination rendering re-gated from `singleFile==true` to
+      // `dir != 'across'` (see the taxonomy doc comment on
+      // `promenade.destination`) — a stored `destination` on a
+      // `dir=='across'` figure keeps the param but no longer renders it.
+      final destStated =
+          dirRaw != 'across' && !(_isUnspecified(destRaw) || destRaw == null);
       if (params['singleFile'] == true) {
-        final whoDefault = def.params['who']?.defaultValue;
-        final whoRaw = params['who'];
-        final swho = (whoRaw != null && whoRaw != whoDefault)
-            ? r._subjectWho(params, dialect)
+        // `who` is dropped (importer artefact; `everyone` has no
+        // choreographic significance). `dir` always included (even `across`
+        // default) so display matches what source stated and aligns with
+        // the canonical form. `turn` (v30): shown whenever non-default or a
+        // destination is stated. Unlike the non-singleFile branch, `dir=='along'`
+        // does not add a separate default-turn exception here.
+        final dir = _displayScalar(dirRaw);
+        final showTurn =
+            !_isUnspecified(turnRaw) && (turnRaw != turnDefault || destStated);
+        final turn = showTurn ? _displayScalar(turnRaw) : '';
+        final dest = destStated
+            ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
             : '';
-        return [swho, 'single file $move'].where((s) => s.isNotEmpty).join(' ');
+        return [
+          'single file $move',
+          turn,
+          dir,
+          dest,
+        ].where((s) => s.isNotEmpty).join(' ');
       }
       final swho = r._subjectWho(params, dialect);
-      // Re-apply the direction-silencing rule that the template-expansion path
-      // uses for promenade (ContraDB `stringParamSetDirectionSilencingDefault`
-      // 'across'): omit `dir` when it equals the taxonomy default.
-      final dirRaw = params['dir'];
-      final dirDefault = def.params['dir']?.defaultValue;
-      final dir = (dirRaw == dirDefault) ? '' : _displayScalar(dirRaw);
-      return [swho, move, dir].where((s) => s.isNotEmpty).join(' ');
+      // v30 (#989): `turn` shown iff it is non-default, a destination is
+      // stated, or the non-default `along` direction is selected. `dir` is
+      // shown iff `turn` is being shown (joint silencing — see the class
+      // comment above) OR `dir` itself is non-default.
+      final showTurn =
+          !_isUnspecified(turnRaw) &&
+          (turnRaw != turnDefault || destStated || dirRaw == 'along');
+      final turn = showTurn ? _displayScalar(turnRaw) : '';
+      final showDir = showTurn || dirRaw != dirDefault;
+      final dir = showDir ? _displayScalar(dirRaw) : '';
+      final dest = destStated
+          ? 'to ${destRaw is String ? r._displayGroup(destRaw, dialect) : _displayScalar(destRaw)}'
+          : '';
+      return [swho, move, turn, dir, dest].where((s) => s.isNotEmpty).join(' ');
     },
-    // `circle.singleFile` (taxonomy v18, issue #634): a single-file
-    // circulation around the ring (ContraDB source: "promenade single file
-    // around the circle N places"). The move name "circle" is kept so the
-    // figure is unambiguous — echoing "promenade" in a circle figure would
-    // mislabel the move. A trailing "- single file" clarifier distinguishes
-    // the formation (same pattern as other display-only context clauses, e.g.
-    // revolving_door's "drop off on other side"). For the ordinary
-    // (singleFile: false) case the base line reproduces `{move} {turn}
-    // {places}`. `renderCanonical` keeps expanding `renderTemplate`
-    // ({move} {turn} {places}) and is unaffected.
+    // `circle.singleFile` (taxonomy v18 #634, reworded v27 #840): a single-
+    // file circulation around the ring (ContraDB source: "promenade single file
+    // around the circle N places"; TCB: "Single file promenade clockwise").
+    //
+    // DISPLAY (singleFile=true, since v27): prefix form "single file circle
+    // {clockwise|counterclockwise} {places}" — `turn` maps to a spelled-out
+    // spin direction (clockwise = left, counterclockwise = right, per contra
+    // convention: circling left travels clockwise). The prefix reads naturally
+    // as callers say it; the v26 suffix form ("circle … - single file") was a
+    // deliberate minimal change in #805, superseded by this ruling.
+    //
+    // DISPLAY (singleFile=false): reproduces template `{move} {turn} {places}`.
+    //
+    // CANONICAL: handled by the `if (forCanonical)` block in `_render` — not
+    // by this entry. Canonical uses a distinct form to include "circle" as a
+    // searchable token despite phrasing as "promenade".
     'circle': (r, def, params, dialect, verbose, decimals) {
-      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final turnRaw = params['turn'];
-      final turn = _displayScalar(turnRaw);
       final placesRaw = params['places'];
       final places = placesRaw is int
           ? _formatPlaces(placesRaw)
           : _displayScalar(placesRaw);
-      final base = [move, turn, places].where((s) => s.isNotEmpty).join(' ');
       if (params['singleFile'] == true) {
-        return '$base - single file';
+        // v30 (#989): render `turn` raw (`left`/`right`) like every other
+        // move's turn/direction param, for consistency with the rest of the
+        // app — the clockwise/counterclockwise substitution that used to live
+        // here is REMOVED (see the taxonomy doc comment on `circle.singleFile`
+        // for why, and where the spin word moved to instead: the canonical
+        // parenthetical, not display).
+        final turnRaw = params['turn'];
+        final turn = _displayScalar(turnRaw);
+        final move = r._renderMoveName(
+          def.id,
+          def.displayName,
+          params,
+          dialect,
+        );
+        return [
+          'single file $move',
+          turn,
+          places,
+        ].where((s) => s.isNotEmpty).join(' ');
       }
-      return base;
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final turnRaw = params['turn'];
+      final turn = _displayScalar(turnRaw);
+      return [move, turn, places].where((s) => s.isNotEmpty).join(' ');
+    },
+    // pass_through (ContraDB `passThroughWords`): renders the shoulder ONLY when
+    // it is not the default 'right' (right shoulders are implicit), and silences
+    // the default 'along' direction — exactly matching ContraDB's behaviour.
+    // `renderCanonical` keeps expanding `renderTemplate` (`{move} {dir}`) and is
+    // unaffected; this entry handles the display path only.
+    'pass_through': (r, def, params, dialect, verbose, decimals) {
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final shoulder = params['shoulder'];
+      // Suppress the default 'right' shoulder; render 'left shoulders' / '* shoulders'
+      // for any other value, matching ContraDB `stringParamShoulders` word forms.
+      final shoulderClause = (shoulder is String && shoulder != 'right')
+          ? '$shoulder shoulders'
+          : '';
+      final dir = params['dir'];
+      // Silence the default 'along' direction (ContraDB set_direction_along).
+      final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
+      return [
+        move,
+        shoulderClause,
+        dirClause,
+      ].where((s) => s.isNotEmpty).join(' ');
     },
   };
 

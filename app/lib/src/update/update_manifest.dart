@@ -192,6 +192,7 @@ class UpdateManifest {
     try {
       decoded = jsonDecode(source);
     } on FormatException catch (e) {
+      // diagnostics: silent — converts invalid-JSON FormatException to UpdateManifestFormatException and rethrows
       throw UpdateManifestFormatException('invalid JSON: ${e.message}');
     }
     if (decoded is! Map<String, Object?>) {

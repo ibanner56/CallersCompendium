@@ -40,6 +40,68 @@ void main() {
       expect(q.score, 0.0);
       expect(q.isFullyCustom, isTrue);
     });
+
+    // --- meanwhile recursion ---
+    // The pre-fix harness checked f.isCustom top-level only. A meanwhile
+    // container is never isCustom, so a meanwhile whose every side was custom
+    // scored 1.0 (fully structured). The recursive harness corrects this.
+    group('meanwhile recursion', () {
+      test('meanwhile with all-custom sides is counted as custom '
+          '(pre-fix harness scored 1.0; recursive harness scores 0.0)', () {
+        final figures = [
+          Figure.meanwhile(
+            figures: [
+              customFigure('give and take', beats: 8),
+              customFigure('something else', beats: 8),
+            ],
+            beats: 16,
+          ),
+        ];
+        final q = ParseQuality.ofFigures(figures);
+        expect(q.score, 0.0);
+        expect(q.isFullyCustom, isTrue);
+      });
+
+      test('meanwhile with all-structured sides is counted as structured', () {
+        final figures = [
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'swing', params: {'beats': 8}),
+              Figure(move: 'orbit', params: {'beats': 8}),
+            ],
+            beats: 16,
+          ),
+        ];
+        final q = ParseQuality.ofFigures(figures);
+        expect(q.score, 1.0);
+        expect(q.isFullyCustom, isFalse);
+      });
+
+      test('meanwhile with one custom side and one structured side scores 0.5 '
+          'when paired with a fully-structured figure', () {
+        // One meanwhile is "custom" (has a custom side), one is fully structured.
+        // 1 custom out of 2 top-level figures → 0.5.
+        final figures = [
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'swing', params: {'beats': 8}),
+              customFigure('something custom', beats: 8),
+            ],
+            beats: 16,
+          ),
+          Figure.meanwhile(
+            figures: [
+              Figure(move: 'swing', params: {'beats': 8}),
+              Figure(move: 'orbit', params: {'beats': 8}),
+            ],
+            beats: 16,
+          ),
+        ];
+        final q = ParseQuality.ofFigures(figures);
+        expect(q.score, 0.5);
+        expect(q.customFigures, 1);
+      });
+    });
   });
 
   group('customFigure fallback', () {

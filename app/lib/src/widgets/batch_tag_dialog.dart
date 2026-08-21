@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Which batch operation the dialog is picking tags for.
@@ -83,10 +84,15 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
     final repos = RepositoriesScope.of(context);
-    final tag = Tag(id: uuidV4(), name: name);
+    final minted = Tag(id: uuidV4(), name: name);
+    final Tag tag;
     try {
-      await repos.tags.upsert(tag);
-    } catch (_) {
+      // The repository may adopt a soft-deleted tag holding this name and
+      // return its id instead of the minted one (schema v25, #898), so build
+      // the local Tag from what it actually wrote.
+      tag = Tag(id: await repos.tags.upsert(minted), name: name);
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'batch_tag_dialog._createTag');
       if (!mounted) return;
       setState(() => _creating = false);
       messenger.showSnackBar(

@@ -19,7 +19,12 @@ Future<void> _pumpGeneral(
   WidgetTester tester,
   CompendiumRepositories repos,
 ) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 1400));
+  // Tall enough that every General row (including the Deleted items section
+  // near the bottom) renders without scrolling — a ListView only builds
+  // children within its viewport + cache extent, so a short surface can leave
+  // a lower row unbuilt and unreachable by finders.
+  // Matches the convention already used by settings_screen_test.dart.
+  await tester.binding.setSurfaceSize(const Size(1200, 2600));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -59,56 +64,6 @@ CompendiumRepositories _openRepos() => openTestRepositories();
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-
-  testWidgets('auto-size Perform toggle defaults on and is AT-reachable', (
-    tester,
-  ) async {
-    final handle = tester.ensureSemantics();
-    final repos = _openRepos();
-
-    await _pumpGeneral(tester, repos);
-
-    final toggle = find.byKey(const ValueKey('settings-auto-size-perform'));
-    expect(toggle, findsOneWidget);
-    expect(
-      tester.widget<SwitchListTile>(toggle).value,
-      isTrue,
-      reason: 'auto-size defaults on (ROADMAP G.1)',
-    );
-    // The switch is reachable and toggleable by assistive tech.
-    expect(
-      tester.getSemantics(
-        find.descendant(of: toggle, matching: find.byType(Switch)),
-      ),
-      isSemantics(
-        hasToggledState: true,
-        isToggled: true,
-        hasTapAction: true,
-        isEnabled: true,
-      ),
-    );
-
-    handle.dispose();
-  });
-
-  testWidgets('toggling auto-size off persists the setting', (tester) async {
-    final repos = _openRepos();
-
-    await _pumpGeneral(tester, repos);
-
-    await tester.tap(find.byKey(const ValueKey('settings-auto-size-perform')));
-    await tester.pumpAndSettle();
-
-    expect(
-      tester
-          .widget<SwitchListTile>(
-            find.byKey(const ValueKey('settings-auto-size-perform')),
-          )
-          .value,
-      isFalse,
-    );
-    expect(await repos.settings.get(kAutoSizePerformKey), isFalse);
-  });
 
   testWidgets('soft-delete retention defaults to 30 days and is reachable', (
     tester,

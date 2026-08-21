@@ -3,6 +3,28 @@
 *Roadmap item 1.10 · v0.1 (2026-07-10). Covers the source-adapter framework
 (6.1) and per-source plans (6.2–6.6).*
 
+<!-- section-index -->
+> **Section index.** This document is ~73 KB — read the section you
+> need rather than the whole file. Line counts indicate size, not position;
+> follow the anchor. Keep this index current when you add or retitle a
+> section.
+
+- [Pipeline](#pipeline) — 21 lines
+- [Author resolution (resolve-or-create seam)](#author-resolution-resolve-or-create-seam) — 139 lines
+- [Sources](#sources) — 952 lines
+  - [1. CallersBox snapshot (6.2, 6.3) — primary](#1-callersbox-snapshot-62-63--primary) — 113 lines
+  - [2. Caller's Companion migration (6.5)](#2-callers-companion-migration-65) — 97 lines
+  - [3. ContraDB (6.4)](#3-contradb-64) — 33 lines
+  - [Compound-shorthand fan-out: grand right and left (#295)](#compound-shorthand-fan-out-grand-right-and-left-295) — 186 lines
+  - [4. Generic JSON (6.6)](#4-generic-json-66) — 5 lines
+  - [Signed published collections (#862)](#signed-published-collections-862) — 22 lines
+  - [5. A list of titles (#823)](#5-a-list-of-titles-823) — 72 lines
+  - [Simultaneous-action fan-out (`meanwhile`) (#591/#572)](#simultaneous-action-fan-out-meanwhile-591572) — 59 lines
+  - [Shared free-text figure parser (cross-cutting)](#shared-free-text-figure-parser-cross-cutting) — 299 lines
+  - [Balance-a-wave lines (CallersBox, #295 / taxonomy v21)](#balance-a-wave-lines-callersbox-295--taxonomy-v21) — 86 lines
+- [Error handling & testing](#error-handling--testing) — 9 lines
+<!-- /section-index -->
+
 ## Pipeline
 
 Every import, regardless of source, flows through the same stages:
@@ -156,6 +178,13 @@ only for the genuinely interactive single-dance "search → tap Import" flow
 (an explicit user pick), and would otherwise force-import a confident local
 duplicate when reused from a batch/non-interactive path.
 
+Since #823 this resolver is no longer the only online-title→dance path. The
+Collection-side title-list import shares its **search** step
+(`lookupUniqueExactTitle`) but not its commit: it is interactive, so it plans
+into `ImportReviewScreen` instead of importing unattended. See
+[A list of titles](#5-a-list-of-titles-823) below for why that split is where it
+is.
+
 ## Sources
 
 ### 1. CallersBox snapshot (6.2, 6.3) — primary
@@ -176,6 +205,26 @@ duplicate when reused from a batch/non-interactive path.
   "Simultaneous-action fan-out (`meanwhile`)" below).
 - `Permission: search` stubs import as metadata-only with a link to TCB.
 - Attribution: TCB id + appearances retained; UI shows "via The Caller's Box".
+- **Mixer inference (issue #732).** `Dance.mixer` is set `true` when **either**
+  the source `Mixer?` field reads `"Yes"` (trimmed, case-insensitive — the corpus
+  contains only `""` and `"Yes"`, so the vocabulary is not widened to `"1"`/
+  `"true"`) **or** the mapped `FormationShape` is `circleMixer` or `scatterMixer`.
+  The formation-based inference exists because 21 Circle Mixer and 18 Scatter
+  Mixer dances in the mirror have a blank `Mixer?` despite the formation name — a
+  data-entry omission we correct on import. `sicilianCircle` is **deliberately
+  not** inferred: 589 of the corpus's Sicilian Circles are correctly non-mixers,
+  so inferring from that shape would mislabel them wholesale (the opposite error).
+  A Sicilian Circle that genuinely is a mixer is still caught, but only via its
+  explicit `Mixer? == "Yes"`.
+  - **Scope: The Caller's Box only.** This inference is **not** applied by the
+    ContraDB or Caller's Companion adapters, and that is deliberate. ContraDB has
+    no first-class mixer category to read. Caller's Companion *may* — Chris builds
+    his collection in CC and exports it to The Caller's Box, so his data probably
+    aligns, but "mixer" may be a custom field of his rather than a native CC
+    concept, and we have not confirmed which. Rather than guess a mapping for a
+    source we have not verified, those adapters leave `mixer` at its `false`
+    default. This was considered and declined, not overlooked; revisit if an
+    explicit request for those sources arrives.
 
 #### Compound figures (the `(beats) Name:` + indented-children convention)
 
@@ -360,6 +409,26 @@ declines the collapse.
   (positional→named table per move, gyre → shoulder_round term migration). It is
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
+- **`star promenade` is DECLINED, not mapped (taxonomy v26, #843).** ContraDB's
+  `who`+`hand` name, as a pair, the dancers with a hand in the CENTRE. Our `who`
+  names the dancer you PICK UP on the side (owner ruling, 2026-08-06), and the
+  pick-up relationship is not recoverable from the centre role, so structuring
+  the line would assert the wrong dancers. These lines therefore reach the custom
+  fallback, which keeps ContraDB's own wording (scrubbed, so role terms are
+  canonicalized — see `figure_parser.dart`'s `declineToCustom`) — a deliberate,
+  owner-accepted structure regression.
+
+  **Deleting the recognizer was not sufficient, and this is the general lesson.**
+  The shared recognizers in `figure_parser.dart` are source-neutral: a grammar a
+  dialect file removes can still be claimed by the shared layer, silently. So
+  `contraDbHtmlFigureFrontEnd` carries an explicit `declineToCustom` veto (a
+  `FigureFrontEnd` hook added by the same change), which runs ahead of every
+  recognizer. The deprecated JSON adapter's `_MoveMap` entry is removed too, so
+  both producing paths are closed.
+
+  The number of ContraDB dances that lose structure is **not measured**: no
+  ContraDB corpus or dump exists locally, and none is documented in
+  `docs/research/contradb.md`.
 
 ### Compound-shorthand fan-out: grand right and left (#295)
 
@@ -394,13 +463,26 @@ lowers the line onto one `pull_by_dancers` per stated pass, carrying that pass's
   decoder uses (one notation, one map). Glossary-backed:
   `N`/`N1`→`neighbors`, `N0`→`prevNeighbors`, `N2`→`nextNeighbors`,
   `N3`→`thirdNeighbors`, `N4`→`fourthNeighbors`, `P`/`P1`→`partners`,
+  `P0`→`prevPartners`, `P2`→`nextPartners`, `P3`→`thirdPartners`,
+  `P4`→`fourthPartners`, `P5`→`fifthPartners`,
   `S`/`S1`→`shadows`, `S2`→`secondShadows`, `M`/`W`→`role1s`/`role2s`.
-- **Codes we deliberately do NOT map** (the line stays custom rather than being
-  approximated): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
+  ContraDB reaches the same ordinal tokens by a different route (issue #945):
+  its deployed `dialectForFigures` renders `3rd neighbors`/`4th neighbors`/
+  `2nd shadows` unconditionally, and — only when a dance uses one of
+  those — remaps plain `neighbors`/`next neighbors`/`shadows` to
+  `1st neighbors`/`2nd neighbors`/`1st shadows` for every figure in that
+  dance. `contradb_figure_dialect.dart`'s `_subjectPhrases` maps all six
+  rendered forms back to these same taxonomy tokens, so the two dialects are
+  visibly one convention despite the different surface notation.
+- **Codes we deliberately do NOT map** (the run is declined rather than
+  approximated — what that costs depends on the decoder: the line goes custom
+  where the run IS its structure, as in a hey or a grand right and left, but
+  merely keeps the taxonomy's defaults where the run only ADDS params, as in
+  `square_through` since #799 and every side-slot move since #843): `C1`–`C3` — TCB's *"Corners (square)"* ("the non-partner next
   to you… the person across from you… the remaining person") are a **different
   concept** from its separate *"First/second corners"* entry, which is what
-  `firstCorners`/`secondCorners` model; `P2`–`P6`/`P0`/`P-n` (a mixer's
-  future/previous partners); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
+  `firstCorners`/`secondCorners` model; `P6`+/`P-n` (mixer partners beyond the
+  modelled depth); `N5`+/`N-1`/`N-2`, `S3`+/`S-n`; `Ph*` (phantoms),
   `TB*` (trail buddy), `SR*`; and a bare `R`/`L` cell, which states a hand but
   no dancer.
 - **Whole-line strictness.** The text outside the pass list must be exactly
@@ -539,6 +621,104 @@ what the fix removes is the fabricated dancers and the doubled balance.
   fields, provenance, dialect definitions). Serves backup/restore and
   user-to-user sharing. Versioned schema; forward-compatible reader.
 
+### Signed published collections (#862)
+
+Signed published collections are a separate trust boundary from generic JSON
+sharing. The app fetches a static manifest and detached signature from the
+pinned HTTPS origin, verifies the signature over the exact manifest bytes
+before parsing, then streams each immutable archive to its signed byte count
+and verifies its SHA-256 digest before decoding.
+
+The manifest is app-owned and vendors must not silently expand its semantics.
+Unknown metadata is tolerated, but unsupported schema majors, minimum-reader
+versions, and required capabilities are refused. A capability that affects
+membership, decoding, rights, provenance, or validation must be declared as a
+reader requirement; an older client must not silently ignore it.
+
+Version 1 is a dance collection boundary: dances and referenced choreographers
+are accepted, while published-source records, source citations, programs,
+venues, custom-field content, and unknown top-level entities are rejected
+before planning. Published-source citation import is intentionally deferred
+until the importer can namespace source identities and transactionally undo
+source rows with their dances. Archive-embedded provenance is rejected. The
+importer stamps every dance with `ProvenanceSource.publishedCollection`,
+external id `<collection-id>/<dance-id>`, the manifest version, and the
+manifest's permission and licence declaration. Collection-level consent is
+required before commit, including when every dance is new; only potential
+duplicate rows need individual decisions.
+
+### 5. A list of titles (#823)
+
+The only source whose input is **pasted text** rather than a file or a URL, and
+the only one that does not plan through a `SourceAdapter`. A pasted blob of
+titles is resolved by `resolveTitleList` (`app/lib/src/data/title_list_import.dart`),
+which reuses the program importer's first two stages and skips its third:
+
+| stage | reuse |
+|---|---|
+| `parsePlaintextProgram(...)` — local title match | verbatim |
+| online title lookup | via the shared `lookupUniqueExactTitle` |
+| `buildProgramSlots(...)` | **skipped** — the only program-coupled stage |
+
+#### It plans; it does not commit
+
+This is the load-bearing difference from the program path, and the reason
+`resolveUnmatchedOnline` is **not** reused wholesale. That function commits as it
+goes (`resolveConfidentOnlineDanceId` calls `OnlineSearchService.import` /
+`ImportPipeline.commit`), which is correct for a program line — no user is
+present to adjudicate it. A Collection import *does* have a user present, so
+every resolved title becomes an `ImportRecordPlan` handed to `ImportReviewScreen`
+and written only on confirmation, where `_defaultChoice` already maps an
+`ambiguous` verdict to skip. Routing through the review is therefore what keeps
+#685's silent-duplicate risk out of this path rather than widening it.
+
+What the two paths share is exactly one non-committing step,
+`lookupUniqueExactTitle` (`app/lib/src/data/online_title_lookup.dart`): search a
+title, return the unique exact-title hit or a typed reason there isn't one.
+Collapsing more than that into the shared function would drag an unattended
+import into a flow that has a user watching; collapsing less would leave the two
+paths as parallel implementations of the same search rule.
+
+`OnlineSearchService.loadPreview` takes an optional `DedupeIndex` so the batch
+plans against one snapshot. Without it each title rebuilds the index — two full
+collection loads apiece — and this is the same one-index-per-batch discipline
+`ImportPipeline.plan` already applies to every multi-record source.
+
+#### Every pasted title is accounted for
+
+The review lists all three groups, because "six imported" alone cannot tell a
+caller which of the other six she already owned and which the app could not find,
+and those need different follow-up:
+
+- **to import** — an ordinary review row with its dedupe verdict and actions;
+- **already in your collection** — named with the matched dance's
+  choreographer(s), since the local match is by title alone and two dances can
+  share a title;
+- **not found** — carrying *which* way it missed (`noResults`, `noExactMatch`,
+  `multipleExactMatches`, `fetchError`, `lineTooLong`).
+
+A paste with nothing importable deliberately does **not** fall through to the
+generic "no dances found" message: that answer is worth showing on its own.
+
+#### Bounding untrusted input
+
+The paste is untrusted text that turns into network requests, so
+`preflightTitleList` — pure, synchronous, and enforced by the resolver rather
+than only by the widget — applies: `kMaxTitleListChars` (65,536 UTF-16 code
+units, not bytes) on the raw text;
+`kMaxTitleListTitles` (100) **distinct** titles, refused before any request and
+never silently truncated; `kMaxTitleLength` (200) per line, over which a line is
+reported rather than searched; blank-line drop; and case-insensitive
+de-duplication (first occurrence wins — unlike `parsePlaintextProgram`, which
+must keep repeats because a program may legitimately call a dance twice).
+
+An accepted paste therefore costs at most `2 × 100` requests, issued serially
+with progress and a cancel, and a per-title `on Exception` boundary means one
+unreachable dance becomes one `fetchError` row rather than an aborted batch. No
+new fetch path is introduced: the existing `buildCallersBoxSearchUrl` /
+`buildCallersBoxJsonUrl` host allowlist (#621, #766) still governs what is
+reachable.
+
 ### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
 - Two source dialects write simultaneous action on one line instead of
   splitting it into two: CallersBox's `||` operator (e.g. `(6) Women
@@ -557,9 +737,10 @@ what the fix removes is the fabricated dancers and the doubled balance.
 - **ContraDB `while`/`whiles`:** `parseContraDbFigureLine`
   (`imports/contradb_figure_dialect.dart`) runs the FULL existing recognizer
   pipeline first — so a line matching a dedicated named combined move (e.g.
-  `box_circulate`) is returned completely unmodified, with named-recognizer
-  precedence fully preserved (the box-circulate dual-clause form is a
-  regression case, not a fan-out). The ContraDB combined
+  `box_circulate` via the `box circulate` head phrase or the bare `<subject>
+  cross while <subject> loop` form) is returned completely unmodified, with
+  named-recognizer precedence fully preserved (both box-circulate forms are
+  regression cases, not fan-outs). The ContraDB combined
   `allemandeOrbitWords` line (dance #1717) is the one exception: since the
   fused `allemande_orbit` move was retired (issue #295), it is resolved by
   `_allemandeOrbitMeanwhile` into a `meanwhile[allemande, orbit]` container —
@@ -598,6 +779,113 @@ what the fix removes is the fabricated dancers and the doubled balance.
   used to upgrade old customs when recognizer coverage improves.
 
 ### Shared free-text figure parser (cross-cutting)
+
+#### Vocabulary: two overloaded words
+
+Both terms below name more than one thing, with **different user-visible
+outcomes**. Three of the four false claims corrected across #885 and #900 trace
+to the first term alone, so they are defined here rather than left to context.
+
+**"Decline" — say which kind.** "Declining" names three different things, and
+which one applies is decided by where in the pipeline the decision is made, not
+by the word.
+
+| kind | who | what it costs |
+|---|---|---|
+| **front-end veto** | `FigureFrontEnd.declineToCustom` | the line goes **straight to `custom`**, skipping both layers below |
+| **pre-recognizer decline** | anything in `FigureFrontEnd.preRecognizers` returning `null` | the line **falls through** to the shared recognizers and usually still **structures**, minus whatever that pre-recognizer would have added |
+| **whole-line decline** | the shared recognizers in `figure_parser.dart` (`_recognizers`) returning `null`, reached after `_normalize` | the line becomes a **`custom` figure** — there is nothing else to try |
+
+The rows are in **execution order**, which is the thing to hold on to: the veto
+runs first and short-circuits everything, then the pre-recognizers, then the
+shared core. `parseFigureLine` calls `frontEnd.declineToCustom` *before*
+`_recognize`, so a vetoed line never reaches either recognizer layer.
+
+`_recognize` (`figure_parser.dart`) implements the lower two rows: it walks
+`frontEnd.preRecognizers` and returns the first non-null; only when all of them
+decline does it normalize and walk the shared `_recognizers`. So a
+pre-recognizer's `null` is "not mine", while a shared recognizer's `null` is
+"not structurable". The veto is deliberately NOT part of it — `parseFigureLine`
+applies that before calling in, so a vetoed line is never offered to either.
+
+The practical consequence, and the reason this matters more than tidiness: a
+comment saying an unmapped people code "declines the whole line to custom" is
+**true** of the hey decoder — whose pass list *is* the figure's structure, so
+without it there is nothing to build — and **false** of
+`_squareThroughPassList` or `_sideRunAnnotation`, whose runs only *add* params.
+`Square through 2 (C1R;C2L)` still imports as a `square_through`; only the
+unmapped detail is dropped. Prefer naming the outcome ("falls through to the
+shared reading", "becomes a custom figure") over the bare verb.
+
+Which is which, derived from the code rather than from memory:
+
+- `tcbFigureFrontEnd` registers **twelve** pre-recognizers: `_hey`,
+  `_circulate`, `_squareThroughPassList`, `_balanceHandAnnotation`,
+  `_gateAnnotation`, `_courtesyTurnAnnotation`, `_walkForwardAnnotation`,
+  `_chainAnnotation`, `_starPromenadeAnnotation`, `_promenadeAnnotation`,
+  `_rightLeftThroughAnnotation`, `_sideRunAnnotation`. Every one is the
+  falls-through kind.
+- `contraDbHtmlFigureFrontEnd` registers its **entire grammar** as
+  pre-recognizers, **and** supplies a veto. Both halves matter, and they pull in
+  opposite directions, which is why this front end is the one most likely to be
+  described wrongly:
+  - All **48** of its *recognizers* are the falls-through kind. None of them can send
+    a line to `custom` on its own; that happens only when the shared core
+    declines it too. So "this ContraDB recognizer declines the line to custom"
+    is wrong about the mechanism even when it is right about the outcome.
+  - Its *veto* (`_declineStarPromenade`) is the opposite: it does send a line
+    straight to `custom`, ahead of both layers. Verified — `gentlespoons star
+    promenade right 1` imports as `custom` under this front end while the
+    canonical front end structures the identical line as `star_promenade`, so
+    the veto alone is what changes the outcome.
+
+  A claim about ContraDB declines must therefore say *which* of the two it
+  means. An unqualified "ContraDB has no whole-line decline" is false; it has
+  exactly one, and it is not a recognizer.
+- `canonicalFigureFrontEnd` registers none, so for it every decline is a
+  whole-line decline.
+- `FigureFrontEnd.declineToCustom` is the veto row of the table above, and the
+  only way a *source* can force `custom` by itself: it short-circuits ahead of
+  both recognizer layers. It exists because deleting a source's own recognizer
+  is not enough — the shared ones are source-neutral and will claim the line
+  anyway. Only `contraDbHtmlFigureFrontEnd` supplies one today.
+
+**"Verbatim" — say verbatim *against what*.** The word carries at least three
+senses here, and only one of them is ever wrong. The custom fallback stores the
+**scrubbed** text, never the raw source: `parseFigureLine` computes
+`scrubFn(rawText)` and hands that to `customFigure`, and scrubbing canonicalizes
+role terms. `Gentlespoons star promenade right 1` is stored as
+`role1s star promenade right 1`.
+
+So "verbatim" is true only relative to a stated baseline:
+
+- **The normalization sense — correct.** Verbatim against whatever
+  `recognitionNormalize` removed. `figure_parser.dart` scopes it this way twice
+  (the `FigureFrontEnd.recognitionNormalize` doc and `_normalize`'s own): what a
+  *structured* match drops — annotations and the like — survives on the custom
+  reading. A real and useful guarantee.
+- **The template sense — correct.** Verbatim against a recognizer's own
+  template: text trailing the part a recognizer matched "survives verbatim as
+  the note". Most of `contradb_figure_dialect.dart`'s many uses are this one.
+  Also true, also baseline-relative, and *not* the same claim as the above.
+- **The source sense — never true.** Nothing preserves the source's own wording
+  through the parser, because role canonicalization happens before recognition
+  for every line.
+
+This ambiguity has already reached users: `app/CHANGELOG.md` promised a declined
+ContraDB figure kept "its own wording exactly as written" when the role names
+are in fact dialect-mapped. That instance is fixed, but the word is still doing
+several jobs across the repo, so state the baseline whenever using it.
+
+**Neither term has been swept.** Roughly 28 `verbatim` uses survive, most of them
+correct, and a uniformity pass over them would be a mistake: a byte-identical
+sentence can be true in one file and false in another. `figure_parser.dart`'s
+"P6+ and P-n … decline the whole line to custom" is **true** — that map holds
+prose dancer tokens, and an unmapped one really does force custom — while the
+same sentence about annotation cells in `callersbox_figure_dialect.dart` was
+false and had to be corrected. Grepping a claim finds its instances; each still
+has to be judged in its own context.
+
 - All four free-text adapters (CallersBox, ContraDB-HTML, CC-text, CC-`.USR`)
   route their `(beats) text` figure lines through one pure-Dart core parser,
   `parseFigureLine` (`imports/figure_parser.dart`), instead of each emitting
@@ -643,6 +931,14 @@ what the fix removes is the fabricated dancers and the doubled balance.
   structure. Each recognizer requires BOTH stated facts, so a bare "mad robin" /
   "butterfly whirl" (ContraDB's own phrasing), or a butterfly whirl carrying an
   unmodeled rotation amount ("… counterclockwise 1 & 1/2"), still stays custom.
+  **Directed promenade (#771):** TCB's `clockwise`/`counterclockwise`
+  qualifiers now populate `promenade.turn` instead of causing the complete
+  line to fall to `custom`. The shared parser accepts TCB's supported
+  rotation-word forms; an unstated rotation keeps the taxonomy default.
+  ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
+  is likewise promoted from the existing figure note to `turn`, using the
+  maintainer mapping `on the left` → `clockwise` and `on the right` →
+  `counterclockwise`. Unrelated trailing text remains a note.
   **Grand right and left & flutterwheel (#295, NO taxonomy change):** both are
   compound shorthands, so neither becomes a move — `Grand right and left
   (<pass list>)` fans into one `pull_by_dancers` per stated pass (see
@@ -717,6 +1013,68 @@ what the fix removes is the fabricated dancers and the doubled balance.
   could not while the walk line was custom — 4 dances change which figure that
   balance attaches to (see "Balance-a-wave lines" below). Beat totals are
   unaffected.
+  **The general `;`-run consume (#843 Parts B and C, NO taxonomy change):** TCB
+  writes handedness and dancer identity in a `;`-separated run of
+  `<people-code><R|L>` cells — `(NR)`, `(NR;PL)`, `(SR;NL)`. Four decoders
+  already consumed it for the moves that LOWER it onto a bespoke structure (the
+  hey's pass/ricochet slots, grand-right-and-left's one figure per pass, square
+  through's pass list, the balance-a-wave annotation). Everywhere else
+  `_stripAnnotations` dropped it and the taxonomy filled a default — which on
+  **116** corpus figures was the OPPOSITE of what the source said.
+  `_sideRunAnnotation` closes that, consuming **2,504** previously-dropped runs
+  (`pass_through` 2,136, `square_through` 159, `cross_trails` 98,
+  `pass_through + turn_alone` 88, plus a short tail across seven more keys).
+  It runs LAST, so no existing decoder loses a line.
+  *The slot is found by `ParamKind`, not by name.* Of the twenty moves with a
+  side slot, seven name it `shoulder` and two `centerHand`, so the name check
+  #870 used would miss nine of them.
+  *Values are written even when they equal the default* (owner ruling): the
+  decode either fires or it does not, and storing what the source SAID rather
+  than what we assumed means the value survives a future change of default. This
+  is byte-identical at both identity layers, so the 2,388 same-value cases raise
+  no #686 "Variation?" prompt; the 116 inverse cases do, correctly.
+  *Dancer identity* fills `who`/`who2` where declared — odd 1-based positions
+  name `who`, even name `who2`. `pass_through` declares no `who`, so its dancer
+  code is dropped; preserving it as a note would add one to ~2,048 figures
+  across 1,773 dances. Dropping it is the IMPLEMENTING AGENT'S call, not an
+  owner ruling: a note on that many figures is a visible change at corpus
+  scale, so it is recorded here as an open question rather than a settled one.
+  *Declines (→ the ordinary annotation-stripped reading):* any unmapped people
+  code (`O`, `Ph`, `SRN`, `C1`–`C3`, out-of-range neighbours/shadows); a run
+  whose sides do not alternate by position parity; a run stating more passes
+  than the move models — a `square_through` cell count that disagrees with
+  `places` (which is #799's ruling, and this decoder must not undo it by the
+  side door), a `cross_trails` run past two cells, or any multi-cell run on a
+  single-pass move; and a non-periodic `square_through` 4-list. A run
+  CONTRADICTING a prose-stated side falls through with the PROSE value intact
+  rather than declining to custom — forcing custom would regress a line that
+  structures today.
+
+  **Star promenade centre (#843, taxonomy v26, NO new slot):** TCB writes the
+  centre in a trailing parenthetical — `Neighbor star promenade 1/2 (WR)` — on
+  **all 626** of the corpus lines that import as `star_promenade` (measured
+  against `c9a0185f`). It does **not** qualify `who`: `(WR)` says *the women
+  have right hands in the centre*, while `who` names the dancer you PICK UP on
+  the side. Both facts appear in one figure in TCB's own flutterwheel
+  decomposition (`(4) Women allemande right 1/2` + `(4) Neighbor star promenade
+  1/2 (WR)`), so they cannot share a slot — which is why taxonomy v26 removed
+  the `hand` param rather than re-pointing it.
+  The annotation becomes the figure's **note**, via the same
+  annotation-preserving pre-recognizer mechanism `gate` and `courtesy_turn` use:
+  `role2s by the right in the center`. It stores **canonical role tokens**, so
+  the note renders under the active dialect ("robins…", "follows…") instead of
+  freezing the source's gendered `W` forever. `who` is never written or
+  overwritten from the annotation.
+  *Stays verbatim (never approximated):* an unmapped people code (1 corpus line,
+  a `c` square-corner prefix), a multi-cell `;` run (a star promenade has one
+  centre, so a run states something this phrasing cannot express), and any
+  annotation with no `R`/`L` tail. *Secondary effect:* other annotations on
+  these lines — `(hand-in-hand with neighbor)`, `[with N1]` — were previously
+  dropped outright and are now kept alongside the centre note.
+  Prefix mix across the 626: `m` 358 → `role1s`, `w` 265 → `role2s`, `n`/`n1` 2
+  → `neighbors`, 1 unmapped. **Zero** lines state a prose hand, so the visible
+  change is the removal of a DEFAULTED "right" that used to render on every one
+  of these figures.
   **Out (→ custom
   for now, tracked on #295):** cast off,
   two-hand turn & other ECD figures, promenade

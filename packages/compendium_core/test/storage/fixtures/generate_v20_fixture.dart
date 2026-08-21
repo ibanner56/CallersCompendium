@@ -22,12 +22,10 @@
 // re-running this emits a hybrid — that table in its newer shape, stamped
 // `user_version = 20` — and the migration under test would then run against a
 // schema it never saw in the field. Every other generator in this directory
-// shares that limitation for the same reason (see `generate_v19_fixture.dart`,
-// which is explicit that it relies on v18/v19/v20 being structurally
-// identical); none of them is unconditionally re-runnable, and this one is not
-// either. The checked-in `v20.sqlite` is the artefact of record. Re-running is
-// for regenerating it on a tree still at v21; past that, this file needs the
-// same care any of its siblings would.
+// shares that limitation for the same reason; none of them is unconditionally
+// re-runnable, and this one is not either. The checked-in `v20.sqlite` is the
+// artefact of record. Re-running is for regenerating it on a tree still at
+// v21; past that, this file needs the same care any of its siblings would.
 //
 // The fixture is deliberately loaded on every axis the migration touches, and
 // on the ones it must NOT touch:
@@ -69,11 +67,13 @@ Future<void> main() async {
 
   final now = DateTime.utc(2026, 1, 1);
 
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'chor-1', name: 'Cary Ravitz'),
   );
 
   // A tag WITH a colour — the control that must survive v21 untouched.
+  // ignore: unused_result
   await repos.tags.upsert(Tag(id: 'tag-1', name: 'Easy', color: 0xFF2196F3));
 
   // A dance carrying full provenance, including the payload being dropped.

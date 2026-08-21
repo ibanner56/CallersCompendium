@@ -7,8 +7,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/widgets/collection_picker.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -42,6 +44,7 @@ Future<void> _pumpBuilder(
   WidgetTester tester,
   CompendiumRepositories repos, {
   String? programId,
+  bool autoCommit = false,
   void Function(String)? onSaved,
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
@@ -51,13 +54,21 @@ Future<void> _pumpBuilder(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
+  final autoCommitNotifier = ValueNotifier<bool>(autoCommit);
+  addTearDown(autoCommitNotifier.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(notifier: notifier, child: child!),
+        child: ActiveDialectScope(
+          notifier: notifier,
+          child: ProgramAutoCommitScope(
+            notifier: autoCommitNotifier,
+            child: child!,
+          ),
+        ),
       ),
       home: ProgramEditorScreen(
         programId: programId,
@@ -121,6 +132,32 @@ Program _program({
   updatedAt: _now,
 );
 
+class _EditorHost extends StatefulWidget {
+  const _EditorHost({required this.onResult});
+
+  final ValueChanged<Object?> onResult;
+
+  @override
+  State<_EditorHost> createState() => _EditorHostState();
+}
+
+class _EditorHostState extends State<_EditorHost> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final result = await Navigator.of(context).push<Object?>(
+        MaterialPageRoute<Object?>(builder: (_) => const ProgramEditorScreen()),
+      );
+      if (mounted) widget.onResult(result);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+}
+
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -170,6 +207,42 @@ void main() {
     expect(saved!.title, 'Barn Dance');
     expect(saved.venue, 'The Grange');
     expect(saved.status, ProgramStatus.draft);
+  });
+
+  testWidgets('clean Back after auto-create returns the persisted id', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final autoCommit = ValueNotifier(true);
+    final results = <Object?>[];
+    addTearDown(autoCommit.dispose);
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ProgramAutoCommitScope(notifier: autoCommit, child: child!),
+        ),
+        home: _EditorHost(onResult: results.add),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Back selects me',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    final id = (await repos.programs.listAll()).single.id;
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(results, [id]);
   });
 
   testWidgets('edit updates existing metadata', (tester) async {
@@ -584,6 +657,150 @@ void main() {
     expect(saved.slots.single.plannedMinutes, 12);
   });
 
+  // M1 (issue #964): the replacement must rebuild the slot preserving
+  // everything but danceId — never as a bare `ProgramSlot(id, position,
+  // danceId)`, which is the shape both `_addDanceSlot` (a brand-new slot with
+  // nothing yet to preserve) and `#960`'s note→dance rebuild (which
+  // deliberately drops only `text`) would produce if copied verbatim here.
+  testWidgets(
+    'replacing a dance keeps the slot\'s other metadata (issue #964)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Rory O\'Moore'));
+      final performedAt = DateTime.utc(2026, 2, 2);
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              guestCaller: 'Guest Caller',
+              plannedMinutes: 12,
+              isAlt: true,
+              performedAt: performedAt,
+            ),
+          ],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+
+      // The dialog shows the dance currently in the slot before any pick.
+      // Scoped to the dialog itself: the same title also renders in the slot
+      // list and (on this wide surface) the inline picker pane underneath.
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Chase the Squirrel'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      // Scoped to the replacement sheet's own picker: the inline picker pane
+      // underneath renders a same-keyed 'picker-add-d2' row too.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('replace-picker')),
+          matching: find.byKey(const ValueKey('picker-add-d2')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Back in the (still-open) dialog, showing the replacement.
+      expect(find.byKey(const ValueKey('slot-edit-save')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Rory O\'Moore'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      final slot = saved!.slots.single;
+      expect(slot.danceId, 'd2');
+      expect(slot.guestCaller, 'Guest Caller');
+      expect(slot.plannedMinutes, 12);
+      expect(slot.isAlt, isTrue);
+      expect(slot.performedAt, performedAt);
+    },
+  );
+
+  // M2 (issue #964): a pick must be held in the dialog's own state, not
+  // applied immediately — otherwise text typed into the note/guest/minutes
+  // fields before the replacement would be lost when the pick pops the dialog
+  // back open on top of a rebuilt slot.
+  testWidgets(
+    'in-flight dialog edits survive a dance replacement (issue #964)',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Rory O\'Moore'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('slot-edit-guest')),
+        'Guest Caller',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('slot-edit-minutes')),
+        '12',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey('replace-picker')),
+          matching: find.byKey(const ValueKey('picker-add-d2')),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The typed fields must still show what was typed, not reset defaults.
+      expect(find.widgetWithText(TextField, 'Guest Caller'), findsOneWidget);
+      expect(find.widgetWithText(TextField, '12'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      final slot = saved!.slots.single;
+      expect(slot.danceId, 'd2');
+      expect(slot.guestCaller, 'Guest Caller');
+      expect(slot.plannedMinutes, 12);
+    },
+  );
+
   testWidgets('mark all performed stamps performedAt on dance slots', (
     tester,
   ) async {
@@ -669,6 +886,57 @@ void main() {
       );
     },
   );
+
+  testWidgets('serializes Perform persistence behind a pending auto-commit', (
+    tester,
+  ) async {
+    installFakeWakelock();
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(
+      _dance(id: 'd1', title: 'Chase the Squirrel'),
+    );
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    final writesBeforeEditor = delayed.programs.writesStarted;
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+      size: const Size(800, 1600),
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Updated metadata',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-adjust')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-mark-performed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('adjust-done')));
+    await tester.pump();
+
+    // The Perform update must be queued behind the held metadata update.
+    expect(delayed.programs.writesStarted, writesBeforeEditor + 1);
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Updated metadata');
+    expect(saved.slots.single.performedAt, isNotNull);
+  });
 
   testWidgets('blocks clearing a free-text slot to empty', (tester) async {
     final repos = openTestRepositories();
@@ -1111,5 +1379,305 @@ void main() {
         .map((data) => data['message'])
         .toList();
     expect(messages, contains('Added Chase the Squirrel to program.'));
+  });
+
+  // --- Already-in-program counts (#796) --------------------------------------
+
+  Map<String, int> countsOf(WidgetTester tester, String pickerKey) => tester
+      .widget<CollectionPicker>(find.byKey(ValueKey(pickerKey)))
+      .addedDanceCounts;
+
+  testWidgets('the inline picker sees the program contents, and sees them '
+      'change as dances are added (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    expect(countsOf(tester, 'inline-picker'), isEmpty);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(countsOf(tester, 'inline-picker'), {'d1': 1});
+
+    // A dance may legitimately appear twice, so this is a count, not a flag.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(countsOf(tester, 'inline-picker'), {'d1': 2});
+  });
+
+  testWidgets('the sheet picker sees the counts change while the sheet stays '
+      'open (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    // Narrow: the picker is the modal bottom sheet, not the inline pane.
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sheet-picker')), findsOneWidget);
+    expect(countsOf(tester, 'sheet-picker'), isEmpty);
+
+    // The sheet deliberately stays open so several dances can be added, so its
+    // picker must observe each add — it is a separate Navigator route, and the
+    // screen's setState does not rebuild it.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(countsOf(tester, 'sheet-picker'), {'d1': 1});
+  });
+
+  testWidgets('free-text and break slots contribute no dance counts (#796)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+    await tester.pumpAndSettle();
+
+    expect(countsOf(tester, 'inline-picker'), isEmpty);
+  });
+
+  // --- Already-in-program visual marker (#796) -------------------------------
+
+  testWidgets('the in-program marker appears on a row after the dance is added, '
+      'and is absent before (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Petronella Reel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Before any add: no marker. We verify this finder would succeed below, so
+    // this is not a vacuous findsNothing (AGENTS.md §Tests).
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsNothing);
+    expect(find.byKey(const ValueKey('picker-in-program-d2')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+
+    // The marker now appears for d1 — same finder that was absent above.
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsOneWidget);
+    // d2 was not added, so it still has no marker.
+    expect(find.byKey(const ValueKey('picker-in-program-d2')), findsNothing);
+  });
+
+  testWidgets('the in-program marker shows a count when the dance appears more '
+      'than once (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    // Add once: marker present, no count badge.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('picker-in-program-d1')),
+        matching: find.text('1'),
+      ),
+      findsNothing,
+    );
+
+    // Add again: count badge "2" appears alongside the marker.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('picker-in-program-d1')),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the sheet picker renders the in-program marker while the sheet '
+      'stays open (#796)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    // Narrow layout: picker is the modal sheet.
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      size: const Size(600, 2000),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('add-dance-slot')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sheet-picker')), findsOneWidget);
+
+    // No marker yet — verified against the positive case below.
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsNothing);
+
+    // Add d1 while the sheet is still open.
+    await tester.tap(find.byKey(const ValueKey('picker-add-d1')));
+    await tester.pumpAndSettle();
+
+    // The marker must render in the sheet without closing and reopening it.
+    // This test would fail if the sheet's CollectionPicker were wired with a
+    // plain read of _danceSlotCounts() at construction time rather than through
+    // the ValueNotifier + ValueListenableBuilder: showModalBottomSheet pushes a
+    // separate Navigator route, so setState in the screen never rebuilds it,
+    // and the marker would stay absent no matter how many dances were added.
+    expect(find.byKey(const ValueKey('picker-in-program-d1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('sheet-picker')), findsOneWidget);
+  });
+
+  group('create a dance from a note slot (issue #881)', () {
+    testWidgets(
+      'the menu item appears only on a qualifying note slot — not a dance '
+      'slot, not a break, not a blank note',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Chorus Jig'));
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Night',
+            slots: [
+              ProgramSlot(id: 's0', position: 0, text: 'Petronella'),
+              ProgramSlot(id: 's1', position: 1, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 2, text: Program.breakSlotText),
+            ],
+          ),
+        );
+        await _pumpBuilder(tester, repos, programId: 'p1');
+
+        // s0: a qualifying note slot — the item is offered.
+        await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('slot-menu-create-dance')),
+          findsOneWidget,
+        );
+        await tester.tapAt(const Offset(5, 5)); // dismiss without selecting
+        await tester.pumpAndSettle();
+
+        // s1: a dance slot — never offered.
+        await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('slot-menu-create-dance')),
+          findsNothing,
+        );
+        await tester.tapAt(const Offset(5, 5));
+        await tester.pumpAndSettle();
+
+        // s2: the structural break token — never offered (it has nothing to
+        // seed a title from, and offering it would mint a dance called
+        // "Break").
+        await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('slot-menu-create-dance')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'converts the note slot to reference the newly created dance and '
+      'clears its text',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Night',
+            slots: [ProgramSlot(id: 's0', position: 0, text: 'Petronella')],
+          ),
+        );
+        await _pumpBuilder(tester, repos, programId: 'p1');
+
+        await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('slot-menu-create-dance')));
+        await tester.pumpAndSettle();
+
+        // The dance editor is open, seeded from the note text.
+        expect(
+          find.widgetWithText(TextFormField, 'Petronella'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        // Back on the program editor: the slot now shows the new dance's
+        // title immediately (the created-dance overlay, not the stream
+        // snapshot, which may not have caught up yet), and the leftover note
+        // text is gone rather than surviving as a redundant "Note: …"
+        // subtitle (Isaac decided: the note only ever stood in for the
+        // missing dance).
+        expect(find.byKey(const ValueKey('slot-s0-title')), findsOneWidget);
+        expect(find.text('Petronella'), findsOneWidget);
+        expect(find.textContaining('Note:'), findsNothing);
+
+        await tester.tap(find.byKey(const ValueKey('save-program')));
+        await tester.pumpAndSettle();
+
+        final saved = await repos.programs.getById('p1');
+        final slot = saved!.slots.single;
+        expect(slot.danceId, isNotNull);
+        expect(slot.text, isNull);
+
+        final createdDance = await repos.dances.getById(slot.danceId!);
+        expect(createdDance!.title, 'Petronella');
+      },
+    );
+
+    testWidgets(
+      'cancelling the dance editor leaves the slot exactly as it was',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.programs.create(
+          _program(
+            id: 'p1',
+            title: 'Night',
+            slots: [ProgramSlot(id: 's0', position: 0, text: 'Petronella')],
+          ),
+        );
+        await _pumpBuilder(tester, repos, programId: 'p1');
+
+        await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('slot-menu-create-dance')));
+        await tester.pumpAndSettle();
+
+        expect(find.text('New dance'), findsOneWidget);
+
+        // Back out without saving. The seed alone does not mark the
+        // controller dirty, so this is a plain (unconfirmed) pop.
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+
+        // Still on the program editor, slot untouched: still a note, same
+        // text, no dance created.
+        expect(find.byKey(const ValueKey('slot-s0-title')), findsOneWidget);
+        expect(find.text('Petronella'), findsOneWidget);
+
+        await tester.tap(find.byKey(const ValueKey('save-program')));
+        await tester.pumpAndSettle();
+
+        final saved = await repos.programs.getById('p1');
+        final slot = saved!.slots.single;
+        expect(slot.danceId, isNull);
+        expect(slot.text, 'Petronella');
+        expect(await repos.dances.listAll(), isEmpty);
+      },
+    );
   });
 }

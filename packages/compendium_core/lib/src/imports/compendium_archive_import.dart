@@ -11,6 +11,7 @@ import '../util/uuid.dart';
 import 'dedupe.dart';
 import 'generic_json_adapter.dart';
 import 'import_pipeline.dart';
+import 'program_slot_note.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 import 'venue_dedupe.dart';
@@ -79,7 +80,7 @@ ArchiveProgramsResult buildArchivePrograms(
           // keep the slot as a placeholder note rather than dropping it, and
           // always surface which reference failed — appended to any existing
           // note so the missing id is never silently lost.
-          final marker = 'Dance not imported (${slot.danceId})';
+          final marker = '$kUnresolvedDanceMarkerPrefix${slot.danceId})';
           text = (text == null || text.trim().isEmpty)
               ? marker
               : '$text\n\n$marker';
@@ -339,18 +340,28 @@ class CompendiumArchiveImporter {
       // rebuilt programs resolve their `venueId` against (a reference to a venue
       // absent from the bundle is nulled — see [buildArchivePrograms]).
       //
-      // Cross-import dedupe (issue #456): before minting, an incoming venue is
-      // matched against the venues the receiver already holds by a **content
-      // fingerprint** ([venueFingerprint]). On a unique match the incoming venue
-      // is *dropped* and the program is repointed to the existing venue, so
-      // re-importing the same bundle no longer duplicates venues. This is
-      // strictly a **repoint, never an overwrite**: the matched venue's fields
-      // are left untouched, so the fresh-mint guarantee (an untrusted bundle
-      // cannot mutate a local venue by claiming its identity) is preserved — a
-      // deliberate departure from the program/dance `(source, externalId)`
-      // update-in-place dedupe. A weakly-described venue (see the strong-key
-      // threshold in [venueFingerprint]) or an ambiguous match (>1 existing
-      // venue shares the fingerprint) always fresh-mints — never a wrong guess.
+      // Dedupe — two paths, in precedence order:
+      //
+      // 1. **Provenance-exact match (issue #899):** before any fingerprint work,
+      //    an incoming venue is checked against the `(source, externalId)` map
+      //    loaded from `venue_provenance`. A match means the same record was
+      //    imported before from the same source — the most reliable and narrow
+      //    kind of dedupe (it can never false-merge two distinct halls). This
+      //    path works for shared bundles where the postal address has been
+      //    redacted, because the provenance key is the bundle-original id, which
+      //    always travels. On a match the program is repointed to the existing
+      //    venue, exactly as in the fingerprint path.
+      //
+      // 2. **Content-fingerprint match (issue #456):** if no provenance match
+      //    exists, the incoming venue is matched against the receiver's existing
+      //    venues by [venueFingerprint]. Requires `name` + (`address1` | `city`);
+      //    shared bundles (which redact the address block) produce no fingerprint
+      //    and this path is skipped for them — the accepted limitation documented
+      //    in `venue_dedupe.dart` and `share_venue_dedupe_seam_test.dart`.
+      //
+      // Both paths are strictly **repoint, never overwrite**: the matched venue's
+      // fields are left untouched and it is NOT added to [insertedVenueIds], so
+      // undo never deletes a venue the user already had.
       //
       // *Within* a single (untrusted) bundle, a repeated original id must NOT
       // leave an orphaned extra row: the id's *first* occurrence decides its
@@ -367,6 +378,18 @@ class CompendiumArchiveImporter {
       // Original ids whose first occurrence minted a fresh venue this commit —
       // the only ids permitted to "last-seen wins" refresh their row.
       final mintingOriginalIds = <String>{};
+
+      // Provenance map: originalVenueId → existing venue id in the local
+      // collection. Loaded once; a bundle with no venues issues no DB read.
+      final existingVenueByExternalId = archive.venues.isNotEmpty
+          ? await _venues.externalIdToVenueId(ProvenanceSource.json)
+          : const <String, String>{};
+      // Also absorb ids freshly-minted during *this* commit so a duplicate
+      // externalId inside a single bundle resolves to one row, not two.
+      final resolvedVenueByExternalId = Map<String, String>.from(
+        existingVenueByExternalId,
+      );
+
       // Seed the fingerprint index once from the current collection (a single
       // load — venue counts are small — never an N+1 of per-venue queries), then
       // fold in each venue this commit mints. The preload is skipped unless at
@@ -389,11 +412,22 @@ class CompendiumArchiveImporter {
           // id's minted venue) is a no-op — it must never overwrite a record
           // other ids already resolved to.
           if (mintingOriginalIds.contains(venue.id)) {
-            await _venues.upsert(_venueWithId(venue, existingMapped));
+            await _venues.upsert(_venueWithId(venue, existingMapped, now: now));
             venueIndex.add(existingMapped, venue);
           }
           continue;
         }
+
+        // 1. Provenance-exact match: the same record was imported before from
+        //    this source (identified by the bundle's original venue id).
+        final provenanceMatchId = resolvedVenueByExternalId[venue.id];
+        if (provenanceMatchId != null) {
+          venueIdByOriginalId[venue.id] = provenanceMatchId;
+          continue;
+        }
+
+        // 2. Content-fingerprint match: new venue, but looks like one the
+        //    receiver already holds (e.g. same address from a .USR import).
         final matchedVenueId = venueIndex.matchFor(venue);
         if (matchedVenueId != null) {
           // Dedupe: repoint the program to the existing venue. No insert, no
@@ -403,11 +437,15 @@ class CompendiumArchiveImporter {
           venueIdByOriginalId[venue.id] = matchedVenueId;
           continue;
         }
+
+        // 3. No match: mint a fresh record and stamp its provenance so
+        //    re-importing the same bundle next time takes the exact match above.
         final mintedVenueId = mintId();
-        await _venues.upsert(_venueWithId(venue, mintedVenueId));
+        await _venues.upsert(_venueWithId(venue, mintedVenueId, now: now));
         venueIdByOriginalId[venue.id] = mintedVenueId;
         mintingOriginalIds.add(venue.id);
         insertedVenueIds.add(mintedVenueId);
+        resolvedVenueByExternalId[venue.id] = mintedVenueId;
         venueIndex.add(mintedVenueId, venue);
       }
 
@@ -573,7 +611,9 @@ class CompendiumArchiveImporter {
     }
     for (final id in result.insertedVenueIds) {
       try {
-        await _venues.delete(id);
+        // `permanent` for the same reason the dances/programs above are
+        // hard-deleted: a rollback must leave nothing behind to publish.
+        await _venues.delete(id, permanent: true);
       } on StateError {
         // Still referenced by a surviving program — leave it in place rather
         // than orphan that program's venueId.
@@ -655,7 +695,12 @@ class CompendiumArchiveImporter {
   /// record that never overwrites one the receiver already holds. [Venue.copyWith]
   /// intentionally cannot change the identity, so every field is copied here —
   /// mirroring [_rebuildProgramWithId]. Keep in sync with the [Venue] fields.
-  Venue _venueWithId(Venue src, String id) => Venue(
+  ///
+  /// Stamps import provenance keyed on [src]'s *original* bundle id (`src.id`
+  /// before the remap), so re-importing the same bundle next time finds this
+  /// venue by exact `(source, externalId)` match rather than minting a
+  /// duplicate. [now] is the import timestamp and must be UTC.
+  Venue _venueWithId(Venue src, String id, {required DateTime now}) => Venue(
     id: id,
     name: src.name,
     address1: src.address1,
@@ -678,5 +723,10 @@ class CompendiumArchiveImporter {
     contact2Name: src.contact2Name,
     contact2Phone: src.contact2Phone,
     contact2Email: src.contact2Email,
+    provenance: Provenance(
+      source: ProvenanceSource.json,
+      externalId: src.id,
+      importedAt: now,
+    ),
   );
 }

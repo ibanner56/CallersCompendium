@@ -15,6 +15,7 @@ import '../../theme/app_spacing.dart';
 import '../../theme/color_schemes.dart';
 import '../../widgets/section_header.dart';
 import '../formation_colors_screen.dart';
+import '../tag_colors_screen.dart';
 import '../theme_editor_screen.dart';
 
 /// The Appearance settings section: owns the theme write and reads the live
@@ -160,6 +161,18 @@ class _AppearanceView extends StatelessWidget {
                 controller: FormationColorsScope.controllerOf(context),
               ),
             ),
+          ),
+        ),
+        SectionHeader(title: l10n.settingsAppearanceTagColoursHeader),
+        ListTile(
+          key: const ValueKey('appearance-tag-colours'),
+          leading: const Icon(Icons.label_outline),
+          title: Text(l10n.settingsAppearanceTagColoursTitle),
+          subtitle: Text(l10n.settingsAppearanceTagColoursSubtitle),
+          isThreeLine: true,
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => const TagColorsScreen()),
           ),
         ),
       ],

@@ -1,0 +1,1148 @@
+// The program-matrix column editor (issue #935, Phase 3). Lives inside the
+// Program settings pane and lets the caller reorder, rename, and remove/restore
+// the matrix's built-in columns (including the `customMove` bucket — decision
+// D5), plus two reset controls (decision D4). It edits a [MatrixColumnConfig]
+// and reports every change up via [onConfigChanged]; the parent persists it
+// through the live scope + settings so an open matrix rebuilds immediately.
+//
+// Parameterized and compound columns are created here; both custom kinds
+// share the ordered list, rename, hide, and cleanup behavior.
+import 'package:compendium_core/compendium_core.dart';
+import 'package:flutter/material.dart';
+
+import '../../../l10n/app_localizations.dart';
+import '../../search/facet_labels.dart';
+import '../../theme/app_spacing.dart';
+import '../../widgets/section_header.dart';
+import '../../widgets/figure_param_editors.dart';
+
+/// Editor surface for the program matrix's built-in (and custom-bucket) columns.
+///
+/// Pure presentation over [config]: it computes the effective column order,
+/// labels each column via [matrixColumnLabel] under [dialect], and calls
+/// [onConfigChanged] with a new [MatrixColumnConfig] for every edit. The parent
+/// owns persistence (the live scope + the settings key).
+class MatrixColumnEditor extends StatelessWidget {
+  const MatrixColumnEditor({
+    super.key,
+    required this.config,
+    required this.dialect,
+    required this.onConfigChanged,
+    this.taxonomy,
+  });
+
+  /// The active column configuration to edit.
+  final MatrixColumnConfig config;
+
+  /// Active dialect, for dialect-aware default column labels.
+  final Dialect dialect;
+
+  /// Reports a new configuration after an edit. The parent persists it.
+  final ValueChanged<MatrixColumnConfig> onConfigChanged;
+
+  /// The taxonomy whose columns are listed. Defaults to [contraTaxonomy] — the
+  /// same taxonomy the matrix builds from.
+  final Taxonomy? taxonomy;
+
+  Taxonomy get _taxonomy => taxonomy ?? contraTaxonomy;
+
+  /// Every editable column — the built-in catalog plus any custom
+  /// (parameterized/compound) columns declared in [config] — in the config's
+  /// effective display order. Mirrors the matrix's stable partition (ids listed
+  /// in [MatrixColumnConfig.order] first, the rest keeping catalog order after),
+  /// but unlike the matrix it does **not** drop hidden columns: hidden rows stay
+  /// visible here so the user can restore them.
+  List<MatrixColumn> _orderedColumns() {
+    final universe = <MatrixColumn>[
+      ...builtInColumnCatalog(_taxonomy),
+      for (final p in config.parameterized)
+        MatrixColumn(moveId: p.id, kind: MatrixColumnKind.parameterized),
+      for (final c in config.compound)
+        MatrixColumn(moveId: c.id, kind: MatrixColumnKind.compound),
+    ];
+    if (config.order.isEmpty) return universe;
+
+    final orderIndex = <String, int>{};
+    for (var i = 0; i < config.order.length; i++) {
+      orderIndex.putIfAbsent(config.order[i], () => i);
+    }
+
+    final listed = <MatrixColumn>[];
+    final unlisted = <MatrixColumn>[];
+    for (final c in universe) {
+      (orderIndex.containsKey(c.moveId) ? listed : unlisted).add(c);
+    }
+    listed.sort(
+      (a, b) => orderIndex[a.moveId]!.compareTo(orderIndex[b.moveId]!),
+    );
+    return [...listed, ...unlisted];
+  }
+
+  /// The effective (rename-applied) header a column currently shows.
+  String _effectiveLabel(MatrixColumn column) =>
+      matrixColumnLabel(column, _taxonomy, dialect, config: config);
+
+  /// The dialect-aware default header, ignoring any rename — shown as the rename
+  /// field's placeholder so the user sees what clearing the override restores.
+  String _defaultLabel(MatrixColumn column) =>
+      matrixColumnLabel(column, _taxonomy, dialect);
+
+  void _reorder(int oldIndex, int newIndex) {
+    final ids = [for (final c in _orderedColumns()) c.moveId];
+    final moved = ids.removeAt(oldIndex);
+    ids.insert(newIndex, moved);
+    onConfigChanged(config.copyWith(order: ids));
+  }
+
+  void _toggleHidden(String id) {
+    final hidden = Set<String>.of(config.hidden);
+    if (!hidden.add(id)) hidden.remove(id);
+    onConfigChanged(config.copyWith(hidden: hidden));
+  }
+
+  void _applyRename(String id, String? label) {
+    final renames = Map<String, String>.of(config.renames);
+    if (label == null || label.isEmpty) {
+      renames.remove(id);
+    } else {
+      renames[id] = label;
+    }
+    onConfigChanged(config.copyWith(renames: renames));
+  }
+
+  /// D4: restore removed defaults — un-hide every built-in, reset the built-in
+  /// portion of order to catalog order, keep renames and all custom columns,
+  /// appending customs after the built-ins sorted by displayed label.
+  void _restoreRemovedDefaults() {
+    final catalogOrder = [
+      for (final c in builtInColumnCatalog(_taxonomy)) c.moveId,
+    ];
+    final customs = <CustomColumnLabel>[
+      for (final p in config.parameterized)
+        (
+          id: p.id,
+          label: _effectiveLabel(
+            MatrixColumn(moveId: p.id, kind: MatrixColumnKind.parameterized),
+          ),
+        ),
+      for (final c in config.compound)
+        (
+          id: c.id,
+          label: _effectiveLabel(
+            MatrixColumn(moveId: c.id, kind: MatrixColumnKind.compound),
+          ),
+        ),
+    ];
+    onConfigChanged(
+      config.copyWith(
+        order: restoreRemovedDefaultsOrder(
+          catalogOrder: catalogOrder,
+          customs: customs,
+        ),
+        hidden: const <String>{},
+      ),
+    );
+  }
+
+  /// D4: restore all defaults — replace the whole config with the empty
+  /// (today's) config. Destructive, so the caller gates it behind a confirm.
+  void _restoreTrueDefaults() => onConfigChanged(MatrixColumnConfig.empty);
+
+  Future<void> _promptRename(BuildContext context, MatrixColumn column) async {
+    final id = column.moveId;
+    final result = await showDialog<String?>(
+      context: context,
+      builder: (context) => _RenameDialog(
+        initialValue: config.renames[id] ?? '',
+        defaultLabel: _defaultLabel(column),
+      ),
+    );
+    // A dismissed dialog (null) leaves the rename unchanged; an explicit empty
+    // string clears the override.
+    if (result != null) _applyRename(id, result.trim());
+  }
+
+  Future<void> _addParameterized(BuildContext context) async {
+    final draft = await showDialog<_ParameterizedColumnDraft>(
+      context: context,
+      builder: (context) => _ParameterizedColumnDialog(taxonomy: _taxonomy),
+    );
+    if (draft == null) return;
+    final id = '$parameterizedColumnIdPrefix${uuidV4()}';
+    final parameterized = [
+      ...config.parameterized,
+      ParameterizedColumn(
+        id: id,
+        baseMove: draft.baseMove,
+        params: draft.params,
+      ),
+    ];
+    final renames = Map<String, String>.of(config.renames)..[id] = draft.label;
+
+    onConfigChanged(
+      config.copyWith(parameterized: parameterized, renames: renames),
+    );
+  }
+
+  Future<void> _addCompound(BuildContext context) async {
+    final draft = await showDialog<_CompoundColumnDraft>(
+      context: context,
+      builder: (context) => _CompoundColumnDialog(taxonomy: _taxonomy),
+    );
+    if (draft == null) return;
+    final id = '$compoundColumnIdPrefix${uuidV4()}';
+    final renames = Map<String, String>.of(config.renames)..[id] = draft.label;
+    onConfigChanged(
+      config.copyWith(
+        compound: [
+          ...config.compound,
+          CompoundColumn(id: id, steps: draft.steps),
+        ],
+        renames: renames,
+      ),
+    );
+  }
+
+  Future<void> _editCompound(
+    BuildContext context,
+    CompoundColumn column,
+  ) async {
+    final draft = await showDialog<_CompoundColumnDraft>(
+      context: context,
+      builder: (context) => _CompoundColumnDialog(
+        taxonomy: _taxonomy,
+        initial: column,
+        initialLabel: config.renames[column.id] ?? '',
+      ),
+    );
+    if (draft == null) return;
+    final compounds = [
+      for (final current in config.compound)
+        current.id == column.id
+            ? CompoundColumn(id: column.id, steps: draft.steps)
+            : current,
+    ];
+    final renames = Map<String, String>.of(config.renames)
+      ..[column.id] = draft.label;
+    onConfigChanged(config.copyWith(compound: compounds, renames: renames));
+  }
+
+  Future<void> _deleteCompound(
+    BuildContext context,
+    CompoundColumn column,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.settingsMatrixColumnsCompoundDeleteTitle),
+        content: Text(l10n.settingsMatrixColumnsCompoundDeleteBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: ValueKey('matrix-column-delete-confirm-${column.id}'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.settingsMatrixColumnsCompoundDeleteConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final compounds = [
+      for (final current in config.compound)
+        if (current.id != column.id) current,
+    ];
+    final order = [
+      for (final id in config.order)
+        if (id != column.id) id,
+    ];
+    final hidden = Set<String>.of(config.hidden)..remove(column.id);
+    final renames = Map<String, String>.of(config.renames)..remove(column.id);
+    onConfigChanged(
+      config.copyWith(
+        compound: compounds,
+        order: order,
+        hidden: hidden,
+        renames: renames,
+      ),
+    );
+  }
+
+  Future<void> _editParameterized(
+    BuildContext context,
+    ParameterizedColumn column,
+  ) async {
+    final draft = await showDialog<_ParameterizedColumnDraft>(
+      context: context,
+      builder: (context) => _ParameterizedColumnDialog(
+        taxonomy: _taxonomy,
+        initial: column,
+        initialLabel: config.renames[column.id] ?? '',
+      ),
+    );
+    if (draft == null) return;
+    final parameterized = [
+      for (final current in config.parameterized)
+        current.id == column.id
+            ? ParameterizedColumn(
+                id: column.id,
+                baseMove: draft.baseMove,
+                params: draft.params,
+              )
+            : current,
+    ];
+    final renames = Map<String, String>.of(config.renames)
+      ..[column.id] = draft.label;
+    onConfigChanged(
+      config.copyWith(parameterized: parameterized, renames: renames),
+    );
+  }
+
+  Future<void> _deleteParameterized(
+    BuildContext context,
+    ParameterizedColumn column,
+  ) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.settingsMatrixColumnsParameterizedDeleteTitle),
+        content: Text(l10n.settingsMatrixColumnsParameterizedDeleteBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: ValueKey('matrix-column-delete-confirm-${column.id}'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.settingsMatrixColumnsParameterizedDeleteConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final parameterized = [
+      for (final current in config.parameterized)
+        if (current.id != column.id) current,
+    ];
+    final order = [
+      for (final id in config.order)
+        if (id != column.id) id,
+    ];
+    final hidden = Set<String>.of(config.hidden)..remove(column.id);
+    final renames = Map<String, String>.of(config.renames)..remove(column.id);
+    onConfigChanged(
+      config.copyWith(
+        parameterized: parameterized,
+        order: order,
+        hidden: hidden,
+        renames: renames,
+      ),
+    );
+  }
+
+  Future<void> _confirmRestoreTrueDefaults(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.settingsMatrixColumnsResetTrueTitle),
+        content: Text(l10n.settingsMatrixColumnsResetTrueBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: const ValueKey('matrix-column-reset-true-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(l10n.settingsMatrixColumnsResetTrueConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed ?? false) _restoreTrueDefaults();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final columns = _orderedColumns();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SectionHeader(title: l10n.settingsMatrixColumnsHeader),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Text(
+            l10n.settingsMatrixColumnsSubtitle,
+            style: theme.textTheme.bodySmall,
+          ),
+        ),
+        Expanded(
+          child: ReorderableListView(
+            onReorderItem: _reorder,
+            buildDefaultDragHandles: false,
+            children: [
+              for (var i = 0; i < columns.length; i++)
+                _buildColumnRow(context, columns[i], i),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.sm,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              OutlinedButton.icon(
+                key: const ValueKey('matrix-column-add-parameterized'),
+                onPressed: () => _addParameterized(context),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.settingsMatrixColumnsParameterizedAdd),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('matrix-column-add-compound'),
+                onPressed: () => _addCompound(context),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.settingsMatrixColumnsCompoundAdd),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('matrix-column-reset-removed'),
+                onPressed: _restoreRemovedDefaults,
+                icon: const Icon(Icons.restore),
+                label: Text(l10n.settingsMatrixColumnsResetRemoved),
+              ),
+              OutlinedButton.icon(
+                key: const ValueKey('matrix-column-reset-true'),
+                onPressed: () => _confirmRestoreTrueDefaults(context),
+                icon: const Icon(Icons.settings_backup_restore),
+                label: Text(l10n.settingsMatrixColumnsResetTrue),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildColumnRow(BuildContext context, MatrixColumn column, int index) {
+    final l10n = AppLocalizations.of(context);
+    ParameterizedColumn? parameterized;
+    for (final candidate in config.parameterized) {
+      if (candidate.id == column.moveId) {
+        parameterized = candidate;
+        break;
+      }
+    }
+    final parameterizedColumn = parameterized;
+    CompoundColumn? compound;
+    for (final candidate in config.compound) {
+      if (candidate.id == column.moveId) {
+        compound = candidate;
+        break;
+      }
+    }
+    final compoundColumn = compound;
+    return _ColumnRow(
+      key: ValueKey('matrix-column-row-${column.moveId}'),
+      index: index,
+      label: _effectiveLabel(column),
+      hidden: config.hidden.contains(column.moveId),
+      renamed: config.renames.containsKey(column.moveId),
+      onRename: () => _promptRename(context, column),
+      onToggleHidden: () => _toggleHidden(column.moveId),
+      columnId: column.moveId,
+      onEditDetails: parameterizedColumn == null
+          ? compoundColumn == null
+                ? null
+                : () => _editCompound(context, compoundColumn)
+          : () => _editParameterized(context, parameterizedColumn),
+      detailsTooltip: compoundColumn == null
+          ? null
+          : l10n.settingsMatrixColumnsCompoundEdit,
+      onDelete: parameterizedColumn == null
+          ? compoundColumn == null
+                ? null
+                : () => _deleteCompound(context, compoundColumn)
+          : () => _deleteParameterized(context, parameterizedColumn),
+      deleteTooltip: compoundColumn == null
+          ? null
+          : l10n.settingsMatrixColumnsCompoundDelete,
+    );
+  }
+}
+
+/// One reorderable column row: drag handle, label (struck through when hidden),
+/// a rename action, and a remove/restore toggle.
+class _ColumnRow extends StatelessWidget {
+  const _ColumnRow({
+    super.key,
+    required this.index,
+    required this.label,
+    required this.hidden,
+    required this.renamed,
+    required this.onRename,
+    required this.onToggleHidden,
+    required this.columnId,
+    this.onEditDetails,
+    this.onDelete,
+    this.detailsTooltip,
+    this.deleteTooltip,
+  });
+
+  final int index;
+  final String label;
+  final bool hidden;
+  final bool renamed;
+  final VoidCallback onRename;
+  final VoidCallback onToggleHidden;
+  final String columnId;
+  final VoidCallback? onEditDetails;
+  final VoidCallback? onDelete;
+  final String? detailsTooltip;
+  final String? deleteTooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return ListTile(
+      dense: true,
+      leading: ReorderableDragStartListener(
+        index: index,
+        child: Semantics(
+          label: l10n.settingsMatrixColumnsDragToReorder(label),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Icon(Icons.drag_handle),
+          ),
+        ),
+      ),
+      title: Text(
+        label,
+        style: hidden
+            ? theme.textTheme.bodyMedium?.copyWith(
+                decoration: TextDecoration.lineThrough,
+                color: theme.colorScheme.onSurfaceVariant,
+              )
+            : theme.textTheme.bodyMedium,
+      ),
+      subtitle: renamed ? Text(l10n.settingsMatrixColumnsRenamedBadge) : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onEditDetails != null)
+            IconButton(
+              key: ValueKey('matrix-column-edit-details-$columnId'),
+              icon: const Icon(Icons.tune),
+              tooltip:
+                  detailsTooltip ?? l10n.settingsMatrixColumnsParameterizedEdit,
+              onPressed: onEditDetails,
+            ),
+          IconButton(
+            key: ValueKey('matrix-column-rename-$columnId'),
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: l10n.settingsMatrixColumnsRenameTooltip,
+            onPressed: onRename,
+          ),
+          IconButton(
+            key: ValueKey(
+              hidden
+                  ? 'matrix-column-restore-$columnId'
+                  : 'matrix-column-remove-$columnId',
+            ),
+            icon: Icon(
+              hidden ? Icons.add_circle_outline : Icons.remove_circle_outline,
+            ),
+            tooltip: hidden
+                ? l10n.settingsMatrixColumnsRestoreTooltip
+                : l10n.settingsMatrixColumnsRemoveTooltip,
+            onPressed: onToggleHidden,
+          ),
+          if (onDelete != null)
+            IconButton(
+              key: ValueKey('matrix-column-delete-$columnId'),
+              icon: const Icon(Icons.delete_outline),
+              tooltip:
+                  deleteTooltip ??
+                  l10n.settingsMatrixColumnsParameterizedDelete,
+              onPressed: onDelete,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The column-rename dialog. Owns its [TextEditingController] so it is disposed
+/// only after the dialog's exit transition completes (disposing it eagerly in
+/// the caller tears it down while the closing frame still rebuilds the field).
+/// Pops the entered text on save (empty clears the rename) or `null` on cancel.
+class _RenameDialog extends StatefulWidget {
+  const _RenameDialog({required this.initialValue, required this.defaultLabel});
+
+  final String initialValue;
+  final String defaultLabel;
+
+  @override
+  State<_RenameDialog> createState() => _RenameDialogState();
+}
+
+class _RenameDialogState extends State<_RenameDialog> {
+  late final TextEditingController _controller = TextEditingController(
+    text: widget.initialValue,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(l10n.settingsMatrixColumnsRenameTitle),
+      content: TextField(
+        key: const ValueKey('matrix-column-rename-field'),
+        controller: _controller,
+        autofocus: true,
+        decoration: InputDecoration(
+          labelText: l10n.settingsMatrixColumnsRenameLabel,
+          hintText: widget.defaultLabel,
+        ),
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          key: const ValueKey('matrix-column-rename-confirm'),
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: Text(l10n.commonSave),
+        ),
+      ],
+    );
+  }
+}
+
+class _ParameterizedColumnDraft {
+  const _ParameterizedColumnDraft({
+    required this.baseMove,
+    required this.params,
+    required this.label,
+  });
+
+  final String baseMove;
+  final Map<String, Object?> params;
+  final String label;
+}
+
+class _ParameterizedColumnDialog extends StatefulWidget {
+  const _ParameterizedColumnDialog({
+    required this.taxonomy,
+    this.initial,
+    this.initialLabel = '',
+  });
+
+  final Taxonomy taxonomy;
+  final ParameterizedColumn? initial;
+  final String initialLabel;
+
+  @override
+  State<_ParameterizedColumnDialog> createState() =>
+      _ParameterizedColumnDialogState();
+}
+
+class _ParameterizedColumnDialogState
+    extends State<_ParameterizedColumnDialog> {
+  late String _baseMove = _initialMove();
+  late final TextEditingController _label = TextEditingController(
+    text: widget.initialLabel,
+  );
+  late Map<String, Object?> _params = _initialParams();
+  late Set<String> _selected = _params.keys.toSet();
+
+  MoveDef get _move => widget.taxonomy.moves[_baseMove]!;
+
+  String _initialMove() {
+    final initialMove = widget.initial?.baseMove;
+    if (initialMove != null && widget.taxonomy.moves.containsKey(initialMove)) {
+      return initialMove;
+    }
+    return widget.taxonomy.moves.keys.first;
+  }
+
+  Map<String, Object?> _initialParams() {
+    final params = widget.initial?.params;
+    if (params == null) return {};
+    return {
+      for (final entry in params.entries)
+        if (_move.params.containsKey(entry.key))
+          entry.key: _move.params[entry.key]!.validate(entry.value)
+              ? entry.value
+              : _move.params[entry.key]!.defaultValue,
+    };
+  }
+
+  @override
+  void dispose() {
+    _label.dispose();
+    super.dispose();
+  }
+
+  void _changeMove(String move) {
+    setState(() {
+      _baseMove = move;
+      _params = {};
+      _selected = {};
+    });
+  }
+
+  void _toggleParam(String key, bool selected) {
+    setState(() {
+      if (selected) {
+        _selected.add(key);
+        _params[key] = _move.params[key]!.defaultValue;
+      } else {
+        _selected.remove(key);
+        _params.remove(key);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final params = _move.params.entries.toList();
+    return AlertDialog(
+      title: Text(
+        widget.initial == null
+            ? l10n.settingsMatrixColumnsParameterizedTitle
+            : l10n.settingsMatrixColumnsParameterizedEditTitle,
+      ),
+      content: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<String>(
+                key: const ValueKey('matrix-parameterized-move'),
+                initialValue: _baseMove,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsMatrixColumnsParameterizedMove,
+                ),
+                items: [
+                  for (final move in widget.taxonomy.moves.values)
+                    DropdownMenuItem(
+                      value: move.id,
+                      child: Text(move.displayName),
+                    ),
+                ],
+                onChanged: (value) {
+                  if (value != null) _changeMove(value);
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.settingsMatrixColumnsParameterizedConstraints,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              if (params.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(l10n.settingsMatrixColumnsParameterizedNoParams),
+                )
+              else ...[
+                Wrap(
+                  spacing: AppSpacing.xs,
+                  runSpacing: AppSpacing.xs,
+                  children: [
+                    for (final entry in params)
+                      FilterChip(
+                        key: ValueKey(
+                          'matrix-parameterized-constraint-${entry.key}',
+                        ),
+                        label: Text(figureParamKeyLabel(entry.key)),
+                        selected: _selected.contains(entry.key),
+                        onSelected: (selected) =>
+                            _toggleParam(entry.key, selected),
+                      ),
+                  ],
+                ),
+                for (final entry in params)
+                  if (_selected.contains(entry.key))
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.sm),
+                      child: FigureParamEditor(
+                        key: ValueKey(
+                          'matrix-parameterized-editor-${entry.key}',
+                        ),
+                        keyPrefix: 'matrix-parameterized',
+                        paramKey: entry.key,
+                        spec: entry.value,
+                        value: _params[entry.key],
+                        onChanged: (value) =>
+                            setState(() => _params[entry.key] = value),
+                        dialect: Dialect.canonical,
+                      ),
+                    ),
+              ],
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                key: const ValueKey('matrix-parameterized-label'),
+                controller: _label,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsMatrixColumnsParameterizedLabel,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          key: const ValueKey('matrix-parameterized-save'),
+          onPressed: _label.text.trim().isEmpty
+              ? null
+              : () => Navigator.of(context).pop(
+                  _ParameterizedColumnDraft(
+                    baseMove: _baseMove,
+                    params: Map<String, Object?>.of(_params),
+                    label: _label.text.trim(),
+                  ),
+                ),
+          child: Text(l10n.commonSave),
+        ),
+      ],
+    );
+  }
+}
+
+class _CompoundColumnDraft {
+  const _CompoundColumnDraft({required this.steps, required this.label});
+
+  final List<StepMatcher> steps;
+  final String label;
+}
+
+class _CompoundStepDraft {
+  _CompoundStepDraft({required this.move, required Map<String, Object?> params})
+    : params = params,
+      selected = params.keys.toSet();
+
+  String move;
+  Map<String, Object?> params;
+  Set<String> selected;
+}
+
+class _CompoundColumnDialog extends StatefulWidget {
+  const _CompoundColumnDialog({
+    required this.taxonomy,
+    this.initial,
+    this.initialLabel = '',
+  });
+
+  final Taxonomy taxonomy;
+  final CompoundColumn? initial;
+  final String initialLabel;
+
+  @override
+  State<_CompoundColumnDialog> createState() => _CompoundColumnDialogState();
+}
+
+class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
+  late final TextEditingController _label = TextEditingController(
+    text: widget.initialLabel,
+  );
+  late final List<_CompoundStepDraft> _steps = _initialSteps();
+
+  String _moveOrDefault(String? move) =>
+      move != null && widget.taxonomy.moves.containsKey(move)
+      ? move
+      : widget.taxonomy.moves.keys.first;
+
+  _CompoundStepDraft _draftFor(StepMatcher? initial) {
+    final move = _moveOrDefault(initial?.move);
+    final def = widget.taxonomy.moves[move]!;
+    final params = <String, Object?>{};
+    for (final entry
+        in initial?.params.entries ?? const <MapEntry<String, Object?>>[]) {
+      final spec = def.params[entry.key];
+      if (spec != null) {
+        params[entry.key] = spec.validate(entry.value)
+            ? entry.value
+            : spec.defaultValue;
+      }
+    }
+    return _CompoundStepDraft(move: move, params: params);
+  }
+
+  List<_CompoundStepDraft> _initialSteps() {
+    final initial = widget.initial?.steps ?? const <StepMatcher>[];
+    final steps = [for (final step in initial) _draftFor(step)];
+    return steps.isEmpty ? [_draftFor(null), _draftFor(null)] : steps;
+  }
+
+  @override
+  void dispose() {
+    _label.dispose();
+    super.dispose();
+  }
+
+  void _changeMove(int index, String move) {
+    setState(() => _steps[index] = _draftFor(StepMatcher(move: move)));
+  }
+
+  void _toggleParam(int index, String key, bool selected) {
+    final step = _steps[index];
+    setState(() {
+      if (selected) {
+        step.selected.add(key);
+        step.params[key] =
+            widget.taxonomy.moves[step.move]!.params[key]!.defaultValue;
+      } else {
+        step.selected.remove(key);
+        step.params.remove(key);
+      }
+    });
+  }
+
+  void _setParam(int index, String key, Object? value) {
+    setState(() => _steps[index].params[key] = value);
+  }
+
+  void _addStep() {
+    setState(() => _steps.add(_draftFor(null)));
+  }
+
+  void _removeStep(int index) {
+    setState(() => _steps.removeAt(index));
+  }
+
+  void _moveStep(int index, int delta) {
+    final target = index + delta;
+    if (target < 0 || target >= _steps.length) return;
+    setState(() {
+      final moved = _steps.removeAt(index);
+      _steps.insert(target, moved);
+    });
+  }
+
+  bool _validStep(_CompoundStepDraft step) {
+    final def = widget.taxonomy.moves[step.move];
+    if (def == null) return false;
+    for (final entry in step.params.entries) {
+      final spec = def.params[entry.key];
+      if (spec == null || !spec.validate(entry.value)) return false;
+    }
+    return true;
+  }
+
+  bool get _canSave =>
+      _label.text.trim().isNotEmpty &&
+      _steps.length >= 2 &&
+      _steps.every(_validStep);
+
+  _CompoundColumnDraft _saveDraft() => _CompoundColumnDraft(
+    steps: [
+      for (final step in _steps)
+        StepMatcher(move: step.move, params: Map.of(step.params)),
+    ],
+    label: _label.text.trim(),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AlertDialog(
+      title: Text(
+        widget.initial == null
+            ? l10n.settingsMatrixColumnsCompoundTitle
+            : l10n.settingsMatrixColumnsCompoundEditTitle,
+      ),
+      content: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                l10n.settingsMatrixColumnsCompoundSteps,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              for (var index = 0; index < _steps.length; index++)
+                _buildStep(context, index),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  key: const ValueKey('matrix-compound-add-step'),
+                  onPressed: _addStep,
+                  icon: const Icon(Icons.add),
+                  label: Text(l10n.settingsMatrixColumnsCompoundAddStep),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextField(
+                key: const ValueKey('matrix-compound-label'),
+                controller: _label,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsMatrixColumnsCompoundLabel,
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.commonCancel),
+        ),
+        TextButton(
+          key: const ValueKey('matrix-compound-save'),
+          onPressed: _canSave
+              ? () => Navigator.of(context).pop(_saveDraft())
+              : null,
+          child: Text(l10n.commonSave),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep(BuildContext context, int index) {
+    final l10n = AppLocalizations.of(context);
+    final step = _steps[index];
+    final move = widget.taxonomy.moves[step.move]!;
+    final params = move.params.entries.toList();
+    return Card(
+      key: ValueKey('matrix-compound-step-$index'),
+      margin: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '${index + 1}. ${l10n.settingsMatrixColumnsCompoundSteps}',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                IconButton(
+                  key: ValueKey('matrix-compound-step-up-$index'),
+                  tooltip: l10n.settingsMatrixColumnsCompoundMoveUp,
+                  onPressed: index == 0 ? null : () => _moveStep(index, -1),
+                  icon: const Icon(Icons.arrow_upward),
+                ),
+                IconButton(
+                  key: ValueKey('matrix-compound-step-down-$index'),
+                  tooltip: l10n.settingsMatrixColumnsCompoundMoveDown,
+                  onPressed: index == _steps.length - 1
+                      ? null
+                      : () => _moveStep(index, 1),
+                  icon: const Icon(Icons.arrow_downward),
+                ),
+                IconButton(
+                  key: ValueKey('matrix-compound-step-remove-$index'),
+                  tooltip: l10n.settingsMatrixColumnsCompoundRemoveStep,
+                  onPressed: () => _removeStep(index),
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+              ],
+            ),
+            DropdownButtonFormField<String>(
+              key: ValueKey('matrix-compound-step-move-$index'),
+              initialValue: step.move,
+              decoration: InputDecoration(
+                labelText: l10n.settingsMatrixColumnsCompoundMove,
+              ),
+              items: [
+                for (final candidate in widget.taxonomy.moves.values)
+                  DropdownMenuItem(
+                    value: candidate.id,
+                    child: Text(candidate.displayName),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value != null) _changeMove(index, value);
+              },
+            ),
+            if (params.isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                l10n.settingsMatrixColumnsCompoundParameters,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              Wrap(
+                spacing: AppSpacing.xs,
+                runSpacing: AppSpacing.xs,
+                children: [
+                  for (final entry in params)
+                    FilterChip(
+                      key: ValueKey(
+                        'matrix-compound-step-$index-constraint-${entry.key}',
+                      ),
+                      label: Text(figureParamKeyLabel(entry.key)),
+                      selected: step.selected.contains(entry.key),
+                      onSelected: (selected) =>
+                          _toggleParam(index, entry.key, selected),
+                    ),
+                ],
+              ),
+              for (final entry in params)
+                if (step.selected.contains(entry.key))
+                  Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.sm),
+                    child: FigureParamEditor(
+                      key: ValueKey(
+                        'matrix-compound-step-$index-editor-${entry.key}',
+                      ),
+                      keyPrefix: 'matrix-compound-step-$index',
+                      paramKey: entry.key,
+                      spec: entry.value,
+                      value: step.params[entry.key],
+                      onChanged: (value) => _setParam(index, entry.key, value),
+                      dialect: Dialect.canonical,
+                    ),
+                  ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}

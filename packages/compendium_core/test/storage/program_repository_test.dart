@@ -1595,7 +1595,9 @@ void main() {
           ],
         ),
       );
-      // A program with no caller at all — excluded whenever a filter is active.
+      // A program with no caller at all — included when a filter is active,
+      // treated as belonging to the default caller (#850 supersedes the #583
+      // exclusion of unattributed programs).
       await repo.create(
         sampleProgram(
           id: 'p-null',
@@ -1636,20 +1638,22 @@ void main() {
       );
       expect(
         history.map((r) => r.programId),
-        unorderedEquals(['p-alice', 'p-alice2']),
-        reason: 'Bob and the null-caller program must be excluded',
+        unorderedEquals(['p-alice', 'p-alice2', 'p-null']),
+        reason:
+            'Bob must be excluded; null-caller program must be included (#850)',
       );
     });
 
     test('matches trim + case-insensitively', () async {
       await seed();
       // A wildly different case/spacing of the same name still matches both
-      // Alice programs (one stored "Alice", one stored "  alice ").
+      // Alice programs (one stored "Alice", one stored "  alice ") plus the
+      // null-caller program (treated as the user's own; #850).
       final history = await repo.callingHistoryForDance(
         'd1',
         callerFilter: '  ALICE  ',
       );
-      expect(history, hasLength(2));
+      expect(history, hasLength(3));
     });
 
     test('count and history agree under the filter (lockstep)', () async {
@@ -1671,26 +1675,29 @@ void main() {
 
     test('AND-combines with performedOnly', () async {
       await seed();
-      // Alice has 2 occurrences but only 1 performed; the performed gate on top
-      // of the caller gate leaves just the performed Alice slot.
+      // Alice has 2 occurrences (1 performed, 1 not); the null-caller program
+      // is also performed. The performed gate on top of the caller gate (#850)
+      // leaves the performed Alice slot and the null-caller slot.
       final history = await repo.callingHistoryForDance(
         'd1',
         performedOnly: true,
         callerFilter: 'Alice',
       );
-      expect(history.map((r) => r.programId), ['p-alice']);
+      // Sort is COALESCE(performed_at, ...) DESC: p-null (2026-05-01) before
+      // p-alice (2026-03-01).
+      expect(history.map((r) => r.programId), ['p-null', 'p-alice']);
       expect(
         (await repo.countByDance(callerFilter: 'Alice'))['d1']!.countFor(true),
-        1,
+        2,
       );
     });
 
     test('lastCalledByDance honors the filter', () async {
       await seed();
-      // Only Alice's performed slot (2026-03-01) counts; Bob's later date and
-      // the null-caller's even-later date are filtered out.
+      // Bob's date (2026-04-01) is excluded (different caller). The null-caller
+      // program (2026-05-01) is included (#850) and is the latest performed slot.
       expect(await repo.lastCalledByDance(callerFilter: 'Alice'), {
-        'd1': DateTime.utc(2026, 3, 1),
+        'd1': DateTime.utc(2026, 5, 1),
       });
     });
 
@@ -1714,5 +1721,50 @@ void main() {
       final scopedTotal = scoped.firstHalfCount + scoped.secondHalfCount;
       expect(scopedTotal, lessThanOrEqualTo(allTotal));
     });
+
+    test(
+      'null and blank callers are included when a filter is active (#850)',
+      () async {
+        await seed(); // provides p-null (NULL caller, performed 2026-05-01)
+        // Add a program with an explicitly blank caller (cleared after being set).
+        await repo.create(
+          sampleProgram(
+            id: 'p-blank',
+            caller: '',
+            slots: [
+              ProgramSlot(
+                id: 's-bl',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 6, 1),
+              ),
+            ],
+          ),
+        );
+
+        final history = await repo.callingHistoryForDance(
+          'd1',
+          callerFilter: 'Alice',
+        );
+        // Exact set: Alice (p-alice, p-alice2), null-caller (p-null), and
+        // blank-caller (p-blank). Bob must not appear — guard against
+        // over-correction.
+        expect(
+          history.map((r) => r.programId),
+          unorderedEquals(['p-alice', 'p-alice2', 'p-null', 'p-blank']),
+        );
+        // Count must match exactly: 4.
+        final counts = await repo.countByDance(callerFilter: 'Alice');
+        expect(counts['d1']!.countFor(false), 4);
+        // lastCalledByDance must also include the blank-caller program:
+        // p-blank (2026-06-01) is the latest performed slot in the set.
+        expect(
+          await repo.lastCalledByDance(callerFilter: 'Alice'),
+          {'d1': DateTime.utc(2026, 6, 1)},
+          reason:
+              'blank-caller program must appear in lastCalledByDance (#850)',
+        );
+      },
+    );
   });
 }

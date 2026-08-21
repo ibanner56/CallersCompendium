@@ -30,7 +30,7 @@ void main() {
   /// Tables that exist in SQLite but not as drift-typed tables. Declared, so a
   /// newly added untyped table fails the reconciliation test below instead of
   /// silently escaping classification.
-  const untypedTables = {'dance_fts'};
+  const untypedTables = {'dance_fts', 'dance_substring_fts'};
 
   Future<List<String>> columnsOf(String table) async {
     final rows = await db

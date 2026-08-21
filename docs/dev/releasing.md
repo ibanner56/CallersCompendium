@@ -10,9 +10,10 @@ This is the operator runbook for cutting a desktop release. It documents the
 > [`store-submission/`](store-submission/README.md).
 
 > **Scope of this wave.** Desktop builds are **free** — no paid accounts. The
-> **Linux** (`tar.gz`/AppImage) and **Windows** (installer/`zip`) artifacts are
-> **UNSIGNED**: until Windows Authenticode lands, Windows users bypass the
-> SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
+> **Linux** (`tar.gz`/AppImage) artifacts are **UNSIGNED**. Windows
+> (installer/`zip`) artifacts use Azure Trusted Signing when the five
+> `AZURE_*` repository variables are configured; otherwise Windows users bypass
+> the SmartScreen prompt manually ("More info → Run anyway"). **macOS is the
 > desktop exception:** the release pipeline **Developer ID-signs and notarizes**
 > the `.app`/`.dmg`/`.zip` (hardened runtime + `notarytool` + stapled ticket)
 > once the maintainer adds the Apple secrets — see
@@ -23,6 +24,27 @@ This is the operator runbook for cutting a desktop release. It documents the
 > see [Android (signed APK)](#android-signed-apk). See
 > [ADR-002 §6](../adr/002-distribution-and-update-channels.md) for the full
 > per-platform signing table.
+
+<!-- section-index -->
+> **Section index.** This document is ~57 KB — read the section you
+> need rather than the whole file. Line counts indicate size, not position;
+> follow the anchor. Keep this index current when you add or retitle a
+> section.
+
+- [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
+- [Safety model](#safety-model) — 15 lines
+- [Cutting a release](#cutting-a-release) — 161 lines
+- [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
+- [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
+- [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
+- [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
+- [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
+- [Dry run (no release created)](#dry-run-no-release-created) — 16 lines
+- [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
+- [Android (signed APK)](#android-signed-apk) — 143 lines
+- [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
+- [Packaging tooling notes](#packaging-tooling-notes) — 24 lines
+<!-- /section-index -->
 
 ## What the pipeline produces
 
@@ -105,9 +127,31 @@ and produces no Android artifact.
 1. **Update `app/CHANGELOG.md`** so the release has real notes (this is what the
    draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
-   the accumulated `## [Unreleased]` items into a new versioned section **before**
-   tagging. **For a stable (plain `x.y.z`) tag this is mandatory** — the release
-   fails fast in the `meta` job if the section is missing.
+   the accumulated `## [Unreleased]` items into the versioned section **before**
+   tagging. The release fails fast in the `meta` job if `Unreleased` still has
+   list items. For a stable (plain `x.y.z`) tag, it also requires the matching
+   versioned section.
+
+   **If a section for this core version already exists, merge into it — do not
+   create a second one.** Successive betas in a line all render the *same*
+   heading (`v0.1.0-beta.7` reads `## [0.1.0]`), so after the first promotion
+   that section is already present. Renaming the `## [Unreleased]` heading with
+   `sed`/`perl` therefore produces **two** `## [0.1.0]` sections and corrupts the
+   file. Move the items across, update the existing section's date, and leave a
+   fresh empty `## [Unreleased]` above it. Count the headings before and after:
+
+   ```sh
+   grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md   # must be 1, before and after
+   ```
+
+   `check_changelog_promoted.py` also enforces this on tag push, and names the
+   count it found. It did not always: a release branch once shipped two
+   `## [0.1.0]` headings, passed the gate, and rendered correct-looking notes —
+   because the notes render from the *first* section, so the orphaned one was
+   invisible until someone went looking for the older release's entry.
+
+   Only a release whose core version is genuinely new (a minor or major bump)
+   adds a new heading.
 
    ```md
    ## [Unreleased]
@@ -125,35 +169,112 @@ and produces no Android artifact.
    - Include the ``Flutter build: `x.y.z+N` `` line (the `+build` from
      `app/pubspec.yaml`) so tags trace back to an entry.
    - Leave a fresh, empty `## [Unreleased]` at the top for the next cycle.
-2. Ensure `app/pubspec.yaml` `version:` (and the guarded `kAppVersion`) are the
-   version you intend to ship. The workflow **fails** if the tag's `x.y.z` core
-   doesn't match the pubspec semver.
-   - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
-3. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
-   `v0.2.0-beta.1` → **beta** channel + GitHub prerelease):
+   - **Include a Data / Migrations section whenever `kCompendiumSchemaVersion`
+     or `contraTaxonomyVersion` has moved** since that section was last written.
+     Read both from source at tag time — they move while a release is being
+     prepared, so a value quoted from an earlier status report may already be
+     stale. State old → new and what the migration does: these notes are where a
+     user learns what is about to happen to their data.
+
+     The range starts at the value **the previous tag shipped**, not at whatever
+     it was when you last looked. Derive it:
+
+     ```sh
+     git show v0.1.0-beta.6:packages/compendium_core/lib/src/storage/database.dart \
+       | grep -o 'kCompendiumSchemaVersion = [0-9]*'
+     git show v0.1.0-beta.6:packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
+       | grep -o 'contraTaxonomyVersion = [0-9]*'
+     ```
+
+     A release that spans several bumps covers all of them in one range. The
+     gate checks both constants and requires a range for each that has moved,
+     so write `schema … 20 → 25` and `taxonomy … 23 → 27` as separate,
+     explicitly labelled ranges.
+
+     A taxonomy bump is **not** a data migration — nothing reads
+     `contraTaxonomyVersion` at runtime and no rebuild is triggered by it. It is
+     still user-visible, because dances get categorised or matched differently,
+     so it belongs in the notes; describe what changed about recognition or
+     canonical form rather than implying the database is rewritten.
+
+   **Then verify the notes are the ones you just wrote.** `--check` tests that a
+   section *exists*, not that it is *fresh*, so it returns 0 against a section
+   left over from the previous release — and the draft would then carry the
+   previous release's notes, and its migration range, under the new version's
+   banner:
 
    ```sh
-   git tag v0.2.0
+   python3 tools/release/gen_release_notes.py \
+     --version 0.1.0-beta.7 --tag v0.1.0-beta.7 --channel beta \
+     --changelog app/CHANGELOG.md --output /tmp/notes.md
+   ```
+
+   Read `/tmp/notes.md` and confirm it describes *this* release — the right
+   version, the right migration range, the actual new work. `tools/ci/check_changelog_promoted.py`
+   gates both conditions on tag push, but read the rendered notes anyway; the
+   gate cannot judge whether the prose is true.
+
+   > **`--version` takes the bare version; only `--tag` carries the `v`.** Both
+   > tools resolve the CHANGELOG heading by splitting the version on `-`/`+` —
+   > they do **not** strip a leading `v`. Passing `--version v0.1.0-beta.7`
+   > therefore looks for a `## [v0.1.0]` section, which cannot exist, and the
+   > error names a heading one character off from the real one. It fails
+   > plausibly rather than obviously, so check the prefix before believing the
+   > message.
+2. Ensure `app/pubspec.yaml` `version:` (and the guarded `kAppVersion`) carry the
+   **core** `x.y.z` you intend to ship. The workflow **fails** if the tag's
+   `x.y.z` core doesn't match the pubspec semver.
+   - **Do not add a prerelease suffix to the pubspec version.** A beta ships with
+     the pubspec at its plain core (`0.1.0+1` for every `v0.1.0-beta.N`); the
+     channel comes from the tag, not the pubspec. The gate compares the **tag's
+     core** (prerelease stripped) against the **pubspec version with only
+     `+build` stripped** — the prerelease suffix is *kept* on the pubspec side.
+     So `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and fails the
+     `meta` gate. Bump the pubspec only when the core version itself changes.
+   - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
+3. **Land the promotion on `main` first, then tag `main`'s tip.** Steps 1–2 edit
+   tracked files, so they go through a PR like any other change — the release is
+   tagged from `main`, never from the release branch. This repo squash-merges, so
+   what you want is the post-merge tip of `main` (a single-parent commit, not a
+   two-parent merge commit). After the PR merges, re-fetch — the `origin/main`
+   you fetched before opening the PR is now stale:
+
+   ```sh
+   git fetch origin main
+   git rev-parse origin/main        # the post-merge tip — tag this
+   ```
+
+   Tagging a pre-merge SHA points the release at a tree whose `## [Unreleased]`
+   is still full, so the `meta` gate fails on a CHANGELOG that looks correct in
+   your working copy. If the tag is already pushed, delete and re-push it at the
+   right commit before the draft is published.
+4. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
+   `v0.2.0-beta.1` → **beta** channel + GitHub prerelease). **Name the commit
+   explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
+   which is the release branch if you never switched off it:
+
+   ```sh
+   git tag v0.2.0 "$(git rev-parse origin/main)"
    git push origin v0.2.0
    ```
 
-4. Watch the run under **Actions → Release**. It resolves + validates metadata
-   (a **stable** tag with no matching CHANGELOG section fails here, fast), gates
-   on the reusable checks, builds + packages on all three OSes, creates the
-   **draft** release (`publish`), then **verifies each artifact's SLSA provenance
-   and SBOM attestation** (`verify`).
-5. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
+5. Watch the run under **Actions → Release**. It resolves + validates metadata
+   (an unpromoted CHANGELOG fails here, fast; schema changes also require a
+   current Data / Migrations range), gates on the reusable checks, builds +
+   packages on all three OSes, creates the **draft** release (`publish`), then
+   **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
+6. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
    and the channel manifest are present and named correctly, **and that the
    notes body matches the CHANGELOG section**. For a prerelease, a
    ``⚠️ No `## [x.y.z]` entry`` banner means you skipped step 1 — add the section
    and re-push the tag, or edit the draft by hand, before publishing.
-6. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
+7. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
    re-downloads every `CallersCompendium-*` binary and runs `gh attestation
    verify` for both the build provenance and the SBOM attestation. **Do not
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-7. **Publish** the draft manually once the `verify` job is green and the draft
+8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
 
 ## CHANGELOG-driven release notes
@@ -188,6 +309,10 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
     and a `::warning::` in the log — a reviewer-visible nudge that keeps beta
     iteration frictionless. Fix the CHANGELOG and re-push, or edit the draft,
     before publishing.
+- On every tag, `## [Unreleased]` must contain no list items. When
+  `kCompendiumSchemaVersion` changed since the previous release, the selected
+  versioned section must also have a **Data / Migrations** schema range ending
+  at the current version. These checks run before the build matrix.
 
 The stable guard runs the tool in `--check` mode from the `meta` job; a
 build-only `workflow_dispatch` dry run is exempt (it never publishes).
@@ -254,7 +379,7 @@ runs in two places (#300):
   release is a human-published **draft**, this runs immediately after the
   attestations are minted rather than on a true post-publish trigger — treat a
   green `verify` job as a **mandatory precondition for clicking Publish** (see
-  [Cutting a release](#cutting-a-release) step 6).
+  [Cutting a release](#cutting-a-release) step 7).
 - **Out of band, by testers and downloaders.** Anyone who downloads a release
   asset can independently verify it with the GitHub CLI (no extra tooling). Note
   the in-app assisted-download flow can't shell out to `gh` — it already enforces
@@ -322,9 +447,32 @@ ever sees an error. To make the manifest live, a maintainer enables Pages once:
 2. In the repo: **Settings → Pages**.
 3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
 4. Set **Branch** to `gh-pages` and the folder to **`/ (root)`**, then **Save**.
-5. After the first deploy, confirm
-   `https://ibanner56.github.io/CallersCompendium/stable.json` (and, once a beta
-   has shipped, `…/beta.json`) resolves.
+5. After the first deploy, confirm the manifest for whichever channel you cut
+   in step 1 resolves — only that one file exists until the *other* channel
+   also ships at least once (a fresh repo has published only betas, so
+   `stable.json` will 404 until a stable release is cut; that's expected, not
+   an error).
+
+   > **Fetch it with `curl -fsSL`, and check the body — not the exit code.**
+   > That host **301s** to the custom Pages domain, and `-f` only fails on
+   > 4xx/5xx, so a redirect is not an error: without `-L`, curl exits **0** and
+   > writes nginx's 162-byte `301 Moved Permanently` HTML page. A size check
+   > passes too, because the file is not empty. You find out one step later, when
+   > the JSON fails to parse or a signature check fails against HTML bytes — both
+   > of which read as a corrupt manifest or a bad signing key rather than a
+   > missing `-L`.
+   >
+   > ```sh
+   > curl -fsSL https://ibanner56.github.io/CallersCompendium/beta.json -o /tmp/manifest.json
+   > head -c 200 /tmp/manifest.json
+   > ```
+   >
+   > Expect JSON starting with `{` and, a couple of lines in, a
+   > `"manifestSchemaVersion": 1` field — `gen_release_metadata.py` writes it
+   > pretty-printed (`json.dumps(..., indent=2)`), one field per line, not as a
+   > single inline object. The redirect itself is expected and correct —
+   > installed clients follow it too (`kAllowedArtifactHosts` covers both
+   > hosts; see the redirect test in `app/test/update/update_service_test.dart`).
 
 Do **not** select "GitHub Actions" as the Pages source — this pipeline publishes
 via the `gh-pages` **branch**, not the Actions Pages deployment flow.
@@ -448,8 +596,11 @@ provision — or later re-provision — the key:
    can verify — so the pinned key must reach users **before** the first signed
    manifest is the only one they can use.
 
-4. **Verify end-to-end** after the next release: confirm
-   `https://ibanner56.github.io/CallersCompendium/stable.json.sig` resolves and a
+4. **Verify end-to-end** after the next release: confirm the `.sig` for
+   whichever channel you just cut (e.g.
+   `https://ibanner56.github.io/CallersCompendium/beta.json.sig`) resolves
+   (`curl -fsSL`, and check the body — see the redirect note under
+   [One-time maintainer step: enable GitHub Pages](#one-time-maintainer-step-enable-github-pages)) and a
    client build with the pinned key offers the update.
 
 ### Key rotation
@@ -523,7 +674,7 @@ refresh anything the release changed:
   `docs/ROADMAP.md`).
 - **Features** — add/adjust cards for any newly shipped capability.
 - **Screenshots** — replace or add captures for changed UI (see
-  [`site/README.md`](../../site/README.md#adding-real-screenshots) for the capture
+  [`site/README.md`](../../site/README.md#updating-screenshots) for the capture
   procedure).
 - **Version fallbacks** — nothing to do. The hero version pill and the downloads
   version line are both **version-free placeholders** (`Latest beta`) that
@@ -558,10 +709,26 @@ gh workflow run release.yml
 > workflow from the tagged commit and produces a **draft** (never public);
 > delete the draft release and the tag afterward.
 
+## Windows (Azure Trusted Signing)
+
+When `AZURE_CLIENT_ID`, `AZURE_TENANT_ID`, `AZURE_SUBSCRIPTION_ID`,
+`AZURE_SIGNING_ACCOUNT_NAME`, and `AZURE_CERT_PROFILE_NAME` are configured as
+repository variables, the Windows matrix leg authenticates through the federated
+Entra application/service principal using GitHub OIDC. It signs every `.exe` and
+`.dll` in the
+Flutter release bundle before creating the portable ZIP, then signs the generated
+Inno Setup installer. The signing endpoint is the WUS2 Azure Trusted Signing
+endpoint (`https://wus2.codesigning.azure.net/`).
+
+The variables must be paired with an Azure federated credential for the
+`ibanner56/CallersCompendium` release workflow and the service principal must
+have the Artifact Signing Certificate Profile Signer role. If any variable is
+absent, the Windows leg intentionally produces the existing unsigned artifacts.
+
 ## macOS (Developer ID signed + notarized)
 
-Unlike the Linux and Windows desktop artifacts (which are **unsigned** — users
-bypass the OS prompt manually), the macOS `.app`/`.dmg`/`.zip` are
+Unlike the Linux desktop artifacts (which are **unsigned** — Linux users follow
+the platform-specific install guidance), the macOS `.app`/`.dmg`/`.zip` are
 **Developer ID-signed and notarized** so Gatekeeper opens them without a
 right-click workaround. This is the ADR-002 §6 direct-distribution (non-App
 Store) path: a **Developer ID Application** certificate + Apple's **`notarytool`**

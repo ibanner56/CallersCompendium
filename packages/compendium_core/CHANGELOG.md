@@ -1,6 +1,219 @@
 ## Unreleased
 
+### Fixed
+
+- **Bare ContraDB box-circulate form now recognized (#752).** ContraDB
+  sometimes writes the figure as the component cross/loop path — `larks cross
+  while robins loop` — without the `box circulate` head phrase. Previously this
+  fell through to custom and, with #591's `while` fan-out active, became a
+  `meanwhile[custom, custom]` container carrying no structured information. A
+  new pre-recognizer `_boxCirculateBare` detects the `<subject> cross while
+  <subject> loop [left|right]` form and maps it to `box_circulate`, recovering
+  `who` from the crossing subject and `hand` from a trailing `left`/`right`
+  when present. Both dancer-set subjects must resolve to known sets — unrelated
+  `while` lines still reach the fan-out unchanged.
+
+- **Dancer-qualified balance-wave lines now fold into the preceding wave figure
+  (#872).** TCB writes `Men balance long wave in center`; the scrubber
+  canonicalises that to `role1s balance long wave in center`. The previous
+  `_isBalanceWaveLine` predicate required the text to lead with `balance`, so
+  dancer-prefixed lines were not recognised and the balance appeared twice —
+  once in `form_a_long_wave` (taxonomy default) and once as a surviving
+  `custom` figure. Dance 18878 A1 now imports as a single
+  `form_a_long_wave{beats: 8}` with no trailing custom.
+  - The dancer-prefix mismatch guard in `_foldTrailingBalanceIntoWave` now
+    resolves the wave's **effective** `who` — explicit param first, then the
+    taxonomy default — so a bare `form_a_long_wave` (no explicit `who`,
+    taxonomy default `role2s`) correctly refuses a `role1s balance long wave`
+    line rather than silently folding it.
+
 ### Changed
+
+- **Star grip and single-file flags are now canonical render tokens (taxonomy
+  v27, #749 Gap B + #840).** `star.grip`, `promenade.singleFile`, and
+  `circle.singleFile` are now emitted by `renderCanonical`, so they appear in
+  `dance_fts` and are FTS-searchable. A one-shot derived rebuild fires on first
+  open to backfill existing databases.
+
+  `contraTaxonomyVersion` bumped 26 → 27. No SQL schema change.
+
+  Render form changes:
+  - `star.grip`: `"star right - hands across - 4 places"` /
+    `"star left - wrist grip - 4 places"` (grip clause added to all render
+    paths; `none` still emits no clause).
+  - `promenade.singleFile`: `"single file promenade along"` / `"…across"` — `who`
+    always dropped; `dir` always shown even at the `across` default (v27
+    ruling).
+  - `circle.singleFile`: `"single file circle clockwise N places"` (prefix form
+    replaces the v26 suffix; `turn:'left'` = clockwise per contra convention).
+  - Canonical form for circle: `"single file promenade clockwise N places
+    (circle)"` — parenthetical keeps "circle" in the FTS index.
+
+- **ContraDB importer captures `dir:'along'` for single-file promenade (#749
+  Part A).** The bare direction token immediately after `promenade` in a
+  single-file line is now consumed as `params['dir']`. Previously it was left
+  in the note.
+
+- **TCB "Single file promenade clockwise/counterclockwise" now imports as
+  circle (#749 Part E / #840).** Added `_singleFileCircleRecognizer` to
+  `tcbFigureFrontEnd.preRecognizers`. Clockwise → `turn:'left'`;
+  counterclockwise → `turn:'right'`. Recognizer is placed before
+  `_sideRunAnnotation` so the `;`-run decoder does not claim it first.
+
+- **General `;`-run consume (#843, Parts B and C, NO taxonomy change).** New
+  pre-recognizer `_sideRunAnnotation` in `callersbox_figure_dialect.dart`,
+  placed LAST in `tcbFigureFrontEnd.preRecognizers` so the four existing
+  bespoke decoders (`_hey`, `grandRightAndLeftFromPassList`,
+  `_squareThroughPassList`, the balance-a-wave decoder) keep every line they
+  already claim.
+
+  Unlike those four it lowers nothing onto a bespoke structure: it reads the
+  same `<people-code><R|L>` notation and fills whatever slots the move it landed
+  on declares. **The slot lookup is keyed on `ParamKind`, not on the param
+  name.** #870 established the query-the-taxonomy pattern but keyed on the
+  literal name `hand`; of the twenty moves with a side slot, seven call it
+  `shoulder` and two call it `centerHand`, so a name check silently misses nine.
+
+  **Values are written even when they equal the taxonomy default** (owner
+  ruling). Byte-identical at both identity layers — `renderCanonical` and
+  `figureCanonicalKey` both build from `effectiveParams`, which fills defaults —
+  so the 2,388 same-value cases raise no #686 "Variation?" prompt. The 116
+  inverse-value cases DO change the key, and should: the stored choreography
+  contradicted its source.
+
+  Dancer identity (Part C) fills `who`/`who2` where the move declares them, odd
+  1-based positions naming `who` and even `who2`. `pass_through` declares no
+  `who`, so its dancer code is dropped rather than forced into a slot the move
+  does not have — writing it unconditionally makes `validateFigure` reject the
+  figure and sends 2,136 corpus lines to the custom fallback.
+
+  **A cell is a PASS**, so a move modelling fewer passes than the run states
+  declines. In particular `square_through`'s cell count must equal `places`:
+  #799 deliberately refused to guess the unstated third pass of `Square through
+  3 (N2R;SL)`, and this decoder must not undo that ruling by the side door. A
+  run contradicting a prose-stated side falls THROUGH to today's reading (prose
+  wins, annotation dropped) rather than declining to custom — forcing custom
+  would regress a line that structures today.
+
+  Corpus (pristine `f3030cbc`): 2,504 dropped runs consumed — `pass_through`
+  2,136, `square_through` 159, `cross_trails` 98, `pass_through + turn_alone`
+  88, plus a short tail. Zero move-id deltas, zero beat deltas, zero
+  custom/structured flips.
+
+- **`O` documented in `tcbPassPeople`'s deliberate omissions (#843).** The most
+  common unmapped prefix in the corpus (72 cells, ahead of `Ph` 21 and `SRN`
+  17) was absent from both the map and its documented omissions list, which read
+  as an oversight rather than a decision. No `opposites` token is added —
+  `O` is primarily meaningful for non-duple formations (squares), which are
+  not a current priority; behaviour was already correct (an unmapped code
+  declines the run). Ruling by @ibanner56, confirmed 2026-08-11: non-duple
+  formations are not immediately pressing.
+
+- **`contraTaxonomyVersion` 26 (#843, Part A).** `star_promenade` LOSES its
+  `hand` param and `{hand}` leaves its `renderTemplate` — the first param
+  removal in this taxonomy (v19 retired a whole move; v21 renamed one).
+
+  Owner ruling (2026-08-06): `who` names the dancer you PICK UP on the side,
+  which is TCB's reading. The `hand` described a DIFFERENT pair — the two
+  dancers in the centre — while rendering beside the subject, so "Neighbor star
+  promenade right ½" implied a right-hand connection with the neighbour. TCB's
+  flutterwheel decomposition shows both facts coexisting in one figure
+  (`(4) Women allemande right 1/2` + `(4) Neighbor star promenade 1/2 (WR)`:
+  `who` is `neighbors`, `(WR)` names the women), which is why they cannot share
+  a slot.
+
+  **Canonical-key change:** removing a declared param changes
+  `figureCanonicalKey` for EVERY `star_promenade` figure, not only those that
+  stored a `hand` — `effectiveParams` used to fill the `right` default for the
+  rest. The derived rebuild is therefore OWED unconditionally — unlike the
+  schema-v18/v19 precedents, which schedule one only when a figure actually
+  changed — and is discharged by `_stripStarPromenadeHandIfNeeded` (marker
+  `starPromenadeHandRemovalDoneKey`, written after success), mirroring #870.
+  Owed is not the same as always-called: the pass skips its own rebuild when an
+  earlier sweep already rebuilt during the same `ensureMigrated`, since that
+  rebuild already paid the debt.
+  **No DB schema bump:** nothing structural changes, and a leftover stored
+  `hand` is already inert because `effectiveParams` iterates the MoveDef's
+  declared params only. The strip is hygiene — it stops dead data resurrecting
+  if a later taxonomy re-declares `hand` here with another meaning.
+
+  Stored explicit `hand` values are DROPPED rather than converted into the new
+  centre note: `figures_json` does not record which adapter wrote a figure, and
+  the value means the real centre hand on a ContraDB-imported figure but a
+  default on a TCB one. (Decided by the implementing agent, not the owner.)
+
+- **Doc correction in the v25 block.** It claimed "the taxonomy version bump
+  triggers a derived rebuild". It does not — `Taxonomy.version` is stored on the
+  object and is never read by any runtime code, and #870's rebuild in fact came
+  from its own settings-marker pass. Believing the claim is how a canonical-key
+  change ships with a stale FTS index, so the mechanism is now named explicitly.
+
+- **`FigureFrontEnd` gains an optional `declineToCustom` veto.** A front-end
+  cannot decline a move by deleting its own recognizer: the shared recognizers
+  in `figure_parser.dart` are source-neutral and will claim the line anyway.
+  ContraDB's `star promenade` needed a real veto, since its subject means the
+  centre role there and the pick-up relationship everywhere else. Runs before
+  every recognizer, inside the existing try, so a throwing predicate degrades to
+  custom like anything else.
+
+- **TCB star-promenade centre annotation (#843).** New pre-recognizer
+  `_starPromenadeAnnotation` in `callersbox_figure_dialect.dart`, on the
+  existing `_annotatedMatch` seam (so it inherits the OWASP annotation caps and
+  adds no new bound). `(WR)` becomes the note `role2s by the right in the
+  center` — canonical role tokens, so it renders under the active dialect
+  instead of freezing `W`. `who` is never written or overwritten. Anything that
+  is not exactly one mapped `<people-code><R|L>` cell (multi-cell run, unmapped
+  prefix, no `R`/`L` tail) is preserved verbatim rather than approximated,
+  mirroring `_gateAnnotation`'s treatment of `(men stay put)`.
+
+  Corpus (pristine `c9a0185f`, 24,107 files / 20,516 parseable / 11,499
+  `Permission: full`): 626 raw lines import as `star_promenade`, all 626 carry
+  an annotation, 625 are exactly one mapped cell (`m` 358, `w` 265, `n`/`n1` 2)
+  and 1 is an unmapped `c` prefix. ZERO carry a prose hand, so the visible
+  change is the removal of a DEFAULTED "right" that rendered on every one.
+
+- **ContraDB star promenades decline to custom (#843).** Both producing paths
+  are closed: the `'star promenade'` `_MoveMap` entry in
+  `contradb_adapter.dart` is removed, and `contraDbHtmlFigureFrontEnd` carries
+  the `declineToCustom` veto (its own recognizer is deleted, which alone was not
+  enough). A deliberate, owner-accepted structure regression; the custom
+  fallback keeps ContraDB's wording (scrubbed — role terms are canonicalized on
+  every custom figure, so it is not byte-verbatim). **The count of affected ContraDB
+  dances is NOT measured** — no ContraDB corpus or dump exists locally or is
+  documented in `docs/research/contradb.md`.
+
+- **`contraTaxonomyVersion` 25 (#870).** Three changes:
+  - `balance` gains a `hand` param (default `unspecified`, choices
+    `_handOrUnspecified`). Precedent: `form_long_waves.hand` (v21).
+    **Canonical-key change:** every `balance` figure's `figureCanonicalKey`
+    gains `hand=unspecified` — two different notions of "canonical" are in play
+    (the renderer's canonical text vs. `figureCanonicalKey`'s dedupe/FTS key;
+    `ParamVocab.unspecified` renders as empty but is a non-null STRING that the
+    key includes). A derived rebuild is triggered by
+    `inversePairNormalisationDoneKey`.
+  - `MoveAlias` gains an optional `inversePairId` field. Two pairs declared:
+    `swat_the_flea` ⇄ `box_the_gnat` (hand), `see_saw` ⇄ `do_si_do`
+    (shoulder). `meltdown_swing` is not part of a pair (`prefix` is not a
+    two-valued axis).
+  - `Taxonomy.resolvedMoveId(figure)` re-routes a figure whose effective param
+    contradicts its alias pin to the correct half of the pair. Called at write
+    time (the single convergence point: `DanceRepository._upsert`) rather than
+    on every read — `effectiveParams` (hot path) is untouched.
+  - One-time normalisation of existing incoherent `figures_json` entries via
+    `_normaliseInversePairMoveIdsIfNeeded` (rides the same startup path as
+    `_recomputeSectionLabelsIfNeeded`). **Fresh install:** no incoherent figures
+    exist; the scan finds nothing and writes the marker immediately.
+
+- **TCB balance hand annotation extraction (#870).** New pre-recognizer
+  `_balanceHandAnnotation` in `callersbox_figure_dialect.dart` extracts
+  `(RH)` → `right`, `(LH)` → `left` from balance lines before
+  `_stripAnnotations` drops them. The parenthetical is consumed into the
+  `hand` param, not preserved as a note.
+
+- **Balance fold hand threading (#870).** `_foldBalanceIntoMove` threads
+  `balance.params['hand']` into the merged figure when the balance states a
+  hand and the move accepts one. The convergence-point normalisation then
+  re-routes the move id if the hand contradicts the alias pin.
 
 - **The sentinel workaround params now carry their natural `ParamKind`s
   (#739). Type information only — no behaviour change, no

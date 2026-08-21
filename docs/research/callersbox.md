@@ -7,6 +7,31 @@ The Caller's Box (TCB) is the largest contra dance collection: **16,874 dances**
 2010) and **Michael Dyck** (code, search, hosting at ibiblio/UNC). Live since 2018.
 The web DB is extracted from Chris's personal desktop database, which is not public.
 
+<!-- section-index -->
+> **Section index.** This document is ~55 KB — read the section you
+> need rather than the whole file. Line counts indicate size, not position;
+> follow the anchor. Keep this index current when you add or retitle a
+> section.
+
+- [Key findings](#key-findings) — 13 lines
+- [Record format (JSON)](#record-format-json) — 30 lines
+- [Notation conventions (documented in Brief-glossary.htm / Glossary.htm)](#notation-conventions-documented-in-brief-glossaryhtm--glossaryhtm) — 300 lines
+  - [Compound figures — `(beats) Name:` with indented children](#compound-figures--beats-name-with-indented-children) — 26 lines
+  - [Grand right and left & flutterwheel — compound shorthands (2026-07-31, issue #295)](#grand-right-and-left--flutterwheel--compound-shorthands-2026-07-31-issue-295) — 174 lines
+  - [Residual variance to handle in the snapshot pipeline](#residual-variance-to-handle-in-the-snapshot-pipeline) — 6 lines
+  - [Figure-line sample: mad robin & butterfly whirl (2026-07-31, issue #295)](#figure-line-sample-mad-robin--butterfly-whirl-2026-07-31-issue-295) — 38 lines
+  - [Gate lines (surveyed 2026-07-31 over the full 24,107-dance mirror)](#gate-lines-surveyed-2026-07-31-over-the-full-24107-dance-mirror) — 36 lines
+- [Search capabilities (hints at internal schema)](#search-capabilities-hints-at-internal-schema) — 42 lines
+- [Permissions & rehosting (critical)](#permissions--rehosting-critical) — 523 lines
+  - [Wave-balance corpus census (2026-07-31, issue #295)](#wave-balance-corpus-census-2026-07-31-issue-295) — 66 lines
+  - [Figure-line census: courtesy turn (2026-07-31, taxonomy v23)](#figure-line-census-courtesy-turn-2026-07-31-taxonomy-v23) — 83 lines
+  - [Figure-line census: walk forward (2026-08-01, issue #733)](#figure-line-census-walk-forward-2026-08-01-issue-733) — 127 lines
+  - [Figure-line census: chain/promenade/right_left_through annotations](#figure-line-census-chainpromenaderight_left_through-annotations) — 75 lines
+  - [Figure-line census: the remaining annotation drop (2026-08-04, issue #744)](#figure-line-census-the-remaining-annotation-drop-2026-08-04-issue-744) — 150 lines
+- [Open questions](#open-questions) — 9 lines
+- [Coverage figures: correction (issue #769, 2026-08-04)](#coverage-figures-correction-issue-769-2026-08-04) — 39 lines
+<!-- /section-index -->
+
 ## Key findings
 
 1. **There is a per-dance JSON export**: `dance.php?id=NNNN&format=JSON` (since
@@ -29,6 +54,11 @@ Appearances[{source,p,lo,vol,no,altnames}], OtherNames[], Videos[],
 VirtualVideos[], VariantVideos[], VariantVirtualVideos[]`.
 
 - `Status` may be `Deprecated`/`Broken` (author disavows / dance doesn't work).
+- `Mixer?` is `"Yes"` or `""` (the only two values in the mirror: 830 `"Yes"`,
+  19,686 `""`). It **is** read on import (issue #732): it sets `Dance.mixer`, with
+  a formation-based fallback for Circle/Scatter Mixer records whose `Mixer?` is
+  blank — see design/imports.md for the inference rule and its Sicilian Circle
+  exclusion. `Virtual?` remains unread (no model field yet).
 - `PhraseStructure` empty = default `4*8*2`; else e.g. `6*8*2` for 48-bar.
 - **`License` (e.g. CC-BY-NC on some dances) appears only in HTML, not JSON** — a
   snapshot pipeline that cares about licenses must scrape HTML too.
@@ -133,29 +163,71 @@ and `pull by direction`.
 
 The last two entries are why `C1`–`C3` are **not** mapped: `ParamVocab`'s
 `firstCorners`/`secondCorners` model the ECD *First/second corners*, a different
-relationship from TCB's square corners. Mapping them would fabricate. Likewise
-`P2`+ (a mixer's future partners) and `N5`+/`N-1`/`S3`+ have no taxonomy token,
-and `Ph*` (phantoms) / `TB*` (trail buddy) / bare `R`/`L` name no representable
-dancer — every one of those declines the whole line to `custom`.
+relationship from TCB's square corners. Mapping them would fabricate.
+`P0`, `P2`–`P5` have vocabulary tokens (taxonomy v24, issue #732) and the
+importer now maps them (issue #732, PR E). `P6`+, every `P-n`,
+`N5`+/`N-1`/`S3`+ have no token, and `Ph*` (phantoms) / `TB*`
+(trail buddy) / bare `R`/`L` name no representable dancer — every
+one of those declines the whole line to `custom`.
 
 #### Corpus measurements (full local TCB mirror, 24 107 dance files / 152 589 figure lines)
 
-**`grand right and left`: 353 lines**, of which **128 decompose** to
-`pull_by_dancers` sequences. Top decodable shapes: `(N1R;N2L)` 32 ·
-`(N3R;N2L)` 26 · `(S2R;S1L)` 15 · `(N1R;N2L;N3R)` 14 · `(PR;S1L;S2R)` 9 ·
-`(N2R;N3L)` / `(N1L;N2R)` / `(N4R;N3L)` 4 each. The 225 declines break down as:
+**`grand right and left`: 353 lines**, of which **157 decompose** to
+`pull_by_dancers` sequences (128 before issue #732 PR E; +29 from P-series).
+Top decodable shapes among the original 128 (N/S-series only):
+`(N1R;N2L)` 32 · `(N3R;N2L)` 26 · `(S2R;S1L)` 15 · `(N1R;N2L;N3R)` 14 ·
+`(PR;S1L;S2R)` 9 · `(N2R;N3L)` / `(N1L;N2R)` / `(N4R;N3L)` 4 each. The 29
+new P-series shapes are documented in the PR E section below; the commonest
+P-shapes by occurrence are `(P1R;P2L;P3R;P4L)` (21 occurrences — all
+beats-blocked, not decomposing) and `(P1R;P2L;P3R;P4L;P5R;P6L)` (10
+occurrences — out-of-range `P6`, still unmappable). The 29 that actually
+decompose are distributed across P-series shapes with beat counts divisible by
+their pass count. The 196 declines break down as:
 
 | reason | lines | detail |
 |---|---|---|
-| unmappable pass code | 163 | mixer partner series `P2`+/`P0`/`P-n` 66 · square corners `C1`–`C7` 55 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
+| unmappable pass code | 115 | square corners `C1`–`C7` 55 · mixer partner series `P6`+/`P-n` 18 · out-of-range neighbors `N5`+/`N-n` 25 · bare `R`/`L` with no dancer 11 · out-of-range shadows `S3`+/`S-n` 5 · trail buddy `TB` 1 |
 | leftover prose outside the pass list | 56 | a second parenthetical 17 · a `[…]` qualifier 16 · other prose/`;`-tail 9 · `Progressive grand right and left` 8 · `Same-role grand right and left` 6 |
 | no pass list at all | 3 | |
 | degenerate list (`(N1R)`, `(N1R;;N2L)`) | 2 | |
-| beats do not divide by the pass count | 1 | `(8) Grand right and left (N0L;N1R;N2L)` |
+| beats do not divide by the pass count | 20 | 1 original `(8) Grand right and left (N0L;N1R;N2L)` (3 passes, 8 beats) · 19 newly-surfaced P-series lines of the shape `(10) Grand right and left (P1R;P2L;P3R;P4L)` (4 passes, 10 beats) |
 
-Beats vs. pass count over the 129 lines that reach the beats check: 4/2 ×89,
-6/3 ×29, 6/2 ×4, 8/4 ×3, 8/2 ×3 — **128 of 129 divide evenly**; the single
-exception stays custom rather than inventing an uneven 3+3+2 split.
+*(Before PR E: 128 decompose / 225 decline / 163 unmappable-pass-code /
+P-series 66 / beats 1. Counts measured with the real adapter over the full
+corpus at commit `5b05c4b3`; each line counted once, tie-broken by the first
+unmappable code in the decoder's own order. One corpus line —
+`(8) Grand right and left (TBR;L;R;L)` — qualifies for both trail-buddy and
+bare-R/L; under this methodology it is counted as trail-buddy.)*
+
+The **48 P-series pass-list lines** that left the unmappable bucket break into
+three outcomes: **29 decompose** (pass-code mapping succeeds and beats divide
+evenly), **19 surface in the beats-blocked row** (pass-code mapping now
+succeeds, but 10 beats over 4 passes does not divide — the code check previously
+fired first and hid the real blocker), **0 remain P-alone-blocked**. The 18 that
+stay in the unmappable bucket each contain an in-range P code *and* an
+out-of-range `P6` or `P-n` in the same list; since decomposition is
+all-or-nothing, the out-of-range code still declines the whole line.
+
+Beats vs. pass count over the **177 lines** that reach the beats check: **157 of
+177 divide evenly** (all 20 exceptions fail); the 20 that do not are the 1
+original N-series line plus the 19 newly surfaced P-series ones described above.
+
+**Prose-figure lines containing a `P` token (issue #732 PR E, measured at commit
+`5b05c4b3`).** Every figure line in the full corpus that contains at least one
+`P`-prefixed dancer code (`P0`–`P5`, `P1`, etc.):
+
+| population | lines before | lines still custom | newly structured |
+|---|---|---|---|
+| any `P` token | 1 956 | 771 | **1 185** |
+| `P1` token | 929 | 374 | **555** |
+| `P1` and no other in-range `P` | 916 | 368 | **548** |
+
+The prose path is the main gain — **1,185 lines** become structured, of which
+**555** involve only the current-partner `P1` mapping. The grand-right-and-left
+path adds a further 29 lines. What still declines: ~89 mid-line `to P2` /
+`face P2` forms whose trailing `partner` qualifier leaves leftover prose; the
+deliberately-unmapped "new partner" prose forms (~95 lines in mixers); and any
+line whose remaining constructs cannot be structured regardless of the P mapping.
 
 **`flutterwheel`: 143 lines, 143 of them compound parents TCB decomposes
 itself.** The children are always an allemande plus a star promenade, summing
@@ -309,6 +381,42 @@ Substring search on title/author; controlled formation + progression filters;
 positive/negative figure-line matching with any/all modes; **per-phrase (A1..B2)
 figure search** (2023). Matches our roadmap search requirements almost 1:1.
 
+### Results-page markers and paging (verified live 2026-08-06, issue #845)
+
+The HTML results table carries three leading icon `<td>`s per row, whose legend
+the page publishes verbatim:
+
+```
+&#x24bb; = we have permission to show the dance's figures
+&#x24c1; = we have a link to a source for the dance's figures
+&#x24cb; = we have one or more links to videos of the dance
+```
+
+They are independent, and an absent marker is an **empty cell**, not a missing
+one. Only `Ⓕ` (U+24BB) implies the figures will be served: `Ⓛ` (U+24C1) says
+only that an *external* source is known, so an `Ⓛ`-only row is still a `search`
+-tier dance. Spot-checked against the JSON endpoint — id 5419 carries `Ⓛ` and no
+`Ⓕ` and reports `Permission: search` with zero phrases; id 12037 carries `Ⓕ` and
+reports `Permission: full` with four.
+
+Rate on a live result set: `?title=moon` returns 50 rows of which 14 (28%) lack
+`Ⓕ`; the full 68-row set has 21 (31%). Consistent with the corpus figure below
+(12,001 `full` of 16,874 fetched, ≈29% non-`full`).
+
+Because the page is `windows-1252`, which cannot encode any of these characters,
+TCB has no choice but to emit them as entities — so a parser must match the
+**decoded codepoint**, never the entity text.
+
+**Paging.** A normal response is capped at 50 rows, but the page always states
+the full total (`Of 16874 dances in the db, your query matches N.`, on both title
+and by-phrase searches). Appending **`show_all`** returns the complete set;
+`show_all=` with an empty value behaves identically to the bare flag. The cost is
+payload: the moon delta works out at ~238 B/row on top of ~13 KB of page chrome,
+and broad queries are large — `?title=a` states **12,805** matches (~3.0 MB) and
+the by-phrase `balance` search states 10,287. Those two totals were read from the
+cheap capped responses; the multi-megabyte `show_all` requests were deliberately
+**not** issued against a volunteer-run host merely to confirm a size estimate.
+
 ## Permissions & rehosting (critical)
 
 Four author-controlled tiers: **full** (figures visible), **search** (figures
@@ -339,6 +447,14 @@ begins with `Balance` and names a wave.
 
 **4,613 such lines** across **296 distinct wordings** — the single largest
 `custom` bucket before taxonomy v21.
+
+> **Note (issue #872, 2026-08-08):** The `Balance`-leading filter was shared
+> by both the predicate (`_isBalanceWaveLine`) and this census, so dancer-set–
+> qualified lines (`Men balance long wave in center` → scrubbed to `role1s
+> balance long wave in center`) were excluded from both. The 4,613 figure
+> therefore understates the true population. The widened predicate now folds
+> such lines; re-running the census against the full mirror to produce an
+> updated total and per-bucket breakdown is tracked in issue #872.
 
 | bucket | lines | disposition |
 | --- | --- | --- |
@@ -832,3 +948,43 @@ rebuilding it — the same gap every earlier census in this document has.
   versus us hosting a derived snapshot.
 - How much of the figure corpus parses cleanly into our structured model —
   needs a prototype parser against a sample (Phase 1.8 input).
+
+## Coverage figures: correction (issue #769, 2026-08-04)
+
+All coverage percentages recorded in this document and in issues #295, #712,
+#718, #724, #728, #734, #737 were computed with a top-level-only check:
+`f.isCustom` on the dance's figure list. A `meanwhile` container is never
+`isCustom` even when every concurrent side inside it failed to structure, so
+those containers were counted as structured.
+
+The committed harness (`ParseQuality.ofFigures`, `structured_draft.dart`) was
+corrected in #835 (closes #769) to use the recursive
+definition: `f.isCustom || (f.isMeanwhile && f.subFigures.any((s) => s.isCustom))`.
+One level of recursion is sufficient and provably terminating — meanwhile
+containers are flat by construction (the codec flattens nested containers on
+decode). Future measurements using `ParseQuality.ofFigures` use this definition;
+any measurement that does not should say so.
+
+The restated figures are taken from Isaac's measurement in the #769 issue body,
+at `5af19a1b` on the local TCB mirror described in this document:
+
+| Population | As published (top-level) | Recursive | Correction |
+|---|---:|---:|---:|
+| non-mixer @ `22d5664b` | 82.57% | 80.69% | −1.88pp |
+| non-mixer @ `5af19a1b` | 83.03% | 81.15% | −1.88pp |
+| all `full` @ `5af19a1b` | 80.79% | 78.94% | −1.85pp |
+
+The `22d5664b → 5af19a1b` improvement (+0.45pp) is identical under both
+definitions — deltas are portable across harnesses, absolute counts are not,
+which is why this survived several review rounds (a metric that overstates the
+level but reports change correctly looks right every time you check whether a
+change helped).
+
+**Non-finding to record:** the figures at main as of the correction were not
+re-derived. The tool used to measure the corpus (`tool/tcb_coverage.dart` in
+earlier internal sessions) was never committed to this repository. If the
+main-branch numbers have moved since `5af19a1b` — several PRs merged between
+that SHA and when #835 landed, at least two touching the Caller's Box import
+path — a re-run will reveal it; the restated percentages above are the
+`5af19a1b` values, which is what the issue measured and what this correction
+is pinned to.

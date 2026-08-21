@@ -567,6 +567,7 @@ void main() {
 
     testWidgets('undo reverts a choice custom field dropdown', (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'adj',
@@ -1001,6 +1002,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'cf1',
@@ -1032,6 +1034,7 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'cf2',

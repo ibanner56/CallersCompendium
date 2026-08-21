@@ -161,15 +161,18 @@ class ImportSession {
     required List<String> insertedDanceIds,
     required List<Dance> priorStates,
     List<String> createdChoreographerIds = const [],
+    List<String> revivedChoreographerIds = const [],
   }) : records = List.unmodifiable(records),
        _insertedDanceIds = List.unmodifiable(insertedDanceIds),
        _priorStates = List.unmodifiable(priorStates),
-       _createdChoreographerIds = List.unmodifiable(createdChoreographerIds);
+       _createdChoreographerIds = List.unmodifiable(createdChoreographerIds),
+       _revivedChoreographerIds = List.unmodifiable(revivedChoreographerIds);
 
   final List<CommittedRecord> records;
   final List<String> _insertedDanceIds;
   final List<Dance> _priorStates;
   final List<String> _createdChoreographerIds;
+  final List<String> _revivedChoreographerIds;
 
   /// Ids of dances newly inserted by this batch.
   List<String> get insertedDanceIds => _insertedDanceIds;
@@ -181,6 +184,17 @@ class ImportSession {
   /// this batch (never pre-existing rows). Reverted on [ImportPipeline.undo],
   /// but only when no surviving dance still references them.
   List<String> get createdChoreographerIds => _createdChoreographerIds;
+
+  /// Ids of soft-deleted [Choreographer] rows this batch brought back to life,
+  /// by importing an author name a tombstone still held (schema v25 natural-key
+  /// adoption — see `adoptTombstonedNaturalKey`).
+  ///
+  /// Kept apart from [createdChoreographerIds] because undo must treat them
+  /// differently. These rows predate the import, so erasing them would destroy
+  /// a record the user had merely deleted and could still restore; but leaving
+  /// them live is not "reverted" either, since the import is what resurrected
+  /// them. Undo therefore re-tombstones these and hard-deletes the others.
+  List<String> get revivedChoreographerIds => _revivedChoreographerIds;
 
   int get committedCount =>
       records.where((r) => r.succeeded && r.action != CommitAction.skip).length;
@@ -379,6 +393,7 @@ class ImportPipeline {
       }
     }
     final createdChoreographerIds = <String>[];
+    final revivedChoreographerIds = <String>[];
 
     for (var i = 0; i < batch.records.length; i++) {
       final plan = batch.records[i];
@@ -405,6 +420,7 @@ class ImportPipeline {
           nameToId: nameToId,
           newId: newId,
           createdChoreographerIds: createdChoreographerIds,
+          revivedChoreographerIds: revivedChoreographerIds,
         );
         // Only override authorIds when the draft actually carried author NAMES
         // to resolve (the free-text adapters). Drafts that ship canonical
@@ -554,6 +570,7 @@ class ImportPipeline {
       insertedDanceIds: insertedIds,
       priorStates: priorStates,
       createdChoreographerIds: createdChoreographerIds,
+      revivedChoreographerIds: revivedChoreographerIds,
     );
   }
 
@@ -639,10 +656,27 @@ class ImportPipeline {
   }
 
   /// Reverts a committed [session]: hard-deletes every inserted dance, restores
-  /// every updated dance to its captured prior state, and removes every
-  /// choreographer this batch created — but only those no surviving dance still
-  /// references (respecting the repository's referenced-guard). Pre-existing
-  /// choreographers are never touched. Idempotent — a second call is a no-op.
+  /// every updated dance to its captured prior state, removes every
+  /// choreographer this batch created, and returns to its tombstone every
+  /// soft-deleted choreographer this batch resurrected — each only when no
+  /// surviving dance still references it (respecting the repository's
+  /// referenced-guard). Idempotent — a second call is a no-op.
+  ///
+  /// A pre-existing *live* choreographer is never touched. One that was
+  /// **tombstoned** is a different case and was previously missed: since schema
+  /// v25 an imported author name whose tombstone still holds it is adopted
+  /// rather than created (`adoptTombstonedNaturalKey`), and the upsert clears
+  /// `deleted_at`, so the import revives it. Undoing left it live — the author
+  /// reappeared permanently after a rolled-back import — and worse, the revival
+  /// had stamped `existence_at` strictly *past* the user's deletion, which is
+  /// the value existence is ordered by, so the resurrection would outrank that
+  /// deletion on every peer once a sync client exists.
+  ///
+  /// The choreographer removal is a **hard** delete (`permanent: true`), not
+  /// the tombstone `ChoreographerRepository.delete` writes by default since
+  /// schema v25 (#898). A rollback is erasing an import that is being treated
+  /// as never having happened, so leaving a tombstone would advertise the
+  /// deletion of an author no other device ever saw.
   Future<void> undo(ImportSession session) async {
     if (session.isUndone) return;
     // Opt out of hardDelete's orphan-ref GC (#462): undo is a faithful rollback
@@ -659,9 +693,26 @@ class ImportPipeline {
     // a surviving dance still credits (the repo throws in that case).
     for (final id in session.createdChoreographerIds) {
       try {
-        await _choreographers.delete(id);
+        // `permanent`: undo erases an import that is being treated as never
+        // having happened, so a tombstone would advertise the deletion of a
+        // choreographer no other device ever saw. Mirrors the `hardDelete`
+        // used for the dances above.
+        await _choreographers.delete(id, permanent: true);
       } on StateError {
         // Still referenced by a surviving dance — leave it in place.
+      }
+    }
+    // Rows the import RESURRECTED rather than created: put the tombstone back.
+    // Deliberately NOT `permanent` — unlike a created row, this one predates the
+    // import and the user may still want to restore it, so undo must return it
+    // to the state it was in (deleted) rather than erase it. The fresh stamp is
+    // causal, so it also outranks the revival it is undoing.
+    for (final id in session.revivedChoreographerIds) {
+      try {
+        await _choreographers.delete(id);
+      } on StateError {
+        // Still referenced by a surviving dance — leave it live rather than
+        // orphan that dance's credit.
       }
     }
     session._undone = true;
@@ -679,12 +730,15 @@ class ImportPipeline {
   /// normalized name, else creates a new row (name only) via [newId] + upsert.
   /// Blank/whitespace-only names are dropped. Duplicate names within one
   /// record collapse to a single authorship entry. Newly-created ids are added
-  /// to [nameToId] (batch de-dup) and [createdChoreographerIds] (undo).
+  /// to [nameToId] (batch de-dup) and [createdChoreographerIds] (undo); ids that
+  /// came back from a tombstone go to [revivedChoreographerIds] instead, which
+  /// undo reverts differently.
   Future<List<AuthorResolution>> _resolveAuthors(
     List<String> names, {
     required Map<String, String> nameToId,
     required String Function() newId,
     required List<String> createdChoreographerIds,
+    required List<String> revivedChoreographerIds,
   }) async {
     final resolutions = <AuthorResolution>[];
     final seenNorms = <String>{};
@@ -705,12 +759,34 @@ class ImportPipeline {
         );
         continue;
       }
-      final id = newId();
-      await _choreographers.upsert(Choreographer(id: id, name: name));
+      // `upsert` returns the id the row actually occupies. Since v25 that can
+      // differ from the minted one: a tombstone holding this name is adopted
+      // rather than colliding, so the write lands on the tombstone's id. Using
+      // the minted id here would wire every imported dance to a row that does
+      // not exist — `dance_authors.choreographer_id` is a real FK, so the insert
+      // fails — and would put a phantom id into `createdChoreographerIds`, which
+      // drives import undo, leaving the adopted row revived and unowned.
+      final mintedId = newId();
+      final id = await _choreographers.upsert(
+        Choreographer(id: mintedId, name: name),
+      );
       nameToId[norm] = id;
-      createdChoreographerIds.add(id);
+      // Only ids this import genuinely created are undoable. An adopted
+      // tombstone predates the import, so hard-deleting it on undo would
+      // destroy a record the user had merely deleted and could still restore.
+      if (id == mintedId) {
+        createdChoreographerIds.add(id);
+      } else {
+        // Adopted a tombstone, so the import brought a deleted author back.
+        // Undo must re-tombstone it rather than erase it or leave it live.
+        revivedChoreographerIds.add(id);
+      }
       resolutions.add(
-        AuthorResolution(name: name, choreographerId: id, created: true),
+        AuthorResolution(
+          name: name,
+          choreographerId: id,
+          created: id == mintedId,
+        ),
       );
     }
     return resolutions;
@@ -764,6 +840,7 @@ class ImportPipeline {
       a.callingNotes == b.callingNotes &&
       a.level == b.level &&
       a.mixedLevel == b.mixedLevel &&
+      a.mixer == b.mixer &&
       _stringListEquality.equals(a.tunes, b.tunes);
 
   Provenance _provenanceFrom(StructuredDraft draft, DateTime now) {
@@ -826,6 +903,7 @@ class ImportPipeline {
     status: src.status,
     level: src.level,
     mixedLevel: src.mixedLevel,
+    mixer: src.mixer,
     rating: src.rating,
     tunes: src.tunes,
     customFields: src.customFields,

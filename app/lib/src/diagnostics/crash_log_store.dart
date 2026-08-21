@@ -16,6 +16,12 @@ typedef CrashLogDirProvider = Future<Directory> Function();
 /// nothing here leaves the device unless the user explicitly exports it from
 /// Settings → Diagnostics.
 ///
+/// Despite the name, it captures more than uncaught crashes: every caught
+/// error surfaced to the user (a snackbar, an inline error banner) is written
+/// here too, via `error_log.dart`'s `logCaughtError` (issue #963) — the file
+/// name and the on-disk `diagnostics/crash.log` path predate that change and
+/// were kept rather than migrated, since nothing depends on the name itself.
+///
 /// Records are appended one-JSON-per-line to `diagnostics/crash.log`. When that
 /// file would exceed [maxFileBytes] it is rolled to `crash.log.1` (existing
 /// rolled files shift up, the oldest beyond [maxRolledFiles] is pruned), so the
@@ -93,6 +99,12 @@ class CrashLogStore {
     final result = _tail.then((_) => action());
     // Keep the tail alive even if this action fails, so a single failure
     // doesn't wedge the queue.
+    // diagnostics: silent — this IS the crash-log store's own internal queue
+    // guard; the caller (`result`, returned below) still surfaces the real
+    // failure to whoever awaits it (e.g. `CrashReporter._recordGuarded`,
+    // which already logs it via `onAppendError`/debug print). Logging here
+    // too would double-count the same failure through the very store being
+    // guarded.
     _tail = result.then((_) {}, onError: (_) {});
     return result;
   }

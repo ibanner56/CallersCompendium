@@ -70,6 +70,13 @@ Translations into other languages remain community-driven and require no code
 change to appear; adding a locale is purely additive (see
 [Contributing a translation](#contributing-a-translation)).
 
+**Translation coverage is complete, and enforced.** All five shipped locales
+(`da`, `de`, `fr`, `ja`, `nl`) carry a real translation for every key in the
+English template, and a CI ratchet keeps it that way — see
+[The coverage ratchet](#the-coverage-ratchet-no-untranslated-strings). Adding a
+user-facing string is therefore no longer complete until it is translated, or
+knowingly and visibly exempted.
+
 ## How it's wired
 
 - **`app/pubspec.yaml`** declares `flutter_localizations` (SDK) and sets
@@ -298,9 +305,34 @@ You do **not** need to write code to translate the app.
 2. **Set the file's `"@@locale"`** to the copied locale (e.g. `"pt_BR"` or
    `"zh_Hant"`). The template still carries `"en"`; leaving it unchanged makes
    gen-l10n see conflicting locale metadata and can misfile your translations.
-3. **Translate the string values only.** Leave the keys and the `@key` metadata
-   blocks unchanged. Keep every ICU placeholder (e.g. `{example}`) and plural
-   form intact — only the surrounding words change.
+3. **Translate the string values only**, through `arb_translate.py`. Get the
+   queue for your locale, translate the values it hands you, and merge them
+   back:
+   ```bash
+   python3 tools/ci/arb_translate.py extract --locale <locale> > batch.json
+   # translate each item's "source" into a {"key": "value"} map, then:
+   python3 tools/ci/arb_translate.py apply --locale <locale> --input map.json
+   ```
+   `apply` is what writes each locale `@key` block's `x-sourceSha256` marker,
+   recording the English source text the translation came from, so a later
+   English edit fails validation until the translation is refreshed. Editing
+   `app_<locale>.arb` by hand instead leaves those markers missing and
+   `validate` will reject the file, so re-run `apply` for anything you hand-edit
+   — and never write or adjust an `x-sourceSha256` value yourself, since a
+   marker you set by hand asserts a translation is current without anyone having
+   read the English it claims to match. Leave the keys unchanged, and keep every
+   ICU placeholder (e.g. `{example}`) and plural form intact — only the
+   surrounding words change.
+
+   This step means *translate*, not *fill in*. Never leave (or paste) the
+   **English** value in a locale ARB to make a key look done: a key carrying
+   English is indistinguishable from a translated one, so it drops out of
+   `extract`'s queue permanently and is never offered to a translator again. A
+   key you simply **omit** falls back to English *and stays queued*, which is
+   strictly better. If you are part-way through a language, delete the keys you
+   haven't reached rather than leaving them English — and see the
+   [coverage ratchet](#the-coverage-ratchet-no-untranslated-strings) for what
+   that means for a brand-new locale.
 4. Regenerate the localizations. From the repository root:
    ```bash
    fvm flutter pub get               # workspace-wide
@@ -312,8 +344,9 @@ You do **not** need to write code to translate the app.
    ```bash
    python3 tools/ci/arb_translate.py validate --locale <locale>
    ```
-   It flags missing/renamed placeholders, mismatched plural arguments, a wrong
-   `@@locale`, and unsafe content before the change ever reaches a build.
+   It flags stale English-source markers, missing/renamed placeholders,
+   mismatched plural arguments, a wrong `@@locale`, and unsafe content before
+   the change ever reaches a build.
 5. **iOS only:** add your locale to `app/ios/Runner/Info.plist` under a
    `CFBundleLocalizations` array, using the **hyphenated BCP-47 tag** (e.g.
    `<string>fr</string>`, `<string>pt-BR</string>`, `<string>zh-Hant</string>`) —
@@ -339,29 +372,90 @@ validating it in line with OWASP guidance.
 
 A model-agnostic pipeline with three subcommands:
 
-- `extract --locale <code>` — prints the keys still missing (or blank) in
-  `app_<code>.arb` as a JSON batch. Each entry carries the English source, its
-  `description`, its declared placeholders, and any matched **glossary** hints
-  (`tools/ci/i18n_glossary.json`). This is the payload a translator — human or
-  model — works from.
+- `extract --locale <code>` — prints the keys still missing, blank, or without a
+  marker matching the current English source in `app_<code>.arb` as a JSON
+  batch. Each entry carries the English source, its
+  `sourceHash`, its `description`, its declared placeholders, and any matched
+  **glossary** hints (`tools/ci/i18n_glossary.json`). This is the payload a
+  translator — human or model — works from.
 - `apply --locale <code> --input <map.json>` — merges a `{key: value}` map into
-  `app_<code>.arb`, writing **values only** in template key order, refusing any
-  key not in the template and any non-string value. It never invents keys or
-  `@key` metadata.
+  `app_<code>.arb`, writing translated values plus adjacent `x-sourceSha256`
+  source markers in template key order, refusing any key not in the template
+  and any non-string value.
 - `validate --locale <code>` / `validate --all` — gates a translation against
   `app_en.arb`: keys must be a subset of the template; every message must keep
   the **same ICU arguments/placeholders** as the source (locale-specific plural
   categories such as `zero`/`few`/`many` are allowed, but a dropped, added, or
-  renamed placeholder — or a plural→plain change — fails); `@@locale` must match
-  the filename; any `@key` block that is present must equal the template's; and
-  each value passes a content-safety scan (no C0/C1 control characters, no
-  bidirectional-override characters — the Trojan-Source vectors — and no
-  `javascript:`/`vbscript:`/`data:text/html` URIs). Non-fatal warnings cover
-  HTML-looking tags, non-NFC text, and unusually long expansions.
+  renamed placeholder — or a plural→plain change — fails); each present value's
+  `@key.x-sourceSha256` must match the current English source; `@@locale` must
+  match the filename; any other copied `@key` metadata must equal the
+  template's; and each value passes a content-safety scan (no C0/C1 control
+  characters, no bidirectional-override characters — the Trojan-Source vectors
+  — and no `javascript:`/`vbscript:`/`data:text/html` URIs). Non-fatal warnings
+  cover HTML-looking tags, non-NFC text, and unusually long expansions.
 
 CI runs `validate --all` (and the tool's own `test_arb_translate.py`) in
 [`_checks.yml`](../../.github/workflows/_checks.yml) before the Flutter build,
 so a malformed or unsafe translation fails the PR.
+
+### The coverage ratchet: no untranslated strings
+
+`tools/ci/check_arb_translation_coverage.py` fails the build if **any** key in
+`app_en.arb` has no real translation in **any** `app_<locale>.arb`. Every locale
+is complete today, so the baseline is zero and it hard-fails on the first
+regression — there is no count to bump.
+
+**It measures something `validate` deliberately does not.** `validate` requires
+a locale's keys to be a *subset* of the template, so a **missing** key passes it
+by design: absence is the work queue `extract` reads. That is exactly how the
+backlog in [#813](https://github.com/ibanner56/CallersCompendium/issues/813)
+grew from 40 to 100 unnoticed — `validate --all` reported `OK … 0 warning(s)` the
+whole time. The two checks are complementary and neither subsumes the other:
+`validate` asks *"is what's here correct and safe"*, the ratchet asks *"is it
+all here"*.
+
+The definition of "untranslated" is **imported from `arb_translate.py`** rather
+than reimplemented (`message_keys` / `is_translatable`), so the ratchet and the
+extractor cannot drift: a key is untranslated when it is **absent**, **not a
+string**, or **blank**. Locales are discovered by globbing `app_*.arb`, so a new
+language is covered the moment its file lands. The checker exits `2` — not `0` —
+if the template is missing or no locale ARBs are found, because a check that
+greens out on an empty input set is worse than no check.
+
+On success it prints a per-locale count, so the number appears in **every** CI
+run instead of only when someone thinks to run the extractor. If anything is
+allow-listed, the summary line says so — a run that passed **by exception** must
+not report itself as a run that passed by coverage.
+
+**The allowlist.** `tools/ci/untranslated_allowlist.json` maps
+`{"<locale>": {"<key>": "<reason>"}}` and **starts empty**. A string can be
+knowingly shipped untranslated, but only by naming it and saying *why*, in a
+diff a reviewer sees. It self-cleans, in the same spirit as
+`hardcoded_ui_strings_allowlist.dart`: an entry fails the build once its string
+is translated, once its key leaves the template, once its locale doesn't exist,
+or if its reason is too short to be a reason. So the list cannot rot into a set
+of stale excuses.
+
+**Two known limitations, stated rather than hidden:**
+
+1. **A locale value byte-identical to English passes.** This is the
+   paste-English anti-pattern above, and it cannot be caught mechanically: 415
+   values in the current corpus are *legitimately* identical to their English
+   source (`appTitle`, `commonOk`, `Formation` in Danish and German, `September`
+   in three languages), so an identical-to-English rule would need a
+   several-hundred-entry allowlist on day one. The mitigation is the failure
+   annotation, which names this as the wrong fix and explains why — that
+   annotation is what a contributor reads at the moment they decide how to go
+   green.
+2. **A brand-new locale can pass vacuously.** Step 1 of *Contributing a
+   translation* is "copy the template", and a copy has zero missing keys, so a
+   half-finished new language greens the ratchet while being mostly English.
+   Delete the keys you haven't translated yet (see step 3) and the ratchet
+   measures your language honestly.
+
+Both limitations are asserted as tests in
+`tools/ci/test_check_arb_translation_coverage.py`, so they stay documented
+properties rather than becoming surprises.
 
 ### The `arb-translate` Copilot extension
 

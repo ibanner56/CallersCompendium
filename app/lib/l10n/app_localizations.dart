@@ -226,6 +226,84 @@ abstract class AppLocalizations {
   /// **'Proceed without a backup'**
   String get migrationSnapshotConsentProceed;
 
+  /// Headline on the below-floor recovery screen shown when the on-disk database was written by a build older than the minimum supported schema version. Terminal, no Retry.
+  ///
+  /// In en, this message translates to:
+  /// **'This data is from a version too old to open'**
+  String get migrationBelowFloorHeadline;
+
+  /// Body of the below-floor recovery screen. {bridgeTag} is the release tag of the migration-bridge release (e.g. 'v0.1.0-beta.6').
+  ///
+  /// In en, this message translates to:
+  /// **'Your data can be recovered. Install {bridgeTag}, open the app once to let it update your data, then install this version again.\n\nIf you prefer to start fresh, use the options below — your current data will be lost.'**
+  String migrationBelowFloorBody(String bridgeTag);
+
+  /// Button label on the below-floor recovery screen that first writes a backup of the current database, then resets it to a fresh state. The reset is only performed if the backup succeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Back Up + Reset'**
+  String get migrationBelowFloorBackUpAndReset;
+
+  /// Button label on the below-floor recovery screen that resets the database to a fresh state without making a backup first. Unrecoverable.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset Only'**
+  String get migrationBelowFloorResetOnly;
+
+  /// Title of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed when this dialog is shown.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup failed'**
+  String get migrationBelowFloorBackupFailedTitle;
+
+  /// Body of the dialog shown when the pre-reset backup fails on the below-floor recovery screen. The reset is NOT performed.
+  ///
+  /// In en, this message translates to:
+  /// **'The backup could not be written, so your data has not been reset.'**
+  String get migrationBelowFloorBackupFailedBody;
+
+  /// Title of the confirmation dialog shown before a reset action on the below-floor recovery screen (both Back Up + Reset and Reset Only). Used after a successful backup to ask the user to confirm the wipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset app data?'**
+  String get migrationBelowFloorResetConfirmTitle;
+
+  /// Body of the confirmation dialog shown before a Back Up + Reset action once the backup has been written successfully.
+  ///
+  /// In en, this message translates to:
+  /// **'A backup has been saved. Resetting will replace your current data with a fresh, empty database.'**
+  String get migrationBelowFloorResetConfirmBody;
+
+  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the backup file was written.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup saved to: {backupPath}'**
+  String migrationBelowFloorBackupSavedAt(String backupPath);
+
+  /// Line shown in the Back Up + Reset confirmation dialog to tell the user where the diagnostic log was written (alongside the backup).
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostic log saved to: {logPath}'**
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath);
+
+  /// Body of the confirmation dialog shown before a Reset Only action on the below-floor recovery screen. No backup is made. Must make the irreversibility and data loss explicit.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup will be made. Resetting will permanently delete all your current data and replace it with a fresh, empty database. This cannot be undone.'**
+  String get migrationBelowFloorResetOnlyConfirmBody;
+
+  /// Title of the error dialog shown when the database file could not be deleted during a reset on the below-floor recovery screen. The database is intact.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset failed'**
+  String get migrationBelowFloorWipeFailedTitle;
+
+  /// Body of the error dialog shown when the database file could not be deleted. Instructs the user to close any apps locking the file and retry.
+  ///
+  /// In en, this message translates to:
+  /// **'The database file could not be deleted. Your data has not been changed. Try closing other apps that may be using the file, then try again.'**
+  String get migrationBelowFloorWipeFailedBody;
+
   /// Title of the optional confirm-before-delete dialog (shown only when the 'Confirm before delete' setting is on).
   ///
   /// In en, this message translates to:
@@ -255,6 +333,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'General'**
   String get settingsGeneralTitle;
+
+  /// Settings section navigation title (sidebar/app bar) for program-related preferences: venues, the programming matrix, Perform mode, and calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'Program'**
+  String get settingsProgramTitle;
 
   /// Settings section navigation title (sidebar/app bar) for visual appearance: theme, colours, easter eggs.
   ///
@@ -845,7 +929,7 @@ abstract class AppLocalizations {
   /// Explanation for the set-list colour-coding toggle.
   ///
   /// In en, this message translates to:
-  /// **'Tint each dance row by its formation family (contra, mixer, square, …). The formation is always shown as text too, so rows stay readable without colour.'**
+  /// **'Tint each dance row by its formation family (contra, mixer, square, …) — dances marked as mixers always get the mixer tint, regardless of formation. The formation is always shown as text too, so rows stay readable without colour.'**
   String get settingsAppearanceSetListColorSubtitle;
 
   /// List-tile title opening the formation-colour customisation screen.
@@ -962,6 +1046,24 @@ abstract class AppLocalizations {
   /// **'How the Collection is sorted when you open it. You can still change the sort while browsing.'**
   String get settingsDefaultsSortSubtitle;
 
+  /// Dropdown option meaning the list should open in whatever sort the user last chose while browsing, rather than a fixed one (issue #895).
+  ///
+  /// In en, this message translates to:
+  /// **'Last used'**
+  String get settingsDefaultsSortLastUsed;
+
+  /// Title of the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs sort order'**
+  String get settingsDefaultsProgramSortTitle;
+
+  /// Explanation for the default Programs sort-order picker (issue #895), mirroring settingsDefaultsSortSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How the Programs list is sorted when you open it. You can still change the sort while browsing.'**
+  String get settingsDefaultsProgramSortSubtitle;
+
   /// Toggle title: open dances in canonical terms rather than the active dialect.
   ///
   /// In en, this message translates to:
@@ -973,6 +1075,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.'**
   String get settingsDefaultsCanonicalSubtitle;
+
+  /// Section header for the collection-card field-visibility preference (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Collection card fields'**
+  String get settingsDefaultsCollectionCardHeader;
+
+  /// Subtitle describing the collection card field-visibility checkboxes (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Choose which details appear on each dance row. All fields are shown by default.'**
+  String get settingsDefaultsCollectionCardSubtitle;
+
+  /// Label for the Authors field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Authors'**
+  String get settingsDefaultsCollectionCardAuthors;
+
+  /// Label for the 'called ×N' chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Times called'**
+  String get settingsDefaultsCollectionCardCalledCount;
+
+  /// Label for the Formation chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Formation'**
+  String get settingsDefaultsCollectionCardFormation;
+
+  /// Label for the Status chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get settingsDefaultsCollectionCardStatus;
+
+  /// Label for the Level/mixed-level chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Level'**
+  String get settingsDefaultsCollectionCardLevel;
+
+  /// Label for the Rating chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Rating'**
+  String get settingsDefaultsCollectionCardRating;
+
+  /// Label for the Tags chip field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsDefaultsCollectionCardTags;
+
+  /// Label for the showInList custom-field chips field-visibility toggle (#767).
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields'**
+  String get settingsDefaultsCollectionCardCustomFields;
 
   /// Section header for defaults applied when authoring a new dance.
   ///
@@ -1154,6 +1316,78 @@ abstract class AppLocalizations {
   /// **'Reset {label} to the family default'**
   String settingsFormationColoursResetTooltip(String label);
 
+  /// Section header for the tag-colour customisation entry in Appearance settings.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag colours'**
+  String get settingsAppearanceTagColoursHeader;
+
+  /// List-tile title opening the tag-colour customisation screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag colours'**
+  String get settingsAppearanceTagColoursTitle;
+
+  /// Explanation for the tag-colour customisation entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a tag its own colour to make it stand out on dance cards and dance detail. The tag\'s name is always shown too, so tags stay readable without colour.'**
+  String get settingsAppearanceTagColoursSubtitle;
+
+  /// App-bar title of the per-tag colour settings screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag colours'**
+  String get settingsTagColoursTitle;
+
+  /// Intro paragraph explaining per-tag colours.
+  ///
+  /// In en, this message translates to:
+  /// **'Give a tag its own colour to make it stand out wherever it appears. Only the tags you colour change; the rest look exactly as they do now. The tag\'s name is always shown too, so tags stay readable without colour.'**
+  String get settingsTagColoursIntro;
+
+  /// Section header above the list of tags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get settingsTagColoursListHeader;
+
+  /// Shown on the tag-colour screen when the collection has no tags.
+  ///
+  /// In en, this message translates to:
+  /// **'You haven\'t created any tags yet. Add a tag to a dance and it will appear here.'**
+  String get settingsTagColoursEmpty;
+
+  /// Subtitle shown when a tag has a custom colour set.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom colour'**
+  String get settingsTagColoursCustom;
+
+  /// Subtitle shown when a tag has no colour assigned.
+  ///
+  /// In en, this message translates to:
+  /// **'No colour'**
+  String get settingsTagColoursNoColour;
+
+  /// Tooltip on the button that clears one tag's colour.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {label}\'s colour'**
+  String settingsTagColoursResetTooltip(String label);
+
+  /// Snack-bar message shown when saving or clearing a tag colour fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save that colour. Please try again.'**
+  String get settingsTagColoursSaveError;
+
+  /// Shown on the tag-colour screen when the tag list fails to load.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load your tags.'**
+  String get settingsTagColoursLoadError;
+
   /// General settings section header for collection-library preferences.
   ///
   /// In en, this message translates to:
@@ -1202,6 +1436,288 @@ abstract class AppLocalizations {
   /// **'Browse, edit, and delete your reusable venue records.'**
   String get settingsGeneralManageVenuesSubtitle;
 
+  /// General settings section header for program-building preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Programs'**
+  String get settingsGeneralProgramsHeader;
+
+  /// Title of the General settings toggle controlling the programming matrix's same-figure collision check (issue #962).
+  ///
+  /// In en, this message translates to:
+  /// **'Flag exact beat overlap only'**
+  String get settingsGeneralMatrixExactCollisionTitle;
+
+  /// Subtitle explaining the exact-beat-overlap matrix collision toggle and what turning it off restores.
+  ///
+  /// In en, this message translates to:
+  /// **'In the programming matrix, only flag a repeated move between two back-to-back dances when its beats actually overlap — not just when it lands in the same named phrase (A1, A2, B1, B2…). Turn off to flag any repeat in the same phrase, even if the beats themselves don’t overlap.'**
+  String get settingsGeneralMatrixExactCollisionSubtitle;
+
+  /// Title of the Program settings toggle that commits valid program-editor changes automatically.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-save program changes'**
+  String get settingsProgramAutoCommitTitle;
+
+  /// Subtitle explaining the opt-in program-editor auto-commit preference and its effect on the discard warning.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, valid changes are saved as you work, so leaving the editor does not ask whether to discard them. Turn off to save programs explicitly.'**
+  String get settingsProgramAutoCommitSubtitle;
+
+  /// Header for the Program settings editor that reorders, renames, and removes program-matrix columns.
+  ///
+  /// In en, this message translates to:
+  /// **'Matrix columns'**
+  String get settingsMatrixColumnsHeader;
+
+  /// Explanatory subtitle beneath the matrix-columns editor header.
+  ///
+  /// In en, this message translates to:
+  /// **'Reorder, rename, or remove the columns shown in the programming matrix. Changes apply to every program.'**
+  String get settingsMatrixColumnsSubtitle;
+
+  /// Accessibility label on a matrix-column row's drag handle.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag to reorder {label} column'**
+  String settingsMatrixColumnsDragToReorder(String label);
+
+  /// Small badge shown under a matrix column whose label has a user rename override.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed'**
+  String get settingsMatrixColumnsRenamedBadge;
+
+  /// Tooltip on the rename button for a matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename column'**
+  String get settingsMatrixColumnsRenameTooltip;
+
+  /// Tooltip on the button that removes a matrix column from display.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove column'**
+  String get settingsMatrixColumnsRemoveTooltip;
+
+  /// Tooltip on the button that restores a previously removed matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore column'**
+  String get settingsMatrixColumnsRestoreTooltip;
+
+  /// Title of the dialog for renaming a matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename column'**
+  String get settingsMatrixColumnsRenameTitle;
+
+  /// Label for the text field in the matrix-column rename dialog; leaving it empty restores the default label.
+  ///
+  /// In en, this message translates to:
+  /// **'Column label'**
+  String get settingsMatrixColumnsRenameLabel;
+
+  /// Button that restores removed built-in columns and restores their default order, keeping renames and custom columns.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore removed columns'**
+  String get settingsMatrixColumnsResetRemoved;
+
+  /// Button that clears all matrix-column customisation back to the app defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore all defaults'**
+  String get settingsMatrixColumnsResetTrue;
+
+  /// Title of the confirmation dialog for restoring all matrix-column defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore all defaults?'**
+  String get settingsMatrixColumnsResetTrueTitle;
+
+  /// Body of the confirmation dialog warning that restoring all defaults discards all customisation.
+  ///
+  /// In en, this message translates to:
+  /// **'This clears every column reorder, rename, and removal — including any custom columns — and returns the matrix to its default columns. This can\'t be undone.'**
+  String get settingsMatrixColumnsResetTrueBody;
+
+  /// Confirm button in the restore-all-defaults dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get settingsMatrixColumnsResetTrueConfirm;
+
+  /// Button that opens the editor for adding a parameterized matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameterized column'**
+  String get settingsMatrixColumnsParameterizedAdd;
+
+  /// Title of the add-parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add parameterized column'**
+  String get settingsMatrixColumnsParameterizedTitle;
+
+  /// Title of the edit-parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit parameterized column'**
+  String get settingsMatrixColumnsParameterizedEditTitle;
+
+  /// Label for the taxonomy move selector in a parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get settingsMatrixColumnsParameterizedMove;
+
+  /// Heading above the optional exact parameter constraints in a parameterized-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact parameters to match'**
+  String get settingsMatrixColumnsParameterizedConstraints;
+
+  /// Message shown when the selected taxonomy move has no parameters.
+  ///
+  /// In en, this message translates to:
+  /// **'This move has no parameters.'**
+  String get settingsMatrixColumnsParameterizedNoParams;
+
+  /// Label for the parameterized column name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Column name'**
+  String get settingsMatrixColumnsParameterizedLabel;
+
+  /// Tooltip for editing a parameterized column's move and exact constraints.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit matching details'**
+  String get settingsMatrixColumnsParameterizedEdit;
+
+  /// Tooltip for deleting a parameterized column definition.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete parameterized column'**
+  String get settingsMatrixColumnsParameterizedDelete;
+
+  /// Title of the delete-parameterized-column confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete parameterized column?'**
+  String get settingsMatrixColumnsParameterizedDeleteTitle;
+
+  /// Warning shown before deleting a parameterized column.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the column and its matching rules from the matrix. This cannot be undone.'**
+  String get settingsMatrixColumnsParameterizedDeleteBody;
+
+  /// Confirm button for deleting a parameterized column.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete column'**
+  String get settingsMatrixColumnsParameterizedDeleteConfirm;
+
+  /// Button that opens the editor for adding a compound matrix column.
+  ///
+  /// In en, this message translates to:
+  /// **'Add compound column'**
+  String get settingsMatrixColumnsCompoundAdd;
+
+  /// Title of the add-compound-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Add compound column'**
+  String get settingsMatrixColumnsCompoundTitle;
+
+  /// Title of the edit-compound-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit compound column'**
+  String get settingsMatrixColumnsCompoundEditTitle;
+
+  /// Heading for the ordered steps in a compound-column dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Steps'**
+  String get settingsMatrixColumnsCompoundSteps;
+
+  /// Label for a taxonomy move selector in a compound step.
+  ///
+  /// In en, this message translates to:
+  /// **'Move'**
+  String get settingsMatrixColumnsCompoundMove;
+
+  /// Heading above exact parameter constraints for a compound step.
+  ///
+  /// In en, this message translates to:
+  /// **'Exact parameters'**
+  String get settingsMatrixColumnsCompoundParameters;
+
+  /// Button that appends a step to a compound sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Add step'**
+  String get settingsMatrixColumnsCompoundAddStep;
+
+  /// Tooltip for removing a compound sequence step.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove step'**
+  String get settingsMatrixColumnsCompoundRemoveStep;
+
+  /// Tooltip for moving a compound step earlier in the sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Move step earlier'**
+  String get settingsMatrixColumnsCompoundMoveUp;
+
+  /// Tooltip for moving a compound step later in the sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Move step later'**
+  String get settingsMatrixColumnsCompoundMoveDown;
+
+  /// Label for the compound column name field.
+  ///
+  /// In en, this message translates to:
+  /// **'Column name'**
+  String get settingsMatrixColumnsCompoundLabel;
+
+  /// Tooltip for editing a compound column's sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit sequence'**
+  String get settingsMatrixColumnsCompoundEdit;
+
+  /// Tooltip for deleting a compound column definition.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete compound column'**
+  String get settingsMatrixColumnsCompoundDelete;
+
+  /// Title of the delete-compound-column confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete compound column?'**
+  String get settingsMatrixColumnsCompoundDeleteTitle;
+
+  /// Warning shown before deleting a compound column.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes the column and its matching sequence from the matrix. This cannot be undone.'**
+  String get settingsMatrixColumnsCompoundDeleteBody;
+
+  /// Confirm button for deleting a compound column.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete column'**
+  String get settingsMatrixColumnsCompoundDeleteConfirm;
+
   /// General settings section header for performance-mode display preferences.
   ///
   /// In en, this message translates to:
@@ -1238,7 +1754,7 @@ abstract class AppLocalizations {
   /// **'When on, a dance’s calling history lists only programs whose slot for that dance was marked performed. When off, a program appears as soon as it contains the dance.'**
   String get settingsGeneralRequirePerformedForHistorySubtitle;
 
-  /// Title of the General settings toggle that controls whether calling history counts programs called by everyone, or only those led by the default caller.
+  /// Title of the General settings toggle that controls whether calling history counts programs from everyone, or only those led by the default caller (plus unattributed programs).
   ///
   /// In en, this message translates to:
   /// **'Track calling history for all callers'**
@@ -1247,7 +1763,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the track-calling-history-for-all-callers toggle.
   ///
   /// In en, this message translates to:
-  /// **'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.'**
+  /// **'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.'**
   String get settingsGeneralTrackHistoryForAllCallersSubtitle;
 
   /// General settings section header for accessibility preferences.
@@ -1718,6 +2234,12 @@ abstract class AppLocalizations {
   /// **'Cancel'**
   String get commonCancel;
 
+  /// Generic confirm button that proceeds with the current action. Used wherever a dialog needs a neutral forward-motion label that is not specific to any one workflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get commonContinue;
+
   /// Snackbar action that reverses the action just performed (delete, batch tag/level change).
   ///
   /// In en, this message translates to:
@@ -1958,6 +2480,12 @@ abstract class AppLocalizations {
   /// **'Grid'**
   String get commonFormationGrid;
 
+  /// Formation shape value: quadruplet (longways set for four couples).
+  ///
+  /// In en, this message translates to:
+  /// **'Quadruplet'**
+  String get commonFormationQuadruplet;
+
   /// Formation shape value: some other formation not covered by the named shapes.
   ///
   /// In en, this message translates to:
@@ -1975,6 +2503,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Mixed level'**
   String get commonMixedLevel;
+
+  /// Label for a mixer — a dance in which dancers change partners each time through the sequence (a progressive partner-changing dance), NOT an audio or kitchen mixer. Used as a dance editor checkbox label and a dance-detail indicator.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get commonMixer;
 
   /// Tooltip on a tag chip that filters the collection to dances carrying that tag.
   ///
@@ -2167,6 +2701,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
+
+  /// Label for the local collection search scope selector.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in'**
+  String get collectionSearchScopeLabel;
+
+  /// Local collection search scope covering all indexed fields.
+  ///
+  /// In en, this message translates to:
+  /// **'All fields'**
+  String get collectionSearchScopeOmni;
+
+  /// Local collection search scope restricted to dance titles.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get collectionSearchScopeTitle;
+
+  /// Local collection search scope restricted to canonical figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure'**
+  String get collectionSearchScopeFigure;
 
   /// Tooltip for the button that clears the search text and all active filters.
   ///
@@ -3019,6 +3577,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not yet included in any program.'**
   String get danceCallingHistoryEmpty;
+
+  /// Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the calling history.'**
+  String get danceCallingHistoryError;
 
   /// Accessible label for the toggle that shows canonical (undialected) figure terms.
   ///
@@ -3912,6 +4476,18 @@ abstract class AppLocalizations {
   /// **'Mark performed'**
   String get programsMarkPerformedMenu;
 
+  /// Overflow menu item on a note slot that opens the dance editor, pre-filled from the note, and links this slot to the new dance once saved (issue #881).
+  ///
+  /// In en, this message translates to:
+  /// **'Create a dance from this'**
+  String get programsCreateDanceFromNoteMenu;
+
+  /// Accessibility announcement after creating a dance from a note slot and converting the slot to reference it (issue #881).
+  ///
+  /// In en, this message translates to:
+  /// **'Created {title} and linked this slot to it.'**
+  String programsCreatedDanceFromNoteAnnounce(String title);
+
   /// Overflow menu item to remove a slot from the program.
   ///
   /// In en, this message translates to:
@@ -3935,6 +4511,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit dance slot'**
   String get programsEditDanceSlotTitle;
+
+  /// Caption above the current dance's title in the slot edit dialog (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get programsCurrentDanceLabel;
+
+  /// Button in the slot edit dialog that opens the picker to swap the slot's dance in place (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace…'**
+  String get programsReplaceDanceButton;
+
+  /// Title of the bottom sheet for picking a replacement dance for a program slot (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace dance'**
+  String get programsReplaceDanceSheetTitle;
+
+  /// Screen-reader announcement after picking a replacement dance in the slot edit dialog (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replaced with {title}.'**
+  String programsReplacedDanceAnnounce(String title);
 
   /// Title of the dialog for editing a free-text (note) program slot.
   ///
@@ -4038,10 +4638,10 @@ abstract class AppLocalizations {
   /// **'{dance}, formation: {label}'**
   String programsMatrixFormationSemantic(String dance, String label);
 
-  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance (same figure in the same phrase), is the move's program debut, and/or the dance's opening figure.
+  /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.
   ///
   /// In en, this message translates to:
-  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, yes{, repeats in the same phrase as an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
+  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
   String programsMatrixCellSemantic(
     String dance,
     String move,
@@ -4121,11 +4721,17 @@ abstract class AppLocalizations {
   /// **'Present'**
   String get programsMatrixLegendPresent;
 
-  /// Matrix legend label for the alert marker: the move repeats in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program.
+  /// Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is off: the move merely starts in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance in the program (issue #582's original behaviour).
   ///
   /// In en, this message translates to:
   /// **'Same phrase as adjacent dance'**
   String get programsMatrixLegendCollision;
+
+  /// Matrix legend label for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): the move's beat span actually overlaps a strictly-adjacent dance's occurrence, not merely the same named phrase.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares beats with an adjacent dance'**
+  String get programsMatrixLegendCollisionBeats;
 
   /// Title of the matrix empty state shown when no dance has structured figures.
   ///
@@ -4646,6 +5252,12 @@ abstract class AppLocalizations {
   /// **'Set list copied to clipboard.'**
   String get exportSetListCopied;
 
+  /// Program export-menu item: share the program and its dances as a plain .json file, the same content as the .ccshare bundle but in a format any device can open.
+  ///
+  /// In en, this message translates to:
+  /// **'Export as JSON file'**
+  String get exportShareProgramJson;
+
   /// Snackbar shown when sharing a set list fails.
   ///
   /// In en, this message translates to:
@@ -4663,6 +5275,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t export this set list'**
   String get exportSetListError;
+
+  /// Title of the dialog that asks whether to include full dance-card figures in a set-list text share, copy, or PDF export (issue #853).
+  ///
+  /// In en, this message translates to:
+  /// **'Include figures?'**
+  String get exportIncludeFiguresTitle;
+
+  /// Radio-row label in the figures-inclusion dialog: export titles and metadata, no figure cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list only'**
+  String get exportIncludeFiguresSetListOnly;
+
+  /// Radio-row label in the figures-inclusion dialog: export set list plus a full figure card for each dance, appended after the set list.
+  ///
+  /// In en, this message translates to:
+  /// **'Set list and figures'**
+  String get exportIncludeFiguresSetListAndFigures;
+
+  /// Label prepended to a dance's figure card in a set-list-and-figures export when that dance is an alternate (not the primary slot). Used in plain-text and PDF outputs.
+  ///
+  /// In en, this message translates to:
+  /// **'Alternate'**
+  String get exportIncludeFiguresAlternate;
 
   /// Tooltip on the button that exports/prints the program matrix as a PDF.
   ///
@@ -4687,6 +5323,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Level'**
   String get exportLabelLevel;
+
+  /// Field label for the mixer line on an exported dance card (plain text and PDF); shown only when the dance is a mixer (Dance.mixer == true). A mixer is a dance in which dancers change partners each time through, NOT an audio or kitchen mixer.
+  ///
+  /// In en, this message translates to:
+  /// **'Mixer'**
+  String get exportLabelMixer;
 
   /// Field label for the status (deprecated/broken) on an exported dance card (plain text and PDF).
   ///
@@ -4856,11 +5498,17 @@ abstract class AppLocalizations {
   /// **'Present'**
   String get exportMatrixLegendPresent;
 
-  /// Legend entry on the programming-matrix PDF for the alert marker: a move repeating in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance.
+  /// Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is off: a move merely starting in the same phrase (A1/A2/B1/B2…) as a strictly-adjacent dance (issue #582's original behaviour).
   ///
   /// In en, this message translates to:
   /// **'Same phrase as adjacent dance'**
   String get exportMatrixLegendCollision;
+
+  /// Legend entry on the programming-matrix PDF for the alert marker when the 'flag exact beat overlap only' setting is on (the default, issue #962): a move whose beat span actually overlaps a strictly-adjacent dance's occurrence.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares beats with an adjacent dance'**
+  String get exportMatrixLegendCollisionBeats;
 
   /// Caption on the programming-matrix PDF noting how many free-text slots (breaks, notes) were left out because the matrix shows dances only.
   ///
@@ -4879,12 +5527,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'These are personal contact details for the venue. They\'re left out of this export unless you choose to include them.'**
   String get exportVenueContactBody;
-
-  /// Confirm button on the venue contact consent dialog; proceeds with the share or PDF export, including only the checked contact fields.
-  ///
-  /// In en, this message translates to:
-  /// **'Continue'**
-  String get exportVenueContactConfirm;
 
   /// Checkbox label for the primary venue contact's name in the export consent dialog.
   ///
@@ -5018,11 +5660,29 @@ abstract class AppLocalizations {
   /// **'Same dance (update existing)'**
   String get onlineImportVariationDialogActionLink;
 
-  /// Secondary text in the issue #797 resolution dialog warning that choosing 'same dance' will overwrite user-added data. existingTitle is an untrusted local value rendered as plain text.
+  /// Secondary text warning that 'Same dance (link)' is a wholesale replacement. _rebuildWithIdentity (import_pipeline.dart) preserves only id and createdAt from the existing dance; every other field — figures, callingNotes, tagIds, rating, customFields, tunes, links, sourceCitations, hook, title, form, authorIds, provenance — comes from the incoming draft. Note: authorIds is resolved from the incoming record's author names and provenance is the incoming record's provenance (that is the point of linking); neither survives from the existing dance. The dance id is preserved, so ProgramSlot.danceId references stay intact — programs and calling history survive. Used in both the #797 variation dialog (figures DIFFER — the field callers care most about) and the #811 cross-source dialog (figures canonically identical, so replacement is less consequential). existingTitle is an untrusted local value rendered as plain text.
   ///
   /// In en, this message translates to:
-  /// **'Your edits, tags, and rating for \"{existingTitle}\" will be replaced.'**
+  /// **'Your version of \"{existingTitle}\" will be replaced by the online record — including its figures, notes, tags, rating, and custom fields. It keeps its place in your programs and its calling history.'**
   String onlineImportVariationDialogLinkWarning(String existingTitle);
+
+  /// Title of the resolution dialog shown when a confident title+author match with identical figures is found from a different source during a single-dance online import (issue #811).
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this dance'**
+  String get onlineImportCrossSourceDuplicateDialogTitle;
+
+  /// Body text in the issue #811 resolution dialog for a cross-source duplicate with canonically identical figures (same moves and order; beats and notes may differ). existingTitle is an untrusted local value rendered as plain text.
+  ///
+  /// In en, this message translates to:
+  /// **'Your collection already has \"{existingTitle}\" from a different source. Both versions have the same sequence of moves.'**
+  String onlineImportCrossSourceDuplicateDialogBody(String existingTitle);
+
+  /// Action button in the cross-source duplicate dialog (#811) that lets the user import the dance anyway, creating a second copy alongside the existing one.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a second copy'**
+  String get onlineImportCrossSourceDuplicateDialogActionDuplicate;
 
   /// Attribution line under an online result row sourced from The Caller's Box.
   ///
@@ -5300,10 +5960,10 @@ abstract class AppLocalizations {
   /// **'Resolve unmatched online'**
   String get importResolveOnline;
 
-  /// Per-line status: this title was resolved and imported from The Caller's Box.
+  /// Per-line status: this title was resolved and imported from an online source (The Caller's Box or ContraDB). Deliberately does not name which source (issue #943 ruling: no source attribution in this step; the source is still recorded in the imported dance's provenance).
   ///
   /// In en, this message translates to:
-  /// **'Imported from Caller\'s Box'**
+  /// **'Imported online'**
   String get importPlaintextImportedOnline;
 
   /// Per-line status: this title was linked to an existing local dance.
@@ -5324,10 +5984,10 @@ abstract class AppLocalizations {
   /// **'No match — added as note'**
   String get importPlaintextUnmatched;
 
-  /// Snackbar shown when resolving unmatched title-list lines online fails. The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
+  /// Snackbar shown when resolving unmatched title-list lines online fails. Deliberately does not name a source (issue #943: the resolver tries The Caller's Box then ContraDB). The raw exception is logged (debugPrint), never shown, so no internals leak to the UI (CWE-209).
   ///
   /// In en, this message translates to:
-  /// **'Couldn\'t search The Caller\'s Box.'**
+  /// **'Couldn\'t search online.'**
   String get importPlaintextSearchError;
 
   /// Count of slots in the title-list import preview.
@@ -5336,16 +5996,16 @@ abstract class AppLocalizations {
   /// **'{count, plural, =1{1 slot} other{{count} slots}}'**
   String importPlaintextSlotCount(int count);
 
-  /// Snackbar shown after online resolution when no confident matches were found.
+  /// Snackbar shown after online resolution when no confident matches were found. Deliberately does not name a source (issue #943: tries The Caller's Box then ContraDB).
   ///
   /// In en, this message translates to:
-  /// **'No confident Caller\'s Box matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.'**
+  /// **'No confident online matches found — {remaining, plural, =1{{remaining} title kept as a note} other{{remaining} titles kept as notes}}.'**
   String importPlaintextResolvedNone(int remaining);
 
-  /// Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched.
+  /// Snackbar shown after online resolution when some titles were linked, optionally noting how many remain unmatched. Deliberately does not name a source (issue #943: tries The Caller's Box then ContraDB).
   ///
   /// In en, this message translates to:
-  /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} from The Caller\'s Box{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
+  /// **'Linked {linked, plural, =1{{linked} title} other{{linked} titles}} online{remaining, plural, =0{.} =1{; {remaining} still a note.} other{; {remaining} still notes.}}'**
   String importPlaintextResolvedLinked(int linked, int remaining);
 
   /// Tooltip on the close button of the embedded import review screen.
@@ -5395,6 +6055,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'a Caller\'s Companion .USR file'**
   String get importSourceLabelCallersCompanionUsr;
+
+  /// Name of the pasted-dance-title-list import source (issue #823), shown in the import-source dropdown and in the 'Import dances from {source}.' heading.
+  ///
+  /// In en, this message translates to:
+  /// **'a list of titles'**
+  String get importSourceLabelTitleList;
+
+  /// Subtitle on the import input screen when the pasted-title-list source is selected, explaining the one-title-per-line format and that nothing is written before the review step.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste one dance title per line. Every title is listed for review — the ones you already have are shown but never re-imported, and nothing is added to your collection until you confirm.'**
+  String get importReviewTitleListSubtitle;
+
+  /// Label on the multi-line paste field when the pasted-title-list import source is selected.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance titles, one per line'**
+  String get importReviewPasteTitles;
+
+  /// Live count of distinct titles in the paste field, shown under it before the user continues.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No titles yet} =1{1 title} other{{count} titles}}'**
+  String importReviewTitleListCount(int count);
+
+  /// Note shown when the pasted list repeated a title; repeats are folded onto their first occurrence so a dance is never searched or imported twice.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 repeated title ignored} other{{count} repeated titles ignored}}'**
+  String importReviewTitleListDuplicates(int count);
+
+  /// Refusal shown when a pasted list holds more distinct titles than the per-import cap. The list is refused outright rather than truncated, so the user never believes a longer list imported in full.
+  ///
+  /// In en, this message translates to:
+  /// **'That\'s {count} titles. Import up to {max} at a time.'**
+  String importTitleListTooManyTitles(int count, int max);
+
+  /// Refusal shown when the raw pasted text exceeds the hard character cap, before it is parsed. Deliberately does NOT cite the title-count cap: this path is the raw size limit, which a paste of very long lines can trip with far fewer than the maximum number of titles, so naming that number would misdescribe why the paste was refused.
+  ///
+  /// In en, this message translates to:
+  /// **'That paste is too long to read as a list of titles. Try pasting a shorter list.'**
+  String get importTitleListTextTooLong;
+
+  /// Progress line while each unmatched title is looked up online, one at a time.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching {done} of {total}…'**
+  String importReviewTitleListProgress(int done, int total);
+
+  /// Heading of the review summary banner, naming how many titles were pasted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 pasted title} other{{count} pasted titles}}'**
+  String importReviewTitleListPasted(int count);
+
+  /// Heading over a group of candidate rows for one pasted program line that no online source could resolve confidently (more than one dance shared the title). The user picks at most one candidate to import; leaving them all skipped keeps the line as a free-text note.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" — pick one, or leave as a note'**
+  String importReviewProgramAmbiguousLine(String title);
+
+  /// Summary/group count of pasted titles that resolved to a dance available to import.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 to import} other{{count} to import}}'**
+  String importReviewTitleListToImport(int count);
+
+  /// Summary/group count of pasted titles the user already has. Shown as its own group because 'which of these do I already have?' is useful on its own and needs different follow-up from 'not found'.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 already in your collection} other{{count} already in your collection}}'**
+  String importReviewTitleListOwned(int count);
+
+  /// Summary/group count of pasted titles nothing importable could be found for.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 not found} other{{count} not found}}'**
+  String importReviewTitleListNotFound(int count);
+
+  /// Detail under an already-in-collection row naming the matched dance's choreographer(s). The local match is by title alone, so the author is what lets the user tell a real match from a different dance sharing a title.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this, by {authors}.'**
+  String importReviewTitleListOwnedBy(String authors);
+
+  /// Detail under an already-in-collection row when the matched dance has no recorded choreographer.
+  ///
+  /// In en, this message translates to:
+  /// **'You already have this dance.'**
+  String get importReviewTitleListOwnedUnknownAuthor;
+
+  /// Detail under an already-in-collection row when several local dances share the pasted title. The count is the useful fact; listing every choreographer would be noise.
+  ///
+  /// In en, this message translates to:
+  /// **'You have {count} dances with this title.'**
+  String importReviewTitleListOwnedMany(int count);
+
+  /// Reason under a not-found row: the online search returned nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'The Caller\'s Box has no dance by this name.'**
+  String get importTitleListReasonNoResults;
+
+  /// Reason under a not-found row: results came back but none matched the title exactly, and fuzzy matches are never imported unasked.
+  ///
+  /// In en, this message translates to:
+  /// **'Only near matches — nothing titled exactly this.'**
+  String get importTitleListReasonNoExactMatch;
+
+  /// Reason under a not-found row: more than one online result has this exact title, so it is genuinely ambiguous.
+  ///
+  /// In en, this message translates to:
+  /// **'Several dances share this exact title, so it isn\'t clear which you meant.'**
+  String get importTitleListReasonMultipleExactMatches;
+
+  /// Reason under a not-found row: the search or the per-dance fetch failed. Isolated per title so one failure never aborts the rest of the list. The raw error is logged, never shown (CWE-209).
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t reach The Caller\'s Box for this title.'**
+  String get importTitleListReasonFetchError;
+
+  /// Reason under a not-found row: the pasted line exceeded the per-title length cap, so it was reported rather than turned into a search query.
+  ///
+  /// In en, this message translates to:
+  /// **'Too long to be a dance title, so it wasn\'t searched.'**
+  String get importTitleListReasonLineTooLong;
+
+  /// Shown above the review groups when a pasted list produced no importable dance at all, so the informative rows are still presented instead of a dead-end 'no dances found' screen.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here to import — every title is either already in your collection or couldn\'t be found.'**
+  String get importReviewTitleListNothingToImport;
+
+  /// Import result summary line for a pasted title list: how many titles the user already had. Included so the answer survives the screen closing after a commit.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in your collection: {count}'**
+  String importReviewSummaryAlreadyOwned(int count);
+
+  /// Import result summary line for a pasted title list: how many titles nothing importable could be found for.
+  ///
+  /// In en, this message translates to:
+  /// **'Not found: {count}'**
+  String importReviewSummaryNotFound(int count);
 
   /// Error shown when a chosen import file exceeds the maximum allowed size.
   ///
@@ -5954,6 +6758,12 @@ abstract class AppLocalizations {
   /// **'{importable} of {total} will be imported'**
   String importReviewWillImport(int importable, int total);
 
+  /// Secondary summary line shown above the commit button when a shared bundle (share-target or manual pick) carries programs. Appears alongside importReviewWillImport to indicate the programs will be written regardless of how dance rows are dispositioned.
+  ///
+  /// In en, this message translates to:
+  /// **'Also includes {count, plural, =1{1 program} other{{count} programs}}.'**
+  String importReviewWillImportPrograms(int count);
+
   /// Title shown when the import payload could not be parsed.
   ///
   /// In en, this message translates to:
@@ -6451,6 +7261,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Spans the difficulty scale'**
   String get danceEditorMixedLevelSubtitle;
+
+  /// Subtitle explaining the mixer checkbox in the dance editor: the dance progresses dancers to a new partner each time through the sequence.
+  ///
+  /// In en, this message translates to:
+  /// **'Dancers change partners each time through'**
+  String get danceEditorMixerSubtitle;
 
   /// Label for the partial date when the dance was composed.
   ///
@@ -7029,7 +7845,7 @@ abstract class AppLocalizations {
   /// Introductory copy explaining shared and private choreographer details.
   ///
   /// In en, this message translates to:
-  /// **'These details are shared across every dance credited to this author. Email and location are private — stored only on this device and never shared or exported.'**
+  /// **'These details are shared across every dance credited to this author. Email, location, and the deceased mark are private — stored only on this device and never shared or exported.'**
   String get danceEditorChoreographerDetailsIntro;
 
   /// Required name field label; the asterisk marks the field as required.
@@ -7619,6 +8435,30 @@ abstract class AppLocalizations {
   /// **'Added {title}'**
   String collectionPickerAddedTooltip(String title);
 
+  /// Screen-reader label for a picker row when the picker is in replace mode (issue #964) — tapping the row replaces a program slot's dance rather than adding a new slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with {title}'**
+  String collectionPickerReplaceSemantic(String title);
+
+  /// Tooltip for a picker row's tap target when the picker is in replace mode (issue #964).
+  ///
+  /// In en, this message translates to:
+  /// **'Replace with {title}'**
+  String collectionPickerReplaceTooltip(String title);
+
+  /// Screen-reader label for the persistent in-program marker shown on a picker row when the dance already appears in the program being built (#796). Not a button — it is a status indicator.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is already in the program'**
+  String collectionPickerInProgramSemantic(String title);
+
+  /// Screen-reader label for the persistent in-program marker when the dance appears more than once in the program (#796). Shown alongside the count badge.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} is in the program {count} times'**
+  String collectionPickerInProgramCountSemantic(String title, int count);
+
   /// App-bar title for the user-guide hub.
   ///
   /// In en, this message translates to:
@@ -8189,6 +9029,36 @@ abstract class AppLocalizations {
   /// **'Add an option to {label}'**
   String customFieldsAddOptionTitle(String label);
 
+  /// Label for the 'include in sharing' toggle on the custom field form. When on (the default), this field and its values travel with the collection in exports and transfers.
+  ///
+  /// In en, this message translates to:
+  /// **'Include in sharing'**
+  String get customFieldsShareable;
+
+  /// Subtitle for the 'include in sharing' toggle on the custom field form.
+  ///
+  /// In en, this message translates to:
+  /// **'This field\'s values travel with your collection when you export or share it'**
+  String get customFieldsShareableSubtitle;
+
+  /// Title of the one-time disclosure dialog shown when a user creates their first custom field, explaining that custom field values are included in exports and shares.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom fields travel with your collection'**
+  String get customFieldsSharingNoticeTitle;
+
+  /// Body of the one-time disclosure dialog shown when a user creates their first custom field.
+  ///
+  /// In en, this message translates to:
+  /// **'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.'**
+  String get customFieldsSharingNoticeBody;
+
+  /// Dismiss button for the one-time custom field sharing disclosure dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Got it'**
+  String get customFieldsSharingNoticeOk;
+
   /// App-bar title for the dialect editor; {name} is the dialect name, plain text.
   ///
   /// In en, this message translates to:
@@ -8716,6 +9586,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add new venue “{name}”'**
   String venuePickerCreateOption(String name);
+
+  /// Action label for replacing one saved dance's choreography from another source.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-import choreography'**
+  String get danceReimport;
+
+  /// Source option for choosing a Callers Compendium JSON file for re-import.
+  ///
+  /// In en, this message translates to:
+  /// **'Callers Compendium JSON'**
+  String get danceReimportJson;
+
+  /// Message shown when an online re-import search finds no dances.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching dances were found. Choose another source or try again later.'**
+  String get danceReimportNoResults;
+
+  /// Title of the dialog where the user selects an online dance to re-import.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the dance to re-import'**
+  String get danceReimportChooseResult;
+
+  /// Error shown when a JSON re-import file contains a program.
+  ///
+  /// In en, this message translates to:
+  /// **'This file contains a program and cannot be used to re-import one dance.'**
+  String get danceReimportProgramArchive;
+
+  /// Error shown when a JSON re-import file is invalid or has the wrong dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a valid file containing exactly one dance.'**
+  String get danceReimportInvalidJson;
+
+  /// Error shown when a re-import source cannot be loaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load a dance from that source. Please try again.'**
+  String get danceReimportSourceFailed;
+
+  /// Confirmation shown after saved dance choreography is re-imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Choreography updated.'**
+  String get danceReimported;
+
+  /// Error shown when the saved dance was deleted before re-import could commit.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance was deleted before it could be updated.'**
+  String get danceReimportTargetMissing;
+
+  /// Error shown when the saved dance changed while its re-import preview was open.
+  ///
+  /// In en, this message translates to:
+  /// **'This dance changed before it could be updated. Review it and try again.'**
+  String get danceReimportTargetChanged;
+
+  /// Title for the signed published-collection catalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections'**
+  String get publishedCollectionsTitle;
+
+  /// Import source label for a verified signed collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collection'**
+  String get importSourceLabelPublishedCollection;
+
+  /// Introductory text for the published-collection catalog.
+  ///
+  /// In en, this message translates to:
+  /// **'Import signed, immutable dance collections from Compendium Analect.'**
+  String get publishedCollectionsDescription;
+
+  /// Loading label while the signed published-collection catalog is fetched.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading published collections…'**
+  String get publishedCollectionsLoading;
+
+  /// Non-leaking error shown when the signed catalog cannot be fetched or verified.
+  ///
+  /// In en, this message translates to:
+  /// **'Published collections are temporarily unavailable.'**
+  String get publishedCollectionsUnavailable;
+
+  /// Action that begins importing one signed published collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Import collection'**
+  String get publishedCollectionImport;
+
+  /// Message shown for a signed collection requiring an unsupported capability.
+  ///
+  /// In en, this message translates to:
+  /// **'This collection needs a newer app version.'**
+  String get publishedCollectionUnsupported;
+
+  /// Catalog metadata showing the version of a collection already imported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported version: {version}'**
+  String publishedCollectionImportedVersion(String version);
+
+  /// Catalog metadata showing currently held versus published dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'{held} of {total} dances held'**
+  String publishedCollectionHeldCount(int held, int total);
+
+  /// Catalog metadata showing a collection identifier, version, and published dance count.
+  ///
+  /// In en, this message translates to:
+  /// **'{id} · {version} · {count} dances'**
+  String publishedCollectionDetails(String id, String version, int count);
+
+  /// Catalog metadata showing that this collection version replaces an older version.
+  ///
+  /// In en, this message translates to:
+  /// **'Supersedes version {version}'**
+  String publishedCollectionSupersedes(String version);
 }
 
 class _AppLocalizationsDelegate

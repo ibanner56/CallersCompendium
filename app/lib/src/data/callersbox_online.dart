@@ -28,6 +28,28 @@ class CallersBoxOnline implements OnlineSearchService {
   final CallersBoxSearchFetcher _searchFetcher;
   final UrlFetcher _jsonFetcher;
 
+  /// Largest stated match count for which [search] will re-request the complete
+  /// result set with `show_all`.
+  ///
+  /// TCB caps a normal response at 50 rows. Filtering that capped page would
+  /// hide matches the user never learns exist, so the full set is fetched
+  /// instead — but only when it is small enough to be worth the payload.
+  ///
+  /// Derived from measurement, not taste. The delta between `?title=moon` and
+  /// `?title=moon&show_all` is ~238 B per extra row on top of ~13 KB of page
+  /// chrome, so 500 rows is roughly 120 KB. Broad queries are far past that:
+  /// measured live, `?title=a` states **12,805** matches (~3.0 MB) and the
+  /// by-phrase `balance` search states 10,287. Online search runs on a 500 ms
+  /// as-you-type debounce, so an unconditional `show_all` would fire requests
+  /// of that size repeatedly at a volunteer-run host while the user is still
+  /// typing.
+  ///
+  /// Above this limit the capped page is filtered as-is. That truncation is not
+  /// introduced here — such a query is already showing 50 of many thousands —
+  /// but it is compounded by filtering, and the app does not yet say so. See
+  /// issue #845.
+  static const int showAllMatchLimit = 500;
+
   @override
   OnlineSource get source => OnlineSource.callersBox;
 
@@ -36,30 +58,66 @@ class CallersBoxOnline implements OnlineSearchService {
   /// Title and phrase criteria combine (TCB accepts both in one request). Throws
   /// a typed [UrlFetchException] on any fetch failure, or when
   /// there is nothing to search.
+  ///
+  /// Rows whose figures TCB will not serve are excluded unless the caller sets
+  /// [OnlineSearchQuery.requireFigures] to `false` (issue #845). TCB's
+  /// non-`full` permission tiers mean a dance imports as a metadata-only stub —
+  /// title, formation, notes, no figures — which is almost never what a dance
+  /// search was for, and is at its worst on a by-phrase search, where the user
+  /// searched *by a figure* the result will then refuse to show. Roughly 31% of
+  /// a live result set is affected (measured on `?title=moon&show_all`).
+  ///
+  /// The exclusion is a **search** policy only. Importing such a dance by its
+  /// direct URL still works and still produces the stub with its
+  /// `callersbox_search_tier` warning — [CallersBoxAdapter] is untouched.
+  ///
+  /// So that filtering cannot compound TCB's 50-row cap by shrinking an already
+  /// truncated page, the search is **two-phase**: the normal request states the
+  /// full match total, and when that total exceeds what came back but stays
+  /// within [showAllMatchLimit], the complete set is re-requested with
+  /// `show_all`. A missing or unreadable total simply skips the second request.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     final url = buildCallersBoxSearchUrl(query.title, phrases: query.phrases);
-    final html = await _searchFetcher(url);
+    var html = await _searchFetcher(url);
+    var rows = parseCallersBoxSearchResults(html);
+
+    final total = parseCallersBoxMatchCount(html);
+    if (total != null && total > rows.length && total <= showAllMatchLimit) {
+      final allUrl = buildCallersBoxSearchUrl(
+        query.title,
+        phrases: query.phrases,
+        showAll: true,
+      );
+      html = await _searchFetcher(allUrl);
+      rows = parseCallersBoxSearchResults(html);
+    }
+
     return [
-      for (final r in parseCallersBoxSearchResults(html))
-        OnlineSearchResultRow(
-          source: OnlineSource.callersBox,
-          id: r.id,
-          name: r.name,
-          author: r.author,
-          formation: r.formation,
-        ),
+      for (final r in rows)
+        if (r.figuresAvailable || !query.requireFigures)
+          OnlineSearchResultRow(
+            source: OnlineSource.callersBox,
+            id: r.id,
+            name: r.name,
+            author: r.author,
+            formation: r.formation,
+            figuresAvailable: r.figuresAvailable,
+          ),
     ];
   }
 
   /// Fetches the per-dance JSON for [result], parses it, and builds an
   /// [OnlinePreview] (detail data + dedupe plan). Throws a [UrlFetchException]
-  /// on a fetch failure or when the dance can't be parsed.
+  /// on a fetch failure or when the dance can't be parsed. Pass [index] to plan
+  /// against a shared `DedupeIndex` snapshot instead of building a fresh one
+  /// (see [OnlineSearchService.loadPreview]).
   @override
   Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     final jsonUrl = buildCallersBoxJsonUrl(result.id);
     final payload = await _jsonFetcher(jsonUrl);
@@ -68,6 +126,7 @@ class CallersBoxOnline implements OnlineSearchService {
     final batch = await pipeline.plan(
       CallersBoxAdapter(),
       ImportRequest(payload: payload, uri: jsonUrl),
+      index: index,
     );
     if (batch.records.isEmpty) {
       // Never echo the lower-layer parse error into the UI (CWE-209); keep it
@@ -92,6 +151,13 @@ class CallersBoxOnline implements OnlineSearchService {
   /// - a fuzzy near-match with a confident title+author candidate and differing
   ///   figures returns [OnlineImportKind.needsConfirmation] (nothing written)
   ///   so the caller can show a resolution dialog (issue #797);
+  /// - a fuzzy near-match with a confident title+author candidate,
+  ///   **canonically identical** figures (same moves and order; beats and notes
+  ///   may differ), and a confirmed different source returns
+  ///   [OnlineImportKind.needsConfirmationIdentical] (nothing written) so the
+  ///   caller can show a cross-source duplicate dialog (issue #811); dances with
+  ///   null provenance (hand-entered) fall through to the next case rather than
+  ///   being falsely labelled "from a different source";
   /// - any other fuzzy near-match is imported as a new dance (the user
   ///   explicitly asked for this Caller's Box dance).
   ///
@@ -141,6 +207,23 @@ class CallersBoxOnline implements OnlineSearchService {
         if (!identical) {
           return OnlineImportResult(
             kind: OnlineImportKind.needsConfirmation,
+            title: title,
+            danceId: candidateId,
+            danceCount: 1,
+          );
+        } else if (existing.provenance?.source != null &&
+            plan.draft.raw.source != existing.provenance!.source) {
+          // Canonically identical figures (same moves and order; beats and
+          // notes may differ) from a confirmed different source: prompt the
+          // user instead of silently creating a second copy (issue #811).
+          // Condition guards are:
+          //   - existing.provenance.source != null: skip hand-entered dances
+          //     (null provenance) so we never claim they are "from a different
+          //     source".
+          //   - sources differ: a same-source re-import with a drifted
+          //     externalId stays silent (DedupeResolution.duplicate() below).
+          return OnlineImportResult(
+            kind: OnlineImportKind.needsConfirmationIdentical,
             title: title,
             danceId: candidateId,
             danceCount: 1,
@@ -207,7 +290,6 @@ class CallersBoxOnline implements OnlineSearchService {
       customFields: const [],
       relatedDanceTitles: const {},
       sourcesById: const {},
-      callingHistory: const [],
       crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
     );
   }

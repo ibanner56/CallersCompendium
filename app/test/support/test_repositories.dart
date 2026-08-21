@@ -1,15 +1,33 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show QueryExecutor;
 import 'package:drift/native.dart';
+
+/// An in-memory [CompendiumDatabase] for widget tests.
+///
+/// Always use this rather than constructing one inline: it sets
+/// [CompendiumDatabase.closeStreamsSynchronously], without which any test that
+/// unmounts a screen holding a reactive read (issue #768) fails with "Pending
+/// timers" — `flutter_test` runs under `fake_async` and drift schedules a
+/// zero-duration timer to hold a query stream's cache for one event loop after
+/// its last listener detaches. That failure surfaces in tests which never
+/// mention streams themselves, because they merely mount a shell containing a
+/// converted screen, so the fix belongs here once rather than in each of them.
+///
+/// Pass [executor] to wrap a non-default one (e.g. `NativeDatabase.memory()`
+/// with an interceptor).
+CompendiumDatabase openWidgetTestDatabase([QueryExecutor? executor]) =>
+    CompendiumDatabase(
+      executor ?? NativeDatabase.memory(),
+      closeStreamsSynchronously: true,
+    );
 
 /// An in-memory [CompendiumRepositories] for widget tests. Each call opens a
 /// fresh, isolated database (no shared state between tests), mirroring
 /// `packages/compendium_core/test/storage/test_database.dart`.
-CompendiumRepositories openTestRepositories() => CompendiumRepositories(
-  CompendiumDatabase(NativeDatabase.memory()),
-  contraTaxonomy,
-);
+CompendiumRepositories openTestRepositories() =>
+    CompendiumRepositories(openWidgetTestDatabase(), contraTaxonomy);
 
 /// A [SettingsRepository] that can be forced to fail its writes, used to
 /// simulate the settings store throwing / being unavailable during a backup
@@ -23,9 +41,9 @@ class FailingSettingsRepository extends SettingsRepository {
   bool failWrites = true;
 
   @override
-  Future<void> set(String key, Object? value) {
+  Future<void> set(String key, Object? value, {DateTime? at}) {
     if (failWrites) throw const InjectedSettingsFailure();
-    return super.set(key, value);
+    return super.set(key, value, at: at);
   }
 }
 
@@ -45,7 +63,7 @@ class InjectedSettingsFailure implements Exception {
 /// settings-apply step fails.
 ({CompendiumRepositories repos, FailingSettingsRepository settings})
 openTestRepositoriesWithFailingSettings() {
-  final db = CompendiumDatabase(NativeDatabase.memory());
+  final db = openWidgetTestDatabase();
   final settings = FailingSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
@@ -97,7 +115,7 @@ class DelayedSettingsRepository extends SettingsRepository {
   }
 
   @override
-  Future<void> set(String key, Object? value) async {
+  Future<void> set(String key, Object? value, {DateTime? at}) async {
     writesStarted++;
     final gate = _armedGate;
     if (gate != null) {
@@ -108,8 +126,105 @@ class DelayedSettingsRepository extends SettingsRepository {
       await gate.future;
       _activeGate = null;
     }
-    await super.set(key, value);
+    await super.set(key, value, at: at);
   }
+}
+
+/// A [ProgramRepository] whose next create/update can be held open, used to
+/// prove editor auto-commit generations preserve a newer edit while an older
+/// repository write is in flight.
+class DelayedProgramRepository extends ProgramRepository {
+  DelayedProgramRepository(super.db);
+
+  Completer<void>? _armedGate;
+  Completer<void>? _activeGate;
+  Completer<void>? _writeStarted;
+
+  int writesStarted = 0;
+
+  void holdNextWrite() {
+    _armedGate = Completer<void>();
+    _writeStarted = Completer<void>();
+  }
+
+  Future<void> get writeStarted =>
+      _writeStarted?.future ?? Future<void>.value();
+
+  void releaseWrite() {
+    final gate = _activeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  Future<void> _beforeWrite() async {
+    writesStarted++;
+    final gate = _armedGate;
+    if (gate == null) return;
+    _armedGate = null;
+    _activeGate = gate;
+    _writeStarted?.complete();
+    _writeStarted = null;
+    await gate.future;
+    _activeGate = null;
+  }
+
+  @override
+  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+    await _beforeWrite();
+    await super.create(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+    await _beforeWrite();
+    await super.update(program, knownVenueIds: knownVenueIds);
+  }
+}
+
+class FailingProgramRepository extends ProgramRepository {
+  FailingProgramRepository(super.db);
+
+  bool failWrites = true;
+  int attempts = 0;
+
+  void _checkWrite() {
+    attempts++;
+    if (failWrites) throw const InjectedProgramFailure();
+  }
+
+  @override
+  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+    _checkWrite();
+    await super.create(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+    _checkWrite();
+    await super.update(program, knownVenueIds: knownVenueIds);
+  }
+}
+
+class InjectedProgramFailure implements Exception {
+  const InjectedProgramFailure();
+
+  @override
+  String toString() => 'Injected program-repository failure';
+}
+
+({CompendiumRepositories repos, FailingProgramRepository programs})
+openTestRepositoriesWithFailingPrograms() {
+  final db = openWidgetTestDatabase();
+  final programs = FailingProgramRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
+  return (repos: repos, programs: programs);
+}
+
+({CompendiumRepositories repos, DelayedProgramRepository programs})
+openTestRepositoriesWithDelayedPrograms() {
+  final db = openWidgetTestDatabase();
+  final programs = DelayedProgramRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
+  return (repos: repos, programs: programs);
 }
 
 /// Opens in-memory repositories backed by a [DelayedSettingsRepository], so
@@ -117,8 +232,76 @@ class DelayedSettingsRepository extends SettingsRepository {
 /// cleanup.
 ({CompendiumRepositories repos, DelayedSettingsRepository settings})
 openTestRepositoriesWithDelayedSettings() {
-  final db = CompendiumDatabase(NativeDatabase.memory());
+  final db = openWidgetTestDatabase();
   final settings = DelayedSettingsRepository(db);
+  final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
+  return (repos: repos, settings: settings);
+}
+
+/// A [SettingsRepository] whose [get] can be held open indefinitely, used to
+/// deterministically reproduce a "late settings read arrives after the user
+/// has already sorted in-list" race for the Collection/Programs default-sort
+/// seed (issue #895) — the read counterpart of [DelayedSettingsRepository],
+/// which gates [set] only and so cannot hold open the read side of that race.
+///
+/// A test calls [holdNextRead] for a given [key], triggers the screen's boot
+/// (which starts the seed read), waits for [readStarted] to confirm the read
+/// is in flight, performs the in-session user action the read must not
+/// clobber, then completes [releaseRead] to let the stale read resolve and
+/// asserts the user's choice — not the seed — won.
+class DelayedReadSettingsRepository extends SettingsRepository {
+  DelayedReadSettingsRepository(super.db);
+
+  String? _armedKey;
+  Completer<void>? _armedGate;
+  Completer<void>? _activeGate;
+  Completer<void>? _readStarted;
+
+  /// Arms the gate: the next [get] call for [key] will complete [readStarted]
+  /// and then suspend until [releaseRead] is called. Reads for any other key
+  /// pass straight through, mirroring [DelayedSettingsRepository.holdNextWrite]
+  /// gating only the write it is told to.
+  void holdNextRead(String key) {
+    _armedKey = key;
+    _armedGate = Completer<void>();
+    _readStarted = Completer<void>();
+  }
+
+  /// Resolves once a gated [get] call has started (and is suspended awaiting
+  /// [releaseRead]).
+  Future<void> get readStarted => _readStarted?.future ?? Future<void>.value();
+
+  /// Lets a read suspended by [holdNextRead] proceed. Idempotent, mirroring
+  /// [DelayedSettingsRepository.releaseWrite].
+  void releaseRead() {
+    final gate = _activeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<Object?> get(String key) async {
+    if (key == _armedKey) {
+      final gate = _armedGate!;
+      _armedKey = null;
+      _armedGate = null;
+      _activeGate = gate;
+      _readStarted?.complete();
+      _readStarted = null;
+      await gate.future;
+      _activeGate = null;
+    }
+    return super.get(key);
+  }
+}
+
+/// Opens in-memory repositories backed by a [DelayedReadSettingsRepository],
+/// so tests can hold a default-sort seed read open while the user sorts
+/// in-list, reproducing the late-read-clobber race for both the Collection
+/// and Programs lists (issue #895).
+({CompendiumRepositories repos, DelayedReadSettingsRepository settings})
+openTestRepositoriesWithDelayedSettingsRead() {
+  final db = openWidgetTestDatabase();
+  final settings = DelayedReadSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
 }

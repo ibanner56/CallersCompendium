@@ -1,50 +1,108 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
+import 'package:meta/meta.dart';
 
 import '../../model/custom_field.dart';
 import '../../model/enums.dart';
 import '../database.dart';
+import '../existence.dart';
 
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
 /// Value storage/reconstruction ([CustomFieldValue]) lives in
 /// [DanceRepository] since values are always read/written as part of a
 /// dance; this repository owns only the field *definitions*.
+///
+/// Definitions are **soft-deleted** as of schema v25 (issue #898).
 class CustomFieldDefRepository {
   CustomFieldDefRepository(this._db);
 
   final CompendiumDatabase _db;
 
-  Future<void> upsert(CustomFieldDef def) => _db
-      .into(_db.customFieldDefs)
-      .insertOnConflictUpdate(
-        CustomFieldDefsCompanion.insert(
-          id: def.id,
-          key: def.key,
-          label: def.label,
-          type: def.type,
-          choicesJson: Value(
-            def.choices == null ? null : jsonEncode(def.choices),
-          ),
-          showInList: Value(def.showInList),
-          searchable: Value(def.searchable),
-        ),
+  /// Writes [def], reviving it if a tombstone holds its UNIQUE key. See
+  /// `TagRepository.upsert`.
+  /// Returns the id the definition actually occupies — see
+  /// `TagRepository.upsert` on natural-key adoption.
+  @useResult
+  Future<String> upsert(CustomFieldDef def, {DateTime? at}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final id =
+          await adoptTombstonedNaturalKey(
+            _db,
+            table: _db.customFieldDefs,
+            keyColumn: 'id',
+            naturalKeyColumn: 'key',
+            naturalKey: def.key,
+            incomingId: def.id,
+            joinTable: _db.customFieldValues,
+            joinColumn: 'field_id',
+          ) ??
+          def.id;
+      await _db
+          .into(_db.customFieldDefs)
+          .insertOnConflictUpdate(
+            CustomFieldDefsCompanion.insert(
+              id: id,
+              key: def.key,
+              label: def.label,
+              type: def.type,
+              choicesJson: Value(
+                def.choices == null ? null : jsonEncode(def.choices),
+              ),
+              showInList: Value(def.showInList),
+              searchable: Value(def.searchable),
+              shareable: Value(def.shareable),
+              updatedAt: Value(now),
+            ),
+          );
+      await applyUpsertExistence(
+        _db,
+        table: _db.customFieldDefs,
+        keyColumn: 'id',
+        key: id,
+        at: now,
       );
+      return id;
+    });
+  }
 
   Future<CustomFieldDef?> getById(String id) async {
     final row = await (_db.select(
       _db.customFieldDefs,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
     return row == null ? null : toModel(row);
   }
 
   Future<List<CustomFieldDef>> listAll() async {
-    final rows = await (_db.select(
-      _db.customFieldDefs,
-    )..orderBy([(t) => OrderingTerm(expression: t.label)])).get();
+    final rows =
+        await (_db.select(_db.customFieldDefs)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([(t) => OrderingTerm(expression: t.label)]))
+            .get();
     return [for (final row in rows) ?toModel(row)];
   }
+
+  /// [listAll] as a live stream: the current definitions immediately, then
+  /// again after every write that changes them (issue #768).
+  ///
+  /// Uses the query builder rather than a hand-written `readsFrom`, because
+  /// [listAll] is a single `select(customFieldDefs)` with no Dart fan-out. See
+  /// `VenueRepository.watchAll` for the contrast with the program list.
+  ///
+  /// **Deliberately does not cover [isInUse] or [listUsedChoiceValues].** Those
+  /// read `custom_field_values`, which is a different table and is NOT in this
+  /// stream's inferred set — so a dance gaining or losing a value for a field
+  /// does not re-emit here. That is correct for the definitions list, which
+  /// renders none of it, and it is stated because the two questions sound alike:
+  /// "which fields exist" is not "which fields are used".
+  Stream<List<CustomFieldDef>> watchAll() =>
+      (_db.select(_db.customFieldDefs)
+            ..where((t) => t.deletedAt.isNull())
+            ..orderBy([(t) => OrderingTerm(expression: t.label)]))
+          .watch()
+          .map((rows) => [for (final row in rows) ?toModel(row)]);
 
   /// Returns `true` if any dance currently has a value for field [id].
   ///
@@ -79,18 +137,37 @@ class CustomFieldDefRepository {
   /// The "still used?" check and the delete run inside a single transaction
   /// so no dance can acquire a value for [id] between the check and the
   /// delete (no check-then-act race). Mirrors `VenueRepository.delete`.
-  Future<void> delete(String id) => _db.transaction(() async {
-    final stillUsed = await (_db.select(
-      _db.customFieldValues,
-    )..where((t) => t.fieldId.equals(id))).get();
-    if (stillUsed.isNotEmpty) {
-      throw StateError(
-        'cannot delete custom field "$id": still set on '
-        '${stillUsed.length} dance(s)',
+  ///
+  /// Tombstones by default (schema v25, issue #898); the guard is kept. See
+  /// `ChoreographerRepository.delete` for [permanent].
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final stillUsed = await (_db.select(
+        _db.customFieldValues,
+      )..where((t) => t.fieldId.equals(id))).get();
+      if (stillUsed.isNotEmpty) {
+        throw StateError(
+          'cannot delete custom field "$id": still set on '
+          '${stillUsed.length} dance(s)',
+        );
+      }
+      if (permanent) {
+        await (_db.delete(
+          _db.customFieldDefs,
+        )..where((t) => t.id.equals(id))).go();
+        return;
+      }
+      await stampExistenceTransition(
+        _db,
+        table: _db.customFieldDefs,
+        keyColumn: 'id',
+        key: id,
+        at: now,
+        deleted: true,
       );
-    }
-    await (_db.delete(_db.customFieldDefs)..where((t) => t.id.equals(id))).go();
-  });
+    });
+  }
 
   /// Maps a row to a [CustomFieldDef], returning `null` for a row whose
   /// stored data can't be reconstructed rather than throwing — a malformed or
@@ -126,6 +203,7 @@ class CustomFieldDefRepository {
         choices: choices,
         showInList: row.showInList,
         searchable: row.searchable,
+        shareable: row.shareable,
       );
     } on ArgumentError {
       // E.g. a `choice` field whose decoded list came back empty — the

@@ -144,11 +144,17 @@ void main() {
 
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('SettingsScreen — General settings (G.2)', () {
-    // The General section content only shows once its sidebar entry is picked
-    // (side-by-side layout shows only the selected section).
+  group('SettingsScreen — General & Program settings (G.2)', () {
+    // Section content only shows once its sidebar entry is picked (side-by-side
+    // layout shows only the selected section). The calling-history toggles moved
+    // to the Program section (issue #935); sort-ignore stays under General.
     Future<void> openGeneral(WidgetTester tester) async {
       await tester.tap(find.byKey(const ValueKey('settings-nav-general')));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> openProgram(WidgetTester tester) async {
+      await tester.tap(find.byKey(const ValueKey('settings-nav-program')));
       await tester.pumpAndSettle();
     }
 
@@ -158,7 +164,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openProgram(tester);
 
       expect(find.byKey(toggleKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(find.byKey(toggleKey));
@@ -167,7 +173,7 @@ void main() {
 
     testWidgets('reflects the initial setting value', (tester) async {
       await _pumpSettings(tester, initialRequirePerformed: true);
-      await openGeneral(tester);
+      await openProgram(tester);
 
       final toggle = tester.widget<SwitchListTile>(find.byKey(toggleKey));
       expect(toggle.value, isTrue);
@@ -177,7 +183,7 @@ void main() {
       tester,
     ) async {
       final harness = await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openProgram(tester);
 
       await tester.tap(find.byKey(toggleKey));
       await tester.pumpAndSettle();
@@ -198,7 +204,7 @@ void main() {
           tester,
           initialRequirePerformed: true,
         );
-        await openGeneral(tester);
+        await openProgram(tester);
 
         await tester.tap(find.byKey(toggleKey));
         await tester.pumpAndSettle();
@@ -215,7 +221,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openProgram(tester);
 
       final handle = tester.ensureSemantics();
       expect(
@@ -244,7 +250,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester);
-      await openGeneral(tester);
+      await openProgram(tester);
 
       expect(find.byKey(trackAllCallersKey), findsOneWidget);
       final toggle = tester.widget<SwitchListTile>(
@@ -257,7 +263,7 @@ void main() {
       tester,
     ) async {
       await _pumpSettings(tester, initialTrackHistoryForAllCallers: true);
-      await openGeneral(tester);
+      await openProgram(tester);
 
       final toggle = tester.widget<SwitchListTile>(
         find.byKey(trackAllCallersKey),
@@ -269,7 +275,7 @@ void main() {
       'turning track-all-callers on updates the notifier and persists',
       (tester) async {
         final harness = await _pumpSettings(tester);
-        await openGeneral(tester);
+        await openProgram(tester);
 
         await tester.tap(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();
@@ -293,7 +299,7 @@ void main() {
           tester,
           initialTrackHistoryForAllCallers: true,
         );
-        await openGeneral(tester);
+        await openProgram(tester);
 
         await tester.tap(find.byKey(trackAllCallersKey));
         await tester.pumpAndSettle();

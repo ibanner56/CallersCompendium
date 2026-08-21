@@ -58,6 +58,52 @@ void main() {
       expect(f.params['who'], 'role2s');
     });
 
+    group('chain hand (#976)', () {
+      test('ladles left-hand chain → chain{who:role2s, hand:left}', () {
+        // Guards the <side>-hand consumption: reverting it leaves "left-hand"
+        // as an unconsumed token and s.eat('chain') fails, so the whole line
+        // falls through to custom.
+        final f = _parse('ladles left-hand chain');
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('gentlespoons right-hand chain → chain{who:role1s, hand:right}', () {
+        final f = _parse('gentlespoons right-hand chain');
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'right');
+      });
+
+      test('a bare ladles chain populates the role-implied side: right', () {
+        // Guards the role-implied population: dropping it would leave
+        // `hand` unset (reading as ParamVocab.unspecified at render time)
+        // instead of the side the role word already states.
+        final f = _parse('ladles chain');
+        expect(f.params['hand'], 'right');
+      });
+
+      test(
+        'a bare gentlespoons chain populates the role-implied side: left',
+        () {
+          final f = _parse('gentlespoons chain');
+          expect(f.params['hand'], 'left');
+        },
+      );
+
+      test('*-hand chain stays custom (ContraDB wildcard, no precedent '
+          'recognizer accepts it)', () {
+        // Guards against accepting "*" as a side: no ContraDB recognizer in
+        // this dialect handles the wildcard hand today (_leftRight already
+        // declines bare "*"), so chain must not be the first exception.
+        final f = _parse('ladles *-hand chain');
+        expect(f.isCustom, isTrue);
+      });
+    });
+
     test('circle left 3 places', () {
       final f = _parse('circle left 3 places');
       expect(f.move, 'circle');
@@ -188,20 +234,133 @@ void main() {
       expect(f.params.containsKey('singleFile'), isFalse);
     });
 
-    // Issue #634 — real render: Strange New Worlds #3107, A2 (8 beats). No
-    // dancer subject precedes "single file" — a true single-file promenade
-    // travels the whole major set. Everything after "promenade" (including
-    // ContraDB's own live typo "neightbors") survives verbatim as the note.
-    test('single file promenade → promenade singleFile, everyone', () {
-      final f = _parse(
-        'single file promenade along major set to new neightbors',
-      );
+    group('promenade rotation wording', () {
+      // ContraDB's upstream `promenadeWords` (app/javascript/libfigure/
+      // figure.js @ 13f38a5) renders the rotation qualifier as a trailing
+      // `on the left` (spin) or `on the right` (only when `dir === "along"`),
+      // and SILENCES the default `across` set-direction — so `across` is never
+      // emitted as a word. The rotation forms ContraDB actually renders are
+      // therefore `promenade on the left`, `promenade along on the left`, and
+      // `promenade along on the right`. Left → clockwise, right →
+      // counterclockwise is the maintainer's cross-vocabulary mapping.
+      test('on the left maps to clockwise (default across silenced)', () {
+        final f = _parse('partners promenade on the left');
+        expect(f.params.containsKey('dir'), isFalse);
+        expect(f.params['turn'], 'clockwise');
+        expect(f.note, isNull);
+      });
+
+      test('along on the left maps to clockwise', () {
+        final f = _parse('partners promenade along on the left');
+        expect(f.params['dir'], 'along');
+        expect(f.params['turn'], 'clockwise');
+        expect(f.note, isNull);
+      });
+
+      test('along on the right maps to counterclockwise', () {
+        final f = _parse('partners promenade along on the right');
+        expect(f.params['dir'], 'along');
+        expect(f.params['turn'], 'counterclockwise');
+        expect(f.note, isNull);
+      });
+
+      test('bare promenade leaves turn unset (renders the default)', () {
+        final f = _parse('partners promenade');
+        expect(f.move, 'promenade');
+        expect(f.params.containsKey('turn'), isFalse);
+        expect(f.note, isNull);
+      });
+    });
+
+    // Issue #634 / #749 — real render: Strange New Worlds #3107, A2 (8 beats).
+    // No dancer subject precedes "single file" — a true single-file promenade
+    // travels the whole major set. Since taxonomy v27 (#749 Part A), a bare
+    // `along` direction token immediately after `promenade` is consumed into
+    // `dir:'along'`. Since taxonomy v29 (#921), the destination tail is
+    // structured: "major set to new neightbors" → destination:nextNeighbors.
+    test(
+      'single file promenade along → promenade singleFile, dir:along, destination:nextNeighbors',
+      () {
+        final f = _parse(
+          'single file promenade along major set to new neightbors',
+        );
+        expect(f.isCustom, isFalse);
+        expect(f.move, 'promenade');
+        expect(f.params['who'], 'everyone');
+        expect(f.params['singleFile'], isTrue);
+        // `along` is captured as `dir` (v27 Part A change).
+        expect(f.params['dir'], 'along');
+        // Destination tail now structured (v29 #921).
+        expect(f.params['destination'], 'nextNeighbors');
+        expect(f.note, isNull);
+      },
+    );
+
+    test(
+      'single file promenade along to new neighbors — destination:nextNeighbors',
+      () {
+        final f = _parse('single file promenade along to new neighbors');
+        expect(f.params['singleFile'], isTrue);
+        expect(f.params['dir'], 'along');
+        expect(f.params['destination'], 'nextNeighbors');
+        expect(f.note, isNull);
+      },
+    );
+
+    test(
+      'single file promenade along to new neighbors at home — destination:nextNeighbors, at home consumed',
+      () {
+        final f = _parse(
+          'single file promenade along to new neighbors at home',
+        );
+        expect(f.params['destination'], 'nextNeighbors');
+        expect(f.note, isNull);
+      },
+    );
+
+    test(
+      'single file promenade along to the same neighbors — destination:neighbors',
+      () {
+        final f = _parse('single file promenade along to the same neighbors');
+        expect(f.params['destination'], 'neighbors');
+        expect(f.note, isNull);
+      },
+    );
+
+    test(
+      'single file promenade along to neighbors — destination:neighbors',
+      () {
+        final f = _parse('single file promenade along to neighbors');
+        expect(f.params['destination'], 'neighbors');
+        expect(f.note, isNull);
+      },
+    );
+
+    test('single file promenade — no destination param when no tail', () {
+      final f = _parse('single file promenade along');
+      expect(f.params.containsKey('destination'), isFalse);
+      expect(f.note, isNull);
+    });
+
+    test('single file promenade — unrecognised tail stays as note', () {
+      final f = _parse('single file promenade along some other text');
+      expect(f.params.containsKey('destination'), isFalse);
+      expect(f.note, 'some other text');
+    });
+
+    test('single file promenade (no dir token) — no dir param stored', () {
+      final f = _parse('single file promenade');
       expect(f.isCustom, isFalse);
       expect(f.move, 'promenade');
-      expect(f.params['who'], 'everyone');
       expect(f.params['singleFile'], isTrue);
       expect(f.params.containsKey('dir'), isFalse);
-      expect(f.note, 'along major set to new neightbors');
+      expect(f.note, isNull);
+    });
+
+    test('single file promenade across — dir:across captured', () {
+      final f = _parse('single file promenade across');
+      expect(f.params['singleFile'], isTrue);
+      expect(f.params['dir'], 'across');
     });
 
     test('box the gnat', () {
@@ -350,11 +509,21 @@ void main() {
       expect(f.params['slide'], 'right');
     });
 
-    test('star promenade', () {
+    // Taxonomy v26 (#843): ContraDB star promenades DELIBERATELY fall to the
+    // custom fallback. ContraDB's `who`+`hand` name, as a pair, the dancers
+    // with a hand in the CENTER, while our `who` now names the dancer you PICK
+    // UP on the side (owner ruling, 2026-08-06). The pick-up relationship is
+    // not recoverable from the center role, so structuring the line would
+    // assert the wrong dancers. Owner-accepted structure regression.
+    //
+    // Falsification target: re-register `_starPromenade` in
+    // `contraDbHtmlFigureFrontEnd` and this test goes red.
+    test('star promenade falls to custom (v26 — the hand names the center)', () {
       final f = _parse('star promenade left ½');
-      expect(f.move, 'star_promenade');
-      expect(f.params['hand'], 'left');
-      expect(f.params['turn'], 0.5);
+      expect(f.isCustom, isTrue);
+      // Nothing is LOST by declining: the custom fallback keeps ContraDB's own
+      // wording verbatim, hand included.
+      expect(f.params['text'], contains('star promenade left'));
     });
 
     test('allemande orbit combined line -> meanwhile[allemande, orbit] '
@@ -389,6 +558,57 @@ void main() {
       expect(f.params['who'], 'role1s');
       expect(f.params['hand'], 'right');
     });
+
+    // issue #752 — bare ContraDB form: <subject> cross while <subject> loop
+    test('bare box circulate — larks cross while robins loop (#752)', () {
+      final f = _parse('larks cross while robins loop');
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+    });
+
+    test(
+      'bare box circulate — gentlespoons cross while ladles loop (#752)',
+      () {
+        final f = _parse('gentlespoons cross while ladles loop');
+        expect(f.move, 'box_circulate');
+        expect(f.params['who'], 'role1s');
+        expect(f.params.containsKey('hand'), isFalse);
+      },
+    );
+
+    test('bare box circulate — ladles cross while gentlespoons loop right '
+        '(#752)', () {
+      final f = _parse('ladles cross while gentlespoons loop right');
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['hand'], 'right');
+    });
+
+    // Equivalence: headed and bare forms must produce identical params. Both
+    // forms now support `balance &` via `_eatBalanceAmp`, but the two test
+    // inputs here do NOT include that prefix — so the two
+    // `containsKey('balance')` assertions below are asserting about the test
+    // inputs, not a property of the code. They confirm this test is measuring
+    // what it claims (neither form has an unexpected balance on these inputs);
+    // the balance path itself is tested by the existing headed-form balance
+    // test. The shared-grammar invariant is pinned by the move/who/hand
+    // assertions: if _crossWhileLoopParams is ever split back into two sites
+    // and one drifts, those will catch it.
+    test(
+      'headed and bare forms yield identical who/hand (#752 equivalence)',
+      () {
+        final headed = _parse(
+          'box circulate - larks cross while robins loop right',
+        );
+        final bare = _parse('larks cross while robins loop right');
+        expect(bare.move, headed.move);
+        expect(bare.params['who'], headed.params['who']);
+        expect(bare.params['hand'], headed.params['hand']);
+        expect(bare.params.containsKey('balance'), isFalse);
+        expect(headed.params.containsKey('balance'), isFalse);
+      },
+    );
 
     test('slice', () {
       final f = _parse('slice left');
@@ -877,6 +1097,81 @@ void main() {
       expect(f.params['hand'], 'right');
     });
 
+    // issue #752 — bare form resolves to box_circulate, NOT a meanwhile container
+    test('issue #752 — bare "larks cross while robins loop" resolves to '
+        'box_circulate, not meanwhile', () {
+      final f = parseContraDbFigureLine(
+        'larks cross while robins loop',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+      expect(f.beats, 8);
+    });
+
+    test('issue #752 — bare "gentlespoons cross while ladles loop" resolves '
+        'to box_circulate', () {
+      final f = parseContraDbFigureLine(
+        'gentlespoons cross while ladles loop',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role1s');
+      expect(f.params.containsKey('hand'), isFalse);
+    });
+
+    test('issue #752 — bare "ladles cross while gentlespoons loop right" '
+        'resolves to box_circulate with hand', () {
+      final f = parseContraDbFigureLine(
+        'ladles cross while gentlespoons loop right',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'box_circulate');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['hand'], 'right');
+    });
+
+    // Guard test: without a `loop` token the recognizer must decline, so the
+    // line falls through to the fan-out. This falsifies the loop guard: if
+    // `s.eat('loop')` were removed from _boxCirculateBare, this line would
+    // match as box_circulate(who: role1s, note: "- all balance") instead of
+    // fanning into meanwhile.
+    test('issue #752 guard — "larks cross while robins - all balance" (no '
+        '"loop") does NOT resolve to box_circulate (loop guard)', () {
+      final f = parseContraDbFigureLine(
+        'larks cross while robins - all balance',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      // Must NOT be a structured box_circulate — the `loop` word is absent.
+      // The line fans into a meanwhile container (two custom sides) instead.
+      expect(f!.isMeanwhile, isTrue);
+    });
+
+    // Second-subject null-check: when the token between `cross while` and
+    // `loop` is not a dancer set, _crossWhileLoopParams returns null and the
+    // line falls through. This tests the guard in isolation; it is untested
+    // by the #326 control (which fails before reaching this check because
+    // `eatPhrase('cross while')` rejects it).
+    test('issue #752 guard — unknown second subject declines (second-subject '
+        'null-check)', () {
+      // `something` is not in _subjectPhrases → _crossWhileLoopParams
+      // returns null → _boxCirculateBare returns null → fan-out fires.
+      final f = parseContraDbFigureLine(
+        'role1s cross while something loop',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+    });
+
     test('dances/1603 "Eye Of The Tiger" A1 — "whiles" spelling fans into '
         'a meanwhile container (neither side is a ContraDB template)', () {
       // Exact rendered text from ContraDB dance #1603 (A1 cont'd, 8 beats).
@@ -906,38 +1201,74 @@ void main() {
       expect(sides.every((s) => !s.params.containsKey('beats')), isTrue);
     });
 
-    test('dances/326 "Snake in the Garden" A2 — "while" fans into a '
-        'meanwhile container (one side structures, one stays custom)', () {
+    test('dances/326 "Snake in the Garden" A2 — issue #945 defect B: the '
+        '"out && in" form of form_a_long_wave now resolves as ONE figure '
+        'instead of fanning into a meanwhile container', () {
       // Exact rendered text from ContraDB dance #326 (A2, 8 beats).
+      // Post-scrub: gentlespoons → role1s, ladles → role2s. `who` (the role
+      // dancing IN, named second, after "while") is role2s; role1s is its
+      // invertPair partner, satisfying the role-swap guard.
       final f = parseContraDbFigureLine(
         'gentlespoons dance out while ladles dance in to a long wave in '
         'the center - balance the wave',
         beats: 8,
       );
       expect(f, isNotNull);
-      expect(f!.isMeanwhile, isTrue);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isTrue);
+      expect(f.params['out'], isTrue);
+      expect(f.params['balance'], isTrue);
       expect(f.params['beats'], 8);
-      final sides = f.subFigures;
-      expect(sides, hasLength(2));
-      expect(sides[0].isCustom, isTrue);
-      expect(sides[0].params['text'], 'role1s dance out');
-      expect(sides[1].isCustom, isFalse);
-      expect(sides[1].move, 'form_a_long_wave');
     });
 
-    test('issue #585 (Rock Creek Reel A1) — "while" fans into a meanwhile '
-        'container', () {
+    test('issue #585 (Rock Creek Reel A1) — issue #945 defect B supersedes '
+        '#585\'s meanwhile treatment: the "out && in" form now resolves as '
+        'ONE structured figure', () {
+      // Post-scrub: larks → role1s, robins → role2s. `who` (the role dancing
+      // IN, named after "while") is role2s — critically NOT role1s, which
+      // would silently swap the roles (the role-swap hazard flagged in the
+      // issue #945 handoff).
       final f = parseContraDbFigureLine(
         'larks dance out while robins dance in to a long wave in the '
         'center - balance the wave',
         beats: 8,
       );
       expect(f, isNotNull);
-      expect(f!.isMeanwhile, isTrue);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isTrue);
+      expect(f.params['out'], isTrue);
+      expect(f.params['balance'], isTrue);
       expect(f.params['beats'], 8);
-      expect(f.subFigures[0].isCustom, isTrue);
-      expect(f.subFigures[0].params['text'], 'role1s dance out');
-      expect(f.subFigures[1].move, 'form_a_long_wave');
+    });
+
+    test('issue #945 defect B guard — "gentlespoons dance out while '
+        'gentlespoons dance in ..." is not an invertPair, so the recognizer '
+        'declines and the line still fans into a meanwhile container', () {
+      // Falsification (§9, B2): removing the invertPair consistency check
+      // would let this over-claim and structure with swapped/wrong roles.
+      final f = parseContraDbFigureLine(
+        'gentlespoons dance out while gentlespoons dance in to a long wave '
+        'in the center - balance the wave',
+        beats: 8,
+      );
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isTrue);
+    });
+
+    test('issue #945 defect B — "out && !in" form: "<X> dance out & '
+        'balance" resolves to form_a_long_wave with who = invertPair(X)', () {
+      final f = parseContraDbFigureLine('role1s dance out & balance', beats: 4);
+      expect(f, isNotNull);
+      expect(f!.isMeanwhile, isFalse);
+      expect(f.move, 'form_a_long_wave');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['in'], isFalse);
+      expect(f.params['out'], isTrue);
+      expect(f.params['balance'], isTrue);
     });
 
     test('a note that swallowed the connective is treated like custom: the '
@@ -1004,6 +1335,94 @@ void main() {
 
     test('empty after scrubbing yields null (front-end-independent)', () {
       expect(parseContraDbFigureLine('   '), isNull);
+    });
+  });
+
+  group('issue #945 defect A — ordinal dancer-set tokens (ContraDB\'s '
+      'content-conditional `dialectForFigures` remap, verified against the '
+      'deployed bundle)', () {
+    test('unremapped "neighbors swing" is unaffected', () {
+      expect(_parse('neighbors swing').params['who'], 'neighbors');
+    });
+
+    test('"1st neighbors swing" (the remap sibling nobody reported) → '
+        'who=neighbors', () {
+      final f = _parse('1st neighbors swing');
+      expect(f.move, 'swing');
+      expect(f.params['who'], 'neighbors');
+    });
+
+    test('"2nd neighbors swing" → who=nextNeighbors', () {
+      expect(_parse('2nd neighbors swing').params['who'], 'nextNeighbors');
+    });
+
+    test('"3rd neighbors swing" → who=thirdNeighbors', () {
+      expect(_parse('3rd neighbors swing').params['who'], 'thirdNeighbors');
+    });
+
+    test('"4th neighbors swing" → who=fourthNeighbors', () {
+      expect(_parse('4th neighbors swing').params['who'], 'fourthNeighbors');
+    });
+
+    test('"1st shadows swing" → who=shadows', () {
+      expect(_parse('1st shadows swing').params['who'], 'shadows');
+    });
+
+    test('"2nd shadows swing" → who=secondShadows', () {
+      expect(_parse('2nd shadows swing').params['who'], 'secondShadows');
+    });
+
+    test('dance 3403 ("334") A1/A2 — real rendered lines that cascade to '
+        'custom today all structure once the ordinal tokens are known', () {
+      // Verbatim rendered text from contradb.com/dances/3403.
+      var f = _parse('1st neighbors balance & pull by right');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pull_by_dancers');
+      expect(f.params['who'], 'neighbors');
+
+      f = _parse('2nd neighbors pull by left');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'nextNeighbors');
+
+      f = _parse('3rd neighbors right hand balance & box the gnat');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'box_the_gnat');
+      expect(f.params['who'], 'thirdNeighbors');
+
+      f = _parse('1st neighbors swing');
+      expect(f.isCustom, isFalse);
+      expect(f.params['who'], 'neighbors');
+    });
+  });
+
+  group('issue #945 defect C — "trade by" structures as pass_by '
+      '(ContraDB-dialect note-tail preservation)', () {
+    test('"ladles trade by the left shoulder" (no tail) → pass_by', () {
+      final f = _parse('ladles trade by the left shoulder');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['shoulder'], 'left');
+      expect(f.note, isNull);
+    });
+
+    test('Kettle Drum (dances/3364) B2 — the real line has a trailing tail '
+        'after the shoulder phrase; the ContraDB-dialect recognizer '
+        'preserves it as a note instead of declining the whole line', () {
+      // Verbatim rendered text from contradb.com/dances/3364 (the `<u>`
+      // progression marker around "ladles" is stripped before this stage).
+      final f = _parse('ladles trade by the left shoulder, catch left hands');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'pass_by');
+      expect(f.params['who'], 'role2s');
+      expect(f.params['shoulder'], 'left');
+      expect(f.note, 'catch left hands');
+    });
+
+    test('truncating the tail (§9, C3) still passes — demonstrating the '
+        'tail hazard is real: a test written against the truncated line '
+        'would not have caught it', () {
+      expect(_parse('ladles trade by the left shoulder').isCustom, isFalse);
     });
   });
 }

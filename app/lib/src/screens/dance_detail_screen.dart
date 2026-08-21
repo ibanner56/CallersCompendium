@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +15,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
-import '../data/calling_history_caller_filter.dart';
+import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../search/dance_detail_data.dart';
@@ -30,9 +32,11 @@ import '../widgets/colour_dance_theme.dart';
 import '../widgets/figure_table.dart';
 import '../widgets/formation_color_badge.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/tag_chip.dart';
+import 'dance_detail/calling_history_section.dart';
 import 'dance_editor_screen.dart';
 import 'perform_dance_screen.dart';
-import 'program_editor_screen.dart';
+import 'program_summary_screen.dart';
 
 /// Dance detail / card (`docs/design/ux.md` §2): header (title, authors,
 /// formation, hook, tags, status banner, provenance line), a figure table
@@ -58,6 +62,7 @@ class DanceDetailScreen extends StatefulWidget {
     this.onRestored,
     this.onDeleted,
     this.onNavigateTo,
+    this.onReimport,
   }) : previewData = null,
        onImport = null;
 
@@ -74,7 +79,8 @@ class DanceDetailScreen extends StatefulWidget {
        previewData = data,
        onRestored = null,
        onDeleted = null,
-       onNavigateTo = null;
+       onNavigateTo = null,
+       onReimport = null;
 
   /// Id of the persisted dance to load, or `null` in preview mode (see
   /// [DanceDetailScreen.preview]).
@@ -104,6 +110,10 @@ class DanceDetailScreen extends StatefulWidget {
   /// [Navigator.pushReplacement] instead.
   final void Function(String danceId)? onNavigateTo;
 
+  /// Opens the owner-controlled re-import flow for this saved dance. The list
+  /// owns routed navigation; the collection shell owns its split-pane preview.
+  final Future<void> Function(DanceDetailData detail)? onReimport;
+
   /// App-bar action layout breakpoint (logical pixels). Below this width the
   /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
   /// Delete) into a single overflow menu so the bar never overflows on a phone;
@@ -118,7 +128,29 @@ class DanceDetailScreen extends StatefulWidget {
 
 class _DanceDetailScreenState extends State<DanceDetailScreen> {
   late CompendiumRepositories _repos;
-  Future<DanceDetailData?>? _future;
+
+  /// The live record (issue #768), and whether it has arrived yet.
+  ///
+  /// Two fields rather than one nullable, because `null` is a real value here:
+  /// the dance may not exist, or may have been deleted while this screen is
+  /// open. Without [_loaded], "still loading" and "loaded, no such dance" are
+  /// the same state and the screen renders its not-found message during the
+  /// first frame of every open.
+  DanceDetailData? _data;
+  bool _loaded = false;
+
+  /// The live subscription, and the id it was opened for.
+  ///
+  /// Held in the State and opened once — never built in [build], which would
+  /// re-subscribe and re-query on every frame. Replaced only when the id
+  /// changes, which is what [didUpdateWidget] checks.
+  StreamSubscription<DanceDetailData?>? _dataSub;
+  String? _subscribedId;
+
+  /// Whether the one-shot start sequence has run. Distinct from [_loaded]:
+  /// this is set before the settings seed is awaited, so a second
+  /// [didChangeDependencies] cannot start it twice.
+  bool _started = false;
 
   /// Whether this screen is rendering a non-persisted preview dance (online
   /// Caller's Box result) rather than a saved one. Guards all collection-only
@@ -155,67 +187,157 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Preview mode renders in-memory data directly and reads no scopes (repos,
-    // calling-history setting) — none of the collection-only paths apply.
+    // calling-history setting) — none of the collection-only paths apply, and
+    // in particular it opens no stream: a non-persisted dance has no row for a
+    // watcher to watch.
     if (_isPreview) {
-      _future ??= Future.value(widget.previewData);
+      if (!_loaded) {
+        _data = widget.previewData;
+        _loaded = true;
+      }
       return;
     }
-    final requirePerformed = RequirePerformedForHistoryScope.of(context);
-    final trackAllCallers = TrackHistoryForAllCallersScope.of(context);
-    // Only load once, but reload if either calling-history setting changed: this
-    // callback also fires for unrelated ancestor changes (Theme/MediaQuery/
-    // Localizations), so guard on a setting actually differing.
-    if (_future == null) {
+    // The two calling-history settings are passed straight down to
+    // [CallingHistorySection], which rebuilds its query when either changes.
+    // didChangeDependencies is always followed by a build, so keeping the
+    // fields current is all that is needed — toggling a setting no longer
+    // reloads this whole screen to re-run one query (issue #768).
+    _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
+    _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
+    if (!_started) {
+      _started = true;
       _repos = RepositoriesScope.of(context);
-      _requirePerformedForHistory = requirePerformed;
-      _trackHistoryForAllCallers = trackAllCallers;
-      _future = _load();
-    } else if (requirePerformed != _requirePerformedForHistory ||
-        trackAllCallers != _trackHistoryForAllCallers) {
-      _requirePerformedForHistory = requirePerformed;
-      _trackHistoryForAllCallers = trackAllCallers;
-      _reload();
+      unawaited(_start());
     }
   }
 
-  Future<DanceDetailData?> _load() async {
-    // Seed the initial rendering from the saved default (ROADMAP G.6b) before
-    // the body first renders; skip if the user already flipped the toggle (the
-    // body only shows after this future resolves, so this is a belt-and-braces
-    // guard mirroring the settings-screen load-vs-toggle race). A settings
-    // read/decode failure must not fail the whole detail load — fall back
-    // silently to the historical active-dialect rendering.
-    if (!_canonicalUserSet) {
-      try {
-        final storedRendering = await _repos.settings.get(
-          kDefaultDanceDetailRenderingKey,
-        );
-        if (!_canonicalUserSet) {
-          _canonicalView =
-              danceDetailRenderingFromStored(storedRendering) ==
-              DanceDetailRendering.canonical;
-        }
-      } catch (_) {
-        // Keep the historical default (active dialect).
+  @override
+  void didUpdateWidget(DanceDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Re-subscribe when the id changes, so the stream never outlives the
+    // question it was opened to answer.
+    //
+    // Whether any caller does this is not something this widget can know, and
+    // an earlier version of this comment asserted that none did — a claim about
+    // other files' navigation and keying, which is exactly the shape that goes
+    // stale silently. What it is here for is local and checkable: without it a
+    // rebuild with a new id would render one dance while subscribed to another,
+    // which is worse than either staleness or churn.
+    if (!_isPreview && _started && widget.danceId != oldWidget.danceId) {
+      _loaded = false;
+      _data = null;
+      _subscribe();
+    }
+  }
+
+  /// Seeds the rendering preference, then opens the live subscription.
+  ///
+  /// Ordered, not concurrent: the seed decides how the figure table renders, so
+  /// running it after the first record arrived would render the body once in
+  /// the wrong dialect and then flip it.
+  Future<void> _start() async {
+    await _seedCanonicalDefault();
+    if (!mounted) return;
+    _subscribe();
+  }
+
+  /// Reads the saved default dance-detail rendering (ROADMAP G.6b) once per
+  /// mount and seeds [_canonicalView] from it.
+  ///
+  /// **One-shot, and outside the stream.** This is a preference, not part of
+  /// the record: it decides the initial state of a control the user can then
+  /// flip. Re-reading it on every emit would cost a query per write for a value
+  /// that changes only when the user changes a preference or restores a backup;
+  /// watching the table it lives in is worse still, because an unrelated editor
+  /// autosaves into that table on a debounce while the user types.
+  ///
+  /// It was previously re-read on each reload, guarded by [_canonicalUserSet] —
+  /// incidental to being inside the load rather than a designed refresh, since
+  /// nothing bumped the old channel for a preference write either. A change
+  /// made while this screen is open is picked up the next time it opens, as it
+  /// was before.
+  ///
+  /// The [_canonicalUserSet] guard is kept regardless, because this now runs
+  /// concurrently with nothing but is still awaited before the body renders;
+  /// it mirrors the settings-screen load-vs-toggle race guard. A settings
+  /// read/decode failure must not fail the whole screen — fall back silently to
+  /// the historical active-dialect rendering.
+  Future<void> _seedCanonicalDefault() async {
+    if (_canonicalUserSet) return;
+    try {
+      final storedRendering = await _repos.settings.get(
+        kDefaultDanceDetailRenderingKey,
+      );
+      if (!_canonicalUserSet) {
+        _canonicalView =
+            danceDetailRenderingFromStored(storedRendering) ==
+            DanceDetailRendering.canonical;
       }
+    } catch (_) {
+      // diagnostics: silent — rendering preference read failed; keeps historical default (active dialect).
     }
-
-    final callerFilter = await resolveCallingHistoryCallerFilter(
-      _repos.settings,
-      trackAllCallers: _trackHistoryForAllCallers,
-    );
-    return DanceDetailData.load(
-      _repos,
-      widget.danceId!,
-      performedOnly: _requirePerformedForHistory,
-      callerFilter: callerFilter,
-    );
   }
 
-  void _reload() {
-    setState(() {
-      _future = _load();
-    });
+  /// Opens (or reopens) the live subscription for the current id.
+  ///
+  /// The previous subscription is replaced **synchronously** and cancelled
+  /// afterwards, rather than awaited first. Awaiting first leaves a window in
+  /// which two calls can both read the same `_dataSub`, both replace it, and
+  /// leak whichever assignment lost. Nothing reaches that window today — it
+  /// needs an id change while the preference seed is still pending — but the
+  /// ordering costs nothing and removes the case rather than relying on no
+  /// caller finding it.
+  void _subscribe() {
+    final danceId = widget.danceId!;
+    final previous = _dataSub;
+    _subscribedId = danceId;
+    _dataSub = DanceDetailData.watch(_repos, danceId).listen(
+      (data) {
+        if (!mounted || _subscribedId != danceId) return;
+        setState(() {
+          _data = data;
+          _loaded = true;
+        });
+      },
+      // A stream error means the record could not be re-read — a failing query,
+      // a database closed under us. Rendered exactly as a failed one-shot load
+      // was: the not-found body. That is deliberately unchanged (the previous
+      // `FutureBuilder` never read `snapshot.error`, so an error and an absent
+      // dance already looked alike here), but it is precisely why this has to
+      // be logged rather than discarded: on screen the two are
+      // indistinguishable, so "the dance won't open" arrives as a bug report
+      // with nothing behind it unless the failure reaches the diagnostic log
+      // (issue #963).
+      //
+      // `logCaughtError` rather than the type-only variant: this is our own
+      // local database, not untrusted network or parse content being echoed
+      // back, which is the case that variant exists for.
+      //
+      // `cancelOnError: false`, so a failure does not tear down the
+      // subscription — the next write re-runs the load and the screen recovers
+      // on its own, where a failed one-shot future stayed failed until
+      // something forced a reload.
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_detail_screen._subscribe',
+        );
+        if (!mounted || _subscribedId != danceId) return;
+        setState(() {
+          _data = null;
+          _loaded = true;
+        });
+      },
+      cancelOnError: false,
+    );
+    unawaited(previous?.cancel());
+  }
+
+  @override
+  void dispose() {
+    unawaited(_dataSub?.cancel());
+    super.dispose();
   }
 
   /// Human-readable difficulty label for the export card, combining the
@@ -251,16 +373,29 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         builder: (_) => DanceEditorScreen(danceId: widget.danceId!),
       ),
     );
-    if (mounted) _reload();
+    // Nothing to reload: a save writes `dances`, which this screen watches, so
+    // the edit arrives on its own — with no broadcast to remember and no
+    // dependence on a scope being mounted. Reloading here as well would load
+    // twice for one edit (issue #340).
   }
 
-  /// Opens another dance's detail from an auto cross-reference link in the
-  /// hook / calling notes. Mirrors the `relatedDance` link navigation so the
-  /// two kinds of dance-to-dance links behave identically.
-  void _openDance(String danceId) {
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => DanceDetailScreen(danceId: danceId),
+  /// Opens another dance's detail — from an auto cross-reference link in the
+  /// hook / calling notes, or from a `relatedDance` link row. Both route here
+  /// so the two kinds of dance-to-dance link behave identically (issue #768).
+  ///
+  /// Nothing is reloaded when the pushed screen pops, and that is now correct
+  /// rather than the gap it once was. The pushed screen can edit, duplicate or
+  /// delete the dance it shows, and this screen renders that dance's title in
+  /// its cross-reference and related-link rows — but all three write `dances`,
+  /// which this screen watches, so each arrives on its own.
+  ///
+  /// The `bool` result is still consumed by the routes that pop into a list;
+  /// this screen simply no longer needs it, so it is not awaited for its value.
+  Future<void> _openDance(String danceId) async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) =>
+            DanceDetailScreen(danceId: danceId, onReimport: widget.onReimport),
       ),
     );
   }
@@ -293,7 +428,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     } else {
       await Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(danceId: copy.id),
+          builder: (_) => DanceDetailScreen(
+            danceId: copy.id,
+            onReimport: widget.onReimport,
+          ),
         ),
       );
     }
@@ -312,10 +450,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// snackbar is enqueued. In split-pane mode, this ensures the snackbar
   /// appears in the detail pane rather than being lost on unmount.
   Future<void> _delete() async {
-    final resolvedTitle = (await _future)?.dance.title;
-    if (!mounted) return;
     final l10n = AppLocalizations.of(context);
-    final title = resolvedTitle ?? l10n.danceScreenTitle;
+    final title = _data?.dance.title ?? l10n.danceScreenTitle;
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
     if (!mounted) return;
@@ -355,6 +491,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Opens the shared "Add to program" sheet (`showAddToProgramSheet`) so this
   /// dance can be appended to an existing program or seed a new one. The flow
   /// (and its snackbars) is shared with the Collection list's row action menu.
+  ///
+  /// Nothing is reloaded when the sheet closes, and that is now correct rather
+  /// than the gap-1 bug it once was (issue #768: this was expression-bodied and
+  /// returned the sheet's future without awaiting or reloading, so the
+  /// **Calling history** section kept the pre-add data). The section watches
+  /// `program_slots` itself, so the sheet's write reaches it directly — with no
+  /// broadcast to remember, and no dependence on a scope being mounted.
   Future<void> _addToProgram(String danceTitle) => showAddToProgramSheet(
     context,
     repositories: _repos,
@@ -419,6 +562,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           onPressed: _duplicate,
         ),
         _addToProgramButton(detail),
+        if (widget.onReimport != null)
+          IconButton(
+            key: const ValueKey('reimport-dance'),
+            tooltip: l10n.danceReimport,
+            icon: const Icon(Icons.refresh),
+            onPressed: () => widget.onReimport!(detail),
+          ),
         IconButton(
           key: const ValueKey('delete-dance'),
           tooltip: l10n.danceDeleteTooltip,
@@ -508,6 +658,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
         ),
         const PopupMenuDivider(),
+        if (widget.onReimport != null)
+          PopupMenuItem<void>(
+            key: const ValueKey('reimport-dance'),
+            onTap: () => widget.onReimport!(detail),
+            child: ListTile(
+              leading: const Icon(Icons.refresh),
+              title: Text(l10n.danceReimport),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
         PopupMenuItem<void>(
           key: const ValueKey('duplicate-dance'),
           onTap: _duplicate,
@@ -541,7 +701,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final l10n = AppLocalizations.of(context);
     try {
       await SharePlus.instance.share(ShareParams(text: text, subject: subject));
-    } on Exception catch (_) {
+    } on Exception catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'dance_detail_screen._shareDance');
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.exportShareDanceError)),
       );
@@ -572,7 +733,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           labels: danceExportLabels(l10n),
         ),
       );
-    } on Exception catch (_) {
+    } on Exception catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'dance_detail_screen._exportDancePdf',
+      );
       messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceError)));
     }
   }
@@ -580,84 +746,66 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final detail = _data;
+    // No builders here: the record is a State field fed by one subscription, so
+    // the four places that read it share one value and one rebuild. Four
+    // builders over a stream would need four subscriptions — a single-listener
+    // stream cannot serve them — and would run the query four times over.
+    //
     // Wrap the whole screen (AppBar + body + FAB) so the colour tint covers the
-    // dance's entire view, consistent with the Perform screens. The title comes
-    // from the same cached [_future]; until it resolves the tint is a no-op.
-    return FutureBuilder<DanceDetailData?>(
-      future: _future,
-      builder: (context, titleSnapshot) {
-        return ColourDanceTheme(
-          title: titleSnapshot.data?.dance.title,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact =
-                  constraints.maxWidth <
-                  DanceDetailScreen.compactActionsBreakpoint;
-              return Scaffold(
-                appBar: AppBar(
-                  title: Text(l10n.danceScreenTitle),
-                  actions: [
-                    if (!_isPreview)
-                      FutureBuilder<DanceDetailData?>(
-                        future: _future,
-                        builder: (context, snapshot) {
-                          if (snapshot.data == null) {
-                            return const SizedBox.shrink();
-                          }
-                          final detail = snapshot.data!;
-                          return compact
-                              ? _compactActions(context, detail)
-                              : _fullActions(context, detail);
-                        },
-                      ),
-                  ],
-                ),
-                body: FutureBuilder<DanceDetailData?>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState != ConnectionState.done) {
-                      return const SkeletonDetailView();
-                    }
-                    final detail = snapshot.data;
-                    if (detail == null) {
-                      return Center(child: Text(l10n.danceNotFound));
-                    }
-                    return _buildBody(detail);
-                  },
-                ),
-                // Edit mirrors the program preview's builder affordance: a bottom-right
-                // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
-                // so opening the editor is consistent across the dance and program views.
-                // In preview mode the same slot becomes an Import button.
-                floatingActionButton: FutureBuilder<DanceDetailData?>(
-                  future: _future,
-                  builder: (context, snapshot) {
-                    if (snapshot.data == null) return const SizedBox.shrink();
-                    if (_isPreview) {
-                      return FloatingActionButton.extended(
-                        key: const ValueKey('import-dance'),
-                        heroTag: 'import-dance',
-                        onPressed: widget.onImport == null
-                            ? null
-                            : () => widget.onImport!(),
-                        icon: const Icon(Icons.library_add_outlined),
-                        label: Text(l10n.importAction),
-                      );
-                    }
-                    return FloatingActionButton.extended(
-                      key: const ValueKey('edit-dance'),
-                      heroTag: 'edit-dance',
-                      onPressed: _openEditor,
-                      icon: const Icon(Icons.edit_note),
-                      label: Text(l10n.danceEditFab),
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        );
-      },
+    // dance's entire view, consistent with the Perform screens. Until the
+    // record arrives the title is null and the tint is a no-op.
+    return ColourDanceTheme(
+      title: detail?.dance.title,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.maxWidth < DanceDetailScreen.compactActionsBreakpoint;
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(l10n.danceScreenTitle),
+              actions: [
+                if (!_isPreview && detail != null)
+                  compact
+                      ? _compactActions(context, detail)
+                      : _fullActions(context, detail),
+              ],
+            ),
+            // [_loaded] is what separates "still loading" from "loaded, and
+            // there is no such dance" — the distinction a `ConnectionState`
+            // used to carry. A stream has no equivalent, and without the flag
+            // every open would render the not-found message for a frame.
+            body: !_loaded
+                ? const SkeletonDetailView()
+                : detail == null
+                ? Center(child: Text(l10n.danceNotFound))
+                : _buildBody(detail),
+            // Edit mirrors the program preview's builder affordance: a bottom-right
+            // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
+            // so opening the editor is consistent across the dance and program views.
+            // In preview mode the same slot becomes an Import button.
+            floatingActionButton: detail == null
+                ? null
+                : _isPreview
+                ? FloatingActionButton.extended(
+                    key: const ValueKey('import-dance'),
+                    heroTag: 'import-dance',
+                    onPressed: widget.onImport == null
+                        ? null
+                        : () => widget.onImport!(),
+                    icon: const Icon(Icons.library_add_outlined),
+                    label: Text(l10n.importAction),
+                  )
+                : FloatingActionButton.extended(
+                    key: const ValueKey('edit-dance'),
+                    heroTag: 'edit-dance',
+                    onPressed: _openEditor,
+                    icon: const Icon(Icons.edit_note),
+                    label: Text(l10n.danceEditFab),
+                  ),
+          );
+        },
+      ),
     );
   }
 
@@ -726,6 +874,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     Text(progressionLabel(l10n, dance.progression)),
                   ],
                 ),
+                if (dance.mixer) ...[
+                  const SizedBox(height: AppSpacing.xxs),
+                  Row(
+                    children: [
+                      const Icon(Icons.sync_alt, size: 18),
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(l10n.commonMixer),
+                    ],
+                  ),
+                ],
                 if (dance.status != DanceStatus.active) ...[
                   const SizedBox(height: AppSpacing.sm),
                   _StatusBanner(status: dance.status),
@@ -763,18 +921,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 children: [
                   for (final tag in detail.tags)
                     if (filter != null)
-                      ActionChip(
+                      TagChip(
                         key: ValueKey('tag-filter-chip-${tag.id}'),
-                        avatar: const Icon(Icons.label_outline, size: 16),
-                        label: Text(tag.name),
+                        name: tag.name,
+                        color: tag.color,
                         tooltip: l10n.commonShowDancesTaggedTooltip(tag.name),
                         onPressed: () => filter.filterByTag(tag.id),
                       )
                     else
-                      Chip(
-                        avatar: const Icon(Icons.label_outline, size: 16),
-                        label: Text(tag.name),
-                      ),
+                      TagChip(name: tag.name, color: tag.color),
                 ],
               );
             },
@@ -846,16 +1001,15 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   ? (detail.relatedDanceTitles[link.targetDanceId ?? ''] ??
                         l10n.danceMissingRelated)
                   : null,
+              // Routed through [_openDance] rather than pushing inline: this
+              // was a second, un-awaited copy of the same navigation, so a
+              // dance renamed on the pushed screen left this row showing the
+              // old title (issue #768).
               onTap:
                   link.kind == LinkKind.relatedDance &&
                       link.targetDanceId != null &&
                       detail.relatedDanceTitles.containsKey(link.targetDanceId)
-                  ? () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            DanceDetailScreen(danceId: link.targetDanceId!),
-                      ),
-                    )
+                  ? () => _openDance(link.targetDanceId!)
                   : null,
             ),
         ],
@@ -887,57 +1041,37 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             ),
         ],
         // Calling history is a collection-only concept — hidden for a
-        // not-yet-imported online preview.
-        if (!_isPreview) ...[
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.danceSectionCallingHistory,
-            style: theme.textTheme.titleMedium,
+        // not-yet-imported online preview. Unlike every other section here it
+        // is NOT read from [detail]: it subscribes to the database directly
+        // (issue #768), so a program-side write reaches it without this screen
+        // reloading. See [CallingHistorySection] for the pattern.
+        if (!_isPreview)
+          CallingHistorySection(
+            repositories: _repos,
+            danceId: widget.danceId!,
+            performedOnly: _requirePerformedForHistory,
+            trackAllCallers: _trackHistoryForAllCallers,
+            onOpenProgram: _openProgram,
           ),
-          const SizedBox(height: AppSpacing.xxs),
-          if (detail.callingHistory.isEmpty)
-            Padding(
-              key: const ValueKey('calling-history-empty'),
-              // intentional: 2px optical inset, below the 4px AppSpacing grid
-              padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text(
-                l10n.danceCallingHistoryEmpty,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            )
-          else
-            for (final record in detail.callingHistory)
-              _CallingHistoryRow(
-                key: ValueKey('calling-history-${record.slotId}'),
-                record: record,
-                venueLabel: detail.venueLabelsByProgramId[record.programId],
-                onTap: () => _openProgram(record.programId),
-              ),
-          if (detail.halfCallingStats.hasAny) ...[
-            const SizedBox(height: AppSpacing.xs),
-            _HalfStatsSummary(
-              key: const ValueKey('half-calling-stats'),
-              stats: detail.halfCallingStats,
-            ),
-          ],
-        ],
       ],
     );
   }
 
-  /// Opens the full-screen [ProgramEditorScreen] for [programId] (the same
-  /// route used from the programs list), then reloads so any change to the
-  /// program's performance history is reflected on return.
-  Future<void> _openProgram(String programId) async {
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => ProgramEditorScreen(programId: programId),
-      ),
-    );
-    if (mounted) _reload();
-  }
+  /// Opens the read-focused [ProgramSummaryScreen] for [programId] — the same
+  /// destination tapping a saved program in the programs list reaches, with
+  /// Perform first and the builder a tap away behind "Edit program".
+  ///
+  /// No reload on return, deliberately. The summary can mark slots performed
+  /// ("Mark all performed", or adjustments made while performing) and can
+  /// delete the program outright, all of which change the calling history —
+  /// and all of which are writes to `program_slots` / `programs`, so
+  /// [CallingHistorySection] receives them while this route is still on top.
+  /// Nothing else on this screen is program-derived (issue #768).
+  Future<void> _openProgram(String programId) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => ProgramSummaryScreen(programId: programId),
+    ),
+  );
 }
 
 class _DialectToggle extends StatelessWidget {
@@ -1046,6 +1180,7 @@ class _ProvenanceLine extends StatelessWidget {
         ProvenanceSource.callersCompanion => "Caller's Companion",
         ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
         ProvenanceSource.json => l10n.danceProvenanceSourceJson,
+        ProvenanceSource.publishedCollection => l10n.publishedCollectionsTitle,
       };
 }
 
@@ -1152,148 +1287,6 @@ class _LinkRow extends StatelessWidget {
 /// `eventDate`, else its last-updated time), and the venue if present; tapping
 /// opens the program. Mirrors the row-as-button a11y pattern used by [_LinkRow]
 /// and the set-list rows in `programs_shell.dart`.
-class _CallingHistoryRow extends StatelessWidget {
-  const _CallingHistoryRow({
-    super.key,
-    required this.record,
-    this.venueLabel,
-    this.onTap,
-  });
-
-  final DanceCallingRecord record;
-
-  /// The venue label to display, already resolved by [DanceDetailData.load]
-  /// (linked [Venue] display name when the program's `venueId` resolves,
-  /// otherwise the free-text `venue`). Null falls back to the record's own
-  /// free-text `venue`, so this row still renders correctly without it.
-  final String? venueLabel;
-
-  final VoidCallback? onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final localizations = MaterialLocalizations.of(context);
-    // Programs appear as soon as they include the dance, so `performedAt` is
-    // often null; `effectiveDate` falls back to the program's event date, then
-    // its last-updated time, so a date always shows. These are stored UTC
-    // values rendered directly (matching the other date labels on this screen).
-    final date = localizations.formatMediumDate(record.effectiveDate);
-    final venue = (venueLabel ?? record.venue)?.trim();
-    final subtitleParts = <String>[
-      date,
-      if (venue != null && venue.isNotEmpty) venue,
-    ];
-    final subtitle = subtitleParts.join(' · ');
-
-    return MergeSemantics(
-      child: Semantics(
-        button: true,
-        label: l10n.danceOpenProgramSemantic(
-          record.programTitle,
-          subtitleParts.join(', '),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: ExcludeSemantics(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-              child: Row(
-                children: [
-                  const Icon(Icons.event_note_outlined, size: 16),
-                  const SizedBox(width: AppSpacing.xs),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          record.programTitle,
-                          style: theme.textTheme.bodyLarge,
-                        ),
-                        if (subtitle.isNotEmpty)
-                          Text(
-                            subtitle,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right, size: 16),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A compact, screen-reader-friendly summary of the dance's first/second-half
-/// calling stats (issue #378), shown under the calling-history list when any
-/// half-attributed occurrence exists. Uses icon + text (never colour or a
-/// glyph alone; matrix WCAG 1.4.1 rule) and a single explicit [Semantics]
-/// label so assistive tech announces the whole breakdown as one phrase.
-class _HalfStatsSummary extends StatelessWidget {
-  const _HalfStatsSummary({super.key, required this.stats});
-
-  final HalfCallingStats stats;
-
-  /// Builds the human phrasing shared by the visible text and the semantics
-  /// label, so they never drift apart.
-  String _describe(AppLocalizations l10n) {
-    final parts = <String>[
-      l10n.danceHalfStatsFirstHalf(stats.firstHalfCount),
-      l10n.danceHalfStatsSecondHalf(stats.secondHalfCount),
-    ];
-    if (stats.openedFirstHalfCount > 0) {
-      parts.add(l10n.danceHalfStatsOpened(stats.openedFirstHalfCount));
-    }
-    if (stats.closedSecondHalfCount > 0) {
-      parts.add(l10n.danceHalfStatsClosed(stats.closedSecondHalfCount));
-    }
-    return '${parts.join('; ')}.';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final description = _describe(l10n);
-    return Semantics(
-      label: l10n.danceHalfStatsSemanticLabel(description),
-      container: true,
-      child: ExcludeSemantics(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxs),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                Icons.balance_outlined,
-                size: 16,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  description,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// A single cited published source: title (+ author/year), the citation's
 /// page/number, and the source's URL if present. Read-only display mirroring
 /// [_LinkRow]. A [Semantics] label collapses the multi-line content into one

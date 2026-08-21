@@ -35,6 +35,7 @@ class DanceExportLabels {
   const DanceExportLabels({
     this.formation = 'Formation',
     this.level = 'Level',
+    this.mixer = 'Mixer',
     this.status = 'Status',
     this.phrase = 'Phrase',
     this.figures = 'Figures',
@@ -45,6 +46,9 @@ class DanceExportLabels {
 
   final String formation;
   final String level;
+
+  /// Label for the mixer flag line on the exported dance card.
+  final String mixer;
   final String status;
   final String phrase;
   final String figures;
@@ -74,6 +78,8 @@ class ProgramExportLabels {
     this.schedule = 'Schedule',
     this.price = 'Price',
     this.sponsor = 'Sponsor',
+    this.figures = 'Figures',
+    this.alternate = 'Alternate',
   });
 
   final String band;
@@ -90,12 +96,25 @@ class ProgramExportLabels {
   final String schedule;
   final String price;
   final String sponsor;
+
+  /// Header label for the figures appendix section in a set-list-and-figures
+  /// export (issue #853).
+  final String figures;
+
+  /// Prefix for a dance card in the figures appendix when the dance is an
+  /// alternate slot rather than a primary (issue #853).
+  final String alternate;
 }
 
 /// Labels and fixed captions for the Programming Matrix PDF
 /// (`export/program_matrix_pdf.dart`). [omittedCaption] renders the
 /// "N free-text slots omitted" caption with its (locale-aware, pluralized)
 /// count.
+///
+/// Two collision legend captions are needed (issue #962): the printed legend
+/// must always match [ProgramMatrix.collisionMode], since the on-screen matrix
+/// and its PDF export share the same underlying [ProgramMatrix] and must never
+/// disagree about what the alert marker means.
 class ProgramMatrixExportLabels {
   const ProgramMatrixExportLabels({
     this.defaultTitle = 'Programming matrix',
@@ -107,7 +126,8 @@ class ProgramMatrixExportLabels {
     this.legendDebut = 'Introduced here',
     this.legendFirst = "Dance's first figure",
     this.legendPresent = 'Present',
-    this.legendCollision = 'Same phrase as adjacent dance',
+    this.legendCollisionBeats = 'Shares beats with an adjacent dance',
+    this.legendCollisionPhrase = 'Same phrase as adjacent dance',
     this.omittedCaption = _englishOmittedCaption,
   });
 
@@ -118,6 +138,13 @@ class ProgramMatrixExportLabels {
   final String legendDebut;
   final String legendFirst;
   final String legendPresent;
-  final String legendCollision;
+
+  /// Legend caption for [MatrixCollisionMode.exactBeats] (issue #962, the
+  /// default).
+  final String legendCollisionBeats;
+
+  /// Legend caption for [MatrixCollisionMode.phrase] (issue #582's original
+  /// behaviour, now opt-in).
+  final String legendCollisionPhrase;
   final String Function(int count) omittedCaption;
 }

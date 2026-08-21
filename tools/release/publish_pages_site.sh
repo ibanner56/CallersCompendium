@@ -68,7 +68,20 @@ source_ref="${SOURCE_REF:-$(git rev-parse --short HEAD 2>/dev/null || echo unkno
 # path traversal in a crafted name, and `site/` ships no `*.json` of its own today
 # (verified: only html/css/js/svg), so this can't accidentally preserve a stale
 # site file instead of replacing it.
-preserve=(".git" ".nojekyll" "*.json" "*.json.sig")
+#
+# `CNAME` holds the Pages custom domain. With the Pages source set to "deploy from
+# a branch", GitHub reads the domain from this file at the branch root: delete it
+# and the custom-domain setting is silently CLEARED. Before it was preserved here,
+# every site publish erased it, so the domain had to be re-entered by hand.
+#
+# Belt and braces, and the two layers have a deliberate precedence:
+#   * `site/CNAME` is the SOURCE OF TRUTH — it is copied in below (after the prune),
+#     so a checked-in value always wins.
+#   * this preserve entry is the safety net for a staged site that lacks the file,
+#     so a publish can never clear the domain as a side effect.
+# To RETIRE the custom domain, delete `site/CNAME` *and* drop "CNAME" here —
+# otherwise the stale value is carried forward indefinitely.
+preserve=(".git" ".nojekyll" "CNAME" "*.json" "*.json.sig")
 
 cleanup() { git worktree remove --force "$worktree" >/dev/null 2>&1 || true; }
 trap cleanup EXIT

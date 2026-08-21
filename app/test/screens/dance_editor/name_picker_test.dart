@@ -126,4 +126,61 @@ void main() {
       expect(created, isEmpty);
     },
   );
+
+  testWidgets(
+    'narrow layout: adding three tags in a row keeps the picker open each '
+    'time (#894 — the count matters, since a fix that only reopens once '
+    'passes a two-addition test for the wrong reason)',
+    (tester) async {
+      final added = <String>[];
+      await setScreenSize(tester, const Size(360, 720));
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            body: NamePicker(
+              fieldKey: 'tag',
+              selectedIds: const [],
+              namesById: const {},
+              options: const [
+                (id: 'red', name: 'Red'),
+                (id: 'blue', name: 'Blue'),
+                (id: 'green', name: 'Green'),
+              ],
+              onAdd: added.add,
+              onRemove: (_) {},
+              onCreate: (name) async => name,
+              sheetSemanticLabel: 'Tags',
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('tag-input')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+
+      for (final tag in ['red', 'blue', 'green']) {
+        expect(
+          find.byType(BottomSheet),
+          findsOneWidget,
+          reason: 'sheet must still be open before picking "$tag"',
+        );
+        await tester.enterText(find.byKey(const ValueKey('tag-input')), tag);
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('tag-option-$tag')));
+        await tester.pumpAndSettle();
+      }
+
+      expect(added, ['red', 'blue', 'green']);
+      expect(
+        find.byType(BottomSheet),
+        findsOneWidget,
+        reason: 'sheet must still be open after the third tag',
+      );
+    },
+  );
 }

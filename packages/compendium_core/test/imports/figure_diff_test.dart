@@ -231,7 +231,10 @@ void main() {
 
     test('phrase labels on entries reflect deriveSections', () {
       // 16 beats per phrase (standard structure): a leading 16-beat swing
-      // occupies A1; the differing figure that follows starts at beat 16 (A2).
+      // occupies A1. The differing figure that follows starts at beat 16 with
+      // no explicit beat count (beats == 0). Beat 16 is the A1/A2 boundary;
+      // a zero-beat figure at a phrase boundary is attributed to the preceding
+      // phrase (A1), not the one that follows — see labelForFigure.
       final oldFigures = [
         Figure(move: 'swing', params: {'beats': 16}),
         Figure(move: 'allemande', params: {'hand': 'left'}),
@@ -243,7 +246,7 @@ void main() {
       final result = diff(oldFigures, newFigures);
       expect(result.entries, hasLength(2));
       for (final entry in result.entries) {
-        expect(entry.phraseLabel, 'A2');
+        expect(entry.phraseLabel, 'A1');
       }
     });
 

@@ -47,19 +47,21 @@ class NotFilter extends DanceFilter {
   final DanceFilter child;
 }
 
-/// Full-text search over `dance_fts`. [query] is canonicalized (dialect role
-/// terms rewritten) at the compiler boundary and then sanitized into a safe
-/// `MATCH` bind: each whitespace-delimited token is wrapped as a quoted FTS5
-/// phrase (embedded `"` doubled). This means ordinary punctuated terms like
-/// `do-si-do` or `O'Neill` match instead of raising `fts5: syntax error`, but
-/// it also **neutralizes** user-typed FTS operators — `AND`/`OR`/`NOT`/`NEAR`,
-/// prefix `*`, and explicit `"…"` grouping are treated as literal text, not
-/// query syntax. Callers must not rely on advanced FTS expression support here.
+/// The local full-text scope. [omni] preserves the historical canonical
+/// cross-field search and adds a raw-title fallback; [title] and [figure]
+/// restrict matching to one derived column.
+enum FullTextScope { omni, title, figure }
+
+/// Full-text search over the derived FTS5 indexes. [scope] defaults to
+/// [FullTextScope.omni] so existing callers retain the historical cross-field
+/// behavior. Query canonicalization and the short-prefix/long-substring
+/// strategy are applied at the compiler boundary.
 @immutable
 class FullTextFilter extends DanceFilter {
-  const FullTextFilter(this.query);
+  const FullTextFilter(this.query, {this.scope = FullTextScope.omni});
 
   final String query;
+  final FullTextScope scope;
 }
 
 /// Dances authored by the choreographer with id [choreographerId].
@@ -177,6 +179,23 @@ class MixedLevelFilter extends DanceFilter {
   const MixedLevelFilter(this.mixed);
 
   final bool mixed;
+}
+
+/// Dances whose "mixer" flag equals [mixer] (`dances.mixer`).
+///
+/// A separate boolean leaf for the partner-changing flag added in issue #732.
+/// Modelled orthogonally to [FormationShape] — a mixer can be in any shape
+/// and not every circle dance is a mixer (see [Dance.mixer]).
+///
+/// In the UI this filter is only ever constructed with `mixer = true`
+/// (the facet is tri-state null / "show mixers only"; "show non-mixers only"
+/// is not offered). `false` is valid but unused by the facet panel — the same
+/// pattern [MixedLevelFilter] uses for its `mixed` field.
+@immutable
+class MixerFilter extends DanceFilter {
+  const MixerFilter(this.mixer);
+
+  final bool mixer;
 }
 
 /// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on

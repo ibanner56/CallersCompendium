@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
@@ -56,7 +57,6 @@ Future<void> _pumpEditor(
   CompendiumRepositories repos, {
   String? danceId,
   ThemeData? theme,
-  ValueNotifier<int>? collectionRefresh,
 }) async {
   // Tall surface so the full editor form (which grew with the walkthrough
   // field, #370) lays out without the trailing controls falling beyond a
@@ -71,18 +71,10 @@ Future<void> _pumpEditor(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       theme: theme,
-      builder: (context, child) {
-        final scoped = collectionRefresh == null
-            ? child!
-            : CollectionRefreshScope(
-                revision: collectionRefresh,
-                child: child!,
-              );
-        return RepositoriesScope(
-          repositories: repos,
-          child: ActiveDialectScope(notifier: notifier, child: scoped),
-        );
-      },
+      builder: (context, child) => RepositoriesScope(
+        repositories: repos,
+        child: ActiveDialectScope(notifier: notifier, child: child!),
+      ),
       home: Scaffold(
         body: Builder(
           builder: (context) => TextButton(
@@ -200,29 +192,6 @@ void main() {
     expect(find.byKey(const ValueKey('open-editor')), findsOneWidget);
   });
 
-  testWidgets(
-    'issue #340: saving signals the collection to refresh (a new author must '
-    'reach the live author filter)',
-    (tester) async {
-      final repos = openTestRepositories();
-      final collectionRefresh = ValueNotifier<int>(0);
-      addTearDown(collectionRefresh.dispose);
-      await _pumpEditor(tester, repos, collectionRefresh: collectionRefresh);
-
-      await tester.enterText(
-        find.byKey(const ValueKey('title-field')),
-        'My New Dance',
-      );
-      expect(collectionRefresh.value, 0);
-
-      await tester.tap(find.byKey(const ValueKey('save-dance')));
-      await tester.pumpAndSettle();
-
-      expect(await repos.dances.listAll(), hasLength(1));
-      expect(collectionRefresh.value, greaterThan(0));
-    },
-  );
-
   testWidgets('edit existing: title round-trips', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', title: 'Original'));
@@ -289,6 +258,25 @@ void main() {
     final saved = await repos.dances.getById('d1');
     expect(saved!.level, DanceLevel.intermediate);
     expect(saved.mixedLevel, isTrue);
+  });
+
+  testWidgets('mixer toggles on and round-trips on save (issue #732)', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Original'));
+    await _pumpEditor(tester, repos, danceId: 'd1');
+
+    // The mixer checkbox sits under the formation dropdown, not behind the
+    // More details expander.
+    await tester.tap(find.byKey(const ValueKey('mixer-field')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.dances.getById('d1');
+    expect(saved!.mixer, isTrue);
   });
 
   testWidgets('selecting Unspecified clears an existing level', (tester) async {
@@ -590,6 +578,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.choreographers.upsert(
       Choreographer(id: 'c1', name: 'Gene Hubert'),
     );
@@ -629,6 +618,7 @@ void main() {
 
   testWidgets('tag chips are not editable (no details dialog)', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
     await _pumpEditor(tester, repos);
 
@@ -651,7 +641,9 @@ void main() {
     'committing a tag clears the input, keeps focus, and supports back-to-back adds',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
       await _pumpEditor(tester, repos);
 
@@ -706,6 +698,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
     await _pumpEditor(tester, repos);
 
@@ -779,6 +772,7 @@ void main() {
     'committing an author clears the shared picker input and keeps focus',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.choreographers.upsert(
         Choreographer(id: 'c1', name: 'Gene Hubert'),
       );
@@ -821,6 +815,7 @@ void main() {
 
   testWidgets('custom text field value round-trips', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'f1',
@@ -850,6 +845,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'adj',
@@ -892,6 +888,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'adj',
@@ -928,6 +925,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'b1',
@@ -949,6 +947,7 @@ void main() {
 
   testWidgets('toggled boolean custom field round-trips', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'b1',
@@ -1018,6 +1017,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Chris'));
     await _pumpEditor(tester, repos);
 
@@ -2319,4 +2319,292 @@ void main() {
       );
     });
   });
+
+  group('live reference data (issue #768, PR 9)', () {
+    testWidgets(
+      'a choreographer/tag/dance/source written elsewhere appears without '
+      'reopening the editor',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpEditor(tester, repos);
+
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Gene Hubert'),
+        );
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+        await repos.publishedSources.upsert(
+          PublishedSource(id: 's1', title: 'Zesty Contras'),
+        );
+        await repos.dances.create(
+          _dance(id: 'd-other', title: 'Petronella Twirl'),
+        );
+        await tester.pumpAndSettle();
+
+        // Author picker: option only exists if the choreographer cache was
+        // re-read after the write above (the editor never queried it itself).
+        await tester.enterText(
+          find.byKey(const ValueKey('author-input')),
+          'Gene',
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('author-option-c1')), findsOneWidget);
+
+        // Tag picker (Tier 2 — must expand "More details" first).
+        await _expandMoreDetails(tester);
+        await tester.enterText(
+          find.byKey(const ValueKey('tag-input')),
+          'flowy',
+        );
+        await tester.pumpAndSettle();
+        expect(find.byKey(const ValueKey('tag-option-t1')), findsOneWidget);
+      },
+    );
+  });
+
+  group('the draft survives a reference-data reload (issue #768, PR 9)', () {
+    testWidgets(
+      'a held title, undo stack and figure survive an unrelated tag write',
+      (tester) async {
+        // Opened against an EXISTING dance (not a new one): the mutation this
+        // test must catch — re-running the one-shot `_load()` on a stream
+        // emission — only clobbers something observable when there is a
+        // stored value to clobber the edit back to. A brand-new dance's
+        // `_load()` does not touch `titleController.text` when no seed title
+        // is set, so it would pass against that mutation for the wrong
+        // reason (nothing to overwrite, not "the overwrite was prevented").
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Original Title'));
+        await _pumpEditor(tester, repos, danceId: 'd1');
+
+        await tester.enterText(
+          find.byKey(const ValueKey('title-field')),
+          'My Working Title',
+        );
+        // Past the undo-push debounce (mirrors editor_autosave_undo_test.dart),
+        // so the draft is recorded as dirty before the write below.
+        await tester.pump(const Duration(milliseconds: 600));
+        expect(
+          tester
+              .widget<IconButton>(find.byKey(const ValueKey('undo-button')))
+              .onPressed,
+          isNotNull,
+          reason: 'typing must register as a dirty draft before the write',
+        );
+
+        // An unrelated write the reference-data stream must wake for — but
+        // must not route into the draft.
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 't-unrelated', name: 'unrelated-tag'));
+        await tester.pumpAndSettle();
+
+        // Negative: the draft is untouched. Re-running `_load()` from a
+        // stream emission (the mutation this test is written to catch) would
+        // re-fetch the STORED dance and reset the title field back to
+        // 'Original Title', clobbering the unsaved edit.
+        expect(find.text('My Working Title'), findsOneWidget);
+        expect(find.text('Original Title'), findsNothing);
+        expect(
+          tester
+              .widget<IconButton>(find.byKey(const ValueKey('undo-button')))
+              .onPressed,
+          isNotNull,
+          reason: 'the undo stack must survive the reload',
+        );
+
+        // Positive control: the write did reach the screen, so the negatives
+        // above are evidence the reload is scoped correctly rather than
+        // evidence that nothing happened.
+        await _expandMoreDetails(tester);
+        await tester.enterText(
+          find.byKey(const ValueKey('tag-input')),
+          'unrelated',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('tag-option-t-unrelated')),
+          findsOneWidget,
+        );
+
+        // Save still works: the draft was never disturbed.
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+        final saved = await repos.dances.getById('d1');
+        expect(saved!.title, 'My Working Title');
+      },
+    );
+  });
+
+  group('bounded reload count (issue #768, PR 9)', () {
+    testWidgets(
+      'a program write does not reload; a burst of dance-source writes '
+      'coalesces',
+      (tester) async {
+        final db = openWidgetTestDatabase();
+        addTearDown(db.close);
+        final counting = _CountingDanceRepository(db, contraTaxonomy);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          dances: counting,
+        );
+        await _pumpEditor(tester, repos);
+        await tester.pumpAndSettle();
+        final afterInitialLoad = counting.listAllCalls;
+        expect(afterInitialLoad, greaterThan(0));
+
+        // A program write does not touch the editor's read set at all.
+        await repos.programs.create(
+          Program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            status: ProgramStatus.draft,
+            slots: const [],
+            createdAt: _now,
+            updatedAt: _now,
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          counting.listAllCalls,
+          afterInitialLoad,
+          reason:
+              'the editor renders nothing program-derived, so a program '
+              'write must not reload it',
+        );
+
+        // A burst of writes to OTHER dances (the shape a batch-tag loop
+        // produces) must coalesce rather than reload once per write.
+        for (var i = 0; i < 10; i++) {
+          await repos.dances.create(
+            Dance(
+              id: 'burst$i',
+              title: 'Burst $i',
+              createdAt: _now,
+              updatedAt: _now,
+            ),
+          );
+        }
+        await tester.pumpAndSettle();
+
+        // Paired positive: the counter can move at all, so the bound below is
+        // evidence about coalescing and not about a dead subscription.
+        expect(
+          counting.listAllCalls,
+          greaterThan(afterInitialLoad),
+          reason: 'without this, the bound below would pass for a dead reload',
+        );
+        expect(
+          counting.listAllCalls - afterInitialLoad,
+          lessThan(10),
+          reason: 'a 10-write burst must not produce one reload per write',
+        );
+      },
+    );
+  });
+
+  group('a reference-data load error is surfaced (issue #768, PR 9)', () {
+    testWidgets('a failed choreographer read renders the load-error message', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      failer.arm();
+      await _pumpEditor(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(
+        failer.fired,
+        isTrue,
+        reason: 'the injected failure must actually have fired',
+      );
+      expect(find.text('Could not load the dance.'), findsOneWidget);
+    });
+
+    testWidgets('a subsequent write recovers the editor after a stream error', (
+      tester,
+    ) async {
+      final failer = _FailOneChoreographersSelect();
+      final repos = CompendiumRepositories(
+        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        contraTaxonomy,
+      );
+      addTearDown(repos.db.close);
+
+      failer.arm();
+      await _pumpEditor(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(
+        failer.fired,
+        isTrue,
+        reason: 'the injected failure must actually have fired',
+      );
+      expect(find.text('Could not load the dance.'), findsOneWidget);
+
+      // A new write triggers reference-data stream re-emission, which
+      // now succeeds because failer only failed one select.
+      // ignore: unused_result
+      await repos.choreographers.upsert(
+        Choreographer(id: 'c1', name: 'Gene Hubert'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Could not load the dance.'),
+        findsNothing,
+        reason: 'successful stream emission must clear _loadError',
+      );
+      expect(
+        find.byKey(const ValueKey('save-dance')),
+        findsOneWidget,
+        reason: 'the editor UI must be restored on recovery',
+      );
+    });
+  });
+}
+
+/// A [DanceRepository] that counts [listAll] calls, so a test can assert a
+/// bound on how many times the reference-data stream re-read rather than only
+/// observing its rendered effect.
+class _CountingDanceRepository extends DanceRepository {
+  _CountingDanceRepository(super.db, super.taxonomy);
+
+  int listAllCalls = 0;
+
+  @override
+  Future<List<Dance>> listAll({bool includeDeleted = false}) {
+    listAllCalls++;
+    return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// Fails exactly one `choreographers` select once armed, then delegates
+/// normally. Mirrors `_FailOneVenuesSelect` in `per_consumer_read_sets_test.dart`.
+class _FailOneChoreographersSelect extends drift.QueryInterceptor {
+  bool _armed = false;
+  bool _fired = false;
+
+  bool get fired => _fired;
+
+  void arm() => _armed = true;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) async {
+    if (_armed && !_fired && statement.contains('FROM "choreographers"')) {
+      _fired = true;
+      throw Exception('injected transient choreographers read failure');
+    }
+    return executor.runSelect(statement, args);
+  }
 }

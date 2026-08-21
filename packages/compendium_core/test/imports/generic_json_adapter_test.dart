@@ -375,6 +375,7 @@ void main() {
           final choreographers = ChoreographerRepository(db);
           final pipeline = ImportPipeline(dances, choreographers);
           // Receiver knows this author under a DIFFERENT id than the sender.
+          // ignore: unused_result
           await choreographers.upsert(
             Choreographer(id: 'local-cary', name: 'Cary Ravitz'),
           );

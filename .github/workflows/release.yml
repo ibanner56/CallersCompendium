@@ -1,8 +1,8 @@
-# Release: on a `v*` tag, gate on the reusable checks, build UNSIGNED desktop
-# binaries, package them under the ADR-002 deterministic name contract, and
-# create a **DRAFT** GitHub Release (a human publishes). Everything here is FREE
-# and needs NO secrets and NO code-signing (signing is a deliberately deferred
-# later wave — see docs/adr/002-distribution-and-update-channels.md).
+# Release: on a `v*` tag, gate on the reusable checks, build desktop binaries,
+# optionally sign Windows artifacts, package them under the ADR-002 deterministic
+# name contract, and
+# create a **DRAFT** GitHub Release (a human publishes). Linux remains unsigned;
+# Windows signing is optional and uses OIDC rather than a stored secret.
 #
 # SAFETY MODEL (A6):
 #   * Global token is read-only (`permissions: contents: read`); ONLY the
@@ -60,6 +60,9 @@ jobs:
       pub_date: ${{ steps.resolve.outputs.pub_date }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
       - name: Resolve version/channel and reconcile with pubspec
         id: resolve
         run: |
@@ -100,13 +103,9 @@ jobs:
 
           echo "Resolved: version=$version tag=v$version channel=$channel prerelease=$prerelease"
 
-      # Fail-fast (A12): a STABLE release must ship hand-written notes, so a
-      # plain x.y.z tag with no matching `## [x.y.z]` section in
-      # app/CHANGELOG.md is rejected here in the cheap meta job — BEFORE the
-      # 3-OS build matrix. A prerelease (beta/rc) is allowed through and falls
-      # back to a loud "add notes" draft body at publish time. Guarded to tag
-      # pushes so a build-only workflow_dispatch dry run is never blocked.
-      - name: Require a CHANGELOG section for stable releases
+      # Fail-fast CHANGELOG checks run only for tag pushes, so a build-only
+      # workflow_dispatch dry run is never blocked.
+      - name: Require current CHANGELOG release notes
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           VERSION: ${{ steps.resolve.outputs.version }}
@@ -119,6 +118,13 @@ jobs:
             --tag "$TAG" \
             --channel "$CHANNEL" \
             --changelog app/CHANGELOG.md
+          previous_tag="$(git tag --merged HEAD --sort=-version:refname |
+            grep -E '^v[0-9]' | grep -Fxv "$TAG" | head -n1 || true)"
+          args=(--version "$VERSION")
+          if [ -n "$previous_tag" ]; then
+            args+=(--previous-ref "$previous_tag")
+          fi
+          python3 tools/ci/check_changelog_promoted.py "${args[@]}"
 
   # Same lint/analyze/test gate PRs pass — single-sourced from A5's reusable
   # workflow so a release can never ship code the PR gate would reject.
@@ -142,9 +148,6 @@ jobs:
           - platform: macos
             arch: universal
             os: macos-latest
-          - platform: windows
-            arch: x64
-            os: windows-latest
           # Android ships a single signed universal (fat) APK. The name matches
           # the client's UpdateArch.universal and gen_release_metadata's
           # _EXT_PRIORITY['android']==['apk'], so the manifest entry + SHA256SUMS
@@ -168,6 +171,8 @@ jobs:
             arch: universal
             os: macos-latest
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     env:
       VERSION: ${{ needs.meta.outputs.version }}
     steps:
@@ -293,7 +298,7 @@ jobs:
       # going to build a signed APK (android + secrets present).
       - name: Set up JDK 21 (Temurin)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
-        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: '21'
@@ -896,88 +901,6 @@ jobs:
           git checkout -- app/ios/ShareExtension/Info.plist 2>/dev/null || true
           exit 0
 
-      # --- Windows: zip (portable) + Inno Setup installer ------------------
-      - name: Build Windows release bundle
-        if: matrix.platform == 'windows'
-        working-directory: app
-        run: flutter build windows --release
-
-      - name: Package Windows (zip + installer)
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        env:
-          VERSION: ${{ needs.meta.outputs.version }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $release = "app/build/windows/x64/runner/Release"
-          New-Item -ItemType Directory -Force -Path dist | Out-Null
-
-          # Portable zip: extraction yields a single named directory.
-          $stage = "CallersCompendium-$env:VERSION-windows-x64"
-          if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
-          Copy-Item -Recurse $release $stage
-          Compress-Archive -Path $stage -DestinationPath "dist/$stage.zip" -Force
-
-          # Installer via Inno Setup (preinstalled on windows-latest; fall back
-          # to Chocolatey if the image ever drops it). The fallback is fully
-          # supply-chain hardened (#451): every Chocolatey package it needs is
-          # PINNED to a specific version and its .nupkg SHA-512 is verified
-          # (fail-closed) against the community feed's published PackageHash
-          # BEFORE any install runs, and the install resolves EXCLUSIVELY from
-          # the verified local directory (no live feed). Nothing unverified is
-          # fetched or executed at install time — this matters because a
-          # Chocolatey package's (and its dependencies') install-time PowerShell
-          # runs in the release job, so hashing only the Inno Setup .nupkg would
-          # still leave the dependency chain trusting the live feed.
-          #
-          # The pinned set below is the COMPLETE dependency tree (resolved and
-          # verified transitively; the leaf has no further dependencies):
-          #   innosetup 6.7.1
-          #     -> chocolatey-core.extension 1.4.0
-          #          -> chocolatey-compatibility.extension 1.0.0 (no deps)
-          # innosetup 6.7.1 is the latest stable on the community feed (published
-          # 2026-02-17). Each Sha512 is the hex SHA-512 of that exact .nupkg and
-          # matches the feed's published PackageHash. Bump version + Sha512
-          # together when updating any package, and re-check the dependency tree.
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) {
-            $innoPackages = @(
-              @{ Id = 'innosetup';                         Version = '6.7.1'; Sha512 = '431A9F0A8D40D95F8A04C8D98617D2F6E88AC08B65A01BE1F272D6978C3F726AE118F9D7DC04C2B52A429DDEC3D491358A1C8BF2F77DEEE0ABDA8606A975EB61' }
-              @{ Id = 'chocolatey-core.extension';          Version = '1.4.0'; Sha512 = '78F66C4259BC7AEAFC177EFD6CE1988112B3EF7FC436D330DBE7EF601308A1795EB94D4E117731A3BEE118439E5809FB05927B065E14D0C69F4E2F93BDC7E11B' }
-              @{ Id = 'chocolatey-compatibility.extension'; Version = '1.0.0'; Sha512 = '7117C2BFDD36396A0151110E21D3E9592E72EC79BEAA9B1C06911E2745F6202D6A364A028452873CCFD7F07D237AEB4EFE8FFAB43FF8B8D4A652E7915A32568D' }
-            )
-            $pkgDir = Join-Path $env:RUNNER_TEMP 'innosetup-pkg'
-            New-Item -ItemType Directory -Force -Path $pkgDir | Out-Null
-            foreach ($pkg in $innoPackages) {
-              $nupkg = Join-Path $pkgDir "$($pkg.Id).$($pkg.Version).nupkg"
-              Invoke-WebRequest -UseBasicParsing `
-                -Uri "https://community.chocolatey.org/api/v2/package/$($pkg.Id)/$($pkg.Version)" `
-                -OutFile $nupkg
-              $actualSha512 = (Get-FileHash -Algorithm SHA512 -Path $nupkg).Hash
-              if ($actualSha512 -ne $pkg.Sha512) {
-                throw "$($pkg.Id) $($pkg.Version) package SHA-512 mismatch: expected $($pkg.Sha512), got $actualSha512"
-              }
-            }
-            # Install ONLY from the verified local dir (no community feed), so
-            # every package — including the dependency chain — comes from bytes
-            # we just hash-verified. --require-checksums is defense-in-depth.
-            choco install innosetup --version 6.7.1 -y --no-progress --require-checksums --source "$pkgDir"
-            if ($LASTEXITCODE -ne 0) { throw "choco install innosetup failed ($LASTEXITCODE)" }
-          }
-          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after install" }
-
-          # Inno resolves relative [Files] Source paths against the .iss dir, so
-          # pass ABSOLUTE source/output dirs.
-          $releaseAbs = (Resolve-Path $release).Path
-          $distAbs = (Resolve-Path dist).Path
-          & "$iscc" `
-            "/DMyAppVersion=$env:VERSION" `
-            "/DSourceDir=$releaseAbs" `
-            "/DOutputDir=$distAbs" `
-            "/DOutputBaseName=CallersCompendium-$env:VERSION-windows-x64" `
-            packaging\windows\CallersCompendium.iss
-          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
-
       # --- Android: signed universal APK -----------------------------------
       # Reconstruct the upload keystore + key.properties from repo secrets at
       # runtime, under app/android/ (already gitignored). Secrets are passed via
@@ -1085,11 +1008,181 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Windows uses Azure Trusted Signing via GitHub OIDC, so keep it in its own job
+  # and grant `id-token: write` only here.
+  build_windows:
+    name: Build + package (windows)
+    needs: [meta, checks]
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      id-token: write  # Azure Trusted Signing uses GitHub OIDC
+    env:
+      VERSION: ${{ needs.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Windows signing gate, mirroring the Android/macOS/iOS gates above. Read the
+      # Azure configuration variables via `env:` here and export a plain step output
+      # (`signing=configured|missing`) that the Windows build/package steps below
+      # gate on. When the variables are absent (not yet configured by the
+      # maintainer) the Windows leg is a clean no-op: it stages UNSIGNED binaries
+      # and still succeeds. `mkdir -p dist` keeps the shared "List/Upload" steps
+      # happy on that skip path.
+      - name: Determine Windows signing availability
+        id: windows_signing
+        shell: bash
+        env:
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERT_PROFILE_NAME: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          if [ -n "${AZURE_CLIENT_ID:-}" ] \
+            && [ -n "${AZURE_TENANT_ID:-}" ] \
+            && [ -n "${AZURE_SUBSCRIPTION_ID:-}" ] \
+            && [ -n "${AZURE_SIGNING_ACCOUNT_NAME:-}" ] \
+            && [ -n "${AZURE_CERT_PROFILE_NAME:-}" ]; then
+            echo "signing=configured" >> "$GITHUB_OUTPUT"
+            echo "Windows Azure Trusted Signing variables configured; signing the Windows binaries."
+          else
+            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            echo "::notice::Windows Azure Trusted Signing not configured; producing UNSIGNED Windows artifacts (unchanged from today)."
+          fi
+
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+
+      - run: flutter pub get --enforce-lockfile
+
+      # --- Windows: zip (portable) + Inno Setup installer ------------------
+      - name: Build Windows release bundle
+        working-directory: app
+        run: flutter build windows --release
+
+      - name: Azure Login
+        if: steps.windows_signing.outputs.signing == 'configured'
+        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca # v3
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign Windows bundle binaries with Azure Artifact Signing
+        if: steps.windows_signing.outputs.signing == 'configured'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ${{ github.workspace }}\app\build\windows\x64\runner\Release
+          files-folder-filter: exe,dll
+
+      - name: Package Windows (zip + installer)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = "app/build/windows/x64/runner/Release"
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          # Portable zip: extraction yields a single named directory.
+          $stage = "CallersCompendium-$env:VERSION-windows-x64"
+          if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+          Copy-Item -Recurse $release $stage
+          Compress-Archive -Path $stage -DestinationPath "dist/$stage.zip" -Force
+
+          # Installer via Inno Setup (preinstalled on windows-latest; fall back
+          # to Chocolatey if the image ever drops it). The fallback is fully
+          # supply-chain hardened (#451): every Chocolatey package it needs is
+          # PINNED to a specific version and its .nupkg SHA-512 is verified
+          # (fail-closed) against the community feed's published PackageHash
+          # BEFORE any install runs, and the install resolves EXCLUSIVELY from
+          # the verified local directory (no live feed). Nothing unverified is
+          # fetched or executed at install time — this matters because a
+          # Chocolatey package's (and its dependencies') install-time PowerShell
+          # runs in the release job, so hashing only the Inno Setup .nupkg would
+          # still leave the dependency chain trusting the live feed.
+          #
+          # The pinned set below is the COMPLETE dependency tree (resolved and
+          # verified transitively; the leaf has no further dependencies):
+          #   innosetup 6.7.1
+          #     -> chocolatey-core.extension 1.4.0
+          #          -> chocolatey-compatibility.extension 1.0.0 (no deps)
+          # innosetup 6.7.1 is the latest stable on the community feed (published
+          # 2026-02-17). Each Sha512 is the hex SHA-512 of that exact .nupkg and
+          # matches the feed's published PackageHash. Bump version + Sha512
+          # together when updating any package, and re-check the dependency tree.
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $innoPackages = @(
+              @{ Id = 'innosetup';                         Version = '6.7.1'; Sha512 = '431A9F0A8D40D95F8A04C8D98617D2F6E88AC08B65A01BE1F272D6978C3F726AE118F9D7DC04C2B52A429DDEC3D491358A1C8BF2F77DEEE0ABDA8606A975EB61' }
+              @{ Id = 'chocolatey-core.extension';          Version = '1.4.0'; Sha512 = '78F66C4259BC7AEAFC177EFD6CE1988112B3EF7FC436D330DBE7EF601308A1795EB94D4E117731A3BEE118439E5809FB05927B065E14D0C69F4E2F93BDC7E11B' }
+              @{ Id = 'chocolatey-compatibility.extension'; Version = '1.0.0'; Sha512 = '7117C2BFDD36396A0151110E21D3E9592E72EC79BEAA9B1C06911E2745F6202D6A364A028452873CCFD7F07D237AEB4EFE8FFAB43FF8B8D4A652E7915A32568D' }
+            )
+            $pkgDir = Join-Path $env:RUNNER_TEMP 'innosetup-pkg'
+            New-Item -ItemType Directory -Force -Path $pkgDir | Out-Null
+            foreach ($pkg in $innoPackages) {
+              $nupkg = Join-Path $pkgDir "$($pkg.Id).$($pkg.Version).nupkg"
+              Invoke-WebRequest -UseBasicParsing `
+                -Uri "https://community.chocolatey.org/api/v2/package/$($pkg.Id)/$($pkg.Version)" `
+                -OutFile $nupkg
+              $actualSha512 = (Get-FileHash -Algorithm SHA512 -Path $nupkg).Hash
+              if ($actualSha512 -ne $pkg.Sha512) {
+                throw "$($pkg.Id) $($pkg.Version) package SHA-512 mismatch: expected $($pkg.Sha512), got $actualSha512"
+              }
+            }
+            # Install ONLY from the verified local dir (no community feed), so
+            # every package — including the dependency chain — comes from bytes
+            # we just hash-verified. --require-checksums is defense-in-depth.
+            choco install innosetup --version 6.7.1 -y --no-progress --require-checksums --source "$pkgDir"
+            if ($LASTEXITCODE -ne 0) { throw "choco install innosetup failed ($LASTEXITCODE)" }
+          }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after install" }
+
+          # Inno resolves relative [Files] Source paths against the .iss dir, so
+          # pass ABSOLUTE source/output dirs.
+          $releaseAbs = (Resolve-Path $release).Path
+          $distAbs = (Resolve-Path dist).Path
+          & "$iscc" `
+            "/DMyAppVersion=$env:VERSION" `
+            "/DSourceDir=$releaseAbs" `
+            "/DOutputDir=$distAbs" `
+            "/DOutputBaseName=CallersCompendium-$env:VERSION-windows-x64" `
+            packaging\windows\CallersCompendium.iss
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed ($LASTEXITCODE)" }
+
+      - name: Sign Windows installer with Azure Artifact Signing
+        if: steps.windows_signing.outputs.signing == 'configured'
+        uses: Azure/artifact-signing-action@c7ab2a863ab5f9a846ddb8265964877ef296ee82 # v2
+        with:
+          endpoint: https://wus2.codesigning.azure.net/
+          signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE_NAME }}
+          files: ${{ github.workspace }}\dist\CallersCompendium-${{ needs.meta.outputs.version }}-windows-x64.exe
+
+      - name: List packaged artifacts
+        shell: bash
+        run: ls -l dist
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: dist-windows
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
   # Draft-release publish. ONLY this job gets write scopes, and it runs ONLY for
   # a real tag push (never a dispatch dry-run).
   publish:
     name: Create draft release
-    needs: [meta, build]
+    needs: [meta, build, build_windows]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
       github.event_name == 'push' &&
@@ -1221,7 +1314,7 @@ jobs:
           retention-days: 7
 
       - name: Attest build provenance (keyless SLSA)
-        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: 'dist/CallersCompendium-*'
 
@@ -1231,7 +1324,7 @@ jobs:
       # the BINARIES only (never the SBOM/SHA256SUMS/<channel>.json); `sbom-path`
       # is the generated CycloneDX document.
       - name: Attest SBOM
-        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: 'dist/CallersCompendium-*'
           sbom-path: 'dist/sbom-${{ needs.meta.outputs.version }}.cdx.json'

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable, listEquals;
+import 'package:flutter/foundation.dart' show listEquals, mapEquals;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -10,8 +10,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
-import '../data/collection_refresh_scope.dart';
+import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
+import '../data/dance_reimport.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
@@ -22,10 +23,12 @@ import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
+import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
 import '../search/collection_query_labels.dart';
+import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
@@ -48,6 +51,7 @@ import '../screens/recently_deleted_screen.dart';
 import 'app_shell_search_scope.dart';
 import 'dance_detail_screen.dart';
 import 'dance_editor_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'online_import_variation_dialog.dart';
 
 /// Collection screen: browse and search the dance library
@@ -65,8 +69,11 @@ import 'online_import_variation_dialog.dart';
 ///
 /// [selectedDanceId] highlights the currently selected row in split-pane mode.
 ///
-/// [refreshTrigger] allows a parent widget to request a full list reload by
-/// incrementing the notifier value (e.g. after a detail-pane delete/restore).
+/// The list keeps itself current from the database (issue #768), so it takes
+/// no `refreshTrigger`: a parent has nothing to request that the stream does
+/// not already deliver. The parameter was removed rather than left in place,
+/// because `_boot` is now idempotent — it would have accepted a parent's
+/// reload request and silently done nothing.
 ///
 /// **Caller's Box online search** (`docs/design/callersbox.md`): when the user
 /// turns on the "Online search" switch inside the Advanced panel, the search
@@ -81,9 +88,10 @@ class DanceListScreen extends StatefulWidget {
   const DanceListScreen({
     super.key,
     this.onSelectDance,
+    this.onNewDance,
     this.selectedDanceId,
-    this.refreshTrigger,
     this.onImport,
+    this.onPublishedCollections,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -94,14 +102,13 @@ class DanceListScreen extends StatefulWidget {
   /// control navigation. Null ⇒ use the standard [Navigator.push] route.
   final void Function(String danceId)? onSelectDance;
 
+  /// Called with the id of a newly created dance after a successful save in
+  /// split-pane mode. Null ⇒ has no effect (narrow mode or standalone use).
+  final void Function(String danceId)? onNewDance;
+
   /// Id of the currently selected dance for row highlighting in split-pane
   /// mode. Has no effect when [onSelectDance] is null.
   final String? selectedDanceId;
-
-  /// When non-null, the list calls [_boot] whenever this notifier's value
-  /// changes — allowing the [CollectionShell] to trigger a refresh after a
-  /// delete or restore in the detail pane.
-  final ValueListenable<int>? refreshTrigger;
 
   /// Called when the user taps the app-bar Import action. Null ⇒ the action is
   /// hidden (the list has no way to open import on its own). The owning shell
@@ -109,6 +116,9 @@ class DanceListScreen extends StatefulWidget {
   /// import view in a detail pane (wide) or push it as a route (narrow), so the
   /// list itself stays layout-agnostic (mirrors [onSelectDance]).
   final VoidCallback? onImport;
+
+  /// Opens the signed published-collection catalog.
+  final VoidCallback? onPublishedCollections;
 
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
@@ -133,6 +143,14 @@ class DanceListScreen extends StatefulWidget {
 /// Actions in the Collection multi-select "more" overflow menu (#423), holding
 /// the batch-edit affordances that don't fit as top-level action-bar icons.
 enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
+
+enum _CollectionCompactAction {
+  importDances,
+  publishedCollections,
+  batchSelect,
+  manageCustomFields,
+  recentlyDeleted,
+}
 
 class _DanceListScreenState extends State<DanceListScreen> {
   /// Active dialect for search canonicalization — read from [ActiveDialectScope]
@@ -164,6 +182,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
+  FullTextScope _ftsScope = FullTextScope.omni;
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
@@ -179,8 +198,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Whether the user has explicitly chosen a sort this session. Once set, the
   /// saved default (ROADMAP G.6a) no longer seeds `_sort` — protecting an
-  /// in-session choice from a late async read and from a [refreshTrigger]
-  /// reload (which re-runs [_boot]).
+  /// in-session choice from a late async read. Under a "Last used" default
+  /// (issue #895) this guard's *purpose* shifts — it stops the async last-used
+  /// read from clobbering a fresher in-session choice — but it does not
+  /// disappear; the read is still async either way.
   bool _sortUserSet = false;
 
   /// Whether the saved-default sort seed has run (it runs at most once, on the
@@ -203,12 +224,48 @@ class _DanceListScreenState extends State<DanceListScreen> {
   static const String _noGroupSentinel = '';
 
   late CompendiumRepositories _repos;
+
+  /// Whether one-time setup has run. **A contract between two changes that
+  /// arrived from opposite directions, and neither states it alone.**
+  ///
+  /// The subscription is opened exactly once per [State] — issue #768, so that
+  /// a rebuild neither drops nor duplicates it. Issue #895 then gave
+  /// [CollectionShell] a [GlobalKey] so this State *survives* being reparented
+  /// across the 900 px breakpoint (`collection_shell.dart`), which is what
+  /// preserves the sort, search text, filters and scroll position through a
+  /// rotation.
+  ///
+  /// Together those mean: **a rotation must not re-open the subscription.** It
+  /// does not today, because a reparented Element is moved rather than
+  /// destroyed — `deactivate` then `activate`, never `dispose` — so this flag
+  /// stays true and the only cancel paths ([dispose] and `_replaceSubscription`,
+  /// which immediately re-opens) are unreachable from a breakpoint crossing.
+  ///
+  /// What would falsify it: moving the subscription to `initState` and dropping
+  /// the flag (correct before #895, a leak after it), or overriding
+  /// `deactivate` to cancel — which would leave this flag true with no stream,
+  /// i.e. a list that silently stops updating after the first rotation. The
+  /// same contract is recorded on `programs_list_screen.dart`'s `_started`.
   bool _started = false;
 
-  /// The app-level collection-refresh notifier (ROADMAP 6.3), if provided.
-  /// Re-boots the list when an out-of-tab mutation (e.g. an import commit/undo
-  /// from Settings) bumps it. Tracked so listeners are swapped correctly.
-  ValueListenable<int>? _collectionRefresh;
+  /// The live Collection snapshot (issue #768).
+  ///
+  /// Supersedes both the imperative `_boot()` reload and the narrower
+  /// per-dance-tallies subscription this screen carried before: everything
+  /// [CollectionData] is built from is now watched, so a dance, tag,
+  /// choreographer, custom-field or program-side write reaches this list
+  /// without any mutation site remembering to broadcast.
+  ///
+  /// This screen subscribes to no refresh scope: either would re-run the load
+  /// on top of the stream's own emit, costing two reloads per write (issue
+  /// #340). The database stream is the only refresh path left.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// The caller filter [_dataSub] was opened with. A change to the "track all
+  /// callers" setting (issue #583) changes the query, so it reopens the stream;
+  /// anything else must not, or an ordinary rebuild would re-subscribe.
+  String? _dataCallerFilter;
+  bool _dataSubscribed = false;
 
   /// The app-level tag-filter coordinator (issue #414). When a tag chip is
   /// tapped (here, on a dance detail, or on a list row), this list applies a
@@ -299,22 +356,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
-      widget.refreshTrigger?.addListener(_onRefreshTriggered);
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
     } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
       _runSearch();
-    }
-
-    // Subscribe to the app-level collection-refresh notifier (registers a
-    // rebuild dependency; the notifier instance is stable across the app's
-    // lifetime, so this attaches once).
-    final refresh = CollectionRefreshScope.maybeOf(context);
-    if (!identical(refresh, _collectionRefresh)) {
-      _collectionRefresh?.removeListener(_onRefreshTriggered);
-      _collectionRefresh = refresh;
-      _collectionRefresh?.addListener(_onRefreshTriggered);
     }
 
     // Subscribe to the app-level tag-filter coordinator (issue #414). A tag tap
@@ -335,10 +381,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
   @override
   void didUpdateWidget(DanceListScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.refreshTrigger != widget.refreshTrigger) {
-      oldWidget.refreshTrigger?.removeListener(_onRefreshTriggered);
-      widget.refreshTrigger?.addListener(_onRefreshTriggered);
-    }
     if (!identical(widget.callersBoxOnline, oldWidget.callersBoxOnline)) {
       // Sync when the injected service changes, including when it is removed
       // (non-null -> null) so we revert to the default network-backed instance
@@ -348,10 +390,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (!identical(widget.contraDbOnline, oldWidget.contraDbOnline)) {
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
     }
-  }
-
-  void _onRefreshTriggered() {
-    if (mounted) _boot();
   }
 
   /// Reacts to an app-level "filter the Collection to this tag" request (issue
@@ -394,8 +432,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   @override
   void dispose() {
-    widget.refreshTrigger?.removeListener(_onRefreshTriggered);
-    _collectionRefresh?.removeListener(_onRefreshTriggered);
+    unawaited(_dataSub?.cancel());
     _filterController?.removeListener(_onTagFilterRequested);
     _debounceTimer?.cancel();
     _ftsController.dispose();
@@ -408,46 +445,221 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
       if (!mounted) return;
-      setState(() {
-        _data = data;
-        _loadError = null;
-      });
-      await _seedDefaultSort();
-      await _runSearch();
-    } catch (error) {
+      _watchCollectionData(callerFilter);
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._boot');
       if (mounted) setState(() => _loadError = error);
     }
   }
 
-  /// Seeds `_sort` from the saved default Collection sort order (ROADMAP G.6a),
-  /// at most once and only if the user hasn't already chosen a sort this
-  /// session. A `null`/invalid stored value leaves the historical default
-  /// (`title`) in place. Called before the first search so the list opens in
-  /// the default sort; a no-op on subsequent [_boot]s (e.g. a refresh).
+  /// Opens (or reopens) the live Collection subscription for [callerFilter].
+  ///
+  /// A no-op when one is already open for the same filter, so an ordinary
+  /// rebuild does not tear down and re-establish the stream — that would cost a
+  /// full reload per rebuild.
+  void _watchCollectionData(String? callerFilter) {
+    if (_dataSubscribed && callerFilter == _dataCallerFilter) return;
+    _dataSubscribed = true;
+    _dataCallerFilter = callerFilter;
+    unawaited(_dataSub?.cancel());
+    _dataSub = CollectionData.watch(_repos, callerFilter: callerFilter).listen(
+      _onCollectionData,
+      onError: (Object error, StackTrace stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'dance_list_screen._watchCollectionData',
+        );
+        if (mounted) setState(() => _loadError = error);
+      },
+      onDone: () {
+        // The source can end without ever emitting — the database closed while
+        // this screen was opening. Nothing else moves the screen off its
+        // loading state: [_buildBody] renders the skeleton whenever `_data` and
+        // `_loadError` are both null, so without this the list spins forever
+        // with no throw, no log and no error surface.
+        //
+        // This screen has no first-value Completer, unlike the two program
+        // panes, so there is no future to complete with an error — the guard
+        // has to be on the loading STATE rather than on a future. That is
+        // precisely why an audit that searched for `Completer` did not find
+        // this site: the hazard is "a loading state with no terminal
+        // transition when the stream ends", and the Completer is only one way
+        // to express it.
+        if (mounted && _data == null && _loadError == null) {
+          setState(
+            () => _loadError = StateError(
+              'collection stream closed before its first value',
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  /// Applies a snapshot from [_dataSub].
+  ///
+  /// The search is re-run only when the incoming snapshot could actually change
+  /// its result set or its order. A program-side write — marking a slot
+  /// performed, say — changes only the per-dance tallies, and re-running the
+  /// FTS query for a badge is the thrash issue #340 records; the rows are
+  /// re-derived in memory from the dances already loaded instead. The one
+  /// exception is the last-called sort, whose ORDER BY those very tallies feed.
+  ///
+  /// ## What this skip list must be complete with respect to (issue #768)
+  ///
+  /// Write the **completeness claim**, not just the exceptions — because the
+  /// claim is what a later change invalidates, and the code that depends on it
+  /// will not look any different afterwards.
+  ///
+  /// On `main` this optimisation lived on the per-dance-tallies subscription,
+  /// where the exception list was *provably* complete: that channel could
+  /// deliver only `callCounts` and `lastCalled`, and the one sort those feed
+  /// was the one exception listed. Converting to [CollectionData.watch] merged
+  /// six channels into one — dances, choreographers, tags, field defs, sources
+  /// and tallies — and the optimisation was carried across **with its exception
+  /// list intact**. The implementation travelled; the proof did not. A snapshot
+  /// can now differ in ways that never previously arrived alone, and the author
+  /// rename below is the case that found it.
+  ///
+  /// So: this list is complete with respect to the **seven tables**
+  /// `watchCollectionSources` reads. Widen that set and every exception here
+  /// must be re-derived, not merely reviewed.
+  ///
+  /// ## Why a half-refreshed view is worse than a stale one
+  ///
+  /// The failure mode to weigh is not "the list goes stale". A stale list looks
+  /// *unchanged*, so nothing invites the user to trust it. Getting this wrong
+  /// produces a list that **visibly updates while being wrongly ordered** — and
+  /// the freshly-correct labels are precisely what make the wrong order
+  /// credible. Partial freshness beats uniform staleness at doing damage.
+  ///
+  /// Hence the test to apply when converting the next screen: when a snapshot
+  /// updates one thing derived from a source, does it update **everything**
+  /// derived from that same source?
+  void _onCollectionData(CollectionData data) {
+    final previous = _data;
+    final searchAffected =
+        previous == null ||
+        !mapEquals(previous.dancesById, data.dancesById) ||
+        !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
+        // The author sort orders by choreographer NAME (`_sortByAuthor`), not
+        // by the ids stored on the dance — so a rename reorders the results
+        // while every dance row is byte-identical. Without this the labels
+        // would update from the new snapshot and the ORDER would not, leaving
+        // a list that is visibly sorted wrongly until some unrelated write
+        // happened to force a re-search. Checked only under that sort, so a
+        // rename costs no query in the sorts it cannot reorder.
+        (_sort == CollectionSort.author &&
+            !mapEquals(previous.choreographerNames, data.choreographerNames));
+    setState(() {
+      _data = data;
+      _loadError = null;
+      if (!searchAffected) {
+        _results = [for (final e in _results) data.entryFor(e.dance)];
+      }
+    });
+    if (searchAffected || _sort == CollectionSort.lastCalled) {
+      unawaited(_afterFirstData());
+    }
+  }
+
+  /// Seeds the default sort once, then runs the search.
+  Future<void> _afterFirstData() async {
+    await _seedDefaultSort();
+    if (mounted) await _runSearch();
+  }
+
+  /// Seeds `_sort` (and, under "Last used", `_sortDir`) from the saved default
+  /// Collection sort order (ROADMAP G.6a; extended to a "Last used" mode by
+  /// issue #895 / ROADMAP G.6c), at most once and only if the user hasn't already chosen a
+  /// sort this session. A `null`/invalid stored value leaves the historical
+  /// default (`title`, ascending) in place. Called before the first search so
+  /// the list opens in the default sort; a no-op on subsequent [_boot]s (e.g.
+  /// a refresh).
   Future<void> _seedDefaultSort() async {
     if (_defaultSortSeeded || _sortUserSet) return;
     _defaultSortSeeded = true;
     // A settings read/decode failure must not fail the whole Collection load:
-    // fall back silently to the historical default (`title`).
-    Object? stored;
+    // fall back silently to the historical default (title, ascending).
+    SortDefaultSetting<CollectionSort> mode;
     try {
-      stored = await _repos.settings.get(kDefaultCollectionSortKey);
+      final stored = await _repos.settings.get(kDefaultCollectionSortKey);
+      mode = sortDefaultSettingFromStored(
+        stored,
+        collectionSortFromName,
+        CollectionSort.title,
+      );
     } catch (_) {
+      // diagnostics: silent — a settings read/decode failure must not fail the
+      // whole Collection load; fall back to the historical default (title,
+      // ascending).
       return;
     }
     if (!mounted || _sortUserSet) return;
-    final sort = collectionSortFromName(stored);
-    if (sort != null && sort != _sort) {
+    CollectionSort sort;
+    SortDirection direction;
+    if (mode.isLastUsed) {
+      // "Last used": seed from the list's own last-used sort + direction
+      // (issue #895), not the fixed default. A second settings read, tolerant
+      // of failure the same way as the mode read above.
+      try {
+        final storedSort = await _repos.settings.get(
+          kLastUsedCollectionSortKey,
+        );
+        final storedDirection = await _repos.settings.get(
+          kLastUsedCollectionSortDirectionKey,
+        );
+        sort = collectionSortFromName(storedSort) ?? CollectionSort.title;
+        direction =
+            sortDirectionFromName(storedDirection) ??
+            sort.searchSort.defaultDirection;
+      } catch (_) {
+        // diagnostics: silent — same tolerance as the mode read above; fall
+        // back by returning and leaving the built-in default in place.
+        return;
+      }
+      if (!mounted || _sortUserSet) return;
+    } else {
+      // A fixed default always uses that sort's natural direction, regardless
+      // of what was last used in the list (Isaac's ruling, issue #895) — never
+      // the stored last-used direction, which is why this branch never reads
+      // the last-used keys at all.
+      sort = mode.sort;
+      direction = sort.searchSort.defaultDirection;
+    }
+
+    // Compare the (sort, direction) PAIR, not just the sort key: a key-only
+    // comparison skips this `setState` whenever the resolved sort equals the
+    // initial `_sort` (title) even when the direction differs — silently
+    // dropping a stored non-default direction under "Last used". Traced
+    // against issue #895 as `dance_list_screen.dart:589`'s original
+    // `sort != _sort` guard, harmless before this change because direction was
+    // always *derived* from the key, never read independently.
+    if (sort != _sort || direction != _sortDir) {
       setState(() {
         _sort = sort;
-        _sortDir = sort.searchSort.defaultDirection;
+        _sortDir = direction;
       });
     }
+  }
+
+  /// Persists the Collection list's own last-used sort + direction (issue
+  /// #895), read back by [_seedDefaultSort] when the configured default is
+  /// "Last used". Fire-and-forget: neither write is on the UI's critical path,
+  /// mirroring how every other in-place Settings write in this screen behaves.
+  ///
+  /// Skips [CollectionSort.relevance]: it is only meaningful for an active
+  /// bare-FTS query, never a durable choice, so persisting it would silently
+  /// erase whatever concrete sort the user had actually been using before the
+  /// query became a bare full-text search.
+  void _persistLastUsedSort() {
+    if (_sort == CollectionSort.relevance) return;
+    unawaited(_repos.settings.set(kLastUsedCollectionSortKey, _sort.name));
+    unawaited(
+      _repos.settings.set(kLastUsedCollectionSortDirectionKey, _sortDir.name),
+    );
   }
 
   void _retryLoad() {
@@ -455,6 +667,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _data = null;
       _loadError = null;
     });
+    // Force a fresh subscription: the previous one may have errored, and a
+    // no-op reopen would leave the list on its failure state.
+    _dataSubscribed = false;
     _boot();
   }
 
@@ -463,6 +678,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   bool get _isBareFullText => isBareFullText(
     ftsText: _ftsController.text,
     facets: _facets,
+    scope: _ftsScope,
     byPhrase: _byPhrase,
     advancedRoot: _advancedEnabled ? _advancedRoot : null,
   );
@@ -497,6 +713,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ftsText: _ftsController.text,
         facets: _facets,
         defs: data.customFieldDefs,
+        scope: _ftsScope,
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
       );
@@ -516,8 +733,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ];
         _searching = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
       if (!mounted || seq != _searchSeq) return;
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._runSearch');
       setState(() {
         _searchError = error;
         // Clear stale results so the live count matches the error state rather
@@ -531,13 +749,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
     if (_onlineEnabled) {
+      _onlineSeq++;
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
+      _searchSeq++;
       _debounceTimer = Timer(_debounce, _runSearch);
     }
+
     // Reflect relevance availability / clear-button immediately (before the
     // debounce fires).
     setState(() {});
+  }
+
+  void _onFtsScopeChanged(FullTextScope? scope) {
+    if (scope == null || scope == _ftsScope || _onlineEnabled) return;
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    setState(() => _ftsScope = scope);
+    unawaited(_runSearch());
   }
 
   /// Fires the current search immediately (on keyboard "search" / enter). In
@@ -565,6 +794,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() {});
     if (_onlineEnabled) {
       _debounceTimer?.cancel();
+      _onlineSeq++;
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
       _runSearch();
@@ -576,6 +806,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// local list.
   void _onOnlineToggled(bool value) {
     _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _onlineEnabled = value;
       _onlineError = null;
@@ -600,6 +832,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   void _onOnlineSourceChanged(OnlineSource source) {
     if (source == _onlineSource) return;
     _debounceTimer?.cancel();
+    _onlineSeq++;
     setState(() {
       _onlineSource = source;
       _onlineResults = const [];
@@ -660,15 +893,30 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _onlineResults = results;
         _onlineSearching = false;
       });
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._runOnlineSearch',
+      );
       setState(() {
         _onlineError = importErrorMessage(l10n, error);
         _onlineResults = const [];
         _onlineSearching = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
       if (!mounted || seq != _onlineSeq) return;
+      // Unlike the typed branch above, an arbitrary caught error here is not
+      // known to be log-safe (it may originate from an online transport's raw
+      // response), so only its shape is recorded (issue #963), mirroring the
+      // same CWE-209-motivated caution as `contradb_program_import_screen`'s
+      // fetch catch.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._runOnlineSearch',
+      );
       setState(() {
         _onlineError = l10n.onlineSearchFailed(_onlineSource.label);
         _onlineResults = const [];
@@ -707,19 +955,32 @@ class _DanceListScreenState extends State<DanceListScreen> {
     OnlinePreview preview;
     try {
       preview = await _online.loadPreview(_repos, result);
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._pushOnlinePreview',
+      );
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
       );
       return;
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // See `_runOnlineSearch` above: an arbitrary online-transport error is
+      // not known log-safe, so only its shape is recorded.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._pushOnlinePreview',
+      );
       if (mounted) navigator.pop();
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.onlineLoadError(sourceLabel))),
       );
       return;
     }
+
     if (!mounted) return;
     navigator.pop();
     // The preview route pops with the import result once the user taps Import
@@ -754,6 +1015,106 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
   }
 
+  Future<void> _beginReimportRoute(DanceDetailData target) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final preview = await selectReimportDance(
+        context,
+        target: target.dance,
+        callersBox: _callersBox,
+        contraDb: _contraDb,
+      );
+      if (!mounted || preview == null) return;
+      final committed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => DanceDetailScreen.preview(
+            data: preview,
+            onImport: () async {
+              if (_importing) return;
+              _importing = true;
+              try {
+                final result = await replaceDanceChoreography(
+                  _repos,
+                  targetDanceId: target.dance.id,
+                  incoming: preview.dance,
+                  expectedUpdatedAt: target.dance.updatedAt,
+                );
+                if (!mounted) return;
+                if (result == DanceReimportResult.replaced) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result == DanceReimportResult.targetMissing
+                            ? AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetMissing
+                            : AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetChanged,
+                      ),
+                    ),
+                  );
+                }
+              } catch (error, stackTrace) {
+                logCaughtErrorTypeOnly(
+                  error,
+                  stackTrace,
+                  source: 'dance_list_screen._commitReimport',
+                );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(context).danceReimportSourceFailed,
+                      ),
+                    ),
+                  );
+                }
+              } finally {
+                _importing = false;
+              }
+            },
+          ),
+        ),
+      );
+      if (mounted && committed == true) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      }
+    } on DanceReimportJsonException catch (error) {
+      logCaughtErrorTypeOnly(
+        error,
+        StackTrace.current,
+        source: 'dance_list_screen._beginReimportRoute',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            error.programBearing
+                ? AppLocalizations.of(context).danceReimportProgramArchive
+                : AppLocalizations.of(context).danceReimportInvalidJson,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._beginReimportRoute',
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).danceReimportSourceFailed),
+        ),
+      );
+    }
+  }
+
   /// Directly imports the previewed online dance into the local collection
   /// (dedup-aware). On success it pops the preview route, returning the outcome
   /// to [_pushOnlinePreview], which lands the user on the persisted dance. An
@@ -763,6 +1124,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// figures, it returns [OnlineImportKind.needsConfirmation] without writing
   /// anything. In that case, this method shows a resolution dialog and retries
   /// the import with the chosen [DedupeResolution] (issue #797).
+  ///
+  /// When the service detects a confident title+author match with identical
+  /// figures from a different source, it returns
+  /// [OnlineImportKind.needsConfirmationIdentical]. In that case, this method
+  /// shows a cross-source duplicate dialog and retries if the user confirms
+  /// (issue #811).
   Future<void> _importOnline(OnlinePreview preview) async {
     if (_importing) return;
     _importing = true;
@@ -796,10 +1163,34 @@ class _DanceListScreenState extends State<DanceListScreen> {
           preview.plan,
           ambiguousResolution: resolution,
         );
+      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        // needsConfirmationIdentical requires a candidate id — a null here is a
+        // service bug. Assert in debug; silently cancel in release.
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry an existing dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await _online.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
       }
       if (!mounted) return;
       if (result.kind == OnlineImportKind.created) {
-        CollectionRefreshScope.bump(context);
         _boot();
       }
       // Hand the result back to the preview route's awaiter, which navigates to
@@ -814,12 +1205,24 @@ class _DanceListScreenState extends State<DanceListScreen> {
           ),
         );
       }
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._importOnline',
+      );
       if (!mounted) return;
       messenger.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      // See `_runOnlineSearch` above: an arbitrary online-transport/import
+      // error is not known log-safe, so only its shape is recorded.
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_list_screen._importOnline',
+      );
       if (!mounted) return;
       messenger.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
     } finally {
@@ -829,6 +1232,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   void _clearAll() {
     _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();
@@ -939,7 +1344,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
 
     _exitSelectionMode();
-    await _boot();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -973,7 +1377,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    if (mounted) await _boot();
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,
@@ -1024,7 +1427,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     );
 
     _exitSelectionMode();
-    await _boot();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1062,12 +1464,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _boot();
   }
 
   /// Shared tail of the batch handlers: announces [message] to AT, exits
-  /// selection mode, reloads, then shows either a plain "no changes" snackbar
-  /// (when [count] is 0) or an Undo prompt wired to [onUndo].
+  /// selection mode, then shows either a plain "no changes" snackbar (when
+  /// [count] is 0) or an Undo prompt wired to [onUndo].
   Future<void> _finishBatch({
     required int count,
     required String message,
@@ -1084,7 +1485,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final accessibleNavigation = MediaQuery.accessibleNavigationOf(context);
 
     _exitSelectionMode();
-    await _boot();
     if (!mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -1160,7 +1560,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _boot();
   }
 
   /// Merges tunes into the selected dances (additive union) via the batched,
@@ -1271,7 +1670,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         dance.copyWith(tunes: entry.value, updatedAt: DateTime.now().toUtc()),
       );
     }
-    if (mounted) await _boot();
   }
 
   /// Sets or clears ONE custom field across the selected dances (upsert
@@ -1351,7 +1749,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ),
       );
     }
-    if (mounted) await _boot();
   }
 
   @override
@@ -1389,31 +1786,42 @@ class _DanceListScreenState extends State<DanceListScreen> {
             onPressed: openSearch,
           ),
         if (_data != null) ...[
-          if (widget.onImport != null)
+          if (openSearch != null)
+            _buildCompactMoreActions(l10n)
+          else ...[
+            if (widget.onImport != null)
+              IconButton(
+                key: const ValueKey('import-dances'),
+                tooltip: l10n.importDances,
+                icon: const Icon(Icons.download_outlined),
+                onPressed: widget.onImport,
+              ),
+            if (widget.onPublishedCollections != null)
+              IconButton(
+                key: const ValueKey('published-collections'),
+                tooltip: l10n.publishedCollectionsTitle,
+                icon: const Icon(Icons.library_books_outlined),
+                onPressed: widget.onPublishedCollections,
+              ),
             IconButton(
-              key: const ValueKey('import-dances'),
-              tooltip: l10n.importDances,
-              icon: const Icon(Icons.download_outlined),
-              onPressed: widget.onImport,
+              key: const ValueKey('batch-select'),
+              tooltip: l10n.collectionSelectDancesTooltip,
+              icon: const Icon(Icons.checklist),
+              onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
             ),
-          IconButton(
-            key: const ValueKey('batch-select'),
-            tooltip: l10n.collectionSelectDancesTooltip,
-            icon: const Icon(Icons.checklist),
-            onPressed: _results.isEmpty ? null : () => _enterSelectionMode(),
-          ),
-          IconButton(
-            key: const ValueKey('manage-custom-fields'),
-            tooltip: l10n.collectionManageCustomFieldsTooltip,
-            icon: const Icon(Icons.list_alt_outlined),
-            onPressed: _openCustomFields,
-          ),
-          IconButton(
-            key: const ValueKey('recently-deleted'),
-            tooltip: l10n.collectionRecentlyDeletedTooltip,
-            icon: const Icon(Icons.restore_from_trash_outlined),
-            onPressed: _openRecentlyDeleted,
-          ),
+            IconButton(
+              key: const ValueKey('manage-custom-fields'),
+              tooltip: l10n.collectionManageCustomFieldsTooltip,
+              icon: const Icon(Icons.list_alt_outlined),
+              onPressed: _openCustomFields,
+            ),
+            IconButton(
+              key: const ValueKey('recently-deleted'),
+              tooltip: l10n.collectionRecentlyDeletedTooltip,
+              icon: const Icon(Icons.restore_from_trash_outlined),
+              onPressed: _openRecentlyDeleted,
+            ),
+          ],
           PopupMenuButton<CollectionSort>(
             tooltip: l10n.collectionSortByTooltip(
               collectionSortLabel(l10n, _sort),
@@ -1426,6 +1834,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 _sort = value;
                 _sortDir = value.searchSort.defaultDirection;
               });
+              _persistLastUsedSort();
               _runSearch();
             },
             itemBuilder: (context) => [
@@ -1454,10 +1863,58 @@ class _DanceListScreenState extends State<DanceListScreen> {
                     ? SortDirection.descending
                     : SortDirection.ascending;
               });
+              _persistLastUsedSort();
               _runSearch();
             },
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildCompactMoreActions(AppLocalizations l10n) {
+    return PopupMenuButton<_CollectionCompactAction>(
+      key: const ValueKey('collection-more-actions'),
+      tooltip: l10n.danceMoreActions,
+      icon: const Icon(Icons.more_vert),
+      onSelected: (action) {
+        switch (action) {
+          case _CollectionCompactAction.importDances:
+            widget.onImport?.call();
+          case _CollectionCompactAction.publishedCollections:
+            widget.onPublishedCollections?.call();
+          case _CollectionCompactAction.batchSelect:
+            if (_results.isNotEmpty) _enterSelectionMode();
+          case _CollectionCompactAction.manageCustomFields:
+            _openCustomFields();
+          case _CollectionCompactAction.recentlyDeleted:
+            _openRecentlyDeleted();
+        }
+      },
+      itemBuilder: (context) => [
+        if (widget.onImport != null)
+          PopupMenuItem(
+            value: _CollectionCompactAction.importDances,
+            child: Text(l10n.importDances),
+          ),
+        if (widget.onPublishedCollections != null)
+          PopupMenuItem(
+            value: _CollectionCompactAction.publishedCollections,
+            child: Text(l10n.publishedCollectionsTitle),
+          ),
+        PopupMenuItem(
+          enabled: _results.isNotEmpty,
+          value: _CollectionCompactAction.batchSelect,
+          child: Text(l10n.collectionSelectDancesTooltip),
+        ),
+        PopupMenuItem(
+          value: _CollectionCompactAction.manageCustomFields,
+          child: Text(l10n.collectionManageCustomFieldsTooltip),
+        ),
+        PopupMenuItem(
+          value: _CollectionCompactAction.recentlyDeleted,
+          child: Text(l10n.collectionRecentlyDeletedTooltip),
+        ),
       ],
     );
   }
@@ -1590,12 +2047,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openNewDance() async {
-    // The editor bumps CollectionRefreshScope on save, which re-boots this list
-    // (and re-derives the author filter), so no explicit reload is needed here
-    // — doing both would double-load (issue #340).
-    await Navigator.of(context).push<String>(
+    // No explicit reload is needed here, and the reason is the stream rather
+    // than the broadcast: a save writes `dances`, which this list watches, so
+    // the row and the derived author filter arrive on their own. The editor
+    final id = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const DanceEditorScreen()),
     );
+    if (!mounted || id == null) return;
+    widget.onNewDance?.call(id);
   }
 
   Future<void> _openCustomFields() async {
@@ -1693,6 +2152,37 @@ class _DanceListScreenState extends State<DanceListScreen> {
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.md,
             AppSpacing.sm,
+            AppSpacing.md,
+            0,
+          ),
+          child: DropdownButtonFormField<FullTextScope>(
+            key: const ValueKey('collection-search-scope'),
+            initialValue: _ftsScope,
+            decoration: InputDecoration(
+              labelText: l10n.collectionSearchScopeLabel,
+              isDense: true,
+            ),
+            items: [
+              DropdownMenuItem(
+                value: FullTextScope.omni,
+                child: Text(l10n.collectionSearchScopeOmni),
+              ),
+              DropdownMenuItem(
+                value: FullTextScope.title,
+                child: Text(l10n.collectionSearchScopeTitle),
+              ),
+              DropdownMenuItem(
+                value: FullTextScope.figure,
+                child: Text(l10n.collectionSearchScopeFigure),
+              ),
+            ],
+            onChanged: _onlineEnabled ? null : _onFtsScopeChanged,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.xs,
             AppSpacing.md,
             0,
           ),
@@ -1836,6 +2326,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
           statuses: data.statuses,
           levels: data.levels,
           hasMixedLevel: data.hasMixedLevel,
+          hasMixer: data.hasMixer,
           hasRating: data.hasRating,
           authors: data.authors,
           tags: data.tags,
@@ -2213,6 +2704,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
   Widget _buildDanceRow(DanceListEntry entry, AppLocalizations l10n) {
     final tile = DanceListTile(
       entry: entry,
+      visibleFields: CollectionTileFieldsScope.of(context),
       // Row action menu (⋮): non-swipe access to the row actions for
       // mouse/keyboard/AT users. Delete routes through the identical
       // confirm + soft-delete + undo flow as the Dismissible swipe below.
@@ -2226,6 +2718,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
       },
       onDuplicate: () => _duplicateFromList(entry.dance.id),
       onTagTap: _applyExternalTagFilter,
+      // No reload when the sheet closes: the sheet's write goes to
+      // `program_slots`, which the live tallies subscription watches, so the
+      // "called ×N" badge updates itself (issue #768, gap 2 — this used to
+      // depend on a broadcast reaching a mounted scope).
       onAddToProgram: () => showAddToProgramSheet(
         context,
         repositories: _repos,
@@ -2252,16 +2748,12 @@ class _DanceListScreenState extends State<DanceListScreen> {
           : () async {
               // DanceDetailScreen pops with true when a dance is deleted
               // so the Collection can reload and remove the stale row.
-              // onRestored is called if the user taps Undo, so the
-              // restored dance reappears in the list without a manual
-              // reload.
+              // The detail screen broadcasts the undo itself — but that
               final deleted = await Navigator.of(context).push<bool>(
                 MaterialPageRoute(
                   builder: (_) => DanceDetailScreen(
                     danceId: entry.dance.id,
-                    onRestored: () {
-                      if (mounted) _boot();
-                    },
+                    onReimport: _beginReimportRoute,
                   ),
                 ),
               );

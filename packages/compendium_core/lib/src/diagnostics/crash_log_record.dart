@@ -39,8 +39,11 @@ class CrashLogRecord {
   /// Coarse platform/OS descriptor (e.g. `macos 14.5`).
   final String platform;
 
-  /// Which handler captured this (e.g. `FlutterError.onError`,
-  /// `PlatformDispatcher.onError`, `runZonedGuarded`, `integrity-probe`).
+  /// Which handler captured this — one of the four global/startup sources
+  /// (e.g. `FlutterError.onError`, `PlatformDispatcher.onError`,
+  /// `runZonedGuarded`, `integrity-probe`) or, for a caught error surfaced to
+  /// the user elsewhere in the app, a `<file-stem>.<method>` tag identifying
+  /// the catch site (issue #963; see the app's `error_log.dart`).
   final String source;
 
   /// The error's runtime type name (e.g. `StateError`).

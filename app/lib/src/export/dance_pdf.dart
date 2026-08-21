@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
+import 'program_figure_widgets.dart';
 import 'program_pdf.dart';
 
 /// Builds a printable/saveable PDF of a single [Dance] card
@@ -47,6 +48,7 @@ Future<Uint8List> buildDancePdf(
   final metaLines = <String>[
     if (_has(formationLabel)) '${labels.formation}: ${formationLabel.trim()}',
     if (_has(levelLabel)) '${labels.level}: ${levelLabel!.trim()}',
+    if (dance.mixer && _has(labels.mixer)) labels.mixer.trim(),
     // Mirror the on-screen card / text export: only a non-active dance shows
     // a Status line; an active dance omits it.
     if (dance.status != DanceStatus.active && _has(statusLabel))
@@ -77,7 +79,7 @@ Future<Uint8List> buildDancePdf(
             style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
-          ..._figureWidgets(dance, fig, dialect, labels),
+          ...buildFigureWidgets(dance, fig, dialect, labels),
         ],
         if (_has(dance.callingNotes)) ...[
           pw.SizedBox(height: 12),
@@ -108,75 +110,6 @@ Future<Uint8List> buildDancePdf(
   );
 
   return doc.save();
-}
-
-List<pw.Widget> _figureWidgets(
-  Dance dance,
-  FigureRenderer renderer,
-  Dialect dialect,
-  DanceExportLabels labels,
-) {
-  final widgets = <pw.Widget>[];
-  final sectioned = deriveSections(dance.figures, dance.phraseStructure);
-  String? lastLabel;
-  for (final sf in sectioned) {
-    if (sf.label != lastLabel) {
-      widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(top: 6, bottom: 2),
-          child: pw.Text(
-            sf.label,
-            style: pw.TextStyle(
-              fontSize: 12,
-              fontWeight: pw.FontWeight.bold,
-              color: PdfColors.blueGrey700,
-            ),
-          ),
-        ),
-      );
-      lastLabel = sf.label;
-    }
-    final beatsLabel = labels.beats(sf.figure.beats);
-    final marker = sf.figure.progression ? ' ¶' : '';
-    widgets.add(
-      pw.Padding(
-        padding: const pw.EdgeInsets.only(left: 12, top: 1, bottom: 1),
-        child: pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Expanded(
-              child: pw.Text(
-                '${renderer.renderSummary(sf.figure, dialect)}$marker',
-                style: const pw.TextStyle(fontSize: 12),
-              ),
-            ),
-            pw.SizedBox(width: 8),
-            pw.Text(
-              beatsLabel,
-              style: pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
-            ),
-          ],
-        ),
-      ),
-    );
-    final note = sf.figure.note?.trim();
-    if (note != null && note.isNotEmpty) {
-      widgets.add(
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(left: 24, bottom: 1),
-          child: pw.Text(
-            renderer.renderFreeText(note, dialect),
-            style: pw.TextStyle(
-              fontSize: 10,
-              fontStyle: pw.FontStyle.italic,
-              color: PdfColors.grey700,
-            ),
-          ),
-        ),
-      );
-    }
-  }
-  return widgets;
 }
 
 bool _has(String? value) => value != null && value.trim().isNotEmpty;

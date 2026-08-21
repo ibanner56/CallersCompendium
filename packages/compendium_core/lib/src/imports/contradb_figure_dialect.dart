@@ -1,4 +1,5 @@
 import '../model/figure.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import 'figure_parser.dart';
 import 'figure_text_scrub.dart';
@@ -37,6 +38,45 @@ import 'figure_text_scrub.dart';
 /// rendered as HTML.
 const FigureFrontEnd contraDbHtmlFigureFrontEnd = FigureFrontEnd(
   preRecognizers: _recognizers,
+  declineToCustom: _declineStarPromenade,
+);
+
+/// Vetoes ContraDB `star promenade` lines so they reach the custom fallback
+/// rather than being structured (taxonomy v26, #843).
+///
+/// **Deleting the recognizer is not enough, and that is the whole reason this
+/// hook exists.** The shared recognizers in `figure_parser.dart` are
+/// source-neutral, and one of them recognises `star promenade` for every
+/// front-end. So removing ContraDB's own recognizer merely handed the line to
+/// the shared one, which reads the prose subject as `who` — and ContraDB's
+/// subject is the role with a hand in the CENTER, while our `who` now names the
+/// dancer you PICK UP on the side (owner ruling, 2026-08-06). The line would
+/// have kept structuring, with the wrong dancers, and no test that only checked
+/// the dialect file would have noticed.
+///
+/// Anchored on the two-word phrase so a plain `promenade` — a different move,
+/// with an unaffected reading — is untouched.
+///
+/// **Case-insensitivity comes from the regex flag, NOT from the input.**
+/// Matching runs on the SCRUBBED text, which is role-canonicalized but is
+/// **not** lowercased — `scrubFigureText` never lowercases, and `_normalize`
+/// (which does) runs AFTER this veto. So `Gentlespoons Star Promenade Right 1`
+/// scrubs to `role1s Star Promenade Right 1`, with the casing intact, and is
+/// caught only because [_starPromenadeVeto] is declared `caseSensitive: false`.
+/// Verified: the same pattern without that flag does not match that string.
+///
+/// This is spelled out because the earlier wording credited the input, which
+/// was wrong in a way that would not surface here — the veto works either way —
+/// but would bite the next person to add one: drop the flag, trust the comment,
+/// and you ship a matcher that silently misses every capitalised line.
+bool _declineStarPromenade(String scrubbed) =>
+    _starPromenadeVeto.hasMatch(scrubbed);
+
+/// `caseSensitive: false` is LOAD-BEARING — see [_declineStarPromenade]. The
+/// scrubbed text this runs against retains its source casing.
+final RegExp _starPromenadeVeto = RegExp(
+  r'\bstar\s+promenades?\b',
+  caseSensitive: false,
 );
 
 /// A "while"/"whiles" simultaneity connective, matched as a whole word
@@ -53,9 +93,11 @@ final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
 /// structured (non-custom) figure.
 ///
 /// ## Precedence (locked #591 requirement)
-/// The named combined move `boxCirculateWords` ([_boxCirculate], "box
-/// circulate - WHO cross while OTHER loop …") — and every OTHER recognizer in
-/// [contraDbHtmlFigureFrontEnd] (plus the canonical shared recognizers) get
+/// The named combined moves `boxCirculateWords` ([_boxCirculate], "box
+/// circulate - WHO cross while OTHER loop …") and the bare ContraDB form
+/// ([_boxCirculateBare], "WHO cross while OTHER loop …") — and every OTHER
+/// recognizer in [contraDbHtmlFigureFrontEnd] (plus the canonical shared
+/// recognizers) get
 /// their full, unmodified first attempt at the WHOLE line via the ordinary
 /// [parseFigureLine] call below. Only when that degrades to custom does this
 /// function look for a general top-level `while`/`whiles` connective, so a
@@ -211,12 +253,13 @@ const List<FigureMatch? Function(String)> _recognizers =
       _turnAlone,
       _madRobin,
       _passBy,
+      _tradeBy,
       _passThrough,
       _pullByDancers,
       _gate,
       _contraCorners,
-      _starPromenade,
       _zigZag,
+      _boxCirculateBare,
       _boxCirculate,
       _slice,
       _revolvingDoor,
@@ -467,12 +510,25 @@ FigureMatch? _slideAlongSet(String text) {
   return FigureMatch('slide_along_set', params: {'slide': dir}, note: s.note());
 }
 
-/// chainWords: `[<left|right> diagonal] <role1s|role2s> chain`. The leading
-/// diagonal qualifier renders only for non-default values (real render: The
-/// Judge — `left diagonal ladles chain to shadow`) and maps to the `dir` param;
-/// the ubiquitous form is a bare `ladles chain`. A trailing positional qualifier
-/// (e.g. `to shadow`) survives verbatim as the note (Q2: shadow kept as a note,
-/// never fabricated into a dancer target).
+/// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>`,
+/// `[<left|right>-hand]`, `chain`. The leading diagonal qualifier renders only
+/// for non-default values (real render: The Judge — `left diagonal ladles
+/// chain to shadow`) and maps to the `dir` param; the ubiquitous form is a
+/// bare `ladles chain`. The hand slot (v28, #976) sits between the subject
+/// and `chain`, matching ContraDB's `chainWords` order (`words(sdiag, swho,
+/// thand, smove)`, `figure.js:266-278`) — hyphenated (`left-hand`) because
+/// that is [_leftRight]'s inverse: ContraDB's renderer emits
+/// `shand + "-hand"` (`figure.js:275`), never a bare side, for this move. A
+/// bare `<role> chain` (no hand token) sets the role-implied side via
+/// [chainHandForWho] — the role word IS the source stating the hand (#976
+/// §6.1.2) — which [_subject]'s role1s/role2s requirement above guarantees
+/// is always present here, so the role-word-scoping rule (#976 §6.1.3) is
+/// satisfied by construction and needs no extra guard in THIS parser.
+/// ContraDB's wildcard hand (`*-hand`, `figure.js:271-272`) declines the
+/// whole line to `custom` — consistent with `_leftRight` already declining
+/// bare `*` for every other move here. A trailing positional qualifier
+/// (e.g. `to shadow`) survives verbatim as the note (Q2: shadow kept as a
+/// note, never fabricated into a dancer target).
 FigureMatch? _chain(String text) {
   final s = _Scan(text);
   String? dir;
@@ -487,9 +543,22 @@ FigureMatch? _chain(String text) {
     }
   }
   final who = _subject(s);
-  if (who != 'role1s' && who != 'role2s') return null;
+  if (who == null || (who != 'role1s' && who != 'role2s')) return null;
+  final handToken = s.peek();
+  if (handToken == '*-hand') return null;
+  String? statedHand;
+  if (handToken == 'left-hand') {
+    statedHand = 'left';
+    s.take();
+  } else if (handToken == 'right-hand') {
+    statedHand = 'right';
+    s.take();
+  }
   if (!s.eat('chain')) return null;
-  final params = <String, Object?>{'who': who};
+  final params = <String, Object?>{
+    'who': who,
+    'hand': statedHand ?? chainHandForWho(who),
+  };
   if (dir != null) params['dir'] = dir;
   return FigureMatch('chain', params: params, note: s.note());
 }
@@ -755,11 +824,18 @@ String? _starGrip(_Scan s) {
 /// single-file promenade travels the WHOLE major set, not a per-couple
 /// relationship) sets `singleFile` and defaults `who` to `everyone`; real
 /// render: Strange New Worlds #3107 — `single file promenade along major set
-/// to new neightbors`. Everything after `promenade` in that case is left as
-/// the verbatim note rather than probed for `dir`: "along major set …" is a
-/// descriptive tail, not the plain `across`/`along` direction token, so
-/// forcing it through `_direction` would silently swallow the "major set to
-/// new neighbors" detail. The ordinary (non-single-file) form is unchanged.
+/// to new neightbors`.
+///
+/// Issue #749: a bare `along`/`across` direction token immediately after
+/// `promenade` IS consumed in the single-file branch, so `dir` is captured
+/// from the source text; the rest of the tail was left as the note.
+///
+/// Issue #921 (taxonomy v29): the destination tail is now structured. After
+/// consuming `[dir]`, the recognizer consumes an optional "major set"
+/// descriptor and then a "to [new|the same] {subject}" clause, storing the
+/// result as `destination`. "new neighbors" (ContraDB source phrasing for the
+/// next couple) maps to `nextNeighbors`. An unrecognised tail is still stored
+/// verbatim as the note. The ordinary (non-single-file) form is unchanged.
 FigureMatch? _promenade(String text) {
   final s = _Scan(text);
   var singleFile = false;
@@ -775,14 +851,89 @@ FigureMatch? _promenade(String text) {
   final params = <String, Object?>{'who': who ?? 'everyone'};
   if (singleFile) {
     params['singleFile'] = true;
+    // Consume a bare direction token (`along` or `across`) immediately after
+    // `promenade` so `dir` is captured from the source text.
+    final dir = _direction(s.peek());
+    if (dir != null) {
+      s.take();
+      params['dir'] = dir;
+    }
+    // Consume the destination tail (issue #921):
+    //   optional "major set" descriptor (e.g. "along major set to …")
+    //   then "to [new|the same] {subject}"
+    final preDest = s.pos;
+    s.eatPhrase('major set');
+    final dest = _promenadeDestination(s);
+    if (dest != null) {
+      params['destination'] = dest;
+    } else {
+      s.reset(preDest); // restore if we couldn't parse a destination
+    }
   } else {
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
       params['dir'] = dir;
     }
+    final turn = _promenadeTurn(s);
+    if (turn != null) params['turn'] = turn;
   }
   return FigureMatch('promenade', params: params, note: s.note());
+}
+
+/// ContraDB renders promenade's optional rotation qualifier after its optional
+/// set direction as `on the left` / `on the right`. The canonical taxonomy
+/// mapping is a maintainer decision: left means clockwise, right means
+/// counterclockwise.
+String? _promenadeTurn(_Scan s) {
+  if (s.eatPhrase('on the left')) return 'clockwise';
+  if (s.eatPhrase('on the right')) return 'counterclockwise';
+  return null;
+}
+
+/// Consumes a "to [new|the same] {subject}" destination clause for the
+/// single-file promenade tail (issue #921, taxonomy v29) and returns the
+/// corresponding dancer-set token, or null if no clause is present.
+///
+/// ContraDB source-text conventions handled:
+/// - `to new neighbors` / `to new neightbors` → `nextNeighbors`
+/// - `to new neighbors at home` → `nextNeighbors` (consumes "at home" too)
+/// - `to the same {subject}` → the matched subject token
+/// - `to {subject}` → the matched subject token
+///
+/// On null: the scanner position is unchanged so the caller's save/reset can
+/// leave the tail in the note without double-advancing.
+String? _promenadeDestination(_Scan s) {
+  final save = s.pos;
+  if (!s.eat('to')) return null;
+
+  // "to new …" — ContraDB says "new neighbors" for the next couple.
+  // "new" always means `nextNeighbors` regardless of the exact noun form
+  // (including typo "neightbors"). Consume the noun if it parses; if not,
+  // consume one raw token so it does not land in the note.
+  if (s.eat('new')) {
+    if (_subject(s) == null) s.take(); // discard noun (even typos)
+    s.eatPhrase('at home'); // consume optional "at home" suffix
+    return 'nextNeighbors';
+  }
+
+  // "to the same {subject}" — maps to the subject directly.
+  final theSave = s.pos;
+  if (s.eat('the')) {
+    if (s.eat('same')) {
+      final who = _subject(s);
+      if (who != null) return who;
+    }
+    // "the" consumed but "same" or subject didn't follow — restore.
+    s.reset(theSave);
+  }
+
+  // "to {subject}" — general case.
+  final who = _subject(s);
+  if (who != null) return who;
+
+  s.reset(save);
+  return null;
 }
 
 /// boxTheGnatWords: `<who> [<hand> hand balance &] box the gnat`. ContraDB
@@ -1007,6 +1158,34 @@ FigureMatch? _passBy(String text) {
   return FigureMatch('pass_by', params: params, note: s.note());
 }
 
+/// trade by (issue #945, defect C): `[who] trade by [the] [side
+/// shoulder(s)]`, preserving any trailing text as a verbatim note. This
+/// mirrors [_passBy] rather than the shared `_tradePassBy` in
+/// figure_parser.dart (which also structures `trade by` as of this issue)
+/// because a ContraDB dance can carry a trailing tail after the shoulder
+/// phrase — Kettle Drum's real line is `ladles trade by the left shoulder,
+/// catch left hands` — and the shared parser declines whole-line unless it
+/// fully consumes. Scoping the note-preserving leniency to the ContraDB
+/// dialect keeps the shared parser's strict full-consumption behaviour
+/// unchanged for every other TCB line. ContraDB defines no `trade` move at
+/// all (verified against the deployed bundle); this is deliberate leniency
+/// on human-typed custom prose, not a template-mirroring recognizer like the
+/// other entries in this file.
+FigureMatch? _tradeBy(String text) {
+  final s = _Scan(text);
+  final who = _subject(s);
+  if (!s.eatPhrase('trade by')) return null;
+  s.eat('the');
+  final params = <String, Object?>{'who': ?who};
+  final side = _leftRight(s.peek());
+  if (side != null) {
+    s.take();
+    if (!s.eat('shoulder')) s.eat('shoulders');
+    params['shoulder'] = side;
+  }
+  return FigureMatch('pass_by', params: params, note: s.note());
+}
+
 /// passThroughWords: `pass through [<side> shoulders] [<dir>]`. ContraDB usually
 /// renders a set direction (`across`/`along`), but real programs also render a
 /// bare `pass through` (Sweet Vicki, The Hobbit) and forms whose qualifier is
@@ -1111,24 +1290,22 @@ FigureMatch? _roryOMore(String text) {
   return FigureMatch('rory_o_more', params: params, note: s.note());
 }
 
-/// starPromenadeWords: `[<who>] star promenade <hand> <rotation>` (who omitted
-/// when it is the role1s default).
-FigureMatch? _starPromenade(String text) {
-  final s = _Scan(text);
-  final who = _subject(s);
-  if (!s.eatPhrase('star promenade')) return null;
-  final hand = _leftRight(s.peek());
-  if (hand == null) return null;
-  s.take();
-  final params = <String, Object?>{'hand': hand};
-  if (who != null) params['who'] = who;
-  final rot = _rotation(s.peek());
-  if (rot != null) {
-    s.take();
-    params['turn'] = rot;
-  }
-  return FigureMatch('star_promenade', params: params, note: s.note());
-}
+/// ContraDB's `starPromenadeWords` — the `[who] star promenade HAND ROTATION`
+/// grammar — has **no recognizer here, deliberately** (taxonomy v26, #843).
+///
+/// ContraDB's `who`+`hand` name, as a pair, the dancers with a hand in the
+/// CENTER; our `who` now names the dancer you PICK UP on the side (owner
+/// ruling, 2026-08-06). The pick-up relationship is not recoverable from the
+/// center role, and approximating it would assert the wrong dancers — so these
+/// lines fall to the custom fallback, which keeps ContraDB's own wording
+/// verbatim. This is a deliberate, owner-accepted structure regression, not an
+/// oversight.
+///
+/// The recognizer was DELETED rather than left unregistered: it emitted a
+/// `hand` param that `star_promenade` no longer declares, so re-registering it
+/// would write a param the taxonomy would silently ignore. The corresponding
+/// `contradb_adapter.dart` `_MoveMap` entry is likewise absent, with a comment
+/// pointing here.
 
 /// zigZagWords: `[<who>] zig <dir> zag <dir> [, <ender>]`. Captures the zig
 /// (turn) direction; the ender, if any, survives verbatim as the note.
@@ -1146,8 +1323,84 @@ FigureMatch? _zigZag(String text) {
   return FigureMatch('zig_zag', params: params, note: s.note());
 }
 
+/// Parses `<subject> cross while <subject> loop [left|right]` at the current
+/// [_Scan] position: consumes the matched tokens and returns
+/// `{'who': …, 'hand'?: …}`, or returns `null` leaving [s] **unchanged** on
+/// any mismatch.
+///
+/// Both dancer-set subjects must resolve via [_subject] (unknown role →
+/// decline). [who] is the crossing subject; [hand] from a trailing
+/// `left`/`right` when present.
+///
+/// **Why a shared helper.** [_boxCirculateBare] and [_boxCirculate] both parse
+/// this clause. Extracting it into one site prevents silent grammar drift: two
+/// parsers for one grammar will diverge — a change to one path, a doc comment
+/// asserting both mirror each other, and a silent mismatch that no test catches
+/// until behaviour differs. Keep the clause in one place.
+///
+/// **Security.** The params map is allocated only after a full match. Input is
+/// already sanitised upstream; [_Scan] tokenizes on `\S+` (bounded by input
+/// length) and this function reads at most ~5 tokens, returning early on the
+/// first mismatch. `_subject` and `eatPhrase` do allocate internally (string
+/// comparisons, `split`), but those are O(1) per token against a fixed
+/// vocabulary and bounded by the input length already enforced upstream.
+///
+/// **Measured consequence of the guards:**
+/// - Dropping the [_subject] null-check on the looping dancer would admit
+///   lines whose second role is unrecognized — e.g.
+///   `role1s cross while unknown loop` — turning an unknown into a structured
+///   `box_circulate` with the wrong `who`.
+/// - Dropping `s.eat('loop')` would match any `<subject> cross while <subject>`
+///   prefix, absorbing unrelated content into the note — e.g.
+///   `role1s cross while role2s - all balance` would silently become
+///   `box_circulate` with note `"- all balance"`.
+Map<String, Object?>? _crossWhileLoopParams(_Scan s) {
+  final save = s.pos;
+  final who = _subject(s);
+  if (who == null) {
+    s.reset(save);
+    return null;
+  }
+  if (!s.eatPhrase('cross while')) {
+    s.reset(save);
+    return null;
+  }
+  if (_subject(s) == null) {
+    s.reset(save);
+    return null;
+  }
+  if (!s.eat('loop')) {
+    s.reset(save);
+    return null;
+  }
+  final params = <String, Object?>{'who': who};
+  final hand = _leftRight(s.peek());
+  if (hand != null) {
+    s.take();
+    params['hand'] = hand;
+  }
+  return params;
+}
+
+/// Bare ContraDB box-circulate form:
+/// `[balance &] <subject> cross while <subject> loop [left|right]`.
+///
+/// ContraDB renders the component cross/loop path directly, without the
+/// `box circulate` head phrase. Calls [_crossWhileLoopParams] (the shared
+/// clause parser) for the cross/loop clause; mirrors [_boxCirculate]'s
+/// optional `balance &` prefix so the two forms handle balance identically.
+FigureMatch? _boxCirculateBare(String text) {
+  final s = _Scan(text);
+  final balance = _eatBalanceAmp(s);
+  final clause = _crossWhileLoopParams(s);
+  if (clause == null) return null;
+  final params = <String, Object?>{...clause, if (balance) 'balance': true};
+  return FigureMatch('box_circulate', params: params, note: s.note());
+}
+
 /// boxCirculateWords. Renders as: "[balance] box circulate - WHO cross while
-/// OTHER loop HAND".
+/// OTHER loop HAND". Calls [_crossWhileLoopParams] (the shared clause parser)
+/// for the optional `- …` clause.
 FigureMatch? _boxCirculate(String text) {
   final s = _Scan(text);
   final balance = _eatBalanceAmp(s);
@@ -1155,17 +1408,9 @@ FigureMatch? _boxCirculate(String text) {
   final params = <String, Object?>{if (balance) 'balance': true};
   final save = s.pos;
   if (s.eat('-')) {
-    final who = _subject(s);
-    if (who != null &&
-        s.eatPhrase('cross while') &&
-        _subject(s) != null &&
-        s.eat('loop')) {
-      params['who'] = who;
-      final hand = _leftRight(s.peek());
-      if (hand != null) {
-        s.take();
-        params['hand'] = hand;
-      }
+    final clause = _crossWhileLoopParams(s);
+    if (clause != null) {
+      params.addAll(clause);
     } else {
       s.reset(save);
     }
@@ -1386,10 +1631,89 @@ FigureMatch? _squareThrough(String text) {
   return FigureMatch('square_through', params: params, note: s.note());
 }
 
-/// formALongWaveWords (the common in=true/out=false form). Renders as: "WHO dance
-/// in to a long wave in the center [- balance the wave]".
+/// ContraDB's deployed `invertPairHash`, used only to guard the two `out`
+/// branches of [_formALongWave] below (issue #945, defect B). Declining any
+/// dancer set not in this table is the safe default — it is not a general
+/// dancer-set inverter.
+const Map<String, String> _invertPairHash = <String, String>{
+  'role1s': 'role2s',
+  'role2s': 'role1s',
+  'ones': 'twos',
+  'twos': 'ones',
+  'firstCorners': 'secondCorners',
+  'secondCorners': 'firstCorners',
+  '*': '*',
+};
+
+/// formALongWaveWords. libfigure's deployed `figure.js` renders one of four
+/// templates depending on the `in`/`out` flags:
+///
+///   out && in:  "`invertPair(who)` dance out while `who` dance in to a long
+///                wave in the center [- balance the wave]"
+///   out && !in: "`invertPair(who)` dance out [& balance]"
+///   !out && in: "`who` dance in to a long wave in the center
+///                [- balance the wave]" (the only branch previously
+///                implemented here)
+///   !out && !in: a different figure entirely ("`who` `smove` in the
+///                center"), out of scope for this recognizer.
+///
+/// In both `out` branches, `who` (the `who` param) is the role dancing IN
+/// (or, for `out && !in`, the role that *would* be "in"); the named subject
+/// in the rendered text is its `invertPair` partner. Getting this backwards
+/// silently swaps the roles and produces a wrong dance that still looks
+/// structured, so both branches verify the named subject against
+/// [_invertPairHash] and decline — falling through to the `meanwhile`
+/// fan-out — rather than over-claiming arbitrary "X dance out ..." prose.
 FigureMatch? _formALongWave(String text) {
   final s = _Scan(text);
+
+  // out && in: "<named> dance out while <who> dance in to a long wave in
+  // the center [- balance the wave]".
+  {
+    final start = s.pos;
+    final named = _subject(s);
+    if (named != null && s.eatPhrase('dance out while')) {
+      final who = _subject(s);
+      if (who != null &&
+          _invertPairHash[who] == named &&
+          s.eatPhrase('dance in to a long wave in the center')) {
+        final params = <String, Object?>{'who': who, 'in': true, 'out': true};
+        params['balance'] = s.eat('-') && s.eatPhrase('balance the wave');
+        return FigureMatch('form_a_long_wave', params: params, note: s.note());
+      }
+    }
+    s.reset(start);
+  }
+
+  // out && !in: "<named> dance out [& balance]", where <named> is the OUT
+  // role and `who` is its invertPair partner (the role dancing IN).
+  {
+    final start = s.pos;
+    final named = _subject(s);
+    if (named != null && s.eatPhrase('dance out')) {
+      final who = _invertPairHash[named];
+      if (who != null) {
+        final balance = s.eat('&') && s.eat('balance');
+        if (s.peek() == null) {
+          final params = <String, Object?>{
+            'who': who,
+            'in': false,
+            'out': true,
+            'balance': balance,
+          };
+          return FigureMatch(
+            'form_a_long_wave',
+            params: params,
+            note: s.note(),
+          );
+        }
+      }
+    }
+    s.reset(start);
+  }
+
+  // !out && in: "WHO dance in to a long wave in the center
+  // [- balance the wave]" (the pre-existing, most common form).
   final who = _subject(s);
   if (who == null) return null;
   if (!s.eatPhrase('dance in to a long wave in the center')) return null;
@@ -1487,6 +1811,22 @@ class _Scan {
 
 /// Dancer-set subjects, longest phrase first so `next neighbors` wins over
 /// `neighbors`. Post-scrub, gendered roles are already `role1s`/`role2s`.
+///
+/// ContraDB's deployed `dialectForFigures` performs a content-conditional,
+/// whole-dance remap: if any figure in the dance uses the `3rd neighbors`
+/// parameter, `neighbors` renders as `1st neighbors` and `next neighbors`
+/// renders as `2nd neighbors` for every figure in that dance — not just the
+/// one using the ordinal. Independently, if any figure uses `2nd shadows`,
+/// `shadows` renders as `1st shadows` for the whole dance. The ordinal
+/// entries below map those rendered forms back to their base taxonomy
+/// tokens (`1st neighbors` → `neighbors`, `1st shadows` → `shadows`) so the
+/// remap is transparent to every recognizer that calls `_subject`. The
+/// higher ordinals (`3rd`/`4th neighbors`, `2nd shadows`) are rendered
+/// unconditionally and map to their own distinct tokens, which already
+/// exist in `ParamVocab.pairDancerSets` (`param_types.dart`) — no taxonomy
+/// change needed. The new entries begin with distinct numeral prefixes, so
+/// ordering relative to each other is not load-bearing, but they are kept
+/// above the bare entries to preserve the "longest phrase first" invariant.
 const List<MapEntry<String, String>> _subjectPhrases =
     <MapEntry<String, String>>[
       MapEntry('next neighbors', 'nextNeighbors'),
@@ -1495,6 +1835,10 @@ const List<MapEntry<String, String>> _subjectPhrases =
       // (libfigure abbreviation; real render: The Hobbit — `prev neighbors
       // allemande left once`). Kept ahead of the bare `neighbors` entry.
       MapEntry('prev neighbors', 'prevNeighbors'),
+      MapEntry('1st neighbors', 'neighbors'),
+      MapEntry('2nd neighbors', 'nextNeighbors'),
+      MapEntry('3rd neighbors', 'thirdNeighbors'),
+      MapEntry('4th neighbors', 'fourthNeighbors'),
       MapEntry('neighbors', 'neighbors'),
       MapEntry('partners', 'partners'),
       MapEntry('role1s', 'role1s'),
@@ -1502,6 +1846,8 @@ const List<MapEntry<String, String>> _subjectPhrases =
       MapEntry('ones', 'ones'),
       MapEntry('twos', 'twos'),
       MapEntry('everyone', 'everyone'),
+      MapEntry('1st shadows', 'shadows'),
+      MapEntry('2nd shadows', 'secondShadows'),
       MapEntry('shadows', 'shadows'),
     ];
 

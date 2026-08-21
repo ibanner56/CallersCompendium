@@ -45,20 +45,30 @@ notes*, and so on — follow the app's language setting, not your dialect.
 
 ## Share a program
 
-Open a program and choose **Export**. Four actions:
+Open a program and choose **Export**. Five actions:
 
 | Action | What happens |
 |---|---|
 | **Share set list (text)** | Hands a plain-text set list to your system's share sheet |
 | **Share (program + dances)** | Packages the program *and* its dances into one file to hand to another caller |
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
+| **Export as JSON file** | The same package, named `.json` instead — for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
-The set list — text and PDF alike — is titles, event details, and slot notes. It
-is deliberately *not* a full figure-by-figure breakdown of each dance; that is
-what a dance card or [Perform mode](./perform.md) is for. Because a set list
-carries no figures, your dialect does not come into it; the labels follow your
-app language, as with dance exports.
+The set list — text and PDF alike — is titles, event details, and slot notes by
+default. When you tap **Share set list (text)**, **Copy set list**, or **Export /
+print PDF**, the app asks **"Include figures?"** with two choices:
+
+- **Set list only** — just titles, event details, and slot notes (the default).
+- **Set list and figures** — appends a full figure card for each dance after the
+  set list. The cards use your app language for field labels; the figure text
+  uses your active dialect. Alternate dances are marked "Alternate".
+
+If none of the program's dances have any structured figures, the question is
+skipped and the export proceeds as set-list-only automatically.
+
+Cancelling the dialog (or tapping outside it) aborts the export — nothing is
+shared or copied.
 
 If something goes wrong the app says so plainly — "Couldn't share this set list",
 "Couldn't export this set list" — and nothing is sent.
@@ -80,9 +90,37 @@ AirDrop, email, a messaging app, a USB stick.
 On the receiving end, opening the file launches Caller's Compendium straight into
 its [import review](./imports.md#open-a-shared-program-someone-sent-you) screen,
 loaded with the program, its dances, and its venue. Nothing is added until the
-recipient confirms. Bringing the same file in twice does not create duplicates:
-the importer matches what is already there rather than piling up copies. Plain
-`.json` files are accepted too, so an older bundle still opens.
+recipient confirms. Bringing the same file in twice does not pile up duplicate
+*dances* — the importer matches what is already there. Plain `.json` files are
+accepted too, so an older bundle still opens.
+
+One exception worth knowing about: **venues do get duplicated.** The importer
+recognises a repeated venue by its name *and* its address, and a shared file
+deliberately carries no address (see [What stays private](#what-stays-private)).
+So importing two programs held at the same hall, or the same program twice,
+leaves a separate venue record each time. They are name-only records, nothing is
+lost or overwritten, and you can tidy the extras with
+[**Settings ▸ Venues ▸ Manage venues**](./settings.md#venues) — but the app
+cannot spot them for you.
+
+### The same thing, as a plain `.json` file
+
+**Export as JSON file** builds *exactly* the same content as **Share (program +
+dances)** — same program, same dances with their full figures, same
+choreographers, same venue, same privacy rules. The only difference is the name
+on the file: `.json` instead of `.ccshare`.
+
+That matters on the receiving end. A `.ccshare` file is registered to Caller's
+Compendium, so a device that has the app opens it straight into import review —
+but a device that doesn't may not know what to do with it at all. A `.json` file
+is a plain document anywhere, so reach for this one when you are:
+
+- emailing the program to someone who hasn't installed the app yet;
+- putting it somewhere that rejects unfamiliar file types; or
+- wanting to open and read the file yourself.
+
+Either file imports back into the app the same way, so nothing is lost by
+choosing one over the other.
 
 ## Print the programming matrix
 
@@ -96,7 +134,7 @@ column headings, and prints a legend along the bottom:
 
 | Mark | Meaning |
 |---|---|
-| `‼` | Same phrase as adjacent dance |
+| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in Settings ▸ General ▸ Programs) |
 | `★` | Introduced here |
 | `▸` | Dance's first figure |
 | `✓` | Present |
@@ -112,10 +150,21 @@ leave, and one thing asks you first.
 
 ### Never included
 
-- **A choreographer's email and location.** These are marked private in the
-  editor and are stripped out of anything you share — see
+- **A choreographer's email, location, and deceased mark.** These are marked
+  private in the editor and are stripped out of anything you share — see
   [Write & edit dances](./authoring.md#author-and-source-details-are-shared). The
   choreographer's name, website, and notes do travel.
+
+- **A venue's street address.** The address line, city, state or province,
+  country, and postcode are left out of everything you share, print, or copy —
+  the `.ccshare` file, the JSON file, the PDF, and the text set list alike. There
+  is no tick box for these: they are simply not sent. What does travel is the
+  venue's **name**, plus its website, schedule, price, sponsor, event name, and
+  notes, so a recipient still knows which hall you mean.
+
+  Your own copy is untouched — the address is still there in the venue record,
+  and a [backup](./backup-portability.md) still contains it. This is only about
+  what leaves the device.
 
 ### Included only if you say so
 
@@ -137,13 +186,14 @@ contacts, each with a name, phone, and email. **Every box starts unticked.**
   nothing is written, printed, or shared.
 
 Whatever you leave unticked is genuinely absent from the file, not hidden inside
-it. The venue's own details — its name, address, website, schedule, price,
-sponsor, and notes — are not personal contact details and are always included.
+it. The venue's other details — its name, website, schedule, price, sponsor,
+event name, and notes — are not personal contact details and are always
+included. Its street address is always left out; see **Never included** above.
 
 You will not see this dialog when there is nothing to ask about: a program with no
 linked venue, or a venue with no contact people recorded, exports straight away.
 Text set lists and dance exports never show it either, because neither carries
-contact details in the first place.
+contact people in the first place.
 
 ### A note on diagnostics
 

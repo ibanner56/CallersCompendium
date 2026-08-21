@@ -49,7 +49,9 @@ line**, and you get a live preview before anything is saved:
 
 Press **Import** to create the program; an **Undo** option appears in case you
 change your mind. You can then open the program and tidy up any notes — for
-example, searching your collection to link a dance the paste couldn't find.
+example, searching your collection to link a dance the paste couldn't find, or
+using a note slot's **…** menu to create a new dance from it directly (see
+"Kinds of slots" below).
 
 **Fill the gaps from The Caller's Box.** If some lines didn't match anything in
 your collection, the preview shows a **Resolve unmatched online** button. It
@@ -57,7 +59,10 @@ looks each unmatched title up in [The Caller's Box](./glossary.md#the-callers-bo
 and, where it finds a confident single match, imports that dance and links the
 slot to it — so a paste can pull in dances you don't own yet, not just the ones
 you already have. It needs an internet connection, and anything it still can't
-place stays a note for you to sort out by hand.
+place stays a note for you to sort out by hand. Unlike a Caller's Box search on
+the Collection screen, this looks at every dance the Box knows — including ones
+whose figures it won't share — because it runs unattended and adding to it what
+it can find is not the same as changing what it decides to import on its own.
 
 ### Import a program from ContraDB
 
@@ -116,7 +121,11 @@ A program is made of three kinds of slots:
 
 - **Dance slots** — dances pulled from your [collection](./glossary.md#collection).
 - **Free-text slots** — for the things between dances: a break, a waltz,
-  announcements.
+  announcements. A free-text slot with real text in it also offers **Create a
+  dance from this** on its **…** menu, which opens the dance editor pre-filled
+  with that text as the title; saving links the slot to the new dance in one
+  step, so a note left behind by an import that couldn't find a match doesn't
+  need a separate trip through the collection to fix.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
@@ -124,7 +133,11 @@ A program is made of three kinds of slots:
 
 Each slot can also carry a **note**, a **guest caller**, and a **planned length**
 in minutes — useful both for pacing the evening and for the timing display in
-[Perform mode](./perform.md#keep-time-through-the-evening).
+[Perform mode](./perform.md#keep-time-through-the-evening). A dance slot's
+**…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
+button for swapping the dance in place — keeping the note, guest caller,
+planned length, and mark-performed status exactly as they were — instead of
+adding the new dance, dragging it into position, and deleting the old one.
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
 Both do the same job, so you are never forced to drag.
@@ -176,15 +189,19 @@ Here is how to read it:
   | Star | **Introduced here** | The first dance (top to bottom) whose choreography uses that move, wherever it falls in that dance |
   | Flag | **Dance's first figure** | The move that dance opens with |
   | Check | **Present** | The move appears in that dance |
-  | Alert | **Same phrase as adjacent dance** | See below |
+  | Alert | **Shares beats with an adjacent dance** (or **Same phrase as adjacent dance**, if you turn the setting below off) | See below |
 
-- **The alert marker** replaces the check when a move lands in the **same phrase**
-  (A1, A2, B1, B2…) in **two dances that run back-to-back** in the program — for
-  example a partner balance & swing in B1 of one dance and again in B1 of the very
-  next dance. Adjacent repeats like this can make two dances feel samey on the
-  floor, so the matrix flags them for you to notice and, if you like, reconsider.
-  Only the two colliding cells are flagged; a repeat that is not in neighbouring
-  dances, or lands in a different phrase, is left alone.
+- **The alert marker** replaces the check when a move's beats actually **overlap**
+  in **two dances that run back-to-back** in the program — for example a partner
+  balance & swing that lands on the exact same beats in one dance and again in the
+  very next dance. Adjacent repeats like this can make two dances feel samey on
+  the floor, so the matrix flags them for you to notice and, if you like,
+  reconsider. Only the two colliding cells are flagged; a repeat that is not in
+  neighbouring dances, or whose beats don't actually overlap, is left alone. If
+  you'd rather flag any repeat that merely lands in the same **named phrase**
+  (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
+  the matrix used to behave — turn off **Flag exact beat overlap only** in
+  **Settings ▸ Program**.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is
@@ -195,13 +212,67 @@ Here is how to read it:
   beside the PDF button — it is available only while something is hidden. The
   pinned **Formation** column cannot be hidden, since it is part of each dance's
   identity rather than a move.
+- **Reorder, rename, or remove columns for good** in
+  **Settings ▸ Program ▸ Matrix columns**. Unlike the per-session eye icon above,
+  changes there are saved and apply to **every** program, on screen and in the
+  printed PDF: drag a column to a new position, give it a name that suits your
+  callers, or remove one you never use. Removed columns can be brought back at any
+  time, and two reset controls restore the built-in columns or wipe every
+  customisation. See
+  [Settings ▸ Program ▸ Programs](./settings.md#programs) for the
+  full walkthrough.
+
+### Parameterized columns
+
+In **Settings ▸ Program ▸ Matrix columns**, **Add parameterized column** lets you
+make a column for one taxonomy move with optional exact parameter values, such as
+partner swings or balance-and-swings. The move must be a canonical taxonomy
+move; matching uses the figure's effective parameters, including taxonomy
+defaults and alias-pinned values. A configured parameterized column appears only
+when at least one figure matches it.
+
+When parameterized columns overlap, the one with more exact constraints wins.
+Columns with the same number of constraints use their order in the settings
+list. A match replaces the ordinary built-in column rather than appearing in
+both columns, so the matrix and its first-figure, debut, phrase, and beat
+markers all refer to the selected parameterized column. Values are exact:
+there are no ranges, comparisons, wildcards, or multi-move matchers.
+
+Partner and neighbor swing baselines keep their legacy empty-program behavior
+when no plain swing candidate exists. Once plain candidates exist, a baseline is
+hidden only when every candidate is captured by parameterized columns; it stays
+visible when the capture is mixed.
+
+### Compound columns
+
+In **Settings ▸ Program ▸ Matrix columns**, **Add compound column** lets you
+define a named column for a sequence of at least two exact taxonomy moves. The
+sequence is a per-dance boolean: it appears when those moves occur in one
+strictly-adjacent, contiguous run in the dance's original figures. For example,
+a compound for **circle-left → swing → circle-left** matches that exact
+three-figure run; an intervening figure or a gap does not match.
+
+Compound columns are additive. The matching figures keep their built-in or
+parameterized memberships, while the compound column is emitted only for
+dances where it is present. Matching uses canonical move ids and exact
+effective parameter values, including taxonomy defaults and alias-pinned values.
+You can reorder, hide, rename, edit, or delete compounds alongside the built-in
+and parameterized columns, and the same display settings apply on screen and in
+the PDF.
+
+Compounds never match across dances, skip gaps or intervening figures, or use
+subsequences, ranges, comparisons, wildcards, or multi-move alternatives. They
+are presence markers rather than counts and do not participate in adjacent-dance
+phrase or beat collision warnings.
 
 The matrix shows **presence, not counts** — whether a move is in a dance, not how
 many times, and not the order the moves come in. That is exactly what you want
 for spotting patterns across the evening: scan a move's column and you can see at
 a glance that, say, several dances in a row all have a swing, or that one move
-turns up in nearly every dance. To make the grid meaningful, swings are split out
-by role and heys by their length, so similar-looking moves are not lumped
+turns up in nearly every dance. To make the grid meaningful, swings, allemandes,
+and chains are split out by role (partner/neighbor/larks/robins/…); swings are
+further split by whether they carry a "balance and" or "meltdown" lead-in, and
+heys are split by their length — so similar-looking moves are not lumped
 together.
 
 A few practical notes:
@@ -215,8 +286,9 @@ A few practical notes:
   menu, and it is unavailable while the matrix is empty. The PDF is landscape and
   carries its own legend — where the screen uses icons, the printed page uses the
   marks `★` (introduced here), `▸` (dance's first figure), `✓` (present), and `‼`
-  (same phrase as adjacent dance). Columns you have hidden on screen still print:
-  the export always covers the full matrix. See
+  (shares beats with an adjacent dance, or same phrase as adjacent dance if
+  you've turned the setting off). Columns you have hidden on screen still
+  print: the export always covers the full matrix. See
   [Share, print & export](./sharing.md#print-the-programming-matrix).
 
 ## Print, export, and email a program
@@ -229,13 +301,19 @@ menu:
 - **Share (program + dances)** — writes one file holding the program *and* every
   dance it uses, so another caller gets the dances too, not just a list of titles.
 - **Copy set list** — puts the same text on your clipboard.
+- **Export as JSON file** — the same file as **Share (program + dances)**, named
+  `.json` so a device without the app can still open it.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
-A set list is titles, event details, and slot notes — deliberately not a
-figure-by-figure breakdown of every dance. If your program is linked to a
-[venue](./glossary.md#venue) with contact people recorded, the PDF and the
-program-plus-dances share ask before including any of those personal details, and
-leave them out unless you say otherwise.
+A set list is titles, event details, and slot notes by default. When you share,
+copy, or export as PDF the app asks **"Include figures?"** — choose **Set list
+only** to keep titles and notes, or **Set list and figures** to append a full
+figure card for each dance after the set list. If none of the program's dances
+have structured figures the question is skipped automatically. If your program is
+linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF
+and the two file exports ask before including any of those personal details, and
+leave them out unless you say otherwise. A venue's street address is never
+included in any export, with or without a prompt.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

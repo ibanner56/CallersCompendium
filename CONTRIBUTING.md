@@ -2,7 +2,12 @@
 
 Thanks for helping build a community-maintained tool for dance callers! The
 best starting point is the [roadmap](docs/ROADMAP.md) and the design docs in
-[docs/design/](docs/design/).
+[docs/design/](docs/design/). [docs/dev/README.md](docs/dev/README.md) maps
+which document answers which question — including which files are **generated**
+and must not be hand-edited.
+
+Working through an agent? [`AGENTS.md`](AGENTS.md) is the resident guide, and
+[docs/dev/agents/](docs/dev/agents/) holds the per-phase chapters it points at.
 
 ## Ground rules
 
@@ -39,8 +44,24 @@ When you change the schema:
   migration test/fixture (`test/storage/migration_test.dart` and/or a
   `test/storage/fixtures/` fixture). CI **fails** a PR that bumps
   `schemaVersion` without adding or changing such a test/fixture.
+- Add a drift schema dump for the new version under
+  [`packages/compendium_core/drift_schemas/`](packages/compendium_core/drift_schemas/README.md).
+  `test/storage/schema_verification_test.dart` asserts that migrating from
+  every recorded version reproduces the schema a fresh database gets at head,
+  so a missing dump is a failing test rather than a silent coverage hole. The
+  README there covers regeneration — note that `drift_dev` cannot run from this
+  workspace and is driven from a throwaway project.
 - **Never bump `schemaVersion` in a PATCH release.** A schema change is a
   data-format change and rides at least a MINOR version bump.
+
+Old schema versions are **retired** once they fall below the oldest supported
+release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it
+is refused rather than partially migrated, and CI fails any PR that reintroduces
+a fixture, generator or dump for a retired version. Raising the floor is
+user-visible — those databases stop opening — so it needs an `app/CHANGELOG.md`
+entry in user-facing terms. See
+[Retiring a schema version](docs/design/storage.md#retiring-a-schema-version)
+for the full checklist.
 
 ### Data classification
 Every field the app persists is classified by what kind of data it is, whose
@@ -55,7 +76,11 @@ an unclassified column or settings key. When you add one:
 
 - Add an entry to `fieldClassifications` (database columns, keyed
   `table.column` with the SQL names) or `settingsClassifications` (settings
-  keys).
+  keys declared as an exact constant, `const String kSomethingKey = ...`).
+  A settings key built at runtime from a prefix (`editor_draft:<id>`) is
+  declared as `const String kSomethingKeyPrefix = ...` instead, and classified
+  in `settingsPrefixClassifications` — the ratchet matches both declaration
+  shapes.
 - Say **why** in the entry's `note` when the call is not obvious. A reviewer
   should never have to guess why a personal-data field is `shareable`.
 - Regenerate the catalogue:
@@ -67,6 +92,61 @@ an unclassified column or settings key. When you add one:
 Categories use the [W3C Data Privacy Vocabulary](https://w3c-cg.github.io/dpv/2.3/dpv/)
 v2.3, pinned. It is freely readable, so you can check your own classification
 against the source.
+
+### Raw SQL reads from the settings table
+
+Every raw `SELECT … FROM settings WHERE key` read must include
+`AND deleted_at IS NULL`. This is enforced by
+`tools/ci/check_settings_marker_reads.py` and its test
+`test_check_settings_marker_reads.py`, wired into `_checks.yml`.
+
+The invariant is load-bearing: `repositories.dart` performs a deliberate hard
+`DELETE` to clear the rebuild marker and justifies that design choice in a
+comment by asserting that every raw read already filters deleted rows. A future
+unfiltered read would silently falsify that justification too — the dependency
+exists only in a comment, and the two locations are ninety lines apart.
+
+The ratchet handles Dart adjacent-string concatenation, so a read split across
+two lines is also checked. The hard `DELETE` (which has no `deleted_at IS NULL`
+and is intentionally correct) is excluded by name in the script rather than by
+narrowing the detection pattern.
+
+### Caught errors must reach the diagnostic log (or say why not)
+
+Every `catch (...)`, `on Type { ... }`, `.catchError(...)`, and `onError:`
+callback in `app/lib` must either call `logCaughtError`/`logCaughtErrorTypeOnly`
+(`app/lib/src/diagnostics/error_log.dart`) or carry a
+`// diagnostics: silent — <reason>` comment. This is enforced by
+`tools/ci/check_caught_error_logged.py` and its test
+`test_check_caught_error_logged.py`, wired into `_checks.yml`.
+
+The invariant exists because the on-device diagnostic log used to have exactly
+four writers — three global handlers plus one manual call site — so any error a
+screen caught and turned into a snackbar or inline error state was invisible to
+it (issue #963). A beta user reporting a failed import found nothing to export,
+because the failure was never logged in the first place, not because export was
+broken.
+
+Use `logCaughtErrorTypeOnly` instead of `logCaughtError` at a site that already
+treats its caught error as unsafe to surface verbatim (look for existing
+comments mentioning CWE-209 or "never surface the raw error") — it records only
+the error's runtime type, never its message, so a raw network/parse failure or
+unredacted pasted content can't reach an export labelled "scrubbed" through a
+second, unreviewed path. Most sites should use `logCaughtError`; treat
+type-only logging as the exception, not the default.
+
+A catch that wraps a low-level error into a different typed exception and
+rethrows is not swallowing anything — annotate it `diagnostics: silent —
+converts to <Type> and rethrows; logged at the UI boundary that ultimately
+catches it` rather than logging twice for the same user-visible failure.
+
+Like the settings-marker ratchet above, this walks balanced parens/braces over
+a masked copy of the source rather than matching on lines, so a multi-line
+catch body or a stray brace inside a string can't mis-count. Its `catch`/
+`on Type { }` detection is exact; its `.catchError`/`onError:` detection walks
+to the first unnested comma or closing bracket, which is correct for every
+shape in this codebase today but is a narrower guarantee — see the script's own
+docstring before assuming it can't be fooled by an unusual call shape.
 
 ### Architecture decisions
 Non-trivial, hard-to-reverse choices are recorded as ADRs in
@@ -141,7 +221,9 @@ User-visible strings are internationalized with `flutter_localizations` +
 `gen-l10n`, with **English as the source locale**. Add or change strings in
 `app/lib/l10n/app_en.arb` (not inline in widgets), then use them via
 `AppLocalizations.of(context)`. Translating the app needs **no handwritten
-Dart**: copy `app_en.arb` to `app_<locale>.arb` and translate the values, then
+Dart**: copy `app_en.arb` to `app_<locale>.arb`, translate the values with
+`arb_translate.py extract`/`apply` so per-key English-source markers are
+recorded, then
 regenerate the committed localizations (a one-line `gen-l10n` step) and, for
 iOS, add the locale to the Runner's `Info.plist`. See
 [docs/dev/localization.md](docs/dev/localization.md) for the key-naming
@@ -174,7 +256,26 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 2. Make your change. Domain logic (taxonomy, dialect, storage, imports) belongs
    in `packages/compendium_core/` and must stay Flutter-free; the UI lives in
    `app/`.
-3. Run the checks CI enforces, from the repo root:
+3. Run the gates locally, from the repo root:
+
+   ```sh
+   python3 tools/preflight.py          # every gate CI runs, one line each
+   python3 tools/preflight.py --fast   # Python gates only, no Dart/Flutter (seconds)
+   python3 tools/preflight.py --list   # what it runs, and why
+   ```
+
+   `preflight.py` mirrors [`.github/workflows/_checks.yml`](.github/workflows/_checks.yml),
+   which remains the authoritative list of what gates a PR. It exists because
+   several gates have no obvious local equivalent — the one that most often bites
+   is the figure-fixture ratchet: `dart test` does not run it over the real
+   suites, so an invalidated fixture passes locally and fails only in CI, where
+   it looks like flakiness rather than a missing local step. `preflight.py` runs
+   it.
+
+   It reports `skip` (with the reason) for any step whose toolchain is missing —
+   a step that silently no-ops would be worse than one that fails — so on a
+   checkout without FVM you still get the Python ratchets. To run the Dart and
+   Flutter steps by hand:
 
    ```sh
    fvm dart format .                                   # format (CI fails on diffs)
@@ -184,6 +285,18 @@ symlink you can point your editor/PATH at — see the FVM docs.)
    ```
 
 4. Open a PR; it must pass CI (build, tests, lint, formatting) before review.
+   Before merging, run the merge-readiness gates:
+
+   ```sh
+   python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...
+   ```
+
+   which checks review freshness against the reviewer's own latest entry,
+   unresolved threads (with `totalCount`, so a truncated page is visible),
+   checks on the current head, and that the PR closes exactly the issues you
+   named — a branch name or a sentence containing a closing verb can create a
+   link on its own. See
+   [docs/dev/agents/merging.md](docs/dev/agents/merging.md).
 
 ## Running & viewing locally
 
@@ -290,4 +403,3 @@ telemetry**, so nothing is ever collected automatically. You decide what to shar
 - **Worried about your data?** Don't be — export a backup from
   **Settings → General** first. Backup and restore are built in, so testing a
   pre-release build never puts your collection at risk.
-

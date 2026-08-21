@@ -19,14 +19,21 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// When OFF (the default) AND a default caller is configured
 /// ([kDefaultProgramCallerKey] non-empty), a dance's calling history and counts
 /// only include programs whose HOST caller matches that default caller (trim +
-/// case-insensitive). When ON — or when no default caller is set — history
-/// tracks every program that contains the dance, as it always has. This gate is
-/// AND-combined with [kRequirePerformedForHistoryKey], never a replacement.
+/// case-insensitive) **or** whose caller is NULL or blank (unattributed programs
+/// are treated as the user's own; #850 supersedes the original #583 exclusion).
+/// When ON — or when no default caller is set — history tracks every program
+/// that contains the dance, as it always has. This gate is AND-combined with
+/// [kRequirePerformedForHistoryKey], never a replacement.
 const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 
 /// Key used to persist and load the "auto-size Perform cards" preference
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
+
+/// Key used to persist the opt-in "auto-commit program-editor changes"
+/// preference. Defaults to `false`, preserving explicit-save behavior until
+/// the caller enables background commits.
+const String kAutoCommitProgramChangesKey = 'auto_commit_program_changes';
 
 /// Key used to persist the in-Perform manual text scale (issue #449). Stored as
 /// a number; absent/invalid means the built-in default (`kPerformDefaultScale`),
@@ -67,3 +74,38 @@ const String kVenueEntityModeKey = 'venue_entity_mode';
 /// free-text field (routed through the shared core parser) instead of a blank
 /// structured draft; editing an existing figure always stays structured.
 const String kFreeTextEntryKey = 'free_text_entry';
+
+/// Idempotency latch for the one-time disclosure shown when a user creates
+/// their first custom field, informing them that custom field values travel
+/// with the collection in exports and shares (issue #780). Presence of the key
+/// (see [SettingsRepository.contains]) is the latch — set once, on the first
+/// successful field save, and never consulted for its value.
+const String kCustomFieldSharingDisclosureKey =
+    'custom_fields.sharing.disclosed';
+
+/// Key used to persist the set of [CollectionTileField]s the user wants shown
+/// on each collection dance row (issue #767). Stored as a JSON list of field
+/// name strings; absent/unset means all fields are visible, so existing users
+/// see no change until they adjust the preference.
+const String kCollectionTileVisibleFieldsKey = 'collection_tile_visible_fields';
+
+/// Key used to persist the Programs "flag exact beat overlap only" setting
+/// (issue #962). Stored as a `bool`; **unset means on** (`true`) — the product
+/// default this issue changed the matrix's same-figure collision check to. A
+/// dance's programming matrix flags a same-figure collision with a
+/// strictly-adjacent dance only when the move's beat SPAN actually overlaps,
+/// rather than merely starting in the same named phrase (A1/A2/B1/B2…). When
+/// `false`, the matrix falls back to the original (#582) phrase-bucket check.
+const String kMatrixExactBeatCollisionKey = 'matrix_exact_beat_collision';
+
+/// Key used to persist the app-wide program-matrix **column configuration**
+/// (issue #935) — hidden/reordered/renamed built-in columns plus user-defined
+/// parameterized/compound columns. Stored as the JSON object produced by
+/// `MatrixColumnConfig.toJson()`; absent/unset (or any value the codec rejects)
+/// means the empty config, which reproduces today's default matrix exactly.
+///
+/// A working preference: it describes how the user likes their matrix laid out,
+/// the same on any device they own, so it is classified `_preference` and
+/// **travels in local backups** — validated on restore against the codec (see
+/// `backup_settings_schema.dart`) so a malformed blob can never reach the app.
+const String kProgramMatrixColumnsKey = 'program_matrix_columns';

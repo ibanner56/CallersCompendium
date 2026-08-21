@@ -108,12 +108,11 @@ Future<void> writeStringAtomically(
     if (debugSimulateFailure != null) await debugSimulateFailure();
     await tmp.rename(path);
   } catch (_) {
-    // Best-effort cleanup: never leave a `.tmp` behind, and never touch the
-    // previous good backup at `path` (only a successful rename replaces it).
+    // diagnostics: silent — write/rename failed; cleans up .tmp then rethrows to caller.
     try {
       if (await tmp.exists()) await tmp.delete();
     } catch (_) {
-      // Swallow cleanup errors; the original failure below is what matters.
+      // diagnostics: silent — .tmp cleanup failed; original write/rename failure is what matters.
     }
     rethrow;
   }

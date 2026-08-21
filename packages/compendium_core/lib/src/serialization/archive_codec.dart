@@ -14,6 +14,7 @@ import '../model/published_source.dart';
 import '../model/source_citation.dart';
 import '../model/tag.dart';
 import '../model/venue.dart';
+import '../util/argb.dart';
 import '../util/text_sanitizer.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
@@ -42,44 +43,59 @@ String encodeArchive(CompendiumArchive archive) =>
     jsonEncode(archiveToJson(archive));
 
 /// The canonical JSON object for [archive] (entities sorted by id).
-Map<String, Object?> archiveToJson(CompendiumArchive archive) => {
-  // Stamp at least the version the content requires (v2 when venue data is
-  // present) so an older reader warns rather than silently dropping venues,
-  // while honoring an explicitly higher requested version.
-  'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
-      ? archive.schemaVersion
-      : requiredSchemaVersion(archive),
-  'exportedAt': _iso(archive.exportedAt),
-  'choreographers': [
-    for (final c in _sortedById(archive.choreographers, (c) => c.id))
-      _choreographerToJson(c),
-  ],
-  'publishedSources': [
-    for (final s in _sortedById(archive.publishedSources, (s) => s.id))
-      _publishedSourceToJson(s),
-  ],
-  'tags': [
-    for (final t in _sortedById(archive.tags, (t) => t.id)) _tagToJson(t),
-  ],
-  'customFields': [
-    for (final f in _sortedById(archive.customFields, (f) => f.id))
-      _customFieldDefToJson(f),
-  ],
-  'dances': [
-    for (final d in _sortedById(archive.dances, (d) => d.id)) _danceToJson(d),
-  ],
-  'programs': [
-    for (final p in _sortedById(archive.programs, (p) => p.id))
-      _programToJson(p),
-  ],
-  // Omit the `venues` array entirely when empty so archives produced before
-  // the venue entity (and any that simply have no venues) stay byte-identical
-  // to the pre-v14 format and older readers are unaffected.
-  if (archive.venues.isNotEmpty)
-    'venues': [
-      for (final v in _sortedById(archive.venues, (v) => v.id)) _venueToJson(v),
+///
+/// Fields where [CustomFieldDef.shareable] is `false` are excluded from the
+/// encoded output: neither the field definition nor any dance's value for that
+/// field is emitted (#780). This makes the control observable on the existing
+/// archive/export surface without requiring a separate sync path.
+Map<String, Object?> archiveToJson(CompendiumArchive archive) {
+  // Compute the set of field IDs excluded from sharing once, then reference it
+  // for both the field-def list and each dance's value list.
+  final excludedFieldIds = {
+    for (final f in archive.customFields)
+      if (!f.shareable) f.id,
+  };
+  return {
+    // Stamp at least the version the content requires (v2 when venue data is
+    // present) so an older reader warns rather than silently dropping venues,
+    // while honoring an explicitly higher requested version.
+    'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
+        ? archive.schemaVersion
+        : requiredSchemaVersion(archive),
+    'exportedAt': _iso(archive.exportedAt),
+    'choreographers': [
+      for (final c in _sortedById(archive.choreographers, (c) => c.id))
+        _choreographerToJson(c),
     ],
-};
+    'publishedSources': [
+      for (final s in _sortedById(archive.publishedSources, (s) => s.id))
+        _publishedSourceToJson(s),
+    ],
+    'tags': [
+      for (final t in _sortedById(archive.tags, (t) => t.id)) _tagToJson(t),
+    ],
+    'customFields': [
+      for (final f in _sortedById(archive.customFields, (f) => f.id))
+        if (f.shareable) _customFieldDefToJson(f),
+    ],
+    'dances': [
+      for (final d in _sortedById(archive.dances, (d) => d.id))
+        _danceToJson(d, excludedFieldIds),
+    ],
+    'programs': [
+      for (final p in _sortedById(archive.programs, (p) => p.id))
+        _programToJson(p),
+    ],
+    // Omit the `venues` array entirely when empty so archives produced before
+    // the venue entity (and any that simply have no venues) stay byte-identical
+    // to the pre-v14 format and older readers are unaffected.
+    if (archive.venues.isNotEmpty)
+      'venues': [
+        for (final v in _sortedById(archive.venues, (v) => v.id))
+          _venueToJson(v),
+      ],
+  };
+}
 
 List<T> _sortedById<T>(List<T> items, String Function(T) id) =>
     [...items]..sort((a, b) => id(a).compareTo(id(b)));
@@ -121,7 +137,7 @@ Map<String, Object?> _customFieldDefToJson(CustomFieldDef f) => {
   'searchable': f.searchable,
 };
 
-Map<String, Object?> _danceToJson(Dance d) => {
+Map<String, Object?> _danceToJson(Dance d, Set<String> excludedFieldIds) => {
   'id': d.id,
   'title': d.title,
   'authorIds': d.authorIds,
@@ -136,9 +152,13 @@ Map<String, Object?> _danceToJson(Dance d) => {
   'status': d.status.name,
   if (d.level != null) 'level': d.level!.name,
   'mixedLevel': d.mixedLevel,
+  'mixer': d.mixer,
   if (d.rating != null) 'rating': d.rating,
   'tunes': d.tunes,
-  'customFields': [for (final v in d.customFields) _customFieldValueToJson(v)],
+  'customFields': [
+    for (final v in d.customFields)
+      if (!excludedFieldIds.contains(v.fieldId)) _customFieldValueToJson(v),
+  ],
   'tagIds': d.tagIds,
   'links': [for (final l in d.links) _danceLinkToJson(l)],
   'sourceCitations': [
@@ -247,6 +267,7 @@ Map<String, Object?> _venueToJson(Venue v) => {
   if (v.contact2Name != null) 'contact2Name': v.contact2Name,
   if (v.contact2Phone != null) 'contact2Phone': v.contact2Phone,
   if (v.contact2Email != null) 'contact2Email': v.contact2Email,
+  if (v.provenance != null) 'provenance': _provenanceToJson(v.provenance!),
 };
 
 // ---------------------------------------------------------------------------
@@ -561,7 +582,10 @@ PublishedSource _publishedSourceFromJson(Map<String, Object?> m) =>
 Tag _tagFromJson(Map<String, Object?> m) => Tag(
   id: _str(m, 'id'),
   name: _str(m, 'name'),
-  color: _intOrNull(m, 'color'),
+  // Untrusted: an archive can carry any JSON value here, and a tag colour is
+  // painted (#786). Normalized rather than rejected, so a malformed colour
+  // costs the tag its tint and not the tag itself.
+  color: normalizeArgb(m['color']),
 );
 
 CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) {
@@ -646,6 +670,7 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
       ? null
       : _enumByName(DanceLevel.values, _str(m, 'level'), 'level'),
   mixedLevel: _boolOr(m, 'mixedLevel', false),
+  mixer: _boolOr(m, 'mixer', false),
   rating: _intOrNull(m, 'rating'),
   tunes: _stringList(m, 'tunes'),
   customFields: _customFieldValuesFromJson(m['customFields']),
@@ -902,6 +927,9 @@ Venue _venueFromJson(Map<String, Object?> m) {
     contact2Name: _strOrNull(m, 'contact2Name'),
     contact2Phone: _strOrNull(m, 'contact2Phone'),
     contact2Email: _strOrNull(m, 'contact2Email'),
+    provenance: m['provenance'] == null
+        ? null
+        : _provenanceFromJson(_asMap(m['provenance'], 'provenance')),
   );
 }
 

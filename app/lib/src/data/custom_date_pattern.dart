@@ -376,8 +376,8 @@ DateTime? matchTitleWithCustomPattern(
   try {
     regExp = RegExp(buffer.toString(), caseSensitive: false);
   } catch (_) {
-    // Defensive: a validated pattern always yields a legal expression, but
-    // never let an unexpected construction error surface — treat as no match.
+    // diagnostics: silent — a validated pattern always yields a legal
+    // expression; treats an unexpected construction error as no match.
     return null;
   }
 

@@ -9,6 +9,49 @@ import '../model/formation.dart';
 // database.dart) rather than a typed drift table, because it is
 // content-less (`content=''`) and only ever written by the repository layer
 // that also owns `dance_figures` — a typed table adds no safety there.
+//
+// ---------------------------------------------------------------------------
+// The sync timestamp triple (`updated_at`, `deleted_at`, `existence_at`)
+// ---------------------------------------------------------------------------
+//
+// Every *syncable kind* — dances, programs, choreographers, tags, published
+// sources, custom field defs, venues, and settings keys — carries all three,
+// as of schema v25 (issue #898). They answer three different questions and
+// deliberately are not collapsed into fewer columns:
+//
+//   * `updated_at`   — which copy's **content** is newer. The merge
+//                      discriminator. Advanced by any write that changes what
+//                      the record would serialise.
+//   * `deleted_at`   — **retention**: NULL means live, non-NULL is a
+//                      tombstone and starts the purge / "Recently Deleted"
+//                      countdown.
+//   * `existence_at` — which **existence transition** (live -> deleted, or
+//                      deleted -> live) happened later. Stamped *causally*,
+//                      as `max(localNow, currentExistenceAt + 1 tick)`, rather
+//                      than from a bare clock, so a transition is always
+//                      strictly later than the one it supersedes even when the
+//                      local clock is behind or has not advanced.
+//
+// `existence_at` is separate from `updated_at` because an ordinary content
+// edit must NOT read as an existence transition, and separate from
+// `deleted_at` because a *revival* has no `deleted_at` to order by — the
+// column is NULL precisely when the record is live. Merging any pair of them
+// re-creates a defect the third exists to prevent; see `docs/design/sync.md`
+// before attempting to simplify.
+//
+// **Nullability.** All three are nullable on the tables that gained them in
+// v25. That is a SQLite constraint, not a semantic one: `ALTER TABLE ... ADD
+// COLUMN` refuses a NOT NULL column unless it carries a *constant* default,
+// and there is no constant that is a truthful timestamp. The alternative — a
+// full 12-step table rebuild per table — was judged disproportionate for a
+// migration whose whole design goal is a reviewable blast radius. The v25
+// migration backfills every pre-existing row and the repository layer stamps
+// every write, so a NULL only appears if a row is written by something that
+// bypasses the repositories.
+//
+// Nothing reads `existence_at` for a merge decision yet; there is no sync
+// client. Its only writers are the causal stamping helper and the `restore()`
+// paths.
 
 /// Dance transcriptions. `figures_json` is authoritative; `dance_figures`
 /// (below) is rebuilt from it on every write.
@@ -49,6 +92,13 @@ class Dances extends Table {
   /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
   BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
 
+  /// Whether the dance is a **mixer** (dancers change partners each time
+  /// through). A boolean flag orthogonal to [formationShape], not a
+  /// [FormationShape] value — see `Dance.mixer` for the measured corpus
+  /// asymmetry that rules out folding it into the formation enum. Added in
+  /// schema v24 (issue #732).
+  BoolColumn get mixer => boolean().withDefault(const Constant(false))();
+
   /// Curatorial star rating on the closed `1..5` scale; nullable (`null` =
   /// unrated). A first-class dance-scalar column (the `1..5` range is validated
   /// at the [Dance] boundary), not an enum or custom field. Added in schema v6
@@ -72,6 +122,11 @@ class Dances extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
+  /// Existence-transition stamp; see the sync-triple note at the top of this
+  /// file. Added in schema v25 (issue #898); `dances` already carried the
+  /// other two.
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -93,6 +148,13 @@ class Choreographers extends Table {
 
   /// Whether the author is deceased; defaults to false. Added in schema v7.
   BoolColumn get deceased => boolean().withDefault(const Constant(false))();
+
+  /// Sync timestamp triple; see the note at the top of this file. Added in
+  /// schema v25 (issue #898), which also converted
+  /// `ChoreographerRepository.delete` from a hard delete to a tombstone.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -186,6 +248,11 @@ class Programs extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   DateTimeColumn get deletedAt => dateTime().nullable()();
 
+  /// Existence-transition stamp; see the sync-triple note at the top of this
+  /// file. Added in schema v25 (issue #898); `programs` already carried the
+  /// other two.
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -226,6 +293,20 @@ class CustomFieldDefs extends Table {
   BoolColumn get showInList => boolean().withDefault(const Constant(false))();
   BoolColumn get searchable => boolean().withDefault(const Constant(true))();
 
+  /// Whether this field's values may travel in a shared archive (file export,
+  /// share sheet, future sync). Defaults to `true` — all new fields are
+  /// shareable unless the user opts out. Set to `false` to exclude the field
+  /// definition and every value for it from archive serialisation. Added in
+  /// schema v23 (issue #780).
+  BoolColumn get shareable => boolean().withDefault(const Constant(true))();
+
+  /// Sync timestamp triple; see the note at the top of this file. Added in
+  /// schema v25 (issue #898), which also converted
+  /// `CustomFieldDefRepository.delete` from a hard delete to a tombstone.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
 }
@@ -252,6 +333,16 @@ class Tags extends Table {
   TextColumn get id => text()();
   TextColumn get name => text().unique()();
   IntColumn get color => integer().nullable()();
+
+  /// Sync timestamp triple; see the note at the top of this file. Added in
+  /// schema v25 (issue #898), which also converted `TagRepository.delete` from
+  /// a hard delete to a tombstone. Tags are the one converted kind with **no**
+  /// referential guard, so this is also the one whose `dance_tags` rows now
+  /// outlive the delete — every read that joins through `tags` filters on
+  /// `deleted_at IS NULL` for that reason.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -297,6 +388,13 @@ class PublishedSources extends Table {
   IntColumn get year => integer().nullable()();
   TextColumn get url => text().nullable()();
   TextColumn get notes => text().nullable()();
+
+  /// Sync timestamp triple; see the note at the top of this file. Added in
+  /// schema v25 (issue #898), which also converted
+  /// `PublishedSourceRepository.delete` from a hard delete to a tombstone.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -358,8 +456,45 @@ class Venues extends Table {
   TextColumn get contact2Phone => text().nullable()();
   TextColumn get contact2Email => text().nullable()();
 
+  /// Sync timestamp triple; see the note at the top of this file. Added in
+  /// schema v25 (issue #898), which also converted `VenueRepository.delete`
+  /// from a hard delete to a tombstone. [VenueRepository.hardDelete] stays a
+  /// hard delete: it exists solely to roll back a just-committed import, and a
+  /// rollback must leave no trace to publish.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Import provenance, one row per venue (at most). Mirrors [Provenance] (the
+/// dance provenance table) and [ProgramProvenance]; added in schema v26
+/// (issue #899) so re-importing the same bundle recognises a venue that was
+/// previously imported from the same source. Provenance-based dedupe is exact
+/// (`(source, external_id)` pair), which means it can operate on shared bundles
+/// where the postal address has been redacted and the content-fingerprint path
+/// ([venueFingerprint]) produces no key.
+@DataClassName('VenueProvenanceRow')
+class VenueProvenance extends Table {
+  TextColumn get venueId =>
+      text().references(Venues, #id, onDelete: KeyAction.cascade)();
+  TextColumn get source =>
+      text().map(const EnumNameConverter(ProvenanceSource.values))();
+  TextColumn get externalId => text().nullable()();
+  DateTimeColumn get importedAt => dateTime()();
+  TextColumn get permission => text().nullable()();
+  TextColumn get license => text().nullable()();
+  TextColumn get sourceVersion => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {venueId};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {source, externalId},
+  ];
 }
 
 /// Import provenance, one row per dance (at most).
@@ -409,12 +544,41 @@ class ProgramProvenance extends Table {
   Set<Column> get primaryKey => {programId};
 }
 
+/// One idempotent row per published collection version imported on this device.
+///
+/// The digest is retained so the app can display which immutable archive was
+/// imported without deriving that fact from the surviving dances.
+@DataClassName('CollectionImportEventRow')
+class CollectionImportEvents extends Table {
+  TextColumn get collectionId => text()();
+  TextColumn get version => text()();
+  TextColumn get archiveDigest => text()();
+  DateTimeColumn get importedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {collectionId, version};
+}
+
 /// Free-form app settings (dialect choice, prefs, source URLs), keyed by a
 /// stable string key; `valueJson` holds an arbitrary JSON-encoded value.
 @DataClassName('SettingRow')
 class Settings extends Table {
   TextColumn get key => text()();
   TextColumn get valueJson => text()();
+
+  /// Sync timestamp triple; see the note at the top of this file. Added in
+  /// schema v25 (issue #898), which also converted `SettingsRepository.remove`
+  /// from a hard delete to a tombstone — without one, a removed setting cannot
+  /// be expressed on the wire and a peer would resurrect it.
+  ///
+  /// Note the internal control markers this table also holds
+  /// ([derivedRebuildRequiredKey] and friends). Those are cleared by a raw
+  /// `DELETE` in `CompendiumRepositories`, deliberately *not* tombstoned: they
+  /// are migration bookkeeping, not user data, and a tombstoned marker read
+  /// back as present would re-run or skip a one-time repair.
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {key};

@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -12,6 +14,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/program_summary_screen.dart';
 
 import 'support/fake_url_launcher.dart';
 import 'support/test_repositories.dart';
@@ -30,6 +33,7 @@ Dance _dance({
   String hook = '',
   String callingNotes = '',
   String walkthrough = '',
+  bool mixer = false,
   Provenance? provenance,
 }) => Dance(
   id: id,
@@ -42,6 +46,7 @@ Dance _dance({
   hook: hook,
   callingNotes: callingNotes,
   walkthrough: walkthrough,
+  mixer: mixer,
   provenance: provenance,
   createdAt: _now,
   updatedAt: _now,
@@ -95,9 +100,11 @@ void main() {
 
   testWidgets('renders header: title, authors, hook, tags', (tester) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.choreographers.upsert(
       Choreographer(id: 'c1', name: 'Gene Hubert'),
     );
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
     await repos.dances.create(
       _dance(
@@ -115,6 +122,24 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
+  });
+
+  testWidgets('shows the mixer indicator when the dance is a mixer '
+      '(issue #732)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'mix', mixer: true));
+
+    await _pumpDetail(tester, repos, 'mix');
+    expect(find.text('Mixer'), findsOneWidget);
+  });
+
+  testWidgets('hides the mixer indicator when the dance is not a mixer '
+      '(issue #732)', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'plain', mixer: false));
+
+    await _pumpDetail(tester, repos, 'plain');
+    expect(find.text('Mixer'), findsNothing);
   });
 
   testWidgets('renders a canonical hook under the active dialect (#613)', (
@@ -1447,31 +1472,54 @@ void main() {
       expect(find.text('Not yet included in any program.'), findsOneWidget);
     });
 
-    testWidgets('tapping a history row opens the program', (tester) async {
-      final repos = openTestRepositories();
-      await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
-      await repos.programs.create(
-        program(
-          id: 'p1',
-          title: 'Autumn Ball',
-          slots: [
-            ProgramSlot(
-              id: 's1',
-              position: 0,
-              danceId: 'd1',
-              performedAt: DateTime.utc(2026, 10, 3, 20),
-            ),
-          ],
-        ),
-      );
+    testWidgets(
+      'tapping a history row opens the read-focused program summary, not the '
+      'edit builder (#830)',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Petronella'));
+        await repos.programs.create(
+          program(
+            id: 'p1',
+            title: 'Autumn Ball',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 10, 3, 20),
+              ),
+            ],
+          ),
+        );
 
-      await _pumpDetail(tester, repos, 'd1');
+        await _pumpDetail(tester, repos, 'd1');
 
-      await tester.tap(find.byKey(const ValueKey('calling-history-s1')));
-      await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('calling-history-s1')));
+        await tester.pumpAndSettle();
 
-      expect(find.byType(ProgramEditorScreen), findsOneWidget);
-    });
+        // Mirrors the programs list → summary contract asserted in
+        // programs_shell_test.dart: tapping an existing program anywhere in the
+        // app lands on the read view, and the builder is reached from there.
+        expect(
+          find.byType(ProgramSummaryScreen),
+          findsOneWidget,
+          reason: 'a calling-history row must open the program summary',
+        );
+        expect(
+          find.byType(ProgramEditorScreen),
+          findsNothing,
+          reason: 'it must not drop the caller straight into the edit builder',
+        );
+
+        // Rendered affordances unique to the summary — the builder has neither,
+        // so these fail if the destination regresses to the editor.
+        expect(find.byKey(const ValueKey('open-builder')), findsOneWidget);
+        expect(find.text('Edit program'), findsOneWidget);
+        expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
+        expect(find.text('Perform this program'), findsOneWidget);
+      },
+    );
 
     testWidgets('a history row is a11y-reachable', (tester) async {
       final repos = openTestRepositories();
@@ -1926,4 +1974,168 @@ void main() {
       expect(body.data, 'A1: neighbours balance and swing.');
     });
   });
+
+  testWidgets('rebuilding with a different danceId re-subscribes', (
+    tester,
+  ) async {
+    // The stream is opened once and held in the State, so a rebuild that
+    // changes the id has to replace it — otherwise the screen renders one dance
+    // while subscribed to another, which is worse than either staleness or
+    // churn.
+    //
+    // Driven through a host that swaps the id on the SAME element, because that
+    // is the only way to reach didUpdateWidget: pushing a route or changing a
+    // key creates a fresh State and never exercises it.
+    final repos = openTestRepositories();
+    addTearDown(repos.db.close);
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await repos.dances.create(_dance(id: 'd2', title: 'Beta'));
+
+    final id = ValueNotifier<String>('d1');
+    addTearDown(id.dispose);
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(dialect.dispose);
+    final requirePerformed = ValueNotifier<bool>(false);
+    addTearDown(requirePerformed.dispose);
+
+    await tester.binding.setSurfaceSize(const Size(1200, 2400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(
+            notifier: dialect,
+            child: RequirePerformedForHistoryScope(
+              notifier: requirePerformed,
+              // No key: the element must be REUSED across the id change.
+              child: ValueListenableBuilder<String>(
+                valueListenable: id,
+                builder: (_, value, _) => DanceDetailScreen(danceId: value),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha'), findsWidgets);
+
+    final stateBefore = tester.state(find.byType(DanceDetailScreen));
+    id.value = 'd2';
+    await tester.pumpAndSettle();
+
+    expect(find.text('Beta'), findsWidgets);
+    expect(find.text('Alpha'), findsNothing);
+    // Assert the precondition, not just the conclusion: if the State had been
+    // recreated, this would pass without didUpdateWidget existing at all.
+    expect(
+      tester.state(find.byType(DanceDetailScreen)),
+      same(stateBefore),
+      reason: 'the same State must have been reused, or this tests nothing',
+    );
+  });
+
+  group('a failing record read (issue #963)', () {
+    // The conversion to a stream made `onError` the ONLY error path on this
+    // screen: a `FutureBuilder` surfaces a failure into its snapshot, a
+    // subscription hands it to a callback and forgets it if that callback does
+    // nothing. Discarding it would leave a screen that silently keeps its last
+    // state with nothing logged and nothing shown.
+    //
+    // Rendering is deliberately unchanged — the previous builder never read
+    // `snapshot.error`, so a failure already rendered as "not found" — and that
+    // is exactly why the log matters: on screen, a broken query and an absent
+    // dance are the same thing.
+
+    testWidgets('is logged, and still renders the not-found body', (
+      tester,
+    ) async {
+      final sink = _RecordingSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      final db = openWidgetTestDatabase();
+      addTearDown(db.close);
+      final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+
+      await _pumpDetail(tester, repos, 'd1');
+
+      // Assert the injection actually happened. An injected failure that
+      // silently fails to inject is indistinguishable from behaviour that
+      // survived it, and would make both assertions below pass for the wrong
+      // reason.
+      expect(dances.fired, isTrue, reason: 'the injected failure must fire');
+      expect(
+        sink.sources,
+        contains('dance_detail_screen._subscribe'),
+        reason: 'a failing record read must reach the diagnostic log',
+      );
+      expect(find.text('Dance not found.'), findsOneWidget);
+    });
+
+    testWidgets('recovers on the next write rather than staying failed', (
+      tester,
+    ) async {
+      // `cancelOnError: false`, asserted rather than asserted-in-a-comment.
+      // A failed one-shot future stayed failed until something forced a
+      // reload; the subscription survives its own error.
+      final db = openWidgetTestDatabase();
+      addTearDown(db.close);
+      final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
+      final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
+      await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+
+      await _pumpDetail(tester, repos, 'd1');
+      expect(dances.fired, isTrue);
+      expect(find.text('Dance not found.'), findsOneWidget);
+
+      final stored = await repos.dances.getById('d1');
+      await repos.dances.update(stored!.copyWith(title: 'Renamed'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Renamed'), findsWidgets);
+      expect(find.text('Dance not found.'), findsNothing);
+    });
+  });
+}
+
+/// Records the `source` of every logged caught error.
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) =>
+      sources.add(source);
+}
+
+/// Fails the next detail-record read, once, then behaves normally.
+///
+/// Injected through `CompendiumRepositories`' test seam rather than by matching
+/// SQL text, so a rename of the method it overrides breaks the build instead of
+/// silently ceasing to inject.
+class _FailingDances extends DanceRepository {
+  _FailingDances(super.db, super.taxonomy);
+
+  bool failNext = false;
+
+  /// Whether the injected failure actually happened.
+  bool get fired => _fired;
+  bool _fired = false;
+
+  @override
+  Future<List<({String id, String title})>> listIdsAndTitles({
+    bool includeDeleted = false,
+  }) {
+    if (failNext) {
+      failNext = false;
+      _fired = true;
+      return Future.error(StateError('injected record read failure'));
+    }
+    return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
 }

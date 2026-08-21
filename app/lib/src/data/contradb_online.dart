@@ -66,12 +66,15 @@ class ContraDbOnline implements OnlineSearchService {
   /// Fetches the per-dance HTML for [result], parses it with
   /// [ContraDbHtmlAdapter], and builds an [OnlinePreview] (detail data + dedupe
   /// plan). Throws a [UrlFetchException] on a fetch failure or when the dance
-  /// can't be parsed.
+  /// can't be parsed. Pass [index] to plan against a shared `DedupeIndex`
+  /// snapshot instead of building a fresh one (see
+  /// [OnlineSearchService.loadPreview]).
   @override
   Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     final url = buildContraDbUrl(result.id);
     final payload = await _htmlFetcher(url);
@@ -80,6 +83,7 @@ class ContraDbOnline implements OnlineSearchService {
     final batch = await pipeline.plan(
       ContraDbHtmlAdapter(),
       ImportRequest(payload: payload, uri: url),
+      index: index,
     );
     if (batch.records.isEmpty) {
       // Never echo the lower-layer parse error into the UI (CWE-209); keep it
@@ -103,9 +107,13 @@ class ContraDbOnline implements OnlineSearchService {
   /// (nothing written); a fuzzy near-match with a confident title+author
   /// candidate and differing figures returns
   /// [OnlineImportKind.needsConfirmation] (nothing written) so the caller can
-  /// show a resolution dialog (issue #797); any other fuzzy near-match is
-  /// imported as a new dance (the user explicitly asked for this ContraDB
-  /// dance).
+  /// show a resolution dialog (issue #797); a fuzzy near-match with a confident
+  /// title+author candidate, **canonically identical** figures (same moves and
+  /// order; beats and notes may differ), and a confirmed different source
+  /// returns [OnlineImportKind.needsConfirmationIdentical] (nothing written) so
+  /// the caller can show a cross-source duplicate dialog (issue #811); dances
+  /// with null provenance fall through rather than being falsely labelled "from
+  /// a different source"; any other fuzzy near-match is imported as a new dance.
   ///
   /// Pass [ambiguousResolution] to skip the needsConfirmation check and commit
   /// immediately with the given resolution (used on the retry after the dialog).
@@ -150,6 +158,23 @@ class ContraDbOnline implements OnlineSearchService {
         if (!identical) {
           return OnlineImportResult(
             kind: OnlineImportKind.needsConfirmation,
+            title: title,
+            danceId: candidateId,
+            danceCount: 1,
+          );
+        } else if (existing.provenance?.source != null &&
+            plan.draft.raw.source != existing.provenance!.source) {
+          // Canonically identical figures (same moves and order; beats and
+          // notes may differ) from a confirmed different source: prompt the
+          // user instead of silently creating a second copy (issue #811).
+          // Condition guards are:
+          //   - existing.provenance.source != null: skip hand-entered dances
+          //     (null provenance) so we never claim they are "from a different
+          //     source".
+          //   - sources differ: a same-source re-import with a drifted
+          //     externalId stays silent (DedupeResolution.duplicate() below).
+          return OnlineImportResult(
+            kind: OnlineImportKind.needsConfirmationIdentical,
             title: title,
             danceId: candidateId,
             danceCount: 1,
@@ -210,7 +235,6 @@ class ContraDbOnline implements OnlineSearchService {
       customFields: const [],
       relatedDanceTitles: const {},
       sourcesById: const {},
-      callingHistory: const [],
       crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
     );
   }

@@ -4,7 +4,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
@@ -30,7 +32,9 @@ class CollectionPicker extends StatefulWidget {
     required this.dialect,
     required this.enrichment,
     required this.onAddDance,
+    this.addedDanceCounts = const {},
     this.scrollController,
+    this.rowAction = PickerRowAction.add,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -49,14 +53,34 @@ class CollectionPicker extends StatefulWidget {
   /// Called with the tapped dance's id to add it to the program.
   final void Function(String danceId) onAddDance;
 
+  /// How many times each dance already appears in the program being built,
+  /// keyed by dance id and omitting dances that do not appear at all.
+  ///
+  /// Empty by default so hosts with no program context (e.g. Perform's insert
+  /// sheet) need not supply it.
+  final Map<String, int> addedDanceCounts;
+
   /// Optional controller for the results scroll view. When the picker is hosted
   /// in a [DraggableScrollableSheet], pass its controller so sheet dragging and
   /// list scrolling coordinate correctly.
   final ScrollController? scrollController;
 
+  /// What tapping a row does, purely for the row's tooltip/semantic label/icon
+  /// (issue #964). [onAddDance] fires identically either way — this only
+  /// changes what the row *says* it does, so a host whose tap target replaces
+  /// rather than adds a slot's dance doesn't mislabel the action for assistive
+  /// technology (WCAG 4.1.2). Defaults to [PickerRowAction.add], matching every
+  /// existing consumer.
+  final PickerRowAction rowAction;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
 }
+
+/// What a [CollectionPicker] row's tap target does, driving its tooltip,
+/// semantic label and icon (issue #964). Never changes [CollectionPicker]'s
+/// behaviour — [CollectionPicker.onAddDance] fires the same way regardless.
+enum PickerRowAction { add, replace }
 
 class _CollectionPickerState extends State<CollectionPicker> {
   static const Duration _debounce = Duration(milliseconds: 250);
@@ -168,7 +192,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         ];
         _searching = false;
       });
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'collection_picker._runSearch');
       if (!mounted || seq != _searchSeq) return;
       setState(() {
         _searchError = error;
@@ -180,6 +205,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
+    _searchSeq++;
     _debounceTimer = Timer(_debounce, _runSearch);
     setState(() {});
   }
@@ -206,6 +232,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       (_advancedEnabled && _advancedRoot.toFilter() != null);
 
   void _clearAll() {
+    _debounceTimer?.cancel();
+    _searchSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();
@@ -235,6 +263,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Widget build(BuildContext context) {
     final data = widget.data;
     final l10n = AppLocalizations.of(context);
+    // Picker call sites pass no visibleFields to DanceListTile, so they
+    // default to all-visible — no scope override needed here.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -298,6 +328,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           statuses: data.statuses,
           levels: data.levels,
           hasMixedLevel: data.hasMixedLevel,
+          hasMixer: data.hasMixer,
           hasRating: data.hasRating,
           authors: data.authors,
           tags: data.tags,
@@ -427,6 +458,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemBuilder: (context, index) {
         final entry = _results[index];
         final confirming = _confirmTimers.containsKey(entry.dance.id);
+        final inProgramCount = widget.addedDanceCounts[entry.dance.id] ?? 0;
         // Tapping a row adds the dance — a keyboard/AT-accessible add
         // affordance (announced via the builder's live region on add).
         //
@@ -436,7 +468,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
         // thing twice.
         return Semantics(
           button: true,
-          label: l10n.collectionPickerAddSemantic(entry.dance.title),
+          label: widget.rowAction == PickerRowAction.replace
+              ? l10n.collectionPickerReplaceSemantic(entry.dance.title)
+              : l10n.collectionPickerAddSemantic(entry.dance.title),
           child: Stack(
             children: [
               DanceListTile(
@@ -444,20 +478,62 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 entry: entry,
                 onTap: () => _handleAdd(entry.dance.id),
               ),
+              // Persistent in-program marker: visible whenever the dance
+              // already appears in the program being built, whether or not
+              // the user added it this session. Shape-based (icon + optional
+              // count), never colour-only (`docs/design/ux.md` §4, WCAG 1.4.1).
+              // Coexists with the transient add-button to the right; each
+              // signals something different — this one says "is in the
+              // program", the button says "you just tapped add".
+              if (inProgramCount > 0)
+                Positioned(
+                  top: 12,
+                  right: 56,
+                  child: Semantics(
+                    label: inProgramCount > 1
+                        ? l10n.collectionPickerInProgramCountSemantic(
+                            entry.dance.title,
+                            inProgramCount,
+                          )
+                        : l10n.collectionPickerInProgramSemantic(
+                            entry.dance.title,
+                          ),
+                    excludeSemantics: true,
+                    child: Row(
+                      key: ValueKey('picker-in-program-${entry.dance.id}'),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (inProgramCount > 1)
+                          Text(
+                            '$inProgramCount',
+                            style: Theme.of(context).textTheme.labelMedium,
+                          ),
+                        const Icon(Icons.playlist_add_check, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
               Positioned(
                 top: 8,
                 right: 8,
                 child: IconButton(
                   key: ValueKey('picker-add-${entry.dance.id}'),
-                  tooltip: confirming
+                  tooltip: widget.rowAction == PickerRowAction.replace
+                      ? l10n.collectionPickerReplaceTooltip(entry.dance.title)
+                      : confirming
                       ? l10n.collectionPickerAddedTooltip(entry.dance.title)
                       : l10n.collectionPickerAddTooltip(entry.dance.title),
-                  // A shape change, not a colour change: colour is never the
+                  // Both this button and the persistent marker above use
+                  // shape changes, not colour changes — colour is never the
                   // only signal (`docs/design/ux.md` §4, WCAG 1.4.1). The
                   // button stays enabled throughout — a dance may legitimately
                   // appear in a program more than once.
                   icon: Icon(
-                    confirming ? Icons.check_circle : Icons.add_circle_outline,
+                    widget.rowAction == PickerRowAction.replace
+                        ? Icons.swap_horiz
+                        : confirming
+                        ? Icons.check_circle
+                        : Icons.add_circle_outline,
                   ),
                   onPressed: () => _handleAdd(entry.dance.id),
                 ),

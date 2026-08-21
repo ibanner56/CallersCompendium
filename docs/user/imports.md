@@ -71,6 +71,18 @@ keep.
 5. Select a result to open a **preview** of that dance.
 6. If it is the one you want, choose **Import** to add it to your collection.
 
+**Caller's Box results only include dances whose figures it will share.** Not
+every dance in The Caller's Box has its choreographer's permission for the
+figures to be shown — for some, the Box can search the figures but not display
+them. Those dances would come in as a title and a formation with no figures at
+all, so a Caller's Box search leaves them out. About three in ten of the dances
+matching a typical search are affected, so if a dance you know is in the Box
+does not appear, this is the likely reason. You can still bring such a dance in
+deliberately by [importing it by link or ID](#import-a-dance-by-link-or-id) —
+you will get its title, formation, and notes, and the review screen will tell
+you the figures were not available. ContraDB has no such restriction, so nothing
+is left out of a ContraDB search.
+
 If the dance is already in your collection from an earlier import, the app tells
 you so and does not add a second copy — see
 [Avoiding duplicates](#avoiding-duplicates) below.
@@ -95,7 +107,10 @@ A few honest notes about these online imports:
 - The app reads each archive's public dance page, so it depends on how that page
   is laid out; if a page changes or a dance has no figures listed, the dance
   still comes in with whatever the app could read (its title, formation, and
-  notes), following the *nothing gets lost* promise above.
+  notes), following the *nothing gets lost* promise above. This applies to the
+  link-or-ID route described here — it is deliberately how you can still bring
+  in a Caller's Box dance whose figures the Box will not share, even though
+  online search leaves those out.
 - Figures come in as recognised moves where the app can read them and as
   plain-text figures otherwise, the same as every other import.
 
@@ -129,13 +144,64 @@ When you give the app a web address to fetch:
 Refusals never echo the address back at you, so a link that happened to contain
 something private does not end up on your screen or in a log.
 
+## Bring in a list of dance titles
+
+If you have a list of titles written down — an evening's set list, a workshop
+handout, dances a friend recommended — you can paste the whole list at once and
+let the app find them, **without** building a program.
+
+1. Open **Collection** and choose **Import dances**, or open **Settings** →
+   **Import** → **Import…**.
+2. In the source selector, choose **a list of titles**.
+3. Paste your titles, **one per line**, and choose **Review import**.
+4. The app checks each title against your own collection first, then searches
+   The Caller's Box for anything you don't already have.
+5. Review what it found and commit, as described in
+   [Review before anything changes](#review-before-anything-changes).
+
+**Every title you pasted is listed on the review screen**, grouped by what
+happened to it:
+
+- **To import** — the app found one dance with exactly that title. These get the
+  usual review row, so you can look before you keep, change what each one does,
+  or skip it.
+- **Already in your collection** — you have it. There is nothing to import, so
+  the app tells you which dance it matched and who wrote it, since two different
+  dances can share a title.
+- **Not found** — and it says which kind of "not found": the archive has no dance
+  by that name, it only found near matches, several dances share that exact
+  title so it can't tell which you meant, or it couldn't reach the archive just
+  then. Those need different follow-up, so they are never lumped together.
+
+A few honest notes:
+
+- The app only takes a dance when **exactly one** result matches your title
+  exactly. Near matches are never imported on a guess.
+- The Caller's Box search it uses leaves out dances whose figures the Box will
+  not share, so a title only held by one of those comes back as **not found**
+  rather than arriving with no figures. You can still bring such a dance in
+  deliberately by [importing it by link or ID](#import-a-dance-by-link-or-id).
+- Nothing is written until you commit on the review screen, and an uncertain
+  match is set to **Skip** by default, so a paste can never quietly duplicate
+  something you already have.
+- Blank lines are ignored, and a title repeated in your list is only looked up
+  once.
+- It works through the list one title at a time, showing its progress, and you
+  can **Cancel** at any point — nothing has been added yet, so cancelling costs
+  you nothing.
+- There is a limit of **100 titles** per import. A longer list is refused
+  outright rather than partly imported, so you are never left thinking a list
+  came in whole when it didn't.
+- Even if nothing turns out to be importable, you still get the answer to
+  "which of these do I already have?" — that list is worth having on its own.
+
 ## Import a Caller's Compendium file
 
 Dances shared as a **Caller's Compendium** file (the app's own `.json` format)
 come in through the same review flow:
 
 1. Open **Settings**, go to the **Import** section, and choose **Import…**.
-2. Leave the source set to **a Caller's Compendium JSON file** (the default).
+2. Set the source to **a Caller's Compendium JSON file**.
 3. Choose the file with **Choose file…**, paste its contents, or enter a URL and
    choose **Fetch**.
 4. Review and commit.
@@ -275,6 +341,17 @@ watches for matches:
   from the same source, the app recognises it and offers to **update** the one
   you already have rather than adding a copy. (This is how the Caller's Box
   online import can tell you a dance *"is already in your collection."*)
+- **Same dance, different source.** If a dance matches one already in your
+  collection by title, author, and figures — the same moves in the same order,
+  even if the timing or notes differ — but comes from a different archive
+  — the app prompts rather than adding a second copy. You can choose **Same
+  dance (update existing)** to link the import to your existing copy — this
+  replaces your version of the dance with the online record's, including its
+  figures, notes, tags, rating, and custom fields; its place in your programs
+  and its calling history are kept — **Import a second copy** to add it alongside
+  your existing dance and keep both source records, or **Cancel** to leave your
+  collection unchanged. This applies to single-dance online imports only; the
+  batch review screen still marks the row for you to decide.
 - **Looks like something you already have.** If a dance closely matches one
   already in your collection by title and author but did not come from the same
   source, the app marks it as **unsure** and asks you to choose: **link** the two,
@@ -295,7 +372,7 @@ watches for matches:
   incoming version — your edits, tags, and rating for the existing dance will be
   replaced — but your calling history is preserved.
 
-### Re-import to pick up a correction
+### Re-import an archive dance to pick up a correction
 
 When the review screen recognises a dance you already imported, it offers
 **Re-import onto** that dance, naming the dance it would update, so there is no
@@ -311,6 +388,20 @@ Re-importing overwrites that dance with the incoming version, so if you have
 edited your copy, look before you commit. The **Undo** on the summary reverses the
 whole import if it was not what you wanted.
 
+### Refresh choreography on one saved dance
+
+Open a dance and choose **Re-import choreography**. Select Caller's Box,
+ContraDB, or a Caller's Compendium JSON file. Online searches use the saved
+dance title and always show their results for you to choose from; the app never
+selects an online match automatically. JSON must contain exactly one dance and
+cannot contain a program.
+
+Review the preview, then import to replace only the dance's **figures,
+formation, and progression**. This keeps your title, notes, rating, tags,
+links, custom fields, authors, citations, and other saved metadata. This is
+different from the normal import review's re-import/link choices, which can
+replace an entire imported record.
+
 ## Importing whole programs
 
 Everything above brings in **dances**. You can also import a **whole program**
@@ -325,6 +416,10 @@ the **Import…** flow here, because they build a program, not just add dances. 
 step-by-step instructions, see
 [Programs & matrix › Import a program from ContraDB](./programs.md#import-a-program-from-contradb)
 and [Build from a list of titles](./programs.md#build-from-a-list-of-titles).
+
+If you want the dances but **not** a program, use
+[Bring in a list of dance titles](#bring-in-a-list-of-dance-titles) above
+instead.
 
 ## Where to go next
 

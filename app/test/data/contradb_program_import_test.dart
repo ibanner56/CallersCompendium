@@ -50,6 +50,7 @@ class _FakeService implements OnlineSearchService {
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   }) async {
     loadedIds.add(result.id);
     if (failLoadIds.contains(result.id)) {
@@ -136,7 +137,6 @@ class _FakeService implements OnlineSearchService {
     customFields: const [],
     relatedDanceTitles: const {},
     sourcesById: const {},
-    callingHistory: const [],
     crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
   );
 }

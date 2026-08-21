@@ -13,8 +13,11 @@ void main() {
 
       // Smoke-test that every repository is live and shares the same
       // underlying connection (a write through one is visible via another).
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      // ignore: unused_result
       await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
+      // ignore: unused_result
       await repos.customFieldDefs.upsert(
         CustomFieldDef(
           id: 'f1',

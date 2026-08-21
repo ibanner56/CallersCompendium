@@ -522,6 +522,8 @@ class ContraDbAdapter implements SourceAdapter {
       shape = FormationShape.scatterMixer;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
+    } else if (lower.contains('quadruplet')) {
+      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }
@@ -963,12 +965,12 @@ final Map<String, _MoveMap> _moveMappings = {
     _PosParam('dir', _direction),
     _PosParam('beats', _beatsConv()),
   ]),
-  'star promenade': _MoveMap('star_promenade', [
-    _PosParam('who', _dancers),
-    _PosParam('hand', _hand),
-    _PosParam('turn', _turns),
-    _PosParam('beats', _beatsConv()),
-  ]),
+  // v26 (#843): `star promenade` is DELIBERATELY ABSENT. ContraDB's
+  // `who`+`hand` name the pair with a hand in the CENTER, but our `who` now
+  // means the dancer you PICK UP on the side (owner ruling, 2026-08-06). The
+  // relationship is not recoverable from ContraDB's center role, and we will
+  // not guess it, so these lines fall to the custom fallback — a deliberate,
+  // owner-accepted structure regression rather than a silently wrong `who`.
   'roll away': _MoveMap('roll_away', [
     _PosParam('who', _dancers),
     _PosParam('whom', _dancers),

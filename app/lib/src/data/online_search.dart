@@ -40,6 +40,7 @@ class OnlineSearchResultRow {
     required this.name,
     required this.author,
     required this.formation,
+    this.figuresAvailable = true,
   });
 
   /// Which source this row came from (drives the attribution line).
@@ -57,6 +58,15 @@ class OnlineSearchResultRow {
   /// Formation / start type; may be empty.
   final String formation;
 
+  /// Whether the source will actually serve this dance's figures.
+  ///
+  /// Defaults to `true`: sources without a permission model (ContraDB) always
+  /// serve figures, so they never set it. The Caller's Box does have one — a
+  /// non-`full` permission tier means the dance imports as a metadata-only
+  /// stub — and its results page publishes the tier per row, so
+  /// [CallersBoxOnline] carries it here (issue #845).
+  final bool figuresAvailable;
+
   @override
   bool operator ==(Object other) =>
       other is OnlineSearchResultRow &&
@@ -64,15 +74,18 @@ class OnlineSearchResultRow {
       other.id == id &&
       other.name == name &&
       other.author == author &&
-      other.formation == formation;
+      other.formation == formation &&
+      other.figuresAvailable == figuresAvailable;
 
   @override
-  int get hashCode => Object.hash(source, id, name, author, formation);
+  int get hashCode =>
+      Object.hash(source, id, name, author, formation, figuresAvailable);
 
   @override
   String toString() =>
       'OnlineSearchResultRow(source: $source, id: $id, name: $name, '
-      'author: $author, formation: $formation)';
+      'author: $author, formation: $formation, '
+      'figuresAvailable: $figuresAvailable)';
 }
 
 /// A source-neutral online search request.
@@ -81,10 +94,34 @@ class OnlineSearchResultRow {
 /// criteria for sources that support them ([OnlineSource.supportsByPhrase]);
 /// title-only sources ignore it.
 class OnlineSearchQuery {
-  const OnlineSearchQuery({required this.title, this.phrases});
+  const OnlineSearchQuery({
+    required this.title,
+    this.phrases,
+    this.requireFigures = true,
+  });
 
   final String title;
   final CallersBoxPhraseQuery? phrases;
+
+  /// Whether results are limited to dances whose figures the source will
+  /// actually serve (issue #845).
+  ///
+  /// Named for the policy rather than for any one caller, so that it reads as
+  /// a search requirement and its default can be flipped in one line.
+  ///
+  /// Defaulting to `true` is the point of #845: a dance the source will only
+  /// hand over as a figureless stub is not a useful answer to a dance search,
+  /// least of all to a by-phrase one. Sources without a permission model
+  /// (ContraDB) always serve figures, so this filters nothing for them.
+  ///
+  /// Set it to `false` where *changing* which dances are found would change
+  /// something more consequential than what is displayed. The unattended
+  /// program-line resolver does exactly that: it commits without a user
+  /// present, and narrowing its result set can turn an ambiguous
+  /// multiple-exact-match — which is a deliberate no-op — into a single
+  /// confident hit that it then imports on its own. Preserving the wider set
+  /// there keeps that path's auto-commit behaviour unchanged.
+  final bool requireFigures;
 }
 
 /// What a direct online import ended up doing (drives the result snackbar).
@@ -101,6 +138,17 @@ enum OnlineImportKind {
   /// (issue #797). [OnlineImportResult.danceId] holds the existing dance's id
   /// so the dialog can display its title.
   needsConfirmation,
+
+  /// A confident title+author match exists in the collection with **canonically
+  /// identical** figures (same moves and order; beats and notes may differ) from
+  /// a **confirmed different source** (both provenance sources are non-null and
+  /// unequal); nothing was written. The caller must show a resolution dialog and
+  /// retry [OnlineSearchService.import] with [ambiguousResolution] set (issue
+  /// #811). [OnlineImportResult.danceId] holds the existing dance's id so the
+  /// dialog can display its title. Distinct from [needsConfirmation] (differing
+  /// figures) so callers can show appropriately different dialog text without
+  /// inspecting figure state themselves.
+  needsConfirmationIdentical,
 }
 
 /// Outcome of [OnlineSearchService.import].
@@ -118,10 +166,11 @@ class OnlineImportResult {
   /// Id of the imported dance for [OnlineImportKind.created], or the id of the
   /// existing matching dance for [OnlineImportKind.alreadyInCollection] when it
   /// can be resolved, or the **existing** dance's id for
-  /// [OnlineImportKind.needsConfirmation] — a dance the user already has that
-  /// is a confident match. Under `needsConfirmation` nothing has been written;
-  /// the id identifies what to resolve *against*, not what was imported.
-  /// `null` when no dance id is available.
+  /// [OnlineImportKind.needsConfirmation] /
+  /// [OnlineImportKind.needsConfirmationIdentical] — a dance the user already
+  /// has that is a confident match. Under either `needsConfirmation` kind
+  /// nothing has been written; the id identifies what to resolve *against*, not
+  /// what was imported. `null` when no dance id is available.
   final String? danceId;
 
   /// Number of dances this import created or matched. Always `1` for the
@@ -165,15 +214,32 @@ abstract interface class OnlineSearchService {
   /// Searches the source and returns source-neutral result rows. Throws a
   /// `UrlFetchException` (message safe to show) on any fetch failure or when
   /// there is nothing to search.
+  ///
+  /// An implementation may return **fewer** rows than the source matched: rows
+  /// the user could not act on are the implementation's to exclude, and
+  /// [OnlineSearchResultRow.figuresAvailable] is the one such reason so far
+  /// (see `CallersBoxOnline.search`, issue #845). Callers must therefore not
+  /// treat an empty or short result as proof the source holds nothing.
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query);
 
   /// Fetches the tapped [result]'s full record and builds an [OnlinePreview]
   /// (detail data + dedupe plan). Throws a `UrlFetchException` on a fetch
   /// failure or when the dance can't be parsed.
+  ///
+  /// [index] is an optional pre-built `DedupeIndex` snapshot to plan against.
+  /// The single-dance flows omit it and let `ImportPipeline.plan` build one, but
+  /// a **batch** caller (the title-list import, issue #823) passes one snapshot
+  /// for the whole run — otherwise each title would trigger its own
+  /// `buildDedupeIndex`, which loads the entire dance and choreographer
+  /// collections, making an N-title paste cost 2N full collection reads. Sharing
+  /// one snapshot across a batch is also what `ImportPipeline.plan` already does
+  /// for every multi-record source, so this changes no semantics — nothing is
+  /// written during planning, so a mid-batch snapshot could not differ anyway.
   Future<OnlinePreview> loadPreview(
     CompendiumRepositories repos,
     OnlineSearchResultRow result, {
     DateTime? now,
+    DedupeIndex? index,
   });
 
   /// Commits [plan] into the local collection (dedup-aware, single dance).

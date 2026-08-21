@@ -13,6 +13,7 @@ import '../../l10n/app_localizations.dart';
 DanceExportLabels danceExportLabels(AppLocalizations l10n) => DanceExportLabels(
   formation: l10n.exportLabelFormation,
   level: l10n.exportLabelLevel,
+  mixer: l10n.exportLabelMixer,
   status: l10n.exportLabelStatus,
   phrase: l10n.exportLabelPhrase,
   figures: l10n.exportLabelFigures,
@@ -37,6 +38,8 @@ ProgramExportLabels programExportLabels(AppLocalizations l10n) =>
       schedule: l10n.exportLabelSchedule,
       price: l10n.exportLabelPrice,
       sponsor: l10n.exportLabelSponsor,
+      figures: l10n.exportLabelFigures,
+      alternate: l10n.exportIncludeFiguresAlternate,
     );
 
 ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
@@ -48,6 +51,7 @@ ProgramMatrixExportLabels programMatrixExportLabels(AppLocalizations l10n) =>
       legendDebut: l10n.exportMatrixLegendDebut,
       legendFirst: l10n.exportMatrixLegendFirst,
       legendPresent: l10n.exportMatrixLegendPresent,
-      legendCollision: l10n.exportMatrixLegendCollision,
+      legendCollisionBeats: l10n.exportMatrixLegendCollisionBeats,
+      legendCollisionPhrase: l10n.exportMatrixLegendCollision,
       omittedCaption: l10n.exportMatrixOmittedCaption,
     );

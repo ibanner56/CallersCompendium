@@ -93,6 +93,7 @@ class UpdateService {
     try {
       body = utf8.decode(manifestBytes);
     } on Object {
+      // diagnostics: silent — non-UTF-8 manifest body after signature verification; impossible in practice but fail closed
       return null;
     }
 
@@ -100,9 +101,10 @@ class UpdateService {
     try {
       manifest = UpdateManifest.parse(body, expectedChannel: channel);
     } on UpdateManifestFormatException {
-      // Malformed / partial / unsupported-schema / channel-mismatch: no-op.
+      // diagnostics: silent — malformed/partial/unsupported-schema/channel-mismatch manifest; no update available
       return null;
     } on Object {
+      // diagnostics: silent — unexpected parse error; no update available
       return null;
     }
 

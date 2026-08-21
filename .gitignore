@@ -8,5 +8,12 @@ build/
 .idea/
 .vscode/
 
+# Python tooling
+__pycache__/
+*.pyc
+
 # pub workspace: only the root lockfile is real
 pubspec_overrides.yaml
+
+# macos file system metadata
+.DS_Store

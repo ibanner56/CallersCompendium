@@ -230,9 +230,20 @@ void main() {
             ),
           );
           expect(_figureFor(draft, 'chain').params['who'], 'role2s');
-          final sp = _figureFor(draft, 'star_promenade');
-          expect(sp.params['who'], 'role1s');
-          expect(sp.params['turn'], 1.5); // 540° → 1.5 turns
+          // Taxonomy v26 (#843): the `star promenade` _MoveMap entry was
+          // REMOVED, so this figure now imports as custom rather than carrying
+          // a `who` that would mean the center pair here and the pick-up
+          // relationship everywhere else. The role-vocabulary migration this
+          // test is really about is asserted on the `chain` above; the star
+          // promenade stays in the fixture as the guard that the entry has not
+          // been quietly restored.
+          //
+          // Falsification target: re-add the 'star promenade' _MoveMap entry in
+          // `contradb_adapter.dart` and this test goes red.
+          expect(
+            draft.dance.figures.any((f) => f.move == 'star_promenade'),
+            isFalse,
+          );
         },
       );
 
@@ -599,6 +610,13 @@ void main() {
         expect(
           (await formationFor('proper')).shape,
           FormationShape.dupleProper,
+        );
+      });
+
+      test('quadruplet', () async {
+        expect(
+          (await formationFor('Quadruplet')).shape,
+          FormationShape.quadruplet,
         );
       });
 

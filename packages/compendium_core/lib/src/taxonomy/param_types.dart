@@ -68,6 +68,16 @@ abstract final class ParamVocab {
     'nextNeighbors',
     'thirdNeighbors',
     'fourthNeighbors',
+    // Mixer partner series (issue #732, v24): a mixer's previous / successive
+    // partners beyond the current one (P1 = `partners`). Named to parallel the
+    // neighbour series above; `prevPartners` covers P0 (the partner before your
+    // current one). P6+ and every negative P-n have no token, mirroring the
+    // existing refusal of `N-1`/`N-2`.
+    'prevPartners',
+    'nextPartners',
+    'thirdPartners',
+    'fourthPartners',
+    'fifthPartners',
     // Roadmap 2.4a (PR3): the center dancers as a group (Rory O'More's
     // chooser_pairc_or_everyone).
     'centers',
@@ -81,6 +91,32 @@ abstract final class ParamVocab {
     'onesRole2',
     'twosRole1',
     'twosRole2',
+  ];
+
+  /// The five mixer partner-series tokens (taxonomy v24, issue #732): the
+  /// previous and successive partners in a mixer beyond P1 (`partners`).
+  ///
+  /// Named as an explicit set rather than derived from a suffix/prefix
+  /// pattern for three reasons:
+  ///
+  /// 1. Membership is a **taxonomy fact**, not a spelling coincidence. A future
+  ///    token that happens to end in `Partners` would silently join the gated
+  ///    group without anyone deciding it should; an explicit list forces that
+  ///    decision.
+  /// 2. An explicit list is auditable against the version history; a pattern
+  ///    is not.
+  /// 3. A naive case-insensitive match would catch `partners` (P1, which must
+  ///    always be offered); the explicit constant removes that failure mode
+  ///    rather than depending on every future maintainer preserving case
+  ///    sensitivity. (`'partners'.endsWith('Partners')` is false in Dart —
+  ///    case-sensitive — so a case-sensitive suffix would not catch it, but
+  ///    reasons (1) and (2) stand independently.)
+  static const List<String> mixerPartnerSeries = [
+    'prevPartners',
+    'nextPartners',
+    'thirdPartners',
+    'fourthPartners',
+    'fifthPartners',
   ];
 
   /// All dancer tokens (pair/group + single-dancer identities). The default
@@ -154,11 +190,41 @@ abstract final class ParamVocab {
 /// figure) — this never fabricates a pair.
 String? invertPairDancerSet(String who) => ParamVocab.pairInverse[who];
 
+/// The hand a `chain.who` value implies, mirroring ContraDB's `chainChange`
+/// (`app/javascript/libfigure/figure.js` @master, `:256-263`): `role2s`
+/// (ladles) take right hands, `role1s` (gentlespoons) take left hands. `null`
+/// for any other `who` (`ones`/`twos`/a single-dancer identity/unset) — those
+/// have no implied hand, so a caller must not populate one for them (issue
+/// #976 §6.1.3: populating a hand with no role word actually read would
+/// derive it from our default rather than from the source).
+///
+/// The single source of truth for this mapping, shared by every write/read
+/// site that must agree on it: both `_selectMove` implementations and
+/// `_applyNonBeatsParamChange` in `figure_list_editor.dart`, the ContraDB and
+/// shared-recognizer `_chain` parsers, the one-time backfill sweep, and the
+/// canonical/display silencing rule in `renderer.dart`. Kept here (not in
+/// `contra_taxonomy.dart`) because the app-layer editor needs it too.
+String? chainHandForWho(String who) {
+  switch (who) {
+    case 'role2s':
+      return 'right';
+    case 'role1s':
+      return 'left';
+    default:
+      return null;
+  }
+}
+
 /// Specification of one named move parameter: kind, default, and (for
 /// [ParamKind.choice], or to narrow dancer kinds) an explicit value domain.
 @immutable
 class ParamSpec {
-  const ParamSpec(this.kind, {required this.defaultValue, this.choices});
+  const ParamSpec(
+    this.kind, {
+    required this.defaultValue,
+    this.choices,
+    this.allowManualClear = true,
+  });
 
   final ParamKind kind;
 
@@ -168,6 +234,28 @@ class ParamSpec {
   /// Explicit allowed values. Required for [ParamKind.choice]; optional for
   /// dancer kinds (narrows the shared vocabulary to what the move accepts).
   final List<String>? choices;
+
+  /// Whether the editor may offer a manual Clear affordance that resets this
+  /// param to [ParamVocab.unspecified] (`figure_param_editors.dart`'s
+  /// dropdown Clear button). Only meaningful when [choices] admits the
+  /// sentinel; ignored otherwise.
+  ///
+  /// Defaults to `true` — every sentinel-admitting spec before taxonomy v30
+  /// also DEFAULTS to the sentinel (see the enumeration in
+  /// `figure_param_editors.dart`), so a manual Clear is simply "return to the
+  /// baseline" for all of them and this flag is a no-op.
+  ///
+  /// `promenade.turn` (v30, #989) is the first spec to admit the sentinel
+  /// while defaulting to a CONCRETE value (`'counterclockwise'`) — for it,
+  /// clicking Clear would not be "returning to baseline", it would be an
+  /// active choice to erase a stated rotation down to "not stated", which the
+  /// taxonomy owner explicitly does not want reachable as a manual action
+  /// (owner ruling, 2026-08-18): the sentinel is reachable ONLY via the
+  /// automatic reset the editor performs when `dir` is set to `in`/`out`/
+  /// `up`/`down` (see `figure_list_editor.dart`), never via a button. Set
+  /// `false` there for that reason; every other spec leaves this at its
+  /// default.
+  final bool allowManualClear;
 
   /// Whether [value] belongs to this parameter's domain.
   bool validate(Object? value) {

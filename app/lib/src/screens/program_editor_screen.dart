@@ -11,6 +11,9 @@ import '../data/active_dialect_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
+import '../data/matrix_collision_mode_scope.dart';
+import '../data/program_matrix_column_config_scope.dart';
+import '../data/program_auto_commit_scope.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -18,6 +21,7 @@ import '../data/calling_history_caller_filter.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../data/venue_label.dart';
+import '../diagnostics/error_log.dart';
 
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
@@ -30,6 +34,7 @@ import '../utils/safe_name.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/venue_picker.dart';
+import 'dance_editor_screen.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -56,6 +61,15 @@ import '../widgets/program_status_chip.dart';
 enum _ProgramLoadError { missing }
 
 /// [programId] null ⇒ create a new program; otherwise edit that program.
+/// Raised into a pending first-value future when its subscription is replaced
+/// or disposed (issue #768). Being superseded is not a user-visible failure,
+/// so [_ProgramEditorScreenState._load] returns on it without setting state.
+class _SupersededLoad implements Exception {
+  const _SupersededLoad();
+  @override
+  String toString() => 'load superseded before its first snapshot';
+}
+
 class ProgramEditorScreen extends StatefulWidget {
   const ProgramEditorScreen({
     super.key,
@@ -111,25 +125,35 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   DateTime? _eventDate;
   ProgramStatus _status = ProgramStatus.draft;
   bool _hideAlternates = false;
-  List<ProgramSlot> _slots = const [];
+  List<ProgramSlot> _slotsBacking = const [];
+
+  /// Live view of [_danceSlotCounts] for the modal picker sheet, which does not
+  /// rebuild with this [State]. Kept in step by the `_slots` setter.
+  final ValueNotifier<Map<String, int>> _pickerCounts = ValueNotifier(const {});
+
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
+  bool _autoCommitEnabled = false;
+  int _editGeneration = 0;
 
-  /// Move-column indices the caller has hidden from the on-screen program
-  /// matrix via each column header's hide glyph (#669). Purely an ephemeral
-  /// view preference — session-only, not persisted with the program — and
-  /// scoped to this screen instance, so it naturally resets whenever a
-  /// different program is opened (each open creates a fresh
+  /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
+  /// on-screen program matrix via each column header's hide glyph (#669).
+  /// Keyed by id, not index (issue #935), so a reorder or removal of the
+  /// app-wide column config can never make a stored index hide the wrong
+  /// column. Purely an ephemeral view preference — session-only, not persisted
+  /// with the program — and scoped to this screen instance, so it naturally
+  /// resets whenever a different program is opened (each open creates a fresh
   /// `ProgramEditorScreen`/state, never reuses this one for another
   /// program id). Never affects the PDF export, which always renders every
   /// column regardless of what's hidden on screen.
-  final Set<int> _hiddenMatrixColumns = {};
+  final Set<String> _hiddenMatrixColumns = {};
 
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
   /// before an explicit Save no longer silently loses it.
   Timer? _autosaveTimer;
+  Timer? _autoCommitTimer;
 
   /// Chains every [_saveDraft] write onto its predecessor so writes to
   /// [_draftKey] never run concurrently. [_clearDraft] awaits the tail before
@@ -139,6 +163,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// autosave (however many are queued) can never complete *after* the
   /// removal and resurrect a just-cleared draft (issue #616).
   Future<void> _saveQueueTail = Future<void>.value();
+  Future<void> _commitQueueTail = Future<void>.value();
 
   /// Bumped by every [_clearDraft] call. A save started before the bump
   /// skips its write if it observes a newer generation, so a cleanup that
@@ -174,6 +199,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Dialect _dialect = Dialect.larksRobins;
 
+  /// The Programs "flag exact beat overlap only" matrix-collision setting
+  /// (issue #962), read unconditionally in [didChangeDependencies] every
+  /// build so a live toggle updates the Matrix tab immediately — mirroring
+  /// the #948 fix for [_trackHistoryForAllCallers] below (a value read only
+  /// once behind a first-load guard never re-reads on a later scope change).
+  bool _matrixExactBeatCollision = true;
+
+  /// The app-wide program-matrix column configuration (issue #935), read live
+  /// from [ProgramMatrixColumnConfigScope] in [didChangeDependencies] (same
+  /// #948 reasoning as [_matrixExactBeatCollision]) so an edit to the config
+  /// rebuilds the Matrix tab immediately. Defaults to
+  /// [MatrixColumnConfig.empty] — today's matrix — when no scope is present.
+  MatrixColumnConfig _matrixColumnConfig = MatrixColumnConfig.empty;
+
   /// Always-on search enrichment for the embedded [CollectionPicker], built
   /// from the union of every saved dialect (presets + custom) so the picker's
   /// search resolves saved-dialect vocabulary regardless of the active dialect
@@ -204,6 +243,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         .dependOnInheritedWidgetOfExactType<ActiveDialectScope>();
     if (scope?.notifier != null) _dialect = scope!.notifier!.value;
 
+    // Read unconditionally so a live toggle of the setting updates the Matrix
+    // tab immediately (the #948 lesson — see the field doc comment).
+    _matrixExactBeatCollision = MatrixCollisionModeScope.of(context);
+    _matrixColumnConfig = ProgramMatrixColumnConfigScope.of(context);
+    final autoCommitEnabled = ProgramAutoCommitScope.of(context);
+    if (_autoCommitEnabled != autoCommitEnabled) {
+      final wasEnabled = _autoCommitEnabled;
+      _autoCommitEnabled = autoCommitEnabled;
+      if (!autoCommitEnabled) {
+        _autoCommitTimer?.cancel();
+      } else if (!wasEnabled && _dirty) {
+        _scheduleAutoCommit();
+      }
+    }
+
     // Build the always-on enrichment from the union of every saved dialect
     // (presets + custom). Registers a rebuild dependency on the library so a
     // dialect add/edit/delete updates the picker's search live.
@@ -214,14 +268,194 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _enrichment = SearchEnrichment.fromDialects(newDialects);
     }
 
+    // Scope the picker's call counts consistently with the Collection list
+    // (issue #583); [of] returns false when the scope is absent (narrow
+    // embedded tests), i.e. track all callers.
+    //
+    // Read UNCONDITIONALLY, outside the first-load guard. It used to be read
+    // only inside it, which meant the setting was captured once and never
+    // again: `TrackHistoryForAllCallersScope` is an `InheritedNotifier`, so a
+    // toggle did rebuild this screen and did call this method — the value was
+    // simply never re-read, and the picker served the previous filter's call
+    // counts for the rest of the screen's life (issue #948).
+    _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
+
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
-      // Scope the picker's call counts consistently with the Collection list
-      // (issue #583); [of] returns false when the scope is absent (narrow
-      // embedded tests), i.e. track all callers.
-      _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
       _load();
+    } else if (_loaded &&
+        _subscribedTrackAllCallers != null &&
+        _subscribedTrackAllCallers != _trackHistoryForAllCallers) {
+      unawaited(_resubscribePicker());
     }
+  }
+
+  /// Re-opens the picker's subscription under the current caller filter.
+  ///
+  /// **Reference data only.** The list screen answers the same change with a
+  /// full `_boot`, and copying that here would be wrong: this screen holds a
+  /// working copy of the program with debounced autosave, so re-running [_load]
+  /// would re-read the program from the database and discard whatever the user
+  /// has typed. The filter affects the picker's call counts and nothing else on
+  /// this screen, so re-subscribing is both sufficient and the only safe scope.
+  ///
+  /// Gated on [_loaded] so it cannot supersede the initial load: that load
+  /// awaits this same first-value future, and cancelling it mid-flight would
+  /// raise `_SupersededLoad` into a caller that owns `_loaded` — leaving the
+  /// editor on its loading state with nothing left to clear it. The residual
+  /// window is a toggle landing *during* the initial load, which needs the user
+  /// to reach Settings inside that load's own `await`; the subscription then
+  /// keeps the filter it opened with. Left rather than closed with machinery,
+  /// because the reconciliation would be unreachable code guarding a state no
+  /// navigation can produce.
+  Future<void> _resubscribePicker() async {
+    try {
+      final callerFilter = await resolveCallingHistoryCallerFilter(
+        _repos.settings,
+        trackAllCallers: _trackHistoryForAllCallers,
+      );
+      final data = await _watchCollectionData(callerFilter);
+      if (!mounted) return;
+      setState(() => _data = _latestData ?? data);
+    } on _SupersededLoad {
+      // diagnostics: silent — a newer re-subscribe replaced this one; it owns
+      // `_data` now. Not a failure, just a superseded race loser.
+      return;
+    } catch (_) {
+      // diagnostics: silent — keep last good picker data beside unsaved work; blanking it would be worse than stale.
+    }
+  }
+
+  /// The live Collection reference data backing the dance picker (issue #768).
+  ///
+  /// Only the *picker's* data is reactive. The program being edited is
+  /// deliberately NOT re-read from the database: this screen holds a working
+  /// copy with debounced autosave, so refreshing it from underneath the user
+  /// would discard in-flight edits. The split matters — the dances, tags and
+  /// authors the picker offers are reference data that should stay current,
+  /// while the program is the user's own document.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// The most recent snapshot the stream has delivered.
+  ///
+  /// [_load] captures the stream's FIRST value and then awaits more work — the
+  /// program fetch, the venue lookup, the default prefill — before assigning
+  /// `_data`. A write landing in that gap would otherwise be overwritten by
+  /// the older captured value, leaving the picker stale until the *next*
+  /// write; this is read at assignment time instead, so the newest value wins.
+  CollectionData? _latestData;
+
+  /// Opens the subscription and resolves with its FIRST value, so the existing
+  /// load sequence is unchanged while later emits flow into [_data].
+  ///
+  /// One subscription serves both, rather than a `load()` for the initial
+  /// render plus a `watch()` for updates — that would run the whole snapshot
+  /// load twice on open.
+  /// The live subscription's first-value future, while still pending.
+  ///
+  /// Held so that whoever abandons the subscription can settle it — see
+  /// [_replaceSubscription].
+  Completer<CollectionData>? _pendingFirst;
+
+  /// Cancels the live subscription, settling its first-value future first.
+  ///
+  /// [_load] awaits the stream's FIRST value, so **every path that abandons a
+  /// pending first-value future must complete it**. Three exits are handled by
+  /// the listener (a value, an error, the source ending); the other two are
+  /// invisible to it, because **cancelling a `StreamSubscription` invokes none
+  /// of its callbacks**: replacing the subscription, and [dispose].
+  ///
+  /// Both paths are reachable here. The replace path became reachable when
+  /// [_resubscribePicker] landed (issue #948) — before that this screen's
+  /// `_load` ran once, guarded by `!_loaded`, and only dispose could abandon a
+  /// pending future. The guard was written for the class rather than for the
+  /// reachable half, which is why that change needed no new machinery; see
+  /// `program_summary_screen`, where round 11 found the replace path live.
+  void _replaceSubscription() {
+    final pending = _pendingFirst;
+    _pendingFirst = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.completeError(const _SupersededLoad());
+    }
+    unawaited(_dataSub?.cancel());
+    _dataSub = null;
+  }
+
+  /// Whether the LIVE subscription was opened under "track all callers".
+  ///
+  /// Compared against the scope's current value rather than against
+  /// [_trackHistoryForAllCallers], which is updated on every dependency change
+  /// and so cannot say what the open subscription is actually serving. Null
+  /// until the first subscription exists.
+  bool? _subscribedTrackAllCallers;
+
+  Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final first = Completer<CollectionData>();
+    _replaceSubscription();
+    _pendingFirst = first;
+    _subscribedTrackAllCallers = _trackHistoryForAllCallers;
+    _dataSub =
+        CollectionData.watch(
+          _repos,
+          callerFilter: callerFilter,
+          // The editor renders the linked venue's name in simple mode's
+          // read-only fallback, from a table `CollectionData` does not carry
+          // (issue #944).
+          watchVenues: true,
+        ).listen(
+          (data) {
+            _latestData = data;
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.complete(data);
+              return;
+            }
+            if (mounted) setState(() => _data = data);
+            // Re-resolve the linked venue on every later emit (issue #944).
+            //
+            // Opting into `watchVenues` is necessary and not sufficient: it makes
+            // the stream fire on a venue write, but `_linkedVenue` is populated by
+            // `_load`, which runs once per editor. Without this the rename would
+            // wake the picker and leave the label beside it showing the old name —
+            // a *partially* refreshed screen, which is harder to notice than one
+            // that never updates.
+            //
+            // `_refreshLinkedVenue` already drops a result whose id no longer
+            // matches `_venueId`, so a rename landing while the user is changing
+            // the link cannot resurrect the old selection.
+            final linkedId = _venueId;
+            if (linkedId != null) unawaited(_refreshLinkedVenue(linkedId));
+          },
+          onError: (Object error) {
+            if (!first.isCompleted) {
+              // diagnostics: silent — propagates via `first.completeError`, which
+              // `_resubscribePicker`'s `catch` (logged there) or `_load`'s `catch`
+              // (also logged) receives, depending on which call opened this
+              // subscription; not logged twice for the same failure.
+              _pendingFirst = null;
+              first.completeError(error);
+              return;
+            }
+            // diagnostics: silent — a LATER failure keeps the picker on its last
+            // good data rather than blanking it: this is reference data beside an
+            // editor holding unsaved work, so an empty picker would be worse than
+            // a slightly stale one. Only a first-load failure (branch above) is
+            // logged, via wherever it propagates to.
+          },
+          onDone: () {
+            // The source can end without ever emitting — the database closed while
+            // this screen was opening, which happens in teardown. Completing the
+            // future is what stops `_load` awaiting forever; the error routes to
+            // the screen's existing load-failure branch.
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(
+                StateError('collection stream closed before its first value'),
+              );
+            }
+          },
+        );
+    return first.future;
   }
 
   Future<void> _load() async {
@@ -230,17 +464,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
+      final data = await _watchCollectionData(callerFilter);
       Program? program;
       if (!widget.isNew) {
         program = await _repos.programs.getById(widget.programId!);
         if (program == null) {
           if (!mounted) return;
           setState(() {
-            _data = data;
+            _data = _latestData ?? data;
             _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
@@ -270,7 +501,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // widget may have been disposed while they were in-flight.
       if (!mounted) return;
       setState(() {
-        _data = data;
+        _data = _latestData ?? data;
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
@@ -283,7 +514,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // restore/discard prompt (issue #436). Runs after the loaded-state
       // setState so the editor is fully built before any dialog appears.
       await _maybeStageDraft();
-    } catch (error) {
+    } on _SupersededLoad {
+      // diagnostics: silent — superseded before a snapshot arrived; the load
+      // that replaced this one owns `_loaded`/`_loadError`. Returning leaves
+      // the editor on its loading state for that load to clear.
+      return;
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_editor_screen._load');
       if (mounted) {
         setState(() {
           _loadError = error;
@@ -319,13 +556,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final value = stored is String ? stored.trim() : '';
       if (value.isNotEmpty) controller.text = value;
     } catch (_) {
-      // Leave the field blank if this default can't be read.
+      // diagnostics: silent — default field value read failed; leaves the field blank.
     }
   }
 
   @override
   void dispose() {
     _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    _replaceSubscription();
+    _pickerCounts.dispose();
     _tabController.dispose();
     _titleController.dispose();
     _venueController.dispose();
@@ -337,8 +577,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _markDirty() {
+    _editGeneration++;
     if (!_dirty) setState(() => _dirty = true);
     _scheduleAutosave();
+    _scheduleAutoCommit();
   }
 
   // --- Autosave / draft persistence (issue #436) ----------------------------
@@ -346,7 +588,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Settings-table key for this editor's draft, keyed by program id (or `new`
   /// for an unsaved program), mirroring the dance editor's `editor_draft:<id>`.
   String get _draftKey =>
-      '$kProgramEditorDraftKeyPrefix${widget.programId ?? 'new'}';
+      '$kProgramEditorDraftKeyPrefix${_existing?.id ?? widget.programId ?? 'new'}';
 
   /// Debounces autosave writes (500 ms after the last change), matching the
   /// dance editor. No-op before the initial load completes or while restoring a
@@ -392,6 +634,83 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     return future;
   }
 
+  void _scheduleAutoCommit() {
+    if (!_autoCommitEnabled ||
+        !_loaded ||
+        _restoringDraft ||
+        !_dirty ||
+        _saving) {
+      return;
+    }
+    _autoCommitTimer?.cancel();
+    _autoCommitTimer = Timer(
+      const Duration(milliseconds: 500),
+      _enqueueAutoCommit,
+    );
+  }
+
+  void _enqueueAutoCommit() {
+    if (!_autoCommitEnabled || !_dirty || _saving || !mounted) return;
+    final generation = _editGeneration;
+    final future = _commitQueueTail.then((_) => _autoCommit(generation));
+    _commitQueueTail = future;
+  }
+
+  Future<void> _autoCommit(int generation) async {
+    if (!mounted ||
+        !_autoCommitEnabled ||
+        !_dirty ||
+        generation != _editGeneration) {
+      return;
+    }
+    final draft = _draftProgram;
+    if (draft == null) return;
+    final wasNew = _existing == null;
+    final oldDraftKey = _draftKey;
+    try {
+      final persisted = await _persistDraft(draft);
+      if (!mounted) return;
+      if (wasNew && _existing == null) {
+        _existing = persisted;
+        await _clearDraftKey(oldDraftKey);
+        if (_dirty && generation != _editGeneration) {
+          await _saveDraft();
+        }
+      }
+      if (!mounted || generation != _editGeneration) {
+        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+        return;
+      }
+      await _clearDraft(waitForCommits: false);
+      if (!mounted) return;
+      setState(() {
+        _existing = persisted;
+        _dirty = false;
+        _slots = persisted.slots;
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._autoCommit',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppLocalizations.of(context).programsSaveError)),
+      );
+    }
+  }
+
+  Future<void> _clearDraftKey(String key) async {
+    _autosaveTimer?.cancel();
+    final generation = ++_draftGeneration;
+    await _saveQueueTail;
+    if (!mounted) return;
+    if (generation == _draftGeneration) {
+      await _repos.settings.remove(key, permanent: true);
+    }
+  }
+
   Future<void> _writeDraft(int generation) async {
     if (!mounted) return;
     try {
@@ -401,8 +720,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final encoded = encodeProgramDraft(_captureDraft());
       await _repos.settings.set(_draftKey, encoded);
     } catch (_) {
-      // A draft write failure must never disrupt editing, nor permanently
-      // stall the save chain for later autosaves; the next edit retries.
+      // diagnostics: silent — draft write failed; must never stall editing or permanently block later autosaves.
     }
   }
 
@@ -413,14 +731,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Awaits every autosave write scheduled so far (via the chained
   /// [_saveQueueTail]) before removing, so none of them can complete *after*
   /// the removal and resurrect the draft (issue #616).
-  Future<void> _clearDraft() async {
+  Future<void> _clearDraft({bool waitForCommits = true}) async {
     _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
     _draftGeneration++;
+    if (mounted) setState(() => _dirty = false);
+    if (waitForCommits) await _commitQueueTail;
     await _saveQueueTail;
     try {
-      await _repos.settings.remove(_draftKey);
+      await _repos.settings.remove(_draftKey, permanent: true);
     } catch (_) {
-      // Best-effort cleanup; a failure here is non-fatal.
+      // diagnostics: silent — draft removal best-effort; non-fatal.
     }
   }
 
@@ -435,7 +757,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         draft = decodeProgramDraft(await _repos.settings.get(_draftKey));
       }
     } catch (_) {
-      // Corrupt / unrecognised draft version — silently discard.
+      // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
       await _clearDraft();
       draft = null;
     }
@@ -505,6 +827,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } finally {
       _restoringDraft = false;
     }
+    _editGeneration++;
+    _scheduleAutoCommit();
     // Resolve the linked venue's display name off the restore path. This only
     // refreshes the read-only simple-mode fallback hint; it does not re-arm
     // autosave, and the on-disk draft is left intact.
@@ -520,10 +844,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _onVenueLinkChanged(String? id) async {
     setState(() {
       _venueId = id;
-      _dirty = true;
       if (id == null) _linkedVenue = null;
     });
-    _scheduleAutosave();
+    _markDirty();
     if (id == null) return;
     await _refreshLinkedVenue(id);
   }
@@ -544,12 +867,36 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots[i].position == i ? slots[i] : slots[i].copyWith(position: i),
   ];
 
-  String? _titleForDance(String danceId) => _data?.dancesById[danceId]?.title;
+  /// Dances created via "create a dance from this" (issue #881) during this
+  /// screen's lifetime, keyed by id.
+  ///
+  /// [_data] is a *live but debounced* snapshot: [CollectionData.watch]
+  /// coalesces on a short trailing window and then re-`load()`s the whole
+  /// collection, so a dance created moments ago is briefly absent from
+  /// `_data.dancesById`. Every dance lookup in this screen goes through
+  /// [_danceById] rather than `_data` directly, so the slot row, the export
+  /// menu, and the matrix tab all resolve a just-created dance immediately
+  /// instead of rendering the deleted-dance placeholder until the snapshot
+  /// catches up.
+  final Map<String, Dance> _createdDances = {};
+
+  /// Resolves [danceId] to a [Dance]: the live [_data] snapshot first, then
+  /// [_createdDances] as a fallback for a dance the snapshot hasn't caught up
+  /// to yet. Returns null only when neither has it (a genuinely unavailable —
+  /// e.g. soft-deleted — dance).
+  Dance? _danceById(String danceId) =>
+      _data?.dancesById[danceId] ?? _createdDances[danceId];
+
+  String? _titleForDance(String danceId) => _danceById(danceId)?.title;
 
   /// Resolves a dance's formation for the slot editor's redundant accent +
   /// formation text (issue #270). Null when the dance is unavailable.
   Formation? _formationForDance(String danceId) =>
-      _data?.dancesById[danceId]?.formation;
+      _danceById(danceId)?.formation;
+
+  /// Resolves a dance's mixer flag for the slot editor (issue #732).
+  /// Returns false when the dance is unavailable.
+  bool _mixerForDance(String danceId) => _danceById(danceId)?.mixer ?? false;
 
   /// Shared renderer for the large-print Perform view (mirrors the dance
   /// detail / single-dance Perform screens).
@@ -573,6 +920,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         updatedAt: now,
       );
     } catch (_) {
+      // diagnostics: silent — Program construction failed (empty slots or invalid state); returns null to caller.
       return null;
     }
   }
@@ -601,8 +949,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // primary Perform form factor), so — mirroring the wide summary
           // pane's persist callback in `programs_shell.dart` — we write the
           // change (e.g. a mark-performed stamp) straight to the repository
-          // immediately. The editor has no autosave, so without this a
-          // background/kill before an explicit Save would silently lose it.
+          // immediately. This keeps the live Perform path durable regardless of
+          // whether the optional metadata auto-commit preference is enabled.
           // A brand-new, still-unsaved program has nothing to update in the DB
           // yet, so its adjustments stay in the working slots to be saved
           // explicitly; a failed write falls back the same way rather than
@@ -612,28 +960,54 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             final slots = _renumber(updated.slots.toList());
             final existing = _existing;
             if (existing != null) {
-              final persisted = existing.copyWith(
+              // Perform may follow metadata edits that are still queued for
+              // auto-commit. Rebase the performed slots onto that working
+              // snapshot and serialize the whole update with the same queue.
+              final base = _draftProgram ?? existing;
+              final persisted = base.copyWith(
                 slots: slots,
                 updatedAt: DateTime.now().toUtc(),
               );
-              try {
+              _autoCommitTimer?.cancel();
+              _editGeneration++;
+              final operation = _commitQueueTail.then((_) async {
                 await _repos.programs.update(persisted);
+                await _clearDraft(waitForCommits: false);
+              });
+              // Keep later commits usable if this live-gig write fails, while
+              // still surfacing the failure to this callback.
+              _commitQueueTail = operation.then<void>(
+                (_) {},
+                onError: (Object error, StackTrace stackTrace) {
+                  logCaughtError(
+                    error,
+                    stackTrace,
+                    source: 'program_editor_screen._performPersist',
+                  );
+                },
+              );
+              try {
+                await operation;
                 if (!mounted) return;
                 setState(() {
                   _existing = persisted;
                   _slots = slots;
+                  _dirty = false;
                 });
+                // A mark-performed stamp changes the Collection's "called N
+                // times" badge and any mounted dance detail's calling history.
+                // Both watch `program_slots` directly now, so the write is the
+                // whole notification (issue #768).
                 return;
               } on Exception catch (_) {
-                // Fall through to keep the change in the working slots.
+                // diagnostics: silent — slot mark-performed stamp failed; keeps working state.
               }
             }
             if (!mounted) return;
             setState(() {
               _slots = slots;
-              _dirty = true;
             });
-            _scheduleAutosave();
+            _markDirty();
           },
         ),
       ),
@@ -642,15 +1016,47 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   // --- Slot mutations -------------------------------------------------------
 
+  /// The working slot list.
+  ///
+  /// Reads go through the getter; every assignment refreshes [_pickerCounts].
+  /// That indirection exists because the dance picker is presented two ways,
+  /// and only one of them rebuilds with this [State]: the two-pane inline pane
+  /// is part of this widget's subtree, but the narrow-layout sheet is a
+  /// separate `Navigator` route, so `setState` here never reaches it. The sheet
+  /// deliberately stays open across several adds, so without a live channel its
+  /// picker would keep the counts it was born with for the whole session.
+  ///
+  /// Routing through a setter rather than updating the notifier at each mutation
+  /// site means a future slot mutation cannot forget to keep the two in step.
+  List<ProgramSlot> get _slots => _slotsBacking;
+
+  set _slots(List<ProgramSlot> value) {
+    _slotsBacking = value;
+    _pickerCounts.value = _danceSlotCounts();
+  }
+
+  /// How many times each dance already appears in the program being built.
+  ///
+  /// Keyed by dance id; dances absent from the program are absent from the map.
+  /// Free-text and break slots carry no dance id and are skipped.
+  Map<String, int> _danceSlotCounts() {
+    final counts = <String, int>{};
+    for (final slot in _slots) {
+      final danceId = slot.danceId;
+      if (danceId == null) continue;
+      counts[danceId] = (counts[danceId] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   void _addDanceSlot(String danceId) {
     setState(() {
       _slots = _renumber([
         ..._slots,
         ProgramSlot(id: uuidV4(), position: _slots.length, danceId: danceId),
       ]);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     final l10n = AppLocalizations.of(context);
     final title = _titleForDance(danceId) ?? l10n.programsUntitledDanceFallback;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -674,9 +1080,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ..._slots,
         ProgramSlot(id: uuidV4(), position: _slots.length, text: text),
       ]);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedNoteAnnounce,
@@ -694,9 +1099,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           text: Program.breakSlotText,
         ),
       ]);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
       AppLocalizations.of(context).programsAddedBreakAnnounce,
@@ -710,9 +1114,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final item = list.removeAt(oldIndex);
       list.insert(newIndex.clamp(0, list.length), item);
       _slots = _renumber(list);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
   }
 
   void _updateSlot(int index, ProgramSlot updated) {
@@ -720,18 +1123,76 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final list = [..._slots];
       list[index] = updated;
       _slots = _renumber(list);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
   }
 
   void _removeSlot(int index) {
     setState(() {
       final list = [..._slots]..removeAt(index);
       _slots = _renumber(list);
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
+  }
+
+  /// Opens the dance editor seeded from the note-slot at [index]'s text
+  /// (issue #881's "create a dance from this" menu action), and — if a dance
+  /// was saved — converts that slot to reference it. The note text is always
+  /// discarded on conversion (Isaac decided: it only ever stood in for the
+  /// missing dance). Cancelling the editor (a null pop) leaves the slot
+  /// exactly as it was, still a note.
+  ///
+  /// Re-derives the slot's current index by id after the `await`, in case the
+  /// list changed while the editor was open (reordered, cut, or removed) — an
+  /// index captured before an `await` cannot be trusted afterward.
+  Future<void> _createDanceFromSlot(int index) async {
+    if (index < 0 || index >= _slots.length) return;
+    final slot = _slots[index];
+    final noteText = slot.text;
+    if (slot.danceId != null || noteText == null) return;
+    final seedTitle = danceTitleFromSlotNote(noteText);
+
+    final newId = await Navigator.of(context).push<String>(
+      MaterialPageRoute<String>(
+        builder: (_) => DanceEditorScreen(initialTitle: seedTitle),
+      ),
+    );
+    if (newId == null || !mounted) return;
+
+    final currentIndex = _slots.indexWhere((s) => s.id == slot.id);
+    if (currentIndex == -1) return; // the slot was removed while we were away
+
+    // Populate the created-dance overlay immediately: CollectionData.watch's
+    // coalesced snapshot hasn't necessarily caught up to the new dance yet
+    // (see _createdDances' doc comment), so every dance lookup in this
+    // screen resolves it right away instead of showing the deleted-dance
+    // placeholder.
+    final dance = await _repos.dances.getById(newId);
+    if (dance != null) _createdDances[newId] = dance;
+    if (!mounted) return;
+
+    final current = _slots[currentIndex];
+    // Rebuild rather than `copyWith`: `copyWith` cannot clear `text` (only
+    // guestCaller/plannedMinutes/performedAt have clear flags — see
+    // ProgramSlot.copyWith), and the note is always cleared on conversion.
+    final updated = ProgramSlot(
+      id: current.id,
+      position: current.position,
+      danceId: newId,
+      isAlt: current.isAlt,
+      guestCaller: current.guestCaller,
+      plannedMinutes: current.plannedMinutes,
+      performedAt: current.performedAt,
+    );
+    _updateSlot(currentIndex, updated);
+
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    SemanticsService.sendAnnouncement(
+      View.of(context),
+      l10n.programsCreatedDanceFromNoteAnnounce(dance?.title ?? seedTitle),
+      Directionality.maybeOf(context) ?? TextDirection.ltr,
+    );
   }
 
   Future<void> _markAllPerformed() async {
@@ -744,9 +1205,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               ? s.copyWith(performedAt: now)
               : s,
       ];
-      _dirty = true;
     });
-    _scheduleAutosave();
+    _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
@@ -798,93 +1258,74 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         slots: _renumber(_slots),
       );
     } catch (_) {
+      // diagnostics: silent — ProgramEdit construction failed (invalid field combination); returns null, blocking _save.
       return null;
     }
+  }
+
+  Future<Program> _persistDraft(Program draft) async {
+    final now = DateTime.now().toUtc();
+    final existing = _existing;
+    final persisted = Program(
+      id: existing?.id ?? uuidV4(),
+      title: draft.title,
+      eventDate: draft.eventDate,
+      venue: draft.venue,
+      venueId: draft.venueId,
+      band: draft.band,
+      caller: draft.caller,
+      dancerLevel: draft.dancerLevel,
+      notes: draft.notes,
+      status: draft.status,
+      hideAlternates: draft.hideAlternates,
+      slots: draft.slots,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      deletedAt: existing?.deletedAt,
+      provenance: existing?.provenance,
+    );
+    if (existing == null) {
+      await _repos.programs.create(persisted);
+    } else {
+      await _repos.programs.update(persisted);
+    }
+    return persisted;
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
     setState(() => _saving = true);
-    final now = DateTime.now().toUtc();
-    final title = _titleController.text.trim();
-    final venue = _venueController.text.trim();
-    final band = _bandController.text.trim();
-    final caller = _callerController.text.trim();
-    final level = _levelController.text.trim();
-    final notes = _notesController.text.trim();
-    final slots = _renumber(_slots);
-    // The toggle is entry-mode only; both venue columns persist independently.
-    // CREATE writes both live values (each defaults to empty/null in the mode
-    // that isn't shown). UPDATE mutates ONLY the active mode's field so the
-    // inactive value survives a flip untouched (lossless guarantee).
-    final enriched = VenueEntityModeScope.of(context);
-
     try {
-      final String id;
-      if (widget.isNew) {
-        id = uuidV4();
-        await _repos.programs.create(
-          Program(
-            id: id,
-            title: title,
-            eventDate: _eventDate,
-            venue: venue.isEmpty ? null : venue,
-            venueId: _venueId,
-            band: band.isEmpty ? null : band,
-            caller: caller.isEmpty ? null : caller,
-            dancerLevel: level.isEmpty ? null : level,
-            notes: notes,
-            status: _status,
-            hideAlternates: _hideAlternates,
-            slots: slots,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-      } else {
-        id = _existing!.id;
-        final updated = _existing!.copyWith(
-          title: title,
-          eventDate: _eventDate,
-          clearEventDate: _eventDate == null,
-          venue: enriched ? null : (venue.isEmpty ? null : venue),
-          clearVenue: enriched ? false : venue.isEmpty,
-          venueId: enriched ? _venueId : null,
-          clearVenueId: enriched ? _venueId == null : false,
-          band: band.isEmpty ? null : band,
-          clearBand: band.isEmpty,
-          caller: caller.isEmpty ? null : caller,
-          clearCaller: caller.isEmpty,
-          dancerLevel: level.isEmpty ? null : level,
-          clearDancerLevel: level.isEmpty,
-          notes: notes,
-          status: _status,
-          hideAlternates: _hideAlternates,
-          slots: slots,
-          updatedAt: now,
-        );
-        await _repos.programs.update(updated);
-        _existing = updated;
+      await _commitQueueTail;
+      final draft = _draftProgram;
+      if (draft == null) {
+        if (mounted) setState(() => _saving = false);
+        return;
       }
+      final persisted = await _persistDraft(draft);
       // Work is committed — drop the autosave draft so it can't resurface.
       await _clearDraft();
       if (!mounted) return;
       setState(() {
         _saving = false;
         _dirty = false;
-        _slots = slots;
+        _existing = persisted;
+        _slots = persisted.slots;
       });
       final messenger = ScaffoldMessenger.of(context);
       if (widget.isEmbedded) {
         messenger.showSnackBar(
-          SnackBar(content: Text(l10n.programsSavedSnack(title))),
+          SnackBar(content: Text(l10n.programsSavedSnack(persisted.title))),
         );
-        widget.onSaved?.call(id);
+        widget.onSaved?.call(persisted.id);
       } else {
-        Navigator.of(context).pop(id);
+        Navigator.of(context).pop(persisted.id);
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(
@@ -910,6 +1351,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     messenger.showSnackBar(
       SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
+    // The copy carries the same dance slots, so every derived count moved —
+    // the views of those counts watch the tables themselves (issue #768).
     if (widget.isEmbedded) {
       widget.onNavigateTo?.call(copy.id);
     } else {
@@ -928,6 +1371,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     // ROADMAP G.7: optional confirm dialog before the (still-undoable) delete.
     if (!await confirmDeleteIfEnabled(context, itemLabel: title)) return;
     if (!mounted) return;
+    // Finish any already-started auto-commit before soft-deleting. Otherwise
+    // its update could land after the delete and clear the tombstone.
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
+    await _commitQueueTail;
+    if (!mounted) return;
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     // Drop the autosave draft so it can't resurface for a deleted program.
@@ -941,8 +1390,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       message: l10n.programsDeletedSnack(title),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: accessibleNavigation,
-      onUndo: () =>
-          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
+      onUndo: () async {
+        // The restore is the notification: every view of a program watches
+        // `programs` itself (issue #768), including this undo's callers, which
+        // is why nothing has to be captured before the route pops any more.
+        await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
+      },
     );
     if (widget.isEmbedded) {
       widget.onDeleted?.call();
@@ -981,8 +1434,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final hasPersistedProgram = _existing != null;
+    final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
     return PopScope<Object?>(
-      canPop: !_dirty,
+      canPop: !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final ok = await _confirmDiscard();
@@ -992,13 +1447,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           // resurface, then pop.
           await _clearDraft();
           if (!context.mounted) return;
-          Navigator.of(context).pop();
+          Navigator.of(context).pop(isPersistedNewRoute ? _existing?.id : null);
         }
       },
       child: Scaffold(
         appBar: AppBar(
           title: Text(
-            widget.isNew ? l10n.programsNewProgram : l10n.programsBuildProgram,
+            hasPersistedProgram
+                ? l10n.programsBuildProgram
+                : l10n.programsNewProgram,
           ),
           bottom: TabBar(
             controller: _tabController,
@@ -1031,10 +1488,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 program: _draftProgram!,
                 titleFor: _titleForDance,
                 venuesById: _exportVenuesById,
-                danceFor: (id) => _data?.dancesById[id],
+                danceFor: _danceById,
                 choreographerFor: (id) => _data?.choreographersById[id],
               ),
-            if (!widget.isNew && _existing != null) ...[
+            if (hasPersistedProgram) ...[
               if (_slots.any((s) => s.danceId != null))
                 IconButton(
                   key: const ValueKey('mark-all-performed'),
@@ -1115,6 +1572,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   data: data,
                   dialect: _dialect,
                   enrichment: _enrichment,
+                  addedDanceCounts: _pickerCounts.value,
                   onAddDance: _addDanceSlot,
                 ),
               ),
@@ -1167,7 +1625,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         continue;
       }
       final dance =
-          data.dancesById[danceId] ??
+          _danceById(danceId) ??
           Dance(
             id: danceId,
             title: l10n.programsDeletedDanceFallback,
@@ -1183,6 +1641,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       rows,
       taxonomy: data.taxonomy,
       halves: rowHalves,
+      collisionMode: _matrixExactBeatCollision
+          ? MatrixCollisionMode.exactBeats
+          : MatrixCollisionMode.phrase,
+      config: _matrixColumnConfig,
     );
 
     return Column(
@@ -1198,7 +1660,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 icon: const Icon(Icons.visibility),
                 tooltip: l10n.programsMatrixShowAllColumnsSemantic,
                 onPressed:
-                    _hiddenMatrixColumns.any((c) => c < matrix.columns.length)
+                    matrix.columns.any(
+                      (c) => _hiddenMatrixColumns.contains(c.moveId),
+                    )
                     ? () => setState(_hiddenMatrixColumns.clear)
                     : null,
               ),
@@ -1223,10 +1687,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             matrix: matrix,
             taxonomy: data.taxonomy,
             dialect: _dialect,
+            config: _matrixColumnConfig,
             omittedFreeTextCount: omittedFreeText,
             altDanceIds: altDanceIds,
             hiddenColumns: _hiddenMatrixColumns,
-            onHideColumn: (c) => setState(() => _hiddenMatrixColumns.add(c)),
+            onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
           ),
         ),
       ],
@@ -1261,6 +1726,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         formatDate: localizations.formatMediumDate,
         labels: programMatrixExportLabels(l10n),
         formatFormation: (formation) => formationLabel(l10n, formation),
+        config: _matrixColumnConfig,
       ),
     );
   }
@@ -1334,9 +1800,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             slots: _slots,
             danceTitles: _titleForDance,
             formationFor: _formationForDance,
+            mixerFor: _mixerForDance,
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,
+            onCreateDance: _createDanceFromSlot,
+            onPickReplacementDance: _data == null
+                ? null
+                : _pickReplacementDance,
           ),
           const SizedBox(height: 80),
         ],
@@ -1377,14 +1848,85 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ],
                 ),
                 Expanded(
-                  child: CollectionPicker(
-                    key: const ValueKey('sheet-picker'),
-                    data: data,
-                    dialect: _dialect,
-                    enrichment: _enrichment,
-                    scrollController: scrollController,
-                    // Keep the sheet open so callers can add several dances.
-                    onAddDance: _addDanceSlot,
+                  child: ValueListenableBuilder<Map<String, int>>(
+                    valueListenable: _pickerCounts,
+                    builder: (context, counts, _) => CollectionPicker(
+                      key: const ValueKey('sheet-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      scrollController: scrollController,
+                      addedDanceCounts: counts,
+                      // Keep the sheet open so callers can add several dances.
+                      onAddDance: _addDanceSlot,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Opens a picker sheet that resolves to the id of the dance the user
+  /// tapped, or `null` if they closed it without picking one (issue #964).
+  /// Passed to [ProgramSlotListEditor.onPickReplacementDance], which the slot
+  /// edit dialog calls from its own [AlertDialog] — there is no nested
+  /// [Navigator] anywhere under `app/lib` (verified: `grep -rln "Navigator("
+  /// app/lib` returns no hits), so this sheet lands on the same root stack,
+  /// on top of the open dialog, exactly like [PerformAdjustSheet] already
+  /// nests its own insert-a-dance sheet inside its enclosing sheet.
+  ///
+  /// Unlike [_openPickerSheet] this pops on the **first** tap: replacing a
+  /// slot's dance is a single choice, not an open-ended add session.
+  Future<String?> _pickReplacementDance() async {
+    final data = _data;
+    if (data == null) return null;
+    final l10n = AppLocalizations.of(context);
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          expand: false,
+          initialChildSize: 0.85,
+          maxChildSize: 0.95,
+          builder: (context, scrollController) {
+            return Column(
+              children: [
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    Text(
+                      l10n.programsReplaceDanceSheetTitle,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      key: const ValueKey('replace-picker-sheet-close'),
+                      tooltip: l10n.commonClose,
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(sheetContext).pop(),
+                    ),
+                  ],
+                ),
+                Expanded(
+                  child: ValueListenableBuilder<Map<String, int>>(
+                    valueListenable: _pickerCounts,
+                    builder: (context, counts, _) => CollectionPicker(
+                      key: const ValueKey('replace-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      scrollController: scrollController,
+                      addedDanceCounts: counts,
+                      rowAction: PickerRowAction.replace,
+                      onAddDance: (danceId) =>
+                          Navigator.of(sheetContext).pop(danceId),
+                    ),
                   ),
                 ),
               ],
@@ -1484,6 +2026,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Widget _buildMetadataSection() {
     final l10n = AppLocalizations.of(context);
+    final hasPersistedProgram = _existing != null;
     final dateLabel = _eventDate == null
         ? l10n.programsNoDateSet
         : formatEventDate(
@@ -1499,7 +2042,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         TextFormField(
           key: const ValueKey('program-title'),
           controller: _titleController,
-          autofocus: widget.isNew,
+          autofocus: widget.isNew && !hasPersistedProgram,
           textInputAction: TextInputAction.next,
           onChanged: (_) => _markDirty(),
           decoration: InputDecoration(
@@ -1538,9 +2081,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   onPressed: () {
                     setState(() {
                       _eventDate = null;
-                      _dirty = true;
                     });
-                    _scheduleAutosave();
+                    _markDirty();
                   },
                 ),
             ],
@@ -1626,9 +2168,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             if (value != null) {
               setState(() {
                 _status = value;
-                _dirty = true;
               });
-              _scheduleAutosave();
+              _markDirty();
             }
           },
         ),
@@ -1642,9 +2183,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           onChanged: (value) {
             setState(() {
               _hideAlternates = value;
-              _dirty = true;
             });
-            _scheduleAutosave();
+            _markDirty();
           },
         ),
       ],
@@ -1668,9 +2208,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (picked != null) {
       setState(() {
         _eventDate = DateTime.utc(picked.year, picked.month, picked.day);
-        _dirty = true;
       });
-      _scheduleAutosave();
+      _markDirty();
     }
   }
 }

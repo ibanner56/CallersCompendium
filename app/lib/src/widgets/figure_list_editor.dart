@@ -48,6 +48,7 @@ class FigureListEditor extends StatefulWidget {
     required this.onReorder,
     this.onDuplicate,
     this.dialect,
+    this.mixer = false,
     this.moveParamDefaults,
     this.freeTextEntry = false,
     this.onAddFreeText,
@@ -66,6 +67,20 @@ class FigureListEditor extends StatefulWidget {
   /// Defaults to [Dialect.larksRobins] when `null` (has the standard
   /// discouraged-term list).
   final Dialect? dialect;
+
+  /// Whether the enclosing dance is a mixer (issue #732).
+  ///
+  /// Forwarded to each [FigureParamEditor] so that dancer-set/pair dropdowns
+  /// suppress the partner-series tokens except when the stored value is already
+  /// one of them (see [offerableDancerSets]). Defaults to `false`.
+  ///
+  /// This is a deliberate implementation choice for callers that have no dance
+  /// in context (e.g. the collection-wide defaults editor in
+  /// `defaults_section.dart`): the default `false` means partner-series tokens
+  /// are not offered, which is correct because a collection-wide default is
+  /// applied to every new figure regardless of dance type, and seeding it with
+  /// a mixer-specific token would be wrong for the large majority of dances.
+  final bool mixer;
 
   /// Per-move parameter overrides applied when INSERTING a move (ROADMAP DD.3),
   /// keyed by move id then param key. When a move is selected (or a custom
@@ -492,7 +507,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         sectionStart[draft.id] = false;
         continue;
       }
-      final label = widget.phraseStructure.labelAtBeat(beat);
+      final label = labelForFigure(beat, draft.beats, widget.phraseStructure);
       labels[draft.id] = label;
       sectionStart[draft.id] = label != lastLabel;
       lastLabel = label;
@@ -524,6 +539,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         showLabel: sectionStart[draft.id] ?? false,
         taxonomy: widget.taxonomy,
         dialect: dialect,
+        mixer: widget.mixer,
         moveParamDefaults: widget.moveParamDefaults,
         isCut: isCutCard,
         draggable: draggable,
@@ -819,6 +835,7 @@ class _FigureDraftCard extends StatefulWidget {
     required this.showLabel,
     required this.taxonomy,
     required this.dialect,
+    this.mixer = false,
     this.moveParamDefaults,
     required this.isCut,
     required this.draggable,
@@ -853,6 +870,9 @@ class _FigureDraftCard extends StatefulWidget {
 
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// See [FigureListEditor.mixer].
+  final bool mixer;
 
   /// Per-move insert-time param overrides (ROADMAP DD.3); see
   /// [FigureListEditor.moveParamDefaults]. Null = pure taxonomy defaults.
@@ -915,6 +935,21 @@ class _FigureDraftCard extends StatefulWidget {
 
   @override
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
+}
+
+/// v28 (#976): seeds `chain`'s implicit hand from its role (`who`), mirroring
+/// ContraDB's own `chainChange` (`figure.js:256-263`) so a chain created or
+/// edited in the editor stores the SAME explicit hand as one parsed from
+/// import text (`contradb_figure_dialect.dart` / `figure_parser.dart`),
+/// rather than diverging on `unspecified` until a user happens to touch
+/// `who` (#976 §6.1 — the divergence a first draft of this fix missed). A
+/// no-op for any other move or an unrecognized `who`.
+void _seedChainHand(String moveId, Map<String, Object?> params) {
+  if (moveId != 'chain') return;
+  final who = params['who'];
+  if (who is! String) return;
+  final hand = chainHandForWho(who);
+  if (hand != null) params['hand'] = hand;
 }
 
 class _FigureDraftCardState extends State<_FigureDraftCard> {
@@ -985,7 +1020,17 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // default (DD.3) is a user-configured value, so _applyMoveParamDefaults
     // re-marks beats as touched when it applies one.
     widget.draft.beatsTouched = false;
+    // #976: apply a saved per-move default FIRST — it may itself override
+    // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
+    // and seeding hand from the PRE-override `who` would then store a hand
+    // for a role the default just replaced. Seed the role-implied hand
+    // afterward, from the now-final `who` — unless the saved default itself
+    // named an explicit `hand`, which must win.
     _applyMoveParamDefaults(moveId);
+    final chainOverrides = widget.moveParamDefaults?[moveId];
+    if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
+      _seedChainHand(moveId, widget.draft.params);
+    }
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -1076,8 +1121,33 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
       if (!partial) draft.params.remove('meetTarget');
     }
+    // v30 (#989): a promenade's `turn` (rotation sense) is meaningless once
+    // `dir` points `in`/`out`/`up`/`down` — there is no "across" plane left to
+    // rotate through, and the field is hidden alongside `destination` for the
+    // same reason (see `_buildParams`). Reset it to the `unspecified` sentinel
+    // so a stale rotation doesn't silently persist, hidden, behind the field.
+    //
+    // Unlike `hey.meetTarget` above, this WRITES the sentinel rather than
+    // removing the key: `turn`'s spec default is the CONCRETE
+    // `'counterclockwise'` (v30 owner decision — the taxonomy's first
+    // concrete-default-plus-sentinel param), so `draft.params.remove('turn')`
+    // would fall through `effectiveParams` to that concrete default and
+    // render it — the opposite of "not stated" this reset is meant to
+    // achieve. Only an explicit sentinel write gets there.
+    if (draft.move == 'promenade' && key == 'dir') {
+      const rotationless = {'in', 'out', 'up', 'down'};
+      if (rotationless.contains(value)) {
+        draft.params['turn'] = ParamVocab.unspecified;
+      }
+    }
+    // #976: a `who` edit on a chain rewrites its role-implied hand, mirroring
+    // ContraDB's `chainChange` (figure.js:256-263) — an explicit hand set for
+    // the OLD role must not silently survive onto the new one.
     final oldDefault = _canonicalBeats(draft.params);
     draft.params[key] = value;
+    if (draft.move == 'chain' && key == 'who') {
+      _seedChainHand('chain', draft.params);
+    }
     final newDefault = _canonicalBeats(draft.params);
     if (newDefault == null) return;
     if (draft.beatsTouched) {
@@ -1583,6 +1653,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       paramKey: 'beats',
                       spec: beatsSpec,
                       dialect: widget.dialect,
+                      mixer: widget.mixer,
                       value: draft.params['beats'] ?? beatsSpec.defaultValue,
                       onChanged: (v) {
                         draft.params['beats'] = v;
@@ -1667,6 +1738,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   paramKey: 'beats',
                   spec: const ParamSpec(ParamKind.beats, defaultValue: 0),
                   dialect: widget.dialect,
+                  mixer: widget.mixer,
                   value: draft.beats,
                   onChanged: (v) {
                     draft.params['beats'] = v;
@@ -1686,6 +1758,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       draft: sides[i],
                       taxonomy: widget.taxonomy,
                       dialect: widget.dialect,
+                      mixer: widget.mixer,
                       moveParamDefaults: widget.moveParamDefaults,
                       onChanged: widget.onChanged,
                       onMoveUp: i == 0 ? null : () => _reorderSide(i, i - 1),
@@ -1877,6 +1950,34 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             .toList(growable: false);
       }
     }
+    // v30 (#989): a promenade's `dir` gates two other params' relevance:
+    // - `turn` (rotation sense) is meaningless once `dir` leaves the
+    //   across/along plane (`in`/`out`/`up`/`down`) — hidden here, and reset
+    //   to the sentinel by `_applyNonBeatsParamChange` the moment `dir`
+    //   changes to one of those, so the field can never go stale-but-hidden.
+    // - `destination` renders nowhere once `dir == 'across'` (the renderer's
+    //   `dir != 'across'` gate, matching Ask 2) — hidden here too, so the
+    //   editor never offers a field the renderer will silently ignore (the
+    //   defect issue #989/F5 named). Unlike `turn`, its value is left alone
+    //   rather than cleared: `across` is the taxonomy default, so a figure
+    //   loaded with a stored destination and no stated `dir` must not lose
+    //   that data on the mere act of opening the editor — only stop
+    //   rendering it, exactly as Q3 specified.
+    if (def.id == 'promenade') {
+      final dir = draft.params['dir'] ?? def.params['dir']?.defaultValue;
+      const rotationless = {'in', 'out', 'up', 'down'};
+      final hideTurn = rotationless.contains(dir);
+      final hideDestination = dir == 'across';
+      if (hideTurn || hideDestination) {
+        entries = entries
+            .where(
+              (e) =>
+                  !((hideTurn && e.key == 'turn') ||
+                      (hideDestination && e.key == 'destination')),
+            )
+            .toList(growable: false);
+      }
+    }
     // Progressive disclosure: >3 params → first 3 inline, rest behind a
     // collapsed "More options" disclosure. ≤3 params → all inline, no toggle.
     final hasMore = entries.length > 3;
@@ -1896,6 +1997,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             paramKey: entry.key,
             spec: entry.value,
             dialect: widget.dialect,
+            mixer: widget.mixer,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'beats') {
@@ -2125,6 +2227,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     required this.draft,
     required this.taxonomy,
     required this.dialect,
+    this.mixer = false,
     this.moveParamDefaults,
     required this.onChanged,
     this.onMoveUp,
@@ -2141,6 +2244,10 @@ class _MeanwhileSideEditor extends StatefulWidget {
   final FigureDraft draft;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// See [FigureListEditor.mixer].
+  final bool mixer;
+
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final VoidCallback onChanged;
 
@@ -2172,7 +2279,17 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
     draft.beatsTouched = false;
+    // #976: apply a saved per-move default FIRST — it may itself override
+    // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
+    // and seeding hand from the PRE-override `who` would then store a hand
+    // for a role the default just replaced. Seed the role-implied hand
+    // afterward, from the now-final `who` — unless the saved default itself
+    // named an explicit `hand`, which must win.
     _applyMoveParamDefaults(moveId);
+    final chainOverrides = widget.moveParamDefaults?[moveId];
+    if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
+      _seedChainHand(moveId, draft.params);
+    }
     widget.onChanged();
   }
 
@@ -2335,10 +2452,18 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             paramKey: entry.key,
             spec: entry.value,
             dialect: widget.dialect,
+            mixer: widget.mixer,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;
               draft.params[entry.key] = v;
+              // #976: a `who` edit on a chain rewrites its role-implied
+              // hand, mirroring ContraDB's `chainChange` (figure.js:256-263)
+              // — an explicit hand set for the OLD role must not silently
+              // survive onto the new one.
+              if (draft.move == 'chain' && entry.key == 'who') {
+                _seedChainHand('chain', draft.params);
+              }
               widget.onChanged();
             },
           ),

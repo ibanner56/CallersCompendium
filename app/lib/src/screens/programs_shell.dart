@@ -28,13 +28,20 @@ class ProgramsShell extends StatefulWidget {
 
 class _ProgramsShellState extends State<ProgramsShell> {
   String? _selectedProgramId;
-  final _listRefresh = ValueNotifier<int>(0);
 
-  @override
-  void dispose() {
-    _listRefresh.dispose();
-    super.dispose();
-  }
+  /// Identifies the single logical [ProgramsListScreen] across both
+  /// [LayoutBuilder] branches (`_buildSplitPane` vs the narrow branch below).
+  ///
+  /// Those branches place the list at structurally different tree positions
+  /// (bare vs nested in `Row > SizedBox > ScaffoldMessenger`), so without a
+  /// stable key Flutter treats a breakpoint crossing as removing one Element
+  /// and inserting a different one — discarding the list's State (its sort
+  /// choice, in particular) even though it is logically the same screen
+  /// (issue #895). A [GlobalKey] on the same widget in both branches makes
+  /// Flutter *move* the existing Element (and its State) to the new position
+  /// instead, the same way [CollectionShell] already keys its detail-pane
+  /// [ScaffoldMessenger] (`collection_shell.dart:116`).
+  final _listKey = GlobalKey();
 
   void _onSelectProgram(String id) {
     setState(() => _selectedProgramId = id);
@@ -49,11 +56,12 @@ class _ProgramsShellState extends State<ProgramsShell> {
       ),
     );
     if (!mounted) return;
+    // No refresh request: both panes are stream-driven (issue #768), so the
+    // builder's own write is what reloads them. Only the selection changes
+    // here, and that is this shell's state rather than either pane's data.
     if (result == 'deleted') {
-      _listRefresh.value++;
       setState(() => _selectedProgramId = null);
     } else if (result != null) {
-      _listRefresh.value++;
       setState(() => _selectedProgramId = result);
     }
   }
@@ -68,7 +76,12 @@ class _ProgramsShellState extends State<ProgramsShell> {
         // Narrow: single-pane list. Tapping a program pushes the read-focused
         // [ProgramSummaryScreen] (not the edit builder), mirroring the dance
         // side's narrow list → [DanceDetailScreen] flow.
-        return const ProgramsListScreen();
+        //
+        // A phone once had no refresh channel here at all, so an imported
+        // program never appeared until restart (issue #768). It needs none now:
+        // the list subscribes to its own data, which is a channel that cannot
+        // be forgotten at a call site.
+        return ProgramsListScreen(key: _listKey);
       },
     );
   }
@@ -82,10 +95,10 @@ class _ProgramsShellState extends State<ProgramsShell> {
           width: ProgramsShell.listPaneWidth,
           child: ScaffoldMessenger(
             child: ProgramsListScreen(
+              key: _listKey,
               onSelectProgram: _onSelectProgram,
               onCreateProgram: () => _openBuilder(context),
               selectedProgramId: _selectedProgramId,
-              refreshTrigger: _listRefresh,
             ),
           ),
         ),
@@ -96,18 +109,11 @@ class _ProgramsShellState extends State<ProgramsShell> {
                 ? ProgramSummaryPane(
                     key: ValueKey('summary-$selectedId'),
                     programId: selectedId,
-                    refreshTrigger: _listRefresh,
                     onOpenBuilder: () =>
                         _openBuilder(context, programId: selectedId),
-                    onDeleted: () {
-                      _listRefresh.value++;
-                      setState(() => _selectedProgramId = null);
-                    },
-                    onNavigateTo: (id) {
-                      _listRefresh.value++;
-                      setState(() => _selectedProgramId = id);
-                    },
-                    onProgramMutated: () => _listRefresh.value++,
+                    onDeleted: () => setState(() => _selectedProgramId = null),
+                    onNavigateTo: (id) =>
+                        setState(() => _selectedProgramId = id),
                   )
                 : const _EmptyEditorPane(),
           ),

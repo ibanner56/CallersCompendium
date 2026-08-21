@@ -8,10 +8,11 @@ import 'export_labels.dart';
 /// no Flutter/intl dependency so it can be unit-tested and reused by the app's
 /// share/copy path and by the PDF layout (which reuses the same field ordering).
 ///
-/// The set list is titles + metadata + slot notes only — deliberately **not**
-/// full per-dance figure breakdowns (that is Perform / dance-card territory,
-/// ROADMAP §5). Dance titles are not dialect terms, so no canonicalize is
-/// applied here.
+/// The set list is titles + metadata + slot notes only — **not** full per-dance
+/// figure breakdowns. The app layer optionally appends per-dance figure cards
+/// from `danceToPlainText` when the user opts in to "Set list and figures"
+/// (issue #853, ask 2). Dance titles are not dialect
+/// terms, so no canonicalize is applied here.
 ///
 /// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
 ///   return `null` for an unknown/unavailable dance and the renderer falls back

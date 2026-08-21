@@ -248,6 +248,8 @@ class _PartialDateFieldState extends State<PartialDateField> {
     try {
       return PartialDate(y, _month, _day);
     } on ArgumentError {
+      // diagnostics: silent — ArgumentError is the expected signal from PartialDate for an invalid
+      // user-typed year/month/day combination; returns null (invalid date), not an unexpected error
       return null;
     }
   }

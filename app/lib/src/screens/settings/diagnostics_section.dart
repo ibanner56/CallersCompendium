@@ -6,6 +6,7 @@ import '../../../l10n/app_localizations.dart';
 import '../../data/repositories_scope.dart';
 import '../../diagnostics/crash_log_io.dart';
 import '../../diagnostics/crash_log_store.dart';
+import '../../diagnostics/error_log.dart';
 import '../../diagnostics/sensitive_terms.dart';
 import '../../theme/app_spacing.dart';
 import '../../widgets/section_header.dart';
@@ -128,7 +129,12 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
           terms = provider != null
               ? await provider()
               : await collectSensitiveTerms(repositories!);
-        } catch (_) {
+        } catch (error, stackTrace) {
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'diagnostics_section._export',
+          );
           // Fail-closed (OWASP): if we can't gather the terms to redact, do NOT
           // fall back to writing a file labelled "scrubbed" that could still
           // contain user content. Abort with a clear message instead.
@@ -152,7 +158,8 @@ class _DiagnosticsSectionState extends State<DiagnosticsSection> {
           ),
         ),
       );
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'diagnostics_section._export');
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.diagnosticsExportFailed)),
       );

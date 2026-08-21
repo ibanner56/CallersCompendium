@@ -1,5 +1,6 @@
 import '../model/figure.dart';
 import '../taxonomy/contra_taxonomy.dart';
+import '../taxonomy/param_types.dart';
 import '../taxonomy/taxonomy.dart';
 import '../validation/validation.dart';
 import 'figure_text_scrub.dart';
@@ -131,6 +132,7 @@ class FigureFrontEnd {
   const FigureFrontEnd({
     this.preRecognizers = const [],
     this.recognitionNormalize,
+    this.declineToCustom,
   });
 
   /// Source-specific recognizers run before the shared ones, on raw scrubbed
@@ -140,6 +142,33 @@ class FigureFrontEnd {
   /// Optional recognition-only normalization applied to the lowercased text
   /// inside `_normalize` (does not affect the stored custom-fallback text).
   final String Function(String)? recognitionNormalize;
+
+  /// Optional source-specific veto: when it returns true for a line, that line
+  /// goes STRAIGHT to the custom fallback, skipping both the pre-recognizers
+  /// and the shared ones.
+  ///
+  /// This exists because "delete the recognizer" is NOT how a front-end
+  /// declines a move (taxonomy v26, #843). The shared recognizers in
+  /// `figure_parser.dart` are source-neutral by design, so a grammar this
+  /// front-end removes from its own dialect file can still be claimed by the
+  /// shared layer — which is exactly what happened to ContraDB's
+  /// `star promenade`, whose `who` means the CENTER role there and the pick-up
+  /// relationship everywhere else. Structuring it would assert the wrong
+  /// dancers, so it must not structure AT ALL for this source.
+  ///
+  /// Use sparingly, and only where a source's wording means something
+  /// materially different from the shared reading. When it fires the line takes
+  /// the custom fallback with `CustomOrigin.importGap` — the same outcome as
+  /// any unrecognised line — carrying the SCRUBBED text.
+  ///
+  /// Scrubbed, not verbatim: [scrubFigureText] has already canonicalized role
+  /// terms by then, so `Gentlespoons star promenade right 1` is stored as
+  /// `role1s star promenade right 1`. That is a user-visible difference, and it
+  /// applies to every custom figure, not just this path. What IS preserved
+  /// against the structured reading is everything `recognitionNormalize`
+  /// removes — annotations and the like — which is the precise sense in which
+  /// [recognitionNormalize] and [parseFigureLine] use the word "verbatim".
+  final bool Function(String scrubbed)? declineToCustom;
 }
 
 /// The neutral canonical front-end: no source-specific handling. This is the
@@ -206,6 +235,11 @@ Figure? parseFigureLine(
   );
 
   try {
+    // A source-specific veto runs BEFORE any recognizer, including this
+    // front-end's own pre-recognizers: the point is that the line must not
+    // structure at all for this source. Inside the try so a throwing predicate
+    // degrades to custom like everything else (parse-never-fails).
+    if (frontEnd.declineToCustom?.call(scrubbed) ?? false) return fallback();
     final match = _recognize(scrubbed, frontEnd);
     if (match == null) return fallback();
 
@@ -444,6 +478,17 @@ const Map<String, String> _dancerWords = {
   'n2': 'nextNeighbors',
   'n3': 'thirdNeighbors',
   'n4': 'fourthNeighbors',
+  // Tier B: TCB P-prefix partner-series shorthand ("P1 partner", "P2 partner",
+  // …). P/P1 = current partner; P0 = previous; P2–P5 = successive next
+  // partners (taxonomy v24, issue #732). P6+ and P-n have no taxonomy token
+  // and are absent from this map so they decline the whole line to custom.
+  'p': 'partners',
+  'p1': 'partners',
+  'p0': 'prevPartners',
+  'p2': 'nextPartners',
+  'p3': 'thirdPartners',
+  'p4': 'fourthPartners',
+  'p5': 'fifthPartners',
   // TCB explicit-dancer codes map to the single-dancer identities: M/W are the
   // roles, 1 = the active couple (ones), 2 = the inactive couple (twos). So
   // M1 = active role1 (onesRole1), W1 = active role2 (onesRole2), M2 = inactive
@@ -497,6 +542,13 @@ String? _takeDancer(List<String> w) {
           (w[i] == 'neighbor' || w[i] == 'neighbors')) {
         w.removeAt(i);
       }
+      // TCB pairs the P-prefix with a redundant "partner(s)" word
+      // ("P2 partner swing"); drop it for the same reason.
+      if (_pSeriesCodes.contains(raw) &&
+          i < w.length &&
+          (w[i] == 'partner' || w[i] == 'partners')) {
+        w.removeAt(i);
+      }
       return token;
     }
   }
@@ -520,6 +572,12 @@ String? _takeLeadingDancer(List<String> w) {
       (w[0] == 'neighbor' || w[0] == 'neighbors')) {
     w.removeAt(0);
   }
+  // Mirror _takeDancer's "P2 partner" pair absorption for the leading slot.
+  if (_pSeriesCodes.contains(raw) &&
+      w.isNotEmpty &&
+      (w[0] == 'partner' || w[0] == 'partners')) {
+    w.removeAt(0);
+  }
   return token;
 }
 
@@ -538,6 +596,13 @@ String? _takeSide(List<String> w) {
 /// neighbor qualifier ("with neighbor N2", "chain to neighbor N2") that would
 /// otherwise be left over and force the custom fallback.
 const Set<String> _neighborNumbers = {'n0', 'n1', 'n2', 'n3', 'n4'};
+
+/// TCB P-prefix partner tags that have taxonomy tokens (`P`/`P0`–`P5`; taxonomy
+/// v24, issue #732). Used to identify the subset of [_dancerWords] keys whose
+/// "P2 partner" pair absorption should fire — membership is a taxonomy fact, not
+/// a spelling heuristic. `partner` and `partners` also start with `p` in
+/// [_dancerWords] but must NOT trigger the absorption.
+const Set<String> _pSeriesCodes = {'p', 'p0', 'p1', 'p2', 'p3', 'p4', 'p5'};
 
 /// Removes the first [_neighborNumbers] token from [w] and returns it, or null.
 String? _takeNeighborNumber(List<String> w) {
@@ -759,6 +824,7 @@ final List<_Recognizer> _recognizers = [
   _balance,
   _shoulderRound,
   _allemande,
+  _twoHandTurn,
   _doSiDo,
   _revolvingDoor,
   _boxTheGnat,
@@ -805,6 +871,7 @@ final List<_Recognizer> _recognizers = [
   _longLines,
   _slice,
   _turnAlone,
+  _turnAsCouples,
   _contraCorners,
   _giveAndTake,
   _poussette,
@@ -829,9 +896,10 @@ final List<_Recognizer> _recognizers = [
   _rollAway,
   _crossTrails,
   _figure8,
-  // "Men/Women/Neighbor trade" → pass_by (the pair change places). Excludes
-  // "trade by"/"trade the wave"/"trade the line" internally, so it cannot claim
-  // those unmodeled constructions.
+  // "Men/Women/Neighbor trade" and "trade by [the] left/right [shoulder]"
+  // (issue #945) → pass_by (the pair change places). Still excludes
+  // "trade the wave"/"trade the line" internally, which corpus evidence shows
+  // are distinct, unmodelled whole-wave/whole-line constructions.
   _tradePassBy,
   // "Men pass left" / "Women cross by right" → pass_by (who + shoulder). Placed
   // after the "pass …" family (_passTheOcean/_passThrough) and _crossTrails; it
@@ -941,6 +1009,21 @@ _Match? _allemande(List<String> w) {
   return _Match(
     'allemande',
     {'who': who2 ?? 'neighbors', 'hand': ?hand, 'turn': ?turn},
+    null,
+    who2 == null,
+  );
+}
+
+_Match? _twoHandTurn(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['two', 'hand', 'turn'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  final turn = _takeRotation(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'two_hand_turn',
+    {'who': who2 ?? 'partners', 'turn': ?turn},
     null,
     who2 == null,
   );
@@ -1188,7 +1271,38 @@ _Match? _chain(List<String> w) {
     w.removeRange(toIdx, end);
   }
   final who = _takeDancer(w);
-  if (!_consumePhrase(w, ['chain'])) return null;
+  // v28 (#976): "<actor> do a <side>-hand <ladies|gents> chain". The token
+  // immediately before `chain` here — already normalized to `role1s`/`role2s`
+  // by `canonicalize.dart`'s legacy role synonyms, same as [who] above — is
+  // ALWAYS "ladies" or "gents" across all 126 corpus lines that use this
+  // construction (issue #976 §2.4), REGARDLESS of the actual actor (e.g.
+  // "Women do a left-hand gents chain to partner"): it is TCB's fixed
+  // idiomatic name for the two chain hand-patterns, not a second, independent
+  // role statement. So it is consumed here but never read into a param —
+  // [who] (the actor read above, BEFORE "do a") is the real `who`. Matched as
+  // a strict, contiguous shape (not a general scan), since that is the only
+  // shape attested; a partial/non-matching "do a" survives as leftover and
+  // falls through to the plain-chain path below, which then declines it via
+  // the ordinary "leftover tokens → custom" rule.
+  String? statedHand;
+  for (var i = 0; i + 4 < w.length; i++) {
+    if (w[i] != 'do' || w[i + 1] != 'a') continue;
+    final handTok = w[i + 2];
+    final roleTok = w[i + 3];
+    final hand = handTok == 'left-hand'
+        ? 'left'
+        : handTok == 'right-hand'
+        ? 'right'
+        : null;
+    if (hand != null &&
+        (roleTok == 'role1s' || roleTok == 'role2s') &&
+        w[i + 4] == 'chain') {
+      statedHand = hand;
+      w.removeRange(i, i + 5);
+    }
+    break;
+  }
+  if (statedHand == null && !_consumePhrase(w, ['chain'])) return null;
   final who2 = who ?? _takeDancer(w);
   // Optional direction (a leading diagonal wins over a trailing across/along).
   String? dir = diag;
@@ -1207,7 +1321,18 @@ _Match? _chain(List<String> w) {
   // match and let it fall back to custom. No explicit dancer → leave `who`
   // unset so the taxonomy default (role2s) applies.
   if (who2 != null && who2 != 'role1s' && who2 != 'role2s') return null;
-  return _Match('chain', {'who': ?who2, 'dir': ?dir}, note);
+  // v28 (#976): populate `hand` ONLY when a role token was actually read for
+  // `who` (`who2 != null`) — never when `who` is left unset for the taxonomy
+  // default to fill at read time, per #976 §6.1.3: deriving a hand from OUR
+  // default rather than the source would be fabrication. When `who` IS
+  // known, an explicitly stated hand (the "do a" construction) is used
+  // as-is, even when it contradicts the role-implied side (a deliberate
+  // "women do a left-hand gents chain"); otherwise the role-implied side
+  // (`chainHandForWho`) is written explicitly, matching every other write
+  // site (#976 §6.1) so search/canonical stay consistent regardless of which
+  // site wrote the figure.
+  final hand = who2 == null ? null : (statedHand ?? chainHandForWho(who2));
+  return _Match('chain', {'who': ?who2, 'hand': ?hand, 'dir': ?dir}, note);
 }
 
 // The Caller's Box's standalone courtesy turn (taxonomy v23). Grammar:
@@ -1517,9 +1642,10 @@ _Match? _promenade(List<String> w) {
   } else if (_consumePhrase(w, ['along'])) {
     dir = 'along';
   }
+  final turn = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('promenade', {'who': ?who2, 'dir': ?dir});
+  return _Match('promenade', {'who': ?who2, 'dir': ?dir, 'turn': ?turn});
 }
 
 /// Tier B: TCB writes "Shift left/right" *and* "Slide left/right" for a slide
@@ -1616,6 +1742,20 @@ _Match? _turnAlone(List<String> w) {
   _dropFiller(w);
   if (w.isNotEmpty) return null;
   return _Match('turn_alone', {'who': ?who2});
+}
+
+_Match? _turnAsCouples(List<String> w) {
+  final who = _takeDancer(w);
+  if (!_consumePhrase(w, ['turn', 'as', 'couples'])) return null;
+  final who2 = who ?? _takeDancer(w);
+  _dropFiller(w);
+  if (w.isNotEmpty) return null;
+  return _Match(
+    'turn_as_couples',
+    {'who': who2 ?? 'partners'},
+    null,
+    who2 == null,
+  );
 }
 
 /// Tier A: TCB writes "Partner poussette clockwise 1/2" (dance id 488 "Rough
@@ -1764,20 +1904,32 @@ _Match? _weaveTheLine(List<String> w) {
 }
 
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").
-/// The optional dancer set maps to `who`, an explicit hand to `hand`, and a
-/// rotation amount to `turn`. TCB's "(WL)"/"(WR)" hand annotations are stripped
-/// by `_normalize`, so the hand there stays on the taxonomy default. Must
-/// precede `_star` in `_recognizers` so the shared "star" lead phrase resolves
-/// to this more specific move first.
+/// The optional dancer set maps to `who` — the dancer you PICK UP on the side
+/// (taxonomy v26, #843) — and a rotation amount to `turn`.
+///
+/// **A stated hand is consumed and DISCARDED here, on purpose.** `star_promenade`
+/// declared a `hand` until v26, and prose like "Neighbor star promenade right
+/// 1/2" set it. The owner ruled (2026-08-06) that rendering the hand beside the
+/// subject implies a right-hand connection with the neighbor when the
+/// connection is between the two dancers in the CENTER, so the param was
+/// removed. The side is still EATEN rather than left in `w`, because an
+/// unconsumed token forces the whole line to the custom fallback and would
+/// regress every "star promenade right" line from structured to custom.
+///
+/// TCB's `(WR)`/`(ML)` annotations state the center pair. `_normalize` strips
+/// them before this runs, so they are picked up earlier by
+/// `_starPromenadeAnnotation` in `callersbox_figure_dialect.dart`, which
+/// preserves them as a note. Must precede `_star` in `_recognizers` so the
+/// shared "star" lead phrase resolves to this more specific move first.
 _Match? _starPromenade(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['star', 'promenade'])) return null;
   final who2 = who ?? _takeDancer(w);
-  final hand = _takeSide(w);
+  _takeSide(w); // consumed, then discarded — see the doc comment above.
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('star_promenade', {'who': ?who2, 'hand': ?hand, 'turn': ?turn});
+  return _Match('star_promenade', {'who': ?who2, 'turn': ?turn});
 }
 
 /// Tier A: TCB writes "Square through 3" / "Square through 4" (dance id 322
@@ -1961,18 +2113,25 @@ _Match? _formLongWave(List<String> w) {
 /// Tier B: TCB writes "Men trade" / "Women trade" / "Neighbor trade" — a trade
 /// is a pass-by (the pair change places passing right shoulders), so it maps to
 /// `pass_by` with the stated `who` and the taxonomy's default right shoulder
-/// (an explicit "left/right [shoulder]" overrides). Distinct constructions that
-/// have NO taxonomy model are excluded up front so this never mis-claims them:
-/// "trade by", "trade the wave", "trade the line".
+/// (an explicit "left/right [shoulder]" overrides), and likewise "trade by
+/// [the] left/right [shoulder(s)]" (issue #945, defect C — the owner ruled
+/// this is the MWSD "Trade By" call and should structure; a corpus scan of
+/// ~24k dances found 709 `trade by` occurrences and zero instances of `trade
+/// by the` used any other way). `trade the wave` / `trade the line` remain
+/// excluded: corpus evidence supports them as distinct, unmodelled
+/// whole-wave/line constructions rather than a two-dancer pass-by.
 _Match? _tradePassBy(List<String> w) {
-  if (_hasPhrase(w, ['trade', 'by']) ||
-      _hasPhrase(w, ['trade', 'the', 'wave']) ||
+  if (_hasPhrase(w, ['trade', 'the', 'wave']) ||
       _hasPhrase(w, ['trade', 'the', 'line'])) {
     return null;
   }
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['trade'])) return null;
   final who2 = who ?? _takeDancer(w);
+  // "trade by" is consumed here (rather than folded into a shoulder phrase)
+  // because a leftover `by` with no side word (e.g. a bare "trade by") must
+  // still structure, matching the plain "trade" case above.
+  _consumePhrase(w, ['by']);
   final shoulder = _takeSide(w);
   _consumePhrase(w, ['shoulder']);
   _consumePhrase(w, ['shoulders']);

@@ -2,41 +2,62 @@ import 'package:drift/drift.dart';
 
 import '../../model/published_source.dart';
 import '../database.dart';
+import '../existence.dart';
 
 /// CRUD for [PublishedSource] rows — the reusable bibliographic entity many
 /// dances cite. Mirrors `ChoreographerRepository`: editing a source's metadata
 /// happens in one place and a delete is guarded while the source is still
 /// referenced by any dance citation.
+///
+/// Published sources are **soft-deleted** as of schema v25 (issue #898). They
+/// carry no UNIQUE natural key, so an upsert can only ever land on the row
+/// sharing its id.
 class PublishedSourceRepository {
   PublishedSourceRepository(this._db);
 
   final CompendiumDatabase _db;
 
-  Future<void> upsert(PublishedSource s) => _db
-      .into(_db.publishedSources)
-      .insertOnConflictUpdate(
-        PublishedSourcesCompanion.insert(
-          id: s.id,
-          title: s.title,
-          author: Value(s.author),
-          year: Value(s.year),
-          url: Value(s.url),
-          notes: Value(s.notes),
-        ),
+  Future<void> upsert(PublishedSource s, {DateTime? at}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      await _db
+          .into(_db.publishedSources)
+          .insertOnConflictUpdate(
+            PublishedSourcesCompanion.insert(
+              id: s.id,
+              title: s.title,
+              author: Value(s.author),
+              year: Value(s.year),
+              url: Value(s.url),
+              notes: Value(s.notes),
+              updatedAt: Value(now),
+            ),
+          );
+      await applyUpsertExistence(
+        _db,
+        table: _db.publishedSources,
+        keyColumn: 'id',
+        key: s.id,
+        at: now,
       );
+    });
+  }
 
   Future<PublishedSource?> getById(String id) async {
     final row = await (_db.select(
       _db.publishedSources,
-    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    )..where((t) => t.id.equals(id) & t.deletedAt.isNull())).getSingleOrNull();
     return row == null ? null : _toModel(row);
   }
 
   Future<List<PublishedSource>> listAll() async {
     final rows =
-        await (_db.select(_db.publishedSources)..orderBy([
-              (t) => OrderingTerm(expression: t.title.collate(Collate.noCase)),
-            ]))
+        await (_db.select(_db.publishedSources)
+              ..where((t) => t.deletedAt.isNull())
+              ..orderBy([
+                (t) =>
+                    OrderingTerm(expression: t.title.collate(Collate.noCase)),
+              ]))
             .get();
     return rows.map(_toModel).toList();
   }
@@ -48,20 +69,37 @@ class PublishedSourceRepository {
   /// dance can acquire a citation between the check and the delete (no
   /// check-then-act race). Mirrors `VenueRepository.delete` /
   /// `ChoreographerRepository.delete`.
-  Future<void> delete(String id) => _db.transaction(() async {
-    final stillUsed = await (_db.select(
-      _db.danceSources,
-    )..where((t) => t.sourceId.equals(id))).get();
-    if (stillUsed.isNotEmpty) {
-      throw StateError(
-        'cannot delete published source "$id": still cited by '
-        '${stillUsed.length} dance(s)',
+  ///
+  /// Tombstones by default (schema v25, issue #898); the guard is kept. See
+  /// `ChoreographerRepository.delete` for [permanent].
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) {
+    final now = resolveStamp(at);
+    return _db.transaction(() async {
+      final stillUsed = await (_db.select(
+        _db.danceSources,
+      )..where((t) => t.sourceId.equals(id))).get();
+      if (stillUsed.isNotEmpty) {
+        throw StateError(
+          'cannot delete published source "$id": still cited by '
+          '${stillUsed.length} dance(s)',
+        );
+      }
+      if (permanent) {
+        await (_db.delete(
+          _db.publishedSources,
+        )..where((t) => t.id.equals(id))).go();
+        return;
+      }
+      await stampExistenceTransition(
+        _db,
+        table: _db.publishedSources,
+        keyColumn: 'id',
+        key: id,
+        at: now,
+        deleted: true,
       );
-    }
-    await (_db.delete(
-      _db.publishedSources,
-    )..where((t) => t.id.equals(id))).go();
-  });
+    });
+  }
 
   PublishedSource _toModel(PublishedSourceRow row) => PublishedSource(
     id: row.id,

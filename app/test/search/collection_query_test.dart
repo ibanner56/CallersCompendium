@@ -72,6 +72,35 @@ void main() {
       expect((f as FullTextFilter).query, 'petronella');
     });
 
+    test('defaults full-text scope to Omni and preserves explicit scopes', () {
+      final omni =
+          buildCollectionFilter(
+                ftsText: 'swing',
+                facets: FacetSelections(),
+                defs: defs,
+              )
+              as FullTextFilter;
+      final title =
+          buildCollectionFilter(
+                ftsText: 'swing',
+                facets: FacetSelections(),
+                defs: defs,
+                scope: FullTextScope.title,
+              )
+              as FullTextFilter;
+
+      expect(omni.scope, FullTextScope.omni);
+      expect(title.scope, FullTextScope.title);
+      expect(
+        isBareFullText(
+          ftsText: 'swing',
+          facets: FacetSelections(),
+          scope: FullTextScope.title,
+        ),
+        isFalse,
+      );
+    });
+
     test('a single facet yields a single leaf', () {
       final facets = FacetSelections()..forms.add(DanceForm.contra);
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
@@ -177,6 +206,13 @@ void main() {
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<MixedLevelFilter>());
       expect((f as MixedLevelFilter).mixed, isTrue);
+    });
+
+    test('mixer facet yields a MixerFilter (issue #732)', () {
+      final facets = FacetSelections()..mixer = true;
+      final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
+      expect(f, isA<MixerFilter>());
+      expect((f as MixerFilter).mixer, isTrue);
     });
 
     test('minRating facet yields a RatingFilter with the chosen floor', () {
@@ -434,10 +470,7 @@ void main() {
 
   group('isBareFullText', () {
     test('true for text with no facets/advanced', () {
-      expect(
-        isBareFullText(ftsText: 'swing', facets: FacetSelections()),
-        isTrue,
-      );
+      expect(isBareFullText(ftsText: 'Al', facets: FacetSelections()), isTrue);
     });
 
     test('false when a facet is selected', () {
@@ -545,6 +578,11 @@ void main() {
       expect(withMixed.isEmpty, isFalse);
     });
 
+    test('mixer facet counts toward isEmpty (issue #732)', () {
+      final withMixer = FacetSelections()..mixer = true;
+      expect(withMixer.isEmpty, isFalse);
+    });
+
     test('minRating facet counts toward isEmpty and clear() resets it', () {
       final facets = FacetSelections()..minRating = 3;
       expect(facets.isEmpty, isFalse);
@@ -564,6 +602,14 @@ void main() {
       expect(facets.isEmpty, isTrue);
     });
 
+    test('clear() resets mixer facet (issue #732)', () {
+      final facets = FacetSelections()..mixer = true;
+      expect(facets.isEmpty, isFalse);
+      facets.clear();
+      expect(facets.mixer, isNull);
+      expect(facets.isEmpty, isTrue);
+    });
+
     test(
       'isBareFullText is true when the only facets present are '
       'whitespace-only text and incomplete between (neither is effective)',
@@ -577,7 +623,7 @@ void main() {
           op: CustomFieldOp.between,
           lo: 2,
         );
-        expect(isBareFullText(ftsText: 'swing', facets: facets), isTrue);
+        expect(isBareFullText(ftsText: 'Al', facets: facets), isTrue);
       },
     );
   });

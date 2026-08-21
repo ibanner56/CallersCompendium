@@ -6,6 +6,7 @@
 library;
 
 export 'src/analysis/half_calling_stats.dart';
+export 'src/analysis/matrix_column_config.dart';
 export 'src/analysis/program_matrix.dart';
 export 'src/diagnostics/crash_log_record.dart';
 export 'src/diagnostics/crash_redactor.dart';
@@ -44,8 +45,10 @@ export 'src/imports/fmp/fmp_reader.dart';
 export 'src/imports/generic_json_adapter.dart';
 export 'src/imports/import_error.dart';
 export 'src/imports/import_pipeline.dart';
+export 'src/imports/published_collection.dart';
 export 'src/imports/insert_call_shorthands.dart';
 export 'src/imports/program_import_marker.dart';
+export 'src/imports/program_slot_note.dart';
 export 'src/imports/raw_record.dart';
 export 'src/imports/reparse_custom_figures.dart';
 export 'src/imports/shorthand_mappings.dart';
@@ -53,6 +56,7 @@ export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
 export 'src/imports/venue_dedupe.dart';
 export 'src/model/choreographer.dart';
+export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
 export 'src/model/dance_link.dart';
@@ -87,9 +91,32 @@ export 'src/storage/database.dart'
     show
         CompendiumDatabase,
         derivedRebuildRequiredKey,
+        inversePairNormalisationDoneKey,
         purgeCorruptionRepairDoneKey,
-        kCompendiumSchemaVersion;
+        sectionRuleVersionKey,
+        starPromenadeHandRemovalDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        chainHandBackfillDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        kSectionRuleVersion,
+        kCompendiumSchemaVersion,
+        kMinSupportedSchemaVersion;
+// Only the pure pieces of `existence.dart` are public: the rule itself, the
+// tick it is pinned to, and the unix-seconds conversion, all of which the tests
+// exercise directly.
+//
+// The SQL writers (`applyUpsertExistence`, `stampExistenceTransition`,
+// `adoptTombstonedNaturalKey`, `seedExistenceIfMissing`) are deliberately NOT
+// exported. They take a [CompendiumDatabase] and mutate rows in place, so
+// exporting them would offer callers a way around the repository layer — and
+// "all access through repositories" is the storage design's central rule
+// (docs/design/storage.md), not a convention. Every existence stamp has to go
+// through the repository that also maintains the row's other invariants, so
+// keep these internal to `lib/src/storage/`.
+export 'src/storage/existence.dart'
+    show existenceStampTick, nextExistenceStamp, unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';
+export 'src/storage/repositories/collection_import_event_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'
     show
         CustomFieldDefRepository,
@@ -105,8 +132,10 @@ export 'src/storage/repositories/venue_repository.dart';
 export 'src/taxonomy/contra_taxonomy.dart';
 export 'src/taxonomy/gate_facing.dart';
 export 'src/taxonomy/move_def.dart';
+export 'src/taxonomy/offerable_dancer_sets.dart';
 export 'src/taxonomy/param_types.dart';
 export 'src/taxonomy/taxonomy.dart';
+export 'src/util/argb.dart';
 export 'src/util/colour_name_seed.dart';
 export 'src/util/inline_emphasis.dart';
 export 'src/util/text_sanitizer.dart';

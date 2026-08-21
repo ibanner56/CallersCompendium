@@ -1,3 +1,8 @@
+<!-- generated-by: packages/compendium_core/tool/generate_data_classification_doc.dart
+     source: packages/compendium_core/lib/src/privacy/field_registry.dart
+     The field-catalogue table below is generated; the surrounding prose is
+     hand-written. Read the registry, not this rendering. -->
+
 # Data classification catalogue
 
 Every field Caller's Compendium persists, classified by what kind of data it is,
@@ -29,7 +34,11 @@ column, and CI will stop you.
 
 1. Add the column as usual.
 2. Add an entry to `fieldClassifications`, keyed `table.column` using the **SQL**
-   names.
+   names. For a settings key built at runtime from a prefix rather than
+   declared as an exact `const String kSomethingKey`, add the prefix to
+   `settingsPrefixClassifications` instead (see `kDanceEditorDraftKeyPrefix`
+   for the pattern) — `classifySettingsKey` resolves the longest matching
+   prefix.
 3. Pick the three axes (below). If it is a close call, say why in the `note` —
    a reviewer should never have to guess why a personal-data field is
    `shareable`.
@@ -169,7 +178,7 @@ tell an approved decision from an assumed one.
 | --- | --- | --- |
 | Performer names (`programs.caller`, `programs.band`, `program_slots.guest_caller`) are shareable | Maintainer | A program without its caller and band is useless, and event billing is already public |
 | All notes fields are shareable, including those on person and place records | Maintainer | They are the user's own words about their own collection |
-| `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations attach: creating a custom field must show a one-time notice that its contents travel, and per-field exclusion from sharing is tracked in #780 |
+| `custom_field_values.value_text` is shareable | Maintainer | Custom fields are core collection data. Two obligations attached: (1) creating a custom field shows a one-time disclosure that its contents travel with exports — shipped in #780; (2) per-field exclusion from sharing via `custom_field_defs.shareable` — also shipped in #780; the archive encoder omits non-shareable defs and their values entirely |
 | `venues.sponsor` is shareable | Maintainer | A sponsor is an organisation by intent and part of the venue's public identity |
 | Venue identity (`name`, `website`, `event_name`, schedule, time, price) is shareable while the address block and contacts are device-local | Agent, ratified by maintainer | Lets a program stay readable after a transfer without moving the address book |
 | `provenance.raw_payload` and `program_provenance.raw_payload` were **dropped** at schema v21 | Maintainer | Classified device-local when this catalogue was written, then removed entirely (#781). Nothing ever read either column; the program-side one was never even written. For an HTML import the dance-side column stored the whole source page — 7,492 bytes for this repo's own ContraDB fixture — per dance, round-tripping through every backup. Dropping deletes data irreversibly, which was the explicit trade accepted: unreadable data is not worth carrying forever |
@@ -180,12 +189,12 @@ tell an approved decision from an assumed one.
 - **Settings values are classified at the column, not the key.** `settings` is a
   key/value store, so `settings.value_json` is marked device-local at this layer
   to make a blanket sync of the settings table impossible by accident. Per-key
-  classification is a separate registry in the app package.
+  classification is a separate registry in `packages/compendium_core`
+  (`settings_registry.dart`), covering both keys declared as an exact constant
+  and keys built at runtime from a declared prefix (`editor_draft:<id>`).
 - **The catalogue classifies storage, not display.** A field marked
   `deviceLocal` can still be rendered on screen, printed, or copied by the user.
   This is a transmission boundary, not an access-control system.
-- **`tags.color` has no writer.** The column is catalogued here but nothing
-  sets it and no UI shows it; tag colour-coding is wanted but unbuilt (#786).
 - **Freeform fields are classified by intent, not by content.** A user who types
   a phone number into a dance's calling notes has put contact data into a
   `shareable` field, and nothing detects that. The rulings above accept this
@@ -203,28 +212,39 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**142 columns**: 108 shareable, 17 device-local, 17 derived. 24 personal data by category.
+**183 columns**: 137 shareable, 21 device-local, 25 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
 | `choreographers` | `deceased` | `cc:DeceasedFlag` | DeceasedFlag | third party | **device-local** | Personal data about someone who cannot exercise any rights over it. |
+| `choreographers` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
 | `choreographers` | `email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** | Private contact data for someone who does not use this app. This registry replaces the prose rule that lived on Choreographer.email. |
+| `choreographers` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `choreographers` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `choreographers` | `location` | `pd:Locality` | Contact → PhysicalAddress → Locality | third party | **device-local** | Freeform locality, e.g. "Portland, OR". |
 | `choreographers` | `name` | `pd:Name` | Identifying → Name | third party | shareable | Personal data about a third party, shareable deliberately: authorship credit is the reason the field exists, and it is already published wherever the dance is published. |
 | `choreographers` | `notes` | `dpv:PersonalData` | PersonalData | third party | shareable | Unbounded freeform text attached to a person, place or source. Personal data by category, shareable by decision (maintainer ruling: this is the user's own commentary on their own collection). May incidentally contain contact details the user typed there. |
+| `choreographers` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `choreographers` | `website` | `cc:WebsiteUrl` | WebsiteUrl | third party | shareable | A public page the author chose to publish. |
+| `collection_import_events` | `archive_digest` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | The digest identifies the specific published archive the app user imported and is retained only as local import history. |
+| `collection_import_events` | `collection_id` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | Published collection import history reveals the app user’s interests; it is not collection content and must remain on this device. |
+| `collection_import_events` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | The timestamp records the app user’s import activity and is retained only as local import history. |
+| `collection_import_events` | `version` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | Published collection import history reveals the app user’s interests; it is not collection content and must remain on this device. |
 | `custom_field_defs` | `choices_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `custom_field_defs` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
+| `custom_field_defs` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `custom_field_defs` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_defs` | `key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `label` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `searchable` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `custom_field_defs` | `shareable` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Per-field flag: whether this field and its values may travel in a shared archive. Classified shareable because the flag is carried on the defs that *are* emitted — excluded defs are omitted entirely from the encoded archive. Recipients see no indication that any fields were withheld; disclosing the count of excluded fields would itself leak information the sender chose not to share. This is the only field that directly controls egress of another field (custom_field_values.value_text). Added in #780. |
 | `custom_field_defs` | `show_in_list` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `custom_field_defs` | `type` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `custom_field_defs` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `custom_field_values` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_values` | `field_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `custom_field_values` | `value_num` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
-| `custom_field_values` | `value_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Holds either unbounded free text or a user-defined choice value, for a field the user invented and named. Shareable by maintainer ruling: custom fields are core collection data. Two obligations attach to that ruling — (1) creating a custom field must show a one-time notice that its contents travel, and (2) per-field exclusion from sharing is a tracked backlog item (#780). Both are prerequisites of sync shipping, not of this catalogue. |
+| `custom_field_values` | `value_text` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Holds either unbounded free text or a user-defined choice value, for a field the user invented and named. Shareable by maintainer ruling: custom fields are core collection data. Egress is conditional on the field definition's shareable flag (custom_field_defs.shareable, added in #780): when shareable = false, neither this field def nor its values are emitted in an archive. The one-time disclosure notice on field creation (obligation 1) and the per-field exclusion control (obligation 2) were both implemented in #780. |
 | `dance_authors` | `choreographer_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_authors` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_authors` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -256,12 +276,21 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_sources` | `page` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_sources` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_sources` | `source_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_substring_fts` | `authors` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `custom_values` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `figures_text` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `hook` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `sources` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
+| `dance_substring_fts` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | derived | Rebuilt from authoritative columns on write; recomputed on arrival. |
 | `dance_tags` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_tags` | `tag_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dances` | `calling_notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `composed_on` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `created_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `dances` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone. Must travel, or a device that has not synced recently will resurrect a dance the user deleted elsewhere. |
+| `dances` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `dances` | `figures_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `form` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `formation_detail` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -270,6 +299,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dances` | `level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `mixed_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `dances` | `mixer` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `phrase_structure` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `progression` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `rating` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -301,6 +331,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `programs` | `dancer_level` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. |
 | `programs` | `event_date` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `programs` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `programs` | `hide_alternates` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `programs` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `programs` | `notes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -317,16 +348,32 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `published_sources` | `author` | `pd:Name` | Identifying → Name | third party | shareable | Published authorship credit; public by definition. |
+| `published_sources` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
+| `published_sources` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `published_sources` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `published_sources` | `notes` | `dpv:PersonalData` | PersonalData | third party | shareable | Unbounded freeform text attached to a person, place or source. Personal data by category, shareable by decision (maintainer ruling: this is the user's own commentary on their own collection). May incidentally contain contact details the user typed there. |
 | `published_sources` | `title` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `published_sources` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `published_sources` | `url` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable |  |
 | `published_sources` | `year` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `settings` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
+| `settings` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `settings` | `key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The settings table is a key/value store; classifying the column says nothing about an individual preference. Per-key classification lives in the app package. |
+| `settings` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `settings` | `value_json` | `dpv:NonPersonalData` | NonPersonalData | app user | **device-local** | Opaque JSON whose meaning depends on the key. Device-local at this layer so a blanket sync of the settings table cannot happen by accident; per-key rules decide what actually travels. |
 | `tags` | `color` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `tags` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
+| `tags` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `tags` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `tags` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `tags` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `venue_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
+| `venue_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `permission` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venue_provenance` | `venue_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `venues` | `address1` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** |  |
 | `venues` | `address2` | `pd:Street` | Contact → PhysicalAddress → Street | third party | **device-local** |  |
 | `venues` | `city` | `pd:City` | Contact → PhysicalAddress → City | third party | **device-local** |  |
@@ -337,7 +384,9 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `venues` | `contact2_name` | `pd:Name` | Identifying → Name | third party | **device-local** |  |
 | `venues` | `contact2_phone` | `pd:TelephoneNumber` | Contact → TelephoneNumber | third party | **device-local** |  |
 | `venues` | `country` | `pd:Country` | Location → Country | third party | **device-local** |  |
+| `venues` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
 | `venues` | `event_name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venues` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `venues` | `generic_schedule` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `venues` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `venues` | `name` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | A hall or grange — an organisation, not a person. Shareable so a program keeps a readable venue after a transfer. |
@@ -348,13 +397,14 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `venues` | `sponsor` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | An organisation underwriting a series — part of the venue's public identity (maintainer ruling). Free text, so it can hold a personal name, but unlike a custom field its meaning is fixed and known. |
 | `venues` | `state_prov` | `pd:Region` | Contact → PhysicalAddress → Region | third party | **device-local** |  |
 | `venues` | `time` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `venues` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `venues` | `website` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable | The venue's own public page. |
 
 ### Settings keys
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**47 settings keys**: 40 shareable, 7 device-scoped. 2 personal data by category.
+**57 settings keys**: 49 shareable, 8 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -363,11 +413,14 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |
 | `aggressive_beats_update` | `dpv:NonPersonalData` | app user | shareable |  |
 | `app_locale` | `dpv:NonPersonalData` | app user | shareable |  |
+| `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | shareable |  |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `collection_tile_visible_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `confirm_before_delete` | `dpv:NonPersonalData` | app user | shareable |  |
 | `custom_dialects` | `dpv:NonPersonalData` | app user | shareable |  |
+| `custom_fields.sharing.disclosed` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `custom_themes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format` | `dpv:NonPersonalData` | app user | shareable |  |
 | `date_format_custom` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -382,13 +435,20 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `default_move_param_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_program_band` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often their own band. Personal data, shareable for the same reason as programs.band. |
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |
+| `default_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
 | `last_backup_at` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `last_used_collection_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_collection_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `last_used_program_sort_direction` | `dpv:NonPersonalData` | app user | shareable |  |
+| `matrix_exact_beat_collision` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_canonical_view` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_stage_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `perform_text_scale` | `dpv:NonPersonalData` | app user | device-scoped | Tuned to the screen it was set on. A scale chosen for a phone held at arm's length is wrong on a laptop driving a projector. |
+| `program_matrix_columns` | `dpv:NonPersonalData` | app user | shareable |  |
 | `reduce_motion` | `dpv:NonPersonalData` | app user | shareable |  |
 | `require_performed_for_history` | `dpv:NonPersonalData` | app user | shareable |  |
 | `seed.initialCollection.completed` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
@@ -405,5 +465,16 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |
 | `walkthrough_snippets` | `dpv:NonPersonalData` | app user | shareable |  |
 | `window_frame` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+
+### Settings key prefixes
+
+Some settings-table keys are built at runtime from a per-entity suffix rather than declared as an exact key (`editor_draft:<id>`), so they cannot appear in the table above. Each prefix below classifies every key it matches; `classifySettingsKey` resolves the longest matching prefix.
+
+**2 settings key prefixes**: 2 device-scoped. 0 personal data by category.
+
+| Key prefix | Category | Subject | Egress | Why |
+| --- | --- | --- | --- | --- |
+| `editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient dance-editor autosave draft, keyed per dance (editor_draft:<id>). Unsaved user-authored choreography text that must never leave this device by any route, including a local backup file — see backup_service.dart. |
+| `program_editor_draft:` | `dpv:NonPersonalData` | app user | device-scoped | Transient program-editor autosave draft, keyed per program (program_editor_draft:<id>). Same rationale as editor_draft:. |
 
 <!-- END GENERATED: field-catalogue -->

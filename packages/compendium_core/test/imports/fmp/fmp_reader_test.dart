@@ -43,36 +43,32 @@ void main() {
   group('readFmp12 against a real file (local-only)', () {
     final fixture = File('test/imports/support/fmp_local/Charts.fmp12');
 
-    test(
-      'recovers Charts.fmp12 tables, columns and values',
-      () {
-        final db = readFmp12(fixture.readAsBytesSync());
+    test('recovers Charts.fmp12 tables, columns and values', () {
+      final db = readFmp12(fixture.readAsBytesSync());
 
-        expect(db.versionNum, 12);
-        expect(
-          db.tables.map((t) => t.name),
-          containsAll(<String>['US Population', 'Demo', 'Congress']),
-        );
+      expect(db.versionNum, 12);
+      expect(
+        db.tables.map((t) => t.name),
+        containsAll(<String>['US Population', 'Demo', 'Congress']),
+      );
 
-        final demo = db.tableNamed('Demo');
-        expect(demo, isNotNull);
-        expect(
-          demo!.columns.map((c) => c.name),
-          containsAll(<String>['SeriesX', 'SeriesY1', 'ChartTitle']),
-        );
+      final demo = db.tableNamed('Demo');
+      expect(demo, isNotNull);
+      expect(
+        demo!.columns.map((c) => c.name),
+        containsAll(<String>['SeriesX', 'SeriesY1', 'ChartTitle']),
+      );
 
-        final first = demo.records.first;
-        String? cell(String col) =>
-            first.valuesByColumnIndex[demo.columnIndexOf(col)];
-        // SeriesX/SeriesY1 are return-delimited multi-value chart fields.
-        expect(cell('SeriesX'), startsWith('Apple'));
-        expect(cell('SeriesX'), contains('Banana'));
-        expect(cell('ChartTitle'), contains('Pie Ingredients'));
+      final first = demo.records.first;
+      String? cell(String col) =>
+          first.valuesByColumnIndex[demo.columnIndexOf(col)];
+      // SeriesX/SeriesY1 are return-delimited multi-value chart fields.
+      expect(cell('SeriesX'), startsWith('Apple'));
+      expect(cell('SeriesX'), contains('Banana'));
+      expect(cell('ChartTitle'), contains('Pie Ingredients'));
 
-        // A data-heavy table round-trips a substantial number of records.
-        expect(db.tableNamed('Congress')!.records, isNotEmpty);
-      },
-      skip: fixture.existsSync() ? false : 'no local fmp fixture present',
-    );
+      // A data-heavy table round-trips a substantial number of records.
+      expect(db.tableNamed('Congress')!.records, isNotEmpty);
+    }, skip: fixture.existsSync() ? false : 'no local fmp fixture present');
   });
 }

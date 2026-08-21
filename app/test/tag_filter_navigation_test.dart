@@ -133,7 +133,9 @@ void main() {
     'the Collection to that tag',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
       await repos.dances.create(
         _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),
@@ -168,7 +170,9 @@ void main() {
     'wide: tapping a tag in the embedded detail pane filters the list pane',
     (tester) async {
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't2', name: 'energetic'));
       await repos.dances.create(
         _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),
@@ -196,6 +200,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
     await repos.dances.create(
       _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),
@@ -220,6 +225,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'unique'));
     await repos.dances.create(
       _dance(id: 'd1', title: 'Lonely Dance', tagIds: const ['t1']),
@@ -240,6 +246,7 @@ void main() {
     (tester) async {
       const trickyName = "O'Neil & <b> 50% \"quote\"";
       final repos = openTestRepositories();
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: trickyName));
       await repos.dances.create(
         _dance(id: 'd1', title: 'Tagged Dance', tagIds: const ['t1']),
@@ -267,6 +274,7 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'smooth'));
     await repos.dances.create(
       _dance(id: 'd1', title: 'Smooth One', tagIds: const ['t1']),

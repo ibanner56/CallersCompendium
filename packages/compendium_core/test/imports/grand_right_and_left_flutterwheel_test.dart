@@ -124,7 +124,22 @@ void main() {
         ['prevNeighbors', 'right'],
         ['neighbors', 'left'],
       ],
-      'Grand right and left (P1R;P2L;P3R;P4L)': [], // mixer series → custom
+      // Mixer partner series: P0–P5 now map (taxonomy v24, issue #732 PR E).
+      // Falsify by removing p2/p3/p4 from tcbPassPeople.
+      'Grand right and left (P1R;P2L;P3R;P4L)': [
+        ['partners', 'right'],
+        ['nextPartners', 'left'],
+        ['thirdPartners', 'right'],
+        ['fourthPartners', 'left'],
+      ],
+      'Grand right and left (P0L;P1R;P2L;P3R;P4L;P5R)': [
+        ['prevPartners', 'left'],
+        ['partners', 'right'],
+        ['nextPartners', 'left'],
+        ['thirdPartners', 'right'],
+        ['fourthPartners', 'left'],
+        ['fifthPartners', 'right'],
+      ],
       'Grand right and left (N1R;N2L;N3R;N4L)': [
         ['neighbors', 'right'],
         ['nextNeighbors', 'left'],
@@ -158,6 +173,24 @@ void main() {
       expect(figures.every((f) => f.beats == 0), isTrue);
       expect(figures.every((f) => f.params.containsKey('beats')), isFalse);
     });
+
+    // Fixtures are not automatically validated against the taxonomy (AGENTS.md):
+    // an invalid param renders literally and the test still passes, so drift
+    // goes undetected. Validating explicitly here prevents that silent failure.
+    test('P-series decoded figures pass taxonomy validation', () {
+      final figures = _line(
+        'Grand right and left (P0L;P1R;P2L;P3R;P4L;P5R)',
+        beats: 12,
+      );
+      expect(figures.length, 6);
+      for (final f in figures) {
+        expect(
+          contraTaxonomy.validateFigure(f),
+          isEmpty,
+          reason: 'figure ${f.params} failed taxonomy validation',
+        );
+      }
+    });
   });
 
   group('grand right and left declines (prefer-custom, never fabricate)', () {
@@ -167,8 +200,13 @@ void main() {
       'square corners are not the taxonomy first/second corners':
           'Grand right and left (PR;C3L;C2R;C1L)',
       'a corner code anywhere in the list': 'Grand right and left (C2R;C1L)',
-      'mixer partner series beyond the current partner':
-          'Grand right and left (P1R;P2L;P3R;P4L)',
+      // P6+ has no taxonomy token; the whole list stays custom.
+      // Falsify by adding p6→fifthPartners to tcbPassPeople.
+      'P6 in the pass list — beyond modelled depth':
+          'Grand right and left (P1R;P2L;P3R;P4L;P5R;P6L)',
+      // Negative P-codes have no taxonomy token; the whole list stays custom.
+      // Falsify by adding p-1→prevPartners to tcbPassPeople.
+      'negative P-code in the pass list': 'Grand right and left (P0L;P-1R)',
       'neighbors beyond the modelled depth':
           'Grand right and left (N9R;N8L;N7R;N6L)',
       'negative-index neighbors': 'Grand right and left (N1R;N0L;N-1R)',
@@ -328,7 +366,8 @@ void main() {
       // Square corners are deliberately absent from the map, so they degrade
       // the hey exactly as they degrade a grand right and left.
       expect(_line('Hey 1/2 (C1R;C2L)', beats: 16).single.isCustom, isTrue);
-      expect(_line('Hey 1/2 (P2R;P3L)', beats: 16).single.isCustom, isTrue);
+      // P6+ is absent from the map (beyond modelled depth) — same decline.
+      expect(_line('Hey 1/2 (P6R;P7L)', beats: 16).single.isCustom, isTrue);
     });
   });
 
@@ -360,7 +399,20 @@ void main() {
       ]);
       expect(figures.first.note?.toLowerCase(), contains('flutterwheel'));
       expect(figures.first.note?.toLowerCase(), contains('partner'));
-      expect(figures[1].note, isNull);
+      // The parent's shorthand name rides on the FIRST child only — it must
+      // never be duplicated onto the second.
+      expect(
+        figures[1].note?.toLowerCase() ?? '',
+        isNot(contains('flutterwheel')),
+      );
+      // Taxonomy v26 (#843): the star promenade's own annotations now survive.
+      // `(WR)` becomes the center note (canonical role token, so it renders
+      // under the active dialect) and the trailing prose qualifier — which this
+      // line previously dropped outright — is preserved verbatim beside it.
+      expect(
+        figures[1].note,
+        'role2s by the right in the center; hand-in-hand with partner',
+      );
     });
 
     final variants = <String, List<String>>{
@@ -463,13 +515,16 @@ void main() {
           ({List<String> lines, List<String> moves, int beats, String note})
         >{
           // 331 blocks (with the `… 4` and `[with …]` variants), dance #19238.
+          // #804: square_through is now in _balanceMergeMoves, so the
+          // preceding balance child folds into the square_through (balance:
+          // true, summed beats = 8). One structured figure, not two.
           'interrupted square through 2': (
             lines: [
               '(8) Interrupted square through 2:',
               '     (4) Partner balance (RH)',
               '     (4) Square through 2 (PR;N1L)',
             ],
-            moves: ['balance', 'square_through'],
+            moves: ['square_through'],
             beats: 8,
             note: 'Interrupted square through 2',
           ),
@@ -570,7 +625,13 @@ void main() {
           '     (8) Women allemande right 1',
         ]);
         expect(modified.map((f) => f.move), ['star_promenade', 'allemande']);
-        expect(modified.first.note, 'Modified revolving door');
+        // v26 (#843): the star promenade's `(WR)` center annotation and its
+        // `[with N1]` qualifier both survive now — the latter was silently
+        // dropped before — and combine ahead of the parent's shorthand name.
+        expect(
+          modified.first.note,
+          'role2s by the right in the center; with N1 — Modified revolving door',
+        );
         expect(_totalBeats(modified), 10);
 
         final bare = await _figures([

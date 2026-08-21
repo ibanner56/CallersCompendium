@@ -2,19 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/callersbox_online.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/contradb_online.dart';
+import '../data/dance_reimport.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
+import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'import_review_screen.dart';
 import 'online_import_variation_dialog.dart';
+import 'published_collection_navigation.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
@@ -91,10 +95,6 @@ class _CollectionShellState extends State<CollectionShell> {
   /// state.
   _DetailMode _detailMode = _DetailMode.none;
 
-  /// Incrementing this value triggers [DanceListScreen] to reload via its
-  /// [refreshTrigger] parameter.
-  final _listRefresh = ValueNotifier<int>(0);
-
   /// The import sources, resolved once and cached for the lifetime of this
   /// state. [defaultImportSources] builds fresh [ImportSource] instances on
   /// every call and [ImportSource] uses identity equality, so rebuilding the
@@ -119,6 +119,20 @@ class _CollectionShellState extends State<CollectionShell> {
   /// per-pane [ScaffoldMessenger]s and would find no Scaffold to attach to).
   final _detailMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+  /// Identifies the single logical [DanceListScreen] across both
+  /// [LayoutBuilder] branches (the narrow branch vs `_buildSplitPane`).
+  ///
+  /// Those branches place the list at structurally different tree positions
+  /// (bare vs nested in `Row > SizedBox > ScaffoldMessenger`), so without a
+  /// stable key Flutter treats a breakpoint crossing (e.g. a tablet rotation)
+  /// as removing one Element and inserting a different one — discarding the
+  /// list's State (its sort choice, search text, facets, and scroll position)
+  /// even though it is logically the same screen (issue #895). A [GlobalKey]
+  /// on the same widget in both branches makes Flutter *move* the existing
+  /// Element (and its State) to the new position instead, mirroring
+  /// [_detailMessengerKey] above.
+  final _listKey = GlobalKey();
+
   /// The currently previewed online dance in the detail pane, plus its
   /// loading/error state. Meaningful only while [_detailMode] is
   /// [_DetailMode.onlinePreview].
@@ -130,12 +144,9 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
   /// preview Import button cannot commit the same plan twice.
   bool _importing = false;
-
-  @override
-  void dispose() {
-    _listRefresh.dispose();
-    super.dispose();
-  }
+  String? _reimportTargetId;
+  DateTime? _reimportTargetUpdatedAt;
+  DanceDetailData? _reimportPreview;
 
   void _onSelectDance(String danceId) {
     setState(() {
@@ -145,6 +156,14 @@ class _CollectionShellState extends State<CollectionShell> {
       _clearOnlinePreview();
     });
   }
+
+  /// Called after a successful new-dance save. Selects the new dance so the
+  /// detail pane shows it immediately. Delegates to [_onSelectDance]: creating
+  /// a dance is a local selection and carries the same contract — exits import
+  /// mode, clears any online preview. It broadcasts nothing and reloads
+  /// nothing: both panes read the database directly, so the save reaches them
+  /// on its own.
+  void _onNewDance(String danceId) => _onSelectDance(danceId);
 
   /// Wide layout: swap the detail pane over to the embedded import view.
   void _onImport() {
@@ -174,11 +193,125 @@ class _CollectionShellState extends State<CollectionShell> {
     );
   }
 
+  void _pushPublishedCollectionCatalog() {
+    pushPublishedCollectionCatalog(context);
+  }
+
   /// Resets the online-preview sub-state. Call when leaving the online preview.
   void _clearOnlinePreview() {
     _onlinePreview = null;
     _onlinePreviewLoading = false;
     _onlinePreviewError = null;
+    _reimportTargetId = null;
+    _reimportTargetUpdatedAt = null;
+    _reimportPreview = null;
+  }
+
+  Future<void> _beginReimport(DanceDetailData detail) async {
+    final messenger = _detailMessengerKey.currentState;
+    try {
+      final preview = await selectReimportDance(
+        context,
+        target: detail.dance,
+        callersBox: _callersBox,
+        contraDb: _contraDb,
+        picker: widget.importPicker ?? pickImportFile,
+      );
+      if (!mounted || preview == null) return;
+      setState(() {
+        _reimportTargetId = detail.dance.id;
+        _reimportTargetUpdatedAt = detail.dance.updatedAt;
+        _reimportPreview = preview;
+        _onlinePreview = null;
+        _onlinePreviewLoading = false;
+        _onlinePreviewError = null;
+        _detailMode = _DetailMode.onlinePreview;
+      });
+    } on DanceReimportJsonException catch (error) {
+      logCaughtErrorTypeOnly(
+        error,
+        StackTrace.current,
+        source: 'collection_shell._beginReimport',
+      );
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(
+            error.programBearing
+                ? AppLocalizations.of(context).danceReimportProgramArchive
+                : AppLocalizations.of(context).danceReimportInvalidJson,
+          ),
+        ),
+      );
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._beginReimport',
+      );
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Text(AppLocalizations.of(context).danceReimportSourceFailed),
+        ),
+      );
+    }
+  }
+
+  Future<void> _commitReimport(DanceDetailData preview) async {
+    final target = _reimportTargetId;
+    final expectedUpdatedAt = _reimportTargetUpdatedAt;
+    if (_importing || target == null || expectedUpdatedAt == null) return;
+    _importing = true;
+    try {
+      final result = await replaceDanceChoreography(
+        RepositoriesScope.of(context),
+        targetDanceId: target,
+        incoming: preview.dance,
+        expectedUpdatedAt: expectedUpdatedAt,
+      );
+      if (!mounted) return;
+      if (result == DanceReimportResult.replaced) {
+        setState(() {
+          _selectedDanceId = target;
+          _detailMode = _DetailMode.none;
+          _onlinePreview = null;
+          _onlinePreviewLoading = false;
+          _onlinePreviewError = null;
+          _reimportTargetId = null;
+          _reimportTargetUpdatedAt = null;
+          _reimportPreview = null;
+        });
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      } else {
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              result == DanceReimportResult.targetMissing
+                  ? AppLocalizations.of(context).danceReimportTargetMissing
+                  : AppLocalizations.of(context).danceReimportTargetChanged,
+            ),
+          ),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._commitReimport',
+      );
+      if (mounted) {
+        _detailMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).danceReimportSourceFailed,
+            ),
+          ),
+        );
+      }
+    } finally {
+      _importing = false;
+    }
   }
 
   /// Fetches the tapped online result's full record and shows it in the detail
@@ -204,13 +337,23 @@ class _CollectionShellState extends State<CollectionShell> {
         _onlinePreview = preview;
         _onlinePreviewLoading = false;
       });
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._onSelectOnlineDance',
+      );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlinePreviewError = importErrorMessage(l10n, error);
         _onlinePreviewLoading = false;
       });
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._onSelectOnlineDance',
+      );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlinePreviewError = l10n.onlineLoadError(result.source.label);
@@ -262,12 +405,33 @@ class _CollectionShellState extends State<CollectionShell> {
           preview.plan,
           ambiguousResolution: resolution,
         );
+      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
+        if (!mounted) return;
+        final existingId = result.danceId;
+        // needsConfirmationIdentical requires a candidate id — a null here is a
+        // service bug. Assert in debug; silently cancel in release.
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry an existing dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return; // user cancelled
+        result = await service.import(
+          repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
       }
       if (!mounted) return;
-      if (result.kind == OnlineImportKind.created) {
-        CollectionRefreshScope.bump(context);
-        _listRefresh.value++;
-      }
       final danceId = result.danceId;
       // Land on the imported dance ONLY for a single-dance import. This online
       // path is single-dance by construction; the explicit count guard ensures
@@ -286,12 +450,22 @@ class _CollectionShellState extends State<CollectionShell> {
           content: Text(onlineImportMessage(l10n, result)),
         ),
       );
-    } on UrlFetchException catch (error) {
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_shell._importOnline',
+      );
       if (!mounted) return;
       messenger?.showSnackBar(
         SnackBar(content: Text(importErrorMessage(l10n, error))),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_shell._importOnline',
+      );
       if (!mounted) return;
       messenger?.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
     } finally {
@@ -300,22 +474,24 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   /// Called by the embedded [DanceDetailScreen] after a successful soft-delete.
-  /// Clears the selection and refreshes the list so the deleted dance disappears.
+  /// Clears the selection; the list removes the dance from its own stream.
   void _onDetailDeleted() {
-    _listRefresh.value++;
     setState(() => _selectedDanceId = null);
   }
 
   /// Called by the embedded [DanceDetailScreen] when the Undo snackbar restores
-  /// a dance.  Refreshes the list so the dance reappears; keeps the selection.
-  void _onDetailRestored() {
-    _listRefresh.value++;
-  }
+  /// a dance.
+  ///
+  /// Now a no-op, and deliberately kept rather than removed from
+  /// [DanceDetailScreen]'s contract: the restore is a database write, so the
+  /// list's stream reinstates the row without being told. The callback stays
+  /// because the detail screen has no other way to say "I restored something"
+  /// and a future consumer may need to know.
+  void _onDetailRestored() {}
 
   /// Called by the embedded [DanceDetailScreen] after duplication.
-  /// Refreshes the list (so the copy appears) and selects the new id.
+  /// Selects the new id; the copy reaches the list through its own stream.
   void _onNavigateTo(String danceId) {
-    _listRefresh.value++;
     setState(() {
       _selectedDanceId = danceId;
       _detailMode = _DetailMode.none;
@@ -336,7 +512,9 @@ class _CollectionShellState extends State<CollectionShell> {
         // onSelectOnlineDance is left null), sharing the online service so the
         // same seam is used in tests.
         return DanceListScreen(
+          key: _listKey,
           onImport: _pushImportRoute,
+          onPublishedCollections: _pushPublishedCollectionCatalog,
           callersBoxOnline: _callersBox,
           contraDbOnline: _contraDb,
         );
@@ -355,10 +533,12 @@ class _CollectionShellState extends State<CollectionShell> {
           width: CollectionShell.listPaneWidth,
           child: ScaffoldMessenger(
             child: DanceListScreen(
+              key: _listKey,
               onSelectDance: _onSelectDance,
+              onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,
-              refreshTrigger: _listRefresh,
               onImport: _onImport,
+              onPublishedCollections: _pushPublishedCollectionCatalog,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,
               callersBoxOnline: _callersBox,
@@ -410,6 +590,14 @@ class _CollectionShellState extends State<CollectionShell> {
             );
           }
           final preview = _onlinePreview;
+          final reimportPreview = _reimportPreview;
+          if (reimportPreview != null) {
+            return DanceDetailScreen.preview(
+              key: ValueKey('reimport-preview-${_reimportTargetId!}'),
+              data: reimportPreview,
+              onImport: () => _commitReimport(reimportPreview),
+            );
+          }
           if (preview != null) {
             return DanceDetailScreen.preview(
               key: ValueKey('online-preview-${preview.result.id}'),
@@ -436,13 +624,18 @@ class _CollectionShellState extends State<CollectionShell> {
     final selectedId = _selectedDanceId;
     if (selectedId != null) {
       return DanceDetailScreen(
-        // Keyed on the dance id so the screen fully resets when the
-        // selection changes (fresh FutureBuilder, clean _canonicalView).
+        // Keyed on the dance id so the pane fully resets when the selection
+        // changes — a fresh subscription, and a clean canonical/dialect
+        // toggle. Note the key changes only with the *selection*: an edit to
+        // the dance already shown does not re-create this pane, so nothing
+        // here carries that edit into it. What does is the pane's own watch on
+        // the database (#768); this key is why it needs one.
         key: ValueKey('detail-$selectedId'),
         danceId: selectedId,
         onDeleted: _onDetailDeleted,
         onRestored: _onDetailRestored,
         onNavigateTo: _onNavigateTo,
+        onReimport: _beginReimport,
       );
     }
     return const _EmptyDetailPane();

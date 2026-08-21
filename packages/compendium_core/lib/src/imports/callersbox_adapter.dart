@@ -14,6 +14,7 @@ import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
+import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 
 /// A [SourceAdapter] that imports dances from **The Caller's Box** (TCB)
 /// per-dance JSON, as served by
@@ -205,6 +206,7 @@ class CallersBoxAdapter implements SourceAdapter {
 
     final issues = <ImportIssue>[];
     final formation = _parseFormation(dance, issues);
+    final mixer = _parseMixer(dance, formation);
     final progression = _parseProgression(dance['Progression'], issues);
     final phraseStructure = _parsePhraseStructure(
       dance['PhraseStructure'],
@@ -236,6 +238,7 @@ class CallersBoxAdapter implements SourceAdapter {
         id: 'callersbox-import',
         title: effectiveTitle,
         formation: formation,
+        mixer: mixer,
         progression: progression,
         phraseStructure: phraseStructure,
         figures: figures,
@@ -551,6 +554,10 @@ class CallersBoxAdapter implements SourceAdapter {
     // uses, which is why it carries no `paramBeats`. (v12: `star_through` was
     // removed from this set — it now mirrors california_twirl with no balance.)
     'box_circulate',
+    // #804: ContraDB folds a preceding balance into square_through as
+    // `balance: true`; TCB writes it as a separate figure. Matching ContraDB's
+    // shape so both sources produce the same structured figure.
+    'square_through',
   };
 
   /// Ocean/wave moves a TRAILING balance-WAVE line folds into (#577). TCB writes
@@ -578,9 +585,9 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Folds figures that The Caller's Box writes as separate lines into a single
   /// structured move, flipping PR3a's neutral cross-line values to real ones:
   ///  - a balance LINE immediately preceding a swing / petronella /
-  ///    rory_o_more / box_the_gnat / swat_the_flea folds into that move (swing →
-  ///    `prefix: 'balance'`; the others → `balance: true`, upgrading rory's
-  ///    neutral `false`);
+  ///    rory_o_more / box_the_gnat / swat_the_flea / box_circulate /
+  ///    square_through folds into that move (swing → `prefix: 'balance'`;
+  ///    the others → `balance: true`, upgrading rory's neutral `false`);
   ///  - a bend-the-line LINE immediately following a structured down/up the hall
   ///    folds in as `ender: 'bendTheLine'` (upgrading the neutral `'none'`).
   ///  - a balance-WAVE LINE immediately following a `pass_the_ocean` /
@@ -710,22 +717,43 @@ class CallersBoxAdapter implements SourceAdapter {
   };
 
   /// A balance-WAVE line: a custom figure whose scrubbed text leads with
-  /// "balance" AND names a wave (`Balance wave of four`, `Balance the wave`,
-  /// `Balance long wave`). This is deliberately NARROWER than [_isBalanceLine]:
-  /// a bare dancer balance (`Partner balance`, `Neighbor balance`) must NOT fold
-  /// into a preceding ocean/wave, because it belongs to the FOLLOWING move
-  /// (e.g. a swing) via Fold 1. Structured `balance` / `balance_the_ring` moves
-  /// are excluded too — the balance-wave forms fall through to custom. A line
-  /// naming an unmodeled formation ([_unmodeledWaveQualifiers]) is excluded as
-  /// well, so the fold and the promotion agree about exactly which wordings
-  /// they are willing to represent.
+  /// "balance" — or with a known dancer-set prefix followed by "balance"
+  /// (`Men balance long wave`, `role1s balance long wave`) — AND names a wave
+  /// (`Balance wave of four`, `Balance the wave`, `Balance long wave`). This is
+  /// deliberately NARROWER than [_isBalanceLine]: a bare dancer balance
+  /// (`Partner balance`, `Neighbor balance`) must NOT fold into a preceding
+  /// ocean/wave, because it belongs to the FOLLOWING move (e.g. a swing) via
+  /// Fold 1. Structured `balance` / `balance_the_ring` moves are excluded too —
+  /// the balance-wave forms fall through to custom. A line naming an unmodeled
+  /// formation ([_unmodeledWaveQualifiers]) is excluded as well, so the fold
+  /// and the promotion agree about exactly which wordings they are willing to
+  /// represent.
   static bool _isBalanceWaveLine(Figure f) {
     if (!f.isCustom) return false;
     final words = _figureWords(f).map(_stripEdgePunctuation).toList();
-    if (words.isEmpty || words.first != 'balance') return false;
+    if (words.isEmpty) return false;
+    // Accept an optional leading dancer-set word (e.g. "role1s balance long
+    // wave in center"); the scrubber already canonicalized "Men" → "role1s".
+    final balanceIdx = _tcbDancerPrefixes.contains(words.first) ? 1 : 0;
+    if (words.length <= balanceIdx || words[balanceIdx] != 'balance') {
+      return false;
+    }
     if (words.any(_unmodeledWaveQualifiers.contains)) return false;
     return words.any((w) => w == 'wave' || w == 'waves');
   }
+
+  /// The dancer-set prefix of a balance-wave line (after text scrubbing), or
+  /// `null` when the line is bare (`Balance long wave …`).
+  static String? _balanceWaveWho(Figure f) {
+    final words = _figureWords(f).map(_stripEdgePunctuation).toList();
+    if (words.isEmpty) return null;
+    return _tcbDancerPrefixes.contains(words.first) ? words.first : null;
+  }
+
+  /// Dancer-set words that [scrubFigureText] produces for role/couple prefixes
+  /// in TCB figure lines (`Men` → `role1s`, `Women` → `role2s`, `Ones` →
+  /// `ones`, `Twos` → `twos`).
+  static const _tcbDancerPrefixes = {'role1s', 'role2s', 'ones', 'twos'};
 
   /// A bend-the-line line: a custom figure whose scrubbed text is "bend the
   /// line" (or the bare "bend" / "bend line" shorthands). Bend never recognises
@@ -739,10 +767,12 @@ class CallersBoxAdapter implements SourceAdapter {
         (words.length == 3 && words[1] == 'the' && words[2] == 'line');
   }
 
-  /// A "turn as couples" line: a custom figure whose scrubbed text ENDS with
+  /// A "turn as couples" line: a standalone figure whose scrubbed text ENDS with
   /// "turn as couples" (optionally led by a dancer set, e.g. "neighbor turn as
-  /// couples"). turn_as_couples has no structured move, so it is always custom.
+  /// couples"). A structured turn_as_couples is also eligible for the hall
+  /// ender fold; other figures are never claimed here.
   static bool _isTurnAsCouplesLine(Figure f) {
+    if (f.move == 'turn_as_couples') return true;
     if (!f.isCustom) return false;
     final w = _figureWords(f);
     final n = w.length;
@@ -773,6 +803,13 @@ class CallersBoxAdapter implements SourceAdapter {
     }
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
+    // v25 (#870): thread the balance line's `hand` into the merged figure when
+    // the balance states one and the move accepts a `hand` param. A balance
+    // with `(RH)` folded into `box_the_gnat` sets `hand: right`; with `(LH)`
+    // it sets `hand: left`. The convergence-point normalisation
+    // (DanceRepository._normaliseMoveIds) then re-routes the move id if the
+    // hand contradicts the alias pin.
+    final balanceHand = balance.params['hand'];
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];
       if (prefix != null && prefix != 'none') return null;
@@ -782,8 +819,23 @@ class CallersBoxAdapter implements SourceAdapter {
       );
     }
     if (move.params['balance'] == true) return null;
+    // v25 (#870): thread the balance's hand only when the resolved merge
+    // target actually declares a `hand` param. Querying the taxonomy (one
+    // source of truth) rather than maintaining a hardcoded move list that
+    // would drift every time a move gains or loses a hand slot.
+    final mergeTargetDef = contraTaxonomy.resolve(move.move);
+    final targetAcceptsHand =
+        mergeTargetDef != null && mergeTargetDef.params.containsKey('hand');
     return move.copyWith(
-      params: {...move.params, 'balance': true, 'beats': ?beats},
+      params: {
+        ...move.params,
+        'balance': true,
+        'beats': ?beats,
+        if (balanceHand != null &&
+            balanceHand != 'unspecified' &&
+            targetAcceptsHand)
+          'hand': balanceHand,
+      },
       note: note,
     );
   }
@@ -791,10 +843,11 @@ class CallersBoxAdapter implements SourceAdapter {
   /// Returns [wave] with the TRAILING [balance] wave line folded in as
   /// `balance: true` and the summed beats (#577), or `null` when [wave] already
   /// carries the balance (guarding against a double-fold of an ocean/wave figure
-  /// that was already balanced upstream). [wave] is a confirmed ocean/wave move
-  /// ([_isOceanWaveMove]) and [balance] a confirmed balance-wave line
-  /// ([_isBalanceWaveLine]); no `who` guard is needed because a balance-wave
-  /// names a formation, not dancers.
+  /// that was already balanced upstream) or when the balance line names a dancer
+  /// set that DISAGREES with the wave's `who` — folding in that case would
+  /// silently assert the wrong choreography (prefer-custom). [wave] is a
+  /// confirmed ocean/wave move ([_isOceanWaveMove]) and [balance] a confirmed
+  /// balance-wave line ([_isBalanceWaveLine]).
   ///
   /// The balance line often states hands the forming line did not
   /// (`Pass the ocean` / `(4) Balance wave of four (NR,WL)`), so any param the
@@ -805,6 +858,20 @@ class CallersBoxAdapter implements SourceAdapter {
   /// [_compatibleFormParams]); an existing value is never overwritten.
   static Figure? _foldTrailingBalanceIntoWave(Figure wave, Figure balance) {
     if (wave.params['balance'] == true) return null;
+    // Dancer-prefix mismatch guard (#872): if the balance line names a specific
+    // dancer set (e.g. "role1s balance long wave") and the wave's effective
+    // `who` names a DIFFERENT set, they describe different choreography —
+    // refuse the fold and leave the custom in place. Effective who: the figure's
+    // explicit param first, then the taxonomy default (e.g. `form_a_long_wave`
+    // defaults to `role2s`). A move with no `who` param at all (e.g.
+    // `pass_the_ocean`) yields null and the guard short-circuits.
+    final balanceWho = _balanceWaveWho(balance);
+    final waveWho =
+        wave.params['who'] ??
+        contraTaxonomy.resolve(wave.move)?.params['who']?.defaultValue;
+    if (balanceWho != null && waveWho != null && balanceWho != waveWho) {
+      return null;
+    }
     final beats = _sumBeats(wave, balance);
     final decoded = _balanceWaveAsFormMove(balance);
     final extra = decoded == null
@@ -890,11 +957,12 @@ class CallersBoxAdapter implements SourceAdapter {
   /// TCB people codes that name a ROLE/COUPLE pair — the dancers in the CENTRE
   /// of a short wave (`M`/`W` roles, `1`/`2` the ones/twos). Everything ELSE in
   /// [tcbPassPeople] names a pair RELATIONSHIP (the wave's sides): `N`,
-  /// `N0`–`N4`, `P`/`P1`, `S`/`S1`/`S2`. TCB uses one people-code notation
-  /// across heys, grand-right-and-lefts and wave annotations, so this reuses
-  /// that single map rather than duplicating it — and a code the map omits
-  /// (square corners, mixer partner series, phantoms, trail buddies, …) keeps
-  /// the line custom, exactly as it does everywhere else.
+  /// `N0`–`N4`, `P`/`P1`, `P0`/`P2`–`P5`, `S`/`S1`/`S2`. TCB uses one
+  /// people-code notation across heys, grand-right-and-lefts and wave
+  /// annotations, so this reuses that single map rather than duplicating it —
+  /// and a code the map omits (square corners, out-of-range partner/neighbor/
+  /// shadow codes, phantoms, trail buddies, …) keeps the line custom, exactly
+  /// as it does everywhere else.
   static const Map<String, String> _waveRoleCodes = {
     'm': 'role1s',
     'w': 'role2s',
@@ -1141,6 +1209,8 @@ class CallersBoxAdapter implements SourceAdapter {
       shape = FormationShape.grid;
     } else if (lower.contains('circle')) {
       shape = FormationShape.circleMixer;
+    } else if (lower.contains('quadruplet')) {
+      shape = FormationShape.quadruplet;
     } else if (lower.contains('longways')) {
       shape = FormationShape.longways;
     }
@@ -1158,6 +1228,44 @@ class CallersBoxAdapter implements SourceAdapter {
       return Formation(FormationShape.other, detail: detail);
     }
     return Formation(shape, detail: detail);
+  }
+
+  /// Whether a Caller's Box record is a **mixer** (dancers change partners each
+  /// time through), set when EITHER the source's `Mixer?` field reads `"Yes"`
+  /// OR the mapped [FormationShape] is [FormationShape.circleMixer] or
+  /// [FormationShape.scatterMixer].
+  ///
+  /// The formation-based inference exists because the source omits `Mixer?` on
+  /// some dances whose formation name already implies it: over the 24,107-file
+  /// mirror, 21 Circle Mixer and 18 Scatter Mixer dances have a blank `Mixer?`
+  /// despite the formation — a data-entry omission we correct on import.
+  ///
+  /// [FormationShape.sicilianCircle] is DELIBERATELY excluded from the
+  /// inference. A Sicilian Circle is a circle formation but usually NOT a mixer:
+  /// 589 of the corpus's Sicilian Circles are correctly not mixers, so inferring
+  /// mixer from that shape would mislabel them wholesale — the exact opposite
+  /// error the Circle/Scatter inference fixes. A Sicilian Circle that *is* a
+  /// mixer still gets flagged, but via its explicit `Mixer? == "Yes"`, not the
+  /// formation.
+  ///
+  /// The `Mixer?` truthiness test is exact: the corpus contains only `""`
+  /// (19,686 records) and `"Yes"` (830) — no `"1"`, no `"true"`. Input is
+  /// trimmed and compared case-insensitively for robustness, but the vocabulary
+  /// is not widened beyond what the source actually uses.
+  bool _parseMixer(Map<String, Object?> dance, Formation formation) {
+    final flag = _asString(dance['Mixer?'])?.trim().toLowerCase();
+    if (flag == 'yes') return true;
+    // NOTE (issue #732): this inference is intentionally scoped to The Caller's
+    // Box and is NOT applied by the ContraDB or Caller's Companion adapters.
+    // ContraDB has no first-class mixer category to read. Caller's Companion may
+    // — Chris builds his collection in CC and exports to The Caller's Box, so
+    // his data probably aligns, but "mixer" may be a custom field of his rather
+    // than a native CC concept, and we have not confirmed which. Rather than
+    // guess a mapping for a source we have not verified, those adapters leave
+    // `mixer` at its `false` default. This was considered and declined, not
+    // overlooked; revisit if an explicit request for those sources arrives.
+    return formation.shape == FormationShape.circleMixer ||
+        formation.shape == FormationShape.scatterMixer;
   }
 
   /// Resolves Becket rotation. The CW/CCW indicator lives in the separate

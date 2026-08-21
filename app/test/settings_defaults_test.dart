@@ -9,8 +9,13 @@ import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_controller.dart';
+import 'package:compendium_app/src/data/shorthand_mappings_scope.dart';
+import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.dart';
+import 'package:compendium_app/src/data/walkthrough_snippet_library_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
+import 'package:compendium_app/src/search/program_sort.dart';
 
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
@@ -31,10 +36,18 @@ Future<void> _pumpDefaults(
   final aggressiveBeatsUpdate = ValueNotifier<bool>(
     await repos.settings.get(kAggressiveBeatsUpdateKey) == true,
   );
+  final shorthandMappings = ShorthandMappingsController(repos.settings);
+  await shorthandMappings.load();
+  final walkthroughSnippets = WalkthroughSnippetLibraryController(
+    repos.settings,
+  );
+  await walkthroughSnippets.load();
   addTearDown(dialect.dispose);
   addTearDown(theme.dispose);
   addTearDown(customThemes.dispose);
   addTearDown(aggressiveBeatsUpdate.dispose);
+  addTearDown(shorthandMappings.dispose);
+  addTearDown(walkthroughSnippets.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -50,7 +63,13 @@ Future<void> _pumpDefaults(
               notifier: dialect,
               child: AggressiveBeatsUpdateScope(
                 notifier: aggressiveBeatsUpdate,
-                child: const SettingsScreen(),
+                child: ShorthandMappingsScope(
+                  controller: shorthandMappings,
+                  child: WalkthroughSnippetLibraryScope(
+                    controller: walkthroughSnippets,
+                    child: const SettingsScreen(),
+                  ),
+                ),
               ),
             ),
           ),
@@ -66,11 +85,31 @@ Future<void> _pumpDefaults(
 
 /// Scrolls the Defaults content list until [key] is visible. The
 /// Dance-authoring subsection sits below the fold on the test surface.
+///
+/// The settings screen on a wide surface (1200 px) shows two vertical
+/// [Scrollable]s (the sidebar and the content list) and several horizontal
+/// ones from text-field overflow controllers. We select the last vertical
+/// scrollable to scroll the content list, regardless of how many scrollables
+/// are in the tree, so adding a new section doesn't break this helper.
+///
+/// We exclude scrollables using [NeverScrollableScrollPhysics] rather than
+/// just taking the last match: the Dance-authoring subsection embeds a
+/// [ReorderableListView] (in `FigureListEditor`) with that physics, and once
+/// keys below it are scrolled to (#942), it becomes the actual last vertical
+/// scrollable in the tree — which cannot itself be scrolled and cannot reach
+/// keys past it.
 Future<void> _scrollTo(WidgetTester tester, Key key) async {
+  final verticals = find.byWidgetPredicate(
+    (w) =>
+        w is Scrollable &&
+        w.axisDirection == AxisDirection.down &&
+        w.physics is! NeverScrollableScrollPhysics,
+  );
   await tester.scrollUntilVisible(
     find.byKey(key),
     120,
-    scrollable: find.byType(Scrollable).last,
+    scrollable: verticals.last,
+    maxScrolls: 100,
   );
   await tester.pumpAndSettle();
 }
@@ -101,11 +140,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.title,
+      const SortDefaultSetting.concrete(CollectionSort.title),
     );
     expect(
       tester
@@ -129,11 +168,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.author,
+      const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
       await repos.settings.get(kDefaultCollectionSortKey),
@@ -175,11 +214,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.lastCalled,
+      const SortDefaultSetting.concrete(CollectionSort.lastCalled),
     );
   });
 
@@ -200,11 +239,11 @@ void main() {
 
     expect(
       tester
-          .widget<DropdownButton<CollectionSort>>(
+          .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
             find.byKey(const ValueKey('defaults-collection-sort')),
           )
           .value,
-      CollectionSort.author,
+      const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
       tester
@@ -213,6 +252,156 @@ void main() {
           )
           .value,
       isTrue,
+    );
+  });
+
+  group('Programs default sort (issue #895)', () {
+    testWidgets('shows Title (the historical default) when unset', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+
+      expect(
+        tester
+            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .value,
+        const SortDefaultSetting.concrete(ProgramSort.title),
+      );
+    });
+
+    testWidgets('changing it persists the concrete sort', (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+
+      await tester.tap(find.byKey(const ValueKey('defaults-program-sort')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Event date').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .value,
+        const SortDefaultSetting.concrete(ProgramSort.eventDate),
+      );
+      expect(
+        await repos.settings.get(kDefaultProgramSortKey),
+        ProgramSort.eventDate.name,
+      );
+    });
+
+    testWidgets('a saved default sort is reflected on reload', (tester) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultProgramSortKey,
+        ProgramSort.recentlyUpdated.name,
+      );
+
+      await _pumpDefaults(tester, repos);
+
+      expect(
+        tester
+            .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+              find.byKey(const ValueKey('defaults-program-sort')),
+            )
+            .value,
+        const SortDefaultSetting.concrete(ProgramSort.recentlyUpdated),
+      );
+    });
+  });
+
+  group('"Last used" default-sort option (issue #895)', () {
+    testWidgets(
+      'selecting Last used for Collection persists the sentinel, not an '
+      'enum name',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpDefaults(tester, repos);
+
+        await tester.tap(
+          find.byKey(const ValueKey('defaults-collection-sort')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Last used').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+                find.byKey(const ValueKey('defaults-collection-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(CollectionSort.title),
+        );
+        expect(
+          await repos.settings.get(kDefaultCollectionSortKey),
+          kLastUsedSortSentinel,
+        );
+      },
+    );
+
+    testWidgets(
+      'selecting Last used for Programs persists the sentinel, not an enum '
+      'name',
+      (tester) async {
+        final repos = openTestRepositories();
+        await _pumpDefaults(tester, repos);
+
+        await tester.tap(find.byKey(const ValueKey('defaults-program-sort')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Last used').last);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+                find.byKey(const ValueKey('defaults-program-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(ProgramSort.title),
+        );
+        expect(
+          await repos.settings.get(kDefaultProgramSortKey),
+          kLastUsedSortSentinel,
+        );
+      },
+    );
+
+    testWidgets(
+      'a saved "last_used" sentinel reflects as Last used on reload for '
+      'both lists',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(
+          kDefaultCollectionSortKey,
+          kLastUsedSortSentinel,
+        );
+        await repos.settings.set(kDefaultProgramSortKey, kLastUsedSortSentinel);
+
+        await _pumpDefaults(tester, repos);
+
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<CollectionSort>>>(
+                find.byKey(const ValueKey('defaults-collection-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(CollectionSort.title),
+        );
+        expect(
+          tester
+              .widget<DropdownButton<SortDefaultSetting<ProgramSort>>>(
+                find.byKey(const ValueKey('defaults-program-sort')),
+              )
+              .value,
+          const SortDefaultSetting.lastUsed(ProgramSort.title),
+        );
+      },
     );
   });
 
@@ -774,6 +963,50 @@ void main() {
       expect(stored.single.move, 'swing');
     });
   });
+
+  testWidgets(
+    'Dance-authoring defaults render in the documented order (#942)',
+    (tester) async {
+      // Regression guard for #942: two feature PRs (#705, #567) each inserted
+      // a new tile near the top of this subsection instead of at its
+      // documented position (docs/user/settings.md:264-287), splitting
+      // Free-text entry from Figure shorthands. This asserts the whole
+      // subsection's rendered vertical order, not just that one adjacency.
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      // Tall enough for every tile plus the two embedded editors to lay out
+      // without needing mid-test scrolling (precedent: the Move-defaults
+      // group already uses 1200x4500 at line 747).
+      await tester.binding.setSurfaceSize(const Size(1200, 5000));
+      await tester.pumpAndSettle();
+
+      const orderedKeys = [
+        ValueKey('defaults-free-text-entry'),
+        ValueKey('defaults-figure-shorthands'),
+        ValueKey('defaults-dance-form'),
+        ValueKey('defaults-dance-formation'),
+        ValueKey('defaults-dance-progression'),
+        ValueKey('defaults-dance-phrase'),
+        ValueKey('figure-add'), // Starting figures editor
+        ValueKey('move-defaults-add'), // Move defaults editor
+        ValueKey('defaults-aggressive-beats-update'),
+        ValueKey('defaults-walkthrough-snippets'),
+      ];
+
+      final tops = [
+        for (final key in orderedKeys) tester.getTopLeft(find.byKey(key)).dy,
+      ];
+      for (var i = 1; i < tops.length; i++) {
+        expect(
+          tops[i],
+          greaterThan(tops[i - 1]),
+          reason:
+              '${orderedKeys[i].value} should render below '
+              '${orderedKeys[i - 1].value}',
+        );
+      }
+    },
+  );
 
   group('Aggressive beats update toggle (#689)', () {
     const toggleKey = ValueKey('defaults-aggressive-beats-update');

@@ -1,4 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -399,6 +400,7 @@ void main() {
       }
 
       test('matches an existing choreographer (no new row created)', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'gene', name: 'Gene Hubert'),
         );
@@ -434,7 +436,174 @@ void main() {
         expect(session.records.single.authorResolutions.single.created, isTrue);
       });
 
+      /// Raw `existence_at` for a choreographer, bypassing the repository's
+      /// live-row filter so a tombstoned row is still readable.
+      Future<int?> existenceOf(String id) async {
+        final rows = await db
+            .customSelect(
+              "SELECT existence_at AS v FROM choreographers WHERE id = ?",
+              variables: [Variable.withString(id)],
+            )
+            .get();
+        return rows.single.data['v'] as int?;
+      }
+
+      test('adopts a tombstoned choreographer rather than wiring dances to a '
+          'phantom id', () async {
+        // Schema v25: `choreographers.name` is UNIQUE and a soft-deleted row
+        // still occupies its name, so importing that name adopts the tombstone
+        // and `upsert` returns the tombstone's id, not the minted one. Using
+        // the minted id would point `dance_authors` at a row that does not
+        // exist; the FK makes that a failed insert rather than silent
+        // corruption, but the import still breaks on an ordinary action.
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'ghost', name: 'Baby Caller'),
+        );
+        await choreographers.delete('ghost');
+        expect(await choreographers.listAll(), isEmpty);
+
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+
+        final danceId = session.insertedDanceIds.single;
+        expect(await authorNamesOf(danceId), ['Baby Caller']);
+
+        final resolution = session.records.single.authorResolutions.single;
+        expect(
+          resolution.choreographerId,
+          'ghost',
+          reason: 'the adopted row keeps its id; the minted one is discarded',
+        );
+
+        // Undo must not offer to hard-delete a record it did not create. The
+        // row predates this import — the user had merely deleted it — so
+        // erasing it on undo would destroy something still restorable.
+        expect(
+          session.createdChoreographerIds,
+          isEmpty,
+          reason: 'adopting an existing tombstone is not a creation',
+        );
+        expect(resolution.created, isFalse);
+        expect(session.revivedChoreographerIds, [
+          'ghost',
+        ], reason: 'undo needs to know the import resurrected this row');
+      });
+
+      test('undo re-tombstones a choreographer the import resurrected', () async {
+        // The other half of adoption, and the case that was missed: the upsert
+        // clears `deleted_at`, so importing a name a tombstone still held
+        // brings that author back to life. Undo used to leave it live — the
+        // author reappeared permanently after a rolled-back import — and the
+        // revival had stamped `existence_at` strictly past the user's deletion,
+        // so once a sync client exists the resurrection would outrank that
+        // deletion on every peer.
+        //
+        // Undo must return it to the state it was in (deleted), NOT erase it:
+        // the row predates the import and the user may still restore it.
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'ghost', name: 'Baby Caller'),
+        );
+        await choreographers.delete('ghost');
+
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          await choreographers.getById('ghost'),
+          isNotNull,
+          reason: 'the import revived it — that is the state undo must revert',
+        );
+        final revivedExistence = await existenceOf('ghost');
+
+        await pipeline.undo(session);
+
+        expect(
+          await choreographers.getById('ghost'),
+          isNull,
+          reason: 'a rolled-back import must not leave the author resurrected',
+        );
+        expect(await choreographers.listAll(), isEmpty);
+        // Tombstoned, not erased: the user can still restore what they deleted.
+        final rows = await db
+            .customSelect(
+              "SELECT deleted_at, existence_at FROM choreographers "
+              "WHERE id = 'ghost'",
+            )
+            .get();
+        expect(
+          rows,
+          hasLength(1),
+          reason: 'undo must not destroy a record that predates the import',
+        );
+        expect(rows.single.data['deleted_at'], isNotNull);
+        // The point of the fix, and the part `deleted_at` alone does not pin:
+        // the re-tombstone must OUTRANK the revival it reverts. §6.4 orders
+        // existence by `existence_at` and resolves a tie in favour of the
+        // tombstone — so a re-tombstone that merely tied would still lose to
+        // the revival on a peer, and a refactor that restored the original
+        // `deleted_at` with a raw UPDATE would pass every other assertion here
+        // while reinstating exactly the defect this test is named for.
+        expect(
+          rows.single.data['existence_at'] as int,
+          greaterThan(revivedExistence!),
+          reason: 'the re-tombstone must strictly outrank the revival',
+        );
+      });
+
+      test(
+        'undo leaves a resurrected author live if a surviving dance credits it',
+        () async {
+          // The referential guard still wins: re-tombstoning must not orphan a
+          // credit on a dance this import did not insert.
+          // ignore: unused_result
+          await choreographers.upsert(
+            Choreographer(id: 'ghost', name: 'Baby Caller'),
+          );
+          await choreographers.delete('ghost');
+
+          final adapter = FakeSourceAdapter([
+            record('fake-1', 'A Dance', authorNames: ['Baby Caller']),
+          ]);
+          final session = await pipeline.commit(
+            await pipeline.plan(adapter, const ImportRequest()),
+            now: now,
+            newId: nextId,
+          );
+          await dances.create(
+            Dance(
+              id: 'manual-1',
+              title: 'Manual',
+              authorIds: const ['ghost'],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+
+          await pipeline.undo(session);
+
+          expect(
+            await choreographers.getById('ghost'),
+            isNotNull,
+            reason: 'still credited by a surviving dance, so it stays live',
+          );
+        },
+      );
+
       test('matches case- and whitespace-insensitively', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'bob', name: 'Bob Isaacs'),
         );
@@ -507,6 +676,7 @@ void main() {
       });
 
       test('reuses the seeded Traditional row by name', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'traditional', name: 'Traditional'),
         );
@@ -530,6 +700,7 @@ void main() {
         () async {
           // The generic archive/JSON adapter ships canonical authorIds in the
           // draft and sets no authorNames; commit must NOT clear them.
+          // ignore: unused_result
           await choreographers.upsert(
             Choreographer(id: 'canon', name: 'Canonical Author'),
           );
@@ -588,6 +759,7 @@ void main() {
       });
 
       test('undo keeps a pre-existing matched choreographer', () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'gene', name: 'Gene Hubert'),
         );
@@ -650,6 +822,7 @@ void main() {
         countingDances,
         countingChoreographers,
       );
+      // ignore: unused_result
       await countingChoreographers.upsert(
         Choreographer(id: 'gene', name: 'Gene Hubert'),
       );

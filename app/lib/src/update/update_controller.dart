@@ -19,6 +19,7 @@ import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../app_metadata.dart';
+import '../diagnostics/error_log.dart';
 import 'artifact_downloader.dart';
 import 'artifact_handoff.dart';
 import 'artifact_verifier.dart';
@@ -234,7 +235,12 @@ class UpdateController extends ChangeNotifier {
       // write (CWE-59/377). The downloader's own `create(exclusive: true)`
       // guard is defense-in-depth on top of this.
       downloadDir = await dir.createTemp('cc_update_');
-    } on Object {
+    } on Object catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.startAssistedDownload.prepareDir',
+      );
       if (downloadDir != null) await _deleteDirQuietly(downloadDir);
       _failDownload('Could not prepare a place to download the update.');
       return;
@@ -302,11 +308,16 @@ class UpdateController extends ChangeNotifier {
       _downloadStatus = AssistedDownloadStatus.completed;
       _downloadProgress = null;
       notifyListeners();
-    } on Object {
+    } on Object catch (error, stackTrace) {
       // The default seams are written to fail closed (return a result, never
       // throw), but an injected seam or an unforeseen I/O error could throw.
       // Honour this method's "never throws" contract: delete any partial file
       // and surface a loud, actionable error instead of getting stuck in-flight.
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.startAssistedDownload.install',
+      );
       await _deleteQuietly(downloaded ?? destination);
       await _deleteDirQuietly(downloadDir);
       _failDownload(
@@ -389,7 +400,9 @@ class UpdateController extends ChangeNotifier {
     try {
       if (await file.exists()) await file.delete();
     } on Object {
-      // Best-effort cleanup.
+      // diagnostics: silent — best-effort cleanup; the caller's own failure
+      // (already logged/surfaced) is what matters, not a delete error on top
+      // of it.
     }
   }
 
@@ -402,7 +415,9 @@ class UpdateController extends ChangeNotifier {
     try {
       if (await dir.exists()) await dir.delete(recursive: true);
     } on Object {
-      // Best-effort cleanup.
+      // diagnostics: silent — best-effort cleanup; the caller's own failure
+      // (already logged/surfaced) is what matters, not a delete error on top
+      // of it.
     }
   }
 
@@ -427,17 +442,23 @@ class UpdateController extends ChangeNotifier {
   Future<void> load() async {
     final beta = await _settings
         .get(kUpdateBetaChannelKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — beta-channel pref read failed; falls back to false.
     _betaChannel = beta is bool ? beta : false;
 
     final auto = await _settings
         .get(kUpdateAutoCheckKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — auto-check pref read failed; falls back to false.
     _autoCheck = auto is bool ? auto : false;
 
     final dismissed = await _settings
         .get(kUpdateDismissedVersionKey)
-        .catchError((_) => null);
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — dismissed-version pref read failed; falls back to null.
     _dismissedVersion = dismissed is String ? SemVer.tryParse(dismissed) : null;
 
     notifyListeners();

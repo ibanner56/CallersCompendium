@@ -21,8 +21,10 @@ import '../../search/filter_compiler.dart';
 import '../../search/search_enrichment.dart';
 import '../../search/fts_query.dart';
 import '../../serialization/figure_codec.dart';
+import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
+import '../existence.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
@@ -68,8 +70,9 @@ typedef DerivedRebuildProgressCallback =
 
 /// CRUD + search for [Dance]s.
 ///
-/// Every write rebuilds the two derived indexes ([DanceFigures] rows and the
-/// `dance_fts` row) from `figures_json` inside the same transaction, per
+/// Every write rebuilds the derived indexes ([DanceFigures] rows,
+/// `dance_fts`, and `dance_substring_fts`) from `figures_json` inside the same
+/// transaction, per
 /// `docs/design/storage.md` — the derived tables are never the source of
 /// truth and are always safe to drop and recompute (see [rebuildAllDerived]).
 class DanceRepository {
@@ -79,6 +82,164 @@ class DanceRepository {
   final Taxonomy _taxonomy;
 
   FigureRenderer get _renderer => FigureRenderer(_taxonomy);
+
+  /// Returns [dance] with every figure's move id normalised through
+  /// [Taxonomy.resolvedMoveId]. Returns the original [dance] unchanged if no
+  /// figures need re-routing (avoids an allocation when nothing moves).
+  Dance _normaliseMoveIds(Dance dance) {
+    List<Figure>? normalised;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final f = figures[i];
+      final resolved = _normaliseFigure(f);
+      if (!identical(resolved, f) && normalised == null) {
+        // First change: lazily allocate and backfill.
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(resolved);
+    }
+    return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  /// Public entry point for [_normaliseMoveIds], used by the one-time
+  /// migration in [CompendiumRepositories._normaliseInversePairMoveIdsIfNeeded].
+  Dance normaliseMoveIdsPublic(Dance dance) => _normaliseMoveIds(dance);
+
+  /// Returns [dance] with the retired `star_promenade.hand` param stripped from
+  /// every figure that still carries it, recursing into `meanwhile` sides.
+  /// Returns the original [dance] unchanged when nothing carries it (avoiding
+  /// an allocation, and letting the caller skip the write entirely).
+  ///
+  /// Used by the one-time pass in
+  /// [CompendiumRepositories._stripStarPromenadeHandIfNeeded] (taxonomy v26,
+  /// #843). Nothing WRITES this param any more, so unlike [_normaliseMoveIds]
+  /// there is no write-time counterpart — this exists purely to retire data
+  /// already on disk.
+  Dance stripStarPromenadeHandPublic(Dance dance) {
+    List<Figure>? stripped;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final f = figures[i];
+      final result = _stripStarPromenadeHand(f);
+      if (!identical(result, f) && stripped == null) {
+        stripped = figures.sublist(0, i);
+      }
+      stripped?.add(result);
+    }
+    return stripped != null ? dance.copyWith(figures: stripped) : dance;
+  }
+
+  /// Strips a single figure's retired `star_promenade.hand`, recursing into
+  /// `meanwhile` sub-figures. Returns the original [figure] unchanged when
+  /// nothing needs stripping.
+  Figure _stripStarPromenadeHand(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _stripStarPromenadeHand(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
+      // assumedSubject / walkthroughOverride survive the one-time pass.
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'star_promenade' || !figure.params.containsKey('hand')) {
+      return figure;
+    }
+    return figure.copyWith(params: {...figure.params}..remove('hand'));
+  }
+
+  /// Returns [dance] with the role-implied `hand` written into every `chain`
+  /// figure that names a `who` of `role1s`/`role2s` but stores no `hand` yet,
+  /// recursing into `meanwhile` sides. Returns the original [dance] unchanged
+  /// when nothing needs backfilling (avoiding an allocation, and letting the
+  /// caller skip the write entirely).
+  ///
+  /// Used by the one-time pass in
+  /// [CompendiumRepositories._backfillChainHandIfNeeded] (#976, taxonomy v28).
+  /// A chain with no stored `who` is deliberately left alone — see
+  /// [chainHandBackfillDoneKey]'s doc comment for why.
+  Dance backfillChainHandPublic(Dance dance) {
+    List<Figure>? backfilled;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final f = figures[i];
+      final result = _backfillChainHand(f);
+      if (!identical(result, f) && backfilled == null) {
+        backfilled = figures.sublist(0, i);
+      }
+      backfilled?.add(result);
+    }
+    return backfilled != null ? dance.copyWith(figures: backfilled) : dance;
+  }
+
+  /// Backfills a single figure's `chain.hand`, recursing into `meanwhile`
+  /// sub-figures. Returns the original [figure] unchanged when nothing needs
+  /// backfilling.
+  Figure _backfillChainHand(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _backfillChainHand(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
+      // assumedSubject / walkthroughOverride survive the one-time pass.
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'chain' || figure.params.containsKey('hand')) {
+      return figure;
+    }
+    final who = figure.params['who'];
+    if (who is! String) return figure;
+    final hand = chainHandForWho(who);
+    if (hand == null) return figure;
+    return figure.copyWith(params: {...figure.params, 'hand': hand});
+  }
+
+  /// sub-figures. Returns the original [figure] unchanged if no sub-figures
+  /// need re-routing (avoids an allocation when nothing moves).
+  Figure _normaliseFigure(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final resolved = _normaliseFigure(sub);
+        if (!identical(resolved, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(resolved);
+      }
+      if (subs == null) return figure;
+      // Use copyWith so schemaVersion, customOrigin, assumedSubject, and
+      // walkthroughOverride survive — a bare Figure(...) resets them to
+      // defaults, which silently loses metadata during the one-time migration.
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    final resolvedId = _taxonomy.resolvedMoveId(figure);
+    return resolvedId != figure.move
+        ? figure.copyWith(move: resolvedId)
+        : figure;
+  }
 
   Future<void> create(Dance dance) => _upsert(dance);
 
@@ -92,24 +253,28 @@ class DanceRepository {
       dance.provenance?.importedAt,
       'dance.provenance.importedAt',
     );
+    // v25 (#870): normalise move ids for inverse-pair aliases before
+    // persisting. This is the single convergence point for all figure writers.
+    final normalisedDance = _normaliseMoveIds(dance);
     await _db
         .into(_db.dances)
         .insertOnConflictUpdate(
           DancesCompanion.insert(
-            id: dance.id,
-            title: dance.title,
-            form: dance.form,
-            formationShape: dance.formation.shape,
-            formationDetail: Value(dance.formation.detail),
-            progression: dance.progression,
-            phraseStructure: Value(dance.phraseStructure.raw),
-            figuresJson: Value(encodeFigures(dance.figures)),
-            hook: Value(dance.hook),
-            callingNotes: Value(dance.callingNotes),
-            walkthrough: Value(dance.walkthrough),
-            status: dance.status,
+            id: normalisedDance.id,
+            title: normalisedDance.title,
+            form: normalisedDance.form,
+            formationShape: normalisedDance.formation.shape,
+            formationDetail: Value(normalisedDance.formation.detail),
+            progression: normalisedDance.progression,
+            phraseStructure: Value(normalisedDance.phraseStructure.raw),
+            figuresJson: Value(encodeFigures(normalisedDance.figures)),
+            hook: Value(normalisedDance.hook),
+            callingNotes: Value(normalisedDance.callingNotes),
+            walkthrough: Value(normalisedDance.walkthrough),
+            status: normalisedDance.status,
             level: Value(dance.level),
             mixedLevel: Value(dance.mixedLevel),
+            mixer: Value(dance.mixer),
             rating: Value(dance.rating),
             composedOn: Value(dance.composedOn?.serialize()),
             revisedOn: Value(dance.revisedOn?.serialize()),
@@ -119,6 +284,12 @@ class DanceRepository {
             deletedAt: Value(dance.deletedAt),
           ),
         );
+    await seedExistenceIfMissing(
+      _db,
+      table: _db.dances,
+      keyColumn: 'id',
+      key: dance.id,
+    );
 
     await (_db.delete(
       _db.danceAuthors,
@@ -233,10 +404,11 @@ class DanceRepository {
           );
     }
 
-    await _rebuildDerived(dance);
+    await _rebuildDerived(normalisedDance);
   });
 
-  /// Rewrites the derived `dance_figures`/`dance_fts` rows for a single dance:
+  /// Rewrites the derived `dance_figures`/`dance_fts`/`dance_substring_fts` rows
+  /// for a single dance:
   /// drops this dance's existing derived rows, then re-inserts them. Used by the
   /// per-write path ([_upsert]); the bulk [rebuildAllDerived] path instead
   /// clears every derived row once up front and calls [_insertDerivedRows]
@@ -245,13 +417,19 @@ class DanceRepository {
     await (_db.delete(
       _db.danceFigures,
     )..where((t) => t.danceId.equals(dance.id))).go();
-    // `dance_fts` carries `dance_id` UNINDEXED, so this delete-by-scan is O(rows
-    // in the FTS index). Fine for one dance on a write; [rebuildAllDerived]
-    // deliberately avoids doing it N times (see there).
-    await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-      dance.id,
-    ]);
+    // Both FTS tables carry `dance_id` UNINDEXED, so these delete-by-scans are
+    // fine for one dance on a write; [rebuildAllDerived] deliberately avoids
+    // doing them N times (see there).
+    await _deleteFtsRows(dance.id);
     await _insertDerivedRows(dance);
+  }
+
+  Future<void> _deleteFtsRows(String danceId) async {
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement('DELETE FROM $table WHERE dance_id = ?', [
+        danceId,
+      ]);
+    }
   }
 
   /// Inserts this dance's `dance_figures` rows and its single `dance_fts` row,
@@ -329,22 +507,25 @@ class DanceRepository {
         .map((v) => v.value.toString())
         .join(' ');
     final sourceTexts = await _resolveSourceTexts(dance, sources);
-    await _db.customStatement(
-      'INSERT INTO dance_fts'
-      '(dance_id, title, authors, hook, notes, figures_text, custom_values, '
-      'sources) '
-      'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [
-        dance.id,
-        dance.title,
-        resolvedAuthors.join(' '),
-        dance.hook,
-        dance.callingNotes,
-        canonicalTexts.join(' '),
-        customValueText,
-        sourceTexts.join(' '),
-      ],
-    );
+    final values = [
+      dance.id,
+      dance.title,
+      resolvedAuthors.join(' '),
+      dance.hook,
+      dance.callingNotes,
+      canonicalTexts.join(' '),
+      customValueText,
+      sourceTexts.join(' '),
+    ];
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement(
+        'INSERT INTO $table'
+        '(dance_id, title, authors, hook, notes, figures_text, custom_values, '
+        'sources) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        values,
+      );
+    }
   }
 
   /// Author display names for [dance]'s `authorIds`, in position order. Uses
@@ -405,8 +586,9 @@ class DanceRepository {
   /// than holding one multi-minute transaction open.
   static const int _rebuildChunkSize = 250;
 
-  /// Recomputes `dance_figures` and `dance_fts` for **every** dance (including
-  /// soft-deleted — they stay in `dance_fts` and are filtered at query time,
+  /// Recomputes `dance_figures`, `dance_fts`, and `dance_substring_fts` for
+  /// **every** dance (including soft-deleted — they stay in the FTS tables and
+  /// are filtered at query time,
   /// see [searchText] and #439) from `figures_json`. Intended as an integrity
   /// repair after a migration that changes derived-table shape, or if
   /// corruption is detected by `PRAGMA quick_check`.
@@ -417,10 +599,9 @@ class DanceRepository {
   /// appearing hung (#440). [onProgress] fires once with `completed: 0` before
   /// work begins and again after each committed chunk.
   ///
-  /// Wall-clock: the whole derived index is cleared once up front
-  /// (`DELETE FROM dance_fts` + `DELETE FROM dance_figures`) and every dance is
-  /// then re-inserted, so the rebuild never runs the per-dance
-  /// `DELETE FROM dance_fts WHERE dance_id = ?` scan N times — that scan is
+  /// Wall-clock: both FTS tables and `dance_figures` are cleared once up front
+  /// and every dance is then re-inserted, so the rebuild never runs the
+  /// per-dance `DELETE ... WHERE dance_id = ?` scan N times — that scan is
   /// O(N²) because `dance_fts.dance_id` is `UNINDEXED` (#440). Shared author /
   /// source lookups are prefetched once to drop the last per-dance N+1 reads.
   ///
@@ -447,20 +628,31 @@ class DanceRepository {
     // Prefetch the shared lookups once so per-dance FTS assembly is O(1) reads
     // instead of an N+1 of single-row author/source selects. These tables are
     // small relative to the dance collection.
+    // Tombstoned rows are excluded (schema v25, issue #898): a soft-deleted
+    // author or source must not contribute searchable text, exactly as it no
+    // longer contributes a displayed credit or citation. Both kinds are
+    // referentially guarded, so a tombstone here can only exist once nothing
+    // cites it — the filter is what keeps that true if a guard is ever relaxed.
     final authorNames = {
-      for (final row in await _db.select(_db.choreographers).get())
+      for (final row in await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.deletedAt.isNull())).get())
         row.id: row.name,
     };
     final sources = {
-      for (final row in await _db.select(_db.publishedSources).get())
+      for (final row in await (_db.select(
+        _db.publishedSources,
+      )..where((t) => t.deletedAt.isNull())).get())
         row.id: row,
     };
 
-    // One-shot bulk clear instead of N per-dance delete-by-scans. `dance_fts`
-    // is a regular (self-contained) FTS5 table, so an unqualified DELETE resets
-    // the whole index cheaply; `dance_figures` is an ordinary table.
+    // One-shot bulk clear instead of N per-dance delete-by-scans. Both FTS5
+    // tables are self-contained, so an unqualified DELETE resets each index
+    // cheaply; `dance_figures` is an ordinary table.
     await _db.transaction(() async {
-      await _db.customStatement('DELETE FROM dance_fts');
+      for (final table in const ['dance_fts', 'dance_substring_fts']) {
+        await _db.customStatement('DELETE FROM $table');
+      }
       await _db.delete(_db.danceFigures).go();
     });
 
@@ -604,19 +796,40 @@ class DanceRepository {
     ];
   }
 
-  Future<void> softDelete(String id, {required DateTime at}) {
-    assertUtc(at, 'at');
-    return (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
-      DancesCompanion(deletedAt: Value(at), updatedAt: Value(at)),
-    );
-  }
+  /// Tombstones the dance, stamping `existence_at` causally (schema v25, issue
+  /// #898). One shared [at] goes into both `deletedAt` and `updatedAt` and
+  /// `body` is untouched — unchanged and correct, because nothing causal flows
+  /// into either of those two: `updated_at` answers "which content is newer"
+  /// and `deleted_at` drives retention, while only `existence_at` orders the
+  /// transition itself.
+  Future<void> softDelete(String id, {required DateTime at}) =>
+      _stampExistence(id, at: at, deleted: true);
 
-  Future<void> restore(String id, {required DateTime at}) {
-    assertUtc(at, 'at');
-    return (_db.update(_db.dances)..where((t) => t.id.equals(id))).write(
-      DancesCompanion(deletedAt: const Value(null), updatedAt: Value(at)),
-    );
-  }
+  /// Revives the dance, stamping `existence_at` causally (schema v25, issue
+  /// #898). A revival is an existence transition, so it must advance
+  /// `existence_at`: leaving it at the tombstone's value would tie, and a tie
+  /// resolves in favour of the tombstone, so a peer would delete the restored
+  /// dance straight back.
+  Future<void> restore(String id, {required DateTime at}) =>
+      _stampExistence(id, at: at, deleted: false);
+
+  /// Shared live<->deleted transition: one statement that writes
+  /// `max(at, current + 1 tick)` while reading the pre-update
+  /// `existence_at`, so the stamp cannot be computed from a value another
+  /// writer has already moved. Matching no rows is a no-op, exactly as the
+  /// previous unconditional UPDATE was.
+  Future<void> _stampExistence(
+    String id, {
+    required DateTime at,
+    required bool deleted,
+  }) => stampExistenceTransition(
+    _db,
+    table: _db.dances,
+    keyColumn: 'id',
+    key: id,
+    at: at,
+    deleted: deleted,
+  );
 
   /// Hard-deletes soft-deleted dances whose `deletedAt` is older than
   /// [retention] (default 30 days). Cascades to child rows (authors, tags,
@@ -651,9 +864,7 @@ class DanceRepository {
         for (final r in toPurge) (id: r.id, title: r.title),
       ]);
       for (final id in ids) {
-        await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-          id,
-        ]);
+        await _deleteFtsRows(id);
       }
       // Delete exactly the rows we selected and cleaned up — by id, not by a
       // re-evaluated cutoff predicate — so cleanup and deletion can never
@@ -685,23 +896,83 @@ class DanceRepository {
   ///   which the [DanceLink] constructor rejects, corrupting the *owner*
   ///   dance's load. The link no longer refers to anything, so we delete it.
   ///   (Owner-side links are cascade-deleted with their dance separately.)
+  ///
+  /// ## Both writes announce themselves to drift, and must keep doing so
+  ///
+  /// These are raw SQL, which drift cannot attribute to a table on its own, so
+  /// each passes `updates:` explicitly. Without that a `.watch()` stream over
+  /// `program_slots` or `dance_links` never re-runs for a purge — the silent
+  /// staleness issue #768 exists to remove, arriving from the write side.
+  ///
+  /// Each statement's table name is interpolated from the **same** table object
+  /// it names in `updates:`, so the SQL target and the notified table cannot
+  /// disagree — the convention `stampExistenceTransition` established in
+  /// `existence.dart`. A literal string in either position would let one be
+  /// renamed without the other, and the resulting mismatch is silent: the write
+  /// still succeeds, and the wrong table (or no table) is notified. The
+  /// sub-selects are left literal because they are *read*, not written, so they
+  /// have no notification target to diverge from.
+  ///
+  /// **Today these two writes would survive the omission by accident, and that
+  /// is the reason to state this rather than rely on it.** drift generates
+  /// `WritePropagation` rules from the schema's foreign keys
+  /// (`database.g.dart`, `streamUpdateRules`), and two of them are:
+  ///
+  /// ```
+  /// on: dances   (delete) -> result: program_slots (update)
+  /// on: dances   (delete) -> result: dance_links   (delete)
+  /// ```
+  ///
+  /// Both callers run these raw writes in the same transaction as a
+  /// drift-native `delete(_db.dances)`, and drift dispatches a transaction's
+  /// updates as one set on commit — so the native delete notifies both tables
+  /// on this method's behalf. That protection is **incidental co-location**,
+  /// not a property of this code: it disappears if the native delete is
+  /// reordered out of the transaction, or if a purge path is added that only
+  /// does raw writes. Nothing would fail; a subscribed view would simply stop
+  /// updating.
+  ///
+  /// The propagation rules are also **kind-limited** — only `delete` on
+  /// `dances` propagates, so a `dances` *update* notifies neither table.
+  ///
+  /// Established by experiment rather than from the API docs (drift 2.34.2),
+  /// because the difference is invisible in behaviour until something watches
+  /// the table:
+  ///
+  /// | probe | result |
+  /// |---|---|
+  /// | bare `customStatement` on `program_slots` | no notification |
+  /// | same, alone inside a `transaction` | no notification |
+  /// | native `delete(dances)` on an *unrelated* row | notifies `program_slots` |
+  /// | native `delete(dances)` on the referenced row | notifies, correct value |
+  ///
+  /// See [_garbageCollectOrphanedRefs], where the same raw-write hazard exists
+  /// with **no** incidental cover at all.
   Future<void> _cleanupDanglingReferences(
     List<({String id, String title})> toPurge,
   ) async {
     if (toPurge.isEmpty) return;
     for (final d in toPurge) {
-      await _db.customStatement(
-        'UPDATE program_slots SET text = ? WHERE dance_id = ? AND text IS NULL',
-        [d.title, d.id],
+      await _db.customUpdate(
+        'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
+        'WHERE dance_id = ? AND text IS NULL',
+        variables: [Variable<String>(d.title), Variable<String>(d.id)],
+        updates: {_db.programSlots},
+        updateKind: UpdateKind.update,
       );
     }
     final ids = [for (final d in toPurge) d.id];
     for (final chunk in _chunkIds(ids)) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
-      await _db.customStatement(
-        'DELETE FROM dance_links WHERE kind = ? AND target_dance_id IN '
-        '($placeholders)',
-        [LinkKind.relatedDance.name, ...chunk],
+      await _db.customUpdate(
+        'DELETE FROM ${_db.danceLinks.actualTableName} '
+        'WHERE kind = ? AND target_dance_id IN ($placeholders)',
+        variables: [
+          Variable<String>(LinkKind.relatedDance.name),
+          for (final id in chunk) Variable<String>(id),
+        ],
+        updates: {_db.danceLinks},
+        updateKind: UpdateKind.delete,
       );
     }
   }
@@ -753,23 +1024,69 @@ class DanceRepository {
   /// `ChoreographerRepository` / `PublishedSourceRepository`, which refuse to
   /// remove a still-referenced row; here the last reference is already gone, so
   /// the removal is safe hygiene rather than silent data loss.
+  ///
+  /// **Stays a HARD delete after the schema-v25 soft-delete conversion (#898),
+  /// unlike the guarded deletes it mirrors.** Those now tombstone, so this is a
+  /// deliberate divergence rather than an oversight. Two reasons: this only
+  /// runs inside `purgeDeleted` / `hardDelete`, which are already erasing the
+  /// owning dances outright with no tombstone of their own, so a tombstone here
+  /// would outlive the records that explain it; and nobody *deleted* these rows
+  /// — they were collected as a side effect of a retention purge, so
+  /// advertising a deletion the user never performed would be wrong. Giving the
+  /// six new kinds their own retention/purge policy belongs with the sync
+  /// implementation, which owns retention; this migration ships none.
+  /// ## Both deletes announce themselves to drift, and here nothing else would
+  ///
+  /// Raw SQL is opaque to drift, so each delete names the table it writes via
+  /// `updates:`. [_cleanupDanglingReferences] explains the mechanism and why
+  /// omitting it is silent; this site is the **worse** half of that pair and is
+  /// worth separating rather than covering with one shared sentence.
+  ///
+  /// There, an omission would be masked by a `WritePropagation` rule that fires
+  /// on the native `delete(_db.dances)` sharing the transaction. **No such rule
+  /// exists for these two tables.** Every generated rule targeting
+  /// `choreographers` or `published_sources` runs in the opposite direction —
+  /// `choreographers (delete) -> dance_authors`, `published_sources (delete) ->
+  /// dance_sources` — i.e. they are *sources* of propagation, never results of
+  /// it. Nothing in the schema notifies them.
+  ///
+  /// So a `.watch()` over either table would simply never see a row this method
+  /// removes. Demonstrated before the fix, by attaching a watcher to
+  /// `choreographers` and purging a dance whose sole author was thereby
+  /// orphaned:
+  ///
+  /// ```text
+  /// initial count seen by watcher: [1]
+  /// after purge -> watcher saw: [1]   | truth in db: 0
+  /// ```
+  ///
+  /// Nothing watched these tables when the omission was found, so it was
+  /// unobservable rather than harmless — and both are watched now, so the
+  /// `updates:` sets below are load-bearing today rather than prospectively.
+  /// See `dance_hard_delete_test.dart`, which holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
     ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
   ) async {
     for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
-      await _db.customStatement(
-        'DELETE FROM choreographers WHERE id IN ($placeholders) AND id NOT IN '
-        '(SELECT choreographer_id FROM dance_authors)',
-        [...chunk],
+      await _db.customUpdate(
+        'DELETE FROM ${_db.choreographers.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT choreographer_id FROM dance_authors)',
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.choreographers},
+        updateKind: UpdateKind.delete,
       );
     }
     for (final chunk in _chunkIds(candidates.sourceIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
-      await _db.customStatement(
-        'DELETE FROM published_sources WHERE id IN ($placeholders) AND id NOT '
-        'IN (SELECT source_id FROM dance_sources)',
-        [...chunk],
+      await _db.customUpdate(
+        'DELETE FROM ${_db.publishedSources.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT source_id FROM dance_sources)',
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.publishedSources},
+        updateKind: UpdateKind.delete,
       );
     }
   }
@@ -806,9 +1123,7 @@ class DanceRepository {
         for (final r in rows) (id: r.id, title: r.title),
       ]);
       for (final id in list) {
-        await _db.customStatement('DELETE FROM dance_fts WHERE dance_id = ?', [
-          id,
-        ]);
+        await _deleteFtsRows(id);
       }
       await (_db.delete(_db.dances)..where((t) => t.id.isIn(list))).go();
       if (orphanCandidates != null) {
@@ -1377,6 +1692,7 @@ class DanceRepository {
             'JOIN choreographers '
             'ON choreographers.id = dance_authors.choreographer_id '
             'WHERE dance_authors.position = 0 '
+            'AND choreographers.deleted_at IS NULL '
             'AND dance_authors.dance_id IN ($placeholders)',
             variables: [for (final id in chunk) Variable(id)],
           )
@@ -1541,6 +1857,7 @@ class DanceRepository {
       status: row.status,
       level: row.level,
       mixedLevel: row.mixedLevel,
+      mixer: row.mixer,
       rating: row.rating,
       composedOn: row.composedOn == null
           ? null
@@ -1578,16 +1895,25 @@ class DanceRepository {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};
     for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.danceAuthors)
+        ..where((t) => t.danceId.isIn(chunk));
       final rows =
-          await (_db.select(_db.danceAuthors)
-                ..where((t) => t.danceId.isIn(chunk))
-                ..orderBy([
-                  (t) => OrderingTerm(expression: t.danceId),
-                  (t) => OrderingTerm(expression: t.position),
-                ]))
+          await (query.join([
+                innerJoin(
+                  _db.choreographers,
+                  _db.choreographers.id.equalsExp(
+                        _db.danceAuthors.choreographerId,
+                      ) &
+                      _db.choreographers.deletedAt.isNull(),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: _db.danceAuthors.danceId),
+                OrderingTerm(expression: _db.danceAuthors.position),
+              ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <String>[]).add(r.choreographerId);
+        final row = r.readTable(_db.danceAuthors);
+        (byDance[row.danceId] ??= <String>[]).add(row.choreographerId);
       }
     }
     return byDance;
@@ -1595,20 +1921,35 @@ class DanceRepository {
 
   /// `dance_id → [tagId]` in insertion (row) order, matching the un-ordered
   /// per-dance query the single-row path historically used.
+  ///
+  /// Joined to `tags` and filtered on `tags.deleted_at IS NULL` since schema
+  /// v25 (issue #898). Tags are the one soft-deletable kind with **no**
+  /// referential guard: deleting one used to clear its `dance_tags` rows by FK
+  /// cascade, and a tombstone fires no cascade, so without this filter every
+  /// dance would keep reporting a tag the user deleted. The join rows are
+  /// deliberately left in place rather than cleared, so a revived tag comes
+  /// back with its dances intact.
   Future<Map<String, List<String>>> _tagsForMany(List<String> ids) async {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<String>>{};
     for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.danceTags)
+        ..where((t) => t.danceId.isIn(chunk));
       final rows =
-          await (_db.select(_db.danceTags)
-                ..where((t) => t.danceId.isIn(chunk))
-                ..orderBy([
-                  (t) => OrderingTerm(expression: t.danceId),
-                  (t) => OrderingTerm(expression: t.rowId),
-                ]))
+          await (query.join([
+                innerJoin(
+                  _db.tags,
+                  _db.tags.id.equalsExp(_db.danceTags.tagId) &
+                      _db.tags.deletedAt.isNull(),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: _db.danceTags.danceId),
+                OrderingTerm(expression: _db.danceTags.rowId),
+              ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <String>[]).add(r.tagId);
+        final row = r.readTable(_db.danceTags);
+        (byDance[row.danceId] ??= <String>[]).add(row.tagId);
       }
     }
     return byDance;
@@ -1663,17 +2004,28 @@ class DanceRepository {
     if (ids.isEmpty) return const {};
     final byDance = <String, List<SourceCitation>>{};
     for (final chunk in _chunkIds(ids)) {
+      final query = _db.select(_db.danceSources)
+        ..where((t) => t.danceId.isIn(chunk));
       final rows =
-          await (_db.select(_db.danceSources)
-                ..where((t) => t.danceId.isIn(chunk))
-                ..orderBy([
-                  (t) => OrderingTerm(expression: t.danceId),
-                  (t) => OrderingTerm(expression: t.position),
-                ]))
+          await (query.join([
+                innerJoin(
+                  _db.publishedSources,
+                  _db.publishedSources.id.equalsExp(_db.danceSources.sourceId) &
+                      _db.publishedSources.deletedAt.isNull(),
+                ),
+              ])..orderBy([
+                OrderingTerm(expression: _db.danceSources.danceId),
+                OrderingTerm(expression: _db.danceSources.position),
+              ]))
               .get();
       for (final r in rows) {
-        (byDance[r.danceId] ??= <SourceCitation>[]).add(
-          SourceCitation(sourceId: r.sourceId, page: r.page, number: r.number),
+        final row = r.readTable(_db.danceSources);
+        (byDance[row.danceId] ??= <SourceCitation>[]).add(
+          SourceCitation(
+            sourceId: row.sourceId,
+            page: row.page,
+            number: row.number,
+          ),
         );
       }
     }
@@ -1695,7 +2047,8 @@ class DanceRepository {
           query.join([
             innerJoin(
               _db.customFieldDefs,
-              _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId),
+              _db.customFieldDefs.id.equalsExp(_db.customFieldValues.fieldId) &
+                  _db.customFieldDefs.deletedAt.isNull(),
             ),
           ])..orderBy([
             OrderingTerm(expression: _db.customFieldValues.danceId),

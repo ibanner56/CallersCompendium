@@ -15,13 +15,17 @@ Future<void> _seed(CompendiumRepositories repos) async {
       year: 1983,
     ),
   );
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c1', name: 'Alice', email: 'alice@example.com'),
   );
+  // ignore: unused_result
   await repos.choreographers.upsert(
     Choreographer(id: 'c2', name: 'Traditional'),
   );
+  // ignore: unused_result
   await repos.tags.upsert(Tag(id: 't1', name: 'chestnut', color: 0xFF112233));
+  // ignore: unused_result
   await repos.customFieldDefs.upsert(
     CustomFieldDef(
       id: 'f1',
@@ -30,6 +34,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
       type: CustomFieldType.text,
     ),
   );
+  // ignore: unused_result
   await repos.customFieldDefs.upsert(
     CustomFieldDef(
       id: 'f2',
@@ -221,6 +226,7 @@ void main() {
         await _seed(repos);
 
         // A stale row that is NOT in the archive must be gone after a replace.
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'stale', name: 'stale-tag'));
         final archive = await ArchiveExporter(repos).export();
         // The exported archive predates the stale tag only if we re-read; instead
@@ -278,7 +284,9 @@ void main() {
       final repos = CompendiumRepositories(db, contraTaxonomy);
 
       // Pre-existing row that must survive a merge.
+      // ignore: unused_result
       await repos.tags.upsert(Tag(id: 'keep', name: 'keep-me'));
+      // ignore: unused_result
       await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Alice'));
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026, 7, 15),
@@ -302,6 +310,7 @@ void main() {
         final repos = CompendiumRepositories(db, contraTaxonomy);
 
         // Live data that must survive a failed replace restore.
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'live-tag', name: 'Live'));
         await repos.dances.create(
           Dance(
@@ -390,6 +399,7 @@ void main() {
         addTearDown(db.close);
         final repos = CompendiumRepositories(db, contraTaxonomy);
 
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 'keep', name: 'keep-me'));
 
         // A dance with duplicate authorIds fails to write, but a good tag in the
@@ -538,6 +548,222 @@ void main() {
         expect((await repos.programs.getById('p1'))!.venueId, 'v1');
       },
     );
+
+    test(
+      'replace mode calls _clearAll before _load (tombstone-safety pinning)',
+      () async {
+        // This test pins the first closure that keeps #906 latent: replace mode
+        // hard-deletes all rows (via _clearAll) before _load runs, so no
+        // tombstone can survive into the load phase to trigger natural-key
+        // adoption. If _clearAll were moved after _load or removed, the remap
+        // defect would become reachable in the most common user-facing path.
+        //
+        // Strategy: create a choreographer, soft-delete it (leaving a tombstone),
+        // then restore an archive containing a choreographer with the *same name*
+        // but a *different id*, in replace mode. After the restore the only
+        // choreographer row must carry the archive's id — proving _clearAll
+        // destroyed the tombstone before _load ran, and that adoption did not
+        // silently remap the id.
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: 'old-id', name: 'Alice'),
+        );
+        await repos.choreographers.delete('old-id');
+
+        // The archive names the same person with a fresh id.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'new-id', name: 'Alice')],
+          dances: [
+            Dance(
+              id: 'd1',
+              title: 'Pinning Dance',
+              authorIds: const ['new-id'],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(repos).restore(archive);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        // _clearAll wiped the tombstone, so 'new-id' landed without adoption.
+        final choreographers = await repos.choreographers.listAll();
+        expect(choreographers, hasLength(1));
+        expect(choreographers.first.id, 'new-id');
+
+        // The dance's authorId must resolve to 'new-id' (no adoption occurred).
+        final dance = await repos.dances.getById('d1');
+        expect(dance!.authorIds, ['new-id']);
+      },
+    );
+
+    test(
+      'merge mode with tombstone: dance authorId adopts the written id (remap)',
+      () async {
+        // Regression test for #906: _load discarded the id returned by upsert,
+        // so when merge mode encountered a tombstoned choreographer that matched
+        // by natural key, the dance's authorId was left pointing at the archived
+        // id — a row that no longer exists.
+        //
+        // This test is the "red run" guard: before the remap fix it fails
+        // because the dance's authorId still holds 'archived-id', which is the
+        // tombstone's row (now adopted by 'live-id' after upsert).
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // Create a choreographer, then soft-delete it (leaving a tombstone).
+        // The tombstone holds id='live-id' and name='Alice'.
+        // ignore: unused_result
+        await repos.choreographers.upsert(
+          Choreographer(id: 'live-id', name: 'Alice'),
+        );
+        await repos.choreographers.delete('live-id');
+
+        // The archive carries the same choreographer under a different id.
+        // In merge mode, upsert will adopt the tombstoned 'live-id' row and
+        // return 'live-id' — the dance must reference that id, not 'archived-id'.
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          choreographers: [Choreographer(id: 'archived-id', name: 'Alice')],
+          dances: [
+            Dance(
+              id: 'd1',
+              title: 'Remap Dance',
+              authorIds: const ['archived-id'],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        // After the fix, the dance's authorId must resolve to 'live-id'
+        // (the id the upsert actually wrote to), not 'archived-id'.
+        final dance = await repos.dances.getById('d1');
+        expect(dance, isNotNull);
+        expect(
+          dance!.authorIds,
+          ['live-id'],
+          reason:
+              'dance authorId must be remapped to the written id when '
+              'upsert adopted a tombstoned choreographer',
+        );
+      },
+    );
+
+    test(
+      'merge mode with tombstone: dance tagId adopts the written id (remap)',
+      () async {
+        // Analogous to the choreographer remap test — tags have the same
+        // natural-key adoption path.
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+
+        // ignore: unused_result
+        await repos.tags.upsert(Tag(id: 'live-tag', name: 'chestnut'));
+        await repos.tags.delete('live-tag');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          tags: [Tag(id: 'archived-tag', name: 'chestnut')],
+          dances: [
+            Dance(
+              id: 'd1',
+              title: 'Remap Tag Dance',
+              tagIds: const ['archived-tag'],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final dance = await repos.dances.getById('d1');
+        expect(dance, isNotNull);
+        expect(
+          dance!.tagIds,
+          ['live-tag'],
+          reason:
+              'dance tagId must be remapped to the written id when '
+              'upsert adopted a tombstoned tag',
+        );
+      },
+    );
+
+    test('merge mode with tombstone: dance customFieldValue fieldId adopts the '
+        'written id (remap)', () async {
+      // Analogous to the choreographer remap test — custom field defs have
+      // the same natural-key adoption path, and CustomFieldValue.fieldId
+      // must be remapped too.
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+
+      // ignore: unused_result
+      await repos.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'live-field',
+          key: 'origin',
+          label: 'Origin',
+          type: CustomFieldType.text,
+        ),
+      );
+      await repos.customFieldDefs.delete('live-field');
+
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        customFields: [
+          CustomFieldDef(
+            id: 'archived-field',
+            key: 'origin',
+            label: 'Origin',
+            type: CustomFieldType.text,
+          ),
+        ],
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Remap Field Dance',
+            customFields: [
+              CustomFieldValue(fieldId: 'archived-field', value: 'Vermont'),
+            ],
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        ],
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+      final dance = await repos.dances.getById('d1');
+      expect(dance, isNotNull);
+      expect(
+        dance!.customFields.map((v) => v.fieldId).toList(),
+        ['live-field'],
+        reason:
+            'customFieldValue.fieldId must be remapped to the written id '
+            'when upsert adopted a tombstoned custom field def',
+      );
+    });
 
     test(
       'resolves every venueId from one preloaded set (no N+1 on restore)',

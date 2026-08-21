@@ -44,6 +44,7 @@ import 'export_labels.dart';
 /// <author, author>
 /// Formation: <formationLabel>
 /// Level: <levelLabel>
+/// Mixer
 /// Status: <statusLabel>
 /// Phrase: <phraseStructure notation>
 ///
@@ -79,6 +80,7 @@ String danceToPlainText(
     lines.add('${labels.formation}: ${formationLabel.trim()}');
   }
   if (_has(levelLabel)) lines.add('${labels.level}: ${levelLabel!.trim()}');
+  if (dance.mixer && _has(labels.mixer)) lines.add(labels.mixer.trim());
   // Mirror the on-screen card, which only surfaces a status banner for a
   // non-active dance; an active dance omits the Status line entirely.
   if (dance.status != DanceStatus.active && _has(statusLabel)) {

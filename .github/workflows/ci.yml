@@ -77,7 +77,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build libgtk-3-dev
-      - uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         if: matrix.target == 'android'
         with:
           distribution: temurin
@@ -108,3 +108,14 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_schema_migration.py "$BASE_SHA"
+      # Same PR-only shape, same base ref, one more thing a bump must ship: the
+      # per-version entry in the design doc that now holds the log. The
+      # taxonomy and schema ledgers used to sit as doc comments on their own
+      # declarations, 40.7 KiB and 19.4 KiB of history that every reader of
+      # those files paid for to reach a one-line constant; moving them to
+      # docs/design/ is only safe if a later bump cannot quietly append its
+      # entry nowhere. See tools/ci/check_version_history.py.
+      - name: Guard version bumps append their design-doc history entry
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: python3 tools/ci/check_version_history.py "$BASE_SHA"

@@ -43,7 +43,9 @@ void main() {
       'slide along set left': Figure(move: 'slide_along_set'),
       'ones mad robin once': Figure(move: 'mad_robin'),
       'role2s revolving door right partners': Figure(move: 'revolving_door'),
-      'role1s star promenade right ½': Figure(move: 'star_promenade'),
+      // v26 (#843): `hand` was REMOVED from star_promenade — it described the
+      // center pair while rendering as though it qualified the subject.
+      'role1s star promenade ½': Figure(move: 'star_promenade'),
     };
     cases.forEach((expected, figure) {
       test('"$expected"', () {
@@ -72,11 +74,12 @@ void main() {
 
   group('display rendering maps role tokens via dialect', () {
     test('star_promenade omits its default role1s subject in display', () {
-      // PR1: star_promenade omits its default role subject (ContraDB drops the
-      // gentlespoons subject); the hand/turn still render.
+      // PR1: star_promenade omits its default subject (ContraDB drops the
+      // gentlespoons subject); the turn still renders. The hand no longer does
+      // — it was removed at taxonomy v26 (#843).
       expect(
         renderer.render(Figure(move: 'star_promenade'), Dialect.larksRobins),
-        'star promenade right ½',
+        'star promenade ½',
       );
     });
     test('a non-default role subject still maps under the dialect', () {
@@ -85,7 +88,7 @@ void main() {
           Figure(move: 'star_promenade', params: {'who': 'role2s'}),
           Dialect.larksRobins,
         ),
-        'robins star promenade right ½',
+        'robins star promenade ½',
       );
     });
   });

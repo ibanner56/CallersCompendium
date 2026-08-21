@@ -62,6 +62,12 @@ const Set<String> kAllowedArtifactHosts = {
   'objects.githubusercontent.com',
   // The gh-pages origin that serves the manifests (and could serve artifacts).
   'ibanner56.github.io',
+  // The GitHub Pages custom domain for this project. The compiled-in
+  // `kUpdateManifestBaseUrl` points at the gh-pages origin above, which the
+  // Pages CDN 301-redirects to this host. Every installed client therefore
+  // takes this redirect on every update check, so it must be allowed or
+  // updates are silently broken for all users.
+  'callerscompendium.com',
 };
 
 /// Whether [uri] is an acceptable target for an artifact download or redirect

@@ -616,6 +616,25 @@ void main() {
       'Hey (ML;NR;WL;PR;M ricochet;PR;WL)',
       // 3/4 caps at rico3, so a pos7 ricochet (rico4) exceeds it -> custom.
       'Hey 3/4 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
+      // P-series boundary: P6+ and P-n have no taxonomy token. A line naming
+      // either must not be silently mapped onto a nearer partner — it stays
+      // custom.
+      //
+      // To falsify, add the code to BOTH _dancerWords AND _pSeriesCodes.
+      // Adding it to _dancerWords alone leaves this test green: the pair
+      // absorption in _takeDancer/_takeLeadingDancer is gated on
+      // _pSeriesCodes, which excludes out-of-range codes, so the trailing
+      // "partner" survives as a leftover token, _swing returns null, and the
+      // line declines to custom without the boundary ever being exercised.
+      // Measured both ways for p6 and p-1: one map green, both maps red.
+      'P6 partner swing', // depth boundary: one beyond the modelled range
+      'P-1 partner swing', // negative index: no taxonomy token
+      // Regression: the P-prefix pair-absorption guard must test set membership
+      // (in _pSeriesCodes), not raw.startsWith('p'). The key 'partner' also
+      // starts with 'p', so the loose guard would absorb the second 'partner' in
+      // 'partner partner swing' and produce swing(who: partners) — a fabricated
+      // structured result from a non-existent TCB construction.
+      'partner partner swing',
     ];
 
     for (final line in mustStayCustom) {
@@ -876,6 +895,22 @@ void main() {
       'Balance ring': (move: 'balance_the_ring', params: {}),
       // 7. Promenade direction (recognizer previously never consumed it).
       'Promenade across': (move: 'promenade', params: {'dir': 'across'}),
+      'Partners promenade clockwise': (
+        move: 'promenade',
+        params: {'who': 'partners', 'turn': 'clockwise'},
+      ),
+      'Partners promenade counter clockwise': (
+        move: 'promenade',
+        params: {'who': 'partners', 'turn': 'counterclockwise'},
+      ),
+      'Partners promenade across clockwise': (
+        move: 'promenade',
+        params: {'who': 'partners', 'dir': 'across', 'turn': 'clockwise'},
+      ),
+      'Neighbor promenade counterclockwise around the major set': (
+        move: 'promenade',
+        params: {'who': 'neighbors', 'turn': 'counterclockwise'},
+      ),
       // 8. right-left-through "with X" (TCB writes this exclusively).
       'Right and left through with partner': (
         move: 'right_left_through',
@@ -967,6 +1002,17 @@ void main() {
         move: 'give_and_take',
         params: {'who': 'role2s', 'whom': 'neighbors'},
       ),
+      // 22. P-prefix partner-series shorthand (taxonomy v24, issue #732).
+      // TCB writes "Pn partner <verb>" — the Pn code identifies the dancer set
+      // and the trailing "partner" qualifier is dropped (mirrors "N2 neighbor").
+      // Falsify these tests by removing the corresponding p→token entry from
+      // _dancerWords.
+      'P1 partner swing': (move: 'swing', params: {'who': 'partners'}),
+      'P0 partner swing': (move: 'swing', params: {'who': 'prevPartners'}),
+      'P2 partner swing': (move: 'swing', params: {'who': 'nextPartners'}),
+      'P3 partner swing': (move: 'swing', params: {'who': 'thirdPartners'}),
+      'P4 partner swing': (move: 'swing', params: {'who': 'fourthPartners'}),
+      'P5 partner swing': (move: 'swing', params: {'who': 'fifthPartners'}),
     };
 
     cases.forEach((line, expected) {
@@ -995,6 +1041,72 @@ void main() {
       final f = _parseLine('Ladies chain to partner');
       expect(f!.move, 'chain');
       expect(f.note, 'to partner');
+    });
+
+    group('chain hand — the "do a" construction (#976)', () {
+      test('"Men do a right-hand ladies chain to partner" structures with '
+          'who=role1s, hand=right, and the note', () {
+        // Guards the "do a" branch: reverting it leaves "do", "a",
+        // "right-hand", "role2s" (the idiom role word), "chain" as leftover
+        // tokens after the plain-chain consumption fails, so the whole line
+        // falls through to custom.
+        final f = _parseLine('Men do a right-hand ladies chain to partner');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, 'to partner');
+      });
+
+      test('actor "Women" (role2s) with a non-contradicting stated hand: '
+          '"Women do a left-hand gents chain"', () {
+        // The actor is "Women" (role2s); the idiom role word here is
+        // "gents" (role1s, implied side "left"), which happens to agree
+        // with the stated hand. who=role2s comes from the ACTOR, not the
+        // idiom word.
+        final f = _parseLine('Women do a left-hand gents chain');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('a stated hand that CONTRADICTS the ACTOR\'s own implied side '
+          'still wins: "Women do a left-hand ladies chain" (real corpus '
+          'line, #976 §2.4)', () {
+        // Guards against making the actor's role-implied side win over the
+        // stated hand (the mutation the plan calls out): the actor "Women"
+        // is role2s, whose implied side is "right" — but the stated
+        // "left-hand" must survive unchanged, exactly as this real TCB
+        // corpus line requires.
+        final f = _parseLine('Women do a left-hand ladies chain');
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'chain');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'left');
+      });
+
+      test('"ones do a right-hand ladies chain" stays custom (who domain '
+          'guard)', () {
+        // Guards the role1s/role2s domain check at the end of _chain:
+        // "ones" is a valid actor elsewhere but outside chain's who domain,
+        // so dropping this guard would let it structure with a coerced who.
+        final f = _parseLine('ones do a right-hand ladies chain');
+        expect(f!.isCustom, isTrue);
+      });
+    });
+
+    test('a bare role-less "chain" line (default subject) gets no '
+        'stored hand — the taxonomy default fills it at read time', () {
+      // Guards #976 §6.1.3: populating `hand` from effectiveParams['who']
+      // (the taxonomy default) instead of a role token actually read from
+      // the source would be fabrication. The bare word "chain" names no
+      // role at all, so this exercises a genuinely role-less line.
+      final f = _parseLine('chain');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'chain');
+      expect(f.params.containsKey('who'), isFalse);
+      expect(f.params.containsKey('hand'), isFalse);
     });
 
     // 2. The custom fallback keeps the original parenthetical annotation

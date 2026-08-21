@@ -6,345 +6,20 @@ import 'param_types.dart';
 import 'taxonomy.dart';
 
 /// Version of the seeded contra taxonomy. Bumped when moves/params change.
-/// v2: roadmap 2.4a PR2 (dancer-interaction moves).
-/// v3: roadmap 2.4a PR3 (choice-enum moves + `centers`/single-dancer vocab).
-/// v4: roadmap 2.4a PR4 (places family + `ParamKind.places`).
-/// v5: roadmap 2.4a PR5 (hey/wave family) — completes the 2.4a move set.
-/// v6: full set of ContraDB named hey-length durations (lessThanHalf /
-///     betweenHalfAndFull added; dancer%%N meeting encodings remain out of scope).
-/// v7: swing renders its `prefix` modifier ("balance & swing" / "meltdown
-///     swing"); `none` still renders to nothing.
-/// v8: param-value-dependent beat counts — hey `length`, figure_8 `half`,
-///     rory_o_more `balance`, and slice `return` carry structured `paramBeats`
-///     (ContraDB-sourced) so untouched beats re-derive on a param change.
-///     Moves whose ContraDB beats are a range/ratio rather than a discrete
-///     per-value count (poussette, the places family, turn_alone) are left on
-///     their flat default — see the notes at those moves. See MoveDef.paramBeats.
-/// v9: extends `paramBeats` coverage — swing `prefix` (none 8, balance/meltdown
-///     16), petronella `balance` (8/4), and long_lines `goBack` (8/4), all
-///     ContraDB-sourced. The `meltdown_swing` alias now derives 16 beats.
-///     Moves with continuous angle/ratio beat rules (allemande, do_si_do,
-///     shoulder_round, circle/star family, box_the_gnat) remain deferred.
-/// v10: cross-line merge support — `box_the_gnat` gains a `balance` flag
-///     (default false; swat_the_flea inherits it via its box_the_gnat target)
-///     and the down/up-the-hall `ender` gains a `bendTheLine` value. Both are
-///     additive: no existing figure's derived output changes, and box_the_gnat
-///     stays on the continuous-beat-rule deferral (no `paramBeats`). Distinct
-///     from CompendiumDatabase.schemaVersion — no DB migration is implied.
-/// v11: adds `box_circulate` (ContraDB-sourced; modeled on `box_the_gnat`) and
-///     `star_through` (a balance+twirl figure modeled on `california_twirl` +
-///     a balance flag), plus the `weave the line` → `zig_zag` recognizer alias.
-///     Both new moves carry a neutral `balance` flag (default false) that the
-///     CallersBox cross-line merge upgrades to true; like `box_the_gnat` their
-///     balanced beat count comes only from that merge sum, so neither takes a
-///     `paramBeats`. `box_circulate` carries no places param (ContraDB lists it
-///     under moveCaresAboutPlaces for angle display only). Additive: no existing
-///     figure's derived output changes; distinct from schemaVersion — no DB
-///     migration is implied.
-/// v12: `star_through` drops its `balance` flag to mirror `california_twirl`
-///     (who + beats only) per product decision, and is removed from the
-///     CallersBox cross-line balance-merge set (box_circulate stays). Removing
-///     an unused default-false flag changes no existing figure's derived output
-///     (a bare `star_through` already rendered without balance) and is distinct
-///     from schemaVersion — no DB migration is implied.
-/// v13: splits the overloaded `form_an_ocean_wave` (issue #290) into a default
-///     short-wave `form_a_short_wave` (renders "form a wave"; RENAMED to
-///     `form_short_waves` at v21) and a distinct
-///     `pass_the_ocean` (renders "pass the ocean"). Both inherit the legacy
-///     move's sourced params MINUS `passThru` (intrinsic to pass_the_ocean,
-///     absent from the short wave) and mirror its unencoded, param-dependent
-///     beats — no fabricated beat count. `form_an_ocean_wave` was RETAINED at
-///     v13 for stored-data fidelity; v14 removes it (migrated away — see below).
-/// v14: removes the now-superseded `form_an_ocean_wave` MoveDef (issue #290
-///     cleanup). Stored figures that reference it are rewritten by the schema
-///     migration (CompendiumDatabase schema v12) to `pass_the_ocean` (when
-///     `passThru` is true — its default) or `form_a_short_wave` (when false;
-///     itself renamed `form_short_waves` at v21, migrated by schema v19),
-///     carrying the remaining params. This is a DB migration (distinct from
-///     this taxonomy version), the sanctioned canonical-changing exception.
-/// v15: adds the TCB rotation-gate figure kind `rotation_gate` (issue #294,
-///     Option B). A NEW move — believed at the time to be distinct from the
-///     ContraDB `gate` on the grounds that the two vocabularies were disjoint —
-///     carrying `direction` (clockwise/counterclockwise/mirror) + a `turn`
-///     fraction over a VARIABLE beat count. Its resulting facing was derived
-///     deterministically at render time (gate_facing.dart), never stored.
-///     Purely additive taxonomy change: no existing figure's derived output
-///     changes, and distinct from CompendiumDatabase.schemaVersion — NO
-///     persisted-data migration is implied (new figures serialize under the
-///     existing figure codec; stored figures are untouched).
-///     SUPERSEDED at v22: the "disjoint vocabularies" premise rested on
-///     misreading ContraDB's `face` as a travel direction when libfigure
-///     renders it as the ENDING facing. `rotation_gate` is merged back into
-///     `gate` and removed.
-/// v16: adds an `endFacing` param to `swing` (issue #543) — the body facing a
-///     swing ends in, a first-class promotion of what previously lived only in
-///     a figure note. A `ParamKind.choice` over the four set-relative facing
-///     tokens (`in`/`out`/`up`/`down`, reused from the ContraDB `gate` `face`
-///     domain / `gateFacings`), defaulting to `in` (across — where most swings
-///     end). Named `endFacing` (NOT `face`) to avoid overloading gate's `face`
-///     (which this entry described as an orbit direction — a misreading
-///     corrected at v22, where it is confirmed to be the ending facing and the
-///     two params turn out to mean the same kind of thing). Purely additive: the
-///     default `in` renders exactly as today (the display renderer appends a
-///     `facing …` clause ONLY when non-default; swing's canonical
-///     `renderTemplate` is unchanged, so canonical/FTS/dedupe stay byte-stable),
-///     it carries no beat cost (absent from `paramBeats`; `goodBeats` unchanged)
-///     and does not feed the program-matrix swing column. Distinct from
-///     CompendiumDatabase.schemaVersion — the param rides the existing
-///     `figures_json` figure codec, so NO persisted-data migration is implied.
-/// v17: adds a `meetTarget` param to `hey` (issue #576) — names WHICH pair you
-///     run a partial hey until you meet, finally encoding the `dancer%%N`
-///     meeting target that had been deferred as out of scope. A
-///     `ParamKind.dancerSet` over ContraDB's `chooser_pairz` pair vocabulary
-///     (`_heyMeetTargetChoices`), defaulting to `unspecified`. Derived directly
-///     from libfigure: ContraDB folds length+target into one `hey_length`
-///     (`pair%%1`/`pair%%2`); we already split the meeting *count* into `length`
-///     (`lessThanHalf`=%%1, `betweenHalfAndFull`=%%2), so `meetTarget` supplies
-///     only the WHO. Purely additive: the default `unspecified` renders exactly
-///     as today (the display renderer only names the target when non-default;
-///     `renderTemplate` is unchanged, so canonical/FTS/dedupe stay byte-stable),
-///     it carries no beat cost (absent from `paramBeats`; `goodBeats` unchanged,
-///     beats stay driven by `length`). Like `endFacing`, distinct from
-///     CompendiumDatabase.schemaVersion — the param rides the existing
-///     `figures_json` figure codec, so NO persisted-data migration is implied.
-/// v18: adds `singleFile` flags to `promenade` and `circle` (issue #634,
-///     deferred from #585) for ContraDB's "single file promenade along major
-///     set" and "promenade single file around the circle N places" free-text
-///     phrasings — both additive, default-`false` flags. At this version they
-///     were structural-only (not display-rendered); #749 gap A adds display
-///     renders. Canonical text stays byte-stable.
-///     There is no separate `circle_left` move: the single existing `circle`
-///     move's `turn` param already covers left/right, so the single-file
-///     circle case reuses it with `turn` defaulted to `left` (the phrasing
-///     never states a direction). Also extends `give_and_take.goodBeats` to
-///     include `2` — real "take neighbors" renders (#570, #548) confirmed
-///     take-only beats at both ends of the already-documented 2-4 range.
-///     Purely additive: no existing figure's derived output changes, and
-///     distinct from CompendiumDatabase.schemaVersion — the new flags ride the
-///     existing `figures_json` figure codec, so NO persisted-data migration is
-///     implied.
-/// v19: splits the fused `allemande_orbit` (issue #295) into a first-class
-///     `orbit` move (`who`, `turn` reusing `ParamKind.spinDirection`, `amount`
-///     rotation default 0.5, `beats`). The combined "X allemande while Y orbits"
-///     figure is now modeled as `meanwhile[allemande, orbit]`: the TCB `||`
-///     fan-out and the ContraDB `while` fan-out both produce the container
-///     automatically once `orbit` is recognized standalone. The now-superseded
-///     `allemande_orbit` MoveDef is REMOVED; stored figures that reference it
-///     are rewritten by the schema migration (CompendiumDatabase schema v18) to
-///     `meanwhile[allemande{who,hand,turn=old inner}, orbit{who=invert(who),
-///     turn=direction derived from hand, amount=old outer}]`, carrying the
-///     shared beat count. This is a DB migration (distinct from this taxonomy
-///     version), the sanctioned canonical-changing exception (cf. v14).
-/// v20: gives `mad_robin` a `direction` + `whom`, and `butterfly_whirl` a `who`
-///     + `direction` (issue #295), so The Caller's Box's normalized wordings
-///     stop falling to `custom`. Sourced from TCB, which models detail ContraDB
-///     does not:
-///     - TCB `Glossary.htm` "Mad robin": "While facing one person, you travel in
-///       an oval AROUND THE PERSON AT YOUR SIDE… **Who you go around is
-///       listed**… A clockwise mad robin begins with the left-hand person going
-///       in front." A 5,147-line TCB sample has 24/24 mad robin lines stating
-///       BOTH a direction and an "around `<whom>`" target.
-///     - TCB `Glossary.htm` "Butterfly whirl": "Two people face the same
-///       direction… and **rotate clockwise or counterclockwise** about a common
-///       center." The same sample has 18/18 lines stating both a subject and a
-///       direction.
-///     ContraDB models neither: `libfigure` defines `butterfly whirl` with
-///     `beats_4` alone, and mad robin's `circling` param is `once_around` — a
-///     `chooser_revolutions` ANGLE in degrees (default 360), already carried by
-///     our existing `mad_robin.turn`, NOT a direction. ContraDB's mad robin
-///     `who` is a THIRD concept again (`madRobinWords` renders "`<who>` in
-///     front" — which role steps in front first), so TCB's "around `<X>`" needs
-///     its own slot: folding it into `who` would invert the meaning of every
-///     ContraDB-imported mad robin. Precedent for a TCB-sourced param:
-///     `rotation_gate` (issue #294) and `down_the_hall.ender: bendTheLine` (v10).
-///     Deliberately NOT added: a `butterfly_whirl` rotation amount. TCB states
-///     one on 4/18 lines ("1 & 1/2", "2"), but neither ContraDB nor the TCB
-///     glossary models it, so per prefer-custom those lines stay `custom` and
-///     `goodBeats` stays `[4]`.
-///     Every new param defaults to the `unspecified` sentinel (cf. `hey.pass2`
-///     / `hey.meetTarget`, v17), which the renderer emits as the empty string.
-///     A figure that omits them therefore renders BYTE-IDENTICALLY to v19 —
-///     canonical/FTS/dedupe text is unchanged for all existing data, and a
-///     ContraDB import keeps asserting nothing about direction or target. The
-///     params ride the existing `figures_json` figure codec, so — distinct from
-///     CompendiumDatabase.schemaVersion — NO persisted-data migration is implied.
-/// v21: wave-formation balance (issue #295, subsuming #296). Three changes:
-///     - RENAMES `form_a_short_wave` to `form_short_waves` (display label
-///       "form short waves", not the old "form a wave"). The v13 split named it
-///       for a single wave, but the figure is the whole set's short waves —
-///       every TCB wording is "wave of four"/"short waves". A rename is a
-///       MIGRATION, not an additive change: stored figures carry the old id, so
-///       CompendiumDatabase schema v19 rewrites them (cf. the v14/v12 ocean-wave
-///       and v19/v18 `allemande_orbit` precedents). The old label survives as a
-///       `searchKeyword` so the picker still finds it.
-///     - gives `form_long_waves` a `whom` + `hand` (which pair you hold and by
-///       which hand) and a `balance` flag. TCB states all three on the line —
-///       `Balance long wave (NR, women face in)` — on ~1,350 corpus lines;
-///       ContraDB's `formLongWavesWords` models only the facing, so `whom`/
-///       `hand` take the `unspecified` sentinel default (cf. `mad_robin.whom`,
-///       v20) and `balance` defaults false. `who` KEEPS its ContraDB meaning
-///       (the role that faces IN) — TCB states the same fact, so no stored
-///       figure's meaning changes.
-///     - Byte-stability is NOT uniform across the two changes, and the
-///       distinction is the whole reason this taxonomy bump needs a schema bump
-///       alongside it:
-///       * The new `whom`/`hand`/`balance` params ARE byte-stable. They default
-///         to the `unspecified` sentinel / `false`, and `renderTemplate` is
-///         untouched, so a figure that omits them renders exactly as it did at
-///         v20 — canonical/FTS/dedupe text is unchanged for all existing data.
-///       * The RENAME is NOT byte-stable, for two independent reasons. (a) The
-///         move **id** changed, so an unmigrated stored figure would stop
-///         resolving and fall through to the #358 raw-id fallback — this is what
-///         forces the CompendiumDatabase schema-v19 migration. (b) The
-///         **`displayName`** changed ("form a wave" → "form short waves"), and
-///         `renderTemplate` is `'{move}'`, whose `{move}` token expands the
-///         DISPLAY NAME (`FigureRenderer._renderMoveName` uses the id only as a
-///         dialect-substitution lookup key) — so those figures' canonical text
-///         changes too.
-///       The `derivedRebuildRequiredKey` marker is owed for a BROADER reason
-///       than canonical text, and it is worth stating precisely because it is
-///       easy to get backwards. `dance_figures` (see `tables.dart`) projects
-///       several columns out of each stored figure — `move` (the taxonomy id),
-///       `beats`, `progression`, `paramsJson`, `canonicalText` and the derived
-///       `section` label — beyond the `danceId`/`idx` primary key. A rebuild is
-///       owed whenever ANY of them would change; do not reduce that to the
-///       canonical text, and do not treat the list as closed (a migration that
-///       rewrote stored `beats`, for instance, owes one just as much — and
-///       because `section` comes from cumulative beats across the whole dance,
-///       such a change can shift the label of LATER figures too).
-///       A rename changes `move` by definition, so **a rename always owes both
-///       a migration and a rebuild**, even one that leaves `displayName` (and
-///       therefore canonical text) untouched: without the rebuild,
-///       `dance_figures.move` keeps an id the taxonomy no longer defines, and
-///       structural search goes silently stale —
-///       `DanceRepository.danceIdsWithFigure` (`dance_repository.dart:1454`)
-///       filters on exactly `danceFigures.move` and reads `paramsJson`.
-///     - The new params and the balance suffix are otherwise surfaced only on
-///       the `!forCanonical` display path (that display work IS issue #296,
-///       whose own reference to `form_an_ocean_wave` is stale — that MoveDef was
-///       removed at v14).
-///     The taxonomy version bump is distinct from the schema bump: the params
-///     ride the existing `figures_json` figure codec, and only the RENAME needs
-///     the persisted-data migration.
-/// v22: MERGES the two "gate" moves into one (maintainer ruling). `gate` and
-///     `rotation_gate` both rendered the display name "gate" and showed as two
-///     identical picker rows; they are now a single `gate` carrying a
-///     direction, a duration AND an ending facing. `rotation_gate` is REMOVED;
-///     stored figures of BOTH moves are rewritten by the schema migration
-///     (CompendiumDatabase schema v20 — v19 is v21's wave-move rename). This is
-///     a DB migration (distinct from
-///     this taxonomy version), the sanctioned canonical-changing exception
-///     (cf. v14, v19).
 ///
-///     CORRECTS TWO SOURCE MISREADINGS that v15/v16 recorded. Verified against
-///     libfigure at github.com/contradb/contra @ master:
-///     - `figure.js:841` renders a gate as
-///       `words(ssubject, smove, sobject, "to face", sgate_face)` and
-///       `param.js:711` maps its values `{up:"up the set", down:"down the set",
-///       in:"into the set", out:"out of the set"}`. ContraDB's `face` is
-///       therefore the ENDING FACING, not "which way `who` orbits `whom`" as
-///       v15/v16 claimed. The misreading came from `param.js:714`, which
-///       declares `name: "face"` but `ui: "chooser_gate_direction"` — the `ui:`
-///       value is a WIDGET HINT, not the param's meaning, and reading it as one
-///       is what put "direction" in our comment. The two sources were never in
-///       conflict: ContraDB states how a gate ends and no amount; TCB states
-///       the rotation sense and amount and no facing. The merge is close to
-///       their union, and the v15 "disjoint vocabularies" rationale for a
-///       separate move does not survive the correction.
-///     - `figure.js:844`: "'ones gate twos' means: ones, extend a hand to twos
-///       - twos walk forward, ones back up, orbiting around the joined hands".
-///       ContraDB's `who` BACKS UP and `whom` WALKS FORWARD (neither orbits the
-///       other; both orbit the joined hands).
+/// A documentary marker: nothing reads this at runtime. It records that the
+/// seeded move/param vocabulary changed, which users notice because dances are
+/// categorised, rendered or matched differently. Distinct from
+/// `CompendiumDatabase.schemaVersion` — a bump here implies no DB migration
+/// unless the entry for that version says so.
 ///
-///     Slots. `who`/`whom` keep ContraDB's exact meaning. TCB's subject
-///     ("Neighbor gate…", "Partner gate…") is a THIRD axis — the pairing you
-///     gate WITH, not which side moves — and gets its own `pair` slot;
-///     `chooser.js:114` shows ContraDB's subject domain (`chooser_pair`) admits
-///     only role-sides and can never hold `neighbors`/`partners`, so folding
-///     TCB's subject into `who` would reinterpret every TCB-imported gate.
-///     Same reasoning, same shape as `mad_robin.whom` at v20. TCB's
-///     "(ones forward)" parentheticals — 82 of 186 corpus gate lines, until now
-///     silently dropped on a structured match — now fill `whom` when they say
-///     "<dancers> forward" AND name a set we model (60 lines), because `whom`
-///     means precisely "walks forward". A STATIONARY annotation
-///     ("(men stay put)", "(women are posts)") fits neither slot — `who` backs
-///     up, so it moves too — and is never structured; it, and any "forward"
-///     phrase naming a set we do not model, survives verbatim as the note.
-///
-///     The ending facing is now STORED (`face`), not derived. `gateEndFacing`
-///     is WITHDRAWN: it computed from a nominal `in` start orientation, so a
-///     1/2 gate after a down-the-hall claimed "to face out of the set" when the
-///     answer is "up". A start-relative rule cannot produce an absolute
-///     cardinal without simulating the preceding choreography. See the
-///     "Derived (computed-at-render) taxonomy values" section of
-///     docs/design/figure-taxonomy.md, whose only exemplar this withdraws.
-///
-///     Every param defaults to the `unspecified` sentinel (cf. v17/v20) so each
-///     source asserts only what it states; `turn` is the first
-///     ParamKind.rotation to opt into the sentinel (see ParamSpec.validate),
-///     because ContraDB's gate has no amount param at all. `goodBeats` widens
-///     from ContraDB's `[8]` / rotation_gate's `[4,6,8]` to `[2,3,4,6,8]`, the
-///     counts attested across the 186 corpus gate lines.
-/// v23: ADDS `courtesy_turn` (`who`, `whom`, `direction`, `endFacing`, `beats`).
-///     Purely additive — a new move, no rename and no removal — so, distinct
-///     from CompendiumDatabase.schemaVersion, NO persisted-data migration is
-///     implied (cf. v20's `mad_robin`/`butterfly_whirl` params and v15's
-///     `rotation_gate`, both additive with no migration). The params ride the
-///     existing `figures_json` figure codec, and no stored figure can reference
-///     a move that did not exist, so every existing figure renders unchanged.
-///
-///     ENTIRELY TCB-SOURCED — ContraDB models this figure NOWHERE. Verified
-///     against libfigure at github.com/contradb/contra @ master: a repository-
-///     wide code search for "courtesy" returns ZERO hits, in any casing and any
-///     file. Its `chain` carries exactly four params (`subject_role_ladles`,
-///     `by_right_hand`, `set_direction_across`, `beats_8`) and its
-///     `right left through` exactly two (`set_direction_across`, `beats_8`);
-///     neither has a courtesy-turn slot, flag or ending facing. ContraDB treats
-///     the courtesy turn as an unparameterized sub-component of those figures.
-///     That is precisely why a TCB line writing one as its OWN figure line —
-///     which TCB does on 115 lines of the 24,107-dance corpus — had no home
-///     before this version and fell to `custom`.
-///
-///     Slots, and the evidence for each (census over the whole corpus):
-///     - `who` — the pairing the turn is danced with, stated on every line:
-///       partner x53, neighbor x39, N2 neighbor x13, shadow x1, N3 neighbor x1,
-///       twos x1. Defaults to `partners` (the mode) for the authoring path; a
-///       recognizer that has to fall back to it marks the figure
-///       `assumedSubject` rather than asserting a subject the line never gave.
-///     - `whom` — **no source states it.** A search for the two-dancer form
-///       `<X> courtesy turn <Y>` finds nothing in the corpus: `who` always
-///       names the pairing, never a turner plus a turnee. The slot exists for
-///       manual authoring only, defaults to the `unspecified` sentinel, and the
-///       importer NEVER fills it. Per the maintainer's ruling: "you can make
-///       the end_facing and whom optional, left out by default unless it
-///       actually shows up in parsing data".
-///     - `direction` — TCB states one on 10 lines and every one of them is
-///       `clockwise`; `counterclockwise` is unattested. A courtesy turn IS
-///       clockwise by construction (the couple wheels as a unit), so those 10
-///       lines are redundant confirmations rather than a distinction, and
-///       `clockwise` is a REAL default, not a fabrication. Deliberately carries
-///       NO `unspecified` sentinel — not for any editor-safety reason (the
-///       editor and validator halves of that gap closed with #726, the
-///       Advanced-search facet with PR #746), but simply because the move has
-///       no semantic need for one; see the param comment.
-///     - `endFacing` — a **DANCER**, not a facing. Every attested value is a
-///       neighbor relationship: `, face N2` x8, `, face N3` x4, `, face N0` x1.
-///       See the param comment: this is the single easiest thing to get wrong
-///       about this move.
-///     `goodBeats: [2, 3, 4, 6]` — the counts attested across the 115 corpus
-///     lines this move's grammar claims (4 x97, 2 x8, 3 x6, 6 x4). `5` and `8`
-///     appear only on lines that MENTION a courtesy turn but can never
-///     structure as one (`(5) Neighbor promenade across; courtesy turn 3/4` is
-///     a `;` compound; the `8`s are `right and left through …
-///     ("courtesy fling")` lines), so they are correctly absent. The marginal
-///     values were checked rather than assumed, per the v22 precedent: dance
-///     2957 writes `(8) Modified ladies chain to partner:` -> `(6) Women
-///     allemande right 1 & 1/2` + `(2) Partner courtesy turn` — the
-///     courtesy-turn tail of a decomposed chain, the exact shape our own
-///     compound fan-out emits — dance 174 `(5) Women allemande right 1` +
-///     `(3) Neighbor courtesy turn`, and dance 14823 `(10) Star left 1 & 1/4` +
-///     `(6) Partner courtesy turn`. All genuine timing, none noise.
-const int contraTaxonomyVersion = 23;
+/// **The per-version log lives in `docs/design/figure-taxonomy.md` under
+/// "Taxonomy version history", and every bump appends an entry there in the
+/// same PR** — `tools/ci/check_version_history.py` fails the build otherwise.
+/// It is kept there because it is a ledger of decisions already shipped: it
+/// constrains nothing on this line, and it grows on every bump, so readers of
+/// this file were paying for the whole history to reach one constant.
+const int contraTaxonomyVersion = 31;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -376,6 +51,13 @@ const _heyPass2Choices = [...ParamVocab.pairDancerSets, ParamVocab.unspecified];
 // nonsensical as a hey meeting target), plus an `unspecified` sentinel default.
 // chooser_pairz = pairDancerSets minus {everyone, centers}, so we spell it out
 // rather than derive it, keeping the domain explicit and stable.
+//
+// EXTENDED beyond ContraDB at v24 (issue #732, orchestrating-session decision):
+// the five mixer partner-series tokens (`prevPartners`/`nextPartners`/
+// `thirdPartners`/`fourthPartners`/`fifthPartners`) are included even though
+// they do not exist in ContraDB. Without them a mixer's partial hey cannot name
+// the partner it runs until you meet (e.g. a hey that runs until P2). The param
+// defaults to `unspecified`, so existing data is unaffected.
 const _heyMeetTargetChoices = [
   'role1s',
   'role2s',
@@ -392,6 +74,11 @@ const _heyMeetTargetChoices = [
   'nextNeighbors',
   'thirdNeighbors',
   'fourthNeighbors',
+  'prevPartners',
+  'nextPartners',
+  'thirdPartners',
+  'fourthPartners',
+  'fifthPartners',
   ParamVocab.unspecified,
 ];
 
@@ -534,6 +221,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'balance',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        // v25 (#870): TCB writes `(RH)` / `(LH)` on ~1,066 balance lines; the
+        // hand was silently dropped because balance had no slot. Defaults to
+        // `unspecified` — not `right` — because most balances state no hand, and
+        // defaulting to a side would assert something the source never said.
+        // Precedent: `form_long_waves.hand` (v21).
+        'hand': ParamSpec(
+          ParamKind.handedness,
+          defaultValue: ParamVocab.unspecified,
+          choices: _handOrUnspecified,
+        ),
         'beats': _beats4,
       },
       renderTemplate: '{who} {move}',
@@ -556,6 +253,17 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {hand} {turn}',
+      goodBeats: [8],
+    ),
+    const MoveDef(
+      id: 'two_hand_turn',
+      displayName: 'two hand turn',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
+      },
+      renderTemplate: '{who} {move} {turn}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -674,10 +382,36 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'role2s',
           choices: ['role1s', 'role2s'],
         ),
+        // v28 (#976): ContraDB's `by_right_hand` (`figure.js:281-291`) is a
+        // fourth param we never modelled, so a stated hand — including one
+        // that CONTRADICTS the implicit role reading (`women do a left-hand
+        // ladies chain`) — fell all the way to `custom`. Defaults to
+        // `unspecified`, not the role-implied side: a role-conditional
+        // taxonomy default would be a stored value that goes stale the moment
+        // `who` is edited afterward (no equivalent of ContraDB's
+        // `chainChange`, `figure.js:256-263`, exists at the taxonomy layer).
+        // The role-implied side is instead written explicitly, by
+        // [chainHandForWho], at every write site that actually reads a role
+        // word: both parsers, the editor's `_selectMove` (×2) and its `who`
+        // reaction in `_applyNonBeatsParamChange`, and the one-time backfill
+        // sweep — never here. `unspecified` remains the taxonomy default only
+        // so pre-release figures (and any bare, role-less chain — #976
+        // §6.1.3) keep a defined effective value.
+        'hand': ParamSpec(
+          ParamKind.handedness,
+          defaultValue: ParamVocab.unspecified,
+          choices: _handOrUnspecified,
+        ),
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {dir}',
+      // Hand precedes move, matching ContraDB's `chainWords`
+      // (`words(sdiag, swho, thand, smove)`, `figure.js:266-278`) and the live
+      // render ("ladles left-hand chain") — NOT `{who} {move} {hand} {dir}`,
+      // which would read "ladies chain left across". `dir`'s position is
+      // unchanged; ContraDB puts the diagonal first, but matching that would
+      // reword all displayed diagonal chains for an unrelated reason.
+      renderTemplate: '{who} {hand} {move} {dir}',
       goodBeats: [8],
     ),
     // v23: The Caller's Box's standalone courtesy turn. ContraDB models this
@@ -833,13 +567,74 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Issue #634: a true "single file promenade" travels the whole major
         // set (no per-couple dancer relationship), vs. the ordinary partnered
-        // promenade. A display-only render token (issue #749): the display
-        // renders show "single file promenade" when true; canonical text stays
-        // byte-stable even at non-default values (Gap B of #749 tracks
-        // canonical inclusion).
+        // promenade. A canonical render token since taxonomy v27 (issue #749):
+        // the display renders show "single file promenade [dir]" when true;
+        // canonical emits "single file promenade [dir]" with `who` dropped
+        // (an importer artefact carrying no choreographic information).
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
+        // Issue #921 (taxonomy v29): destination of the single-file promenade —
+        // "to new neighbors" / "to the same neighbors" / etc. Reuses the
+        // dancerSet domain + unspecified sentinel.
+        //
+        // v30 (#989) re-gated this clause from `singleFile==true` to
+        // `dir != 'across'` — a promenade with an explicit rotation
+        // (`turn`, below) or a stated non-default direction can equally have a
+        // stated destination; `singleFile` is no longer the deciding factor.
+        // Owner ruling (2026-08-18): existing `singleFile==true, dir=='across'`
+        // figures that already carry a `destination` keep the stored param but
+        // lose the rendered clause — accepted knowingly, not a migration.
+        'destination': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
+        // v30 (#989): the rotation sense of the promenade. TCB and the
+        // maintainer's own worked examples state a `clockwise`/`counterclockwise`
+        // qualifier directly on ordinary (non-single-file) promenades — the
+        // corpus measurement is issue #771's (1,222/1,306 such lines decline to
+        // `custom` today for lack of this slot; #771 owns extending the parser
+        // to fill it, once this param exists for it to populate).
+        //
+        // ⚠️ Owner-decided default is the CONCRETE `'counterclockwise'`, not the
+        // `unspecified` sentinel `mad_robin.direction` / `butterfly_whirl.direction`
+        // use for the same [ParamKind.spinDirection] (`contra_taxonomy.dart`
+        // `_spinOrUnspecified`, v20 #295). #771's own "Decision requested"
+        // section asked for the sentinel default ("so existing figures render
+        // exactly as they do today … no migration"); **that ruling is
+        // SUPERSEDED by this owner decision (2026-08-18)**, made with the
+        // rebuild cost known and accepted ("this is beta, our users will
+        // survive"). Do not read #771's sentinel language as still binding.
+        //
+        // `choices` STILL lists the sentinel (`_spinOrUnspecified`) so a
+        // promenade whose `dir` is reset to `in`/`out`/`up`/`down` (where a
+        // rotation sense is meaningless — mirroring how `destination` is
+        // cleared alongside `singleFile`) can be driven back to "not stated"
+        // rather than stuck holding a default it never earned. This makes
+        // `promenade.turn` the FIRST param in the taxonomy to combine a
+        // concrete default with a sentinel-admitting `choices` list — every
+        // other sentinel-admitting param defaults TO the sentinel. The
+        // reconciliation comment in `figure_param_editors.dart` asserted that
+        // invariant; it has been corrected in the same PR that introduces this
+        // exception. The sentinel is reachable only via the automatic
+        // `dir`-driven reset in the editor, never via a user-facing Clear
+        // control (owner ruling) — see the Clear-button gating in
+        // `figure_param_editors.dart`.
+        'turn': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'counterclockwise',
+          choices: _spinOrUnspecified,
+          allowManualClear: false,
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
+      // `destination` and `turn` are NOT in this template — like `destination`
+      // since v29, `turn`'s rendering needs conditional silencing (silenced
+      // when `dir=='across' && turn=='counterclockwise'`, matching the
+      // "partner promenade" phrasing the maintainer's own examples use) that a
+      // flat `renderTemplate` cannot express. Both display and canonical
+      // render paths therefore build the full line in
+      // `_displayBaseRenderers['promenade']` / the `forCanonical` block in
+      // `renderer.dart`, not via this template's placeholder expansion.
       renderTemplate: '{who} {move} {dir}',
       goodBeats: [8],
     ),
@@ -928,6 +723,16 @@ final Taxonomy contraTaxonomy = Taxonomy(
       goodBeats: [4],
     ),
     const MoveDef(
+      id: 'turn_as_couples',
+      displayName: 'turn as couples',
+      params: {
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'beats': _beats4,
+      },
+      renderTemplate: '{who} {move}',
+      goodBeats: [4],
+    ),
+    const MoveDef(
       id: 'stand_still',
       displayName: 'stand still',
       params: {'beats': ParamSpec(ParamKind.beats, defaultValue: 8)},
@@ -1002,16 +807,20 @@ final Taxonomy contraTaxonomy = Taxonomy(
       renderTemplate: '{who} {move} {hand} {whom}',
       goodBeats: [8],
     ),
+    // v26 (#843): `who` names the dancer you PICK UP on the side (TCB's
+    // reading, per the owner's 2026-08-06 ruling) — NOT the pair with a hand in
+    // the center. The `hand` param was removed with this ruling: it described
+    // the center pair while rendering as though it qualified `who`. The center
+    // survives as a note written by the TCB import; see the v26 entry above.
     const MoveDef(
       id: 'star_promenade',
       displayName: 'star promenade',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'turn': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
-      renderTemplate: '{who} {move} {hand} {turn}',
+      renderTemplate: '{who} {move} {turn}',
       goodBeats: [4],
     ),
     // Issue #295: `orbit` is a first-class move. The fused `allemande_orbit`
@@ -1476,10 +1285,24 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // circle N places" (real render: Travels with Rick and Kim #455) — a
         // single-file circle, not the `promenade` move (no separate
         // `circle_left` id exists in this taxonomy; `turn` already covers
-        // left/right). A display-only render token (issue #749): the display
-        // renders append "- single file" when true; canonical text stays
-        // byte-stable even at non-default values (Gap B of #749 tracks
-        // canonical inclusion).
+        // left/right). A canonical render token since taxonomy v27 (issue
+        // #749 / #840): display renders prefix "single file circle {left|right}
+        // N places"; canonical emits "single file promenade {left|right} N
+        // places (circle, {clockwise|counterclockwise})".
+        //
+        // v30 (#989): both paths used to substitute `left`→"clockwise" /
+        // `right`→"counterclockwise" so the rendered word matched contra
+        // convention (circling left travels clockwise) instead of the stored
+        // token. That substitution is REMOVED — `turn` now renders its raw
+        // `left`/`right` value like every other move's `turn`/`direction`
+        // param, for display consistency with the rest of the app. The spin
+        // word is NOT dropped: it moves into the canonical parenthetical
+        // (`(circle, clockwise)`), mirroring how "(circle)" alone already
+        // exists solely to keep "circle" a matchable FTS token — this widens
+        // that same device to also keep the TCB source's own wording
+        // ("single file promenade clockwise …") searchable, since the
+        // recognizer that stores `turn:'left'` for it lives at
+        // `callersbox_figure_dialect.dart:1316-1365`.
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
@@ -1494,14 +1317,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // community default.
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'places': ParamSpec(ParamKind.places, defaultValue: 4),
-        // grip is a structured param and a DISPLAY-ONLY render token: it is
-        // emitted in the display renders (render / renderVerbose / renderSummary)
-        // as a " - wrist grip - " / " - hands across - " clause (ContraDB
-        // `starWords` parity, issue #749), but is intentionally absent from
-        // canonical text (the dedupe/FTS key). 'none' is the unspecified value
-        // (no clause in any render path). Canonical-text inclusion is Gap B of
-        // #749 and requires a contraTaxonomyVersion bump + migration + derived
-        // rebuild; it is tracked separately.
+        // grip is a canonical render token since taxonomy v27 (issue #749):
+        // emitted in ALL render paths (render / renderVerbose / renderSummary /
+        // renderCanonical) as a " - wrist grip - " / " - hands across - " clause
+        // (ContraDB `starWords` parity). 'none' is the unspecified value — no
+        // clause in any render path. The FTS inclusion makes stars searchable
+        // by "wrist grip" or "hands across".
         'grip': ParamSpec(
           ParamKind.choice,
           defaultValue: 'none',
@@ -1786,12 +1607,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'see saw',
       targetMove: 'do_si_do',
       pinnedParams: {'shoulder': 'left'},
+      inversePairId: 'do_si_do',
     ),
     const MoveAlias(
       id: 'swat_the_flea',
       displayName: 'swat the flea',
       targetMove: 'box_the_gnat',
       pinnedParams: {'hand': 'left'},
+      inversePairId: 'box_the_gnat',
     ),
     const MoveAlias(
       id: 'meltdown_swing',

@@ -15,19 +15,17 @@ import '../../data/confirm_before_delete_scope.dart';
 import '../../data/import_io.dart';
 import '../../data/reduce_motion_scope.dart';
 import '../../data/repositories_scope.dart';
-import '../../data/require_performed_for_history_scope.dart';
-import '../../data/track_history_for_all_callers_scope.dart';
 import '../../data/soft_delete_retention.dart';
 import '../../data/sort_ignore_articles_scope.dart';
 import '../../data/verbose_figure_rendering_scope.dart';
 import '../../data/decimal_turns_scope.dart';
-import '../../data/venue_entity_mode_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
 import '../import_review_screen.dart';
+import '../published_collection_navigation.dart';
 import '../reparse_custom_figures_screen.dart';
-import '../venue_manager_screen.dart';
 
 /// The General settings section: app-wide toggles, soft-delete retention,
 /// backup/restore, and the import launcher. Owns its async loads + load-race
@@ -62,48 +60,12 @@ class GeneralSection extends StatefulWidget {
 }
 
 class _GeneralSectionState extends State<GeneralSection> {
-  /// Auto-size Perform cards (ROADMAP G.1). Loaded from settings on first build;
-  /// defaults on until loaded. `null` = not yet loaded.
-  bool? _autoSizePerform;
-  bool _autoSizeRequested = false;
-  bool _autoSizeUserSet = false;
-
   /// Soft-delete retention window (ROADMAP G.4), as the stored `int` day count
   /// (`0` = never auto-purge). `null` = not yet loaded; the view shows the
   /// 30-day default until the read resolves.
   int? _softDeleteRetentionDays;
   bool _softDeleteRetentionRequested = false;
   bool _softDeleteRetentionUserSet = false;
-
-  /// Lazily loads the persisted auto-size preference the first time the General
-  /// section is built (avoids reading settings in `initState`, where the
-  /// [RepositoriesScope] context is available but this keeps the pattern with
-  /// the scope-driven appearance/dialect reads).
-  void _ensureAutoSizeLoaded(BuildContext context) {
-    if (_autoSizeRequested) return;
-    _autoSizeRequested = true;
-    final repos = RepositoriesScope.of(context);
-    repos.settings
-        .get(kAutoSizePerformKey)
-        .then((value) {
-          // Don't overwrite a selection the user made before the read resolved.
-          if (!mounted || _autoSizeUserSet) return;
-          setState(() => _autoSizePerform = value is bool ? value : true);
-        })
-        .catchError((_) {
-          if (!mounted || _autoSizeUserSet) return;
-          setState(() => _autoSizePerform = true);
-        });
-  }
-
-  Future<void> _onAutoSizeChanged(bool value) async {
-    setState(() {
-      _autoSizeUserSet = true;
-      _autoSizePerform = value;
-    });
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kAutoSizePerformKey, value);
-  }
 
   /// Lazily loads the persisted soft-delete retention window (ROADMAP G.4) the
   /// first time the General section is built. Mirrors [_ensureAutoSizeLoaded]: a
@@ -123,6 +85,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — retention setting read failed; falls back to built-in default.
           if (!mounted || _softDeleteRetentionUserSet) return;
           setState(
             () => _softDeleteRetentionDays = kSoftDeleteRetentionDefaultDays,
@@ -175,6 +138,7 @@ class _GeneralSectionState extends State<GeneralSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — backup cadence setting read failed; falls back to Off.
           if (!mounted) return;
           setState(() => _backupCadence = BackupReminderCadence.off);
         });
@@ -184,7 +148,9 @@ class _GeneralSectionState extends State<GeneralSection> {
           if (!mounted) return;
           setState(() => _lastBackupAt = lastBackupAtFromStored(stored));
         })
-        .catchError((_) {});
+        .catchError(
+          (_) {},
+        ); // diagnostics: silent — last-backup timestamp read failed; leaves _lastBackupAt null (no user surface).
   }
 
   Future<void> _onBackupCadenceChanged(BackupReminderCadence cadence) async {
@@ -232,6 +198,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       });
       messenger.showSnackBar(SnackBar(content: Text(l10n.backupExported)));
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'general_section._onExportBackup');
       if (kDebugMode) {
         debugPrint('Backup export failed: $e\n$st');
       }
@@ -301,6 +268,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         ),
       );
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'general_section._onRestoreBackup');
       if (kDebugMode) {
         debugPrint('Backup restore failed: $e\n$st');
       }
@@ -380,6 +348,7 @@ class _GeneralSectionState extends State<GeneralSection> {
         SnackBar(content: Text(l10n.backupRestoreSettingsRetried)),
       );
     } on Exception catch (e, st) {
+      logCaughtError(e, st, source: 'general_section._retrySettingsRestore');
       if (kDebugMode) debugPrint('Backup settings retry failed: $e\n$st');
       if (!mounted) return;
       _showSettingsRestoreFailed(messenger, l10n, repos, raw, onRestored);
@@ -392,8 +361,8 @@ class _GeneralSectionState extends State<GeneralSection> {
   /// or bare id to the `&format=JSON` endpoint before fetching), and the
   /// [ContraDbHtmlAdapter] ("ContraDB", which resolves a pasted dance URL or
   /// bare id to the `contradb.com/dances/N` HTML page and scrapes it). The
-  /// screen is fully self-contained (plan → review → commit → undo) and
-  /// refreshes the live Collection on commit via [CollectionRefreshScope].
+  /// screen is fully self-contained (plan → review → commit → undo); the live
+  /// Collection now picks up its writes from the database stream directly.
   Future<void> _onImportDances() async {
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -417,30 +386,8 @@ class _GeneralSectionState extends State<GeneralSection> {
     );
   }
 
-  /// Opens the venue manager (browse/create/edit/delete reusable venues).
-  Future<void> _onManageVenues() async {
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const VenueManagerScreen()));
-  }
-
-  Future<void> _onRequirePerformedForHistoryChanged(bool value) async {
-    // Same instant-notifier-then-persist pattern as dialect/theme: flip the
-    // live notifier so every dependent (including an open dance-detail screen)
-    // rebuilds immediately, then persist in the background.
-    RequirePerformedForHistoryScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kRequirePerformedForHistoryKey, value);
-  }
-
-  Future<void> _onTrackHistoryForAllCallersChanged(bool value) async {
-    // Same instant-notifier-then-persist pattern: flip the live notifier so
-    // every dependent (an open Collection list or dance-detail screen)
-    // re-derives its scoped calling history/counts immediately, then persist.
-    TrackHistoryForAllCallersScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kTrackHistoryForAllCallersKey, value);
-  }
+  Future<void> _onPublishedCollections() =>
+      pushPublishedCollectionCatalog(context);
 
   Future<void> _onSortIgnoreArticlesChanged(bool value) async {
     // Same instant-notifier-then-persist pattern: flip the live notifier so the
@@ -476,27 +423,11 @@ class _GeneralSectionState extends State<GeneralSection> {
     await repos.settings.set(kConfirmBeforeDeleteKey, value);
   }
 
-  Future<void> _onVenueEntityModeChanged(bool value) async {
-    // Same instant-notifier-then-persist pattern: flip the live notifier so an
-    // open program editor swaps its venue field/picker immediately, then
-    // persist in the background. The toggle is entry/display-mode only — both
-    // Program.venue and Program.venueId persist independently, so flipping it
-    // never clears the other mode's value.
-    VenueEntityModeScope.notifierOf(context).value = value;
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kVenueEntityModeKey, value);
-  }
-
   @override
   Widget build(BuildContext context) {
-    _ensureAutoSizeLoaded(context);
     _ensureSoftDeleteRetentionLoaded(context);
     _ensureBackupPrefsLoaded(context);
     return _GeneralView(
-      requirePerformedForHistory: RequirePerformedForHistoryScope.of(context),
-      onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
-      trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
-      onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
       sortIgnoreArticles: SortIgnoreArticlesScope.of(context),
       onSortIgnoreArticlesChanged: _onSortIgnoreArticlesChanged,
       reduceMotion: ReduceMotionScope.of(context),
@@ -507,11 +438,6 @@ class _GeneralSectionState extends State<GeneralSection> {
       onDecimalTurnsChanged: _onDecimalTurnsChanged,
       confirmBeforeDelete: ConfirmBeforeDeleteScope.of(context),
       onConfirmBeforeDeleteChanged: _onConfirmBeforeDeleteChanged,
-      venueEntityMode: VenueEntityModeScope.of(context),
-      onVenueEntityModeChanged: _onVenueEntityModeChanged,
-      onManageVenues: _onManageVenues,
-      autoSizePerform: _autoSizePerform ?? true,
-      onAutoSizeChanged: _onAutoSizeChanged,
       softDeleteRetentionDays:
           _softDeleteRetentionDays ?? kSoftDeleteRetentionDefaultDays,
       onSoftDeleteRetentionChanged: _onSoftDeleteRetentionChanged,
@@ -521,6 +447,7 @@ class _GeneralSectionState extends State<GeneralSection> {
       onExportBackup: _onExportBackup,
       onRestoreBackup: _onRestoreBackup,
       onImportDances: _onImportDances,
+      onPublishedCollections: _onPublishedCollections,
       onReparseCustomFigures: _onReparseCustomFigures,
     );
   }
@@ -528,16 +455,11 @@ class _GeneralSectionState extends State<GeneralSection> {
 
 /// The General section: app-wide preference switches (ROADMAP G).
 ///
-/// Hosts the "Require mark-performed for calling history" toggle (ROADMAP G.2,
-/// off by default) and the "Auto-size Perform cards" toggle (ROADMAP G.1, on by
-/// default). New app-wide switches are added here as additional
-/// [SwitchListTile]s.
+/// Hosts library, accessibility, deleted-items, import, and backup/restore
+/// controls. New app-wide switches are added here as additional
+/// [SwitchListTile]s. (Program-facing toggles live in [ProgramSection].)
 class _GeneralView extends StatelessWidget {
   const _GeneralView({
-    required this.requirePerformedForHistory,
-    required this.onRequirePerformedForHistoryChanged,
-    required this.trackHistoryForAllCallers,
-    required this.onTrackHistoryForAllCallersChanged,
     required this.sortIgnoreArticles,
     required this.onSortIgnoreArticlesChanged,
     required this.reduceMotion,
@@ -548,11 +470,6 @@ class _GeneralView extends StatelessWidget {
     required this.onDecimalTurnsChanged,
     required this.confirmBeforeDelete,
     required this.onConfirmBeforeDeleteChanged,
-    required this.venueEntityMode,
-    required this.onVenueEntityModeChanged,
-    required this.onManageVenues,
-    required this.autoSizePerform,
-    required this.onAutoSizeChanged,
     required this.softDeleteRetentionDays,
     required this.onSoftDeleteRetentionChanged,
     required this.backupCadence,
@@ -561,13 +478,10 @@ class _GeneralView extends StatelessWidget {
     required this.onExportBackup,
     required this.onRestoreBackup,
     required this.onImportDances,
+    required this.onPublishedCollections,
     required this.onReparseCustomFigures,
   });
 
-  final bool requirePerformedForHistory;
-  final ValueChanged<bool> onRequirePerformedForHistoryChanged;
-  final bool trackHistoryForAllCallers;
-  final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
   final bool sortIgnoreArticles;
   final ValueChanged<bool> onSortIgnoreArticlesChanged;
   final bool reduceMotion;
@@ -578,13 +492,6 @@ class _GeneralView extends StatelessWidget {
   final ValueChanged<bool> onDecimalTurnsChanged;
   final bool confirmBeforeDelete;
   final ValueChanged<bool> onConfirmBeforeDeleteChanged;
-  final bool venueEntityMode;
-  final ValueChanged<bool> onVenueEntityModeChanged;
-
-  /// Opens the venue manager screen.
-  final Future<void> Function() onManageVenues;
-  final bool autoSizePerform;
-  final ValueChanged<bool> onAutoSizeChanged;
 
   /// Current soft-delete retention window as the stored `int` day count
   /// (`0` = never auto-purge — see [kSoftDeleteRetentionNever]).
@@ -602,6 +509,7 @@ class _GeneralView extends StatelessWidget {
 
   /// Opens the import review flow (ROADMAP 6.3).
   final Future<void> Function() onImportDances;
+  final Future<void> Function() onPublishedCollections;
 
   /// Opens the #417 re-check-custom-figures flow.
   final Future<void> Function() onReparseCustomFigures;
@@ -619,50 +527,6 @@ class _GeneralView extends StatelessWidget {
           onChanged: onSortIgnoreArticlesChanged,
           title: Text(l10n.settingsGeneralSortIgnoreArticlesTitle),
           subtitle: Text(l10n.settingsGeneralSortIgnoreArticlesSubtitle),
-          isThreeLine: true,
-        ),
-        SectionHeader(title: l10n.settingsGeneralVenuesHeader),
-        SwitchListTile(
-          key: const ValueKey('general-venue-entity-mode'),
-          value: venueEntityMode,
-          onChanged: onVenueEntityModeChanged,
-          title: Text(l10n.settingsGeneralVenueEntityModeTitle),
-          subtitle: Text(l10n.settingsGeneralVenueEntityModeSubtitle),
-          isThreeLine: true,
-        ),
-        ListTile(
-          key: const ValueKey('general-manage-venues'),
-          leading: const Icon(Icons.place_outlined),
-          title: Text(l10n.settingsGeneralManageVenuesTitle),
-          subtitle: Text(l10n.settingsGeneralManageVenuesSubtitle),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: onManageVenues,
-        ),
-        SectionHeader(title: l10n.settingsGeneralPerformanceHeader),
-        SwitchListTile(
-          key: const ValueKey('settings-auto-size-perform'),
-          title: Text(l10n.settingsGeneralAutoSizePerformTitle),
-          subtitle: Text(l10n.settingsGeneralAutoSizePerformSubtitle),
-          value: autoSizePerform,
-          onChanged: onAutoSizeChanged,
-        ),
-        SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
-        SwitchListTile(
-          key: const ValueKey('general-require-performed-for-history'),
-          value: requirePerformedForHistory,
-          onChanged: onRequirePerformedForHistoryChanged,
-          title: Text(l10n.settingsGeneralRequirePerformedForHistoryTitle),
-          subtitle: Text(
-            l10n.settingsGeneralRequirePerformedForHistorySubtitle,
-          ),
-          isThreeLine: true,
-        ),
-        SwitchListTile(
-          key: const ValueKey('general-track-history-for-all-callers'),
-          value: trackHistoryForAllCallers,
-          onChanged: onTrackHistoryForAllCallersChanged,
-          title: Text(l10n.settingsGeneralTrackHistoryForAllCallersTitle),
-          subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
         ),
         SectionHeader(title: l10n.settingsGeneralAccessibilityHeader),
@@ -735,6 +599,13 @@ class _GeneralView extends StatelessWidget {
             icon: const Icon(Icons.file_download_outlined),
             label: Text(l10n.settingsGeneralImportEllipsisAction),
           ),
+        ),
+        ListTile(
+          key: const ValueKey('published-collections-button'),
+          title: Text(l10n.publishedCollectionsTitle),
+          subtitle: Text(l10n.publishedCollectionsDescription),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: onPublishedCollections,
         ),
         ListTile(
           title: Text(l10n.settingsGeneralReparseCustomFiguresTitle),
@@ -878,7 +749,8 @@ class _RestoreBackupDialogState extends State<_RestoreBackupDialog> {
       final json = await widget.picker();
       if (!mounted || json == null) return;
       _controller.text = json;
-    } on BackupFileTooLargeException catch (e) {
+    } on BackupFileTooLargeException catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'general_section._chooseFile');
       // Surface the size-cap refusal as a friendly message instead of letting
       // it crash the picker: the file was never read, so live data is safe.
       if (!mounted) return;

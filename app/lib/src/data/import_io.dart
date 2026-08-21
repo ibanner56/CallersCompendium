@@ -118,9 +118,18 @@ typedef ImportPicker = Future<String?> Function();
 /// exported UTI `org.callerscompendium.compendiumApp.share` (issue #298, PR 2) —
 /// **and** plain `.json`/`public.json` for backward compatibility with bundles
 /// produced before the dedicated type existed. The payload is the same
-/// canonical Caller's Compendium JSON (`GenericJsonAdapter`) in either case. The
-/// review flow itself is adapter-agnostic; a future source (CallersBox/ContraDB)
-/// can supply its own picker/type group without changing the queue UI.
+/// canonical Caller's Compendium JSON in either case; the extension only decides
+/// whether the OS hands the file to this app, never how it is read.
+///
+/// **Which importer consumes it depends on the payload, not the extension**
+/// (issue #874): the review screen decodes text carrying `"programs"` as a
+/// [CompendiumArchive] and commits it through `CompendiumArchiveImporter`
+/// (dances *and* programs, choreographers and venues); anything else falls
+/// through to the dance-only `GenericJsonAdapter`. A `.ccshare` file picked here
+/// therefore imports its program too — before #874 it did not, which was the
+/// defect that issue fixed. The review flow itself is adapter-agnostic; a future
+/// source (CallersBox/ContraDB) can supply its own picker/type group without
+/// changing the queue UI.
 Future<String?> pickImportFile() async {
   const jsonGroup = XTypeGroup(
     label: 'Compendium share',
@@ -172,10 +181,14 @@ Future<Uint8List?> pickImportUsrFile() async {
 /// return canned text (or throw) so no real network call is made.
 ///
 /// Mirrors [ImportPicker] above — HTTP transport lives in the app layer only,
-/// so the pure-Dart core adapters never perform I/O. The fetched body is fed to
-/// the same adapter (`GenericJsonAdapter`) as the file/paste inputs; the source
-/// URL is stashed on `ImportRequest.uri` for provenance. A future source
-/// (CallersBox/ContraDB link) can reuse this seam without changing the queue.
+/// so the pure-Dart core adapters never perform I/O. The fetched body lands in
+/// the same review-screen input as the file/paste paths (it is written into the
+/// paste field), so it is routed the same way: a payload carrying `"programs"`
+/// decodes as a [CompendiumArchive] and commits through
+/// `CompendiumArchiveImporter`, and anything else goes to the dance-only
+/// `GenericJsonAdapter`. The source URL is stashed on `ImportRequest.uri` for
+/// provenance. A future source (CallersBox/ContraDB link) can reuse this seam
+/// without changing the queue.
 typedef UrlFetcher = Future<String> Function(String url);
 
 /// Why a [UrlFetcher] / URL builder / online-import step failed.
@@ -575,13 +588,16 @@ Future<String> fetchImportUrl(String url, {http.Client? client}) async {
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
+    // diagnostics: silent — converts to UrlFetchException and rethrows; logged at the UI boundary
     rethrow;
   } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(timeout) and rethrows; logged at the UI boundary
     throw UrlFetchException(
       UrlFetchFailureReason.timeout,
       timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
+    // diagnostics: silent — converts to UrlFetchException(unreachable) and rethrows;
     // Never interpolate the error/URL here: it could leak the pasted URL or
     // embedded credentials into a user-facing message.
     throw const UrlFetchException(UrlFetchFailureReason.unreachable);
@@ -620,7 +636,9 @@ typedef ImportUrlBuilder = String Function(String input);
 /// render a localized label (see `importSourceLabel` in
 /// `import_error_labels.dart`) instead of baking English on the data object.
 enum ImportSourceKind {
-  /// A Caller's Compendium JSON share file (the default, generic source).
+  /// A Caller's Compendium JSON share file (the generic, adapter-agnostic
+  /// source). It was the default selection until #823 moved that to The
+  /// Caller's Box; see [ImportSource.preselected].
   genericJson,
 
   /// The Caller's Box online source.
@@ -631,6 +649,16 @@ enum ImportSourceKind {
 
   /// A Caller's Companion `.USR` binary migration file.
   callersCompanionUsr,
+
+  /// A pasted list of dance titles, one per line, resolved against the local
+  /// collection and then The Caller's Box (issue #823). The only source whose
+  /// input is neither a file nor a URL.
+  titleList,
+
+  /// A signed, immutable collection from the pinned Compendium Analect
+  /// catalog. Its payload and metadata are verified before this source enters
+  /// review.
+  publishedCollection,
 }
 
 class ImportSource {
@@ -640,6 +668,8 @@ class ImportSource {
     this.urlBuilder,
     this.matchesUrl,
     this.bytePicker,
+    this.pastedTextOnly = false,
+    this.preselected = false,
   });
 
   /// Which source this is. Drives the localized label at the render site.
@@ -675,6 +705,31 @@ class ImportSource {
   /// The only byte source today is Caller's Companion `.USR` (see
   /// [defaultImportSources]).
   final ImportBytePicker? bytePicker;
+
+  /// When true this source's payload is **typed or pasted by the user**, not
+  /// read from a file or fetched from a URL, so the review screen hides its
+  /// file-picker button and URL row and relabels the paste field.
+  ///
+  /// Like [bytePicker] this governs the **input** concern only — which
+  /// affordances are shown and where the payload comes from. It deliberately
+  /// does **not** decide how the payload is planned or how commit/undo is
+  /// routed; commit routing stays gated on the concrete adapter type.
+  ///
+  /// The only pasted-text source today is the title list (see
+  /// [defaultImportSources]).
+  final bool pastedTextOnly;
+
+  /// Whether this source is the one selected when the review screen opens.
+  ///
+  /// Selection is deliberately **decoupled from list order** (issue #823): the
+  /// dropdown is ordered for scannability, with the pasted-title list first
+  /// because it is the entry point a caller reaches for most often, while The
+  /// Caller's Box is the source most imports actually come from and so is what
+  /// the screen opens on. Before #823 the screen simply selected
+  /// `sources.first`, which made the two inseparable. At most one source in a
+  /// list should set this; the screen falls back to the first source when none
+  /// does.
+  final bool preselected;
 }
 
 /// The host used to build a Caller's Box JSON endpoint from a **bare id**. The
@@ -811,12 +866,23 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// Returns e.g.
 /// `https://www.ibiblio.org/contradance/thecallersbox/index.php?title=<encoded>`.
 ///
+/// Pass [showAll] to append TCB's `show_all` parameter, which lifts the default
+/// 50-row cap and returns the complete match set (verified live 2026-08-06:
+/// `?title=moon` returns 50 of a stated 68, `?title=moon&show_all` returns all
+/// 68; the `show_all=` form with an empty value behaves identically to the bare
+/// flag, which is what lets this stay inside [Uri.https]'s parameter map rather
+/// than hand-building a query string outside the fetch guard). Broad queries can
+/// match many thousands of dances, so callers must decide against the page's
+/// stated total rather than requesting it unconditionally — see
+/// [parseCallersBoxMatchCount] and `CallersBoxOnline.search`.
+///
 /// Throws a [UrlFetchException] (message safe to show) when there is nothing to
 /// search — an empty [title] and no effective [phrases].
 String buildCallersBoxSearchUrl(
   String title, {
   CallersBoxPhraseQuery? phrases,
   String host = callersBoxHost,
+  bool showAll = false,
 }) {
   final trimmed = title.trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
@@ -826,6 +892,7 @@ String buildCallersBoxSearchUrl(
 
   final params = <String, String>{};
   if (trimmed.isNotEmpty) params['title'] = trimmed;
+  if (showAll) params['show_all'] = '';
   if (hasPhrases) {
     if (phrases.globalPos.isNotEmpty) {
       params['pos_lines'] = phrases.globalPos.join('\n');
@@ -984,13 +1051,16 @@ Future<String> fetchCallersBoxSearch(String url, {http.Client? client}) async {
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
+    // diagnostics: silent — converts to UrlFetchException and rethrows; logged at the UI boundary
     rethrow;
   } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(searchTimeout) and rethrows; logged at the UI boundary
     throw UrlFetchException(
       UrlFetchFailureReason.searchTimeout,
       timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
+    // diagnostics: silent — converts to UrlFetchException(callersBoxUnreachable) and rethrows;
     // Never interpolate the error/URL here (see fetchImportUrl).
     throw const UrlFetchException(UrlFetchFailureReason.callersBoxUnreachable);
   } finally {
@@ -1444,13 +1514,16 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
+    // diagnostics: silent — converts to UrlFetchException and rethrows; logged at the UI boundary
     rethrow;
   } on TimeoutException {
+    // diagnostics: silent — converts to UrlFetchException(searchTimeout) and rethrows; logged at the UI boundary
     throw UrlFetchException(
       UrlFetchFailureReason.searchTimeout,
       timeoutSeconds: importFetchTimeout.inSeconds,
     );
   } on Object {
+    // diagnostics: silent — converts to UrlFetchException(contraDbUnreachable) and rethrows;
     // Never interpolate the error here: keep ContraDB's failure message generic
     // and free of internal detail (matching the other guarded fetchers).
     throw const UrlFetchException(UrlFetchFailureReason.contraDbUnreachable);
@@ -1563,31 +1636,49 @@ bool _isCallersBoxUrl(Uri uri) {
 bool _isContraDbUrl(Uri uri) => _contraDbHosts.contains(uri.host.toLowerCase());
 
 /// The canonical, ordered list of selectable import sources
-/// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): the generic [GenericJsonAdapter]
-/// ("a Caller's Compendium JSON file", the default), the [CallersBoxAdapter]
-/// ("The Caller's Box"), the [ContraDbHtmlAdapter] ("ContraDB"), and the
-/// [CallersCompanionUsrAdapter] ("a Caller's Companion .USR file", a binary
-/// FileMaker 12 migration that also imports the program history).
+/// (`docs/ROADMAP.md` Phase 6.3/6.4/6.5): a pasted title list (issue #823), the
+/// [CallersBoxAdapter] ("The Caller's Box"), the [ContraDbHtmlAdapter]
+/// ("ContraDB"), the generic [GenericJsonAdapter] ("a Caller's Compendium JSON
+/// file"), and the [CallersCompanionUsrAdapter] ("a Caller's Companion .USR
+/// file", a binary FileMaker 12 migration that also imports the program
+/// history).
+///
+/// Order and default selection are separate concerns (see
+/// [ImportSource.preselected]): the title list leads the dropdown, while The
+/// Caller's Box is what the screen opens on. Before #823 the screen selected
+/// `sources.first`, so the generic-JSON source was both first *and* the default;
+/// this list changes that default deliberately, per the maintainer's request on
+/// issue #823.
 ///
 /// Extracted here so every launch point (Settings and the Collection blade)
 /// shares one definition and the two can never drift. `picker`/`fetcher`
 /// injection is handled separately by each caller via [ImportReviewScreen].
 List<ImportSource> defaultImportSources() => [
   ImportSource(
-    kind: ImportSourceKind.genericJson,
-    adapterFactory: GenericJsonAdapter.new,
+    kind: ImportSourceKind.titleList,
+    // The drafts this source reviews are parsed by the Caller's Box adapter (it
+    // resolves each title through `CallersBoxOnline.loadPreview`), so this is
+    // the honest factory — and it keeps the source on the shared dance-only
+    // commit path, never Caller's Companion's program persistence.
+    adapterFactory: CallersBoxAdapter.new,
+    pastedTextOnly: true,
   ),
   ImportSource(
     kind: ImportSourceKind.callersBox,
     adapterFactory: CallersBoxAdapter.new,
     urlBuilder: buildCallersBoxJsonUrl,
     matchesUrl: _isCallersBoxUrl,
+    preselected: true,
   ),
   ImportSource(
     kind: ImportSourceKind.contraDb,
     adapterFactory: ContraDbHtmlAdapter.new,
     urlBuilder: buildContraDbUrl,
     matchesUrl: _isContraDbUrl,
+  ),
+  ImportSource(
+    kind: ImportSourceKind.genericJson,
+    adapterFactory: GenericJsonAdapter.new,
   ),
   ImportSource(
     kind: ImportSourceKind.callersCompanionUsr,

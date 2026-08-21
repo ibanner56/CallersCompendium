@@ -19,8 +19,10 @@ import 'package:test/test.dart';
 /// The [_squareThroughPassList] pre-recognizer (mirroring the `hey` pass-list
 /// decoder) reads the pass codes: odd passes name `who`, even passes name
 /// `who2`, hands alternate to give the base `hand`, and `balance: false` is
-/// emitted explicitly for import fidelity (TCB writes the balance as a separate
-/// line, never inline — the same discipline `_roryOMore` uses).
+/// emitted explicitly so the recognizer does not inherit the taxonomy default
+/// of `true`. A preceding balance line is then folded into the square_through
+/// as `balance: true` by [_foldBalanceIntoMove] (#804), matching ContraDB's
+/// shape for the same choreography.
 ///
 /// The reference dance is **Tangled Yarns** by Isaac Banner
 /// (TCB dance 18623 / ContraDB 2210); its B1 compound is reproduced verbatim
@@ -115,39 +117,41 @@ void main() {
   });
 
   group('#799 — end-to-end: Tangled Yarns B1 compound (TCB 18623)', () {
-    test('the two interrupted-square-through blocks import faithfully', () async {
-      final figures = await _importedFigures([
-        '(8) Interrupted square through 2 [with N2, shadow]:',
-        '     (4) N2 neighbor balance (RH)',
-        '     (4) Square through 2 (N2R;SL)',
-        '(8) Interrupted square through 2 [with N2, partner]:',
-        '     (4) Partner balance (RH)',
-        '     (4) Square through 2 (PR;N2L)',
-      ]);
+    test(
+      'the two interrupted-square-through blocks import faithfully',
+      () async {
+        final figures = await _importedFigures([
+          '(8) Interrupted square through 2 [with N2, shadow]:',
+          '     (4) N2 neighbor balance (RH)',
+          '     (4) Square through 2 (N2R;SL)',
+          '(8) Interrupted square through 2 [with N2, partner]:',
+          '     (4) Partner balance (RH)',
+          '     (4) Square through 2 (PR;N2L)',
+        ]);
 
-      // Each compound emits its two children (#712/#295): a balance, then the
-      // square through. Four figures, none custom.
-      expect(figures, hasLength(4));
-      expect(figures.every((f) => !f.isCustom), isTrue);
+        // #804: square_through is now in _balanceMergeMoves, so the preceding
+        // balance folds into the square_through (balance: true, summed beats),
+        // matching ContraDB's shape. Two figures, none custom.
+        expect(figures, hasLength(2));
+        expect(figures.every((f) => !f.isCustom), isTrue);
 
-      // Block 1: N2 balance, then square through neighbors → shadows.
-      expect(figures[0].move, 'balance');
-      expect(figures[0].params['who'], 'nextNeighbors');
-      expect(figures[1].move, 'square_through');
-      expect(figures[1].params['who'], 'nextNeighbors');
-      expect(figures[1].params['who2'], 'shadows');
-      expect(figures[1].params['balance'], isFalse);
+        // Block 1: balance folded into square through neighbors → shadows.
+        expect(figures[0].move, 'square_through');
+        expect(figures[0].params['who'], 'nextNeighbors');
+        expect(figures[0].params['who2'], 'shadows');
+        expect(figures[0].params['balance'], isTrue);
+        expect(figures[0].beats, 8);
 
-      // Block 2: partner balance, then square through partners → nextNeighbors.
-      expect(figures[2].move, 'balance');
-      expect(figures[2].params['who'], 'partners');
-      expect(figures[3].move, 'square_through');
-      expect(figures[3].params['who'], 'partners');
-      expect(figures[3].params['who2'], 'nextNeighbors');
-      expect(figures[3].params['balance'], isFalse);
+        // Block 2: balance folded into square through partners → nextNeighbors.
+        expect(figures[1].move, 'square_through');
+        expect(figures[1].params['who'], 'partners');
+        expect(figures[1].params['who2'], 'nextNeighbors');
+        expect(figures[1].params['balance'], isTrue);
+        expect(figures[1].beats, 8);
 
-      // The whole B1 phrase's beats are preserved (8 + 8 = 16).
-      expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
-    });
+        // The whole B1 phrase's beats are preserved (8 + 8 = 16).
+        expect(figures.fold<int>(0, (a, f) => a + f.beats), 16);
+      },
+    );
   });
 }

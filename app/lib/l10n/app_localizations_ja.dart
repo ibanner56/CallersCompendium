@@ -79,6 +79,55 @@ class AppLocalizationsJa extends AppLocalizations {
   String get migrationSnapshotConsentProceed => 'バックアップなしで続行';
 
   @override
+  String get migrationBelowFloorHeadline => 'このデータは開けないほど古いバージョンのものです';
+
+  @override
+  String migrationBelowFloorBody(String bridgeTag) {
+    return 'データは復元できます。$bridgeTagをインストールし、データを更新するためにアプリを一度開いてから、このバージョンを再度インストールしてください。\n\n新しく始めたい場合は、下のオプションを使用してください。現在のデータは失われます。';
+  }
+
+  @override
+  String get migrationBelowFloorBackUpAndReset => 'バックアップしてリセット';
+
+  @override
+  String get migrationBelowFloorResetOnly => 'リセットのみ';
+
+  @override
+  String get migrationBelowFloorBackupFailedTitle => 'バックアップ失敗';
+
+  @override
+  String get migrationBelowFloorBackupFailedBody =>
+      'バックアップの書き込みに失敗したため、データはリセットされていません。';
+
+  @override
+  String get migrationBelowFloorResetConfirmTitle => 'アプリのデータをリセットしますか？';
+
+  @override
+  String get migrationBelowFloorResetConfirmBody =>
+      'バックアップは保存されました。リセットすると、現在のデータが新しい空のデータベースに置き換えられます。';
+
+  @override
+  String migrationBelowFloorBackupSavedAt(String backupPath) {
+    return 'バックアップの保存先：$backupPath';
+  }
+
+  @override
+  String migrationBelowFloorDiagnosticLogSavedAt(String logPath) {
+    return '診断ログの保存先：$logPath';
+  }
+
+  @override
+  String get migrationBelowFloorResetOnlyConfirmBody =>
+      'バックアップは作成されません。リセットすると、現在のデータがすべて永久に削除され、新しい空のデータベースに置き換えられます。この操作は元に戻せません。';
+
+  @override
+  String get migrationBelowFloorWipeFailedTitle => 'リセットに失敗しました';
+
+  @override
+  String get migrationBelowFloorWipeFailedBody =>
+      'データベースファイルを削除できませんでした。データは変更されていません。ファイルを使用している可能性のある他のアプリを閉じてから、再度お試しください。';
+
+  @override
   String get confirmDeleteTitle => '削除しますか？';
 
   @override
@@ -94,6 +143,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralTitle => '一般';
+
+  @override
+  String get settingsProgramTitle => 'プログラム';
 
   @override
   String get settingsAppearanceTitle => '外観';
@@ -429,7 +481,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsAppearanceSetListColorSubtitle =>
-      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
+      '各ダンス行をフォーメーションファミリー（コントラ、ミキサー、スクエアなど）で着色します。ミキサーに設定されたダンスは、フォーメーションにかかわらず常にミキサーの色が使われます。フォーメーションは常にテキストでも表示されるため、色なしでも読み取れます。';
 
   @override
   String get settingsAppearanceFormationColoursTitle => 'フォーメーションラベルの色';
@@ -497,11 +549,52 @@ class AppLocalizationsJa extends AppLocalizations {
       'コレクションを開いたときの並び順です。閲覧中でも並び順を変更できます。';
 
   @override
+  String get settingsDefaultsSortLastUsed => '前回使用した並び順';
+
+  @override
+  String get settingsDefaultsProgramSortTitle => 'プログラムの並び順';
+
+  @override
+  String get settingsDefaultsProgramSortSubtitle =>
+      'プログラム一覧を開いたときの並び順です。閲覧中に並び順を変更することもできます。';
+
+  @override
   String get settingsDefaultsCanonicalTitle => 'ダンスの詳細を正式な用語で表示する';
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
       'オンにすると、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが表示されます。ダンスを開いている間もビューを切り替えられます。';
+
+  @override
+  String get settingsDefaultsCollectionCardHeader => 'コレクションカードの項目';
+
+  @override
+  String get settingsDefaultsCollectionCardSubtitle =>
+      '各ダンス行に表示する詳細を選択します。既定ではすべての項目が表示されます。';
+
+  @override
+  String get settingsDefaultsCollectionCardAuthors => '作者';
+
+  @override
+  String get settingsDefaultsCollectionCardCalledCount => '使用回数';
+
+  @override
+  String get settingsDefaultsCollectionCardFormation => 'フォーメーション';
+
+  @override
+  String get settingsDefaultsCollectionCardStatus => 'ステータス';
+
+  @override
+  String get settingsDefaultsCollectionCardLevel => 'レベル';
+
+  @override
+  String get settingsDefaultsCollectionCardRating => '評価';
+
+  @override
+  String get settingsDefaultsCollectionCardTags => 'タグ';
+
+  @override
+  String get settingsDefaultsCollectionCardCustomFields => 'カスタムフィールド';
 
   @override
   String get settingsDefaultsAuthoringHeader => 'ダンス作成のデフォルト設定';
@@ -613,6 +706,46 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get settingsAppearanceTagColoursHeader => 'タグの色';
+
+  @override
+  String get settingsAppearanceTagColoursTitle => 'タグの色';
+
+  @override
+  String get settingsAppearanceTagColoursSubtitle =>
+      'タグに独自の色を設定すると、ダンスカードやダンスの詳細で目立つようになります。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
+
+  @override
+  String get settingsTagColoursTitle => 'タグの色';
+
+  @override
+  String get settingsTagColoursIntro =>
+      'タグに独自の色を設定すると、表示されるあらゆる場所で目立つようになります。変わるのは色を設定したタグだけで、それ以外は今までどおりです。タグ名は常に表示されるため、色がなくてもタグは読み取れます。';
+
+  @override
+  String get settingsTagColoursListHeader => 'タグ';
+
+  @override
+  String get settingsTagColoursEmpty => 'まだタグを作成していません。ダンスにタグを追加すると、ここに表示されます。';
+
+  @override
+  String get settingsTagColoursCustom => 'カスタムカラー';
+
+  @override
+  String get settingsTagColoursNoColour => '色なし';
+
+  @override
+  String settingsTagColoursResetTooltip(String label) {
+    return '$labelの色を削除';
+  }
+
+  @override
+  String get settingsTagColoursSaveError => 'その色を保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get settingsTagColoursLoadError => 'タグを読み込めませんでした。';
+
+  @override
   String get settingsGeneralLibraryHeader => 'ライブラリ';
 
   @override
@@ -639,6 +772,157 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsGeneralManageVenuesSubtitle => '再利用可能な会場レコードを閲覧、編集、削除します。';
 
   @override
+  String get settingsGeneralProgramsHeader => 'プログラム';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionTitle => '拍の正確な重なりのみをフラグ';
+
+  @override
+  String get settingsGeneralMatrixExactCollisionSubtitle =>
+      'プログラムマトリクスでは、連続する2つのダンス間で繰り返される動きは、拍が実際に重なる場合のみフラグが立ちます。同じ名前のフレーズ（A1、A2、B1、B2…）に含まれるだけではフラグは立ちません。オフにすると、拍自体が重ならなくても、同じフレーズ内の繰り返しがすべてフラグとして表示されます。';
+
+  @override
+  String get settingsProgramAutoCommitTitle => 'プログラムの変更を自動保存';
+
+  @override
+  String get settingsProgramAutoCommitSubtitle =>
+      'オンにすると、有効な変更が作業中に保存されるため、エディターを終了するときに破棄するかどうかを確認されません。オフにすると、プログラムを明示的に保存します。';
+
+  @override
+  String get settingsMatrixColumnsHeader => 'マトリクスの列';
+
+  @override
+  String get settingsMatrixColumnsSubtitle =>
+      'プログラミングマトリクスに表示される列を並べ替え、名前変更、または削除します。変更はすべてのプログラムに適用されます。';
+
+  @override
+  String settingsMatrixColumnsDragToReorder(String label) {
+    return 'ドラッグして$label列を並べ替え';
+  }
+
+  @override
+  String get settingsMatrixColumnsRenamedBadge => '名前変更済み';
+
+  @override
+  String get settingsMatrixColumnsRenameTooltip => '列の名前を変更';
+
+  @override
+  String get settingsMatrixColumnsRemoveTooltip => '列を削除';
+
+  @override
+  String get settingsMatrixColumnsRestoreTooltip => '列を復元';
+
+  @override
+  String get settingsMatrixColumnsRenameTitle => '列の名前を変更';
+
+  @override
+  String get settingsMatrixColumnsRenameLabel => '列ラベル';
+
+  @override
+  String get settingsMatrixColumnsResetRemoved => '削除した列を復元';
+
+  @override
+  String get settingsMatrixColumnsResetTrue => 'すべての既定値に戻す';
+
+  @override
+  String get settingsMatrixColumnsResetTrueTitle => 'すべての既定値に戻しますか？';
+
+  @override
+  String get settingsMatrixColumnsResetTrueBody =>
+      '列の並べ替え、名前変更、削除（カスタム列を含む）をすべて消去し、マトリクスを既定の列に戻します。この操作は元に戻せません。';
+
+  @override
+  String get settingsMatrixColumnsResetTrueConfirm => '既定に戻す';
+
+  @override
+  String get settingsMatrixColumnsParameterizedAdd => 'パラメーター付き列を追加';
+
+  @override
+  String get settingsMatrixColumnsParameterizedTitle => 'パラメーター付き列を追加';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEditTitle => 'パラメーター付き列を編集';
+
+  @override
+  String get settingsMatrixColumnsParameterizedMove => 'フィギュア';
+
+  @override
+  String get settingsMatrixColumnsParameterizedConstraints => '一致させる正確なパラメーター';
+
+  @override
+  String get settingsMatrixColumnsParameterizedNoParams =>
+      'このフィギュアにはパラメーターがありません。';
+
+  @override
+  String get settingsMatrixColumnsParameterizedLabel => '列名';
+
+  @override
+  String get settingsMatrixColumnsParameterizedEdit => '一致条件を編集';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDelete => 'パラメーター付き列を削除';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteTitle =>
+      'パラメーター付き列を削除しますか？';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteBody =>
+      '列とその一致条件をマトリックスから削除します。この操作は元に戻せません。';
+
+  @override
+  String get settingsMatrixColumnsParameterizedDeleteConfirm => '列を削除';
+
+  @override
+  String get settingsMatrixColumnsCompoundAdd => '複合列を追加';
+
+  @override
+  String get settingsMatrixColumnsCompoundTitle => '複合列を追加';
+
+  @override
+  String get settingsMatrixColumnsCompoundEditTitle => '複合列を編集';
+
+  @override
+  String get settingsMatrixColumnsCompoundSteps => 'ステップ';
+
+  @override
+  String get settingsMatrixColumnsCompoundMove => 'フィギュア';
+
+  @override
+  String get settingsMatrixColumnsCompoundParameters => '完全一致パラメータ';
+
+  @override
+  String get settingsMatrixColumnsCompoundAddStep => 'ステップを追加';
+
+  @override
+  String get settingsMatrixColumnsCompoundRemoveStep => 'ステップを削除';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveUp => 'ステップを前へ移動';
+
+  @override
+  String get settingsMatrixColumnsCompoundMoveDown => 'ステップを後へ移動';
+
+  @override
+  String get settingsMatrixColumnsCompoundLabel => '列名';
+
+  @override
+  String get settingsMatrixColumnsCompoundEdit => 'シーケンスを編集';
+
+  @override
+  String get settingsMatrixColumnsCompoundDelete => '複合列を削除';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteTitle => '複合列を削除しますか？';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteBody =>
+      '列と一致するシーケンスをマトリックスから削除します。この操作は元に戻せません。';
+
+  @override
+  String get settingsMatrixColumnsCompoundDeleteConfirm => '列を削除';
+
+  @override
   String get settingsGeneralPerformanceHeader => 'パフォーマンス';
 
   @override
@@ -661,11 +945,11 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersTitle =>
-      'Track calling history for all callers';
+      'すべてのコーラーのコーリング履歴を記録する';
 
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
-      'When off and a default caller is set, calling history and counts include only programs led by that caller. When on — or when no default caller is set — every program that contains the dance is tracked.';
+      'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラム、およびコーラーが記録されていないプログラム（自分のプログラムとして扱われます）が含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
@@ -770,13 +1054,13 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get backupRestoreSettingsFailed =>
-      'Your dances and programs were restored, but applying your saved settings failed. Your restored content is safe — you can retry applying settings.';
+      'ダンスとプログラムは復元されましたが、保存された設定の適用に失敗しました。復元された内容は無事です。設定の適用を再試行できます。';
 
   @override
-  String get backupRestoreSettingsRetryAction => 'Retry settings';
+  String get backupRestoreSettingsRetryAction => '設定を再試行';
 
   @override
-  String get backupRestoreSettingsRetried => 'Settings applied.';
+  String get backupRestoreSettingsRetried => '設定を適用しました。';
 
   @override
   String get backupExportTitle => 'バックアップをエクスポート';
@@ -930,6 +1214,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonCancel => 'キャンセル';
 
   @override
+  String get commonContinue => '続ける';
+
+  @override
   String get commonUndo => '元に戻す';
 
   @override
@@ -1052,6 +1339,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonFormationGrid => 'グリッド';
 
   @override
+  String get commonFormationQuadruplet => 'Quadruplet';
+
+  @override
   String get commonFormationOther => 'その他';
 
   @override
@@ -1061,6 +1351,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonMixedLevel => 'ミックスレベル';
+
+  @override
+  String get commonMixer => 'ミキサー';
 
   @override
   String commonShowDancesTaggedTooltip(String tagName) {
@@ -1175,6 +1468,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
+
+  @override
+  String get collectionSearchScopeLabel => '検索対象';
+
+  @override
+  String get collectionSearchScopeOmni => 'すべてのフィールド';
+
+  @override
+  String get collectionSearchScopeTitle => 'タイトル';
+
+  @override
+  String get collectionSearchScopeFigure => 'フィギュア';
 
   @override
   String get collectionClearSearchTooltip => '検索とフィルターをクリア';
@@ -1738,6 +2043,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceCallingHistoryEmpty => 'まだプログラムに含まれていません。';
+
+  @override
+  String get danceCallingHistoryError => 'コール履歴を読み込めませんでした。';
 
   @override
   String get danceShowCanonicalTerms => '正式な用語で表示';
@@ -2313,6 +2621,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMarkPerformedMenu => '実施済みとしてマーク';
 
   @override
+  String get programsCreateDanceFromNoteMenu => 'これからダンスを作成';
+
+  @override
+  String programsCreatedDanceFromNoteAnnounce(String title) {
+    return '$titleを作成し、このスロットにリンクしました。';
+  }
+
+  @override
   String get programsRemoveSlotMenu => 'スロットを削除';
 
   @override
@@ -2323,6 +2639,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsEditDanceSlotTitle => 'ダンススロットを編集';
+
+  @override
+  String get programsCurrentDanceLabel => 'ダンス';
+
+  @override
+  String get programsReplaceDanceButton => '置き換え…';
+
+  @override
+  String get programsReplaceDanceSheetTitle => 'ダンスを置き換え';
+
+  @override
+  String programsReplacedDanceAnnounce(String title) {
+    return '$titleに置き換えました。';
+  }
 
   @override
   String get programsEditNoteTitle => 'ノートを編集';
@@ -2428,7 +2758,8 @@ class AppLocalizationsJa extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'yes': '、隣接するダンスと同じフレーズで繰り返される',
+      'phrase': '、隣接するダンスと同じフレーズで繰り返される',
+      'beats': '、隣接するダンスと拍が重なる',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2508,6 +2839,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsMatrixLegendCollision => '隣接ダンスと同じフレーズ';
+
+  @override
+  String get programsMatrixLegendCollisionBeats => '隣接ダンスと拍が重なる';
 
   @override
   String get programsMatrixEmptyTitle => 'まだ構造化されたフィギュアがありません';
@@ -2841,6 +3175,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportSetListCopied => 'セットリストをクリップボードにコピーしました。';
 
   @override
+  String get exportShareProgramJson => 'JSONファイルとして書き出す';
+
+  @override
   String get exportShareSetListError => 'このセットリストを共有できませんでした';
 
   @override
@@ -2848,6 +3185,18 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportSetListError => 'このセットリストをエクスポートできませんでした';
+
+  @override
+  String get exportIncludeFiguresTitle => 'フィギュアを含めますか？';
+
+  @override
+  String get exportIncludeFiguresSetListOnly => 'セットリストのみ';
+
+  @override
+  String get exportIncludeFiguresSetListAndFigures => 'セットリストとフィギュア';
+
+  @override
+  String get exportIncludeFiguresAlternate => '代替';
 
   @override
   String get exportMatrixPdfTooltip => 'マトリックスをPDFにエクスポートまたは印刷';
@@ -2860,6 +3209,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get exportLabelLevel => 'レベル';
+
+  @override
+  String get exportLabelMixer => 'ミキサー';
 
   @override
   String get exportLabelStatus => 'ステータス';
@@ -2961,6 +3313,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportMatrixLegendCollision => '隣接ダンスと同じフレーズ';
 
   @override
+  String get exportMatrixLegendCollisionBeats => '隣接ダンスと拍が重なる';
+
+  @override
   String exportMatrixOmittedCaption(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -2976,9 +3331,6 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get exportVenueContactBody =>
       '会場の個人的な連絡先情報です。含めることを選択しない限り、このエクスポートには含まれません。';
-
-  @override
-  String get exportVenueContactConfirm => '続ける';
 
   @override
   String get exportVenueContact1Name => '連絡先1 名前';
@@ -3063,21 +3415,31 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineImportVariationDialogBody(String existingTitle) {
-    return 'This dance\'s title and caller match \"$existingTitle\", but its figures are different. How do you want to import it?';
+    return 'このダンスのタイトルとコーラーは「$existingTitle」と一致しますが、フィギュアが異なります。どのようにインポートしますか？';
   }
 
   @override
-  String get onlineImportVariationDialogActionVariation =>
-      'Import as a variation';
+  String get onlineImportVariationDialogActionVariation => 'バリエーションとして取り込む';
 
   @override
-  String get onlineImportVariationDialogActionLink =>
-      'Same dance (update existing)';
+  String get onlineImportVariationDialogActionLink => '同じダンス（既存を更新）';
 
   @override
   String onlineImportVariationDialogLinkWarning(String existingTitle) {
-    return 'Your edits, tags, and rating for \"$existingTitle\" will be replaced.';
+    return '「$existingTitle」のあなたのバージョンは、オンラインの記録に置き換えられます。フィギュア、コーリングノート、タグ、評価、カスタムフィールドも含まれます。プログラム内の位置とコーリング履歴は保持されます。';
   }
+
+  @override
+  String get onlineImportCrossSourceDuplicateDialogTitle => 'このダンスはすでにあります';
+
+  @override
+  String onlineImportCrossSourceDuplicateDialogBody(String existingTitle) {
+    return 'コレクションには別のソースからの「$existingTitle」がすでにあります。どちらのバージョンもムーブの並びは同じです。';
+  }
+
+  @override
+  String get onlineImportCrossSourceDuplicateDialogActionDuplicate =>
+      '2つ目のコピーをインポート';
 
   @override
   String get onlineAttributionCallersBox => 'The Caller\'s Box（オンライン）より';
@@ -3163,23 +3525,21 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importContraDbNoMatches => '一致するプログラムがありません。';
 
   @override
-  String get importContraDbMarkerImported => 'Imported';
+  String get importContraDbMarkerImported => 'インポート済み';
 
   @override
   String importContraDbMarkerImportedTooltip(String date) {
-    return 'Imported on $date';
+    return '$dateにインポート';
   }
 
   @override
-  String get importContraDbMarkerImportedTooltipNoDate =>
-      'Already imported from ContraDB';
+  String get importContraDbMarkerImportedTooltipNoDate => 'ContraDBからインポート済み';
 
   @override
-  String get importContraDbMarkerPossible => 'Possibly imported';
+  String get importContraDbMarkerPossible => 'インポートの可能性あり';
 
   @override
-  String get importContraDbMarkerPossibleTooltip =>
-      'A program with this title already exists';
+  String get importContraDbMarkerPossibleTooltip => 'このタイトルのプログラムはすでに存在します';
 
   @override
   String importContraDbFetchError(String error) {
@@ -3261,7 +3621,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importResolveOnline => 'オンラインで未一致を解決';
 
   @override
-  String get importPlaintextImportedOnline => 'Caller\'s Boxからインポート';
+  String get importPlaintextImportedOnline => 'オンラインからインポート済み';
 
   @override
   String get importPlaintextLinked => 'ダンスにリンク';
@@ -3273,7 +3633,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importPlaintextUnmatched => '一致なし — ノートとして追加';
 
   @override
-  String get importPlaintextSearchError => 'The Caller\'s Boxを検索できませんでした。';
+  String get importPlaintextSearchError => 'オンライン検索に失敗しました。';
 
   @override
   String importPlaintextSlotCount(int count) {
@@ -3290,9 +3650,9 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '$remaining件のタイトルをノートとして保持',
+      other: '$remaining件をメモとして保存',
     );
-    return '自信を持って一致するCaller\'s Boxの結果が見つかりませんでした — $_temp0。';
+    return '確実なオンライン一致は見つかりませんでした — $_temp0。';
   }
 
   @override
@@ -3300,15 +3660,15 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       linked,
       locale: localeName,
-      other: '$linked件のタイトル',
+      other: '$linked件',
     );
     String _temp1 = intl.Intl.pluralLogic(
       remaining,
       locale: localeName,
-      other: '；$remaining件はまだノートです。',
+      other: '；$remaining件はメモのまま。',
       zero: '。',
     );
-    return 'The Caller\'s Boxから$_temp0をリンクしました$_temp1';
+    return 'オンラインで$_temp0のタイトルをリンクしました$_temp1';
   }
 
   @override
@@ -3339,6 +3699,143 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get importSourceLabelCallersCompanionUsr =>
       'Caller\'s Companion .USRファイル';
+
+  @override
+  String get importSourceLabelTitleList => 'タイトルのリスト';
+
+  @override
+  String get importReviewTitleListSubtitle =>
+      '1行に1つずつダンスのタイトルを貼り付けてください。すべてのタイトルが確認用に一覧表示されます。すでにお持ちのものは表示されますが、再インポートされることはありません。確認するまでコレクションには何も追加されません。';
+
+  @override
+  String get importReviewPasteTitles => 'ダンスのタイトル（1行に1つ）';
+
+  @override
+  String importReviewTitleListCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のタイトル',
+      zero: 'タイトルはまだありません',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件の重複タイトルを無視しました',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importTitleListTooManyTitles(int count, int max) {
+    return '$count件のタイトルがあります。一度にインポートできるのは$max件までです。';
+  }
+
+  @override
+  String get importTitleListTextTooLong =>
+      '貼り付けられたテキストが長すぎて、タイトルのリストとして読み取れません。短いリストを貼り付けてみてください。';
+
+  @override
+  String importReviewTitleListProgress(int done, int total) {
+    return '$total件中$done件を検索中…';
+  }
+
+  @override
+  String importReviewTitleListPasted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '貼り付けたタイトル$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewProgramAmbiguousLine(String title) {
+    return '「$title」 — 1つ選ぶか、メモのままにしてください';
+  }
+
+  @override
+  String importReviewTitleListToImport(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'インポート可能$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListOwned(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'すでにコレクションにあるもの$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListNotFound(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '見つからなかったもの$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListOwnedBy(String authors) {
+    return 'このダンスはすでにあります（振付：$authors）。';
+  }
+
+  @override
+  String get importReviewTitleListOwnedUnknownAuthor => 'このダンスはすでにあります。';
+
+  @override
+  String importReviewTitleListOwnedMany(int count) {
+    return 'このタイトルのダンスが$count件あります。';
+  }
+
+  @override
+  String get importTitleListReasonNoResults =>
+      'The Caller\'s Boxにこの名前のダンスはありません。';
+
+  @override
+  String get importTitleListReasonNoExactMatch =>
+      '近い候補のみで、このタイトルと完全に一致するものはありません。';
+
+  @override
+  String get importTitleListReasonMultipleExactMatches =>
+      '複数のダンスがこのタイトルと完全に一致するため、どれを指しているか判断できません。';
+
+  @override
+  String get importTitleListReasonFetchError =>
+      'このタイトルについてThe Caller\'s Boxに到達できませんでした。';
+
+  @override
+  String get importTitleListReasonLineTooLong =>
+      'ダンスのタイトルとしては長すぎるため、検索しませんでした。';
+
+  @override
+  String get importReviewTitleListNothingToImport =>
+      'ここにインポートできるものはありません。すべてのタイトルは、すでにコレクションにあるか、見つかりませんでした。';
+
+  @override
+  String importReviewSummaryAlreadyOwned(int count) {
+    return 'すでにコレクションにあるもの: $count';
+  }
+
+  @override
+  String importReviewSummaryNotFound(int count) {
+    return '見つかりませんでした: $count';
+  }
 
   @override
   String get importErrorFileTooLarge => 'そのファイルはインポートするには大きすぎます。';
@@ -3682,6 +4179,16 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String importReviewWillImport(int importable, int total) {
     return '$total件中$importable件がインポートされます';
+  }
+
+  @override
+  String importReviewWillImportPrograms(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件のプログラムも含まれます。',
+    );
+    return '$_temp0';
   }
 
   @override
@@ -4042,6 +4549,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMixedLevelSubtitle => '難易度の幅が広い';
 
   @override
+  String get danceEditorMixerSubtitle => '踊るたびにパートナーが変わります';
+
+  @override
   String get danceEditorComposedLabel => '振付年';
 
   @override
@@ -4148,40 +4658,40 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMonthDec => '12月';
 
   @override
-  String get monthFullJanuary => 'January';
+  String get monthFullJanuary => '1月';
 
   @override
-  String get monthFullFebruary => 'February';
+  String get monthFullFebruary => '2月';
 
   @override
-  String get monthFullMarch => 'March';
+  String get monthFullMarch => '3月';
 
   @override
-  String get monthFullApril => 'April';
+  String get monthFullApril => '4月';
 
   @override
-  String get monthFullMay => 'May';
+  String get monthFullMay => '5月';
 
   @override
-  String get monthFullJune => 'June';
+  String get monthFullJune => '6月';
 
   @override
-  String get monthFullJuly => 'July';
+  String get monthFullJuly => '7月';
 
   @override
-  String get monthFullAugust => 'August';
+  String get monthFullAugust => '8月';
 
   @override
-  String get monthFullSeptember => 'September';
+  String get monthFullSeptember => '9月';
 
   @override
-  String get monthFullOctober => 'October';
+  String get monthFullOctober => '10月';
 
   @override
-  String get monthFullNovember => 'November';
+  String get monthFullNovember => '11月';
 
   @override
-  String get monthFullDecember => 'December';
+  String get monthFullDecember => '12月';
 
   @override
   String get danceEditorAddTuneHint => 'おすすめのチューンを追加…';
@@ -4354,7 +4864,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorChoreographerDetailsIntro =>
-      'これらの詳細は、この作者のすべてのダンスで共有されます。メールと場所はプライベートです — このデバイスにのみ保存され、共有またはエクスポートされることはありません。';
+      'これらの詳細は、この作者のすべてのダンスで共有されます。メール、場所、故人の印はプライベートです — このデバイスにのみ保存され、共有またはエクスポートされることはありません。';
 
   @override
   String get danceEditorNameRequiredLabel => '名前 *';
@@ -4552,14 +5062,14 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorMarkProgression => 'プログレッションとしてマーク';
 
   @override
-  String get danceEditorGroupWithNext => 'Group with next as meanwhile';
+  String get danceEditorGroupWithNext => '次と同時進行としてグループ化';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Meanwhile ($count sides)',
+      other: '同時進行（$countサイド）',
     );
     return '$_temp0';
   }
@@ -4569,37 +5079,35 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count concurrent figures',
-      one: '1 concurrent figure',
+      other: '$count件の同時進行フィギュア',
     );
     String _temp1 = intl.Intl.pluralLogic(
       beats,
       locale: localeName,
-      other: '$beats shared beats',
-      one: '1 shared beat',
+      other: '共有$beats拍',
     );
-    return 'Meanwhile group, $_temp0, $_temp1.';
+    return '同時進行グループ、$_temp0、$_temp1。';
   }
 
   @override
   String danceEditorMeanwhileSideLabel(int number) {
-    return 'Side $number';
+    return 'サイド$number';
   }
 
   @override
   String danceEditorMeanwhileSideSemantic(int number, int total) {
-    return 'Side $number of $total.';
+    return '$total件中$number番目のサイド。';
   }
 
   @override
-  String get danceEditorAddMeanwhileSide => 'Add side';
+  String get danceEditorAddMeanwhileSide => 'サイドを追加';
 
   @override
-  String get danceEditorRemoveMeanwhileSide => 'Remove this side';
+  String get danceEditorRemoveMeanwhileSide => 'このサイドを削除';
 
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
-    return 'Maximum of $max concurrent figures.';
+    return '同時進行フィギュアは最大$max件です。';
   }
 
   @override
@@ -4786,7 +5294,27 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String collectionPickerAddedTooltip(String title) {
-    return 'Added $title';
+    return '$titleを追加しました';
+  }
+
+  @override
+  String collectionPickerReplaceSemantic(String title) {
+    return '$titleに置き換え';
+  }
+
+  @override
+  String collectionPickerReplaceTooltip(String title) {
+    return '$titleに置き換え';
+  }
+
+  @override
+  String collectionPickerInProgramSemantic(String title) {
+    return '$titleはすでにプログラムに含まれています';
+  }
+
+  @override
+  String collectionPickerInProgramCountSemantic(String title, int count) {
+    return '$titleはプログラムに$count回含まれています';
   }
 
   @override
@@ -4865,40 +5393,39 @@ class AppLocalizationsJa extends AppLocalizations {
       'このショートハンドの展開先に少なくとも1つのフィギュアを追加してください。';
 
   @override
-  String get importShorthandSeedTitle => 'Seed figure shorthands';
+  String get importShorthandSeedTitle => 'フィギュアのショートハンドを作成';
 
   @override
   String get importShorthandSeedIntro =>
-      'Your Caller\'s Companion file\'s call buttons can become figure shorthands. Pick the ones you want; each expands to the figures shown. Nothing is added until you confirm, and your existing shorthands are never overwritten.';
+      'Caller\'s Companionファイルのコールボタンをフィギュアのショートハンドにできます。必要なものを選んでください。それぞれが表示されたフィギュアに展開されます。確認するまで何も追加されず、既存のショートハンドが上書きされることはありません。';
 
   @override
-  String get importShorthandSeedAvailableHeader => 'From your call buttons';
+  String get importShorthandSeedAvailableHeader => 'コールボタンから';
 
   @override
-  String get importShorthandSeedUsePrimary => 'Primary';
+  String get importShorthandSeedUsePrimary => 'プライマリ';
 
   @override
-  String get importShorthandSeedUseAlt => 'Alternate';
+  String get importShorthandSeedUseAlt => '代替';
 
   @override
-  String get importShorthandSeedConflictHeader => 'Already defined — skipped';
+  String get importShorthandSeedConflictHeader => '定義済みのためスキップ';
 
   @override
   String importShorthandSeedConflictNote(String token) {
-    return 'A shorthand named “$token” already exists, so this button was left as-is.';
+    return '「$token」という名前のショートハンドがすでに存在するため、このボタンはそのままにしました。';
   }
 
   @override
-  String get importShorthandSeedSkip => 'Skip';
+  String get importShorthandSeedSkip => 'スキップ';
 
   @override
   String importShorthandSeedConfirm(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seed $count shorthands',
-      one: 'Seed 1 shorthand',
-      zero: 'Seed shorthands',
+      other: '$count件のショートハンドを作成',
+      zero: 'ショートハンドを作成',
     );
     return '$_temp0';
   }
@@ -4908,8 +5435,7 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: 'Seeded $count shorthands',
-      one: 'Seeded 1 shorthand',
+      other: '$count件のショートハンドを作成しました',
     );
     return '$_temp0';
   }
@@ -5183,6 +5709,23 @@ class AppLocalizationsJa extends AppLocalizations {
   String customFieldsAddOptionTitle(String label) {
     return '$labelに選択肢を追加';
   }
+
+  @override
+  String get customFieldsShareable => '共有に含める';
+
+  @override
+  String get customFieldsShareableSubtitle =>
+      'このフィールドの値は、コレクションをエクスポートまたは共有するときに一緒に送られます';
+
+  @override
+  String get customFieldsSharingNoticeTitle => 'カスタムフィールドはコレクションと一緒に送られます';
+
+  @override
+  String get customFieldsSharingNoticeBody =>
+      '作成したカスタムフィールドの内容は、コレクションをエクスポートまたは共有するときに含まれます。フィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
+
+  @override
+  String get customFieldsSharingNoticeOk => '了解';
 
   @override
   String dialectEditorTitle(String name) {
@@ -5497,5 +6040,80 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String venuePickerCreateOption(String name) {
     return '新しい会場「$name」を追加';
+  }
+
+  @override
+  String get danceReimport => '振り付けを再インポート';
+
+  @override
+  String get danceReimportJson => 'Callers Compendium JSON';
+
+  @override
+  String get danceReimportNoResults =>
+      '一致するダンスが見つかりませんでした。別のソースを選ぶか、後でもう一度お試しください。';
+
+  @override
+  String get danceReimportChooseResult => '再インポートするダンスを選択';
+
+  @override
+  String get danceReimportProgramArchive =>
+      'このファイルにはプログラムが含まれているため、1つのダンスの再インポートには使用できません。';
+
+  @override
+  String get danceReimportInvalidJson => 'ダンスをちょうど1つ含む有効なファイルを選択してください。';
+
+  @override
+  String get danceReimportSourceFailed => 'そのソースからダンスを読み込めませんでした。もう一度お試しください。';
+
+  @override
+  String get danceReimported => '振り付けを更新しました。';
+
+  @override
+  String get danceReimportTargetMissing => 'このダンスは更新前に削除されました。';
+
+  @override
+  String get danceReimportTargetChanged =>
+      'このダンスは更新前に変更されました。内容を確認して、もう一度お試しください。';
+
+  @override
+  String get publishedCollectionsTitle => '公開コレクション';
+
+  @override
+  String get importSourceLabelPublishedCollection => '公開コレクション';
+
+  @override
+  String get publishedCollectionsDescription =>
+      'Compendium Analect から署名済みの不変なダンスコレクションをインポートします。';
+
+  @override
+  String get publishedCollectionsLoading => '公開コレクションを読み込み中…';
+
+  @override
+  String get publishedCollectionsUnavailable => '公開コレクションは一時的に利用できません。';
+
+  @override
+  String get publishedCollectionImport => 'コレクションをインポート';
+
+  @override
+  String get publishedCollectionUnsupported => 'このコレクションには新しいアプリバージョンが必要です。';
+
+  @override
+  String publishedCollectionImportedVersion(String version) {
+    return 'インポート済みバージョン: $version';
+  }
+
+  @override
+  String publishedCollectionHeldCount(int held, int total) {
+    return '$total 件中 $held 件のダンスを保持';
+  }
+
+  @override
+  String publishedCollectionDetails(String id, String version, int count) {
+    return '$id · $version · ダンス $count件';
+  }
+
+  @override
+  String publishedCollectionSupersedes(String version) {
+    return 'バージョン $version を置き換え';
   }
 }

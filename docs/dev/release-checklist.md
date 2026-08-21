@@ -18,14 +18,28 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Working tree clean; you are on `main` at the exact commit you intend to tag.
 
 ## 1. Version & metadata (Gate)
-- [ ] `app/pubspec.yaml` version bumped to the target (e.g. `0.1.0-beta.1` / build
- no.). (The repo-root `pubspec.yaml` is the workspace file and has **no**
- `version:`; the releasable version lives in `app/pubspec.yaml`.)
+- [ ] `app/pubspec.yaml` `version:` carries the **core** `x.y.z` being shipped,
+ with **no prerelease suffix** — a beta ships with the plain core (`0.1.0+1` for
+ every `v0.1.0-beta.N`), and the channel comes from the tag. The gate compares
+ the tag's core (prerelease stripped) against the pubspec version with only
+ `+build` stripped — the prerelease is *kept* on the pubspec side — so
+ `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and **fails the
+ `meta` gate**. Bump it only when the core version itself changes. (The repo-root
+ `pubspec.yaml` is the workspace file and has **no** `version:`; the releasable
+ version lives in `app/pubspec.yaml`.)
 - [ ] Version string is consistent everywhere it appears (about screen, update
  manifest, any hardcoded constant).
 - [ ] `kCompendiumSchemaVersion` matches the schema actually shipped; if it moved
  since the last tag, a migration + migration test exists for every step.
  (Reminder: never bump schema in a patch release.)
+- [ ] If `kCompendiumSchemaVersion` or `contraTaxonomyVersion` moved since the
+ versioned CHANGELOG section was last written, that section has a **Data /
+ Migrations** entry stating old → new and what the migration does. Each moved
+ constant needs its own labelled range (`schema … 20 → 25`,
+ `taxonomy … 23 → 27`); the gate checks them separately.
+- [ ] Exactly one `## [x.y.z]` heading for the release's core version
+ (`grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md` → `1`). Promotion merges into the
+ existing section; a second heading renders fine and orphans the older one.
 
 ## 2. Data safety (Gate — local-first app, user data is sacred)
 - [ ] Every schema migration since the last release has a v(N-1)→vN migration test
@@ -46,8 +60,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  Developer ID-signed + notarized when the `APPLE_*` secrets are configured (the
  sign/notarize/staple + `codesign`/`spctl` verify steps ran on **that tag's**
  release run); without the secrets the macOS leg is a clean UNSIGNED build.
- **Windows and Linux are still UNSIGNED** (expected) — note that explicitly so
- testers aren't surprised by SmartScreen/Gatekeeper warnings.
+ **Windows is signed via Azure Trusted Signing when its five `AZURE_*` repository variables
+ are configured; otherwise it remains UNSIGNED. Linux remains UNSIGNED** —
+ confirm the actual tag run's Windows signing and installer-signing steps, and
+ note any expected SmartScreen warning for an unsigned fallback.
 - [ ] iOS build is SIGNED + uploaded to TestFlight — on the **actual tag push**
  (which archives + signs the App Store `.ipa` via automatic signing and runs
  `xcrun altool --upload-app` because `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID` /

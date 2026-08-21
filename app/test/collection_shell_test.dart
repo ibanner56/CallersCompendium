@@ -4,13 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
-import 'package:compendium_app/src/data/collection_refresh_scope.dart';
 import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
+import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/search/collection_query.dart'
+    show CollectionSort;
 import 'package:compendium_app/src/widgets/brand_mark.dart';
 
 import 'support/test_repositories.dart';
@@ -33,6 +35,17 @@ Dance _dance({
   createdAt: DateTime.utc(2026, 1, 1),
   updatedAt: DateTime.utc(2026, 1, 1),
 );
+
+/// Picks the generic Caller's Compendium JSON source in the embedded import
+/// pane. Needed because #823 changed the default selection to The Caller's Box:
+/// order and default are now separate concerns, so a JSON archive must be routed
+/// to its own adapter explicitly.
+Future<void> _selectGenericJsonSource(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('import-source-select')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text("a Caller's Compendium JSON file").last);
+  await tester.pumpAndSettle();
+}
 
 /// Pump [CollectionShell] at a given surface [size].
 /// Wide surface (≥ 900 wide) triggers the split-pane layout.
@@ -57,20 +70,13 @@ Future<void> _pumpShell(
   });
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
-  final refresh = ValueNotifier<int>(0);
-  addTearDown(refresh.dispose);
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
       builder: (context, child) => RepositoriesScope(
         repositories: repos,
-        child: ActiveDialectScope(
-          notifier: notifier,
-          // Mirror main.dart: import commit/undo bumps this so the live list
-          // reloads. Optional in focused tests, required for the import flow.
-          child: CollectionRefreshScope(revision: refresh, child: child!),
-        ),
+        child: ActiveDialectScope(notifier: notifier, child: child!),
       ),
       home: CollectionShell(
         importPicker: importPicker,
@@ -329,6 +335,68 @@ void main() {
         expect(find.text('Select a dance'), findsOneWidget);
       },
     );
+
+    testWidgets('saving a new dance selects it in the detail pane', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      // Empty-state placeholder is visible; no detail screen yet.
+      expect(find.text('Select a dance'), findsOneWidget);
+      expect(find.byType(DanceDetailScreen), findsNothing);
+
+      // Tap the new-dance FAB — DanceEditorScreen is pushed.
+      await tester.tap(find.byKey(const ValueKey('new-dance')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceEditorScreen), findsOneWidget);
+
+      // Enter a title (minimum required to pass form validation) and save.
+      await tester.enterText(
+        find.byKey(const ValueKey('title-field')),
+        'Newly Created Dance',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-dance')));
+      await tester.pumpAndSettle();
+
+      // Editor popped; detail pane now shows the new dance.
+      expect(find.byType(DanceEditorScreen), findsNothing);
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+      // Placeholder is gone — selection happened.
+      expect(find.text('Select a dance'), findsNothing);
+    });
+
+    testWidgets(
+      'cancelling the new-dance editor leaves the previous selection unchanged',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Existing Dance'));
+
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
+
+        // Select an existing dance first.
+        await tester.tap(find.text('Existing Dance'));
+        await tester.pumpAndSettle();
+        expect(find.byType(DanceDetailScreen), findsOneWidget);
+
+        // Open the new-dance editor.
+        await tester.tap(find.byKey(const ValueKey('new-dance')));
+        await tester.pumpAndSettle();
+        expect(find.byType(DanceEditorScreen), findsOneWidget);
+
+        // Cancel via real back navigation — goes through PopScope, matching
+        // what a user can actually do.
+        await tester.pageBack();
+        await tester.pumpAndSettle();
+
+        // Editor is gone; original selection is intact.
+        expect(find.byType(DanceEditorScreen), findsNothing);
+        expect(find.byType(DanceDetailScreen), findsOneWidget);
+      },
+    );
   });
 
   // ── import button + flow ─────────────────────────────────────────────────────
@@ -458,6 +526,11 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('import-dances')));
       await tester.pumpAndSettle();
 
+      // The screen now opens on The Caller's Box (#823 changed the default from
+      // the generic-JSON source), so a Compendium archive has to be routed to
+      // its own source explicitly.
+      await _selectGenericJsonSource(tester);
+
       await tester.tap(find.byKey(const ValueKey('import-choose-file')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
@@ -470,7 +543,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Import view closed and the committed dance now shows in the live list
-      // (CollectionRefreshScope drove the reload).
+      // (the Collection stream drove the reload).
       expect(find.byType(ImportReviewScreen), findsNothing);
       expect(find.text('Imported Reel'), findsOneWidget);
 
@@ -497,6 +570,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('import-dances')));
       await tester.pumpAndSettle();
+      await _selectGenericJsonSource(tester);
       await tester.tap(find.byKey(const ValueKey('import-choose-file')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('import-continue')));
@@ -520,5 +594,100 @@ void main() {
         containsAll(<String>['Imported Reel', 'Imported Jig']),
       );
     });
+  });
+
+  group('rotation across the split-pane breakpoint (issue #895)', () {
+    /// Same hazard as `programs_shell_test.dart`'s rotation group: the narrow
+    /// branch builds a bare `DanceListScreen` (`collection_shell.dart:362`)
+    /// while the wide branch nests one in `Row > SizedBox > ScaffoldMessenger`
+    /// (`:381`) — different tree positions, so before the fix Flutter
+    /// discards the old Element/State on a breakpoint crossing rather than
+    /// reusing it, silently losing an in-list sort choice (and, more broadly,
+    /// search text / facets / scroll — only sort is asserted here since only
+    /// sort is in scope for #895).
+    testWidgets(
+      'an in-list sort choice survives crossing the breakpoint from wide to '
+      'narrow',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+
+        await _pumpShell(tester, repos, size: const Size(1400, 900));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Author').last);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.author,
+        );
+
+        tester.view.physicalSize = const Size(600, 1200);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.author,
+          reason:
+              'Crossing the breakpoint must reparent the existing '
+              'DanceListScreen State, not rebuild it from scratch — losing '
+              'the in-list sort choice is exactly the "rotation resets the '
+              'list" defect this guard exists to catch.',
+        );
+      },
+    );
+
+    testWidgets(
+      'an in-list sort choice survives crossing the breakpoint from narrow '
+      'to wide',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.dances.create(_dance(id: 'd1', title: 'Zesty Reel'));
+        await repos.dances.create(_dance(id: 'd2', title: 'Autumn Waltz'));
+
+        await _pumpShell(tester, repos, size: const Size(600, 1200));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byIcon(Icons.sort));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Recently added').last);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.recentlyAdded,
+        );
+
+        tester.view.physicalSize = const Size(1400, 900);
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<PopupMenuButton<CollectionSort>>(
+                find.byType(PopupMenuButton<CollectionSort>),
+              )
+              .initialValue,
+          CollectionSort.recentlyAdded,
+          reason:
+              'Same hazard in the other direction: narrow -> wide also '
+              'swaps tree position (`collection_shell.dart:362` vs `:381`) '
+              'and must reparent rather than rebuild.',
+        );
+      },
+    );
   });
 }

@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../data/venue_label.dart';
+import 'program_figure_widgets.dart';
 
 /// Loads the bundled Unicode font (Roboto, SIL OFL-1.1) used for PDF export.
 ///
@@ -95,6 +96,14 @@ Future<pw.Font> loadProgramMatrixMarkerFont() async {
 ///   block is drawn. Defaults to empty, preserving the pre-venue-entity output.
 /// - [theme] supplies the Unicode font; when omitted it is loaded from the
 ///   bundled asset via [loadProgramPdfTheme].
+/// - [appendDances] — when non-null and non-empty, appends a figure appendix
+///   after the set list: one compact dance card per entry using
+///   [buildFigureWidgets] (the same layout as the single-dance PDF but at a
+///   smaller scale and without forced page breaks — [pw.MultiPage] paginates
+///   naturally). Alternates in the list are labelled with [labels.alternate].
+///   Requires [dialect] and [renderer] when provided; both default sensibly
+///   ([dialect] falls back to [Dialect.larksRobins], [renderer] to a
+///   fresh [FigureRenderer] using [contraTaxonomy]).
 Future<Uint8List> buildProgramPdf(
   Program program, {
   required String? Function(String danceId) titleFor,
@@ -102,6 +111,10 @@ Future<Uint8List> buildProgramPdf(
   String Function(DateTime date)? formatDate,
   ProgramExportLabels labels = const ProgramExportLabels(),
   pw.ThemeData? theme,
+  List<({Dance dance, bool isAlternate})>? appendDances,
+  DanceExportLabels? danceLabels,
+  Dialect? dialect,
+  FigureRenderer? renderer,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
@@ -118,6 +131,10 @@ Future<Uint8List> buildProgramPdf(
     if (_has(program.dancerLevel))
       '${labels.level}: ${program.dancerLevel!.trim()}',
   ].where((l) => l.isNotEmpty).toList();
+
+  final resolvedDanceLabels = danceLabels ?? const DanceExportLabels();
+  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final resolvedDialect = dialect ?? Dialect.larksRobins;
 
   doc.addPage(
     pw.MultiPage(
@@ -147,11 +164,53 @@ Future<Uint8List> buildProgramPdf(
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],
+        if (appendDances != null && appendDances.isNotEmpty) ...[
+          pw.SizedBox(height: 16),
+          pw.Text(
+            labels.figures,
+            style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
+          ),
+          ..._figureAppendixWidgets(
+            appendDances,
+            fig,
+            resolvedDialect,
+            resolvedDanceLabels,
+            labels,
+          ),
+        ],
       ],
     ),
   );
 
   return doc.save();
+}
+
+/// Renders one compact dance-card block per entry in [dances] for the figure
+/// appendix. Dance title is a bold sub-header; alternates are prefixed with
+/// [labels.alternate]. No forced page breaks — [pw.MultiPage] handles
+/// pagination naturally.
+List<pw.Widget> _figureAppendixWidgets(
+  List<({Dance dance, bool isAlternate})> dances,
+  FigureRenderer renderer,
+  Dialect dialect,
+  DanceExportLabels danceLabels,
+  ProgramExportLabels labels,
+) {
+  final widgets = <pw.Widget>[];
+  for (final entry in dances) {
+    final dance = entry.dance;
+    if (dance.figures.isEmpty) continue;
+    final titlePrefix = entry.isAlternate ? '${labels.alternate}: ' : '';
+    widgets.add(pw.SizedBox(height: 10));
+    widgets.add(
+      pw.Text(
+        '$titlePrefix${dance.title.trim()}',
+        style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
+      ),
+    );
+    widgets.addAll(buildFigureWidgets(dance, renderer, dialect, danceLabels));
+  }
+  return widgets;
 }
 
 List<pw.Widget> _slotWidgets(

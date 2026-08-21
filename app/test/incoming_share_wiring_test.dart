@@ -7,14 +7,16 @@ import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/archive_intake_service.dart';
 import 'package:compendium_app/src/data/incoming_file_channel.dart';
 import 'package:compendium_app/src/data/window_service.dart';
+import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
+import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
+import 'support/test_repositories.dart';
 
 /// A [WindowService] whose restore does nothing (no real window under test).
 class _NoopWindowService extends WindowService {
@@ -59,6 +61,17 @@ class _FakeIncomingFileChannel extends IncomingFileChannel {
   }
 }
 
+/// A [CrashLogSink] that records the sources it was called with, so a test
+/// can assert a specific caught error reached the diagnostic log (issue #963).
+class _RecordingSink implements CrashLogSink {
+  final List<String> sources = [];
+
+  @override
+  void record(Object error, StackTrace? stack, {required String source}) {
+    sources.add(source);
+  }
+}
+
 String _validBundleJson() => encodeArchive(
   CompendiumArchive(
     exportedAt: DateTime.utc(2026, 7, 15),
@@ -83,7 +96,7 @@ String _validBundleJson() => encodeArchive(
 );
 
 AppData _openAppData() {
-  final appData = AppData(CompendiumDatabase(NativeDatabase.memory()));
+  final appData = AppData(openWidgetTestDatabase());
   addTearDown(appData.close);
   return appData;
 }
@@ -241,6 +254,43 @@ void main() {
       );
       expect(find.byType(ContraDbProgramImportScreen), findsNothing);
       expect(await appData.repositories.programs.listAll(), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'issue #963: a rejected shared URL is also written to the diagnostic log',
+    (tester) async {
+      // This is the exact failure path reported in #963: a caught error that
+      // reached a snackbar but never the diagnostic log, so a beta user
+      // trying to export logs for a failed share found nothing captured.
+      final sink = _RecordingSink();
+      installCaughtErrorLog(sink);
+      addTearDown(resetCaughtErrorLogForTesting);
+
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl: 'http://evil.com/programs/1',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The snackbar still shows (proving this test exercises the same path
+      // as the sibling test above) *and* the log now also has the record —
+      // proving this assertion is about the logging, not the snackbar.
+      expect(
+        find.byKey(const ValueKey('shared-url-import-error')),
+        findsOneWidget,
+      );
+      expect(sink.sources, ['main._handleIncomingUrl']);
     },
   );
 }

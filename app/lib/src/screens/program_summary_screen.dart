@@ -1,9 +1,11 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/date_format_scope.dart';
+import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
@@ -11,6 +13,7 @@ import '../data/set_list_color_coding_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
+import '../diagnostics/error_log.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
@@ -47,17 +50,7 @@ class ProgramSummaryScreen extends StatefulWidget {
 }
 
 class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
-  /// Reloads the reused [ProgramSummaryPane] in place after an edit that keeps
-  /// the same program id. A duplicate instead re-targets [_programId], which
-  /// re-keys and rebuilds the pane, so it reloads without a tick.
-  final _refresh = ValueNotifier<int>(0);
   late String _programId = widget.programId;
-
-  @override
-  void dispose() {
-    _refresh.dispose();
-    super.dispose();
-  }
 
   Future<void> _openBuilder() async {
     final result = await Navigator.of(context).push<String>(
@@ -70,10 +63,12 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       // The builder deleted the program; leave the summary and return to the
       // list (which reloads and drops the stale row).
       Navigator.of(context).pop();
-    } else if (result != null) {
-      // The builder saved edits under the same id; reload the summary in place.
-      _refresh.value++;
     }
+    // A save under the same id needs no tick: it writes `programs` /
+    // `program_slots`, which are in the pane's watched set, so the stream has
+    // already reloaded it (issue #768). Bumping a notifier here as well would
+    // reload twice for one edit (issue #340) — and once the pane stopped
+    // listening, would reload nothing at all while still looking wired.
   }
 
   @override
@@ -83,7 +78,6 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       // duplicate re-targets this screen.
       key: ValueKey('summary-screen-$_programId'),
       programId: _programId,
-      refreshTrigger: _refresh,
       showAppBar: true,
       prominentPerform: true,
       onOpenBuilder: _openBuilder,
@@ -96,34 +90,34 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
 /// Read-only summary of the selected program shown in the wide detail pane. The
 /// heavy building work happens in the full-screen [ProgramEditorScreen] route
 /// launched by [onOpenBuilder]; this pane keeps quick duplicate/delete actions.
+/// Raised into a pending first-value future when its subscription is replaced
+/// or disposed (issue #768).
+///
+/// Deliberately not an error the user ever sees: being superseded is not a
+/// failure. `_load` returns on it without touching `_error` or `_loading`,
+/// because the load that replaced it owns those now — surfacing it would flash
+/// an error banner in the middle of a successful refresh.
+class _SupersededLoad implements Exception {
+  const _SupersededLoad();
+  @override
+  String toString() => 'load superseded before its first snapshot';
+}
+
 class ProgramSummaryPane extends StatefulWidget {
   const ProgramSummaryPane({
     super.key,
     required this.programId,
-    required this.refreshTrigger,
     required this.onOpenBuilder,
     required this.onDeleted,
     required this.onNavigateTo,
-    this.onProgramMutated,
     this.showAppBar = false,
     this.prominentPerform = false,
   });
 
   final String programId;
-  final ValueListenable<int> refreshTrigger;
   final VoidCallback onOpenBuilder;
   final VoidCallback onDeleted;
   final void Function(String id) onNavigateTo;
-
-  /// Called after an **in-place** mutation that keeps this pane on the same
-  /// program — "Mark all performed" and in-event Perform adjustments (which can
-  /// change slot count, mark slots performed, and bump `updatedAt`). The wide
-  /// split-pane wires this to bump its shared list refresh so the coexisting
-  /// program list reflects the change without a manual reload. The narrow
-  /// [ProgramSummaryScreen] leaves it unset: its list reloads unconditionally
-  /// when the summary route pops, so there is nothing to signal. Duplicate and
-  /// delete are handled separately via [onNavigateTo] / [onDeleted].
-  final VoidCallback? onProgramMutated;
 
   /// Wraps the pane in a [Scaffold] [AppBar] (back button + generic title) when
   /// pushed as a full-screen route on narrow layouts. The wide detail pane
@@ -164,6 +158,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
 
+  /// Collapses a burst of refresh requests into a single [_load].
+  ///
+  /// It no longer collapses "the two bumps a dance+program write emits" — this
+  /// pane moved to the stream (#768), and the shell's `refreshTrigger` went
+  /// with the rest of that plumbing. **One source reaches it now:
+  /// [CollectionData.watch].**
+  ///
+  /// A single source does not make it redundant, which is why it survives
+  /// rather than retiring with the subscriptions. `CollectionData.watch`
+  /// coalesces on a leading edge with a trailing flush, so one burst can still
+  /// deliver two emits — and [_load] pulls the whole collection, so loading
+  /// twice is expensive as well as wrong (issue #340).
+  late final RefreshCoalescer _refreshCoalescer = RefreshCoalescer(() {
+    if (mounted) _load();
+  });
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -175,18 +185,196 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
-      widget.refreshTrigger.addListener(_onRefresh);
       _load();
     }
+    // This pane was the app's only BOTH-channels subscriber — it renders
+    // program data *and* dance fields (`dance?.level`, the slot titles), so it
+    // went stale from either side. Both subscriptions are gone: the watched
+    // source set behind [CollectionData.watch] spans the dance tables *and*
+    // `programs`/`program_slots`, so one stream covers what two channels did.
+    // Writes made here no longer broadcast either — `ProgramsRefreshScope` was
+    // retired once its last reader became stream-driven (issue #768).
   }
 
-  void _onRefresh() {
-    if (mounted) _load();
+  /// The live Collection reference data for this pane (issue #768).
+  ///
+  /// Later emits re-run [_load] in full rather than only replacing
+  /// `_collectionData`, because this pane renders the *program* too and the
+  /// watched source set includes `programs` / `program_slots` — so a slot being
+  /// marked performed, or the program renamed elsewhere, arrives on this same
+  /// stream. Re-reading the program on emit is what let both refresh-scope
+  /// subscriptions come out.
+  ///
+  /// Safe to reload wholesale here, unlike the program *editor*: this pane is
+  /// read-focused and holds no unsaved working copy.
+  StreamSubscription<CollectionData>? _dataSub;
+
+  /// The most recent snapshot the stream has delivered, and the filter the
+  /// live subscription was opened with.
+  ///
+  /// [_load] runs again on every emit, because this pane reloads wholesale —
+  /// the program, its dances and its venue all have to be re-fetched. Without
+  /// these two fields it would also re-enter [_watchCollectionData], which
+  /// cancels and re-opens the subscription and therefore re-runs the whole
+  /// [CollectionData.load]. One write would cost two full
+  /// snapshot loads and a fresh coalescer, which is the issue #340 thrash this
+  /// conversion is supposed to avoid rather than introduce.
+  CollectionData? _latestData;
+  String? _subCallerFilter;
+
+  /// The first-value future of the LIVE subscription, while it is still
+  /// pending.
+  ///
+  /// Held as a field so that whoever abandons the subscription can settle it.
+  /// See [_replaceSubscription] for why that is necessary rather than tidy.
+  Completer<CollectionData>? _pendingFirst;
+
+  /// Cancels the live subscription, settling its first-value future first.
+  ///
+  /// ## The invariant, and the full set of exits (issue #768)
+  ///
+  /// `_load` awaits the stream's FIRST value, so **every path that abandons a
+  /// pending first-value future must complete it** — otherwise that `await`
+  /// never returns. There are five ways out, and three were already handled by
+  /// the listener callbacks:
+  ///
+  /// 1. a value arrives — `onData` completes it;
+  /// 2. the source errors — `onError` completes it;
+  /// 3. the source ends unemitted — `onDone` completes it;
+  /// 4. **the subscription is replaced** by a re-entrant `_load`;
+  /// 5. **the subscription is cancelled** in [dispose].
+  ///
+  /// 4 and 5 are the ones a listener cannot see: **cancelling a
+  /// `StreamSubscription` invokes none of its callbacks**, by design. So they
+  /// have to be handled at the point of abandonment, which is here — and this
+  /// method exists so that cancelling without settling is not expressible.
+  ///
+  /// Earlier fixes closed exits one at a time (3 in round 9, 4 reported in
+  /// round 11). The exits were enumerated this time instead.
+  void _replaceSubscription() {
+    final pending = _pendingFirst;
+    _pendingFirst = null;
+    if (pending != null && !pending.isCompleted) {
+      // A sentinel rather than a real error: the caller has been superseded,
+      // which is not a failure to report to the user. `_load` returns quietly
+      // on it, leaving the newer load to own the screen's state.
+      pending.completeError(const _SupersededLoad());
+    }
+    unawaited(_dataSub?.cancel());
+    _dataSub = null;
+  }
+
+  /// Opens the subscription and resolves with its FIRST value, so [_load]'s
+  /// existing sequence is untouched while later emits drive a refresh.
+  ///
+  /// Reuses the live subscription when the caller filter is unchanged: a
+  /// re-entry from an emit already has a newer snapshot in hand than a fresh
+  /// subscription would produce, so re-subscribing would buy nothing and pay
+  /// a second full load for it.
+  ///
+  /// ## Why the gate tests [_pendingFirst], and not just the filter
+  ///
+  /// The question the reuse branch must answer is **"has THIS subscription
+  /// produced the snapshot I am about to hand back?"** — not the narrower
+  /// "is the live subscription for this filter?". The two come apart in one
+  /// window: between opening a subscription for a NEW filter and its first
+  /// emit, [_subCallerFilter] already names the new filter while [_latestData]
+  /// still holds the OLD filter's snapshot. A re-entrant [_load] landing in
+  /// that window satisfied all three of the earlier conditions and was handed
+  /// the previous filter's data — wrong call tallies, wrong last-called.
+  ///
+  /// `_pendingFirst == null` states the missing precondition directly: it is
+  /// non-null exactly while a subscription has yet to deliver its first value,
+  /// so requiring it to be null is requiring [_latestData] to have come from
+  /// the live subscription. Clearing [_latestData] in [_replaceSubscription]
+  /// would also have hidden the symptom, but would have left the gate asking
+  /// the question that was wrong — the same shape as the author-sort miss,
+  /// where a skip condition was narrower than the cases it had to cover.
+  ///
+  /// This does not weaken the issue #340 protection above: on the reuse path
+  /// the subscription has emitted by definition, so `_pendingFirst` is null
+  /// there and the branch still fires.
+  ///
+  /// ## No longer covered by a test on this screen, and why
+  ///
+  /// It was, until the Programs refresh plumbing came out (issue #768). The
+  /// coalescer is now [_load]'s only caller, so re-entering it is a race inside
+  /// the two DB reads that precede this method rather than something a test can
+  /// ask for — and the clause only changes the outcome while the replacement
+  /// subscription is still pending, which cannot be held open without leaving
+  /// the pane with nothing to settle it. A test written for it passed with the
+  /// clause deleted; it was withdrawn rather than kept as false coverage, with
+  /// the reasoning in `refresh_scopes_test.dart` where it used to live.
+  ///
+  /// The clause stays. It is one comparison, it is correct, and
+  /// `program_editor_screen` reaches this same path deliberately now
+  /// (`_resubscribePicker`, issue #948) — so the class is live even though this
+  /// screen's instance of it is not.
+  Future<CollectionData> _watchCollectionData(String? callerFilter) {
+    final cached = _latestData;
+    if (_dataSub != null &&
+        _pendingFirst == null &&
+        _subCallerFilter == callerFilter &&
+        cached != null) {
+      return Future<CollectionData>.value(cached);
+    }
+    final first = Completer<CollectionData>();
+    _replaceSubscription();
+    _pendingFirst = first;
+    _subCallerFilter = callerFilter;
+    _dataSub =
+        CollectionData.watch(
+          _repos,
+          callerFilter: callerFilter,
+          // This pane renders the program's venue label, which is resolved from
+          // a table `CollectionData` does not carry (issue #944). Opting in is
+          // what makes a venue rename reach `_venuesById` below; the Collection
+          // list renders no venue and deliberately does not opt in.
+          watchVenues: true,
+        ).listen(
+          (data) {
+            _latestData = data;
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.complete(data);
+              return;
+            }
+            if (mounted) _refreshCoalescer.request();
+          },
+          onError: (Object error, StackTrace stackTrace) {
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(error);
+              return;
+            }
+            // Unlike the program EDITOR, this pane can show an error and holds no
+            // unsaved work, so a failed refresh is surfaced rather than left to
+            // render stale data indefinitely.
+            logCaughtError(
+              error,
+              stackTrace,
+              source: 'program_summary_screen._watchCollectionData',
+            );
+            if (mounted) setState(() => _error = error);
+          },
+          onDone: () {
+            // The source can end without ever emitting — the database closed while
+            // this pane was opening. Completing the future is what stops `_load`
+            // awaiting forever; the error routes to its existing catch.
+            if (!first.isCompleted) {
+              _pendingFirst = null;
+              first.completeError(
+                StateError('collection stream closed before its first value'),
+              );
+            }
+          },
+        );
+    return first.future;
   }
 
   @override
   void dispose() {
-    widget.refreshTrigger.removeListener(_onRefresh);
+    _replaceSubscription();
     super.dispose();
   }
 
@@ -211,10 +399,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _repos.settings,
         trackAllCallers: _trackHistoryForAllCallers,
       );
-      final data = await CollectionData.load(
-        _repos,
-        callerFilter: callerFilter,
-      );
+      final data = await _watchCollectionData(callerFilter);
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {
@@ -248,7 +433,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _loading = false;
         _error = null;
       });
-    } catch (error) {
+    } on _SupersededLoad {
+      // diagnostics: silent — a newer `_load` replaced this one's
+      // subscription before it produced a snapshot. It owns
+      // `_loading`/`_error` now, so this call must leave both alone and
+      // return — clearing `_loading` here would unblank the pane while the
+      // newer load is still running.
+      return;
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'program_summary_screen._load');
       if (mounted) {
         setState(() {
           _error = error;
@@ -274,6 +467,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(l10n.programsDuplicatedSnack(copy.title))),
     );
+    // The copy carries the same dance slots, so every derived count moved.
     widget.onNavigateTo(copy.id);
   }
 
@@ -286,13 +480,21 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     await _repos.programs.softDelete(source.id, at: DateTime.now().toUtc());
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
+    // Nothing is captured before the snackbar any more. [onDeleted] unmounts
+    // this pane in BOTH layouts — the wide shell clears the selection and swaps
+    // in the empty pane, the narrow route pops — so a broadcast from inside the
+    // undo callback had to hold a notifier resolved up-front, and a
+    // `mounted`-guarded bump would never have fired at all. The restore is now
+    // its own notification: every program view watches `programs` (issue #768),
+    // whether or not the screen that offered the Undo still exists.
     showUndoSnackBar(
       ScaffoldMessenger.of(context),
       message: l10n.programsDeletedSnack(source.title),
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () =>
-          _repos.programs.restore(source.id, at: DateTime.now().toUtc()),
+      onUndo: () async {
+        await _repos.programs.restore(source.id, at: DateTime.now().toUtc());
+      },
     );
     widget.onDeleted();
   }
@@ -318,15 +520,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           onExit: (state) => _performResume = state,
           // This is the real in-event path: the program is saved, so in-event
           // adjustments (`docs/design/ux.md` §5) persist immediately via the
-          // repository (bumping `updatedAt`, and possibly the slot count) and
-          // the summary reloads to reflect them. On the wide split-pane
-          // [onProgramMutated] also refreshes the coexisting program list so
-          // its slot count / ordering do not go stale.
+          // repository (bumping `updatedAt`, and possibly the slot count). The
+          // summary and the coexisting Programs list both re-render from their
+          // own subscriptions, so neither needs telling.
           onProgramChanged: (updated) async {
             await _repos.programs.update(updated);
             if (!mounted) return;
-            _load();
-            widget.onProgramMutated?.call();
+            // The write itself is what reloads this pane and every other view
+            // of these slots — the coexisting program list, the Collection's
+            // "called N times" badge, a mounted dance detail's calling history.
+            // Calling `_load` here as well would load this pane twice for one
+            // adjustment (issue #340).
           },
         ),
       ),
@@ -532,10 +736,11 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         content: Text(AppLocalizations.of(context).programsMarkedAllPerformed),
       ),
     );
-    _load();
-    // On the wide split-pane, refresh the coexisting list too (this bumps
-    // `updatedAt`, affecting the "recently updated" sort order).
-    widget.onProgramMutated?.call();
+    // Mark-all-performed is exactly the write that made the Collection's
+    // "called N times" badge stale (issue #768, gap 3). It used to broadcast
+    // for that reason; the badge and the calling history watch `program_slots`
+    // themselves now, so the write reaches them unaided and this pane's own
+    // stream re-emits for it.
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
@@ -673,6 +878,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       final secondaryParts = <String>[
         if (dance != null) formationLabel(l10n, dance.formation),
         if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
+        if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
@@ -681,19 +887,21 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       ];
       final secondary = secondaryParts.join(' · ');
 
-      // Resolve the redundant formation accent (issue #270). Only when a dance
-      // resolves, color-coding is on, and the family has a themed accent.
+      // Resolve the redundant formation accent (issue #270, extended for mixer
+      // flag in issue #732). Only when a dance resolves, color-coding is on, and
+      // the family has a themed accent. Mixer-flagged dances get the mixer accent
+      // regardless of shape — see setListAccentForDance.
       final accent = (dance != null && colorCodingEnabled)
-          ? setListAccentForShape(
-              dance.formation.shape,
-              highContrast: highContrast,
-            )
+          ? setListAccentForDance(dance, highContrast: highContrast)
           : null;
-      // Expose the formation as text to AT so the row is fully readable without
-      // colour (ux.md §4): the accent is never the sole carrier of type/form.
+      // Expose the formation and, for mixer-flagged dances, the mixer term to AT
+      // so the row is fully readable without colour (ux.md §4): the accent is
+      // never the sole carrier of type/form — mixer-flagged dances append the
+      // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
         if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null && dance.mixer) l10n.commonMixer,
         if (performed) l10n.programsPerformed,
       ].join('. ');
 

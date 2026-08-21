@@ -175,6 +175,16 @@ class DanceEditorForm extends StatelessWidget {
                   dialect: dialect,
                   fieldKey: 'formation-detail',
                 ),
+                CheckboxListTile(
+                  key: const ValueKey('mixer-field'),
+                  value: controller.mixer,
+                  onChanged: (v) => controller.setMixer(v ?? false),
+                  title: Text(l10n.commonMixer),
+                  subtitle: Text(l10n.danceEditorMixerSubtitle),
+                  secondary: const Icon(Icons.sync_alt),
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                ),
                 const SizedBox(height: AppSpacing.md),
                 // Progression and Rating share one line.
                 Row(
@@ -213,6 +223,8 @@ class DanceEditorForm extends StatelessWidget {
                       PhraseStructure.parse(value ?? '');
                       return null;
                     } on FormatException catch (e) {
+                      // diagnostics: silent — FormatException is the expected signal from PhraseStructure.parse
+                      // for invalid user input; this is intentional validation control flow, not an unexpected error
                       return phraseStructureErrorMessage(l10n, e);
                     }
                   },
@@ -241,6 +253,7 @@ class DanceEditorForm extends StatelessWidget {
                   taxonomy: taxonomy,
                   phraseStructure: controller.phraseStructure,
                   dialect: dialect,
+                  mixer: controller.mixer,
                   moveParamDefaults: moveParamDefaults,
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,

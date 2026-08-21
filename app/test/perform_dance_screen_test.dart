@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -745,7 +744,7 @@ void main() {
           // Persisted value is ON, but the read is gated so it stays in-flight
           // while the user acts.
           final gate = Completer<void>();
-          final db = CompendiumDatabase(NativeDatabase.memory());
+          final db = openWidgetTestDatabase();
           addTearDown(db.close);
           final repos = CompendiumRepositories(
             db,

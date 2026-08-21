@@ -48,6 +48,7 @@ class _Host extends StatefulWidget {
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
     this.moveParamDefaults,
+    this.mixer = false,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.aggressiveBeatsUpdate = false,
@@ -58,6 +59,7 @@ class _Host extends StatefulWidget {
   final PhraseStructure phrase;
   final bool wireDuplicate;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
+  final bool mixer;
   final bool freeTextEntry;
   final bool wireMeanwhile;
 
@@ -106,6 +108,7 @@ class _HostState extends State<_Host> {
               taxonomy: widget.taxonomy,
               phraseStructure: widget.phrase,
               moveParamDefaults: widget.moveParamDefaults,
+              mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
@@ -177,6 +180,7 @@ Future<void> _pump(
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
   Map<String, Map<String, Object?>>? moveParamDefaults,
+  bool mixer = false,
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool aggressiveBeatsUpdate = false,
@@ -191,6 +195,7 @@ Future<void> _pump(
       phrase: phrase,
       wireDuplicate: wireDuplicate,
       moveParamDefaults: moveParamDefaults,
+      mixer: mixer,
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
@@ -311,6 +316,85 @@ void main() {
     expect(drafts.single.move, 'balance');
     expect(drafts.single.beats, 4);
     expect(drafts.single.beatsTouched, isFalse);
+  });
+
+  group('chain hand seeding (#976)', () {
+    testWidgets('selecting the chain move seeds the role-implied hand, not '
+        'unspecified', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'chain', 'chain');
+
+      // Guards against seeding only in the `who` change branch (a first
+      // draft's design, #976 §6.1): a freshly created chain (default
+      // who=role2s) must store the concrete role-implied hand, not
+      // ParamVocab.unspecified, so it matches an imported bare "ladies
+      // chain" byte-for-byte.
+      expect(drafts.single.move, 'chain');
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'right');
+    });
+
+    testWidgets('changing chain.who rewrites the role-implied hand', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(tester, drafts);
+      await _selectMove(tester, 0, 'chain', 'chain');
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'right');
+
+      // Guards the cross-param reaction in _applyNonBeatsParamChange:
+      // deleting it would leave the stale "right" surviving a flip to
+      // who=role1s, and "right" is not role1s's implied side.
+      await _selectDropdownOption(tester, 'figure-0-who', 'larks');
+      expect(drafts.single.params['who'], 'role1s');
+      expect(drafts.single.params['hand'], 'left');
+    });
+
+    testWidgets(
+      'a saved per-move default overriding chain.who reseeds hand from the '
+      'NEW who, not the pre-override one',
+      (tester) async {
+        final drafts = <FigureDraft>[FigureDraft()];
+        await _pump(
+          tester,
+          drafts,
+          moveParamDefaults: {
+            'chain': {'who': 'role1s'},
+          },
+        );
+        await _selectMove(tester, 0, 'chain', 'chain');
+
+        // Guards the seed/overlay ORDER: the taxonomy default seeds
+        // who=role2s (hand=right) before the saved default overrides who to
+        // role1s. Seeding hand from the pre-override who would store
+        // who=role1s with the WRONG hand="right" (role1s implies "left") —
+        // a self-contradictory figure that could never come from an import.
+        expect(drafts.single.params['who'], 'role1s');
+        expect(drafts.single.params['hand'], 'left');
+      },
+    );
+
+    testWidgets("a saved per-move default that itself sets chain.hand isn't "
+        'clobbered by role-implied seeding', (tester) async {
+      final drafts = <FigureDraft>[FigureDraft()];
+      await _pump(
+        tester,
+        drafts,
+        moveParamDefaults: {
+          'chain': {'hand': 'left'},
+        },
+      );
+      await _selectMove(tester, 0, 'chain', 'chain');
+
+      // who stays at the taxonomy default (role2s, implying "right"), but
+      // the user's saved default explicitly wants "left" — a deliberately
+      // contradictory, hyphenated chain. Re-seeding after the overlay
+      // would silently discard this saved override.
+      expect(drafts.single.params['who'], 'role2s');
+      expect(drafts.single.params['hand'], 'left');
+    });
   });
 
   testWidgets('a manually-set beats value survives a non-move param change', (
@@ -506,6 +590,65 @@ void main() {
       await _selectDropdownOption(tester, 'figure-0-length', 'half');
       expect(find.byKey(const ValueKey('figure-0-meetTarget')), findsNothing);
       expect(drafts.single.params.containsKey('meetTarget'), isFalse);
+    });
+  });
+
+  group('promenade turn/destination visibility & reset (#989, v30)', () {
+    testWidgets('turn is hidden and reset to unspecified once dir leaves the '
+        'across/along plane; destination is hidden (but not cleared) at the '
+        'across default', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft.fromFigure(
+          Figure(
+            move: 'promenade',
+            params: const {
+              'dir': 'along',
+              'turn': 'clockwise',
+              'destination': 'nextNeighbors',
+              'beats': 8,
+            },
+          ),
+        ),
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
+      await tester.pumpAndSettle();
+
+      // dir=='along': turn is visible (a rotation is meaningful travelling
+      // along the set) and destination is visible (dir != 'across').
+      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('figure-0-destination')),
+        findsOneWidget,
+      );
+
+      // Switching dir to 'in' (rotationless): turn disappears AND is reset
+      // to the sentinel — not merely removed, since `turn`'s spec default
+      // is the concrete 'counterclockwise' and removal would fall back to
+      // it. destination stays visible: the render gate is `dir != 'across'`
+      // (Q3), and 'in' satisfies that just as much as 'along' did — only
+      // `across` (the default) hides it.
+      await _selectDropdownOption(tester, 'figure-0-dir', 'in');
+      expect(find.byKey(const ValueKey('figure-0-turn')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-destination')),
+        findsOneWidget,
+      );
+      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['destination'], 'nextNeighbors');
+
+      // Switching to 'across' (the default): destination disappears (its
+      // render gate no longer holds) but its stored value survives
+      // untouched — Q3's "keeps the param, loses the clause" ruling, not a
+      // migration. turn reappears (rotation is meaningful again at
+      // across) and stays at the sentinel it was reset to, never
+      // fabricated back to the concrete default.
+      await _selectDropdownOption(tester, 'figure-0-dir', 'across');
+      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      expect(find.byKey(const ValueKey('figure-0-destination')), findsNothing);
+      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['destination'], 'nextNeighbors');
     });
   });
 
@@ -2038,11 +2181,13 @@ void main() {
   testWidgets('3 or fewer params render inline with no disclosure', (
     tester,
   ) async {
-    // chain has 3 params (who, dir, beats) — all inline, no disclosure.
+    // star_promenade has 3 params (who, turn, beats) — all inline, no
+    // disclosure. (chain gained a 4th param, `hand`, in #976, so it no
+    // longer demonstrates the ≤3 case this test is about.)
     final drafts = <FigureDraft>[
       FigureDraft(
-        move: 'chain',
-        params: {'who': 'role2s', 'dir': 'across', 'beats': 8},
+        move: 'star_promenade',
+        params: {'who': 'role1s', 'turn': 0.5, 'beats': 4},
       ),
     ];
     await _pump(tester, drafts);
@@ -2936,5 +3081,87 @@ void main() {
         );
       },
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // Mixer partner-series gating (issue #732)
+  // ---------------------------------------------------------------------------
+  group('mixer partner-series tokens', () {
+    // THE NON-NEGOTIABLE WIDGET TEST.
+    //
+    // A non-mixer dance whose figure already stores `nextPartners` as `who`
+    // must not have that value rewritten when the editor opens.
+    //
+    // The hazard: FigureParamEditor._dropdown writes back to the draft via
+    // addPostFrameCallback when `value ∉ selectable`. If `nextPartners` is
+    // filtered out of the offered domain without retaining the stored value,
+    // the reconciliation falls to the spec default (`partners` for swing),
+    // `current != value` holds, and the write-back fires — silently destroying
+    // transcribed choreography.
+    //
+    // Falsification of the write-back guard: remove `|| token == currentValue`
+    // from offerableDancerSets (the naive version a future simplification would
+    // produce). Verified: 5 core tests in offerable_dancer_sets_test.dart go red.
+    //
+    // Falsification of the threading: drop `mixer: widget.mixer` from
+    // _buildParams (~line 1914). Verified: "nextPartners offered when mixer is
+    // true" goes red (thread cut means `nextPartners` is never offered even in a
+    // mixer). The write-back test passes the threading mutation because the
+    // dance is non-mixer — `currentValue` retention still prevents write-back
+    // at `mixer: false`; the threading matters for the offering, not the guard.
+    // Both mutations tested; the test suite catches both hazards.
+    testWidgets('stored nextPartners value is preserved on non-mixer dance '
+        '(no write-back when value already in offered domain)', (tester) async {
+      final draft = FigureDraft(
+        move: 'swing',
+        params: {'who': 'nextPartners', 'beats': 8},
+      );
+      await _pump(tester, [draft], mixer: false);
+      await _openFigure(tester, 0);
+      // Let any postFrameCallback write-backs fire.
+      await tester.pumpAndSettle();
+
+      expect(
+        draft.params['who'],
+        'nextPartners',
+        reason:
+            'opening the editor on a non-mixer dance must not rewrite a '
+            'stored nextPartners value to the spec default',
+      );
+    });
+
+    testWidgets('nextPartners offered when mixer is true', (tester) async {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'partners'});
+      await _pump(tester, [draft], mixer: true);
+      await _openFigure(tester, 0);
+      // Open the who dropdown to see available options.
+      await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+      await tester.pumpAndSettle();
+      // displayToken → _humanize('nextPartners') → 'next partners'
+      expect(find.text('next partners'), findsOneWidget);
+    });
+
+    testWidgets('nextPartners NOT offered when mixer is false and not stored', (
+      tester,
+    ) async {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'partners'});
+      await _pump(tester, [draft], mixer: false);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+      await tester.pumpAndSettle();
+      // displayToken → _humanize('nextPartners') → 'next partners'
+      expect(find.text('next partners'), findsNothing);
+    });
+
+    testWidgets('partners (P1) always offered when mixer is false', (
+      tester,
+    ) async {
+      final draft = FigureDraft(move: 'swing', params: {'who': 'role1s'});
+      await _pump(tester, [draft], mixer: false);
+      await _openFigure(tester, 0);
+      await tester.tap(find.byKey(const ValueKey('figure-0-who')));
+      await tester.pumpAndSettle();
+      expect(find.text('partners'), findsWidgets);
+    });
   });
 }

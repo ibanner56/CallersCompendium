@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/aggressive_beats_update_scope.dart';
+import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
@@ -12,6 +13,8 @@ import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
 import '../../search/facet_labels.dart';
+import '../../search/program_sort.dart';
+import '../../search/program_sort_labels.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
@@ -32,9 +35,16 @@ class DefaultsSection extends StatefulWidget {
 }
 
 class _DefaultsSectionState extends State<DefaultsSection> {
-  /// Default Collection sort order (ROADMAP G.6a). `null` = not yet loaded;
-  /// the view shows `title` (today's default) until the read resolves.
-  CollectionSort? _defaultCollectionSort;
+  /// Default Collection sort order (ROADMAP G.6a), extended to a
+  /// [SortDefaultSetting] by issue #895 (ROADMAP G.6c) so "Last used" can be
+  /// selected alongside a fixed sort. `null` = not yet loaded; the view shows
+  /// `title` (today's default) until the read resolves.
+  SortDefaultSetting<CollectionSort>? _defaultCollectionSort;
+
+  /// Default Programs sort order (issue #895, ROADMAP G.6c), mirroring
+  /// [_defaultCollectionSort] — Programs had no Settings default before this;
+  /// `null` = not yet loaded, shown as `title` until the read resolves.
+  SortDefaultSetting<ProgramSort>? _defaultProgramSort;
 
   /// Default dance-detail rendering (ROADMAP G.6b). `null` = not yet loaded;
   /// the view shows active-dialect (today's default) until the read resolves.
@@ -43,6 +53,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   // Separate per-setting guards: a user changing one default before its read
   // resolves must not suppress seeding the *other* default from storage.
   bool _defaultSortUserSet = false;
+  bool _defaultProgramSortUserSet = false;
   bool _defaultRenderingUserSet = false;
 
   /// Default caller/band for new programs (ROADMAP G.3). Free text seeded once
@@ -109,13 +120,44 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         .then((stored) {
           if (!mounted || _defaultSortUserSet) return;
           setState(() {
-            _defaultCollectionSort =
-                collectionSortFromName(stored) ?? CollectionSort.title;
+            _defaultCollectionSort = sortDefaultSettingFromStored(
+              stored,
+              collectionSortFromName,
+              CollectionSort.title,
+            );
           });
         })
         .catchError((_) {
+          // diagnostics: silent — default-collection-sort read failed; falls
+          // back to the built-in title/ascending default.
           if (!mounted || _defaultSortUserSet) return;
-          setState(() => _defaultCollectionSort = CollectionSort.title);
+          setState(
+            () => _defaultCollectionSort = const SortDefaultSetting.concrete(
+              CollectionSort.title,
+            ),
+          );
+        });
+    repos.settings
+        .get(kDefaultProgramSortKey)
+        .then((stored) {
+          if (!mounted || _defaultProgramSortUserSet) return;
+          setState(() {
+            _defaultProgramSort = sortDefaultSettingFromStored(
+              stored,
+              programSortFromName,
+              ProgramSort.title,
+            );
+          });
+        })
+        .catchError((_) {
+          // diagnostics: silent — default-program-sort read failed; falls
+          // back to the built-in title/ascending default.
+          if (!mounted || _defaultProgramSortUserSet) return;
+          setState(
+            () => _defaultProgramSort = const SortDefaultSetting.concrete(
+              ProgramSort.title,
+            ),
+          );
         });
     repos.settings
         .get(kDefaultDanceDetailRenderingKey)
@@ -128,6 +170,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
+          // diagnostics: silent — default-rendering read failed; falls back
+          // to the active-dialect default.
           if (!mounted || _defaultRenderingUserSet) return;
           setState(
             () => _defaultDanceDetailRendering =
@@ -144,7 +188,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           }
         })
         .catchError((_) {
-          /* fall back to a blank caller field */
+          /* diagnostics: silent — fall back to a blank caller field */
         });
     repos.settings
         .get(kDefaultProgramBandKey)
@@ -156,7 +200,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           }
         })
         .catchError((_) {
-          /* fall back to a blank band field */
+          /* diagnostics: silent — fall back to a blank band field */
         });
     repos.settings
         .get(kDefaultDanceFormKey)
@@ -165,6 +209,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           setState(() => _defaultDanceForm = danceFormFromStored(stored));
         })
         .catchError((_) {
+          // diagnostics: silent — default-dance-form read failed; falls back
+          // to the built-in contra default.
           if (!mounted || _defaultDanceFormUserSet) return;
           setState(() => _defaultDanceForm = DanceForm.contra);
         });
@@ -178,6 +224,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — default-formation-shape read failed; falls
+          // back to the built-in duple-improper default.
           if (!mounted || _defaultDanceFormationShapeUserSet) return;
           setState(
             () => _defaultDanceFormationShape = FormationShape.dupleImproper,
@@ -192,6 +240,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           );
         })
         .catchError((_) {
+          // diagnostics: silent — default-progression read failed; falls back
+          // to the built-in single-progression default.
           if (!mounted || _defaultDanceProgressionUserSet) return;
           setState(() => _defaultDanceProgression = Progression.single);
         });
@@ -205,7 +255,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           }
         })
         .catchError((_) {
-          /* fall back to a blank (standard) phrase field */
+          /* diagnostics: silent — fall back to a blank (standard) phrase field */
         });
     repos.settings
         .get(kDefaultDanceFiguresTemplateKey)
@@ -222,7 +272,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
-          /* keep the pre-seeded default `stand_still × 8` template */
+          /* diagnostics: silent — keep the pre-seeded default `stand_still × 8` template */
         });
     repos.settings
         .get(kDefaultMoveParamOverridesKey)
@@ -240,7 +290,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           });
         })
         .catchError((_) {
-          /* keep the empty override map (pure taxonomy defaults) */
+          /* diagnostics: silent — keep the empty override map (pure taxonomy defaults) */
         });
     repos.settings
         .get(kFreeTextEntryKey)
@@ -249,6 +299,8 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           setState(() => _freeTextEntry = stored is bool ? stored : false);
         })
         .catchError((_) {
+          // diagnostics: silent — free-text-entry read failed; falls back to
+          // the built-in off default.
           if (!mounted || _freeTextEntryUserSet) return;
           setState(() => _freeTextEntry = false);
         });
@@ -393,13 +445,32 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     super.dispose();
   }
 
-  Future<void> _onDefaultCollectionSortChanged(CollectionSort value) async {
+  Future<void> _onDefaultCollectionSortChanged(
+    SortDefaultSetting<CollectionSort> value,
+  ) async {
     setState(() {
       _defaultSortUserSet = true;
       _defaultCollectionSort = value;
     });
     final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultCollectionSortKey, value.name);
+    await repos.settings.set(
+      kDefaultCollectionSortKey,
+      encodeSortDefaultSetting(value),
+    );
+  }
+
+  Future<void> _onDefaultProgramSortChanged(
+    SortDefaultSetting<ProgramSort> value,
+  ) async {
+    setState(() {
+      _defaultProgramSortUserSet = true;
+      _defaultProgramSort = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultProgramSortKey,
+      encodeSortDefaultSetting(value),
+    );
   }
 
   Future<void> _onDefaultDanceDetailRenderingChanged(
@@ -421,8 +492,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
       programBandController: _defaultProgramBand,
       onDefaultProgramBandChanged: _onDefaultProgramBandChanged,
-      defaultCollectionSort: _defaultCollectionSort ?? CollectionSort.title,
+      defaultCollectionSort:
+          _defaultCollectionSort ??
+          const SortDefaultSetting.concrete(CollectionSort.title),
       onDefaultCollectionSortChanged: _onDefaultCollectionSortChanged,
+      defaultProgramSort:
+          _defaultProgramSort ??
+          const SortDefaultSetting.concrete(ProgramSort.title),
+      onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
       defaultDanceDetailRendering:
           _defaultDanceDetailRendering ?? DanceDetailRendering.activeDialect,
       onDefaultDanceDetailRenderingChanged:
@@ -498,6 +575,8 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultProgramBandChanged,
     required this.defaultCollectionSort,
     required this.onDefaultCollectionSortChanged,
+    required this.defaultProgramSort,
+    required this.onDefaultProgramSortChanged,
     required this.defaultDanceDetailRendering,
     required this.onDefaultDanceDetailRenderingChanged,
     required this.defaultDanceForm,
@@ -528,8 +607,12 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<String> onDefaultProgramCallerChanged;
   final TextEditingController programBandController;
   final ValueChanged<String> onDefaultProgramBandChanged;
-  final CollectionSort defaultCollectionSort;
-  final ValueChanged<CollectionSort> onDefaultCollectionSortChanged;
+  final SortDefaultSetting<CollectionSort> defaultCollectionSort;
+  final ValueChanged<SortDefaultSetting<CollectionSort>>
+  onDefaultCollectionSortChanged;
+  final SortDefaultSetting<ProgramSort> defaultProgramSort;
+  final ValueChanged<SortDefaultSetting<ProgramSort>>
+  onDefaultProgramSortChanged;
   final DanceDetailRendering defaultDanceDetailRendering;
   final ValueChanged<DanceDetailRendering> onDefaultDanceDetailRenderingChanged;
   final DanceForm defaultDanceForm;
@@ -583,12 +666,17 @@ class _DefaultsView extends StatelessWidget {
   /// The Collection sort orders offered as a default. Excludes
   /// [CollectionSort.relevance], which is only meaningful for a bare full-text
   /// query and never a sensible saved default.
-  static const List<CollectionSort> _sortOptions = [
+  static const List<CollectionSort> _collectionSortOptions = [
     CollectionSort.title,
     CollectionSort.author,
     CollectionSort.recentlyAdded,
     CollectionSort.lastCalled,
   ];
+
+  /// The Programs sort orders offered as a default (issue #895); every member
+  /// of [ProgramSort] is a sensible fixed default, unlike Collection's
+  /// [_collectionSortOptions] (which excludes `relevance`).
+  static const List<ProgramSort> _programSortOptions = ProgramSort.values;
 
   @override
   Widget build(BuildContext context) {
@@ -639,18 +727,44 @@ class _DefaultsView extends StatelessWidget {
         ListTile(
           title: Text(l10n.settingsDefaultsSortTitle),
           subtitle: Text(l10n.settingsDefaultsSortSubtitle),
-          trailing: DropdownButton<CollectionSort>(
+          trailing: DropdownButton<SortDefaultSetting<CollectionSort>>(
             key: const ValueKey('defaults-collection-sort'),
             value: defaultCollectionSort,
             onChanged: (value) {
               if (value != null) onDefaultCollectionSortChanged(value);
             },
             items: [
-              for (final sort in _sortOptions)
+              for (final sort in _collectionSortOptions)
                 DropdownMenuItem(
-                  value: sort,
+                  value: SortDefaultSetting.concrete(sort),
                   child: Text(collectionSortLabel(l10n, sort)),
                 ),
+              DropdownMenuItem(
+                value: SortDefaultSetting.lastUsed(CollectionSort.title),
+                child: Text(l10n.settingsDefaultsSortLastUsed),
+              ),
+            ],
+          ),
+        ),
+        ListTile(
+          title: Text(l10n.settingsDefaultsProgramSortTitle),
+          subtitle: Text(l10n.settingsDefaultsProgramSortSubtitle),
+          trailing: DropdownButton<SortDefaultSetting<ProgramSort>>(
+            key: const ValueKey('defaults-program-sort'),
+            value: defaultProgramSort,
+            onChanged: (value) {
+              if (value != null) onDefaultProgramSortChanged(value);
+            },
+            items: [
+              for (final sort in _programSortOptions)
+                DropdownMenuItem(
+                  value: SortDefaultSetting.concrete(sort),
+                  child: Text(programSortLabel(l10n, sort)),
+                ),
+              DropdownMenuItem(
+                value: SortDefaultSetting.lastUsed(ProgramSort.title),
+                child: Text(l10n.settingsDefaultsSortLastUsed),
+              ),
             ],
           ),
         ),
@@ -666,6 +780,111 @@ class _DefaultsView extends StatelessWidget {
           subtitle: Text(l10n.settingsDefaultsCanonicalSubtitle),
           isThreeLine: true,
         ),
+        SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            0,
+            AppSpacing.md,
+            AppSpacing.xs,
+          ),
+          child: Text(
+            l10n.settingsDefaultsCollectionCardSubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+        // Scope-backed: reads from CollectionTileFieldsScope (app root) and
+        // writes to both the notifier (live rebuild) and settings (persistence).
+        Builder(
+          builder: (context) {
+            final visibleFields = CollectionTileFieldsScope.of(context);
+            Future<void> toggle(CollectionTileField field, bool checked) async {
+              // Capture context-dependent objects before the await so
+              // use_build_context_synchronously is satisfied.
+              final notifier = CollectionTileFieldsScope.notifierOf(context);
+              final settings = RepositoriesScope.of(context).settings;
+              // Read from notifier.value (current live state) rather than the
+              // build-time snapshot so rapid successive taps don't lose earlier
+              // toggles before a rebuild has propagated them.
+              final updated = Set.of(notifier.value);
+              if (checked) {
+                updated.add(field);
+              } else {
+                updated.remove(field);
+              }
+              notifier.value = updated;
+              await settings.set(
+                kCollectionTileVisibleFieldsKey,
+                updated.map((f) => f.toJson()).toList(),
+              );
+            }
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-authors'),
+                  value: visibleFields.contains(CollectionTileField.authors),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.authors, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardAuthors),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-calledCount'),
+                  value: visibleFields.contains(
+                    CollectionTileField.calledCount,
+                  ),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.calledCount, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardCalledCount),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-formation'),
+                  value: visibleFields.contains(CollectionTileField.formation),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.formation, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardFormation),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-status'),
+                  value: visibleFields.contains(CollectionTileField.status),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.status, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardStatus),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-level'),
+                  value: visibleFields.contains(CollectionTileField.level),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.level, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardLevel),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-rating'),
+                  value: visibleFields.contains(CollectionTileField.rating),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.rating, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardRating),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-tags'),
+                  value: visibleFields.contains(CollectionTileField.tags),
+                  onChanged: (v) => toggle(CollectionTileField.tags, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardTags),
+                ),
+                CheckboxListTile(
+                  key: const ValueKey('defaults-tile-field-customFields'),
+                  value: visibleFields.contains(
+                    CollectionTileField.customFields,
+                  ),
+                  onChanged: (v) =>
+                      toggle(CollectionTileField.customFields, v ?? true),
+                  title: Text(l10n.settingsDefaultsCollectionCardCustomFields),
+                ),
+              ],
+            );
+          },
+        ),
         SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
         SwitchListTile(
           key: const ValueKey('defaults-free-text-entry'),
@@ -673,27 +892,6 @@ class _DefaultsView extends StatelessWidget {
           onChanged: onFreeTextEntryChanged,
           title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
           subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
-        ),
-        Builder(
-          builder: (context) {
-            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
-              context,
-            );
-            return SwitchListTile(
-              key: const ValueKey('defaults-aggressive-beats-update'),
-              value: aggressiveBeatsUpdate,
-              onChanged: (value) async {
-                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
-                final repos = RepositoriesScope.of(context);
-                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
-              },
-              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
-              subtitle: Text(
-                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
-              ),
-              isThreeLine: true,
-            );
-          },
         ),
         Builder(
           builder: (context) {
@@ -717,28 +915,6 @@ class _DefaultsView extends StatelessWidget {
                       ),
                     )
                   : null,
-            );
-          },
-        ),
-        Builder(
-          builder: (context) {
-            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
-            if (controller == null) return const SizedBox.shrink();
-            final count = controller.library.length;
-            return ListTile(
-              key: const ValueKey('defaults-walkthrough-snippets'),
-              title: Text(l10n.settingsWalkthroughSnippetsTitle),
-              subtitle: Text(
-                count == 0
-                    ? l10n.settingsWalkthroughSnippetsSubtitle
-                    : l10n.settingsWalkthroughSnippetsCount(count),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const WalkthroughSnippetsScreen(),
-                ),
-              ),
             );
           },
         ),
@@ -884,6 +1060,49 @@ class _DefaultsView extends StatelessWidget {
             onRemoveMoveDefault: onRemoveMoveDefault,
             onMoveParamOverrideChanged: onMoveParamOverrideChanged,
           ),
+        ),
+        Builder(
+          builder: (context) {
+            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
+              context,
+            );
+            return SwitchListTile(
+              key: const ValueKey('defaults-aggressive-beats-update'),
+              value: aggressiveBeatsUpdate,
+              onChanged: (value) async {
+                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
+                final repos = RepositoriesScope.of(context);
+                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+              },
+              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
+              subtitle: Text(
+                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
+              ),
+              isThreeLine: true,
+            );
+          },
+        ),
+        Builder(
+          builder: (context) {
+            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
+            if (controller == null) return const SizedBox.shrink();
+            final count = controller.library.length;
+            return ListTile(
+              key: const ValueKey('defaults-walkthrough-snippets'),
+              title: Text(l10n.settingsWalkthroughSnippetsTitle),
+              subtitle: Text(
+                count == 0
+                    ? l10n.settingsWalkthroughSnippetsSubtitle
+                    : l10n.settingsWalkthroughSnippetsCount(count),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const WalkthroughSnippetsScreen(),
+                ),
+              ),
+            );
+          },
         ),
       ],
     );

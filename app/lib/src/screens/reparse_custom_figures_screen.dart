@@ -2,8 +2,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
-import '../data/collection_refresh_scope.dart';
 import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../theme/app_spacing.dart';
 
 /// Signature for loading the re-parse preview; defaults to
@@ -77,7 +77,12 @@ class _ReparseCustomFiguresScreenState
             _loadError = null;
           });
         })
-        .catchError((Object error) {
+        .catchError((Object error, StackTrace stackTrace) {
+          logCaughtError(
+            error,
+            stackTrace,
+            source: 'reparse_custom_figures_screen._load',
+          );
           if (!mounted) return;
           setState(() => _loadError = error);
         });
@@ -102,11 +107,6 @@ class _ReparseCustomFiguresScreenState
     final navigator = Navigator.of(context);
     final repos = RepositoriesScope.of(context);
     final l10n = AppLocalizations.of(context);
-    // Capture the refresh notifier BEFORE the await: if the user navigates Back
-    // while the batch runs, this widget's context is defunct by the time the
-    // write completes, so we must not read it (or bump via context) afterwards.
-    final refresh = CollectionRefreshScope.maybeOf(context);
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -138,7 +138,12 @@ class _ReparseCustomFiguresScreenState
     int changed;
     try {
       changed = await applier(repos, ids);
-    } catch (_) {
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'reparse_custom_figures_screen._onApply',
+      );
       // Re-enable the button and tell the user; nothing was committed because
       // the batch is a single transaction (it rolls back as a whole).
       if (!mounted) return;
@@ -147,10 +152,6 @@ class _ReparseCustomFiguresScreenState
       return;
     }
 
-    // The write committed. Refresh the (possibly kept-alive) Collection tab via
-    // the notifier we captured up front, so it re-loads even if this route has
-    // since been popped.
-    if (changed > 0) refresh?.value++;
     if (!mounted) return;
     messenger.showSnackBar(
       SnackBar(

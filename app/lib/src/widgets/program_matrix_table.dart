@@ -28,6 +28,7 @@ class ProgramMatrixTable extends StatefulWidget {
     required this.matrix,
     required this.taxonomy,
     required this.dialect,
+    this.config = MatrixColumnConfig.empty,
     this.omittedFreeTextCount = 0,
     this.altDanceIds = const {},
     this.hiddenColumns = const {},
@@ -38,6 +39,13 @@ class ProgramMatrixTable extends StatefulWidget {
   final Taxonomy taxonomy;
   final Dialect dialect;
 
+  /// App-wide program-matrix column configuration (issue #935). Threaded in
+  /// only so the on-screen column headers honour the config's **renames** —
+  /// hide/reorder are already baked into [matrix] by [buildProgramMatrix], so
+  /// this table never re-applies them. Defaults to [MatrixColumnConfig.empty]
+  /// (today's labels) for callers that don't wire the config (tests/embeds).
+  final MatrixColumnConfig config;
+
   /// Number of free-text slots omitted from the matrix (shown as a caption so
   /// the omission is explicit).
   final int omittedFreeTextCount;
@@ -45,18 +53,21 @@ class ProgramMatrixTable extends StatefulWidget {
   /// Dance ids whose row is an alternate slot (badged "ALT").
   final Set<String> altDanceIds;
 
-  /// Indices into [matrix]'s columns (its move columns — the pinned
-  /// formation column is never hideable) that the caller has hidden from
-  /// view (#669). Purely a render-layer filter: [matrix] itself keeps
-  /// computing debut/collision analysis over every column, and this table
-  /// never mutates it — the host screen owns this set and is the only thing
-  /// that changes it (via [onHideColumn] and its own reset control).
-  final Set<int> hiddenColumns;
+  /// Column **ids** ([MatrixColumn.moveId] of [matrix]'s move columns — the
+  /// pinned formation column is never hideable) that the caller has hidden
+  /// from view (#669). Keyed by id, not index (#935), so an app-wide column
+  /// reorder can never make a stored index hide the wrong column. Purely a
+  /// render-layer filter: [matrix] itself keeps computing debut/collision
+  /// analysis over every column, and this table never mutates it — the host
+  /// screen owns this set and is the only thing that changes it (via
+  /// [onHideColumn] and its own reset control).
+  final Set<String> hiddenColumns;
 
-  /// Called with a column's index when its hide glyph is activated. Null
-  /// (the default) disables the hide affordance's button — used by callers
-  /// that only need the read-only matrix (e.g. most existing tests/embeds).
-  final ValueChanged<int>? onHideColumn;
+  /// Called with a column's **id** ([MatrixColumn.moveId]) when its hide glyph
+  /// is activated. Null (the default) disables the hide affordance's button —
+  /// used by callers that only need the read-only matrix (e.g. most existing
+  /// tests/embeds).
+  final ValueChanged<String>? onHideColumn;
 
   static const double columnWidth = 64;
   static const double rowHeight = 48;
@@ -139,7 +150,12 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
 
     final labels = [
       for (final c in matrix.columns)
-        matrixColumnLabel(c, widget.taxonomy, widget.dialect),
+        matrixColumnLabel(
+          c,
+          widget.taxonomy,
+          widget.dialect,
+          config: widget.config,
+        ),
     ];
 
     return LayoutBuilder(
@@ -166,7 +182,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _Legend(),
+            _Legend(collisionMode: matrix.collisionMode),
             const Divider(height: 1, thickness: 1),
             Expanded(
               child: Semantics(
@@ -221,11 +237,17 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                     child: Row(
                       children: [
                         for (var c = 0; c < matrix.columns.length; c++)
-                          if (!widget.hiddenColumns.contains(c))
+                          if (!widget.hiddenColumns.contains(
+                            matrix.columns[c].moveId,
+                          ))
                             _HideableColumnHeader(
                               label: labels[c],
                               columnIndex: c,
-                              onHide: widget.onHideColumn,
+                              onHide: widget.onHideColumn == null
+                                  ? null
+                                  : () => widget.onHideColumn!(
+                                      matrix.columns[c].moveId,
+                                    ),
                             ),
                       ],
                     ),
@@ -308,7 +330,9 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                     c < matrix.columns.length;
                                     c++
                                   )
-                                    if (!widget.hiddenColumns.contains(c))
+                                    if (!widget.hiddenColumns.contains(
+                                      matrix.columns[c].moveId,
+                                    ))
                                       _Cell(
                                         danceTitle: matrix.rows[r].title,
                                         moveLabel: labels[c],
@@ -318,10 +342,8 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                           r,
                                           c,
                                         ),
-                                        collision: matrix.isPhraseCollision(
-                                          r,
-                                          c,
-                                        ),
+                                        collision: matrix.isCollision(r, c),
+                                        collisionMode: matrix.collisionMode,
                                       ),
                                 ],
                               ),
@@ -516,7 +538,7 @@ class _HideableColumnHeader extends StatefulWidget {
 
   final String label;
   final int columnIndex;
-  final ValueChanged<int>? onHide;
+  final VoidCallback? onHide;
 
   @override
   State<_HideableColumnHeader> createState() => _HideableColumnHeaderState();
@@ -575,7 +597,7 @@ class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
                     ),
                     onPressed: widget.onHide == null
                         ? null
-                        : () => widget.onHide!(widget.columnIndex),
+                        : () => widget.onHide!(),
                   ),
                 ),
               ),
@@ -745,6 +767,7 @@ class _Cell extends StatelessWidget {
     required this.first,
     required this.programDebut,
     required this.collision,
+    required this.collisionMode,
   });
 
   final String danceTitle;
@@ -753,6 +776,7 @@ class _Cell extends StatelessWidget {
   final bool first;
   final bool programDebut;
   final bool collision;
+  final MatrixCollisionMode collisionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -761,9 +785,10 @@ class _Cell extends StatelessWidget {
 
     Widget? mark;
     if (collision) {
-      // Same-figure-same-phrase collision with a strictly-adjacent dance: a
-      // shape-distinct alert (never colour alone) that takes precedence over
-      // the debut/first highlights — it's the signal a caller must notice.
+      // Same-figure collision with a strictly-adjacent dance (issue #962: the
+      // exact rule depends on the matrix's collisionMode): a shape-distinct
+      // alert (never colour alone) that takes precedence over the
+      // debut/first highlights — it's the signal a caller must notice.
       mark = Icon(Icons.report, size: 20, color: theme.colorScheme.error);
     } else if (programDebut) {
       // Program debut: distinct SHAPE (star) + text, not colour alone.
@@ -784,7 +809,7 @@ class _Cell extends StatelessWidget {
         danceTitle,
         moveLabel,
         present ? 'yes' : 'no',
-        collision ? 'yes' : 'no',
+        _collisionSemanticsArg(collision, collisionMode),
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
       ),
@@ -816,6 +841,15 @@ class _Cell extends StatelessWidget {
 /// in the `matrixCellSemantic` ICU message (a single message with select
 /// branches for present / introduced-here / dance's-first-figure), so no
 /// fragment concatenation happens in Dart.
+///
+/// The `collision` argument for `programsMatrixCellSemantic` (issue #962): the
+/// ICU message needs to say WHICH collision rule fired, not merely that one
+/// did, since the two modes describe genuinely different situations. `'other'`
+/// (the message's default/no-match arm) covers "no collision".
+String _collisionSemanticsArg(bool collision, MatrixCollisionMode mode) {
+  if (!collision) return 'other';
+  return mode == MatrixCollisionMode.exactBeats ? 'beats' : 'phrase';
+}
 
 class _CompactMatrix extends StatelessWidget {
   const _CompactMatrix({
@@ -830,11 +864,11 @@ class _CompactMatrix extends StatelessWidget {
   final Set<String> altDanceIds;
 
   /// Columns hidden by the caller (#669) — see
-  /// [ProgramMatrixTable.hiddenColumns]. The compact view has no per-column
-  /// hide UI of its own (no header row to hover/tap), but it still respects
-  /// a hidden set supplied from the wide view/host so a column stays hidden
-  /// consistently across breakpoints.
-  final Set<int> hiddenColumns;
+  /// [ProgramMatrixTable.hiddenColumns]. Keyed by [MatrixColumn.moveId]. The
+  /// compact view has no per-column hide UI of its own (no header row to
+  /// hover/tap), but it still respects a hidden set supplied from the wide
+  /// view/host so a column stays hidden consistently across breakpoints.
+  final Set<String> hiddenColumns;
 
   @override
   Widget build(BuildContext context) {
@@ -849,7 +883,7 @@ class _CompactMatrix extends StatelessWidget {
     final repeated = <_MoveSummary>[];
     final singles = <_MoveSummary>[];
     for (var c = 0; c < matrix.columns.length; c++) {
-      if (hiddenColumns.contains(c)) continue;
+      if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
       final dances = <_DanceUse>[];
       for (var r = 0; r < matrix.rows.length; r++) {
         if (matrix.isPresent(r, c)) {
@@ -858,7 +892,7 @@ class _CompactMatrix extends StatelessWidget {
               title: matrix.rows[r].title,
               first: matrix.isFirst(r, c),
               programDebut: matrix.isProgramDebut(r, c),
-              collision: matrix.isPhraseCollision(r, c),
+              collision: matrix.isCollision(r, c),
               isAlt: altDanceIds.contains(matrix.rows[r].danceId),
               half: matrix.rows[r].half,
               formation: matrix.rows[r].formation,
@@ -909,7 +943,13 @@ class _CompactMatrix extends StatelessWidget {
           ),
         );
         for (final m in repeated) {
-          children.add(_MoveCard(summary: m, total: total));
+          children.add(
+            _MoveCard(
+              summary: m,
+              total: total,
+              collisionMode: matrix.collisionMode,
+            ),
+          );
         }
       } else {
         children.add(
@@ -928,7 +968,13 @@ class _CompactMatrix extends StatelessWidget {
       if (singles.isNotEmpty) {
         children.add(_SectionHeader(label: l10n.programsMatrixUsedOnceHeader));
         for (final m in singles) {
-          children.add(_MoveCard(summary: m, total: total));
+          children.add(
+            _MoveCard(
+              summary: m,
+              total: total,
+              collisionMode: matrix.collisionMode,
+            ),
+          );
         }
       }
     }
@@ -947,10 +993,10 @@ class _CompactMatrix extends StatelessWidget {
 /// compact view actually renders (it drops columns no dance uses). Also
 /// excludes any [hiddenColumns] (#669), so the announced count matches what's
 /// actually rendered.
-int _presentColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
+int _presentColumnCount(ProgramMatrix matrix, Set<String> hiddenColumns) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
-    if (hiddenColumns.contains(c)) continue;
+    if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
     for (var r = 0; r < matrix.rows.length; r++) {
       if (matrix.isPresent(r, c)) {
         count++;
@@ -965,10 +1011,10 @@ int _presentColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
 /// except those in [hiddenColumns] (#669). Unlike [_presentColumnCount], the
 /// wide grid shows every column regardless of whether any dance uses it, so
 /// this doesn't check presence — only the hidden set.
-int _visibleColumnCount(ProgramMatrix matrix, Set<int> hiddenColumns) {
+int _visibleColumnCount(ProgramMatrix matrix, Set<String> hiddenColumns) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
-    if (!hiddenColumns.contains(c)) count++;
+    if (!hiddenColumns.contains(matrix.columns[c].moveId)) count++;
   }
   return count;
 }
@@ -1045,10 +1091,15 @@ class _SectionHeader extends StatelessWidget {
 /// N of M dances") and each dance chip announces "dance, move: present" (plus
 /// "introduced here" / "dance's first figure"), matching [_Cell].
 class _MoveCard extends StatelessWidget {
-  const _MoveCard({required this.summary, required this.total});
+  const _MoveCard({
+    required this.summary,
+    required this.total,
+    required this.collisionMode,
+  });
 
   final _MoveSummary summary;
   final int total;
+  final MatrixCollisionMode collisionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -1101,6 +1152,7 @@ class _MoveCard extends StatelessWidget {
                   first: d.first,
                   programDebut: d.programDebut,
                   collision: d.collision,
+                  collisionMode: collisionMode,
                   isAlt: d.isAlt,
                   half: d.half,
                   formation: d.formation,
@@ -1120,6 +1172,7 @@ class _DanceChip extends StatelessWidget {
     required this.first,
     required this.programDebut,
     required this.collision,
+    required this.collisionMode,
     required this.isAlt,
     required this.formation,
     this.half,
@@ -1130,6 +1183,7 @@ class _DanceChip extends StatelessWidget {
   final bool first;
   final bool programDebut;
   final bool collision;
+  final MatrixCollisionMode collisionMode;
   final bool isAlt;
   final ProgramHalf? half;
   final Formation formation;
@@ -1160,7 +1214,8 @@ class _DanceChip extends StatelessWidget {
     final IconData markIcon;
     final Color markColor;
     if (collision) {
-      // Same-phrase repeat with a strictly-adjacent dance: top-precedence
+      // Same-figure collision with a strictly-adjacent dance (issue #962: the
+      // exact rule depends on the matrix's collisionMode): top-precedence
       // alert (shape + semantics, never colour alone).
       markIcon = Icons.report;
       markColor = theme.colorScheme.error;
@@ -1179,7 +1234,7 @@ class _DanceChip extends StatelessWidget {
         whoWithFormation,
         moveLabel,
         'yes',
-        collision ? 'yes' : 'no',
+        _collisionSemanticsArg(collision, collisionMode),
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
       ),
@@ -1243,6 +1298,10 @@ class _DanceChip extends StatelessWidget {
 }
 
 class _Legend extends StatelessWidget {
+  const _Legend({required this.collisionMode});
+
+  final MatrixCollisionMode collisionMode;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1256,7 +1315,9 @@ class _Legend extends StatelessWidget {
           _LegendItem(
             icon: Icons.report,
             color: theme.colorScheme.error,
-            label: l10n.programsMatrixLegendCollision,
+            label: collisionMode == MatrixCollisionMode.exactBeats
+                ? l10n.programsMatrixLegendCollisionBeats
+                : l10n.programsMatrixLegendCollision,
           ),
           _LegendItem(
             icon: Icons.star,

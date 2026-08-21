@@ -14,6 +14,7 @@ void main() {
     final repos = openTestRepositories();
     addTearDown(repos.db.close);
 
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'cf1',
@@ -22,6 +23,7 @@ void main() {
         type: CustomFieldType.text,
       ),
     );
+    // ignore: unused_result
     await repos.customFieldDefs.upsert(
       CustomFieldDef(
         id: 'cf2',
@@ -76,6 +78,7 @@ void main() {
       ),
     );
 
+    // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Newcomer Friendly'));
 
     final terms = await collectSensitiveTerms(repos);

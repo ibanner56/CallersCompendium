@@ -33,6 +33,7 @@ class DanceEditorController extends ChangeNotifier {
     required CompendiumRepositories repositories,
     required this.danceId,
     required Dialect dialect,
+    this.initialTitle,
   }) : _repos = repositories,
        _activeDialect = dialect,
        titleController = LingoTextEditingController(dialect: dialect),
@@ -46,6 +47,14 @@ class DanceEditorController extends ChangeNotifier {
   final CompendiumRepositories _repos;
   final String? danceId;
   Dialect _activeDialect;
+
+  /// A title to seed a **new** dance's title field with (issue #881's
+  /// "create a dance from this" program-slot action). Ignored when
+  /// [danceId] is non-null (editing an existing dance never reseeds its
+  /// title). Applied in [load]'s new-dance branch, in the same position as
+  /// the figures-template seed, so a restored autosave draft still overrides
+  /// it — the seed is a starting point, not a guaranteed final value.
+  final String? initialTitle;
 
   /// Renders canonical stored note text back into the active dialect for
   /// editing. Only [FigureRenderer.renderFreeText] (roles-only, case-preserving)
@@ -134,6 +143,7 @@ class DanceEditorController extends ChangeNotifier {
   DanceStatus _status = DanceStatus.active;
   DanceLevel? _level;
   bool _mixedLevel = false;
+  bool _mixer = false;
   int? _rating;
   PartialDate? _composedOn;
   PartialDate? _revisedOn;
@@ -144,6 +154,7 @@ class DanceEditorController extends ChangeNotifier {
   DanceStatus get status => _status;
   DanceLevel? get level => _level;
   bool get mixedLevel => _mixedLevel;
+  bool get mixer => _mixer;
   int? get rating => _rating;
   PartialDate? get composedOn => _composedOn;
   PartialDate? get revisedOn => _revisedOn;
@@ -269,6 +280,7 @@ class DanceEditorController extends ChangeNotifier {
       _status = dance.status;
       _level = dance.level;
       _mixedLevel = dance.mixedLevel;
+      _mixer = dance.mixer;
       _rating = dance.rating;
       _composedOn = dance.composedOn;
       _revisedOn = dance.revisedOn;
@@ -291,26 +303,36 @@ class DanceEditorController extends ChangeNotifier {
       // dance-authoring defaults. Each read is independently guarded so a
       // settings failure falls back silently to today's hardcoded default
       // rather than failing the editor load.
+
+      // Seed the title from the program-slot "create a dance from this" flow
+      // (issue #881), if one was provided. This runs BEFORE the draft-restore
+      // check below (like the figures template further down), so a restored
+      // autosave draft still overrides it — the seed is a starting point the
+      // user reviews and can edit, never a guaranteed final value.
+      final seedTitle = initialTitle;
+      if (seedTitle != null && seedTitle.isNotEmpty) {
+        titleController.text = seedTitle;
+      }
       try {
         _form = danceFormFromStored(
           await _repos.settings.get(kDefaultDanceFormKey),
         );
       } catch (_) {
-        /* keep the hardcoded DanceForm.contra default */
+        // diagnostics: silent — DanceForm default read failed; falls back to hardcoded contra.
       }
       try {
         _formationShape = formationShapeFromStored(
           await _repos.settings.get(kDefaultDanceFormationShapeKey),
         );
       } catch (_) {
-        /* keep the hardcoded FormationShape.dupleImproper default */
+        // diagnostics: silent — FormationShape default read failed; falls back to hardcoded dupleImproper.
       }
       try {
         _progression = progressionFromStored(
           await _repos.settings.get(kDefaultDanceProgressionKey),
         );
       } catch (_) {
-        /* keep the hardcoded Progression.single default */
+        // diagnostics: silent — Progression default read failed; falls back to hardcoded single.
       }
       try {
         final raw = dancePhraseStructureRawFromStored(
@@ -319,7 +341,7 @@ class DanceEditorController extends ChangeNotifier {
         // Empty ⇒ leave the historical standard 4×16 (blank controller).
         if (raw.isNotEmpty) phraseController.text = raw;
       } catch (_) {
-        /* keep the hardcoded standard phrase structure */
+        // diagnostics: silent — phrase structure default read failed; falls back to hardcoded standard.
       }
       // Seed the starting figures from the saved template (ROADMAP DD.2).
       // Unset ⇒ the default `stand_still × 8`; a read/decode failure also
@@ -333,6 +355,7 @@ class DanceEditorController extends ChangeNotifier {
         );
         figureDrafts.addAll(template.map(FigureDraft.fromFigure));
       } catch (_) {
+        // diagnostics: silent — figures template read/decode failed; falls back to default stand_still × 8.
         figureDrafts.addAll(
           defaultNewDanceFigureTemplate().map(FigureDraft.fromFigure),
         );
@@ -360,8 +383,8 @@ class DanceEditorController extends ChangeNotifier {
       try {
         draftSnapshot = decodeDraft(raw);
       } catch (_) {
-        // Corrupt / unrecognised draft version — silently discard.
-        await _repos.settings.remove(draftKey);
+        // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
+        await _repos.settings.remove(draftKey, permanent: true);
       }
       if (draftSnapshot != null && !_disposed) {
         _pendingDraft = draftSnapshot;
@@ -403,7 +426,7 @@ class DanceEditorController extends ChangeNotifier {
 
   /// Discards a pending autosave draft from storage.
   Future<void> discardPendingDraft() async {
-    await _repos.settings.remove(draftKey);
+    await _repos.settings.remove(draftKey, permanent: true);
   }
 
   // -------------------------------------------------------------------------
@@ -417,6 +440,9 @@ class DanceEditorController extends ChangeNotifier {
     try {
       _phraseStructure = PhraseStructure.parse(phraseController.text);
     } on FormatException {
+      // diagnostics: silent — invalid phrase structure is surfaced by the
+      // field validator instead (see the method doc); here it just leaves the
+      // last good warnings rather than clearing them.
       return;
     }
     final issues = <ValidationIssue>[];
@@ -442,6 +468,7 @@ class DanceEditorController extends ChangeNotifier {
     status: _status,
     level: _level,
     mixedLevel: _mixedLevel,
+    mixer: _mixer,
     rating: _rating,
     composedOn: _composedOn,
     revisedOn: _revisedOn,
@@ -502,6 +529,7 @@ class DanceEditorController extends ChangeNotifier {
     _status = s.status;
     _level = s.level;
     _mixedLevel = s.mixedLevel;
+    _mixer = s.mixer;
     _rating = s.rating;
     _composedOn = s.composedOn;
     _revisedOn = s.revisedOn;
@@ -653,8 +681,7 @@ class DanceEditorController extends ChangeNotifier {
       final encoded = encodeDraft(captureSnapshot());
       await _repos.settings.set(draftKey, encoded);
     } catch (_) {
-      // A draft write failure must never disrupt editing, nor permanently
-      // stall the save chain for later autosaves; the next edit retries.
+      // diagnostics: silent — draft write failure; must never stall editing or permanently block later autosaves.
     }
   }
 
@@ -668,7 +695,7 @@ class DanceEditorController extends ChangeNotifier {
     _undoTimer?.cancel();
     _draftGeneration++;
     await _saveQueueTail;
-    await _repos.settings.remove(draftKey);
+    await _repos.settings.remove(draftKey, permanent: true);
   }
 
   /// Marks the draft as saved (no unsaved changes) after a successful commit.
@@ -737,6 +764,7 @@ class DanceEditorController extends ChangeNotifier {
         level: _level,
         clearLevel: _level == null,
         mixedLevel: _mixedLevel,
+        mixer: _mixer,
         rating: _rating,
         clearRating: _rating == null,
         composedOn: _composedOn,
@@ -766,6 +794,7 @@ class DanceEditorController extends ChangeNotifier {
       status: _status,
       level: _level,
       mixedLevel: _mixedLevel,
+      mixer: _mixer,
       rating: _rating,
       composedOn: _composedOn,
       revisedOn: _revisedOn,
@@ -821,6 +850,13 @@ class DanceEditorController extends ChangeNotifier {
 
   void setMixedLevel(bool value) {
     _mixedLevel = value;
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void setMixer(bool value) {
+    _mixer = value;
     pushUndoNow();
     scheduleAutosave();
     _notify();
@@ -988,6 +1024,10 @@ class DanceEditorController extends ChangeNotifier {
       showInList: def.showInList,
       searchable: def.searchable,
     );
+    // Safe discard: `updated` is built from `def.id` (an already-persisted row),
+    // not a fresh UUID. Tombstone adoption requires a minting caller; it cannot
+    // fire here, so the returned id is always identical to updated.id.
+    // ignore: unused_result
     await _repos.customFieldDefs.upsert(updated);
     if (_disposed) return AddChoiceResult.added;
 

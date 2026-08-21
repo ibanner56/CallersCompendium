@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 23', () {
-      expect(contraTaxonomyVersion, 23);
-      expect(tax.version, 23);
+    test('contraTaxonomyVersion is 31', () {
+      expect(contraTaxonomyVersion, 31);
+      expect(tax.version, 31);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -40,12 +40,31 @@ void main() {
       // The pin below is on the *current* schema version, which also moves
       // for reasons that have nothing to do with the taxonomy — schema 21
       // dropped unused storage (#781/#782) and schema 22 added the
-      // dance_figures.group_idx search-correlation column (#748), each while
-      // the taxonomy stood still. So a failure here means one of two things,
-      // and they are worth telling apart: either a taxonomy change quietly
-      // started owing a migration (the hazard this test exists for), or an
-      // unrelated schema change landed and this number simply needs updating.
-      expect(kCompendiumSchemaVersion, 22);
+      // dance_figures.group_idx search-correlation column (#748), and schema
+      // 24 added the dances.mixer flag (#732), and schema 25 added the Device
+      // Sync timestamp triple (#898), each while the taxonomy stood still. The
+      // two constants briefly both read 24 — coincidentally: schema 24 comes
+      // from dances.mixer (#732) and taxonomy 24 from the partner-series
+      // vocabulary tokens (#732); same issue, unrelated mechanisms. They have
+      // since diverged again, and HOW they diverged is the useful part:
+      // taxonomy v25 (#870) and v26 (#843) both changed canonical keys and
+      // neither bumped the schema, because a figures_json rewrite does not need
+      // one — a one-time `settings` marker in `CompendiumRepositories` does the
+      // pass and the derived rebuild (see `_normaliseInversePairMoveIdsIfNeeded`
+      // and `_stripStarPromenadeHandIfNeeded`). A schema bump is for a change in
+      // STRUCTURE — schema 25 is the contrapositive and shows the rule cutting
+      // the other way: #898 added twenty columns and touched no canonical key,
+      // so it bumped the schema and left the taxonomy alone. So a failure here
+      // means one of two things, and they are worth telling apart: either a
+      // taxonomy change quietly started owing a structural migration (the
+      // hazard this test exists for), or an unrelated schema change landed and
+      // this number simply needs updating. Schema 26 (#899) is another
+      // instance of the latter: it added the venue_provenance table and
+      // touched no canonical key, so it bumped the schema and left the
+      // taxonomy alone. Schema 27 (#862) likewise added
+      // collection_import_events without changing the taxonomy. Schema 28
+      // (#1005) added scoped search indexes without changing the taxonomy.
+      expect(kCompendiumSchemaVersion, 28);
     });
 
     test('registers with the maintainer-ruled param set', () {
@@ -155,6 +174,13 @@ void main() {
         'N3 neighbor courtesy turn': 'thirdNeighbors',
         'Shadow courtesy turn': 'shadows',
         'Twos courtesy turn': 'twos',
+        // Mixer partner-series: spot-checks that courtesy_turn routes through
+        // the same _dancerWords map as swing/allemande/promenade. P0–P5 are
+        // exhaustively asserted via that map in figure_parser_test.dart;
+        // only a representative subset is needed here.
+        'P1 partner courtesy turn': 'partners',
+        'P2 partner courtesy turn': 'nextPartners',
+        'P4 partner courtesy turn': 'fourthPartners',
       };
       cases.forEach((line, who) {
         final f = parseTcb(line, beats: 4);
@@ -437,14 +463,14 @@ void main() {
   group(
     'must stay custom — dancers the taxonomy deliberately does not map',
     () {
-      // `P2`+ (a mixer's future partners), phantoms, square corners and the
-      // free-form positional phrases have no faithful token; approximating them
-      // onto one that means someone else would be worse than declining.
+      // `P6`+, negative `P-n`, phantoms, square corners and the free-form
+      // positional phrases have no faithful token; approximating them onto one
+      // that means someone else would be worse than declining.
+      // (`P1`/`P2`/`P4` now have tokens — see "attested subject" test above.)
       for (final line in [
+        'P6 partner courtesy turn',
+        'P-1 partner courtesy turn',
         'Phantom partner courtesy turn',
-        'P1 partner courtesy turn',
-        'P2 partner courtesy turn',
-        'P4 partner courtesy turn',
         'Next corner courtesy turn',
         '[Ends] Opposite neighbor courtesy turn',
         'Bottom couple courtesy turn',

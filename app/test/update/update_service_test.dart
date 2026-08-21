@@ -474,6 +474,154 @@ void main() {
       expect(produced, lessThan(1000 * chunk));
     });
   });
+
+  group('fetchUpdateManifest — redirect validation (issue #784)', () {
+    // Builds a MockClient that serves one redirect then the final response.
+    // The mock sees exactly the requests as sendManifestFollowingHttpsRedirects issues
+    // them (each with followRedirects=false), so a 301 to redirectTarget lands
+    // on the final handler which returns a 200 with [finalHandler].
+    MockClient makeRedirectingClient({
+      required String redirectTarget,
+      required http.StreamedResponse Function(http.BaseRequest) finalHandler,
+    }) {
+      return MockClient.streaming((request, _) async {
+        if (request.url.host == Uri.parse(redirectTarget).host &&
+            request.url.path == Uri.parse(redirectTarget).path) {
+          return finalHandler(request);
+        }
+        // First hop: return a 301 pointing at redirectTarget.
+        return http.StreamedResponse(
+          Stream<List<int>>.value([]),
+          301,
+          headers: {'location': redirectTarget},
+        );
+      });
+    }
+
+    test(
+      'follows the live redirect ibanner56.github.io → callerscompendium.com '
+      'and returns the body',
+      () async {
+        // This is the real redirect chain every installed client takes:
+        // kUpdateManifestBaseUrl (ibanner56.github.io) 301s to the custom
+        // Pages domain (callerscompendium.com). Both hosts are in
+        // kAllowedArtifactHosts; the redirect must be followed.
+        final manifestBytes = utf8.encode(_manifest());
+        final client = makeRedirectingClient(
+          redirectTarget:
+              'https://callerscompendium.com/CallersCompendium/stable.json',
+          finalHandler: (_) => http.StreamedResponse(
+            Stream<List<int>>.value(manifestBytes),
+            200,
+          ),
+        );
+        final body = await fetchUpdateManifest(
+          UpdateChannel.stable,
+          client: client,
+        );
+        expect(body, manifestBytes);
+      },
+    );
+
+    test('refuses a redirect to a disallowed host and returns null', () async {
+      // The mock serves a 301 → evil.example.com, then a real 200 at that host.
+      // With the guard, sendManifestFollowingHttpsRedirects throws before following,
+      // so the result is null. Without the guard (the mutation target) it would
+      // follow and return the body, falsifying this expect.
+      final body = utf8.encode(_manifest());
+      final client = MockClient.streaming((request, _) async {
+        if (request.url.host == 'evil.example.com') {
+          return http.StreamedResponse(Stream<List<int>>.value(body), 200);
+        }
+        return http.StreamedResponse(
+          Stream<List<int>>.value([]),
+          301,
+          headers: {'location': 'https://evil.example.com/manifest.json'},
+        );
+      });
+      expect(
+        await fetchUpdateManifest(UpdateChannel.stable, client: client),
+        isNull,
+      );
+    });
+
+    test(
+      'refuses a scheme downgrade (https → http) even to an allowed host',
+      () async {
+        // The mock serves a 301 → http://callerscompendium.com, then a 200 at
+        // that downgraded URL. With the guard this returns null (the downgrade
+        // fails isAllowedArtifactHost because the scheme is http, not https).
+        // Without the guard it returns the body, falsifying this expect.
+        final body = utf8.encode(_manifest());
+        final client = MockClient.streaming((request, _) async {
+          if (!request.url.isScheme('https')) {
+            return http.StreamedResponse(Stream<List<int>>.value(body), 200);
+          }
+          return http.StreamedResponse(
+            Stream<List<int>>.value([]),
+            301,
+            headers: {'location': 'http://callerscompendium.com/stable.json'},
+          );
+        });
+        expect(
+          await fetchUpdateManifest(UpdateChannel.stable, client: client),
+          isNull,
+        );
+      },
+    );
+
+    test('returns null when the redirect hop cap is exceeded', () async {
+      // Every response is a redirect, so the cap fires after kMaxArtifactRedirects
+      // hops and the helper throws → silent null.
+      var hops = 0;
+      final client = MockClient.streaming((request, _) async {
+        hops++;
+        return http.StreamedResponse(
+          Stream<List<int>>.value([]),
+          301,
+          headers: {
+            'location':
+                'https://ibanner56.github.io/CallersCompendium/stable.json',
+          },
+        );
+      });
+      expect(
+        await fetchUpdateManifest(UpdateChannel.stable, client: client),
+        isNull,
+      );
+      // Cap is kMaxArtifactRedirects (5); we expect exactly cap+1 requests
+      // (initial + cap hops before the exception is thrown).
+      expect(hops, kMaxArtifactRedirects + 1);
+    });
+
+    test(
+      'upfront guard: disallowed initial host throws before any request is made',
+      () async {
+        // sendManifestFollowingHttpsRedirects validates the initial URI before
+        // the first client.send() call, mirroring downloadArtifact's upfront
+        // guard. The mock would return a 200 if reached; the guard must throw
+        // first so it is never called.
+        //
+        // This test distinguishes "guards every request" from "guards only
+        // redirect targets". Mutation target: remove the upfront
+        // isAllowedArtifactHost(uri) check and confirm requestsMade > 0.
+        var requestsMade = 0;
+        final client = MockClient.streaming((request, _) async {
+          requestsMade++;
+          return http.StreamedResponse(
+            Stream<List<int>>.value(utf8.encode(_manifest())),
+            200,
+          );
+        });
+        final disallowedUri = Uri.parse('https://evil.example.com/stable.json');
+        await expectLater(
+          sendManifestFollowingHttpsRedirects(client, disallowedUri),
+          throwsA(isA<Exception>()),
+        );
+        expect(requestsMade, 0);
+      },
+    );
+  });
 }
 
 /// A stand-in transport error (avoids importing `dart:io` in a test that may

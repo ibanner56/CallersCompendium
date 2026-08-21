@@ -20,10 +20,12 @@ const String kFormationColorOverridesKey = 'formation_color_overrides';
 /// - Only keys that exactly match a known [FormationShape] `.name` are kept;
 ///   unknown/removed shape keys are ignored gracefully (naturally bounding the
 ///   result to at most [FormationShape.values] entries).
-/// - Values must be integers within the 32-bit ARGB range; anything else
-///   (non-numeric, fractional, negative, or oversized) is rejected.
-/// - Every accepted color is forced fully opaque (`| 0xFF000000`) so a stored
-///   zero-/low-alpha value can never make a highlight vanish.
+/// - Each value is validated and normalized by [normalizeArgb], the shared
+///   rule set (non-numeric, non-finite, fractional, negative and out-of-32-bit
+///   values are rejected; whatever survives is forced fully opaque so a stored
+///   zero-/low-alpha value can never make a highlight vanish). Tag colours
+///   (issue #786) go through the same helper, so a hostile value is treated
+///   identically wherever it entered from.
 Map<FormationShape, Color> formationColorOverridesFromStored(Object? stored) {
   final result = <FormationShape, Color>{};
   if (stored is! Map) return result;
@@ -33,16 +35,9 @@ Map<FormationShape, Color> formationColorOverridesFromStored(Object? stored) {
     if (key is! String) return;
     final shape = byName[key];
     if (shape == null) return;
-    if (value is! num) return;
-    // Reject NaN and ±Infinity (which would throw in toInt), plus any
-    // fractional value — a colour is an integer ARGB.
-    if (value is double &&
-        (!value.isFinite || value != value.roundToDouble())) {
-      return;
-    }
-    final argb = value.toInt();
-    if (argb < 0 || argb > 0xFFFFFFFF) return;
-    result[shape] = Color(argb | 0xFF000000);
+    final argb = normalizeArgb(value);
+    if (argb == null) return;
+    result[shape] = Color(argb);
   });
   return result;
 }

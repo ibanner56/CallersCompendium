@@ -27,7 +27,7 @@ group.new_reference('ShareExtension.entitlements')
 
 # --- Target ----------------------------------------------------------------
 ext = project.new_target(
-  :app_extension, ext_name, :ios, '14.0', project.products_group, :swift
+  :app_extension, ext_name, :ios, '15.0', project.products_group, :swift
 )
 ext.source_build_phase.add_file_reference(swift_ref)
 
@@ -40,7 +40,7 @@ ext.build_configurations.each do |config|
   s['CODE_SIGN_ENTITLEMENTS'] = 'ShareExtension/ShareExtension.entitlements'
   s['CODE_SIGN_STYLE'] = 'Automatic'
   s['SWIFT_VERSION'] = '5.0'
-  s['IPHONEOS_DEPLOYMENT_TARGET'] = '14.0'
+  s['IPHONEOS_DEPLOYMENT_TARGET'] = '15.0'
   s['TARGETED_DEVICE_FAMILY'] = '1,2'
   s['SKIP_INSTALL'] = 'YES'
   s['CURRENT_PROJECT_VERSION'] = '1'

@@ -26,16 +26,17 @@ rail.
 
 Inside, a list of sections sits beside the controls for the section you've
 chosen. On a narrow screen you pick a section and it opens as its own page, then
-you step back to switch sections. There are eight sections, always in this order:
+you step back to switch sections. There are nine sections, always in this order:
 
 1. **General**
-2. **Appearance**
-3. **Dialect**
-4. **Language & region**
-5. **Defaults**
-6. **Updates**
-7. **Diagnostics**
-8. **About**
+2. **Program**
+3. **Appearance**
+4. **Dialect**
+5. **Language & region**
+6. **Defaults**
+7. **Updates**
+8. **Diagnostics**
+9. **About**
 
 ## General
 
@@ -46,48 +47,6 @@ The **General** section gathers everyday behavior into small groups.
 - **Ignore leading articles when sorting** (on by default) — alphabetizes titles
   by their first meaningful word. With this on, "The Nice Combination" files under
   **N**, not **T**.
-
-### Venues
-
-- **Use reusable venue records** (off by default) — turns a program's
-  [venue](./glossary.md#venue) into a reusable record with address, contacts, and
-  schedule that many programs can share and you edit in one place. When off, a
-  program's venue is a simple free-text field. Switching is **lossless and
-  reversible**: your typed venue text and any linked record are both kept, so
-  flipping the toggle never discards either.
-- **Manage venues** — browse, edit, and delete your saved venue records. You can
-  also add a venue on the fly while editing a program (when reusable venue records
-  are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held
-  for later restore. To keep you from stranding a program, a venue can't be
-  deleted while any program is still linked to it; change or remove the venue on
-  those programs first, then delete it.
-
-Whether the toggle is on or off, a program that's linked to a saved venue always
-shows and exports that venue's full details (the linked record wins over free
-text). See [Programs](./programs.md) for how the venue field behaves in each mode,
-and [Share, print & export](./sharing.md#what-stays-private) for how venue contact
-details are handled when you export.
-
-### Performance
-
-- **Auto-size Perform cards** (on) — scales each card so it fits the screen in
-  [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
-  the text yourself using the **A−** and **A+** buttons while performing. See
-  [Perform mode](./perform.md) for more.
-
-### Calling history
-
-- **Require "mark performed" for calling history** (off) — when on, a dance's
-  calling history lists only the [programs](./glossary.md#program) whose
-  [slot](./glossary.md#slot) was actually marked performed, rather than every
-  program the dance appears in.
-- **Track calling history for all callers** (off) — when off *and* you've set a
-  [default caller for new programs](#program-defaults), a dance's calling history
-  and "called ×N" counts include only programs led by that caller, so your history
-  reflects the dances **you** called. Turn it on — or leave the default caller
-  blank — to track every program that contains the dance. Matching ignores
-  surrounding spaces and letter case, and applies on top of the *Require "mark
-  performed"* setting (both must pass).
 
 ### Accessibility
 
@@ -131,6 +90,83 @@ the full picture.
 
 For the whole workflow, see [Backup & portability](./backup-portability.md).
 
+## Program
+
+The **Program** section gathers the settings that shape how you build, check, and
+perform your [programs](./glossary.md#program) — venues, the programming matrix,
+Perform mode, and calling history.
+
+### Venues
+
+- **Use reusable venue records** (off by default) — turns a program's
+  [venue](./glossary.md#venue) into a reusable record with address, contacts, and
+  schedule that many programs can share and you edit in one place. When off, a
+  program's venue is a simple free-text field. Switching is **lossless and
+  reversible**: your typed venue text and any linked record are both kept, so
+  flipping the toggle never discards either.
+- **Manage venues** — browse, edit, and delete your saved venue records. You can
+  also add a venue on the fly while editing a program (when reusable venue records
+  are on). Deleting a venue is permanent — unlike a deleted dance, it isn't held
+  for later restore. To keep you from stranding a program, a venue can't be
+  deleted while any program is still linked to it; change or remove the venue on
+  those programs first, then delete it.
+
+Whether the toggle is on or off, a program that's linked to a saved venue always
+shows and exports that venue's full details (the linked record wins over free
+text). See [Programs](./programs.md) for how the venue field behaves in each mode,
+and [Share, print & export](./sharing.md#what-stays-private) for how venue contact
+details are handled when you export.
+
+### Programs
+
+- **Flag exact beat overlap only** (on by default) — controls how the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix)'s alert
+  marker decides that a move repeating in two back-to-back dances is worth a
+  second look. On (the default), only a move whose beats actually **overlap**
+  between the two dances is flagged. Off, any move that merely lands in the same
+  **named phrase** (A1, A2, B1, B2…) is flagged, even if its beats don't overlap
+  at all — this was the matrix's original behavior. The screen legend and the
+  printed PDF legend always agree with whichever mode is on.
+
+- **Matrix columns** — opens a dedicated editor for the columns of the
+  [programming matrix](./programs.md#check-your-evening-with-the-matrix). These
+  changes are saved and apply to **every** program, both on screen and in the
+  printed PDF — distinct from the per-session eye icon in a matrix's own header,
+  which only hides a column until you reopen that program. In the editor you can:
+  - **Reorder** columns by dragging the handle on the left of each row.
+  - **Rename** a column with a name that suits your callers; leave the field
+    empty to fall back to the built-in name (shown as a hint).
+  - **Remove** a column you never use, or **restore** one you removed earlier —
+    removed columns stay listed here (struck through) so you can always bring
+    them back.
+  - **Restore removed columns** brings back everything you removed and returns the
+    built-in columns to their original order, while keeping your renames and any
+    custom columns.
+  - **Restore all defaults** clears every customisation and returns the matrix to
+    how it ships. Because it discards your renames and custom columns, it asks
+    you to confirm first.
+
+### Performance
+
+- **Auto-size Perform cards** (on) — scales each card so it fits the screen in
+  [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
+  the text yourself using the **A−** and **A+** buttons while performing. See
+  [Perform mode](./perform.md) for more.
+
+### Calling history
+
+- **Require "mark performed" for calling history** (off) — when on, a dance's
+  calling history lists only the [programs](./glossary.md#program) whose
+  [slot](./glossary.md#slot) was actually marked performed, rather than every
+  program the dance appears in.
+- **Track calling history for all callers** (off) — when off *and* you've set a
+  [default caller for new programs](#program-defaults), a dance's calling history
+  and "called ×N" counts include only programs led by that caller (plus any
+  programs with no caller recorded, which are treated as your own). Turn it on —
+  or leave the default caller blank — to track every program that contains the
+  dance. Matching ignores surrounding spaces and letter case, and applies on top
+  of the *Require "mark performed"* setting (both must pass).
+
 ## Appearance
 
 The **Appearance** section controls how the app looks.
@@ -162,10 +198,13 @@ There's a **High Contrast** theme for maximum legibility — see the
 - **Colour-code set-list rows** — tints each dance row in a program's set list
   (both the read-only summary and the builder) by its
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
-  circles, and squares each get their own accent, so you can read the *shape* of a
-  program at a glance. The formation is always shown as text on the row too, so
-  rows stay fully readable without relying on colour, and the accents adapt to the
-  High Contrast theme. On by default; turn it off to hide the tints.
+  circles, and squares each get their own accent, so you can read the *shape* of a program at a
+  glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
+  accent regardless of their formation, so a mixer-flagged Duple Improper reads as
+  a mixer rather than a contra. The formation (and "Mixer" when applicable) is
+  always shown as text on the row too, so rows stay fully readable without relying
+  on colour, and the accents adapt to the High Contrast theme. On by default; turn
+  it off to hide the tints.
 
 ### Formation colours
 
@@ -173,6 +212,15 @@ There's a **High Contrast** theme for maximum legibility — see the
   colours (for example Becket clockwise in yellow and Becket counter-clockwise in
   pink). Your choices show on dance cards, in dance detail, and in the Perform
   header.
+
+### Tag colours
+
+- **Tag colours** — give a tag its own colour so it stands out wherever it
+  appears, on dance cards and in dance detail. Only the tags you colour change;
+  every other tag looks exactly as it does now. The tag's name is always shown
+  beside the colour, so tags stay readable without relying on colour, and the
+  app picks a black or white label automatically so your colour stays legible in
+  every theme.
 
 ## Dialect
 
@@ -306,9 +354,10 @@ you use the app is ever sent.
 ## Diagnostics
 
 When something goes wrong, the app writes a short technical note to a log on your
-own device. **It is never sent anywhere — there is no telemetry.** The
-**Diagnostics** section is where you read that log, hand a copy to a bug report,
-or wipe it.
+own device — not just outright crashes, but also errors you see reported on
+screen (like a failed import). **It is never sent anywhere — there is no
+telemetry.** The **Diagnostics** section is where you read that log, hand a
+copy to a bug report, or wipe it.
 
 ### Recent entries
 

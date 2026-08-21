@@ -249,4 +249,176 @@ void main() {
       expect(passThrough.note, '(NR)');
     });
   });
+
+  // Issue #749 / #840 Part E — single-file promenade clockwise/counterclockwise
+  // recognized from TCB source text and mapped to circle.
+  group('tcbFigureFrontEnd — single file promenade → circle (#749 Part E)', () {
+    // "Single file promenade clockwise" is TCB's label for a circle-left in
+    // single-file formation. In contra convention, "circle left" travels
+    // clockwise. The recognizer maps:
+    //   clockwise → turn:'left'   (circle left = clockwise)
+    //   counterclockwise → turn:'right'  (circle right = counterclockwise)
+    test(
+      'Single file promenade clockwise → circle, turn:left, singleFile:true',
+      () {
+        final f = parseFigureLine(
+          'Single file promenade clockwise 4 places',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isFalse);
+        expect(f.move, 'circle');
+        expect(f.params['turn'], 'left');
+        expect(f.params['singleFile'], isTrue);
+      },
+    );
+
+    test('Single file promenade counterclockwise → circle, turn:right', () {
+      final f = parseFigureLine(
+        'Single file promenade counterclockwise 4 places',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(f, isNotNull);
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'circle');
+      expect(f.params['turn'], 'right');
+      expect(f.params['singleFile'], isTrue);
+    });
+
+    test('Single file promenade clockwise 3 places — places captured', () {
+      final f = parseFigureLine(
+        'Single file promenade clockwise 3 places',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(f, isNotNull);
+      expect(f!.params['places'], 3);
+    });
+
+    test(
+      'Single file promenade clockwise 3/4 — slash fraction decoded as 3 places',
+      () {
+        // `3/4` in TCB circle context = 3 quarter-turns = 3 places.
+        // Red-run target: the bug was alt-1 of _placesRe matching `3` alone,
+        // leaving `/4` as the note and storing places:3 with a garbage note.
+        // After fix: `3/4` matches as a unit → places:3, no note.
+        final f = parseFigureLine(
+          'Single file promenade clockwise 3/4',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isFalse);
+        expect(f.params['places'], 3);
+        expect(f.note, isNull); // no orphaned `/4` in note
+      },
+    );
+
+    test(
+      'Single file promenade clockwise 1/3 — unmapped denominator declines to custom',
+      () {
+        // _placesRe matches `1/3` as a unit (general N/M arm), but `slashMap`
+        // doesn't know `1/3`, so _parsePlaces returns null. Owner ruling
+        // (2026-08-11): non-decodable fractions decline to custom, matching
+        // figure_parser.dart's _takePlaces precedent. Mechanism: the
+        // _declineSingleFileCircle veto fires BEFORE all pre-recognizers
+        // (including _promenadeAnnotation), matching the _declineStarPromenade
+        // pattern in contradb_figure_dialect.dart.
+        // Not a live corpus case (verified 2026-08-11 across 396 TCB lines).
+        final f = parseFigureLine(
+          'Single file promenade clockwise 1/3',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isTrue);
+      },
+    );
+
+    test(
+      'Single file promenade clockwise ⅓ — non-quarter glyph declines to custom',
+      () {
+        // ⅓ is not a quarter fraction and has no integer place count.
+        // Removed from _parsePlaces glyph map (owner ruling: quarters only).
+        // Declined via _declineSingleFileCircle veto (same mechanism as 1/3).
+        // Red-run target: before the fix this fabricated places:1 and returned
+        // a structured circle (isCustom=false). After fix: isCustom=true.
+        final f = parseFigureLine(
+          'Single file promenade clockwise ⅓',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isTrue);
+      },
+    );
+
+    test(
+      'Single file promenade clockwise 1½ — mixed-number glyph decoded as 6 places',
+      () {
+        final f = parseFigureLine(
+          'Single file promenade clockwise 1½',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.params['places'], 6);
+        expect(f.note, isNull);
+      },
+    );
+
+    test('plain "Single file promenade clockwise" (no places) — not custom', () {
+      // Without a places count the figure is still structured (default places=4
+      // from the taxonomy).
+      final f = parseFigureLine(
+        'Single file promenade clockwise',
+        frontEnd: tcbFigureFrontEnd,
+      );
+      expect(f, isNotNull);
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'circle');
+    });
+
+    test(
+      'trailing whitespace in input — note casing preserved, no truncation',
+      () {
+        // Guards the suffix arithmetic: `source` and `lower` are both trimmed
+        // from the same string, so their lengths are equal and the offset is safe.
+        final f = parseFigureLine(
+          'Single file promenade clockwise SomeNote  ',
+          frontEnd: tcbFigureFrontEnd,
+        );
+        expect(f, isNotNull);
+        expect(f!.note, 'SomeNote'); // original casing, no front-truncation
+      },
+    );
+
+    // Red-run target: comment out _singleFileCircleRecognizer in
+    // tcbFigureFrontEnd.preRecognizers → parseFigureLine falls through to
+    // custom, isCustom becomes true.
+  });
+
+  group(
+    'tcbFigureFrontEnd — other front-ends do NOT recognize single-file circle',
+    () {
+      // This pattern is TCB-specific. The canonical and callersCompanion
+      // front-ends should leave it as custom.
+      test(
+        'canonicalFigureFrontEnd leaves "Single file promenade clockwise" as custom',
+        () {
+          final f = parseFigureLine(
+            'Single file promenade clockwise 4 places',
+            frontEnd: canonicalFigureFrontEnd,
+          );
+          expect(f?.isCustom ?? true, isTrue);
+        },
+      );
+
+      test(
+        'callersCompanionFigureFrontEnd leaves "Single file promenade clockwise" as custom',
+        () {
+          final f = parseFigureLine(
+            'Single file promenade clockwise 4 places',
+            frontEnd: callersCompanionFigureFrontEnd,
+          );
+          expect(f?.isCustom ?? true, isTrue);
+        },
+      );
+    },
+  );
 }

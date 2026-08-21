@@ -82,7 +82,10 @@ class FilterCompiler {
     final dir = direction ?? sort.defaultDirection;
     // Relevance is only meaningful for a bare full-text search; it needs a
     // dedicated shape that can `ORDER BY bm25(dance_fts)`.
-    if (sort == SearchSort.relevance && filter is FullTextFilter) {
+    if (sort == SearchSort.relevance &&
+        filter is FullTextFilter &&
+        filter.scope == FullTextScope.omni &&
+        ftsQueryScalarLength(filter.query) <= 2) {
       return _compileRelevance(filter, dir);
     }
 
@@ -96,13 +99,15 @@ class FilterCompiler {
   }
 
   CompiledFilter _compileRelevance(FullTextFilter filter, SortDirection dir) {
-    final query = toFtsMatchQuery(
+    final canonicalQuery = toFtsPrefixMatchQuery(
       canonicalizeText(
         filter.query,
         dialect,
         extraRoleSynonyms: enrichment.roleSynonyms,
       ),
     );
+    final rawTitleQuery = toFtsPrefixMatchQuery(filter.query);
+    final query = '($canonicalQuery OR title : $rawTitleQuery)';
     // bm25 returns lower (more negative) for better matches, so ascending
     // (the default) is best-match-first; descending flips to worst-match-first.
     final order = dir == SortDirection.descending
@@ -157,21 +162,17 @@ class FilterCompiler {
         return '(${children.map((c) => _dance(c, binds)).join(' OR ')})';
       case NotFilter(:final child):
         return 'NOT (${_dance(child, binds)})';
-      case FullTextFilter(:final query):
-        binds.add(
-          toFtsMatchQuery(
-            canonicalizeText(
-              query,
-              dialect,
-              extraRoleSynonyms: enrichment.roleSynonyms,
-            ),
-          ),
-        );
-        return 'id IN (SELECT dance_id FROM dance_fts WHERE dance_fts MATCH ?)';
+      case FullTextFilter(:final query, :final scope):
+        return _compileFullText(scope, query, binds);
       case AuthorFilter(:final choreographerId):
+        // Joined to `choreographers` since schema v25 (#898) so a tombstoned
+        // author matches nothing: soft delete leaves the `dance_authors` rows
+        // in place (no FK cascade fires), so the bare subquery would keep
+        // returning dances for an author the user deleted.
         binds.add(choreographerId);
-        return 'id IN (SELECT dance_id FROM dance_authors '
-            'WHERE choreographer_id = ?)';
+        return 'id IN (SELECT da.dance_id FROM dance_authors da '
+            'JOIN choreographers c ON c.id = da.choreographer_id '
+            'WHERE da.choreographer_id = ? AND c.deleted_at IS NULL)';
       case SourceFilter(:final query):
         // Substring match on the cited source's title OR author. `author` is
         // nullable — a NULL yields NULL (not-true) under LIKE, so the OR still
@@ -182,17 +183,25 @@ class FilterCompiler {
         binds.add(escaped);
         return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
             'JOIN published_sources ps ON ps.id = ds.source_id '
-            "WHERE ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
-            "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\')";
+            'WHERE ps.deleted_at IS NULL AND ('
+            "ps.title LIKE '%' || ? || '%' ESCAPE '\\' "
+            "OR ps.author LIKE '%' || ? || '%' ESCAPE '\\'))";
       case SourceIdFilter(:final sourceId):
         // Identity match on the cited source's id — the exact analog of
-        // AuthorFilter's dance_authors subquery.
+        // AuthorFilter's dance_authors subquery, including its v25 tombstone
+        // join.
         binds.add(sourceId);
-        return 'id IN (SELECT dance_id FROM dance_sources '
-            'WHERE source_id = ?)';
+        return 'id IN (SELECT ds.dance_id FROM dance_sources ds '
+            'JOIN published_sources ps ON ps.id = ds.source_id '
+            'WHERE ds.source_id = ? AND ps.deleted_at IS NULL)';
       case TagFilter(:final tagId):
+        // Joined to `tags` since schema v25 (#898). Tags have no referential
+        // guard, so this is the one of these three where a tombstone with live
+        // join rows is reachable by ordinary use rather than only defensively.
         binds.add(tagId);
-        return 'id IN (SELECT dance_id FROM dance_tags WHERE tag_id = ?)';
+        return 'id IN (SELECT dt.dance_id FROM dance_tags dt '
+            'JOIN tags t ON t.id = dt.tag_id '
+            'WHERE dt.tag_id = ? AND t.deleted_at IS NULL)';
       case FormFilter(:final form):
         binds.add(form.name);
         return 'form = ?';
@@ -210,6 +219,9 @@ class FilterCompiler {
       case MixedLevelFilter(:final mixed):
         binds.add(mixed ? 1 : 0);
         return 'mixed_level = ?';
+      case MixerFilter(:final mixer):
+        binds.add(mixer ? 1 : 0);
+        return 'mixer = ?';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the
         // tree at compile time (asserts are stripped in release) — throw
@@ -221,6 +233,7 @@ class FilterCompiler {
             'must be 1..5',
           );
         }
+
         // `rating >= ?`: NULL (unrated) never satisfies the comparison, so
         // unrated dances are excluded — an unspecified rating is not a point
         // on the scale (mirrors the LevelFilter ordered-op NULL guard).
@@ -232,6 +245,50 @@ class FilterCompiler {
         return _figureIn(query, binds);
       case ThenFilter(:final before, :final after):
         return _then(before, after, binds);
+    }
+  }
+
+  String _compileFullText(
+    FullTextScope scope,
+    String rawQuery,
+    List<Object?> binds,
+  ) {
+    final isPrefix = ftsQueryScalarLength(rawQuery) <= 2;
+    final table = isPrefix ? 'dance_fts' : 'dance_substring_fts';
+    final queryBuilder = isPrefix
+        ? toFtsPrefixMatchQuery
+        : toFtsSubstringMatchQuery;
+    final canonicalQuery = queryBuilder(
+      canonicalizeText(
+        rawQuery,
+        dialect,
+        extraRoleSynonyms: enrichment.roleSynonyms,
+      ),
+    );
+    final rawTextQuery = queryBuilder(rawQuery);
+
+    String columnMatch(String column, String query) {
+      binds.add(query);
+      return 'id IN (SELECT dance_id FROM $table WHERE $column MATCH ?)';
+    }
+
+    switch (scope) {
+      case FullTextScope.title:
+        return columnMatch('title', rawTextQuery);
+      case FullTextScope.figure:
+        return columnMatch('figures_text', canonicalQuery);
+      case FullTextScope.omni:
+        // Preserve canonical cross-field matching, but add a raw title-only
+        // branch so a title such as "Hey Man" cannot be rewritten away by the
+        // role synonym map. Both branches use the active prefix/substr index,
+        // so long queries remain literal substrings rather than falling back
+        // to unicode61 token semantics.
+        binds.add(canonicalQuery);
+        binds.add(rawTextQuery);
+        final canonical =
+            'id IN (SELECT dance_id FROM $table WHERE $table MATCH ?)';
+        final raw = 'id IN (SELECT dance_id FROM $table WHERE title MATCH ?)';
+        return '($canonical OR $raw)';
     }
   }
 
