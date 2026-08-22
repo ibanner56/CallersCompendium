@@ -95,7 +95,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
         return text.isEmpty ? null : text;
       case CustomFieldType.number:
         final text = _textController.text.trim();
-        return text.isEmpty ? null : num.tryParse(text);
+        return text.isEmpty ? null : parseFiniteNumber(text);
       case CustomFieldType.boolean:
         return _boolValue;
       case CustomFieldType.choice:
@@ -142,7 +142,7 @@ class _BatchCustomFieldDialogState extends State<_BatchCustomFieldDialog> {
             border: const OutlineInputBorder(),
             errorText:
                 _textController.text.trim().isNotEmpty &&
-                    num.tryParse(_textController.text.trim()) == null
+                    parseFiniteNumber(_textController.text.trim()) == null
                 ? l10n.collectionBatchCustomFieldNumberInvalid
                 : null,
           ),

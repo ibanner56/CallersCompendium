@@ -11,6 +11,20 @@ import 'enums.dart';
 /// Shared so both entry paths agree on one bound.
 const int kMaxCustomFieldChoiceLength = 100;
 
+/// Parses a custom number input only when it can be represented by the
+/// persisted `REAL` column and JSON.
+num? parseFiniteNumber(String raw) {
+  final parsed = num.tryParse(raw);
+  if (parsed == null || !parsed.isFinite || !parsed.toDouble().isFinite) {
+    return null;
+  }
+  return parsed;
+}
+
+/// Returns whether [value] is safe to persist as a custom number.
+bool isFiniteCustomFieldNumber(Object value) =>
+    value is num && value.isFinite && value.toDouble().isFinite;
+
 /// Normalizes a raw `choice` option value: trims surrounding whitespace and
 /// soft-clamps to [kMaxCustomFieldChoiceLength]. Returns `null` when the value
 /// is empty after trimming (nothing to add). Deduplication against existing

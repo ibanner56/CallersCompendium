@@ -30,6 +30,7 @@ class DanceEditorForm extends StatelessWidget {
     super.key,
     required this.controller,
     required this.formKey,
+    required this.moreDetailsController,
     required this.taxonomy,
     required this.moveParamDefaults,
     this.freeTextEntry = false,
@@ -56,6 +57,7 @@ class DanceEditorForm extends StatelessWidget {
 
   final DanceEditorController controller;
   final GlobalKey<FormState> formKey;
+  final ExpansibleController moreDetailsController;
   final Taxonomy taxonomy;
   final Map<String, Map<String, Object?>> moveParamDefaults;
 
@@ -108,6 +110,20 @@ class DanceEditorForm extends StatelessWidget {
         // they label. A trailing gap keeps the last section off the bottom edge.
         padding: const EdgeInsets.only(bottom: AppSpacing.xl),
         children: [
+          if (controller.hasInvalidCustomFieldNumber)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: Text(
+                l10n.collectionBatchCustomFieldNumberInvalid,
+                key: const ValueKey('custom-field-validation-error'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           SectionHeader(title: l10n.danceEditorDetailsSection),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -383,11 +399,9 @@ class DanceEditorForm extends StatelessWidget {
 
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
   /// used metadata; collapsed by default so the always-visible Tier 1 fields
-  /// stay above the fold. While collapsed the children are removed from the
-  /// tree (the default `ExpansionTile` behavior); no edits are lost because
-  /// every value lives in the [DanceEditorController] — text controllers,
-  /// links, custom values, and the enum/date fields — and is re-seeded into the
-  /// child widgets when the section is expanded again.
+  /// stay above the fold. Its form children stay mounted while collapsed so
+  /// their validators remain reachable during save; values still live in the
+  /// [DanceEditorController] and are re-seeded when the section is expanded.
   Widget _buildMoreDetails(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -398,12 +412,14 @@ class DanceEditorForm extends StatelessWidget {
     );
     return ExpansionTile(
       key: const ValueKey('more-details-tile'),
+      controller: moreDetailsController,
       leading: Icon(Icons.tune, color: colorScheme.primary),
       title: Text(
         l10n.danceEditorMoreDetailsTitle,
         style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
       initiallyExpanded: false,
+      maintainState: true,
       backgroundColor: colorScheme.surfaceContainerHighest,
       collapsedBackgroundColor: colorScheme.surfaceContainerHighest,
       shape: sectionShape,

@@ -13,6 +13,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Changed
 
+- **Numeric custom fields** — reject `NaN`, infinity, and overflowed numeric
+  input instead of allowing values that cannot be encoded in JSON.
+
 - **Dialect move wording templates** — optionally customize the display sentence
   for each taxonomy move in Settings → Dialect. Templates support computed move
   slots, warn about omitted slots, and require confirmation before saving

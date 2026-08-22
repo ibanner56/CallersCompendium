@@ -57,6 +57,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   late CompendiumRepositories _repos;
   late final DanceEditorController _controller;
   final _formKey = GlobalKey<FormState>();
+  final _moreDetailsController = ExpansibleController();
 
   static final Taxonomy _taxonomy = contraTaxonomy;
 
@@ -257,6 +258,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     if (_dependenciesInitialized) {
       _controller.removeListener(_onControllerChanged);
       _controller.dispose();
+      _moreDetailsController.dispose();
     }
     // Unblocks a still-suspended `_load()` continuation if the widget is
     // disposed before the subscription's first event ever arrives (e.g. the
@@ -336,7 +338,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   Future<void> _save() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
+    final hasInvalidCustomFieldNumber = _controller.hasInvalidCustomFieldNumber;
+    final formIsValid = _formKey.currentState?.validate() ?? false;
+    if (!formIsValid || hasInvalidCustomFieldNumber) {
+      if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
       // Ensure the user sees the first error even if it is above the fold.
       setState(() {});
       return;
@@ -742,6 +747,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     return DanceEditorForm(
       controller: _controller,
       formKey: _formKey,
+      moreDetailsController: _moreDetailsController,
       taxonomy: _taxonomy,
       moveParamDefaults: _moveParamDefaults,
       freeTextEntry: _freeTextEntry,

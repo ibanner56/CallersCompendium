@@ -37,6 +37,13 @@ final _textDef = CustomFieldDef(
   type: CustomFieldType.text,
 );
 
+final _numberDef = CustomFieldDef(
+  id: 'f-num',
+  key: 'number',
+  label: 'Number',
+  type: CustomFieldType.number,
+);
+
 Future<void> _pumpScreen(
   WidgetTester tester,
   CompendiumRepositories repos,
@@ -175,6 +182,26 @@ void main() {
       ]),
     );
     expect(fields.length, 2);
+  });
+
+  testWidgets('non-finite number values cannot be submitted', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.customFieldDefs.upsert(_numberDef);
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await _openCustomFieldDialog(tester);
+    final field = find.byKey(const ValueKey('batch-custom-field-value-f-num'));
+    final confirm = find.byKey(const ValueKey('batch-custom-field-confirm'));
+    for (final raw in ['1e400', '-1e400', 'Infinity', 'NaN']) {
+      await tester.enterText(field, raw);
+      await tester.pumpAndSettle();
+      expect(find.text('Enter a number'), findsOneWidget, reason: raw);
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+    }
   });
 
   testWidgets('clearing a field removes only that key', (tester) async {

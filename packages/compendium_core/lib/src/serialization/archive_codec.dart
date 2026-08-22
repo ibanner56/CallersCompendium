@@ -157,7 +157,8 @@ Map<String, Object?> _danceToJson(Dance d, Set<String> excludedFieldIds) => {
   'tunes': d.tunes,
   'customFields': [
     for (final v in d.customFields)
-      if (!excludedFieldIds.contains(v.fieldId)) _customFieldValueToJson(v),
+      if (!excludedFieldIds.contains(v.fieldId))
+        _customFieldValueToJson(v, danceId: d.id),
   ],
   'tagIds': d.tagIds,
   'links': [for (final l in d.links) _danceLinkToJson(l)],
@@ -177,10 +178,15 @@ Map<String, Object?> _formationToJson(Formation f) => {
   if (f.detail != null) 'detail': f.detail,
 };
 
-Map<String, Object?> _customFieldValueToJson(CustomFieldValue v) => {
-  'fieldId': v.fieldId,
-  'value': v.value,
-};
+Map<String, Object?> _customFieldValueToJson(
+  CustomFieldValue v, {
+  required String danceId,
+}) {
+  if (v.value is num && !isFiniteCustomFieldNumber(v.value)) {
+    throw ArchiveEncodingException(danceId: danceId, fieldId: v.fieldId);
+  }
+  return {'fieldId': v.fieldId, 'value': v.value};
+}
 
 Map<String, Object?> _danceLinkToJson(DanceLink l) => {
   'id': l.id,

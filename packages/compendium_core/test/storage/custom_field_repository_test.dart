@@ -226,6 +226,38 @@ void main() {
       },
     );
   });
+
+  group('finite number values', () {
+    final def = CustomFieldDef(
+      id: 'f1',
+      key: 'number',
+      label: 'Number',
+      type: CustomFieldType.number,
+    );
+
+    test('round-trips finite values', () {
+      expect(
+        encodeCustomFieldValue(
+          CustomFieldValue(fieldId: 'f1', value: 3.5),
+          def,
+        ),
+        (null, 3.5),
+      );
+    });
+
+    for (final raw in [double.nan, double.infinity, double.negativeInfinity]) {
+      test('rejects $raw', () {
+        expect(
+          () => encodeCustomFieldValue(
+            CustomFieldValue(fieldId: 'f1', value: raw),
+            def,
+          ),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
+    }
+  });
+
   group('tolerant decode of a corrupt stored choicesJson', () {
     Future<void> writeRawRow({
       required String id,
