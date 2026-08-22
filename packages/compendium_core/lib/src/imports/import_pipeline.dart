@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
+import 'package:unorm_dart/unorm_dart.dart';
 
 import '../model/choreographer.dart';
 import '../model/dance.dart';
@@ -724,7 +725,7 @@ class ImportPipeline {
   /// are not merged. A wrong merge (miscrediting a dance) is worse than a
   /// near-duplicate row.
   String _normalizeName(String name) =>
-      name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+      nfc(name).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   /// Resolves [names] to [Choreographer] ids: matches an existing row by
   /// normalized name, else creates a new row (name only) via [newId] + upsert.

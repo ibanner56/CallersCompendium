@@ -74,6 +74,14 @@ void main() {
       },
     );
 
+    test('NFD title marks a canonically equivalent program as possible', () {
+      final nfdIndex = ProgramImportMarkerIndex([entry(title: 'Résumé')]);
+      expect(
+        nfdIndex.markerFor('42', 'Re\u0301sume\u0301').kind,
+        ProgramImportMarkerKind.possiblyImported,
+      );
+    });
+
     test('non-equal title → none (no fuzzy over-matching)', () {
       expect(
         index.markerFor('42', 'Nice Combo').kind,

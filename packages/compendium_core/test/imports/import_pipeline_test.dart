@@ -622,6 +622,26 @@ void main() {
         expect(session.createdChoreographerIds, isEmpty);
       });
 
+      test('matches canonically equivalent decomposed author names', () async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'chloe', name: 'Chlöe'),
+        );
+        final adapter = FakeSourceAdapter([
+          record('fake-1', 'A Dance', authorNames: ['Chlo\u0308e']),
+        ]);
+        final session = await pipeline.commit(
+          await pipeline.plan(adapter, const ImportRequest()),
+          now: now,
+          newId: nextId,
+        );
+        expect(
+          (await dances.getById(session.insertedDanceIds.single))!.authorIds,
+          ['chloe'],
+        );
+        expect(session.createdChoreographerIds, isEmpty);
+      });
+
       test('de-dups a new author across a batch to ONE row', () async {
         final adapter = FakeSourceAdapter([
           record('fake-1', 'One', authorNames: ['Shared Author']),

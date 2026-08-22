@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:unorm_dart/unorm_dart.dart';
 
 import '../model/enums.dart';
 
@@ -386,7 +387,8 @@ const Map<String, String> _diacriticFolds = {
 
 String _foldDiacritics(String s) {
   final buf = StringBuffer();
-  for (final ch in s.split('')) {
+  // Compose decomposed input before the legacy fold table sees combining marks.
+  for (final ch in nfc(s).split('')) {
     buf.write(_diacriticFolds[ch] ?? ch);
   }
   return buf.toString();
