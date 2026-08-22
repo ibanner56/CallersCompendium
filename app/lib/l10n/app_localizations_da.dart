@@ -6349,4 +6349,71 @@ class AppLocalizationsDa extends AppLocalizations {
   String publishedCollectionSupersedes(String version) {
     return 'Erstatter version $version';
   }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Skabeloner til bevægelsesformulering';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Valgfrie skabeloner kun til visning erstatter en bevægelses normale sætning. Kanonisk tekst og søgning ændres ikke.';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Tilføj skabeloner til bevægelsesformulering';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skabeloner til bevægelsesformulering',
+      one: '1 skabelon til bevægelsesformulering',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording =>
+      'Tilføj en skabelon til bevægelsesformulering…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Visningsskabelon';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Tilgængelige pladsholdere: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Denne skabelon er ufuldstændig, så den normale formulering bruges.';
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Ukendte pladsholdere er tomme: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Denne skabelon udelader tilgængelige pladsholdere: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Forhåndsvisning: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Nulstil skabeloner til bevægelsesformulering';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Gem ufuldstændige ordlydsskabeloner?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Disse skabeloner udelader tilgængelige pladsholdere og kan skjule figurdetaljer:\n$figures\n\nGem alligevel?';
+  }
 }

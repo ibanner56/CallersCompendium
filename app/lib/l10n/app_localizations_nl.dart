@@ -6396,4 +6396,71 @@ class AppLocalizationsNl extends AppLocalizations {
   String publishedCollectionSupersedes(String version) {
     return 'Vervangt versie $version';
   }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Sjablonen voor bewegingsformuleringen';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Optionele sjablonen voor alleen de weergave vervangen de normale zin van een beweging. Canonieke tekst en zoeken blijven ongewijzigd.';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Sjablonen voor bewegingsformuleringen toevoegen';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sjablonen voor bewegingsformulering',
+      one: '1 sjabloon voor bewegingsformulering',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording =>
+      'Een sjabloon voor bewegingsformulering toevoegen…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Weergavesjabloon';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Beschikbare plaatshouders: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Dit sjabloon is onvolledig; daarom wordt de normale formulering gebruikt.';
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Onbekende plaatshouders zijn leeg: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Deze template laat beschikbare slots weg: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Voorbeeld: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Sjablonen voor bewegingsformuleringen resetten';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Onvolledige woordingssjablonen opslaan?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Deze sjablonen laten beschikbare slots weg en kunnen figuurdetails verbergen:\n$figures\n\nToch opslaan?';
+  }
 }

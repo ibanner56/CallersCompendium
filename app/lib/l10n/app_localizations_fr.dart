@@ -6443,4 +6443,70 @@ class AppLocalizationsFr extends AppLocalizations {
   String publishedCollectionSupersedes(String version) {
     return 'Remplace la version $version';
   }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Modèles de formulation des mouvements';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Les modèles facultatifs, réservés à l’affichage, remplacent la phrase normale d’un mouvement. Le texte canonique et la recherche restent inchangés.';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Ajouter des modèles de formulation';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count modèles de formulation',
+      one: '1 modèle de formulation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording => 'Ajouter un modèle de formulation…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Modèle d’affichage';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Emplacements disponibles : $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Ce modèle est incomplet ; la formulation normale sera donc utilisée.';
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Les emplacements inconnus sont vides : $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Ce modèle omet des emplacements disponibles : $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Aperçu : $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Réinitialiser les modèles de formulation';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Enregistrer les modèles de formulation incomplets ?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Ces modèles omettent des emplacements disponibles et peuvent masquer des détails de figure :\n$figures\n\nEnregistrer quand même ?';
+  }
 }
