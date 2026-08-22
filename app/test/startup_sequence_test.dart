@@ -360,6 +360,64 @@ void main() {
   );
 
   testWidgets(
+    'a successful below-floor reset reopens the app without relaunch',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      var preflightRuns = 0;
+      var replacementAppDataCount = 0;
+      const error = DatabaseBelowFloorError(
+        fileVersion: 5,
+        minSupportedVersion: 11,
+        bridgeTag: 'v0.1.0-beta.6',
+      );
+      final initialAppData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: initialAppData,
+          windowService: _NoopWindowService(
+            initialAppData.repositories.settings,
+          ),
+          migrationPreflight: (_) async {
+            preflightRuns++;
+            if (preflightRuns == 1) throw error;
+          },
+          integrityCheck: () async => true,
+          databaseFileResolver: () async => File('unused.sqlite'),
+          databaseResetter: (_) async => const ResetComplete(),
+          appDataFactory: () {
+            replacementAppDataCount++;
+            return _openAppData();
+          },
+          windowServiceFactory: (settings) => _NoopWindowService(settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('This data is from a version too old to open'),
+        findsOneWidget,
+      );
+      expect(find.byType(AppShell), findsNothing);
+
+      await tester.tap(find.text('Reset Only'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Reset Only'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppShell), findsOneWidget);
+      expect(
+        find.text('This data is from a version too old to open'),
+        findsNothing,
+      );
+      expect(preflightRuns, 2);
+      expect(replacementAppDataCount, 1);
+    },
+  );
+
+  testWidgets(
     'a failed pre-migration snapshot prompts for consent; Proceed runs the '
     'migration and opens the app (issue #442)',
     (tester) async {

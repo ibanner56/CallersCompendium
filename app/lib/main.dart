@@ -78,6 +78,11 @@ import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
 
+AppData _defaultAppDataFactory() => AppData(openAppDatabase());
+
+Future<ResetResult> _resetDatabaseFile(File dbFile) =>
+    performReset(dbFile: dbFile);
+
 Future<void> main() async {
   // Install the local, offline crash log and global error-capture stack (issue
   // #458) as the very first thing, so an error during startup itself is still
@@ -143,10 +148,11 @@ Future<void> main() async {
   }, crashReporter);
 }
 
-/// Root widget. The on-device database is opened once (in [main]) and injected;
-/// this widget's bootstrap future ([_startupSequence]) then, in order: restores
-/// the desktop window frame (no-op off desktop; forces the DB open), runs any
-/// pending schema migration / derived-index back-fill via
+/// Root widget. The on-device database is initially opened in [main] and
+/// injected; the reset flow can replace it with a fresh instance. This widget's
+/// bootstrap future ([_startupSequence]) then, in order: restores the desktop
+/// window frame (no-op off desktop; forces the DB open), runs any pending schema
+/// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
 /// runs a fast `PRAGMA quick_check` integrity probe once per launch
 /// ([CompendiumDatabase.quickCheck]; a failure warns the user but still opens
@@ -175,11 +181,15 @@ class CompendiumApp extends StatefulWidget {
     this.incomingFileReader,
     this.incomingUrlFetcher,
     this.nowOverride,
+    this.appDataFactory = _defaultAppDataFactory,
+    this.windowServiceFactory,
+    this.databaseFileResolver = resolveDatabaseFile,
+    this.databaseResetter = _resetDatabaseFile,
   });
 
-  /// The already-opened database + repositories facade. Injected from [main]
+  /// The initially opened database + repositories facade. Injected from [main]
   /// so the desktop window frame can be read before `runApp`; the app owns its
-  /// disposal.
+  /// disposal and replaces it after a successful reset.
   final AppData appData;
 
   /// The desktop window service to tear down on dispose (no-op off desktop).
@@ -250,12 +260,29 @@ class CompendiumApp extends StatefulWidget {
   /// single-snapshot purge design in [DanceRepository.purgeDeleted].
   final DateTime Function()? nowOverride;
 
+  /// Creates a fresh database facade after an in-process reset. The default
+  /// opens the on-device database; the seam keeps reset lifecycle tests
+  /// independent from platform storage.
+  final AppData Function() appDataFactory;
+
+  /// Creates the window service for replacement databases. When omitted,
+  /// replacement services use the production [WindowService] constructor.
+  final WindowService Function(SettingsRepository settings)?
+  windowServiceFactory;
+
+  /// Resolves the database file used by the reset flow.
+  final Future<File> Function() databaseFileResolver;
+
+  /// Deletes the database file during reset.
+  final Future<ResetResult> Function(File dbFile) databaseResetter;
+
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
 }
 
 class _CompendiumAppState extends State<CompendiumApp> {
-  late final AppData _appData;
+  late AppData _appData;
+  late WindowService _windowService;
   late Future<void> _bootstrap;
 
   /// Determinate progress of the post-migration derived-index rebuild, surfaced
@@ -322,24 +349,24 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// navigator so pushed detail routes can reach it.
   final CollectionFilterController _collectionFilterController =
       CollectionFilterController();
-  late final CustomThemesController _customThemes;
-  late final FormationColorsController _formationColors;
-  late final DialectLibraryController _dialectLibrary;
+  late CustomThemesController _customThemes;
+  late FormationColorsController _formationColors;
+  late DialectLibraryController _dialectLibrary;
 
   /// Owns the user's shorthand → figure(s) mappings (issue #420), consulted by
   /// the free-text entry path. Loaded during bootstrap; exposed via
   /// [ShorthandMappingsScope].
-  late final ShorthandMappingsController _shorthandMappings;
+  late ShorthandMappingsController _shorthandMappings;
 
   /// Owns the user's personal walkthrough snippet library (#411): per-figure
   /// step descriptions keyed by figure signature. Loaded during bootstrap;
   /// exposed via [WalkthroughSnippetLibraryScope].
-  late final WalkthroughSnippetLibraryController _walkthroughSnippets;
+  late WalkthroughSnippetLibraryController _walkthroughSnippets;
 
   /// Owns the update-check preferences and latest check result (ADR-002 §4/§5).
   /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
   /// once per launch after preferences load.
-  late final UpdateController _updateController;
+  late UpdateController _updateController;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -376,7 +403,22 @@ class _CompendiumAppState extends State<CompendiumApp> {
   @override
   void initState() {
     super.initState();
-    _appData = widget.appData;
+    _initializeDatabaseBackedServices(widget.appData);
+    _windowService = widget.windowService;
+    // Listen for files opened while the app is running (AirDrop / "Open with"
+    // on an already-launched app). The cold-start file is pulled once the ready
+    // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
+    final channel = widget.incomingFileChannel;
+    if (channel != null) {
+      channel.start();
+      _incomingFileSub = channel.files.listen(_handleIncomingFile);
+      _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
+    }
+    _bootstrap = _startupSequence();
+  }
+
+  void _initializeDatabaseBackedServices(AppData appData) {
+    _appData = appData;
     _customThemes = CustomThemesController(_appData.repositories.settings);
     _formationColors = FormationColorsController(
       _appData.repositories.settings,
@@ -393,15 +435,28 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _appData.repositories.settings,
     );
     _updateController = UpdateController(_appData.repositories.settings);
-    // Listen for files opened while the app is running (AirDrop / "Open with"
-    // on an already-launched app). The cold-start file is pulled once the ready
-    // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
-    final channel = widget.incomingFileChannel;
-    if (channel != null) {
-      channel.start();
-      _incomingFileSub = channel.files.listen(_handleIncomingFile);
-      _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
-    }
+  }
+
+  void _replaceDatabaseBackedServices() {
+    // Controllers retain their SettingsRepository, so they must be recreated
+    // with the replacement database rather than reusing closed repositories.
+    _windowService.dispose();
+    _customThemes.dispose();
+    _formationColors.dispose();
+    _dialectLibrary.removeListener(_syncActiveDialect);
+    _dialectLibrary.dispose();
+    _shorthandMappings.dispose();
+    _walkthroughSnippets.dispose();
+    _updateController.dispose();
+
+    _initializeDatabaseBackedServices(widget.appDataFactory());
+    _windowService =
+        widget.windowServiceFactory?.call(_appData.repositories.settings) ??
+        WindowService(_appData.repositories.settings);
+  }
+
+  void _startBootstrap() {
+    _corruptionBannerShown = false;
     _bootstrap = _startupSequence();
   }
 
@@ -581,7 +636,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // rather than before `runApp`. A corrupt/locked database therefore surfaces
     // on the error/retry screen instead of throwing out of `main` and leaving a
     // blank window with no way to recover (Stage 1.6).
-    await widget.windowService.initialize();
+    await _windowService.initialize();
     // Reset progress at the start of each attempt (retry re-runs this) so a
     // prior run's final value never lingers on the loading screen.
     _derivedRebuildProgress.value = null;
@@ -946,7 +1001,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _shorthandMappings.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
-    widget.windowService.dispose();
+    _windowService.dispose();
     // dispose() can't be async; explicitly mark the close as fire-and-forget
     // rather than silently dropping an unawaited Future (unawaited_futures).
     unawaited(_appData.close());
@@ -978,7 +1033,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (context == null || !context.mounted) return;
 
     final l10n = AppLocalizations.of(context);
-    final dbFile = await resolveDatabaseFile();
+    final dbFile = await widget.databaseFileResolver();
     final snapshotDir = Directory(
       p.join(dbFile.parent.path, kDatabaseBackupsDirName),
     );
@@ -1098,7 +1153,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
     if (confirmed != true) return;
 
-    final dbFile = await resolveDatabaseFile();
+    final dbFile = await widget.databaseFileResolver();
     await _doReset(dbFile, l10n);
   }
 
@@ -1113,15 +1168,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
     await _appData.close();
-    final result = await performReset(dbFile: dbFile);
+    final result = await widget.databaseResetter(dbFile);
     if (result is ResetFailed) {
       // Deletion failed: the file is intact. Reopen so the app is not left
       // with a closed database, then surface the error.
       if (mounted) {
         setState(() {
-          _appData = AppData(openAppDatabase());
-          _corruptionBannerShown = false;
-          _bootstrap = _startupSequence();
+          _replaceDatabaseBackedServices();
+          _startBootstrap();
         });
         final context = _navigatorKey.currentContext;
         if (context != null && context.mounted) {
@@ -1145,11 +1199,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
       return;
     }
     if (!mounted) return;
-    // Deletion succeeded — reopen a fresh database and restart bootstrap.
+    // Deletion succeeded — reopen a fresh database-backed runtime and restart
+    // bootstrap.
     setState(() {
-      _appData = AppData(openAppDatabase());
-      _corruptionBannerShown = false;
-      _bootstrap = _startupSequence();
+      _replaceDatabaseBackedServices();
+      _startBootstrap();
     });
   }
 
