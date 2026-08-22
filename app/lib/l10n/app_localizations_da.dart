@@ -167,6 +167,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnostik';
 
   @override
+  String get settingsExperimentalTitle => 'Eksperimentelt';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
+
+  @override
   String get settingsAboutTitle => 'Om';
 
   @override

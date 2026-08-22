@@ -370,6 +370,18 @@ abstract class AppLocalizations {
   /// **'Diagnostics'**
   String get settingsDiagnosticsTitle;
 
+  /// Settings section navigation title (sidebar/app bar) and content header for features still in development.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental'**
+  String get settingsExperimentalTitle;
+
+  /// Placeholder text explaining that the Experimental settings section will contain features still in development.
+  ///
+  /// In en, this message translates to:
+  /// **'New features may appear here while they are still in development.'**
+  String get settingsExperimentalPlaceholder;
+
   /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
   ///
   /// In en, this message translates to:
