@@ -47,6 +47,10 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- Import dedupe now treats canonically equivalent NFC/NFD title and author
+  spellings as the same comparison key, preventing duplicate dances and
+  choreographer rows. (issue #1021)
+
 - Archive re-imports no longer link programs to soft-deleted venues; an exact
   provenance match restores the venue before the program is persisted. (issue
   #1016)

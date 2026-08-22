@@ -9,6 +9,13 @@ void main() {
       expect(normalizeTitle('  A  Fine   Romance  '), 'fine romance');
     });
 
+    test('title and author normalization compose decomposed accents', () {
+      expect(normalizeTitle('Re\u0301sume\u0301'), 'resume');
+      expect(normalizeTitle('Résumé'), 'resume');
+      expect(normalizeAuthor('Chlo\u0308e'), 'chloe');
+      expect(normalizeAuthor('Chlöe'), 'chloe');
+    });
+
     test('author folds case and punctuation', () {
       expect(normalizeAuthor('Cary Ravitz'), 'cary ravitz');
       expect(normalizeAuthor('Gene  Hubert.'), 'gene hubert');
@@ -74,6 +81,21 @@ void main() {
       expect(v.isAmbiguous, isTrue);
       expect(v.candidates.first.danceId, 'd1');
       expect(v.candidates.first.score, greaterThan(0.72));
+    });
+
+    test('NFD title and author remain a confident match', () {
+      final nfcIndex = DedupeIndex([
+        DedupeEntry(danceId: 'd1', title: 'Résumé', authorNames: ['Chlöe']),
+      ]);
+      final v = nfcIndex.verdictFor(
+        source: ProvenanceSource.json,
+        title: 'Re\u0301sume\u0301',
+        authorNames: ['Chlo\u0308e'],
+        threshold: 0.99,
+      );
+      expect(v.isAmbiguous, isTrue);
+      expect(v.hasConfidentMatch, isTrue);
+      expect(v.candidates.single.danceId, 'd1');
     });
 
     test('unrelated title is new', () {
