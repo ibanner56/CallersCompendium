@@ -1,3 +1,4 @@
+// Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
