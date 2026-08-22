@@ -859,10 +859,24 @@ void main() {
     final field = find.byKey(const ValueKey('custom-f-num'));
     for (final raw in ['1e400', '-1e400', 'Infinity', 'NaN']) {
       await tester.enterText(field, raw);
+      final moreDetails = find.text('More details');
+      await tester.ensureVisible(moreDetails);
+      await tester.tap(moreDetails);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('custom-f-num'), skipOffstage: false),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(const ValueKey('save-dance')));
       await tester.pumpAndSettle();
-      expect(find.text('Enter a number'), findsOneWidget, reason: raw);
+      expect(
+        find.text('Enter a number', skipOffstage: false),
+        findsOneWidget,
+        reason: raw,
+      );
       expect(await repos.dances.listAll(), isEmpty, reason: raw);
+      await tester.tap(find.byKey(const ValueKey('more-details-tile')));
+      await tester.pumpAndSettle();
     }
   });
 

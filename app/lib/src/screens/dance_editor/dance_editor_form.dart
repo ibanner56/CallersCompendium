@@ -383,11 +383,9 @@ class DanceEditorForm extends StatelessWidget {
 
   /// The collapsible "More details" drawer (Tier 2). Holds the less-frequently
   /// used metadata; collapsed by default so the always-visible Tier 1 fields
-  /// stay above the fold. While collapsed the children are removed from the
-  /// tree (the default `ExpansionTile` behavior); no edits are lost because
-  /// every value lives in the [DanceEditorController] — text controllers,
-  /// links, custom values, and the enum/date fields — and is re-seeded into the
-  /// child widgets when the section is expanded again.
+  /// stay above the fold. Its form children stay mounted while collapsed so
+  /// their validators remain reachable during save; values still live in the
+  /// [DanceEditorController] and are re-seeded when the section is expanded.
   Widget _buildMoreDetails(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
@@ -404,6 +402,7 @@ class DanceEditorForm extends StatelessWidget {
         style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
       ),
       initiallyExpanded: false,
+      maintainState: true,
       backgroundColor: colorScheme.surfaceContainerHighest,
       collapsedBackgroundColor: colorScheme.surfaceContainerHighest,
       shape: sectionShape,
