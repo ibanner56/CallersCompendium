@@ -124,12 +124,7 @@ and **Import source problem** forms are all live there — or start a conversati
 
 This project is made available free-of-charge (free of a kind, the birds and the frees, Staying Alive by the Free-Gees, etc.) under the GNU Affero General Public License, because the developer does not believe in putting financial barriers between aspiring callers and accessible calling resources[^1] and because Open Source Software has always been the one true path forward in the modern digital era. 
 
-Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can donate through either of these:
-
-- **❤️ [GitHub Sponsors](https://github.com/sponsors/ibanner56)** — one-time or recurring; GitHub takes no platform cut (standard payment-processing fees may still apply).
-- **[PayPal](https://paypal.me/IsaacBanner)** — quick one-time tip, no GitHub account needed.
-
-Sponsorships and donations go directly toward development time and keeping the project free for everyone. You can also support the project without spending a cent — star the repo, file issues, and contribute (see [Contributing](#contributing)).
+Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can do so by sharing it with other callers in your local community. As of right now, this project is not accepting donations or sponsorship, but I appreciate the thought and maybe you can buy me a coffee sometime.
 
 ## Choreography and Copyright
 
