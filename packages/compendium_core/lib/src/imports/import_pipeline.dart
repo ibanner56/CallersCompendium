@@ -719,11 +719,11 @@ class ImportPipeline {
     session._undone = true;
   }
 
-  /// Normalizes an author name for matching: trims, collapses internal
-  /// whitespace, and lowercases. Deliberately conservative — punctuation is
-  /// preserved (never stripped) so distinct people (e.g. "O'More" vs "OMore")
-  /// are not merged. A wrong merge (miscrediting a dance) is worse than a
-  /// near-duplicate row.
+  /// Normalizes an author name for matching: NFC-composes, trims, collapses
+  /// internal whitespace, and lowercases. Deliberately conservative —
+  /// punctuation is preserved (never stripped) so distinct people (e.g.
+  /// "O'More" vs "OMore") are not merged. A wrong merge (miscrediting a dance)
+  /// is worse than a near-duplicate row.
   String _normalizeName(String name) =>
       nfc(name).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
