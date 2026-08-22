@@ -2499,6 +2499,29 @@ covers every write path that can populate a `shareable` string. There is no
 Unicode normalisation anywhere in the app today, so this is new work on the
 local edit and import paths, not a restatement of something already true.
 
+**Correcting the rule was not the same as assigning the work, and I did only
+the first.** Round 31 fixed §4.1 and left the implementation plan saying "NFC
+normalisation applied on ingest" — the exact scoping the spec now spends four
+paragraphs rejecting — while the local-edit and import work the corrected rule
+creates appeared in no unit at all. The plan is the document an implementer
+builds from, so an unpropagated fix builds the defect it was meant to remove.
+This is the same shape as the paraphrase pattern one level up: the fix got the
+scrutiny, the scaffolding around it did not. W18 exists to own that work.
+
+**"Normalise on write" misses precisely the rows the rule was written for.** A
+title imported two years ago and never edited is never written again, so no
+write-path rule reaches it — and the pre-existing library is exactly the
+population §4.1's own justification names, because §6.2 step 4 uploads it
+verbatim at first attach. A rule that repairs everything except its motivating
+case is not a rule that works. Hence the one-time backfill.
+
+The backfill must **not** touch `updated_at`. Two devices upgrading at different
+times then normalise the same NFD row into identical bytes with identical
+stamps, so it presents as `same` and no conflict arises. Bumping the stamp
+instead would hand every normalised row to whichever device upgraded last — a
+mass, direction-arbitrary resolution over rows nobody edited. That is the same
+hazard as the migration-stamp wart, and it would be self-inflicted.
+
 **Unpaired surrogates are the string-shaped version of NaN.** Dart strings are
 UTF-16, so one can hold a lone surrogate; UTF-8 cannot encode it and therefore
 neither can JCS. Implementations diverge on what to do — `U+FFFD`, WTF-8, or
@@ -2507,6 +2530,33 @@ is the identical failure the NaN rule closes. Rejection rather than repair, for
 the same reason: substituting `U+FFFD` converges only for as long as every
 implementation picks the same substitution, and it alters user data whenever it
 is wrong. Rejecting is loud, and loud is recoverable.
+
+**The platform commits the forbidden repair for you, with no flag and no
+error.** This is what makes the rule hard to implement correctly rather than
+merely hard to remember. Measured against this repository's toolchain:
+`utf8.encode('ab\uD800cd')` returns the bytes of `ab\uFFFDcd` and throws
+nothing, and `jsonEncode` emits a `"\ud800"` escape without complaint. So the
+natural implementation — canonicalise to a string, encode, hash — hashes the
+*repaired* bytes and never sees an error.
+
+Trace what that does, because it is worse than a rejected record. The sender
+keeps its surrogate and hashes `U+FFFD`; the receiver stores `U+FFFD` and
+hashes `U+FFFD`; both re-serialise to the same bytes on every subsequent pass.
+The two devices agree on the hash forever while holding different strings, so
+the record never presents as `changed` and nothing ever repairs it. The rule
+exists to prevent one record having two byte strings, and the naive
+implementation produces one hash over two *different* records instead — which
+is strictly harder to detect. The check therefore has to run on the string,
+before encoding, because encoding is where the evidence is destroyed.
+
+The reviewer who raised this pointed at `utf8.decode(bytes, allowMalformed:
+true)` on the receiving side, which is real but opt-in. The encode side is the
+dangerous one precisely because there is nothing to opt into.
+
+`sanitizeImportedText` does not catch it either: it has no surrogate branch, a
+lone surrogate survives unchanged, and `containsDisallowedText` returns false —
+all three measured. So a hostile or malformed import can already put one in the
+database today, where it will sit invisibly until sync gives it consequences.
 
 **This is entirely new code.** The archive codec emits keys in *insertion* order,
 not lexicographic, and there is no SHA-256 anywhere in `packages/`. "Reuse the
@@ -4340,6 +4390,21 @@ must say this plainly rather than implying sync is opaque to us.
   repaired. Mutation-proved by substituting `U+FFFD`: the record then syncs and
   converges against any implementation that made the same choice, and diverges
   silently against one that threw or emitted WTF-8.
+- **The surrogate check runs before encoding** — assert the rejection happens
+  on the string. Mutation-proved by moving the check after `utf8.encode`, which
+  passes against a naive assertion because the encode *succeeds*: Dart has
+  already substituted `U+FFFD` by then. Assert the specific failure, not merely
+  that something failed. This is the case where two devices agree on a hash
+  while holding different strings, so no later pass repairs it.
+- **A row written before the normalising build is NFC afterwards** — seed a row
+  in NFD, run the upgrade, assert it is NFC. Mutation-proved by normalising only
+  on write: a library nobody has edited since is untouched, and §6.2 step 4
+  uploads it verbatim. Neither NFC/NFD test above catches this, because both
+  create their fixture through a path the fix already covers.
+- **The backfill does not move `updated_at`** — capture the stamp before and
+  after. Mutation-proved by bumping it: every normalised row is then won by
+  whichever device upgraded last, which is a conflict storm over rows nobody
+  touched.
 - **A record that would need NaN or ±Infinity is rejected** — not coerced to
   `null` or `0`. Mutation-proved by coercing: the record then syncs, silently
   carrying a value the user never entered, and still fails to converge.

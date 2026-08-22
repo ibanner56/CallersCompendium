@@ -303,6 +303,22 @@ prevent. §6.10's dedupe carries the same assumption: it treats its inputs as
 already NFC, and at fresh attach one side of every comparison is a local library
 that arrived through no sync path.
 
+**Normalising on write does not reach a row that is never written again.** A
+title imported two years ago and never edited is repaired by none of the paths
+above, and it is exactly the population the previous paragraph describes — §6.2
+step 4 uploads it verbatim on first attach. A conforming client MUST therefore
+run a **one-time normalisation pass** over every existing `shareable` string
+column when it first upgrades to a normalising build. That pass MUST NOT modify
+`updated_at`, `existence_at` or `deleted_at`.
+
+Leaving the stamps untouched is what makes the pass safe to run independently
+on each device, at whatever time each device happens to upgrade. Two devices
+that normalise the same NFD row arrive at identical bytes *and* identical
+stamps, so the row presents as `same` on the next pass and no conflict arises.
+Bumping `updated_at` instead would hand every such row to whichever device
+upgraded last — a mass, silent, direction-arbitrary resolution over rows whose
+content did not meaningfully change.
+
 Two number values that JSON cannot represent MUST be handled rather than
 emitted: a `shareable` float column can hold NaN or ±Infinity — `SQLite` REAL
 admits both — and RFC 8785 has no encoding for either. A record whose canonical
@@ -320,6 +336,28 @@ treated as malformed and rejected on the terms of §6.7, on both the sending and
 the receiving side. It MUST NOT be repaired by substitution: replacing it with
 `U+FFFD` converges only if every implementation chooses the same repair, and
 silently alters user data if it is ever wrong.
+
+**The platform performs that repair for you, and does not tell you.** In Dart
+the substitution is not opt-in: `utf8.encode` on a string holding a lone
+`U+D800` returns the three bytes of `U+FFFD` and throws nothing, and
+`jsonEncode` emits a `"\ud800"` escape without complaint — both measured
+against this repository's toolchain, not inferred. A canonicaliser that
+serialises and then encodes therefore hashes the **repaired** bytes. Two
+devices then agree on that hash while holding different strings: the sender
+keeps its surrogate, the receiver stores `U+FFFD`, both re-serialise to the
+same bytes forever, and the record never presents as `changed` again. The
+rejection this rule requires would never fire, and the divergence it exists to
+prevent would be frozen in rather than caught.
+
+The check MUST therefore run against the string, **before** any encoding step,
+because the encoding step cannot signal the error. `utf8.decode(bytes,
+allowMalformed: true)` performs the same substitution on the receiving side and
+is forbidden here for the same reason.
+
+`sanitizeImportedText` does not close this today. It has no surrogate branch, a
+lone surrogate survives it unchanged, and `containsDisallowedText` does not
+flag it — also measured. Such a value can therefore already be latent in
+imported data.
 
 **Timestamp canonicalisation is mandatory on ingest.** A receiver MUST truncate
 every inbound timestamp to a tick boundary *before* storing it and before
@@ -980,7 +1018,8 @@ diacritics via the precomposed-character table; replace every character outside
 `[a-z0-9]` and whitespace with a space; collapse each internal run of whitespace
 to one space and trim; remove a single leading article (`the`, `a`, or `an`)
 with its following space. Inputs are already NFC, because §4.1 requires
-normalisation on ingest.
+normalisation on **every write path**, including the local edit and import
+paths that produce the library this section compares.
 
 That NFC precondition is load-bearing here and not merely inherited. The
 diacritic fold is a lookup keyed on **precomposed** characters, so a combining
@@ -988,8 +1027,12 @@ mark never matches it; an NFD combining mark instead falls through to the
 punctuation rule and becomes a *space*. `résumé` in NFC normalizes to `resume`
 and in NFD to `re sume`. A trailing mark happens to survive this — the injected
 space is then trimmed — so the divergence appears on internal accents only,
-which makes it intermittent and hard to attribute. Normalising on ingest is what
-makes the two forms agree; the fold table is not going to.
+which makes it intermittent and hard to attribute. Normalising on write is what
+makes the two forms agree; the fold table is not going to. **The scope matters
+at exactly this section**: an ingest-only rule would leave both sides of a
+fresh-attach comparison un-normalised, because at fresh attach neither library
+has been through a sync path. This divergence is live in shipped import dedupe
+today, independently of sync — filed as #1021.
 
 The definition is normative, and given by reference to real code rather than as
 a restatement, because an earlier draft of this paragraph *did* restate it — as
@@ -1303,6 +1346,14 @@ credential, with no accounts, no rotation and no revocation — so a single
 credentialed request to a foreign origin is unrecoverable and total. Bounding
 the shape of a hop while leaving its destination unbounded protects nothing.
 
+Scheme and Port are formally **subsumed** by Origin, which already fixes scheme,
+host and port together. They are listed separately anyway, and the redundancy is
+deliberate: an implementer working down the table must not be able to satisfy
+four rows, feel finished, and have implemented none of the protection. Read the
+table as one rule with four corollaries rather than five independent checks —
+the version of §8 that stood until round 31 listed the corollaries and omitted
+the rule.
+
 The user-configured endpoint is validated on entry: https or localhost, no
 userinfo, no fragment, no query. A custom endpoint MUST be shown prominently and
 a change MUST warn.
@@ -1347,7 +1398,15 @@ its own unchanged storage, and no test exercising both forms *through* the sync
 path can catch it). A record requiring NaN or ±Infinity is rejected rather than
 coerced, and so is a `shareable` string carrying an unpaired UTF-16 surrogate
 (mutation: substitute `U+FFFD`, which converges only while every implementation
-picks the same repair).
+picks the same repair). **The surrogate rejection is asserted on the string,
+before encoding** (mutation: check after `utf8.encode` — the platform has
+already substituted by then, no error is raised, and two devices agree on the
+hash of the repaired bytes while holding different strings). **A row written
+before the normalising build is NFC after upgrade** (mutation: normalise only
+on write — a library that is never edited again is never repaired, and §6.2
+step 4 uploads it verbatim), **and the pass leaves `updated_at` unchanged**
+(mutation: bump it — every normalised row is then handed to whichever device
+upgraded last).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -1378,6 +1437,18 @@ class filters correctly, so a program is written referencing a tombstone with no
 error. Under sync that program publishes while its venue publishes as deleted.
 The mutation the test must catch is dropping the `deleted_at` predicate from any
 one such read.
+
+**Write-path invariants.** §6.5's **I1** and **I2** MUST be enforced by a test
+over write paths, not left as prose, for the same reason and with the same
+decay mode as the join rule above: a new write path that violates either
+compiles and passes. I1's test must catch a write that changes a record's
+serialised content through a **join-hydrated** field without touching the
+record's own row and without advancing `updatedAt` — the direct single-row case
+is the one every implementer already gets right. I2's test must catch a
+metadata-only re-stamp that advances `updatedAt` while `body` and the existence
+state are unchanged, which is invisible to §6.9's repair classifier. The
+enforcement MUST be structural over write paths rather than a maintained list
+of known ones; a list relocates the omission it is meant to catch.
 
 **Classification.** `deviceLocal` never serialised — property test over the
 registry, and it MUST NOT be allowed to become vacuous. Inbound apply preserves
