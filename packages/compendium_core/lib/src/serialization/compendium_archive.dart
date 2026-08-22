@@ -205,6 +205,24 @@ class ArchiveError {
   }
 }
 
+/// Thrown when an in-memory archive contains a custom numeric value that cannot
+/// be represented in JSON. The field context points at legacy data that needs
+/// repair before the archive can be exported.
+class ArchiveEncodingException implements Exception {
+  const ArchiveEncodingException({
+    required this.danceId,
+    required this.fieldId,
+  });
+
+  final String danceId;
+  final String fieldId;
+
+  @override
+  String toString() =>
+      'ArchiveEncodingException: dance "$danceId", custom field "$fieldId" '
+      'contains a non-finite numeric value';
+}
+
 /// Outcome of decoding archive JSON: the recovered [archive] plus any
 /// per-entity [errors] and non-fatal [warnings] (e.g. a newer schema version).
 ///

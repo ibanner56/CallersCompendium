@@ -186,6 +186,17 @@ class DanceEditorController extends ChangeNotifier {
   /// Existing custom-field definitions, needed to seed/capture custom values.
   List<CustomFieldDef> fieldDefs = const [];
 
+  /// Whether a non-empty numeric custom field currently contains a value that
+  /// cannot be persisted safely.
+  bool get hasInvalidCustomFieldNumber {
+    for (final def in fieldDefs) {
+      if (def.type != CustomFieldType.number) continue;
+      final text = customTextControllers[def.id]?.text.trim() ?? '';
+      if (text.isNotEmpty && parseFiniteNumber(text) == null) return true;
+    }
+    return false;
+  }
+
   /// The dance being edited (null for a new dance); kept to preserve figures,
   /// createdAt, provenance, and schema version on save.
   Dance? _original;

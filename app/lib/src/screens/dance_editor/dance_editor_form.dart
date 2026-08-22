@@ -30,6 +30,7 @@ class DanceEditorForm extends StatelessWidget {
     super.key,
     required this.controller,
     required this.formKey,
+    required this.moreDetailsController,
     required this.taxonomy,
     required this.moveParamDefaults,
     this.freeTextEntry = false,
@@ -56,6 +57,7 @@ class DanceEditorForm extends StatelessWidget {
 
   final DanceEditorController controller;
   final GlobalKey<FormState> formKey;
+  final ExpansibleController moreDetailsController;
   final Taxonomy taxonomy;
   final Map<String, Map<String, Object?>> moveParamDefaults;
 
@@ -396,6 +398,7 @@ class DanceEditorForm extends StatelessWidget {
     );
     return ExpansionTile(
       key: const ValueKey('more-details-tile'),
+      controller: moreDetailsController,
       leading: Icon(Icons.tune, color: colorScheme.primary),
       title: Text(
         l10n.danceEditorMoreDetailsTitle,

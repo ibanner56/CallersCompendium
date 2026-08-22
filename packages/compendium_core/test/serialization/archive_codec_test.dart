@@ -212,6 +212,31 @@ CompendiumArchive _sampleArchive() {
 }
 
 void main() {
+  test('reports legacy non-finite custom values with entity context', () {
+    final archive = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 1, 1),
+      dances: [
+        Dance(
+          id: 'bad-dance',
+          title: 'Legacy value',
+          customFields: [
+            CustomFieldValue(fieldId: 'bad-number', value: double.infinity),
+          ],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      ],
+    );
+
+    expect(
+      () => encodeArchive(archive),
+      throwsA(
+        isA<ArchiveEncodingException>()
+            .having((e) => e.danceId, 'danceId', 'bad-dance')
+            .having((e) => e.fieldId, 'fieldId', 'bad-number'),
+      ),
+    );
+  });
   group('archive JSON round-trip', () {
     test('export -> import -> export is identity (design property)', () {
       final archive = _sampleArchive();

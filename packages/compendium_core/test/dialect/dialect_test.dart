@@ -214,6 +214,36 @@ void main() {
       expect(d.discouragedTerms, isEmpty);
     });
 
+    test(
+      'move wording templates round-trip and are independent of validation',
+      () {
+        final d = Dialect(
+          name: 'Wording',
+          roles: const {'role1': RoleTerm('Lark')},
+          moveWordings: const {'swing': '[{who} ]{move} {unknown}'},
+        );
+        expect(Dialect.fromJson(d.toJson()), d);
+        expect(d.validate(), isEmpty);
+      },
+    );
+
+    test('fromJson sanitizes and bounds move wording templates', () {
+      final long = 'x' * (kMaxMoveWordingLength + 20);
+      final entries = <String, Object?>{
+        'swing': 'clean\u200B wording',
+        'long': long,
+        'empty': '\u200B',
+      };
+      for (var i = 0; i < kMaxMoveWordingEntries + 10; i++) {
+        entries['move$i'] = 'template $i';
+      }
+      final d = Dialect.fromJson({'name': 'Bounded', 'moveWordings': entries});
+      expect(d.moveWordings['swing'], 'clean wording');
+      expect(d.moveWordings['long'], long.substring(0, kMaxMoveWordingLength));
+      expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
+      expect(d.moveWordings.containsKey('empty'), isFalse);
+    });
+
     test('fromJson defaults a missing name to Custom', () {
       expect(Dialect.fromJson(const {}).name, Dialect.customName);
     });
@@ -236,6 +266,12 @@ void main() {
       expect(
         Dialect(name: 'x', dancers: const {'neighbors': 'partners'}),
         isNot(Dialect(name: 'x', dancers: const {'neighbors': 'others'})),
+      );
+    });
+    test('differing move wordings compare unequal', () {
+      expect(
+        Dialect(name: 'x', moveWordings: const {'swing': '{move}'}),
+        isNot(Dialect(name: 'x', moveWordings: const {'swing': 'swing'})),
       );
     });
     test('equal dancers compare equal (and hash equally)', () {

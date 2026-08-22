@@ -1,7 +1,14 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
+
+/// Maximum UTF-16 code units retained for one user-authored move wording.
+const int kMaxMoveWordingLength = 512;
+
+/// Maximum number of move wording entries retained in one dialect.
+const int kMaxMoveWordingEntries = 256;
 
 /// A role display term: singular plus plural (plural derived with a basic
 /// consonant+y→ies / +s rule unless given explicitly — "Lady" → "Ladies",
@@ -63,10 +70,12 @@ class Dialect {
     Map<String, RoleTerm> roles = const {},
     Map<String, String> moves = const {},
     Map<String, String> dancers = const {},
+    Map<String, String> moveWordings = const {},
     List<String> discouragedTerms = const [],
   }) : roles = Map.unmodifiable(roles),
        moves = Map.unmodifiable(moves),
        dancers = Map.unmodifiable(dancers),
+       moveWordings = Map.unmodifiable(moveWordings),
        discouragedTerms = List.unmodifiable(
          discouragedTerms.map((t) => t.toLowerCase()),
        );
@@ -85,6 +94,10 @@ class Dialect {
   /// role-driven tokens `role1s`/`role2s` are intentionally excluded (they flow
   /// through role-term substitution instead).
   final Map<String, String> dancers;
+
+  /// Canonical move id → display-only wording template. Template placeholders
+  /// are resolved by [FigureRenderer]; canonical rendering never reads this map.
+  final Map<String, String> moveWordings;
 
   /// Terms the entry editor flags (struck through, never blocked).
   /// User-editable data with shipped defaults — not hardcoded policy.
@@ -171,23 +184,26 @@ class Dialect {
     Map<String, RoleTerm>? roles,
     Map<String, String>? moves,
     Map<String, String>? dancers,
+    Map<String, String>? moveWordings,
     List<String>? discouragedTerms,
   }) => Dialect(
     name: name ?? this.name,
     roles: roles ?? this.roles,
     moves: moves ?? this.moves,
     dancers: dancers ?? this.dancers,
+    moveWordings: moveWordings ?? this.moveWordings,
     discouragedTerms: discouragedTerms ?? this.discouragedTerms,
   );
 
   /// Serializes the whole dialect (name + role terms + move substitutions +
-  /// dancer substitutions + discouraged terms) so a fully-custom dialect can be
-  /// persisted, not just a preset name.
+  /// dancer substitutions + move wording templates + discouraged terms) so a
+  /// fully-custom dialect can be persisted, not just a preset name.
   Map<String, Object?> toJson() => {
     'name': name,
     'roles': {for (final e in roles.entries) e.key: e.value.toJson()},
     'moves': Map<String, String>.from(moves),
     'dancers': Map<String, String>.from(dancers),
+    'moveWordings': Map<String, String>.from(moveWordings),
     'discouragedTerms': List<String>.from(discouragedTerms),
   };
 
@@ -221,6 +237,21 @@ class Dialect {
         if (value is String) dancers[entry.key.toString()] = value;
       }
     }
+    final moveWordings = <String, String>{};
+    final moveWordingsJson = json['moveWordings'];
+    if (moveWordingsJson is Map) {
+      for (final entry in moveWordingsJson.entries) {
+        if (moveWordings.length >= kMaxMoveWordingEntries) break;
+        final value = entry.value;
+        if (value is! String) continue;
+        final sanitized = sanitizeImportedText(value, allowLineBreaks: false);
+        if (sanitized.trim().isEmpty) continue;
+        moveWordings[entry.key
+            .toString()] = sanitized.length <= kMaxMoveWordingLength
+            ? sanitized
+            : sanitized.substring(0, kMaxMoveWordingLength);
+      }
+    }
     final discouraged = <String>[];
     final discouragedJson = json['discouragedTerms'];
     if (discouragedJson is List) {
@@ -234,6 +265,7 @@ class Dialect {
       roles: roles,
       moves: moves,
       dancers: dancers,
+      moveWordings: moveWordings,
       discouragedTerms: discouraged,
     );
   }
@@ -297,6 +329,7 @@ class Dialect {
       _mapEq.equals(other.roles, roles) &&
       _mapEq.equals(other.moves, moves) &&
       _mapEq.equals(other.dancers, dancers) &&
+      _mapEq.equals(other.moveWordings, moveWordings) &&
       _listEq.equals(other.discouragedTerms, discouragedTerms);
 
   @override
@@ -305,6 +338,7 @@ class Dialect {
     _mapEq.hash(roles),
     _mapEq.hash(moves),
     _mapEq.hash(dancers),
+    _mapEq.hash(moveWordings),
     _listEq.hash(discouragedTerms),
   );
 }

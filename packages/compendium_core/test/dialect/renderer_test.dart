@@ -2865,4 +2865,90 @@ void main() {
       expect(statedOut, startsWith('partner circulate -'));
     });
   });
+
+  group('global move wording templates', () {
+    test('replace display wording with one-pass slot substitution', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '[{who} ]{move} {unknown}'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      expect(renderer.render(figure, dialect), 'partner swing');
+      expect(renderer.renderVerbose(figure, dialect), 'partner swing');
+      expect(renderer.renderSummary(figure, dialect), 'partner swing');
+    });
+
+    test('per-dance wording override takes precedence over global wording', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '{move} globally'},
+      );
+      final figure = Figure(
+        move: 'swing',
+        wordingOverride: 'custom local wording',
+      );
+      expect(renderer.renderSummary(figure, dialect), 'custom local wording');
+    });
+
+    test('canonical wording applies to aliases in renderSummary', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'box_the_gnat': '{move} globally'},
+      );
+      final figure = Figure(
+        move: 'swat_the_flea',
+        params: const {'balance': true},
+      );
+
+      expect(renderer.renderSummary(figure, dialect), 'swat the flea globally');
+    });
+
+    test('editor wording slots use canonical alias display templates', () {
+      expect(
+        renderer.moveWordingTemplate('meltdown_swing'),
+        renderer.moveWordingTemplate('swing'),
+      );
+      expect(
+        renderer.moveWordingSlots('meltdown_swing'),
+        containsAll({'who', 'prefix', 'move', 'end_facing'}),
+      );
+    });
+
+    test('invalid global wording falls back to existing display output', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '{who'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      expect(renderer.render(figure, dialect), 'partner swing');
+    });
+
+    test('rejects malformed placeholder names', () {
+      expect(FigureRenderer.isValidMoveWordingTemplate('{foo bar}'), isFalse);
+    });
+
+    test('nested optional groups render depth-aware', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '[[{who} ]]{move}'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+
+      expect(
+        FigureRenderer.isValidMoveWordingTemplate('[[{who} ]]{move}'),
+        isTrue,
+      );
+      expect(renderer.render(figure, dialect), 'partner swing');
+    });
+
+    test('global wording never changes canonical output', () {
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': 'completely different {move}'},
+      );
+      expect(renderer.renderCanonical(figure), 'partners swing');
+      expect(renderer.render(figure, dialect), 'completely different swing');
+    });
+  });
 }

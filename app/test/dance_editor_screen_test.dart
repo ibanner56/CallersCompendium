@@ -874,9 +874,8 @@ void main() {
         findsOneWidget,
         reason: raw,
       );
+      expect(find.text('Enter a number'), findsOneWidget, reason: raw);
       expect(await repos.dances.listAll(), isEmpty, reason: raw);
-      await tester.tap(find.byKey(const ValueKey('more-details-tile')));
-      await tester.pumpAndSettle();
     }
   });
 

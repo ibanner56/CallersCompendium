@@ -8446,5 +8446,97 @@
         "example": "1.0"
       }
     }
+  },
+  "dialectEditorSectionMoveWordings": "Move wording templates",
+  "@dialectEditorSectionMoveWordings": {
+    "description": "Dialect editor section header for display-only per-move wording templates."
+  },
+  "dialectEditorMoveWordingsHelp": "Optional display-only templates replace a move's normal sentence. Canonical text and search are unchanged.",
+  "@dialectEditorMoveWordingsHelp": {
+    "description": "Helper text explaining that move wording templates affect display only."
+  },
+  "dialectEditorMoveWordingsAdd": "Add move wording templates",
+  "@dialectEditorMoveWordingsAdd": {
+    "description": "Collapsed header/empty state for the move wording template section."
+  },
+  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 move wording template} other{{count} move wording templates}}",
+  "@dialectEditorMoveWordingsCount": {
+    "description": "Header showing how many move wording templates are defined.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "2"
+      }
+    }
+  },
+  "dialectEditorAddMoveWording": "Add a move wording template…",
+  "@dialectEditorAddMoveWording": {
+    "description": "Placeholder for the dropdown that adds a move wording template."
+  },
+  "dialectEditorMoveWordingLabel": "Display template",
+  "@dialectEditorMoveWordingLabel": {
+    "description": "Label for a display-only move wording template field."
+  },
+  "dialectEditorMoveWordingSlots": "Available slots: {slots}",
+  "@dialectEditorMoveWordingSlots": {
+    "description": "Legend listing the placeholders available in a move wording template.",
+    "placeholders": {
+      "slots": {
+        "type": "String",
+        "example": "{who}, {move}"
+      }
+    }
+  },
+  "dialectEditorMoveWordingInvalid": "This template is incomplete, so the normal wording will be used.",
+  "@dialectEditorMoveWordingInvalid": {
+    "description": "Non-blocking warning shown for an incomplete move wording template."
+  },
+  "dialectEditorMoveWordingUnknownSlots": "Unknown slots are empty: {slots}",
+  "@dialectEditorMoveWordingUnknownSlots": {
+    "description": "Warning shown when a move wording template references unknown placeholders.",
+    "placeholders": {
+      "slots": {
+        "type": "String",
+        "example": "foo"
+      }
+    }
+  },
+  "dialectEditorMoveWordingMissingSlots": "This template omits available slots: {slots}",
+  "@dialectEditorMoveWordingMissingSlots": {
+    "description": "Warning shown when a move wording template omits available placeholders.",
+    "placeholders": {
+      "slots": {
+        "type": "String",
+        "example": "{who}, {move}"
+      }
+    }
+  },
+  "dialectEditorMoveWordingPreview": "Preview: {preview}",
+  "@dialectEditorMoveWordingPreview": {
+    "description": "Representative rendered preview for one move wording template.",
+    "placeholders": {
+      "preview": {
+        "type": "String",
+        "example": "partners swing"
+      }
+    }
+  },
+  "dialectEditorMoveWordingsReset": "Reset move wording templates",
+  "@dialectEditorMoveWordingsReset": {
+    "description": "Action that independently clears all move wording templates."
+  },
+  "dialectEditorMoveWordingConfirmTitle": "Save incomplete wording templates?",
+  "@dialectEditorMoveWordingConfirmTitle": {
+    "description": "Confirmation dialog title shown before saving templates that omit available slots."
+  },
+  "dialectEditorMoveWordingConfirmBody": "These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?",
+  "@dialectEditorMoveWordingConfirmBody": {
+    "description": "Confirmation dialog body listing figures whose wording templates omit available slots.",
+    "placeholders": {
+      "figures": {
+        "type": "String",
+        "example": "Swing: {who}, {prefix}"
+      }
+    }
   }
 }
