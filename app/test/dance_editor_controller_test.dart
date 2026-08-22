@@ -397,6 +397,7 @@ void main() {
 
     for (final raw in ['1e400', '-1e400', 'Infinity', 'NaN']) {
       controller.customTextControllers['f-num']!.text = raw;
+      expect(controller.hasInvalidCustomFieldNumber, isTrue, reason: raw);
       expect(controller.collectCustomFields(), isEmpty, reason: raw);
     }
   });

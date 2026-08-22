@@ -220,7 +220,7 @@ class ArchiveEncodingException implements Exception {
   @override
   String toString() =>
       'ArchiveEncodingException: dance "$danceId", custom field "$fieldId" '
-      'contains a non-finite numeric value';
+      'contains a non-finite or unrepresentable numeric value';
 }
 
 /// Outcome of decoding archive JSON: the recovered [archive] plus any

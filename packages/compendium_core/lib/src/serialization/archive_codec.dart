@@ -183,15 +183,9 @@ Map<String, Object?> _customFieldValueToJson(
   required String danceId,
 }) {
   if (v.value is num && !isFiniteCustomFieldNumber(v.value)) {
-    throw ArchiveEncodingException(
-      danceId: danceId,
-      fieldId: v.fieldId,
-    );
+    throw ArchiveEncodingException(danceId: danceId, fieldId: v.fieldId);
   }
-  return {
-    'fieldId': v.fieldId,
-    'value': v.value,
-  };
+  return {'fieldId': v.fieldId, 'value': v.value};
 }
 
 Map<String, Object?> _danceLinkToJson(DanceLink l) => {

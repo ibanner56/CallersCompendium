@@ -110,6 +110,20 @@ class DanceEditorForm extends StatelessWidget {
         // they label. A trailing gap keeps the last section off the bottom edge.
         padding: const EdgeInsets.only(bottom: AppSpacing.xl),
         children: [
+          if (controller.hasInvalidCustomFieldNumber)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.sm,
+                AppSpacing.md,
+                0,
+              ),
+              child: Text(
+                l10n.collectionBatchCustomFieldNumberInvalid,
+                key: const ValueKey('custom-field-validation-error'),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
           SectionHeader(title: l10n.danceEditorDetailsSection),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),

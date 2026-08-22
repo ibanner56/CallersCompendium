@@ -338,10 +338,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   }
 
   Future<void> _save() async {
-    if (!(_formKey.currentState?.validate() ?? false)) {
-      if (_controller.hasInvalidCustomFieldNumber) {
-        _moreDetailsController.expand();
-      }
+    final hasInvalidCustomFieldNumber = _controller.hasInvalidCustomFieldNumber;
+    final formIsValid = _formKey.currentState?.validate() ?? false;
+    if (!formIsValid || hasInvalidCustomFieldNumber) {
+      if (hasInvalidCustomFieldNumber) _moreDetailsController.expand();
       // Ensure the user sees the first error even if it is above the fold.
       setState(() {});
       return;
