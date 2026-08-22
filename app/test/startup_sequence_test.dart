@@ -426,66 +426,62 @@ void main() {
     },
   );
 
-  testWidgets(
-    'a failed below-floor reset restores the recovery screen',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(1200, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('a failed below-floor reset restores the recovery screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(1200, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      const error = DatabaseBelowFloorError(
-        fileVersion: 5,
-        minSupportedVersion: 11,
-        bridgeTag: 'v0.1.0-beta.6',
-      );
-      var replacementAppDataCount = 0;
-      final initialAppData = _openAppData();
+    const error = DatabaseBelowFloorError(
+      fileVersion: 5,
+      minSupportedVersion: 11,
+      bridgeTag: 'v0.1.0-beta.6',
+    );
+    var replacementAppDataCount = 0;
+    final initialAppData = _openAppData();
 
-      await tester.pumpWidget(
-        CompendiumApp(
-          appData: initialAppData,
-          windowService: _NoopWindowService(
-            initialAppData.repositories.settings,
-          ),
-          migrationPreflight: (_) async {
-            // Keep the failure asynchronous so FutureBuilder can subscribe to
-            // the replacement bootstrap future before it completes.
-            await Future<void>.delayed(Duration.zero);
-            throw error;
-          },
-          integrityCheck: () async => true,
-          databaseFileResolver: () async => File('unused.sqlite'),
-          databaseResetter: (_) async => const ResetFailed(
-            'injected reset failure',
-          ),
-          appDataFactory: () {
-            replacementAppDataCount++;
-            return _openAppData();
-          },
-          windowServiceFactory: (settings) => _NoopWindowService(settings),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      CompendiumApp(
+        appData: initialAppData,
+        windowService: _NoopWindowService(initialAppData.repositories.settings),
+        migrationPreflight: (_) async {
+          // Keep the failure asynchronous so FutureBuilder can subscribe to
+          // the replacement bootstrap future before it completes.
+          await Future<void>.delayed(Duration.zero);
+          throw error;
+        },
+        integrityCheck: () async => true,
+        databaseFileResolver: () async => File('unused.sqlite'),
+        databaseResetter: (_) async =>
+            const ResetFailed('injected reset failure'),
+        appDataFactory: () {
+          replacementAppDataCount++;
+          return _openAppData();
+        },
+        windowServiceFactory: (settings) => _NoopWindowService(settings),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      expect(
-        find.text('This data is from a version too old to open'),
-        findsOneWidget,
-      );
-      await tester.tap(find.text('Reset Only'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, 'Reset Only'));
-      await tester.pumpAndSettle();
+    expect(
+      find.text('This data is from a version too old to open'),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Reset Only'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'Reset Only'));
+    await tester.pumpAndSettle();
 
-      expect(find.text('Reset failed'), findsOneWidget);
-      expect(replacementAppDataCount, 1);
-      await tester.tap(find.widgetWithText(TextButton, 'OK'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AppShell), findsNothing);
-      expect(
-        find.text('This data is from a version too old to open'),
-        findsOneWidget,
-      );
-    },
-  );
+    expect(find.text('Reset failed'), findsOneWidget);
+    expect(replacementAppDataCount, 1);
+    await tester.tap(find.widgetWithText(TextButton, 'OK'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AppShell), findsNothing);
+    expect(
+      find.text('This data is from a version too old to open'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets(
     'a failed pre-migration snapshot prompts for consent; Proceed runs the '
