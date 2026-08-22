@@ -624,9 +624,7 @@ void main() {
 
       test('matches canonically equivalent decomposed author names', () async {
         // ignore: unused_result
-        await choreographers.upsert(
-          Choreographer(id: 'chloe', name: 'Chlöe'),
-        );
+        await choreographers.upsert(Choreographer(id: 'chloe', name: 'Chlöe'));
         final adapter = FakeSourceAdapter([
           record('fake-1', 'A Dance', authorNames: ['Chlo\u0308e']),
         ]);

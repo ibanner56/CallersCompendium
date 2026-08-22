@@ -85,11 +85,7 @@ void main() {
 
     test('NFD title and author remain a confident match', () {
       final nfcIndex = DedupeIndex([
-        DedupeEntry(
-          danceId: 'd1',
-          title: 'Résumé',
-          authorNames: ['Chlöe'],
-        ),
+        DedupeEntry(danceId: 'd1', title: 'Résumé', authorNames: ['Chlöe']),
       ]);
       final v = nfcIndex.verdictFor(
         source: ProvenanceSource.json,

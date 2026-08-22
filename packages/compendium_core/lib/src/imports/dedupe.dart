@@ -297,9 +297,9 @@ class DedupeIndex {
   }
 }
 
-/// Normalizes a dance title for comparison: lowercased, diacritics folded,
-/// punctuation dropped, whitespace collapsed, and a single leading article
-/// (`the`/`a`/`an`) removed.
+/// Normalizes a dance title for comparison: NFC-composed, lowercased, diacritics
+/// folded, punctuation dropped, whitespace collapsed, and a single leading
+/// article (`the`/`a`/`an`) removed.
 String normalizeTitle(String title) {
   var s = _foldDiacritics(title.toLowerCase());
   s = s.replaceAll(RegExp(r'[^a-z0-9\s]'), ' ');
@@ -308,8 +308,8 @@ String normalizeTitle(String title) {
   return s;
 }
 
-/// Normalizes an author name for comparison: lowercased, diacritics folded,
-/// punctuation dropped, whitespace collapsed.
+/// Normalizes an author name for comparison: NFC-composed, lowercased, diacritics
+/// folded, punctuation dropped, whitespace collapsed.
 String normalizeAuthor(String name) {
   var s = _foldDiacritics(name.toLowerCase());
   s = s.replaceAll(RegExp(r'[^a-z0-9\s]'), ' ');
