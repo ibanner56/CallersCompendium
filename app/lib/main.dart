@@ -491,6 +491,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
         await _startupSequence();
         bootstrap.complete();
       } on Object catch (error, stackTrace) {
+        // diagnostics: silent — FutureBuilder receives and surfaces this
+        // bootstrap error in the recovery UI.
         bootstrap.completeError(error, stackTrace);
       }
     });
