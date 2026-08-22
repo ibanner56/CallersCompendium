@@ -173,6 +173,7 @@ class CompendiumApp extends StatefulWidget {
     super.key,
     required this.appData,
     required this.windowService,
+    this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
     this.integrityCheck,
     this.crashReporter,
@@ -194,6 +195,11 @@ class CompendiumApp extends StatefulWidget {
 
   /// The desktop window service to tear down on dispose (no-op off desktop).
   final WindowService windowService;
+
+  /// Initial value for the history preference notifier. Exposed for widget
+  /// tests that need to verify replacement resets a stale in-memory value.
+  @visibleForTesting
+  final bool initialRequirePerformedForHistory;
 
   /// Data-safety preflight run as the *first* bootstrap step, before anything
   /// forces the database open (see `migration_guard.dart`): it guards against
@@ -299,9 +305,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
     AppThemeSelection.system,
   );
-  final ValueNotifier<bool> _requirePerformedForHistoryNotifier = ValueNotifier(
-    false,
-  );
+  late final ValueNotifier<bool> _requirePerformedForHistoryNotifier =
+      ValueNotifier(widget.initialRequirePerformedForHistory);
   final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
       ValueNotifier(CollectionTileField.all);
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(

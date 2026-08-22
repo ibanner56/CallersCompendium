@@ -368,6 +368,7 @@ void main() {
 
       var preflightRuns = 0;
       var replacementAppDataCount = 0;
+      var replacementWindowServiceCount = 0;
       const error = DatabaseBelowFloorError(
         fileVersion: 5,
         minSupportedVersion: 11,
@@ -381,6 +382,7 @@ void main() {
           windowService: _NoopWindowService(
             initialAppData.repositories.settings,
           ),
+          initialRequirePerformedForHistory: true,
           migrationPreflight: (_) async {
             preflightRuns++;
             if (preflightRuns == 1) throw error;
@@ -392,7 +394,10 @@ void main() {
             replacementAppDataCount++;
             return _openAppData();
           },
-          windowServiceFactory: (settings) => _NoopWindowService(settings),
+          windowServiceFactory: (settings) {
+            replacementWindowServiceCount++;
+            return _NoopWindowService(settings);
+          },
         ),
       );
       await tester.pumpAndSettle();
@@ -415,6 +420,7 @@ void main() {
       );
       expect(preflightRuns, 2);
       expect(replacementAppDataCount, 1);
+      expect(replacementWindowServiceCount, 1);
       // The replacement database has no persisted value, so the notifier must
       // use the declared off-by-default value rather than a stale value.
       expect(
