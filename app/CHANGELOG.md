@@ -11,6 +11,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Database reset recovery** — resetting an unsupported database now reloads
+  the app in-process with a fresh runtime instead of leaving the recovery dialog
+  visible until the application is reopened.
+
 ## [0.1.0] - 2026-08-21
 
 Flutter build: `0.1.0+1`.

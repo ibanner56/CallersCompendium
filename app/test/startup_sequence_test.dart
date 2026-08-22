@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/main.dart';
 import 'package:compendium_app/src/data/app_database.dart';
 import 'package:compendium_app/src/data/migration_guard.dart';
+import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart'
@@ -414,6 +415,75 @@ void main() {
       );
       expect(preflightRuns, 2);
       expect(replacementAppDataCount, 1);
+      // The replacement database has no persisted value, so the notifier must
+      // use the declared off-by-default value rather than a stale value.
+      expect(
+        RequirePerformedForHistoryScope.of(
+          tester.element(find.byType(AppShell)),
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  testWidgets(
+    'a failed below-floor reset restores the recovery screen',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      const error = DatabaseBelowFloorError(
+        fileVersion: 5,
+        minSupportedVersion: 11,
+        bridgeTag: 'v0.1.0-beta.6',
+      );
+      var replacementAppDataCount = 0;
+      final initialAppData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: initialAppData,
+          windowService: _NoopWindowService(
+            initialAppData.repositories.settings,
+          ),
+          migrationPreflight: (_) async {
+            // Keep the failure asynchronous so FutureBuilder can subscribe to
+            // the replacement bootstrap future before it completes.
+            await Future<void>.delayed(Duration.zero);
+            throw error;
+          },
+          integrityCheck: () async => true,
+          databaseFileResolver: () async => File('unused.sqlite'),
+          databaseResetter: (_) async => const ResetFailed(
+            'injected reset failure',
+          ),
+          appDataFactory: () {
+            replacementAppDataCount++;
+            return _openAppData();
+          },
+          windowServiceFactory: (settings) => _NoopWindowService(settings),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('This data is from a version too old to open'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Reset Only'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Reset Only'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reset failed'), findsOneWidget);
+      expect(replacementAppDataCount, 1);
+      await tester.tap(find.widgetWithText(TextButton, 'OK'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AppShell), findsNothing);
+      expect(
+        find.text('This data is from a version too old to open'),
+        findsOneWidget,
+      );
     },
   );
 

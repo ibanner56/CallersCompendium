@@ -440,6 +440,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   void _replaceDatabaseBackedServices() {
     // Controllers retain their SettingsRepository, so they must be recreated
     // with the replacement database rather than reusing closed repositories.
+    _resetAppPreferenceNotifiers();
     _windowService.dispose();
     _customThemes.dispose();
     _formationColors.dispose();
@@ -455,9 +456,44 @@ class _CompendiumAppState extends State<CompendiumApp> {
         WindowService(_appData.repositories.settings);
   }
 
+  void _resetAppPreferenceNotifiers() {
+    _dialectNotifier.value = Dialect.larksRobins;
+    _themeNotifier.value = AppThemeSelection.system;
+    _requirePerformedForHistoryNotifier.value = false;
+    _collectionTileFieldsNotifier.value = CollectionTileField.all;
+    _trackHistoryForAllCallersNotifier.value = false;
+    _sortIgnoreArticlesNotifier.value = true;
+    _reduceMotionNotifier.value = null;
+    _verboseFigureRenderingNotifier.value = false;
+    _decimalTurnsNotifier.value = false;
+    _aggressiveBeatsUpdateNotifier.value = false;
+    _confirmBeforeDeleteNotifier.value = false;
+    _venueEntityModeNotifier.value = false;
+    _autoCommitProgramChangesNotifier.value = false;
+    _colourDanceThemeNotifier.value = false;
+    _setListColorCodingNotifier.value = true;
+    _matrixExactBeatCollisionNotifier.value = true;
+    _programMatrixColumnsNotifier.value = MatrixColumnConfig.empty;
+    _dateFormatNotifier.value = DateFormatSetting.system;
+    _firstDayOfWeekNotifier.value = FirstDayOfWeekPref.system;
+    _localeNotifier.value = null;
+  }
+
   void _startBootstrap() {
     _corruptionBannerShown = false;
-    _bootstrap = _startupSequence();
+    // Let AppBootstrap subscribe before running a replacement bootstrap, so a
+    // synchronously failing preflight is still delivered to its recovery UI.
+    final bootstrap = Completer<void>();
+    _bootstrap = bootstrap.future;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await _startupSequence();
+        bootstrap.complete();
+      } on Object catch (error, stackTrace) {
+        bootstrap.completeError(error, stackTrace);
+      }
+    });
   }
 
   /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
