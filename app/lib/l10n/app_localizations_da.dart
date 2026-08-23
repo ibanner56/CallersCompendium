@@ -6428,6 +6428,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Denne skabelon udelader valgfrie pladsholdere: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Forhåndsvisning: $preview';
   }

@@ -463,6 +463,43 @@ void main() {
     expect(previewText(tester), contains('twirl'));
   });
 
+  testWidgets('omitting only move shows an optional-slot notice', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(
+            name: 'Wording',
+            moveWordings: const {
+              'hey':
+                  '{who} {article} {dir} {length} {shoulder} {until} {ricochets}',
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-wordings-toggle')));
+    await tester.pumpAndSettle();
+
+    final notice = find.text('This template omits optional slots: {move}');
+    expect(notice, findsOneWidget);
+    expect(
+      tester.widget<Text>(notice).style!.color,
+      Theme.of(tester.element(notice)).colorScheme.tertiary,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-wording-confirm-dialog')),
+      findsNothing,
+    );
+  });
+
   testWidgets('saving omitted wording slots requires confirmation', (
     tester,
   ) async {

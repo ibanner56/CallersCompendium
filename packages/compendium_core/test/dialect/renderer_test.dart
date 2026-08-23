@@ -2914,6 +2914,43 @@ void main() {
       );
     });
 
+    test('hey wording accepts either shoulder slot', () {
+      const withShoulder =
+          '{who} {article} {dir} {length} {move} {shoulder} {until} {ricochets}';
+      const withShoulderClause =
+          '{who} {article} {dir} {length} {move} {shoulder_clause} {until} {ricochets}';
+      const withoutEither =
+          '{who} {article} {dir} {length} {move} {until} {ricochets}';
+
+      expect(renderer.moveWordingSlots('hey'), contains('shoulder'));
+      expect(
+        renderer.moveWordingSlotLabels('hey', renderer.moveWordingSlots('hey')),
+        containsAllInOrder([
+          '{length}',
+          '{move}',
+          '{shoulder}/{shoulder_clause}',
+          '{until}',
+        ]),
+      );
+      expect(
+        renderer.moveWordingMissingSlots('hey', withShoulder),
+        isNot(contains('shoulder_clause')),
+      );
+      expect(
+        renderer.moveWordingMissingSlots('hey', withShoulderClause),
+        isNot(contains('shoulder')),
+      );
+      final missingBoth = renderer.moveWordingMissingSlots(
+        'hey',
+        withoutEither,
+      );
+      expect(missingBoth, containsAll({'shoulder', 'shoulder_clause'}));
+      expect(
+        renderer.moveWordingSlotLabels('hey', missingBoth),
+        contains('{shoulder}/{shoulder_clause}'),
+      );
+    });
+
     test('invalid global wording falls back to existing display output', () {
       final dialect = Dialect(
         name: 'Wording',

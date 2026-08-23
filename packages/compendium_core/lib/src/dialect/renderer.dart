@@ -644,7 +644,15 @@ class FigureRenderer {
   Set<String> moveWordingSlots(String moveId) {
     final template = moveWordingTemplate(moveId);
     if (template == null) return const {};
-    return _placeholder.allMatches(template).map((match) => match[1]!).toSet();
+    final slots = <String>{};
+    for (final match in _placeholder.allMatches(template)) {
+      final slot = match[1]!;
+      if (moveId == 'hey' && slot == 'shoulder_clause') {
+        slots.add('shoulder');
+      }
+      slots.add(slot);
+    }
+    return slots;
   }
 
   /// Returns the available slots omitted by a custom wording template.
@@ -653,7 +661,35 @@ class FigureRenderer {
         .allMatches(wording)
         .map((match) => match[1]!)
         .toSet();
-    return moveWordingSlots(moveId).difference(used);
+    final missing = moveWordingSlots(moveId).difference(used);
+    if (moveId == 'hey' &&
+        (used.contains('shoulder') || used.contains('shoulder_clause'))) {
+      missing.removeAll({'shoulder', 'shoulder_clause'});
+    }
+    return missing;
+  }
+
+  /// Returns missing wording slots that must be acknowledged before saving.
+  Set<String> moveWordingErrorMissingSlots(String moveId, String wording) =>
+      moveWordingMissingSlots(moveId, wording)..remove('move');
+
+  /// Formats wording slots for the editor, including hey's interchangeable
+  /// shoulder forms as one choice.
+  List<String> moveWordingSlotLabels(String moveId, Iterable<String> slots) {
+    final labels = <String>[];
+    var hasShoulderChoice = false;
+    for (final slot in slots) {
+      if (moveId == 'hey' &&
+          (slot == 'shoulder' || slot == 'shoulder_clause')) {
+        if (!hasShoulderChoice) {
+          labels.add('{shoulder}/{shoulder_clause}');
+          hasShoulderChoice = true;
+        }
+      } else {
+        labels.add('{$slot}');
+      }
+    }
+    return labels;
   }
 
   /// The default display template for [moveId], including the display-specific

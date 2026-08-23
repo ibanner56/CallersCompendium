@@ -9851,6 +9851,12 @@ abstract class AppLocalizations {
   /// **'This template omits available slots: {slots}'**
   String dialectEditorMoveWordingMissingSlots(String slots);
 
+  /// Notice shown when a move wording template omits optional placeholders.
+  ///
+  /// In en, this message translates to:
+  /// **'This template omits optional slots: {slots}'**
+  String dialectEditorMoveWordingOptionalSlots(String slots);
+
   /// Representative rendered preview for one move wording template.
   ///
   /// In en, this message translates to:
