@@ -1520,12 +1520,14 @@ fails a PR that moves the constant without adding the matching entry.
     CONCRETE default with sentinel-admitting `choices`; every other
     sentinel-admitting param still defaults TO the sentinel.
 
-    **Rendering silencing (derived, not templated).** `turn` is silenced in
-    display only at the pure-default combination — `turn=='counterclockwise'`
-    **and** no `destination` stated — mirroring how `dir` has always been
-    silenced only at its own default. Any departure (a non-default `turn`, a
-    non-default `dir`, or a stated `destination`) shows both `dir` and `turn`
-    together. Canonical never applies this default-silencing: `turn` is
+    **Rendering silencing (derived, not templated).** On the non-single-file
+    display path, the concrete default `turn` is omitted when `dir` is
+    `across`, `rightDiagonal`, or `leftDiagonal` and no destination is
+    rendered. `along` is the exception: it un-silences the concrete default
+    turn. A non-default `turn` or a rendered destination shows both `dir` and
+    `turn` together. Rotationless directions (`in`/`out`/`up`/`down`) reset
+    `turn` to the `unspecified` sentinel in the editor, so no turn token is
+    rendered. Canonical never applies this default-silencing: `turn` is
     omitted from canonical text only at the `unspecified` sentinel, exactly
     like `dir`'s existing canonical behaviour of always rendering even at its
     default.
