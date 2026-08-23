@@ -898,11 +898,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     for (final entry in _createdChoreographers.entries.toList()) {
       final current = data.choreographersById[entry.key];
-      if (current == null) continue;
       if (current == entry.value) {
         _createdChoreographers.remove(entry.key);
       } else if (_pendingChoreographerReconciliations.add(entry.key)) {
-        unawaited(_reconcileChoreographer(entry.key, current));
+        unawaited(_reconcileChoreographer(entry.key));
       }
     }
   }
@@ -926,25 +925,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  Future<void> _reconcileChoreographer(
-    String id,
-    Choreographer observed,
-  ) async {
+  Future<void> _reconcileChoreographer(String id) async {
+    final observed = _createdChoreographers[id];
     try {
+      if (observed == null) return;
       final current = await _repos.choreographers.getById(id);
       if (!mounted) return;
       final created = _createdChoreographers[id];
-      if (created == null) return;
+      if (created == null || created != observed) return;
       setState(() {
-        if (current == null) {
+        if (current == null || current == created) {
           _createdChoreographers.remove(id);
           return;
         }
-        if (current == observed) {
-          _createdChoreographers.remove(id);
-        } else {
-          _createdChoreographers[id] = current;
-        }
+        _createdChoreographers[id] = current;
       });
     } finally {
       _pendingChoreographerReconciliations.remove(id);
@@ -967,14 +961,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           .map(_repos.choreographers.getById),
     );
     if (!mounted) return;
+    final choreographersToReconcile = <String>[];
     setState(() {
-      _createdDances[danceId] = dance;
+      final currentDance = _data?.dancesById[danceId];
+      if (currentDance == null ||
+          currentDance.updatedAt.isBefore(dance.updatedAt)) {
+        _createdDances[danceId] = dance;
+      }
       for (final choreographer in choreographers) {
         if (choreographer != null) {
           _createdChoreographers[choreographer.id] = choreographer;
+          if (_pendingChoreographerReconciliations.add(choreographer.id)) {
+            choreographersToReconcile.add(choreographer.id);
+          }
         }
       }
     });
+    for (final id in choreographersToReconcile) {
+      unawaited(_reconcileChoreographer(id));
+    }
   }
 
   String? _titleForDance(String danceId) => _danceById(danceId)?.title;

@@ -129,7 +129,7 @@ A program is made of three kinds of slots:
   step, so a note left behind by an import that couldn't find a match doesn't
   need a separate trip through the collection to fix. A non-break note slot
   also offers **Replace…**, which imports or selects a dance and swaps it into
-  that slot while keeping its note and timing details.
+  that slot while clearing the old note and preserving its timing details.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
