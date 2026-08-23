@@ -89,6 +89,7 @@ class PerformProgramScreen extends StatefulWidget {
     required this.data,
     required this.renderer,
     this.danceOverrides = const {},
+    this.authorNameOverrides = const {},
     this.initialGroup = 0,
     this.initialElapsedSeconds = 0,
     this.initialSlotStartSeconds = 0,
@@ -104,6 +105,9 @@ class PerformProgramScreen extends StatefulWidget {
   /// Freshly imported or created dances that may not yet be present in the
   /// program editor's debounced collection snapshot.
   final Map<String, Dance> danceOverrides;
+
+  /// Fresh author names paired with [danceOverrides].
+  final Map<String, String> authorNameOverrides;
 
   /// Group index to open at (defaults to the first group).
   final int initialGroup;
@@ -521,8 +525,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   List<String> _authorNamesFor(Dance dance) => [
     for (final id in dance.authorIds)
-      if (widget.data.choreographerNames[id] != null)
-        widget.data.choreographerNames[id]!,
+      if (widget.authorNameOverrides[id] ?? widget.data.choreographerNames[id]
+          case final String name)
+        name,
   ];
 
   Future<void> _openMetronomeSheet() {

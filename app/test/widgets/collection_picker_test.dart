@@ -753,6 +753,48 @@ void main() {
     ]);
   });
 
+  testWidgets('disabling online search returns to local results', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'local', title: 'Local Dance'));
+    final online = _DedupeOnlineService(OnlineImportKind.created);
+    final added = <String>[];
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      enableOnlineSearch: true,
+      callersBoxOnline: online,
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'Remote Dance',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(find.byType(OnlineResultTile), findsOneWidget);
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      enableOnlineSearch: false,
+      callersBoxOnline: online,
+    );
+    expect(find.byType(OnlineResultTile), findsNothing);
+    expect(_titles(tester), contains('Local Dance'));
+  });
+
   testWidgets('online replacement imports before notifying the host', (
     tester,
   ) async {

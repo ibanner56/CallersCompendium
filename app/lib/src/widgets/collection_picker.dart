@@ -164,6 +164,22 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void didUpdateWidget(CollectionPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     var dataChanged = false;
+    var onlineDisabled = false;
+    if (oldWidget.enableOnlineSearch &&
+        !widget.enableOnlineSearch &&
+        _onlineEnabled) {
+      _debounceTimer?.cancel();
+      _searchSeq++;
+      _onlineSeq++;
+      setState(() {
+        _onlineEnabled = false;
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineImportError = null;
+        _onlineSearching = false;
+      });
+      onlineDisabled = true;
+    }
     if (oldWidget.data != widget.data) {
       _importedDances.removeWhere((id, imported) {
         final current = widget.data.dancesById[id];
@@ -189,7 +205,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (searchInputsChanged) {
       _runSearch();
     }
-    if (dataChanged && !_onlineEnabled && !searchInputsChanged) _runSearch();
+    if (onlineDisabled ||
+        (dataChanged && !_onlineEnabled && !searchInputsChanged)) {
+      _runSearch();
+    }
     if (onlineServiceChanged && _onlineEnabled) {
       _onlineSeq++;
       _runOnlineSearch();
@@ -501,6 +520,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
               result.kind == OnlineImportKind.alreadyInCollection) &&
           danceId != null) {
         final dance = await _repos.dances.getById(danceId);
+        if (!mounted) return;
         if (dance != null) _importedDances[danceId] = dance;
         await widget.onDanceImported?.call(danceId);
         if (!mounted) return;

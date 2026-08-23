@@ -880,6 +880,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// instead of rendering the deleted-dance placeholder until the snapshot
   /// catches up.
   final Map<String, Dance> _createdDances = {};
+  final Map<String, Choreographer> _createdChoreographers = {};
 
   void _setCollectionData(CollectionData data) {
     _data = data;
@@ -897,7 +898,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _rememberImportedDance(String danceId) async {
     final dance = await _repos.dances.getById(danceId);
     if (!mounted || dance == null) return;
-    setState(() => _createdDances[danceId] = dance);
+    final choreographers = await _repos.choreographers.listAll();
+    if (!mounted) return;
+    final authorIds = dance.authorIds.toSet();
+    setState(() {
+      _createdDances[danceId] = dance;
+      for (final choreographer in choreographers) {
+        if (authorIds.contains(choreographer.id)) {
+          _createdChoreographers[choreographer.id] = choreographer;
+        }
+      }
+    });
   }
 
   String? _titleForDance(String danceId) => _danceById(danceId)?.title;
@@ -948,6 +959,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           program: program,
           data: data,
           danceOverrides: Map<String, Dance>.of(_createdDances),
+          authorNameOverrides: {
+            for (final entry in _createdChoreographers.entries)
+              entry.key: entry.value.name,
+          },
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434): thread the last
           // position + clock back in, and capture the new one on exit. The
@@ -1503,7 +1518,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 titleFor: _titleForDance,
                 venuesById: _exportVenuesById,
                 danceFor: _danceById,
-                choreographerFor: (id) => _data?.choreographersById[id],
+                choreographerFor: (id) =>
+                    _createdChoreographers[id] ?? _data?.choreographersById[id],
               ),
             if (hasPersistedProgram) ...[
               if (_slots.any((s) => s.danceId != null))
