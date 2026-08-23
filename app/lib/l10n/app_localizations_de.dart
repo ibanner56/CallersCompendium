@@ -167,6 +167,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnose';
 
   @override
+  String get settingsExperimentalTitle => 'Experimentell';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'Neue Funktionen können hier erscheinen, während sie sich noch in Entwicklung befinden.';
+
+  @override
   String get settingsAboutTitle => 'Über';
 
   @override

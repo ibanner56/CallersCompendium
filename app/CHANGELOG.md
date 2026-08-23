@@ -11,6 +11,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Added
+
+- **Experimental settings** — a new section provides a home for features that
+  are still in development.
+
 ## [0.1.0] - 2026-08-21
 
 Flutter build: `0.1.0+1`.
