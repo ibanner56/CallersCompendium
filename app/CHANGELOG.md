@@ -192,7 +192,10 @@ install notes follow.
 - **In-app update checks remain opt-in.** Automatic checks and the beta channel are off
   by default and enabled in Settings; when on, updates are signature-verified. Either
   way, you can always watch the GitHub Releases page for new betas.
-- **Windows and Linux desktop builds are still unsigned** (see Platforms & install).
+- **Linux desktop builds are still unsigned.** Windows release artifacts are signed
+  via Azure Trusted Signing when the release workflow's five `AZURE_*` repository
+  variables and federated OIDC configuration are present; otherwise the unsigned
+  fallback may show a SmartScreen warning (see Platforms & install).
 - **The user guide has no screenshots yet.** The written guides are current; the
   images pass is still to come.
 
@@ -234,14 +237,18 @@ install notes follow.
   no `.ipa` on this Releases page.
 - **macOS** (universal) — **signed with an Apple Developer ID and notarized**, so it
   opens normally (you may see a single first-launch confirmation).
-- **Linux** (x64) and **Windows** (x64) — desktop builds, **still unsigned** for this
-  beta, so your OS will warn you before it runs:
-  - Windows: **More info → Run anyway** on the SmartScreen prompt.
-  - Linux: the **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
+- **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
+  signing prompt:
+  - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
     needs the **FUSE 2** runtime (`libfuse.so.2`) — package `libfuse2` on
     Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
     preinstall; install it, or launch with
     `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
+- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing when
+  the release workflow's five `AZURE_*` repository variables and federated OIDC
+  configuration are present. Otherwise the unsigned fallback may show
+  **SmartScreen**; choose **More info → Run anyway** on the blue **Windows
+  protected your PC** prompt.
 
 ### Your data & safety
 

@@ -22,11 +22,12 @@ the point: you're among the first callers to use it for real, and what you run
 into shapes the finished 1.0. Two things worth knowing before you begin:
 
 - **Signing varies by platform.** The **macOS** build is now signed with an Apple
-  Developer ID and notarized, so it opens normally. **Windows** and **Linux**
-  builds aren't code-signed yet, so those operating systems show a caution the
-  first time you open the app — the builds are fine, and signing is a step planned
-  for a later release. The steps below show you exactly how to get past that
-  prompt where it appears.
+  Developer ID and notarized, so it opens normally. **Windows** artifacts are
+  signed via Azure Trusted Signing when the release workflow's five `AZURE_*`
+  repository variables and federated OIDC configuration are present; otherwise
+  the unsigned fallback may show a **SmartScreen** caution. **Linux** artifacts
+  are unsigned but generally have no signing prompt. The steps below show you
+  exactly how to get past the prompt where it appears.
 - **Keep a backup habit.** Since your work lives on your own device, it's worth
   exporting a backup now and then — especially during a beta. You can do this any
   time from **Settings › General**; see [Backup & portability](./backup-portability.md).
