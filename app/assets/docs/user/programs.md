@@ -114,7 +114,8 @@ picker.*
   **Advanced** figure builder, and the **By-Phrase** panel. Find a dance and add
   it to the program. In the **Advanced** panel, turn on **Online search** to
   search The Caller's Box or ContraDB; selecting a result imports it and adds it
-  immediately.
+  immediately. If it may duplicate a dance already in your collection, a
+  resolution dialog appears first; the dance is added after you confirm.
 
 ### Kinds of slots
 

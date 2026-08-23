@@ -937,6 +937,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (created == null) return;
       setState(() {
         if (current == null) {
+          _createdChoreographers.remove(id);
           return;
         }
         if (current == observed) {

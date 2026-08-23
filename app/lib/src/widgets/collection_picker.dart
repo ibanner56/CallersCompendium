@@ -422,6 +422,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final seq = ++_onlineSeq;
     final l10n = AppLocalizations.of(context);
     setState(() {
+      _onlineResults = const [];
       _onlineSearching = true;
       _onlineError = null;
       _onlineImportError = null;
