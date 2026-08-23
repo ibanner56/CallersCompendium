@@ -194,6 +194,23 @@ class _QueuedProgramOnlineService extends _ProgramOnlineService {
   }
 }
 
+class _PreviewQueuedProgramOnlineService extends _ProgramOnlineService {
+  final previewStarted = Completer<void>();
+  final releasePreview = Completer<void>();
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    previewStarted.complete();
+    await releasePreview.future;
+    return super.loadPreview(repos, result, now: now, index: index);
+  }
+}
+
 Future<void> _startInlineOnlineImport(WidgetTester tester) async {
   final picker = find.byKey(const ValueKey('inline-picker'));
   await tester.tap(
@@ -1023,6 +1040,15 @@ void main() {
             .onPressed,
         isNull,
       );
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('picker-online-search-enable')),
+            )
+            .onChanged,
+        isNull,
+        reason: 'an in-flight import cannot expose a second selection flow',
+      );
       for (final key in [
         'perform-program',
         'duplicate-program',
@@ -1040,24 +1066,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 2000));
       await tester.pumpAndSettle();
 
-      await _startInlineOnlineImport(tester);
-      await online.committed[1].future;
-      await tester.pump();
-
       online.release[0].complete();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(
-        tester
-            .widget<FloatingActionButton>(
-              find.byKey(const ValueKey('save-program')),
-            )
-            .onPressed,
-        isNull,
-        reason: 'the old picker must not unlock the newer import',
-      );
-
-      online.release[1].complete();
       await tester.pumpAndSettle();
       expect(
         tester
@@ -1072,8 +1081,37 @@ void main() {
       final saved = await repos.programs.getById('p1');
       expect(
         saved!.slots.where((slot) => slot.danceId == 'imported'),
-        hasLength(2),
+        hasLength(1),
       );
+    },
+  );
+
+  testWidgets(
+    'responsive removal during preview still adds the imported dance',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      final online = _PreviewQueuedProgramOnlineService();
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        callersBoxOnline: online,
+      );
+
+      await _startInlineOnlineImport(tester);
+      await online.previewStarted.future;
+      await tester.binding.setSurfaceSize(const Size(600, 2000));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('inline-picker')), findsNothing);
+
+      online.releasePreview.complete();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots.single.danceId, 'imported');
     },
   );
 

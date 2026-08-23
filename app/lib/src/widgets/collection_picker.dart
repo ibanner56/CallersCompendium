@@ -47,6 +47,8 @@ class CollectionPicker extends StatefulWidget {
     this.contraDbOnline,
     this.onDanceImported,
     this.onImportingChanged,
+    this.danceOverrides = const {},
+    this.choreographerNamesOverride = const {},
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -97,6 +99,9 @@ class CollectionPicker extends StatefulWidget {
   final OnlineSearchService? contraDbOnline;
 
   /// Called after an online dance has been persisted and before [onAddDance].
+  ///
+  /// This also runs when the online service resolves the selection to an
+  /// existing collection dance without creating a new record.
   final Future<void> Function(String danceId)? onDanceImported;
 
   /// Notifies hosts while an online import is in flight so they can prevent
@@ -105,6 +110,14 @@ class CollectionPicker extends StatefulWidget {
   /// [owner] is stable for this picker instance. Hosts must track owners
   /// independently: a replaced picker can finish after its replacement starts.
   final void Function(Object owner, bool active)? onImportingChanged;
+
+  /// Temporary dance records the host has written but whose debounced
+  /// [CollectionData] snapshot has not yet observed.
+  final Map<String, Dance> danceOverrides;
+
+  /// Names for authors referenced by [danceOverrides] while the collection
+  /// snapshot has not yet observed those choreographers.
+  final Map<String, String> choreographerNamesOverride;
 
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
@@ -292,10 +305,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _results = [
           for (final id in ids)
-            if ((_importedDances[id] ?? data.dancesById[id]) case final dance?)
+            if ((_importedDances[id] ??
+                    widget.danceOverrides[id] ??
+                    data.dancesById[id])
+                case final dance?)
               data.entryFor(
                 dance,
                 choreographerNamesOverride: {
+                  ...widget.choreographerNamesOverride,
                   for (final entry in _importedChoreographers.entries)
                     entry.key: entry.value.name,
                 },
@@ -504,12 +521,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final onAddDance = widget.onAddDance;
     final l10n = AppLocalizations.of(context);
     final service = _online;
+    final searchGeneration = _onlineSeq;
     var importReported = false;
     try {
       importReported = true;
       onImportingChanged?.call(_importActivityOwner, true);
       final preview = await service.loadPreview(_repos, onlineResult);
-      if (!mounted) return;
       var result = await service.import(_repos, preview.plan);
       if (result.kind == OnlineImportKind.needsConfirmation) {
         final existingId = result.danceId;
@@ -608,6 +625,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         source: 'collection_picker._importOnlineResult',
       );
       if (mounted) {
+        if (searchGeneration != _onlineSeq) return;
         setState(() {
           _onlineImportError = importErrorMessage(l10n, error);
           _onlineSearching = false;
@@ -620,6 +638,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         source: 'collection_picker._importOnlineResult',
       );
       if (mounted) {
+        if (searchGeneration != _onlineSeq) return;
         setState(() {
           _onlineImportError = l10n.onlineImportError;
           _onlineSearching = false;
@@ -655,58 +674,61 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final l10n = AppLocalizations.of(context);
     // Picker call sites pass no visibleFields to DanceListTile, so they
     // default to all-visible — no scope override needed here.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: TextField(
-            key: const ValueKey('picker-search'),
-            controller: _ftsController,
-            onChanged: _onFtsChanged,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              labelText: _onlineEnabled
-                  ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-                  : l10n.collectionPickerSearchLabel,
-              hintText: _onlineEnabled
-                  ? l10n.onlineSearchFieldHint
-                  : l10n.collectionSearchFieldHint,
-              prefixIcon: Icon(
-                _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+    return IgnorePointer(
+      ignoring: _onlineImporting,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: TextField(
+              key: const ValueKey('picker-search'),
+              controller: _ftsController,
+              onChanged: _onFtsChanged,
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                labelText: _onlineEnabled
+                    ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+                    : l10n.collectionPickerSearchLabel,
+                hintText: _onlineEnabled
+                    ? l10n.onlineSearchFieldHint
+                    : l10n.collectionSearchFieldHint,
+                prefixIcon: Icon(
+                  _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+                ),
+                suffixIcon: _hasActiveQuery
+                    ? IconButton(
+                        tooltip: l10n.collectionClearSearchTooltip,
+                        icon: const Icon(Icons.clear),
+                        onPressed: _clearAll,
+                      )
+                    : null,
+                border: const OutlineInputBorder(),
               ),
-              suffixIcon: _hasActiveQuery
-                  ? IconButton(
-                      tooltip: l10n.collectionClearSearchTooltip,
-                      icon: const Icon(Icons.clear),
-                      onPressed: _clearAll,
-                    )
-                  : null,
-              border: const OutlineInputBorder(),
             ),
           ),
-        ),
-        Expanded(
-          child: CustomScrollView(
-            controller: widget.scrollController,
-            slivers: [
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  if (!_onlineEnabled) _buildFiltersPanel(data),
-                  if (!_onlineEnabled || _onlineSource.supportsByPhrase)
-                    _buildByPhrasePanel(data),
-                  _buildAdvancedPanel(data),
-                  _buildResultCount(),
-                  const Divider(height: 1),
-                ]),
-              ),
-              _onlineEnabled
-                  ? _buildOnlineResultsSliver()
-                  : _buildResultsSliver(),
-            ],
+          Expanded(
+            child: CustomScrollView(
+              controller: widget.scrollController,
+              slivers: [
+                SliverList(
+                  delegate: SliverChildListDelegate([
+                    if (!_onlineEnabled) _buildFiltersPanel(data),
+                    if (!_onlineEnabled || _onlineSource.supportsByPhrase)
+                      _buildByPhrasePanel(data),
+                    _buildAdvancedPanel(data),
+                    _buildResultCount(),
+                    const Divider(height: 1),
+                  ]),
+                ),
+                _onlineEnabled
+                    ? _buildOnlineResultsSliver()
+                    : _buildResultsSliver(),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -788,7 +810,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
             title: Text(l10n.onlineSearchToggleTitle),
             subtitle: Text(l10n.onlineSearchToggleSubtitle),
             value: _onlineEnabled,
-            onChanged: _onOnlineToggled,
+            onChanged: _onlineImporting ? null : _onOnlineToggled,
           ),
           if (_onlineEnabled)
             Padding(
@@ -806,8 +828,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   ],
                   selected: {_onlineSource},
                   showSelectedIcon: false,
-                  onSelectionChanged: (selection) =>
-                      _onOnlineSourceChanged(selection.first),
+                  onSelectionChanged: _onlineImporting
+                      ? null
+                      : (selection) => _onOnlineSourceChanged(selection.first),
                 ),
               ),
             ),

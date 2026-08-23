@@ -1729,18 +1729,29 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             const VerticalDivider(width: 1, thickness: 1),
             if (data != null)
               Expanded(
-                child: CollectionPicker(
-                  key: const ValueKey('inline-picker'),
-                  data: data,
-                  dialect: _dialect,
-                  enrichment: _enrichment,
-                  addedDanceCounts: _pickerCounts.value,
-                  onAddDance: _addDanceSlot,
-                  onDanceImported: _rememberImportedDance,
-                  onImportingChanged: _setPickerImportActivity,
-                  callersBoxOnline: widget.callersBoxOnline,
-                  contraDbOnline: widget.contraDbOnline,
-                  enableOnlineSearch: true,
+                child: ExcludeFocus(
+                  excluding: _saving || _pickerImporting,
+                  child: IgnorePointer(
+                    ignoring: _saving || _pickerImporting,
+                    child: CollectionPicker(
+                      key: const ValueKey('inline-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      addedDanceCounts: _pickerCounts.value,
+                      onAddDance: _addDanceSlot,
+                      onDanceImported: _rememberImportedDance,
+                      onImportingChanged: _setPickerImportActivity,
+                      callersBoxOnline: widget.callersBoxOnline,
+                      contraDbOnline: widget.contraDbOnline,
+                      danceOverrides: _createdDances,
+                      choreographerNamesOverride: {
+                        for (final entry in _createdChoreographers.entries)
+                          entry.key: entry.value.name,
+                      },
+                      enableOnlineSearch: true,
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -2054,6 +2065,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             onImportingChanged: onImportingChanged,
                             callersBoxOnline: widget.callersBoxOnline,
                             contraDbOnline: widget.contraDbOnline,
+                            danceOverrides: _createdDances,
+                            choreographerNamesOverride: {
+                              for (final entry
+                                  in _createdChoreographers.entries)
+                                entry.key: entry.value.name,
+                            },
                             enableOnlineSearch: true,
                           ),
                         ),
@@ -2158,6 +2175,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             onImportingChanged: onImportingChanged,
                             callersBoxOnline: widget.callersBoxOnline,
                             contraDbOnline: widget.contraDbOnline,
+                            danceOverrides: _createdDances,
+                            choreographerNamesOverride: {
+                              for (final entry
+                                  in _createdChoreographers.entries)
+                                entry.key: entry.value.name,
+                            },
                             onAddDance: (danceId) {
                               selectedDanceId = danceId;
                               final sheetContext = activeSheetContext;
