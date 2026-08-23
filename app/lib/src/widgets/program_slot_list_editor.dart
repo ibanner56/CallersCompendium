@@ -787,7 +787,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   String? _minutesError;
   String? _noteError;
 
-  bool get _isDanceSlot => widget.slot.danceId != null;
+  bool get _isDanceSlot => _danceId != null;
 
   @override
   void dispose() {
@@ -802,7 +802,12 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     if (pick == null) return;
     final picked = await pick();
     if (picked == null || !mounted) return;
-    setState(() => _danceId = picked);
+    setState(() {
+      _danceId = picked;
+      // Replacing a free-text slot converts it into a dance slot. The note was
+      // the slot's old content, not a caller note for the selected dance.
+      _note.clear();
+    });
     final l10n = AppLocalizations.of(context);
     // Same fallback the visible row uses (below, in build) for a dance id
     // that resolves to nothing — keeps the announcement and the on-screen
@@ -897,6 +902,18 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
                 border: const OutlineInputBorder(),
               ),
             ),
+            if (!_isDanceSlot && widget.onPickReplacementDance != null) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  key: const ValueKey('slot-edit-replace-dance'),
+                  onPressed: _pickReplacement,
+                  icon: const Icon(Icons.swap_horiz, size: 18),
+                  label: Text(l10n.programsReplaceDanceButton),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
               key: const ValueKey('slot-edit-guest'),

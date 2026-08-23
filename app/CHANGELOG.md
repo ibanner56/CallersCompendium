@@ -22,6 +22,10 @@ each release so store builds and tags can be traced back to an entry.
 - **Experimental settings** — a new section provides a home for features that
   are still in development.
 
+- **Program picker online search** — search The Caller's Box or ContraDB from
+  the program builder, then import and add a result directly. Free-text program
+  slots can also be replaced with a selected dance from their edit dialog.
+
 ## [0.1.0] - 2026-08-21
 
 Flutter build: `0.1.0+1`.

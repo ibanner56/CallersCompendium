@@ -1574,6 +1574,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   enrichment: _enrichment,
                   addedDanceCounts: _pickerCounts.value,
                   onAddDance: _addDanceSlot,
+                  enableOnlineSearch: true,
                 ),
               ),
           ],
@@ -1859,6 +1860,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       addedDanceCounts: counts,
                       // Keep the sheet open so callers can add several dances.
                       onAddDance: _addDanceSlot,
+                      enableOnlineSearch: true,
                     ),
                   ),
                 ),
@@ -1924,6 +1926,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       scrollController: scrollController,
                       addedDanceCounts: counts,
                       rowAction: PickerRowAction.replace,
+                      enableOnlineSearch: true,
                       onAddDance: (danceId) =>
                           Navigator.of(sheetContext).pop(danceId),
                     ),

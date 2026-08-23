@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
+import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
 import '../support/test_repositories.dart';
 import '../support/l10n_harness.dart';
@@ -51,6 +53,8 @@ Future<void> _pumpPicker(
   required void Function(String danceId) onAddDance,
   SearchEnrichment? enrichment,
   PickerRowAction rowAction = PickerRowAction.add,
+  bool enableOnlineSearch = false,
+  CallersBoxOnline? callersBoxOnline,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -72,6 +76,8 @@ Future<void> _pumpPicker(
             enrichment: enrichment,
             onAddDance: onAddDance,
             rowAction: rowAction,
+            enableOnlineSearch: enableOnlineSearch,
+            callersBoxOnline: callersBoxOnline,
           ),
         ),
       ),
@@ -540,5 +546,73 @@ void main() {
         expect(added, ['a']);
       },
     );
+  });
+
+  testWidgets('an online result imports and adds the persisted dance', (
+    tester,
+  ) async {
+    final added = <String>[];
+    final repos = openTestRepositories();
+    final online = CallersBoxOnline(
+      searchFetcher: (_) async => '''
+        <html><body>
+        <p>Of 1 dances in the database, your query matches 1.</p>
+        <table><tr>
+          <td>&#x24bb;</td><td></td><td></td>
+          <td><a href='dance.php?id=10600' target='_blank'>Money Musk</a></td>
+          <td>Traditional</td><td>Triple Minor - Proper</td>
+        </tr></table>
+        </body></html>
+      ''',
+      jsonFetcher: (_) async => '''
+        {
+          "ID":"10600","Name":"Money Musk","Authors":["Traditional"],
+          "InterpretedBy":[],"Permission":"full",
+          "FormationBase":"Triple Minor - Proper","FormationDetail":"",
+          "Progression":"Single","PhraseStructure":"","CallingNotes":[],
+          "OtherNames":[],"Music":[],"Tunes":[],"Appearances":[],
+          "phrases":[{"name":"A1","figures":["Actives balance and swing"]}]
+        }
+      ''',
+    );
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      enableOnlineSearch: true,
+      callersBoxOnline: online,
+    );
+    await tester.pumpAndSettle();
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'Money Musk',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    await _tapVisible(tester, find.byType(OnlineResultTile));
+
+    expect(added, hasLength(1));
+    expect((await repos.dances.listAll()).map((dance) => dance.title), [
+      'Money Musk',
+    ]);
+
+    // The direct-pick flow treats an exact re-import as selecting the existing
+    // dance: it must add that id again without creating a duplicate.
+    await _tapVisible(tester, find.byType(OnlineResultTile));
+    expect(added, hasLength(2));
+    expect((await repos.dances.listAll()).map((dance) => dance.title), [
+      'Money Musk',
+    ]);
   });
 }

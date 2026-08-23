@@ -5,15 +5,22 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../data/callersbox_online.dart';
+import '../data/contradb_online.dart';
+import '../data/import_error_labels.dart';
+import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import '../screens/online_import_variation_dialog.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
+import 'online_result_tile.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
 /// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
@@ -35,6 +42,9 @@ class CollectionPicker extends StatefulWidget {
     this.addedDanceCounts = const {},
     this.scrollController,
     this.rowAction = PickerRowAction.add,
+    this.enableOnlineSearch = false,
+    this.callersBoxOnline,
+    this.contraDbOnline,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -73,6 +83,17 @@ class CollectionPicker extends StatefulWidget {
   /// existing consumer.
   final PickerRowAction rowAction;
 
+  /// Whether the Advanced panel offers the Collection's online search mode.
+  ///
+  /// Hosts opt in because an online result imports before [onAddDance] runs,
+  /// unlike a local result which is already persisted.
+  final bool enableOnlineSearch;
+
+  /// Online services used when [enableOnlineSearch] is true. They are optional
+  /// test seams; the state creates the normal services when omitted.
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
 }
@@ -95,6 +116,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
   final _advancedRoot = BuilderGroup();
   bool _advancedEnabled = false;
 
+  late OnlineSearchService _callersBox;
+  late OnlineSearchService _contraDb;
+  OnlineSource _onlineSource = OnlineSource.callersBox;
+  bool _onlineEnabled = false;
+  List<OnlineSearchResultRow> _onlineResults = const [];
+  bool _onlineSearching = false;
+  String? _onlineError;
+  int _onlineSeq = 0;
+  bool _onlineImporting = false;
+
+  static const Duration _onlineDebounce = Duration(milliseconds: 500);
+
   /// Dance ids whose row is currently showing its post-add check, each mapped
   /// to the timer that will clear it.
   final Map<String, Timer> _confirmTimers = {};
@@ -114,6 +147,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       _runSearch();
     }
   }
@@ -205,8 +240,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
-    _searchSeq++;
-    _debounceTimer = Timer(_debounce, _runSearch);
+    if (_onlineEnabled) {
+      _onlineSeq++;
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _searchSeq++;
+      _debounceTimer = Timer(_debounce, _runSearch);
+    }
     setState(() {});
   }
 
@@ -217,7 +257,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   void _onByPhraseChanged() {
     setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      _debounceTimer?.cancel();
+      _onlineSeq++;
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _runSearch();
+    }
   }
 
   void _onAdvancedChanged() {
@@ -234,6 +280,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();
@@ -241,8 +288,201 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
     });
-    _runSearch();
+    if (!_onlineEnabled) _runSearch();
+  }
+
+  OnlineSearchService get _online =>
+      _onlineSource == OnlineSource.contraDb ? _contraDb : _callersBox;
+
+  CallersBoxPhraseQuery? _onlinePhrases() {
+    if (_byPhrase.isEmpty) return null;
+    final phrases = CallersBoxPhraseQuery.fromSelections(
+      _byPhrase,
+      widget.data.taxonomy,
+    );
+    return phrases.isEmpty ? null : phrases;
+  }
+
+  CallersBoxPhraseQuery? _effectivePhrases() =>
+      _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
+
+  void _onOnlineToggled(bool value) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      _onlineEnabled = value;
+      _onlineError = null;
+      if (!value) {
+        _onlineResults = const [];
+        _onlineSearching = false;
+      }
+    });
+    if (value) {
+      if (_ftsController.text.trim().isNotEmpty ||
+          _effectivePhrases() != null) {
+        _runOnlineSearch();
+      }
+    } else {
+      _runSearch();
+    }
+  }
+
+  void _onOnlineSourceChanged(OnlineSource source) {
+    if (source == _onlineSource) return;
+    _debounceTimer?.cancel();
+    _onlineSeq++;
+    setState(() {
+      _onlineSource = source;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineSearching = false;
+    });
+    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+      _runOnlineSearch();
+    }
+  }
+
+  Future<void> _runOnlineSearch() async {
+    final title = _ftsController.text.trim();
+    final phrases = _effectivePhrases();
+    if (title.isEmpty && phrases == null) {
+      setState(() {
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineSearching = false;
+      });
+      return;
+    }
+    final seq = ++_onlineSeq;
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _onlineSearching = true;
+      _onlineError = null;
+    });
+    try {
+      final results = await _online.search(
+        OnlineSearchQuery(title: title, phrases: phrases),
+      );
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlineResults = results;
+        _onlineSearching = false;
+      });
+    } on UrlFetchException catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_picker._runOnlineSearch',
+      );
+      setState(() {
+        _onlineError = importErrorMessage(l10n, error);
+        _onlineResults = const [];
+        _onlineSearching = false;
+      });
+    } catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_picker._runOnlineSearch',
+      );
+      setState(() {
+        _onlineError = l10n.onlineSearchFailed(_onlineSource.label);
+        _onlineResults = const [];
+        _onlineSearching = false;
+      });
+    }
+  }
+
+  Future<void> _importOnlineResult(OnlineSearchResultRow onlineResult) async {
+    if (_onlineImporting) return;
+    setState(() => _onlineImporting = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    try {
+      final preview = await _online.loadPreview(_repos, onlineResult);
+      var result = await _online.import(_repos, preview.plan);
+      if (result.kind == OnlineImportKind.needsConfirmation) {
+        final existingId = result.danceId;
+        assert(
+          existingId != null,
+          'needsConfirmation must carry an existing dance id',
+        );
+        if (existingId == null || !mounted) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportVariationDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return;
+        result = await _online.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
+        final existingId = result.danceId;
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry an existing dance id',
+        );
+        if (existingId == null || !mounted) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
+          context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return;
+        result = await _online.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      }
+      if (!mounted) return;
+      final danceId = result.danceId;
+      if ((result.kind == OnlineImportKind.created ||
+              result.kind == OnlineImportKind.alreadyInCollection) &&
+          danceId != null) {
+        widget.onAddDance(danceId);
+      }
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_picker._importOnlineResult',
+      );
+      if (mounted) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(importErrorMessage(l10n, error))),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_picker._importOnlineResult',
+      );
+      if (mounted) {
+        messenger.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
+      }
+    } finally {
+      if (mounted) setState(() => _onlineImporting = false);
+    }
   }
 
   int _activeFacetCount() {
@@ -296,14 +536,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
             slivers: [
               SliverList(
                 delegate: SliverChildListDelegate([
-                  _buildFiltersPanel(data),
-                  _buildByPhrasePanel(data),
+                  if (!_onlineEnabled) _buildFiltersPanel(data),
+                  if (!_onlineEnabled || _onlineSource.supportsByPhrase)
+                    _buildByPhrasePanel(data),
                   _buildAdvancedPanel(data),
                   _buildResultCount(),
                   const Divider(height: 1),
                 ]),
               ),
-              _buildResultsSliver(),
+              _onlineEnabled
+                  ? _buildOnlineResultsSliver()
+                  : _buildResultsSliver(),
             ],
           ),
         ),
@@ -381,18 +624,52 @@ class _CollectionPickerState extends State<CollectionPicker> {
       title: Text(l10n.collectionPickerAdvanced),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: [
+        if (widget.enableOnlineSearch) ...[
+          SwitchListTile(
+            key: const ValueKey('picker-online-search-enable'),
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.cloud_outlined),
+            title: Text(l10n.onlineSearchToggleTitle),
+            subtitle: Text(l10n.onlineSearchToggleSubtitle),
+            value: _onlineEnabled,
+            onChanged: _onOnlineToggled,
+          ),
+          if (_onlineEnabled)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SegmentedButton<OnlineSource>(
+                  key: const ValueKey('picker-online-source-selector'),
+                  segments: [
+                    for (final source in OnlineSource.values)
+                      ButtonSegment<OnlineSource>(
+                        value: source,
+                        label: Text(source.label),
+                      ),
+                  ],
+                  selected: {_onlineSource},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) =>
+                      _onOnlineSourceChanged(selection.first),
+                ),
+              ),
+            ),
+        ],
         SwitchListTile(
           key: const ValueKey('picker-advanced-enable'),
           contentPadding: EdgeInsets.zero,
           title: Text(l10n.collectionPickerUseAdvancedQuery),
           subtitle: Text(l10n.collectionPickerAdvancedQueryHelp),
           value: _advancedEnabled,
-          onChanged: (value) {
-            setState(() => _advancedEnabled = value);
-            _runSearch();
-          },
+          onChanged: _onlineEnabled
+              ? null
+              : (value) {
+                  setState(() => _advancedEnabled = value);
+                  _runSearch();
+                },
         ),
-        if (_advancedEnabled)
+        if (_advancedEnabled && !_onlineEnabled)
           AdvancedQueryBuilder(
             root: _advancedRoot,
             taxonomy: data.taxonomy,
@@ -406,7 +683,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   Widget _buildResultCount() {
     final l10n = AppLocalizations.of(context);
-    final count = _results.length;
+    final count = _onlineEnabled ? _onlineResults.length : _results.length;
+    final searching = _onlineEnabled ? _onlineSearching : _searching;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Align(
@@ -417,11 +695,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
             Semantics(
               liveRegion: true,
               child: Text(
-                l10n.collectionDanceCount(count),
+                _onlineEnabled
+                    ? l10n.onlineResultCount(count)
+                    : l10n.collectionDanceCount(count),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-            if (_searching) ...[
+            if (searching || _onlineImporting) ...[
               const SizedBox(width: 8),
               const SizedBox(
                 width: 12,
@@ -540,6 +820,63 @@ class _CollectionPickerState extends State<CollectionPicker> {
               ),
             ],
           ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOnlineResultsSliver() {
+    final l10n = AppLocalizations.of(context);
+    if (_onlineError != null) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(_onlineError!, textAlign: TextAlign.center),
+          ),
+        ),
+      );
+    }
+    if (_onlineSearching && _onlineResults.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+      final hint = _onlineSource.supportsByPhrase
+          ? l10n.onlineSearchHintByPhrase(_onlineSource.label)
+          : l10n.onlineSearchHintTitle(_onlineSource.label);
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(child: Text(hint, textAlign: TextAlign.center)),
+        ),
+      );
+    }
+    if (_onlineResults.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              l10n.onlineNoResults(_onlineSource.label),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+    return SliverList.builder(
+      itemCount: _onlineResults.length,
+      itemBuilder: (context, index) {
+        final result = _onlineResults[index];
+        return OnlineResultTile(
+          key: ValueKey('picker-online-result-${result.id}'),
+          result: result,
+          onTap: _onlineImporting ? null : () => _importOnlineResult(result),
         );
       },
     );
