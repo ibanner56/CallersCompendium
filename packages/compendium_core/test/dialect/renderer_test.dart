@@ -2928,7 +2928,7 @@ void main() {
         containsAllInOrder([
           '{length}',
           '{move}',
-          '{shoulder} OR {shoulder_clause}',
+          '{shoulder}/{shoulder_clause}',
           '{until}',
         ]),
       );
@@ -2947,7 +2947,7 @@ void main() {
       expect(missingBoth, containsAll({'shoulder', 'shoulder_clause'}));
       expect(
         renderer.moveWordingSlotLabels('hey', missingBoth),
-        contains('{shoulder} OR {shoulder_clause}'),
+        contains('{shoulder}/{shoulder_clause}'),
       );
     });
 
