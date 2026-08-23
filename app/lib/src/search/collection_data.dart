@@ -330,11 +330,14 @@ class CollectionData {
     sectionLabels: sectionLabels,
   );
 
-  DanceListEntry entryFor(Dance dance) => DanceListEntry(
+  DanceListEntry entryFor(
+    Dance dance, {
+    Map<String, String> choreographerNamesOverride = const {},
+  }) => DanceListEntry(
     dance: dance,
     authorNames: [
       for (final id in dance.authorIds)
-        if (choreographerNames[id] != null) choreographerNames[id]!,
+        ?(choreographerNamesOverride[id] ?? choreographerNames[id]),
     ],
     tagNames: [
       for (final id in dance.tagIds)

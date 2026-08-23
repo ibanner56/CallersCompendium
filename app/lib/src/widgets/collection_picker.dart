@@ -100,8 +100,11 @@ class CollectionPicker extends StatefulWidget {
   final Future<void> Function(String danceId)? onDanceImported;
 
   /// Notifies hosts while an online import is in flight so they can prevent
-  /// dismissing a modal before the dance is added to the program.
-  final ValueChanged<bool>? onImportingChanged;
+  /// dismissing or navigating away before the dance is added to the program.
+  ///
+  /// [owner] is stable for this picker instance. Hosts must track owners
+  /// independently: a replaced picker can finish after its replacement starts.
+  final void Function(Object owner, bool active)? onImportingChanged;
 
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
@@ -137,6 +140,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
   bool _onlineImporting = false;
   final Set<({OnlineSource source, String id})> _onlineAddedIds = {};
   final Map<String, Dance> _importedDances = {};
+  final Map<String, Choreographer> _importedChoreographers = {};
+  final Object _importActivityOwner = Object();
 
   static const Duration _onlineDebounce = Duration(milliseconds: 500);
 
@@ -190,6 +195,14 @@ class _CollectionPickerState extends State<CollectionPicker> {
         final current = widget.data.dancesById[id];
         return current != null &&
             !current.updatedAt.isBefore(imported.updatedAt);
+      });
+      _importedChoreographers.removeWhere((id, imported) {
+        final current = widget.data.choreographersById[id];
+        if (current == imported) return true;
+        return current != null &&
+            !_importedDances.values.any(
+              (dance) => dance.authorIds.contains(id),
+            );
       });
       dataChanged = true;
     }
@@ -280,7 +293,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _results = [
           for (final id in ids)
             if ((_importedDances[id] ?? data.dancesById[id]) case final dance?)
-              data.entryFor(dance),
+              data.entryFor(
+                dance,
+                choreographerNamesOverride: {
+                  for (final entry in _importedChoreographers.entries)
+                    entry.key: entry.value.name,
+                },
+              ),
         ];
         _searching = false;
       });
@@ -298,13 +317,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
     if (_onlineEnabled) {
-      _onlineSeq++;
+      _prepareDebouncedOnlineSearch();
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
       _searchSeq++;
       _debounceTimer = Timer(_debounce, _runSearch);
+      setState(() {});
     }
-    setState(() {});
   }
 
   void _onFacetsChanged() {
@@ -313,14 +332,25 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   void _onByPhraseChanged() {
-    setState(() {});
     if (_onlineEnabled) {
       _debounceTimer?.cancel();
-      _onlineSeq++;
+      _prepareDebouncedOnlineSearch();
       _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
     } else {
+      setState(() {});
       _runSearch();
     }
+  }
+
+  void _prepareDebouncedOnlineSearch() {
+    _onlineSeq++;
+    setState(() {
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineImportError = null;
+      _onlineSearching =
+          _ftsController.text.trim().isNotEmpty || _effectivePhrases() != null;
+    });
   }
 
   void _onAdvancedChanged() {
@@ -469,10 +499,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineImporting = true;
       _onlineImportError = null;
     });
-    widget.onImportingChanged?.call(true);
+    final onImportingChanged = widget.onImportingChanged;
+    final onDanceImported = widget.onDanceImported;
+    final onAddDance = widget.onAddDance;
     final l10n = AppLocalizations.of(context);
     final service = _online;
+    var importReported = false;
     try {
+      importReported = true;
+      onImportingChanged?.call(_importActivityOwner, true);
       final preview = await service.loadPreview(_repos, onlineResult);
       if (!mounted) return;
       var result = await service.import(_repos, preview.plan);
@@ -521,16 +556,34 @@ class _CollectionPickerState extends State<CollectionPicker> {
           ambiguousResolution: resolution,
         );
       }
-      if (!mounted) return;
       final danceId = result.danceId;
       if ((result.kind == OnlineImportKind.created ||
               result.kind == OnlineImportKind.alreadyInCollection) &&
           danceId != null) {
-        final dance = await _repos.dances.getById(danceId);
-        if (!mounted) return;
-        if (dance != null) _importedDances[danceId] = dance;
         try {
-          await widget.onDanceImported?.call(danceId);
+          final dance = await _repos.dances.getById(danceId);
+          if (dance != null) {
+            final choreographers = await Future.wait(
+              dance.authorIds.map(_repos.choreographers.getById),
+            );
+            if (mounted) {
+              _importedDances[danceId] = dance;
+              for (final choreographer in choreographers) {
+                if (choreographer != null) {
+                  _importedChoreographers[choreographer.id] = choreographer;
+                }
+              }
+            }
+          }
+        } catch (error, stackTrace) {
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'collection_picker.importedMetadata',
+          );
+        }
+        try {
+          await onDanceImported?.call(danceId);
         } catch (error, stackTrace) {
           logCaughtErrorTypeOnly(
             error,
@@ -538,14 +591,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
             source: 'collection_picker.onDanceImported',
           );
         }
-        if (!mounted) return;
-        setState(
-          () => _onlineAddedIds.add((
-            source: onlineResult.source,
-            id: onlineResult.id,
-          )),
-        );
-        widget.onAddDance(danceId);
+        if (mounted) {
+          setState(
+            () => _onlineAddedIds.add((
+              source: onlineResult.source,
+              id: onlineResult.id,
+            )),
+          );
+        }
+        onAddDance(danceId);
       }
     } on UrlFetchException catch (error, stackTrace) {
       logCaughtError(
@@ -574,7 +628,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
     } finally {
       if (mounted) {
         setState(() => _onlineImporting = false);
-        widget.onImportingChanged?.call(false);
+      }
+      if (importReported) {
+        onImportingChanged?.call(_importActivityOwner, false);
       }
     }
   }

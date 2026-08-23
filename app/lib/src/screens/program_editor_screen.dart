@@ -142,9 +142,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
-  bool _pickerImporting = false;
+  final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
   int _editGeneration = 0;
+  int _collectionDataGeneration = 0;
+
+  bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
+
+  void _setPickerImportActivity(Object owner, bool active) {
+    if (!mounted || active == _pickerImportOwners.contains(owner)) return;
+    setState(() {
+      if (active) {
+        _pickerImportOwners.add(owner);
+      } else {
+        _pickerImportOwners.remove(owner);
+      }
+    });
+  }
 
   /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
   /// on-screen program matrix via each column header's hide glyph (#669).
@@ -894,6 +908,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final Set<String> _pendingDanceStatusChecks = {};
 
   void _setCollectionData(CollectionData data) {
+    _collectionDataGeneration++;
     _data = data;
     _createdDances.removeWhere((id, created) {
       final current = data.dancesById[id];
@@ -938,11 +953,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final observed = _createdChoreographers[id];
     try {
       if (observed == null) return;
+      final generation = _collectionDataGeneration;
       final current = await _repos.choreographers.getById(id);
       if (!mounted) return;
       final created = _createdChoreographers[id];
       if (created == null || created != observed) return;
       setState(() {
+        if (generation != _collectionDataGeneration) {
+          final live = _data?.choreographersById[id];
+          if (live != null || current == null) {
+            _createdChoreographers.remove(id);
+          }
+          return;
+        }
         if (current == null ||
             (current == created && _data?.choreographersById[id] == current)) {
           _createdChoreographers.remove(id);
@@ -1031,6 +1054,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _performProgram() {
+    if (_pickerImporting) return;
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
@@ -1160,6 +1184,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _addDanceSlot(String danceId) {
+    if (!mounted) return;
     setState(() {
       _slots = _renumber([
         ..._slots,
@@ -1403,6 +1428,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _save() async {
+    if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
     _autoCommitTimer?.cancel();
@@ -1445,6 +1471,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _duplicate() async {
+    if (_pickerImporting) return;
     final source = _existing;
     if (source == null) return;
     final l10n = AppLocalizations.of(context);
@@ -1475,6 +1502,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _delete() async {
+    if (_pickerImporting) return;
     final source = _existing;
     if (source == null) return;
     final title = source.title;
@@ -1546,6 +1574,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final l10n = AppLocalizations.of(context);
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
+    final tabBar = TabBar(
+      controller: _tabController,
+      tabs: [
+        Tab(
+          key: const ValueKey('program-build-tab'),
+          icon: const Icon(Icons.list_alt_outlined),
+          text: l10n.programsBuildTab,
+        ),
+        Tab(
+          key: const ValueKey('program-matrix-tab'),
+          icon: const Icon(Icons.grid_on_outlined),
+          text: l10n.programsMatrixTab,
+        ),
+      ],
+    );
     return PopScope<Object?>(
       canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
@@ -1567,20 +1610,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 ? l10n.programsBuildProgram
                 : l10n.programsNewProgram,
           ),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(
-                key: const ValueKey('program-build-tab'),
-                icon: const Icon(Icons.list_alt_outlined),
-                text: l10n.programsBuildTab,
-              ),
-              Tab(
-                key: const ValueKey('program-matrix-tab'),
-                icon: const Icon(Icons.grid_on_outlined),
-                text: l10n.programsMatrixTab,
-              ),
-            ],
+          bottom: PreferredSize(
+            preferredSize: tabBar.preferredSize,
+            child: ExcludeFocus(
+              excluding: _pickerImporting,
+              child: IgnorePointer(ignoring: _pickerImporting, child: tabBar),
+            ),
           ),
           actions: [
             if (_loaded &&
@@ -1591,16 +1626,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('perform-program'),
                 tooltip: l10n.programsPerformTooltip,
                 icon: const Icon(Icons.slideshow),
-                onPressed: _performProgram,
+                onPressed: _pickerImporting ? null : _performProgram,
               ),
             if (_loaded && _loadError == null && _draftProgram != null)
-              ProgramExportMenu(
-                program: _draftProgram!,
-                titleFor: _titleForDance,
-                venuesById: _exportVenuesById,
-                danceFor: _danceById,
-                choreographerFor: (id) =>
-                    _createdChoreographers[id] ?? _data?.choreographersById[id],
+              ExcludeFocus(
+                excluding: _pickerImporting,
+                child: IgnorePointer(
+                  ignoring: _pickerImporting,
+                  child: ProgramExportMenu(
+                    program: _draftProgram!,
+                    titleFor: _titleForDance,
+                    venuesById: _exportVenuesById,
+                    danceFor: _danceById,
+                    choreographerFor: (id) =>
+                        _createdChoreographers[id] ??
+                        _data?.choreographersById[id],
+                  ),
+                ),
               ),
             if (hasPersistedProgram) ...[
               if (_slots.any((s) => s.danceId != null))
@@ -1608,25 +1650,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('mark-all-performed'),
                   tooltip: l10n.programsMarkAllPerformedTooltip,
                   icon: const Icon(Icons.done_all),
-                  onPressed: _markAllPerformed,
+                  onPressed: _pickerImporting ? null : _markAllPerformed,
                 ),
               IconButton(
                 key: const ValueKey('duplicate-program'),
                 tooltip: l10n.commonDuplicate,
                 icon: const Icon(Icons.copy_all_outlined),
-                onPressed: _duplicate,
+                onPressed: _pickerImporting ? null : _duplicate,
               ),
               IconButton(
                 key: const ValueKey('delete-program'),
                 tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
-                onPressed: _delete,
+                onPressed: _pickerImporting ? null : _delete,
               ),
             ],
           ],
         ),
         body: TabBarView(
           controller: _tabController,
+          physics: _pickerImporting
+              ? const NeverScrollableScrollPhysics()
+              : null,
           children: [_buildBody(), _buildMatrixTab()],
         ),
         floatingActionButton:
@@ -1634,7 +1679,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ? FloatingActionButton.extended(
                 key: const ValueKey('save-program'),
                 heroTag: 'save-program',
-                onPressed: _saving ? null : _save,
+                onPressed: _saving || _pickerImporting ? null : _save,
                 icon: const Icon(Icons.save_outlined),
                 label: Text(_dirty ? l10n.programsSaveDirty : l10n.commonSave),
               )
@@ -1668,7 +1713,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       builder: (context, constraints) {
         final twoPane =
             constraints.maxWidth >= ProgramEditorScreen.twoPaneBreakpoint;
-        final left = _buildEditorColumn(twoPane: twoPane);
+        final left = ExcludeFocus(
+          excluding: _pickerImporting,
+          child: IgnorePointer(
+            ignoring: _pickerImporting,
+            child: _buildEditorColumn(twoPane: twoPane),
+          ),
+        );
         if (!twoPane) return left;
         final data = _data;
         return Row(
@@ -1686,10 +1737,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   addedDanceCounts: _pickerCounts.value,
                   onAddDance: _addDanceSlot,
                   onDanceImported: _rememberImportedDance,
-                  onImportingChanged: (value) {
-                    if (_pickerImporting == value || !mounted) return;
-                    setState(() => _pickerImporting = value);
-                  },
+                  onImportingChanged: _setPickerImportActivity,
                   callersBoxOnline: widget.callersBoxOnline,
                   contraDbOnline: widget.contraDbOnline,
                   enableOnlineSearch: true,
@@ -1939,6 +1987,20 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (data == null) return;
     final l10n = AppLocalizations.of(context);
     final importing = ValueNotifier(false);
+    final importOwners = <Object>{};
+    var importingDisposed = false;
+    void onImportingChanged(Object owner, bool active) {
+      if (active) {
+        importOwners.add(owner);
+      } else {
+        importOwners.remove(owner);
+      }
+      _setPickerImportActivity(owner, active);
+      if (!importingDisposed && importing.value != importOwners.isNotEmpty) {
+        importing.value = importOwners.isNotEmpty;
+      }
+    }
+
     try {
       await showModalBottomSheet<void>(
         context: context,
@@ -1989,8 +2051,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             // Keep the sheet open so callers can add several dances.
                             onAddDance: _addDanceSlot,
                             onDanceImported: _rememberImportedDance,
-                            onImportingChanged: (value) =>
-                                importing.value = value,
+                            onImportingChanged: onImportingChanged,
                             callersBoxOnline: widget.callersBoxOnline,
                             contraDbOnline: widget.contraDbOnline,
                             enableOnlineSearch: true,
@@ -2006,6 +2067,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         },
       );
     } finally {
+      importingDisposed = true;
       importing.dispose();
     }
   }
@@ -2026,13 +2088,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);
     final importing = ValueNotifier(false);
+    final importOwners = <Object>{};
+    var importingDisposed = false;
+    String? selectedDanceId;
+    BuildContext? activeSheetContext;
+    void onImportingChanged(Object owner, bool active) {
+      if (active) {
+        importOwners.add(owner);
+      } else {
+        importOwners.remove(owner);
+      }
+      _setPickerImportActivity(owner, active);
+      if (!importingDisposed && importing.value != importOwners.isNotEmpty) {
+        importing.value = importOwners.isNotEmpty;
+      }
+    }
+
     try {
-      return await showModalBottomSheet<String>(
+      final result = await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,
         isDismissible: false,
         enableDrag: false,
         builder: (sheetContext) {
+          activeSheetContext = sheetContext;
           return ValueListenableBuilder<bool>(
             valueListenable: importing,
             builder: (context, isImporting, _) => PopScope(
@@ -2076,12 +2155,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             rowAction: PickerRowAction.replace,
                             enableOnlineSearch: true,
                             onDanceImported: _rememberImportedDance,
-                            onImportingChanged: (value) =>
-                                importing.value = value,
+                            onImportingChanged: onImportingChanged,
                             callersBoxOnline: widget.callersBoxOnline,
                             contraDbOnline: widget.contraDbOnline,
-                            onAddDance: (danceId) =>
-                                Navigator.of(sheetContext).pop(danceId),
+                            onAddDance: (danceId) {
+                              selectedDanceId = danceId;
+                              final sheetContext = activeSheetContext;
+                              if (sheetContext?.mounted ?? false) {
+                                Navigator.of(sheetContext!).pop(danceId);
+                              }
+                            },
                           ),
                         ),
                       ),
@@ -2093,7 +2176,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           );
         },
       );
+      return result ?? selectedDanceId;
     } finally {
+      importingDisposed = true;
       importing.dispose();
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
@@ -165,6 +167,61 @@ class _ProgramOnlineService implements OnlineSearchService {
       danceId: 'imported',
     );
   }
+}
+
+class _QueuedProgramOnlineService extends _ProgramOnlineService {
+  final committed = [Completer<void>(), Completer<void>()];
+  final release = [Completer<void>(), Completer<void>()];
+  var _importIndex = 0;
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+  }) async {
+    final index = _importIndex++;
+    final result = await super.import(
+      repos,
+      plan,
+      now: now,
+      ambiguousResolution: ambiguousResolution,
+    );
+    committed[index].complete();
+    await release[index].future;
+    return result;
+  }
+}
+
+Future<void> _startInlineOnlineImport(WidgetTester tester) async {
+  final picker = find.byKey(const ValueKey('inline-picker'));
+  await tester.tap(
+    find.descendant(
+      of: picker,
+      matching: find.byKey(const ValueKey('picker-advanced-panel')),
+    ),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(
+      of: picker,
+      matching: find.byKey(const ValueKey('picker-online-search-enable')),
+    ),
+  );
+  await tester.enterText(
+    find.descendant(
+      of: picker,
+      matching: find.byKey(const ValueKey('picker-search')),
+    ),
+    'Imported Dance',
+  );
+  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.descendant(of: picker, matching: find.byType(OnlineResultTile)),
+  );
+  await tester.pump();
 }
 
 Future<void> _pump(
@@ -931,6 +988,92 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('perform-program')));
       await tester.pumpAndSettle();
       expect(find.text('Imported Author'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'responsive picker replacement keeps editor locked until every import ends',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Existing Dance'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      final online = _QueuedProgramOnlineService();
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        callersBoxOnline: online,
+      );
+
+      await _startInlineOnlineImport(tester);
+      await online.committed[0].future;
+      await tester.pump();
+
+      expect(
+        tester
+            .widget<FloatingActionButton>(
+              find.byKey(const ValueKey('save-program')),
+            )
+            .onPressed,
+        isNull,
+      );
+      for (final key in [
+        'perform-program',
+        'duplicate-program',
+        'delete-program',
+      ]) {
+        expect(
+          tester.widget<IconButton>(find.byKey(ValueKey(key))).onPressed,
+          isNull,
+        );
+      }
+
+      await tester.binding.setSurfaceSize(const Size(600, 2000));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('inline-picker')), findsNothing);
+      await tester.binding.setSurfaceSize(const Size(1200, 2000));
+      await tester.pumpAndSettle();
+
+      await _startInlineOnlineImport(tester);
+      await online.committed[1].future;
+      await tester.pump();
+
+      online.release[0].complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(
+        tester
+            .widget<FloatingActionButton>(
+              find.byKey(const ValueKey('save-program')),
+            )
+            .onPressed,
+        isNull,
+        reason: 'the old picker must not unlock the newer import',
+      );
+
+      online.release[1].complete();
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FloatingActionButton>(
+              find.byKey(const ValueKey('save-program')),
+            )
+            .onPressed,
+        isNotNull,
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      final saved = await repos.programs.getById('p1');
+      expect(
+        saved!.slots.where((slot) => slot.danceId == 'imported'),
+        hasLength(2),
+      );
     },
   );
 

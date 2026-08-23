@@ -751,6 +751,13 @@ void main() {
     expect((await repos.dances.listAll()).map((dance) => dance.title), [
       'Money Musk',
     ]);
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Traditional'), findsOneWidget);
   });
 
   testWidgets('disabling online search returns to local results', (
@@ -793,6 +800,87 @@ void main() {
     );
     expect(find.byType(OnlineResultTile), findsNothing);
     expect(_titles(tester), contains('Local Dance'));
+  });
+
+  testWidgets('typing a new online query immediately clears stale results', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final online = _DedupeOnlineService(OnlineImportKind.created);
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      callersBoxOnline: online,
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'First query',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(find.byType(OnlineResultTile), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'Second query',
+    );
+    await tester.pump();
+
+    expect(find.byType(OnlineResultTile), findsNothing);
+  });
+
+  testWidgets('changing an online phrase immediately clears stale results', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final online = _DedupeOnlineService(OnlineImportKind.created);
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      callersBoxOnline: online,
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'Remote Dance',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(find.byType(OnlineResultTile), findsOneWidget);
+
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-by-phrase-panel')),
+    );
+    final field = find.descendant(
+      of: find.byKey(const ValueKey('match-A1-input-0')),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(field, 'petro');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('petronella').last);
+    await tester.pump();
+
+    expect(find.byType(OnlineResultTile), findsNothing);
   });
 
   testWidgets('online replacement imports before notifying the host', (
