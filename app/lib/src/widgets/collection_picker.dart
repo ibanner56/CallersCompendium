@@ -127,6 +127,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   List<OnlineSearchResultRow> _onlineResults = const [];
   bool _onlineSearching = false;
   String? _onlineError;
+  String? _onlineImportError;
   int _onlineSeq = 0;
   bool _onlineImporting = false;
   final Set<({OnlineSource source, String id})> _onlineAddedIds = {};
@@ -164,9 +165,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
     super.didUpdateWidget(oldWidget);
     var dataChanged = false;
     if (oldWidget.data != widget.data) {
-      _importedDances.removeWhere(
-        (id, _) => widget.data.dancesById.containsKey(id),
-      );
+      _importedDances.removeWhere((id, imported) {
+        final current = widget.data.dancesById[id];
+        return current != null &&
+            !current.updatedAt.isBefore(imported.updatedAt);
+      });
       dataChanged = true;
     }
     var onlineServiceChanged = false;
@@ -320,6 +323,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _advancedEnabled = false;
       _onlineResults = const [];
       _onlineError = null;
+      _onlineImportError = null;
       _onlineSearching = false;
     });
     if (!_onlineEnabled) _runSearch();
@@ -347,6 +351,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     setState(() {
       _onlineEnabled = value;
       _onlineError = null;
+      _onlineImportError = null;
       if (!value) {
         _onlineResults = const [];
         _onlineSearching = false;
@@ -370,6 +375,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineSource = source;
       _onlineResults = const [];
       _onlineError = null;
+      _onlineImportError = null;
       _onlineSearching = false;
     });
     if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
@@ -384,6 +390,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
+        _onlineImportError = null;
         _onlineSearching = false;
       });
       return;
@@ -393,6 +400,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     setState(() {
       _onlineSearching = true;
       _onlineError = null;
+      _onlineImportError = null;
     });
     try {
       final results = await _online.search(
@@ -432,7 +440,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   Future<void> _importOnlineResult(OnlineSearchResultRow onlineResult) async {
     if (_onlineImporting) return;
-    setState(() => _onlineImporting = true);
+    setState(() {
+      _onlineImporting = true;
+      _onlineImportError = null;
+    });
     final l10n = AppLocalizations.of(context);
     final service = _online;
     try {
@@ -509,7 +520,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       );
       if (mounted) {
         setState(() {
-          _onlineError = importErrorMessage(l10n, error);
+          _onlineImportError = importErrorMessage(l10n, error);
           _onlineSearching = false;
         });
       }
@@ -521,7 +532,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       );
       if (mounted) {
         setState(() {
-          _onlineError = l10n.onlineImportError;
+          _onlineImportError = l10n.onlineImportError;
           _onlineSearching = false;
         });
       }
@@ -907,7 +918,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           padding: const EdgeInsets.all(24),
           child: Center(
             child: Text(
-              l10n.onlineNoResults(_onlineSource.label),
+              _onlineImportError ?? l10n.onlineNoResults(_onlineSource.label),
               textAlign: TextAlign.center,
             ),
           ),
@@ -915,9 +926,16 @@ class _CollectionPickerState extends State<CollectionPicker> {
       );
     }
     return SliverList.builder(
-      itemCount: _onlineResults.length,
+      itemCount: _onlineResults.length + (_onlineImportError == null ? 0 : 1),
       itemBuilder: (context, index) {
-        final result = _onlineResults[index];
+        if (_onlineImportError != null && index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(_onlineImportError!, textAlign: TextAlign.center),
+          );
+        }
+        final resultIndex = index - (_onlineImportError == null ? 0 : 1);
+        final result = _onlineResults[resultIndex];
         return Semantics(
           button: true,
           enabled: !_onlineImporting,

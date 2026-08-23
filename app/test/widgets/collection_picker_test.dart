@@ -58,6 +58,7 @@ Future<void> _pumpPicker(
   bool enableOnlineSearch = false,
   OnlineSearchService? callersBoxOnline,
   OnlineSearchService? contraDbOnline,
+  Future<void> Function(String danceId)? onDanceImported,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -82,6 +83,7 @@ Future<void> _pumpPicker(
             enableOnlineSearch: enableOnlineSearch,
             callersBoxOnline: callersBoxOnline,
             contraDbOnline: contraDbOnline,
+            onDanceImported: onDanceImported,
           ),
         ),
       ),
@@ -94,11 +96,13 @@ class _DedupeOnlineService implements OnlineSearchService {
     this.ambiguousKind, {
     this.onlineSource = OnlineSource.callersBox,
     this.alwaysCreate = false,
+    this.importFailure,
   });
 
   final OnlineImportKind ambiguousKind;
   final OnlineSource onlineSource;
   final bool alwaysCreate;
+  final Object? importFailure;
   var importCalls = 0;
   final searchedTitles = <String>[];
 
@@ -160,6 +164,7 @@ class _DedupeOnlineService implements OnlineSearchService {
     DedupeResolution? ambiguousResolution,
   }) async {
     importCalls++;
+    if (importFailure != null) throw importFailure!;
     if (!alwaysCreate && ambiguousResolution == null) {
       return OnlineImportResult(
         kind: ambiguousKind,
@@ -191,14 +196,18 @@ Future<void> _openOnlineResult(
   WidgetTester tester,
   CompendiumRepositories repos,
   OnlineSearchService service,
-  void Function(String danceId) onAddDance,
-) async {
+  void Function(String danceId) onAddDance, {
+  PickerRowAction rowAction = PickerRowAction.add,
+  Future<void> Function(String danceId)? onDanceImported,
+}) async {
   await _pumpPicker(
     tester,
     repos,
     onAddDance: onAddDance,
+    rowAction: rowAction,
     enableOnlineSearch: true,
     callersBoxOnline: service,
+    onDanceImported: onDanceImported,
   );
   await tester.pumpAndSettle();
   await _tapVisible(
@@ -742,6 +751,44 @@ void main() {
     expect((await repos.dances.listAll()).map((dance) => dance.title), [
       'Money Musk',
     ]);
+  });
+
+  testWidgets('online replacement imports before notifying the host', (
+    tester,
+  ) async {
+    final events = <String>[];
+    final service = _DedupeOnlineService(
+      OnlineImportKind.created,
+      alwaysCreate: true,
+    );
+    final repos = openTestRepositories();
+
+    await _openOnlineResult(
+      tester,
+      repos,
+      service,
+      (danceId) => events.add('add:$danceId'),
+      rowAction: PickerRowAction.replace,
+      onDanceImported: (danceId) async => events.add('import:$danceId'),
+    );
+
+    expect(events, ['import:imported', 'add:imported']);
+  });
+
+  testWidgets('online import errors preserve the result for retry', (
+    tester,
+  ) async {
+    final service = _DedupeOnlineService(
+      OnlineImportKind.created,
+      alwaysCreate: true,
+      importFailure: StateError('import failed'),
+    );
+    final repos = openTestRepositories();
+
+    await _openOnlineResult(tester, repos, service, (_) {});
+
+    expect(find.byType(OnlineResultTile), findsOneWidget);
+    expect(find.text('Couldn\'t import that dance.'), findsOneWidget);
   });
 
   group('online picker dedupe resolution', () {

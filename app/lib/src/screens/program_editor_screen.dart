@@ -869,8 +869,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots[i].position == i ? slots[i] : slots[i].copyWith(position: i),
   ];
 
-  /// Dances created via "create a dance from this" (issue #881) during this
-  /// screen's lifetime, keyed by id.
+  /// Dances created or imported during this screen's lifetime, keyed by id.
   ///
   /// [_data] is a *live but debounced* snapshot: [CollectionData.watch]
   /// coalesces on a short trailing window and then re-`load()`s the whole
@@ -884,7 +883,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   void _setCollectionData(CollectionData data) {
     _data = data;
-    _createdDances.removeWhere((id, _) => data.dancesById.containsKey(id));
+    _createdDances.removeWhere((id, created) {
+      final current = data.dancesById[id];
+      return current != null && !current.updatedAt.isBefore(created.updatedAt);
+    });
   }
 
   /// Resolves [danceId] to a [Dance], preferring the overlay while the live
@@ -945,6 +947,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          danceOverrides: Map<String, Dance>.of(_createdDances),
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434): thread the last
           // position + clock back in, and capture the new one on exit. The

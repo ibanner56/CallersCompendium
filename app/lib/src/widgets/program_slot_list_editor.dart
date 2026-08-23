@@ -789,6 +789,10 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
 
   bool get _isDanceSlot => _danceId != null;
 
+  bool get _isBreakNote =>
+      !_isDanceSlot &&
+      _note.text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
+
   @override
   void dispose() {
     _note.dispose();
@@ -891,7 +895,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               minLines: 1,
               maxLines: 4,
               onChanged: (_) {
-                if (_noteError != null) setState(() => _noteError = null);
+                if (!_isDanceSlot || _noteError != null) {
+                  setState(() => _noteError = null);
+                }
               },
               decoration: InputDecoration(
                 labelText: _isDanceSlot
@@ -905,7 +911,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               ),
             ),
             if (!_isDanceSlot &&
-                !widget.slot.isBreak &&
+                !_isBreakNote &&
                 widget.onPickReplacementDance != null) ...[
               const SizedBox(height: 4),
               Align(

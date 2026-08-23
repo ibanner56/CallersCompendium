@@ -88,6 +88,7 @@ Future<void> _pumpProgram(
   bool autoSize = false,
   Size surfaceSize = const Size(1400, 2400),
   DialectLibraryController? dialectLibrary,
+  Map<String, Dance> danceOverrides = const {},
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -112,6 +113,7 @@ Future<void> _pumpProgram(
         program: program,
         data: data,
         renderer: _renderer,
+        danceOverrides: danceOverrides,
         initialGroup: initialGroup,
       ),
     ),
@@ -145,6 +147,22 @@ String _fmt(int totalSeconds) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('perform resolves dances from fresh editor overrides', (
+    tester,
+  ) async {
+    final data = await _dataWith(const []);
+    final dance = _dance(id: 'fresh', title: 'Fresh Dance');
+
+    await _pumpProgram(
+      tester,
+      program: _program([_slot(id: 's1', position: 0, danceId: dance.id)]),
+      data: data,
+      danceOverrides: {dance.id: dance},
+    );
+
+    expect(find.text('Fresh Dance'), findsOneWidget);
+  });
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   setUp(installFakeWakelock);

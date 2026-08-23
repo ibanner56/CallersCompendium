@@ -88,6 +88,7 @@ class PerformProgramScreen extends StatefulWidget {
     required this.program,
     required this.data,
     required this.renderer,
+    this.danceOverrides = const {},
     this.initialGroup = 0,
     this.initialElapsedSeconds = 0,
     this.initialSlotStartSeconds = 0,
@@ -99,6 +100,10 @@ class PerformProgramScreen extends StatefulWidget {
   final Program program;
   final CollectionData data;
   final FigureRenderer renderer;
+
+  /// Freshly imported or created dances that may not yet be present in the
+  /// program editor's debounced collection snapshot.
+  final Map<String, Dance> danceOverrides;
 
   /// Group index to open at (defaults to the first group).
   final int initialGroup;
@@ -179,8 +184,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Resolves the dance backing [slot], or `null` for a free-text-only slot or
   /// an unresolved dance id.
-  Dance? _danceForSlot(ProgramSlot slot) =>
-      slot.danceId == null ? null : widget.data.dancesById[slot.danceId];
+  Dance? _danceForSlot(ProgramSlot slot) => slot.danceId == null
+      ? null
+      : widget.danceOverrides[slot.danceId] ??
+            widget.data.dancesById[slot.danceId];
 
   /// Auto-size the card to fit the viewport (ROADMAP G.1). Initialised from the
   /// General setting (on by default) in [didChangeDependencies]; recomputes per
@@ -504,7 +511,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// free text (or a neutral fallback).
   String _slotLabel(AppLocalizations l10n, ProgramSlot slot) {
     if (slot.danceId != null) {
-      final dance = widget.data.dancesById[slot.danceId];
+      final dance = _danceForSlot(slot);
       if (dance != null) return dance.title;
     }
     final text = slot.text?.trim();
@@ -1124,7 +1131,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   Widget _buildCard(ProgramSlot slot, Dialect dialect) {
     if (slot.danceId != null) {
-      final dance = widget.data.dancesById[slot.danceId];
+      final dance = _danceForSlot(slot);
       if (dance != null) {
         return PerformCard(
           dance: dance,

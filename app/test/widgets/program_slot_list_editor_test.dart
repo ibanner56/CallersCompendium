@@ -162,6 +162,23 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('slot-edit-replace-dance')), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Breakdance',
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('slot-edit-replace-dance')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Break',
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey('slot-edit-replace-dance')), findsNothing);
   });
 
   testWidgets('replacing after a note validation error clears the error', (
