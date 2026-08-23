@@ -40,7 +40,7 @@ void main() {
       'ones arch and dive': Figure(move: 'arch_and_dive'),
       'partners California twirl': Figure(move: 'california_twirl'),
       'stand still': Figure(move: 'stand_still'),
-      'slide along set left': Figure(move: 'slide_along_set'),
+      'slide left along set': Figure(move: 'slide_along_set'),
       'ones mad robin once': Figure(move: 'mad_robin'),
       'role2s revolving door right partners': Figure(move: 'revolving_door'),
       // v26 (#843): `hand` was REMOVED from star_promenade — it described the
@@ -58,7 +58,7 @@ void main() {
         renderer.renderCanonical(
           Figure(move: 'slide_along_set', params: {'slide': 'right'}),
         ),
-        'slide along set right',
+        'slide right along set',
       );
     });
 

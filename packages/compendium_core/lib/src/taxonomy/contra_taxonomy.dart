@@ -752,7 +752,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
       },
-      renderTemplate: '{move} {slide}',
+      renderTemplate: 'slide {slide} along set',
       goodBeats: [2],
     ),
     const MoveDef(
