@@ -9233,6 +9233,42 @@ abstract class AppLocalizations {
   /// **'Restore defaults'**
   String get dialectEditorRestoreDefaults;
 
+  /// Confirmation-dialog title before restoring the default discouraged-terms list.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore default discouraged terms?'**
+  String get dialectEditorDiscouragedResetTitle;
+
+  /// Confirmation-dialog body before restoring the default discouraged-terms list.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces your current discouraged terms with the defaults.'**
+  String get dialectEditorDiscouragedResetBody;
+
+  /// Confirmation-dialog title shown before leaving a dirty dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes?'**
+  String get dialectEditorExitTitle;
+
+  /// Confirmation-dialog body shown before leaving a dirty dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this dialect.'**
+  String get dialectEditorExitBody;
+
+  /// Button that saves dialect changes and exits the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and exit'**
+  String get dialectEditorSaveAndExit;
+
+  /// Button that discards dialect changes and exits the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit without saving'**
+  String get dialectEditorExitWithoutSaving;
+
   /// Helper text for the dialect live-preview section.
   ///
   /// In en, this message translates to:
@@ -9814,6 +9850,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reset move wording templates'**
   String get dialectEditorMoveWordingsReset;
+
+  /// Confirmation-dialog title before removing all custom move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset move wording templates?'**
+  String get dialectEditorMoveWordingsResetTitle;
+
+  /// Confirmation-dialog body before removing all custom move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes all of your custom move wording templates.'**
+  String get dialectEditorMoveWordingsResetBody;
 
   /// Confirmation dialog title shown before saving templates that omit available slots.
   ///

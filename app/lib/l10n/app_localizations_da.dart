@@ -6042,6 +6042,27 @@ class AppLocalizationsDa extends AppLocalizations {
   String get dialectEditorRestoreDefaults => 'Gendan standarder';
 
   @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Gendan standardtermer for frarådede ord?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'Dette erstatter dine nuværende frarådede termer med standarderne.';
+
+  @override
+  String get dialectEditorExitTitle => 'Gem ændringer?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'Du har ændringer i denne dialekt, der ikke er gemt.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Gem og afslut';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Afslut uden at gemme';
+
+  @override
   String get dialectEditorPreviewHelp =>
       'Eksempelfigurer renderet med denne dialekt. Opdateres, når du redigerer.';
 
@@ -6407,6 +6428,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Nulstil skabeloner til bevægelsesformulering';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Nulstil skabeloner til bevægelsesformulering?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'Dette fjerner alle dine tilpassede skabeloner til bevægelsesformuleringer.';
 
   @override
   String get dialectEditorMoveWordingConfirmTitle =>

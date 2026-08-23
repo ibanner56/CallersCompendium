@@ -6029,6 +6029,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get dialectEditorRestoreDefaults => 'Restore defaults';
 
   @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Restore default discouraged terms?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'This replaces your current discouraged terms with the defaults.';
+
+  @override
+  String get dialectEditorExitTitle => 'Save changes?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'You have unsaved changes to this dialect.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Save and exit';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Exit without saving';
+
+  @override
   String get dialectEditorPreviewHelp =>
       'Sample figures rendered with this dialect. Updates as you edit.';
 
@@ -6388,6 +6409,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingsReset => 'Reset move wording templates';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Reset move wording templates?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'This removes all of your custom move wording templates.';
 
   @override
   String get dialectEditorMoveWordingConfirmTitle =>

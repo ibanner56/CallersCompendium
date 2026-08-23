@@ -8006,6 +8006,30 @@
   "@dialectEditorRestoreDefaults": {
     "description": "Button that restores the default discouraged-terms list."
   },
+  "dialectEditorDiscouragedResetTitle": "Restore default discouraged terms?",
+  "@dialectEditorDiscouragedResetTitle": {
+    "description": "Confirmation-dialog title before restoring the default discouraged-terms list."
+  },
+  "dialectEditorDiscouragedResetBody": "This replaces your current discouraged terms with the defaults.",
+  "@dialectEditorDiscouragedResetBody": {
+    "description": "Confirmation-dialog body before restoring the default discouraged-terms list."
+  },
+  "dialectEditorExitTitle": "Save changes?",
+  "@dialectEditorExitTitle": {
+    "description": "Confirmation-dialog title shown before leaving a dirty dialect editor."
+  },
+  "dialectEditorExitBody": "You have unsaved changes to this dialect.",
+  "@dialectEditorExitBody": {
+    "description": "Confirmation-dialog body shown before leaving a dirty dialect editor."
+  },
+  "dialectEditorSaveAndExit": "Save and exit",
+  "@dialectEditorSaveAndExit": {
+    "description": "Button that saves dialect changes and exits the editor."
+  },
+  "dialectEditorExitWithoutSaving": "Exit without saving",
+  "@dialectEditorExitWithoutSaving": {
+    "description": "Button that discards dialect changes and exits the editor."
+  },
   "dialectEditorPreviewHelp": "Sample figures rendered with this dialect. Updates as you edit.",
   "@dialectEditorPreviewHelp": {
     "description": "Helper text for the dialect live-preview section."
@@ -8524,6 +8548,14 @@
   "dialectEditorMoveWordingsReset": "Reset move wording templates",
   "@dialectEditorMoveWordingsReset": {
     "description": "Action that independently clears all move wording templates."
+  },
+  "dialectEditorMoveWordingsResetTitle": "Reset move wording templates?",
+  "@dialectEditorMoveWordingsResetTitle": {
+    "description": "Confirmation-dialog title before removing all custom move wording templates."
+  },
+  "dialectEditorMoveWordingsResetBody": "This removes all of your custom move wording templates.",
+  "@dialectEditorMoveWordingsResetBody": {
+    "description": "Confirmation-dialog body before removing all custom move wording templates."
   },
   "dialectEditorMoveWordingConfirmTitle": "Save incomplete wording templates?",
   "@dialectEditorMoveWordingConfirmTitle": {

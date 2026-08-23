@@ -6052,6 +6052,30 @@
   "@dialectEditorRestoreDefaults": {
     "x-sourceSha256": "602f8e637002a585092d04310da6f16cba500d1940e4201239bb56e00314137a"
   },
+  "dialectEditorDiscouragedResetTitle": "Restaurer les termes déconseillés par défaut ?",
+  "@dialectEditorDiscouragedResetTitle": {
+    "x-sourceSha256": "076d958607381e392340baf5fff8f67a9e97db27958665c7f358782952f4b663"
+  },
+  "dialectEditorDiscouragedResetBody": "Cela remplace vos termes déconseillés actuels par les valeurs par défaut.",
+  "@dialectEditorDiscouragedResetBody": {
+    "x-sourceSha256": "5194bec8f5f59c1bf4ce689aeef4a8b1c78a22495389ae0d53cae8934bbcbd36"
+  },
+  "dialectEditorExitTitle": "Enregistrer les modifications ?",
+  "@dialectEditorExitTitle": {
+    "x-sourceSha256": "a241799a18cc0cd639ca184dd1aa73a5de44afcbe174ef3224c71e7ca632e5cb"
+  },
+  "dialectEditorExitBody": "Vous avez des modifications non enregistrées dans ce dialecte.",
+  "@dialectEditorExitBody": {
+    "x-sourceSha256": "b8c3675753ff2fbc10b519af712ebb861033f3bd7e4934188a50334a2dfcf646"
+  },
+  "dialectEditorSaveAndExit": "Enregistrer et quitter",
+  "@dialectEditorSaveAndExit": {
+    "x-sourceSha256": "a5ca802c0dc6615ff8a18c7815218e8be7b0fe00c4feef3090a6cac578b8115a"
+  },
+  "dialectEditorExitWithoutSaving": "Quitter sans enregistrer",
+  "@dialectEditorExitWithoutSaving": {
+    "x-sourceSha256": "e08eaabcd33ba9c5d0547e4ef41e9b283eb8d5e165289ad11d8a5fa32907ae90"
+  },
   "dialectEditorPreviewHelp": "Exemples de figures rendus avec ce dialecte. Mis à jour pendant la modification.",
   "@dialectEditorPreviewHelp": {
     "x-sourceSha256": "81c2715d2ef2e313bcdbdf167e740296c35bc87df30f99cfc87c37ec9f1bbfb6"
@@ -6439,6 +6463,14 @@
   "dialectEditorMoveWordingsReset": "Réinitialiser les modèles de formulation",
   "@dialectEditorMoveWordingsReset": {
     "x-sourceSha256": "c1384a65483f73ab0f7a946327262497817cd12c9e9e84faf569ff9539d36737"
+  },
+  "dialectEditorMoveWordingsResetTitle": "Réinitialiser les modèles de formulation des mouvements ?",
+  "@dialectEditorMoveWordingsResetTitle": {
+    "x-sourceSha256": "7b136825007b4ff58697fa84f53a5d2bcbf85d79f6eccf1ec2a3c408805ec9e7"
+  },
+  "dialectEditorMoveWordingsResetBody": "Cela supprime tous vos modèles personnalisés de formulation des mouvements.",
+  "@dialectEditorMoveWordingsResetBody": {
+    "x-sourceSha256": "03d74231c9dc3afc7814c1d6d2972dc46a4a82476e6eb785c568ec9366f9baa6"
   },
   "dialectEditorMoveWordingConfirmTitle": "Enregistrer les modèles de formulation incomplets ?",
   "@dialectEditorMoveWordingConfirmTitle": {

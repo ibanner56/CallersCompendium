@@ -11,6 +11,12 @@ each release so store builds and tags can be traced back to an entry.
 
 ## [Unreleased]
 
+### Changed
+
+- **Dialect editor** — organize dialect settings into collapsible sections,
+  keep the preview visible, and confirm before discarding edits or resetting
+  wording templates and discouraged terms.
+
 ### Fixed
 
 - **Database reset recovery** — resetting an unsupported database now reloads

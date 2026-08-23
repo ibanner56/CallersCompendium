@@ -6134,6 +6134,27 @@ class AppLocalizationsFr extends AppLocalizations {
   String get dialectEditorRestoreDefaults => 'Restaurer les valeurs par défaut';
 
   @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Restaurer les termes déconseillés par défaut ?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'Cela remplace vos termes déconseillés actuels par les valeurs par défaut.';
+
+  @override
+  String get dialectEditorExitTitle => 'Enregistrer les modifications ?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'Vous avez des modifications non enregistrées dans ce dialecte.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Enregistrer et quitter';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Quitter sans enregistrer';
+
+  @override
   String get dialectEditorPreviewHelp =>
       'Exemples de figures rendus avec ce dialecte. Mis à jour pendant la modification.';
 
@@ -6500,6 +6521,14 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Réinitialiser les modèles de formulation';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Réinitialiser les modèles de formulation des mouvements ?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'Cela supprime tous vos modèles personnalisés de formulation des mouvements.';
 
   @override
   String get dialectEditorMoveWordingConfirmTitle =>
