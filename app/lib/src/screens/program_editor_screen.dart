@@ -881,13 +881,75 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// catches up.
   final Map<String, Dance> _createdDances = {};
   final Map<String, Choreographer> _createdChoreographers = {};
+  final Set<String> _pendingChoreographerReconciliations = {};
+  final Set<String> _pendingDanceStatusChecks = {};
 
   void _setCollectionData(CollectionData data) {
     _data = data;
     _createdDances.removeWhere((id, created) {
       final current = data.dancesById[id];
-      return current != null && !current.updatedAt.isBefore(created.updatedAt);
+      if (current != null && !current.updatedAt.isBefore(created.updatedAt)) {
+        return true;
+      }
+      if (current == null && _pendingDanceStatusChecks.add(id)) {
+        unawaited(_checkCreatedDanceStatus(id, created.updatedAt));
+      }
+      return false;
     });
+    for (final entry in _createdChoreographers.entries.toList()) {
+      final current = data.choreographersById[entry.key];
+      if (current == null) continue;
+      if (current == entry.value) {
+        _createdChoreographers.remove(entry.key);
+      } else if (_pendingChoreographerReconciliations.add(entry.key)) {
+        unawaited(_reconcileChoreographer(entry.key, current));
+      }
+    }
+
+  }
+
+  Future<void> _checkCreatedDanceStatus(
+    String id,
+    DateTime overlayUpdatedAt,
+  ) async {
+    try {
+      final current = await _repos.dances.getById(id, includeDeleted: true);
+      if (!mounted || current == null || !current.isDeleted) return;
+      if (current.updatedAt.isBefore(overlayUpdatedAt)) return;
+      setState(() {
+        final created = _createdDances[id];
+        if (created != null &&
+            !current.updatedAt.isBefore(created.updatedAt)) {
+          _createdDances.remove(id);
+        }
+      });
+    } finally {
+      _pendingDanceStatusChecks.remove(id);
+    }
+  }
+
+  Future<void> _reconcileChoreographer(
+    String id,
+    Choreographer observed,
+  ) async {
+    try {
+      final current = await _repos.choreographers.getById(id);
+      if (!mounted) return;
+      final created = _createdChoreographers[id];
+      if (created == null) return;
+      setState(() {
+        if (current == null) {
+          return;
+        }
+        if (current == observed) {
+          _createdChoreographers.remove(id);
+        } else {
+          _createdChoreographers[id] = current;
+        }
+      });
+    } finally {
+      _pendingChoreographerReconciliations.remove(id);
+    }
   }
 
   /// Resolves [danceId] to a [Dance], preferring the overlay while the live
@@ -898,13 +960,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _rememberImportedDance(String danceId) async {
     final dance = await _repos.dances.getById(danceId);
     if (!mounted || dance == null) return;
-    final choreographers = await _repos.choreographers.listAll();
-    if (!mounted) return;
     final authorIds = dance.authorIds.toSet();
+    final knownAuthorIds = _data?.choreographersById.keys.toSet() ?? {};
+    final choreographers = await Future.wait(
+      authorIds
+          .where((id) => !knownAuthorIds.contains(id))
+          .map(_repos.choreographers.getById),
+    );
+    if (!mounted) return;
     setState(() {
       _createdDances[danceId] = dance;
       for (final choreographer in choreographers) {
-        if (authorIds.contains(choreographer.id)) {
+        if (choreographer != null) {
           _createdChoreographers[choreographer.id] = choreographer;
         }
       }
@@ -1851,57 +1918,72 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     if (data == null) return;
     final l10n = AppLocalizations.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Text(
-                      l10n.programsAddADanceSheetTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      key: const ValueKey('picker-sheet-close'),
-                      tooltip: l10n.commonClose,
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: ValueListenableBuilder<Map<String, int>>(
-                    valueListenable: _pickerCounts,
-                    builder: (context, counts, _) => CollectionPicker(
-                      key: const ValueKey('sheet-picker'),
-                      data: data,
-                      dialect: _dialect,
-                      enrichment: _enrichment,
-                      scrollController: scrollController,
-                      addedDanceCounts: counts,
-                      // Keep the sheet open so callers can add several dances.
-                      onAddDance: _addDanceSlot,
-                      onDanceImported: _rememberImportedDance,
-                      enableOnlineSearch: true,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    final importing = ValueNotifier(false);
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        builder: (sheetContext) {
+          return ValueListenableBuilder<bool>(
+            valueListenable: importing,
+            builder: (context, isImporting, _) => PopScope(
+              canPop: !isImporting,
+              child: DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.85,
+                maxChildSize: 0.95,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          Text(
+                            l10n.programsAddADanceSheetTitle,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            key: const ValueKey('picker-sheet-close'),
+                            tooltip: l10n.commonClose,
+                            icon: const Icon(Icons.close),
+                            onPressed: isImporting
+                                ? null
+                                : () => Navigator.of(sheetContext).pop(),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: ValueListenableBuilder<Map<String, int>>(
+                          valueListenable: _pickerCounts,
+                          builder: (context, counts, _) => CollectionPicker(
+                            key: const ValueKey('sheet-picker'),
+                            data: data,
+                            dialect: _dialect,
+                            enrichment: _enrichment,
+                            scrollController: scrollController,
+                            addedDanceCounts: counts,
+                            // Keep the sheet open so callers can add several dances.
+                            onAddDance: _addDanceSlot,
+                            onDanceImported: _rememberImportedDance,
+                            onImportingChanged: (value) =>
+                                importing.value = value,
+                            enableOnlineSearch: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      importing.dispose();
+    }
   }
 
   /// Opens a picker sheet that resolves to the id of the dance the user
@@ -1919,58 +2001,73 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Text(
-                      l10n.programsReplaceDanceSheetTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      key: const ValueKey('replace-picker-sheet-close'),
-                      tooltip: l10n.commonClose,
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: ValueListenableBuilder<Map<String, int>>(
-                    valueListenable: _pickerCounts,
-                    builder: (context, counts, _) => CollectionPicker(
-                      key: const ValueKey('replace-picker'),
-                      data: data,
-                      dialect: _dialect,
-                      enrichment: _enrichment,
-                      scrollController: scrollController,
-                      addedDanceCounts: counts,
-                      rowAction: PickerRowAction.replace,
-                      enableOnlineSearch: true,
-                      onDanceImported: _rememberImportedDance,
-                      onAddDance: (danceId) =>
-                          Navigator.of(sheetContext).pop(danceId),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    final importing = ValueNotifier(false);
+    try {
+      return await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        builder: (sheetContext) {
+          return ValueListenableBuilder<bool>(
+            valueListenable: importing,
+            builder: (context, isImporting, _) => PopScope(
+              canPop: !isImporting,
+              child: DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.85,
+                maxChildSize: 0.95,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          Text(
+                            l10n.programsReplaceDanceSheetTitle,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            key: const ValueKey('replace-picker-sheet-close'),
+                            tooltip: l10n.commonClose,
+                            icon: const Icon(Icons.close),
+                            onPressed: isImporting
+                                ? null
+                                : () => Navigator.of(sheetContext).pop(),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: ValueListenableBuilder<Map<String, int>>(
+                          valueListenable: _pickerCounts,
+                          builder: (context, counts, _) => CollectionPicker(
+                            key: const ValueKey('replace-picker'),
+                            data: data,
+                            dialect: _dialect,
+                            enrichment: _enrichment,
+                            scrollController: scrollController,
+                            addedDanceCounts: counts,
+                            rowAction: PickerRowAction.replace,
+                            enableOnlineSearch: true,
+                            onDanceImported: _rememberImportedDance,
+                            onImportingChanged: (value) =>
+                                importing.value = value,
+                            onAddDance: (danceId) =>
+                                Navigator.of(sheetContext).pop(danceId),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      importing.dispose();
+    }
   }
 
   /// Builds the venue editor for the active venue entity mode.

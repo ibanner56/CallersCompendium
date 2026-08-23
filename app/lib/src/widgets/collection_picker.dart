@@ -46,6 +46,7 @@ class CollectionPicker extends StatefulWidget {
     this.callersBoxOnline,
     this.contraDbOnline,
     this.onDanceImported,
+    this.onImportingChanged,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -97,6 +98,10 @@ class CollectionPicker extends StatefulWidget {
 
   /// Called after an online dance has been persisted and before [onAddDance].
   final Future<void> Function(String danceId)? onDanceImported;
+
+  /// Notifies hosts while an online import is in flight so they can prevent
+  /// dismissing a modal before the dance is added to the program.
+  final ValueChanged<bool>? onImportingChanged;
 
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
@@ -463,6 +468,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _onlineImporting = true;
       _onlineImportError = null;
     });
+    widget.onImportingChanged?.call(true);
     final l10n = AppLocalizations.of(context);
     final service = _online;
     try {
@@ -557,7 +563,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         });
       }
     } finally {
-      if (mounted) setState(() => _onlineImporting = false);
+      if (mounted) {
+        setState(() => _onlineImporting = false);
+        widget.onImportingChanged?.call(false);
+      }
     }
   }
 
@@ -592,9 +601,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
             onChanged: _onFtsChanged,
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
-              labelText: l10n.collectionPickerSearchLabel,
-              hintText: l10n.collectionSearchFieldHint,
-              prefixIcon: const Icon(Icons.search),
+              labelText: _onlineEnabled
+                  ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+                  : l10n.collectionPickerSearchLabel,
+              hintText: _onlineEnabled
+                  ? l10n.onlineSearchFieldHint
+                  : l10n.collectionSearchFieldHint,
+              prefixIcon: Icon(
+                _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+              ),
               suffixIcon: _hasActiveQuery
                   ? IconButton(
                       tooltip: l10n.collectionClearSearchTooltip,
