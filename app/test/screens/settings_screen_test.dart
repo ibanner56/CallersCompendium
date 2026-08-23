@@ -942,6 +942,50 @@ void main() {
       );
     });
 
+    testWidgets('Experimental appears between Diagnostics and About', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      final diagnostics = find.byKey(
+        const ValueKey('settings-nav-diagnostics'),
+      );
+      final experimental = find.byKey(
+        const ValueKey('settings-nav-experimental'),
+      );
+      final about = find.byKey(const ValueKey('settings-nav-about'));
+
+      expect(experimental, findsOneWidget);
+      expect(
+        tester.getTopLeft(diagnostics).dy,
+        lessThan(tester.getTopLeft(experimental).dy),
+      );
+      expect(
+        tester.getTopLeft(experimental).dy,
+        lessThan(tester.getTopLeft(about).dy),
+      );
+      expect(
+        find.descendant(
+          of: experimental,
+          matching: find.byIcon(Icons.science_outlined),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(experimental);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'New features may appear here while they are still in development.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: experimental, matching: find.byIcon(Icons.science)),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('appearance is shown by default and dialect is hidden', (
       tester,
     ) async {

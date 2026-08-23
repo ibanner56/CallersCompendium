@@ -11,6 +11,7 @@ import 'settings/appearance_section.dart';
 import 'settings/defaults_section.dart';
 import 'settings/diagnostics_section.dart';
 import 'settings/dialect_section.dart';
+import 'settings/experimental_section.dart';
 import 'settings/general_section.dart';
 import 'settings/program_section.dart';
 import 'settings/regional_section.dart';
@@ -102,6 +103,7 @@ enum _SettingsSection {
   defaults(Icons.settings_suggest_outlined, Icons.settings_suggest),
   updates(Icons.system_update_alt_outlined, Icons.system_update_alt),
   diagnostics(Icons.bug_report_outlined, Icons.bug_report),
+  experimental(Icons.science_outlined, Icons.science),
   about(Icons.info_outline, Icons.info);
 
   const _SettingsSection(this.icon, this.selectedIcon);
@@ -125,6 +127,7 @@ String _sectionLabel(BuildContext context, _SettingsSection section) {
     _SettingsSection.defaults => l10n.settingsDefaultsTitle,
     _SettingsSection.updates => l10n.settingsUpdatesTitle,
     _SettingsSection.diagnostics => l10n.settingsDiagnosticsTitle,
+    _SettingsSection.experimental => l10n.settingsExperimentalTitle,
     _SettingsSection.about => l10n.settingsAboutTitle,
   };
 }
@@ -162,6 +165,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           logSaver: widget.diagnosticsLogSaver,
           sensitiveTermsProvider: widget.sensitiveTermsProvider,
         );
+      case _SettingsSection.experimental:
+        return const ExperimentalSection();
       case _SettingsSection.about:
         return AboutSection(onOpenGuide: widget.onOpenGuide);
     }

@@ -176,6 +176,14 @@
   "@settingsDiagnosticsTitle": {
     "x-sourceSha256": "268f14bbfe119c1e92150583af960a086d7db9619a097f8aa72ff6779842f610"
   },
+  "settingsExperimentalTitle": "Experimenteel",
+  "@settingsExperimentalTitle": {
+    "x-sourceSha256": "3dc9f569422dcfdadcb2c33f3eb2ee6fcebc8ba679bd63e690f9ddd0ff7c24be"
+  },
+  "settingsExperimentalPlaceholder": "Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.",
+  "@settingsExperimentalPlaceholder": {
+    "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
+  },
   "settingsAboutTitle": "Over",
   "@settingsAboutTitle": {
     "x-sourceSha256": "4efca0d10c5feb8e9b35eb1d994f2905bb71714e6a271f511d713b539ea5faa1"
