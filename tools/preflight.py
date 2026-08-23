@@ -14,12 +14,18 @@ Usage:
     python3 tools/preflight.py --list     # what would run, and why
     python3 tools/preflight.py --fast     # only the Python gates, no Dart/Flutter (seconds)
     python3 tools/preflight.py --only privacy fixtures
+    python3 tools/preflight.py --require-available
 
 Output is one line per step. On failure the last few lines of that step's output
 are shown and the rest is discarded: a red run should tell you what to fix, not
 hand you the whole log.
 
-Exit codes: 0 = every step that ran passed, 1 = a step failed.
+Missing toolchains are visibly skipped by default, so cloud and local sessions
+without Flutter still run every applicable Python gate. Pass --require-available
+to make a selected unavailable gate fail instead.
+
+Exit codes: 0 = every selected step passed or was skipped, 1 = invalid selection
+or a selected step failed / was unavailable under --require-available.
 """
 
 from __future__ import annotations
@@ -59,6 +65,11 @@ def py(*args: str) -> tuple[str, ...]:
 
 
 STEPS: tuple[Step, ...] = (
+    Step(
+        "preflight",
+        "the local CI-gate selector and availability policy",
+        (py("tools/test_preflight.py"),),
+    ),
     Step(
         "agent-context",
         "resident agent instructions stay within their byte budget",
@@ -155,6 +166,16 @@ STEPS: tuple[Step, ...] = (
         needs_import="cryptography",
     ),
     Step(
+        "core-flutter-free-tests",
+        "the Flutter-free core guard's comment-safe source and graph logic",
+        (py("tools/ci/test_check_core_flutter_free.py"),),
+    ),
+    Step(
+        "core-coverage-tests",
+        "the Flutter-free core coverage-floor calculation",
+        (py("tools/ci/test_check_core_coverage.py"),),
+    ),
+    Step(
         "format",
         "dart format",
         (("dart", "format", "--output=none", "--set-exit-if-changed", "."),),
@@ -162,11 +183,32 @@ STEPS: tuple[Step, ...] = (
         needs_binary="dart",
     ),
     Step(
+        "flutter-version",
+        "the installed Flutter SDK matches .fvmrc",
+        (py("tools/ci/check_flutter_version.py"),),
+        fast=False,
+        needs_binary="flutter",
+    ),
+    Step(
         "analyze",
         "flutter analyze --fatal-infos",
         (("flutter", "analyze", "--fatal-infos"),),
         fast=False,
         needs_binary="flutter",
+    ),
+    Step(
+        "l10n-drift",
+        "committed localizations match the current ARB-generated output",
+        (py("tools/ci/check_l10n_drift.py"),),
+        fast=False,
+        needs_binary="flutter",
+    ),
+    Step(
+        "core-flutter-free",
+        "compendium_core's dependency closure and source directives exclude Flutter",
+        (py("tools/ci/check_core_flutter_free.py"),),
+        fast=False,
+        needs_binary="dart",
     ),
     Step(
         "fixtures",
@@ -178,8 +220,22 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "core-tests",
-        "compendium_core suite",
-        (("dart", "test"),),
+        "compendium_core suite with CI-equivalent LCOV generation",
+        (py("tools/ci/run_core_tests_with_coverage.py"),),
+        fast=False,
+        needs_binary="dart",
+    ),
+    Step(
+        "core-coverage",
+        "compendium_core's generated-source-excluded 80% coverage floor",
+        (py("tools/ci/check_core_coverage.py"),),
+        fast=False,
+        needs_binary="dart",
+    ),
+    Step(
+        "benchmark",
+        "compendium_core search benchmark",
+        (("dart", "run", "benchmark/search_benchmark.dart"),),
         cwd=ROOT / "packages" / "compendium_core",
         fast=False,
         needs_binary="dart",
@@ -247,15 +303,30 @@ def main(argv: Sequence[str] | None = None) -> int:
         metavar="STEP",
         help="run only these steps (see --list)",
     )
+    parser.add_argument(
+        "--require-available",
+        action="store_true",
+        help="fail instead of skipping a selected gate with a missing toolchain",
+    )
     args = parser.parse_args(argv)
 
-    steps = [s for s in STEPS if not args.fast or s.fast]
     if args.only:
         unknown = sorted(set(args.only) - {s.name for s in STEPS})
         if unknown:
             print(f"unknown step(s): {', '.join(unknown)}")
             return 1
+        not_fast = sorted(
+            step.name for step in STEPS if step.name in args.only and not step.fast
+        )
+        if args.fast and not_fast:
+            print(
+                "cannot select non-fast step(s) with --fast: "
+                + ", ".join(not_fast)
+            )
+            return 1
         steps = [s for s in STEPS if s.name in args.only]
+    else:
+        steps = [s for s in STEPS if not args.fast or s.fast]
 
     if args.list:
         for step in steps:
@@ -269,8 +340,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         if status == "ok":
             print(f"ok   {step.name:16} {detail}")
         elif status == "skip":
-            skipped += 1
-            print(f"skip {step.name:16} {detail}")
+            if args.require_available:
+                failures.append(step.name)
+                print(f"FAIL {step.name:16} unavailable: {detail}")
+            else:
+                skipped += 1
+                print(f"skip {step.name:16} {detail}")
         else:
             failures.append(step.name)
             print(f"FAIL {step.name:16} {detail}")
