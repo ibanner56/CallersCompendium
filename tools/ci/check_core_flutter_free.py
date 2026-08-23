@@ -35,14 +35,17 @@ def comment_free(source: str) -> str:
 
 
 def reachable_packages(graph: dict[str, object]) -> set[str]:
+    raw_packages = graph.get("packages")
+    if not isinstance(raw_packages, list):
+        raise ValueError("guard could not find a 'packages' list in the package graph")
+
     packages = {
         package["name"]: package
-        for package in graph["packages"]  # type: ignore[index]
+        for package in raw_packages
         if isinstance(package, dict) and isinstance(package.get("name"), str)
     }
     if CORE not in packages:
         raise ValueError(f"guard could not find '{CORE}' in the package graph")
-
     seen: set[str] = set()
     stack = [CORE]
     while stack:
