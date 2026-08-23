@@ -6475,6 +6475,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Deze template laat optionele slots weg: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Voorbeeld: $preview';
   }

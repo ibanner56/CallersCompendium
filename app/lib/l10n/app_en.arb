@@ -8543,6 +8543,16 @@
       }
     }
   },
+  "dialectEditorMoveWordingOptionalSlots": "This template omits optional slots: {slots}",
+  "@dialectEditorMoveWordingOptionalSlots": {
+    "description": "Notice shown when a move wording template omits optional placeholders.",
+    "placeholders": {
+      "slots": {
+        "type": "String",
+        "example": "{move}"
+      }
+    }
+  },
   "dialectEditorMoveWordingPreview": "Preview: {preview}",
   "@dialectEditorMoveWordingPreview": {
     "description": "Representative rendered preview for one move wording template.",

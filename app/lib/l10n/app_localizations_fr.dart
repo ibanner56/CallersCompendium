@@ -6521,6 +6521,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Ce modèle omet des emplacements facultatifs : $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Aperçu : $preview';
   }

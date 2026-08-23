@@ -6514,6 +6514,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Diese Vorlage lässt optionale Platzhalter aus: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Vorschau: $preview';
   }

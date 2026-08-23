@@ -6204,6 +6204,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'このテンプレートでは任意のスロットが省略されています: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'プレビュー: $preview';
   }

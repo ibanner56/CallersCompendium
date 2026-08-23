@@ -185,11 +185,13 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     for (final entry in dialect.moveWordings.entries) {
       if (!FigureRenderer.isValidMoveWordingTemplate(entry.value)) continue;
       final missing =
-          _renderer.moveWordingMissingSlots(entry.key, entry.value).toList()
+          _renderer
+              .moveWordingErrorMissingSlots(entry.key, entry.value)
+              .toList()
             ..sort();
       if (missing.isNotEmpty) {
-        incomplete[_moveLabel(entry.key)] = missing
-            .map((slot) => '{$slot}')
+        incomplete[_moveLabel(entry.key)] = _renderer
+            .moveWordingSlotLabels(entry.key, missing)
             .join(', ');
       }
     }
@@ -853,6 +855,8 @@ class _MoveWordingsEditor extends StatelessWidget {
     final missing = valid
         ? (_renderer.moveWordingMissingSlots(id, text).toList()..sort())
         : const <String>[];
+    final errorMissing = missing.where((slot) => slot != 'move').toList();
+    final optionalMissing = missing.where((slot) => slot == 'move').toList();
     final previewDialect = dialect.copyWith(
       moveWordings: {...dialect.moveWordings, id: text},
     );
@@ -895,7 +899,7 @@ class _MoveWordingsEditor extends StatelessWidget {
           ),
           Text(
             l10n.dialectEditorMoveWordingSlots(
-              known.map((slot) => '{$slot}').join(', '),
+              _renderer.moveWordingSlotLabels(id, known).join(', '),
             ),
             style: Theme.of(context).textTheme.bodySmall,
           ),
@@ -909,12 +913,19 @@ class _MoveWordingsEditor extends StatelessWidget {
               l10n.dialectEditorMoveWordingUnknownSlots(unknown.join(', ')),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
             ),
-          if (missing.isNotEmpty)
+          if (errorMissing.isNotEmpty)
             Text(
               l10n.dialectEditorMoveWordingMissingSlots(
-                missing.map((slot) => '{$slot}').join(', '),
+                _renderer.moveWordingSlotLabels(id, errorMissing).join(', '),
               ),
               style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          if (optionalMissing.isNotEmpty)
+            Text(
+              l10n.dialectEditorMoveWordingOptionalSlots(
+                _renderer.moveWordingSlotLabels(id, optionalMissing).join(', '),
+              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
             ),
           Text(
             l10n.dialectEditorMoveWordingPreview(preview),

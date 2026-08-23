@@ -6464,6 +6464,10 @@
   "@dialectEditorMoveWordingMissingSlots": {
     "x-sourceSha256": "3426369df24bbb63eb6223087bcfe4c111e6c6e5424616d6bddb2d0e9f371b37"
   },
+  "dialectEditorMoveWordingOptionalSlots": "Diese Vorlage lässt optionale Platzhalter aus: {slots}",
+  "@dialectEditorMoveWordingOptionalSlots": {
+    "x-sourceSha256": "c83e2a59ab83671799d5dc290d7783a6f95509a6de891d8f219f8a2834a3e782"
+  },
   "dialectEditorMoveWordingPreview": "Vorschau: {preview}",
   "@dialectEditorMoveWordingPreview": {
     "x-sourceSha256": "eb74dfe9699ddb9f3228db695dcb5912dfd5d282c1dee2a3fe95b33ae2eaa42b"

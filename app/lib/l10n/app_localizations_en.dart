@@ -6410,6 +6410,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'This template omits optional slots: $slots';
+  }
+
+  @override
   String dialectEditorMoveWordingPreview(String preview) {
     return 'Preview: $preview';
   }
