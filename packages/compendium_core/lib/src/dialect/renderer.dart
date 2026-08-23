@@ -682,7 +682,7 @@ class FigureRenderer {
       if (moveId == 'hey' &&
           (slot == 'shoulder' || slot == 'shoulder_clause')) {
         if (!hasShoulderChoice) {
-          labels.add('{shoulder} OR {shoulder_clause}');
+          labels.add('{shoulder}/{shoulder_clause}');
           hasShoulderChoice = true;
         }
       } else {
