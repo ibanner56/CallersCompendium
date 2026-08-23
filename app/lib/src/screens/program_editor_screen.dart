@@ -905,7 +905,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         unawaited(_reconcileChoreographer(entry.key, current));
       }
     }
-
   }
 
   Future<void> _checkCreatedDanceStatus(
@@ -918,8 +917,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (current.updatedAt.isBefore(overlayUpdatedAt)) return;
       setState(() {
         final created = _createdDances[id];
-        if (created != null &&
-            !current.updatedAt.isBefore(created.updatedAt)) {
+        if (created != null && !current.updatedAt.isBefore(created.updatedAt)) {
           _createdDances.remove(id);
         }
       });
