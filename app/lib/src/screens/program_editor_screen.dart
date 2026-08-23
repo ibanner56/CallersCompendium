@@ -316,7 +316,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       final data = await _watchCollectionData(callerFilter);
       if (!mounted) return;
-      setState(() => _data = _latestData ?? data);
+      setState(() => _setCollectionData(_latestData ?? data));
     } on _SupersededLoad {
       // diagnostics: silent — a newer re-subscribe replaced this one; it owns
       // `_data` now. Not a failure, just a superseded race loser.
@@ -410,7 +410,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               first.complete(data);
               return;
             }
-            if (mounted) setState(() => _data = data);
+            if (mounted) {
+              setState(() => _setCollectionData(data));
+            }
             // Re-resolve the linked venue on every later emit (issue #944).
             //
             // Opting into `watchVenues` is necessary and not sufficient: it makes
@@ -471,7 +473,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (program == null) {
           if (!mounted) return;
           setState(() {
-            _data = _latestData ?? data;
+            _setCollectionData(_latestData ?? data);
             _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
@@ -501,7 +503,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // widget may have been disposed while they were in-flight.
       if (!mounted) return;
       setState(() {
-        _data = _latestData ?? data;
+        _setCollectionData(_latestData ?? data);
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
@@ -879,6 +881,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// instead of rendering the deleted-dance placeholder until the snapshot
   /// catches up.
   final Map<String, Dance> _createdDances = {};
+
+  void _setCollectionData(CollectionData data) {
+    _data = data;
+    _createdDances.removeWhere((id, _) => data.dancesById.containsKey(id));
+  }
 
   /// Resolves [danceId] to a [Dance], preferring the overlay while the live
   /// snapshot catches up with a newly imported or updated record.

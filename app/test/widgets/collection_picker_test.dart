@@ -93,10 +93,12 @@ class _DedupeOnlineService implements OnlineSearchService {
   _DedupeOnlineService(
     this.ambiguousKind, {
     this.onlineSource = OnlineSource.callersBox,
+    this.alwaysCreate = false,
   });
 
   final OnlineImportKind ambiguousKind;
   final OnlineSource onlineSource;
+  final bool alwaysCreate;
   var importCalls = 0;
   final searchedTitles = <String>[];
 
@@ -158,7 +160,7 @@ class _DedupeOnlineService implements OnlineSearchService {
     DedupeResolution? ambiguousResolution,
   }) async {
     importCalls++;
-    if (ambiguousResolution == null) {
+    if (!alwaysCreate && ambiguousResolution == null) {
       return OnlineImportResult(
         kind: ambiguousKind,
         title: 'Existing Dance',
@@ -726,7 +728,7 @@ void main() {
 
     expect(added, hasLength(1));
     expect(
-      find.byKey(const ValueKey('picker-online-added-10600')),
+      find.byKey(const ValueKey('picker-online-added-callersBox-10600')),
       findsOneWidget,
     );
     expect((await repos.dances.listAll()).map((dance) => dance.title), [
@@ -868,5 +870,62 @@ void main() {
     expect(callersBox.searchedTitles, isEmpty);
     expect(contraDb.searchedTitles, ['Remote Dance']);
     expect(find.byKey(const ValueKey('picker-by-phrase-panel')), findsNothing);
+  });
+
+  testWidgets('online add indicators are scoped to their source', (
+    tester,
+  ) async {
+    final callersBox = _DedupeOnlineService(
+      OnlineImportKind.needsConfirmation,
+      alwaysCreate: true,
+    );
+    final contraDb = _DedupeOnlineService(
+      OnlineImportKind.needsConfirmation,
+      onlineSource: OnlineSource.contraDb,
+      alwaysCreate: true,
+    );
+    final repos = openTestRepositories();
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      callersBoxOnline: callersBox,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'Remote Dance',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(OnlineResultTile));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(
+      find.byKey(const ValueKey('picker-online-added-callersBox-remote')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('ContraDB'));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('picker-online-result-contraDb-remote')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('picker-online-added-contraDb-remote')),
+      findsNothing,
+    );
   });
 }

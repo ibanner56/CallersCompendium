@@ -129,7 +129,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   String? _onlineError;
   int _onlineSeq = 0;
   bool _onlineImporting = false;
-  final Set<String> _onlineAddedIds = {};
+  final Set<({OnlineSource source, String id})> _onlineAddedIds = {};
   final Map<String, Dance> _importedDances = {};
 
   static const Duration _onlineDebounce = Duration(milliseconds: 500);
@@ -162,6 +162,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   void didUpdateWidget(CollectionPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    var dataChanged = false;
+    if (oldWidget.data != widget.data) {
+      _importedDances.removeWhere(
+        (id, _) => widget.data.dancesById.containsKey(id),
+      );
+      dataChanged = true;
+    }
     var onlineServiceChanged = false;
     if (oldWidget.callersBoxOnline != widget.callersBoxOnline) {
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
@@ -173,10 +180,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
     // The active dialect or the saved-dialect enrichment can change while the
     // picker is open (e.g. the user edits their dialect library).
-    if (oldWidget.dialect != widget.dialect ||
-        oldWidget.enrichment != widget.enrichment) {
+    final searchInputsChanged =
+        oldWidget.dialect != widget.dialect ||
+        oldWidget.enrichment != widget.enrichment;
+    if (searchInputsChanged) {
       _runSearch();
     }
+    if (dataChanged && !_onlineEnabled && !searchInputsChanged) _runSearch();
     if (onlineServiceChanged && _onlineEnabled) {
       _onlineSeq++;
       _runOnlineSearch();
@@ -483,7 +493,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
         if (dance != null) _importedDances[danceId] = dance;
         await widget.onDanceImported?.call(danceId);
         if (!mounted) return;
-        setState(() => _onlineAddedIds.add(onlineResult.id));
+        setState(
+          () => _onlineAddedIds.add((
+            source: onlineResult.source,
+            id: onlineResult.id,
+          )),
+        );
         widget.onAddDance(danceId);
       }
     } on UrlFetchException catch (error, stackTrace) {
@@ -905,19 +920,25 @@ class _CollectionPickerState extends State<CollectionPicker> {
         final result = _onlineResults[index];
         return Semantics(
           button: true,
+          enabled: !_onlineImporting,
           label: widget.rowAction == PickerRowAction.replace
               ? l10n.collectionPickerReplaceSemantic(result.name)
               : l10n.collectionPickerAddSemantic(result.name),
           child: Stack(
             children: [
               OnlineResultTile(
-                key: ValueKey('picker-online-result-${result.id}'),
+                key: ValueKey(
+                  'picker-online-result-${result.source.name}-${result.id}',
+                ),
                 result: result,
                 onTap: _onlineImporting
                     ? null
                     : () => _importOnlineResult(result),
               ),
-              if (_onlineAddedIds.contains(result.id))
+              if (_onlineAddedIds.contains((
+                source: result.source,
+                id: result.id,
+              )))
                 Positioned(
                   top: 12,
                   right: 16,
@@ -925,7 +946,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
                     child: Tooltip(
                       message: l10n.collectionPickerAddedTooltip(result.name),
                       child: Icon(
-                        key: ValueKey('picker-online-added-${result.id}'),
+                        key: ValueKey(
+                          'picker-online-added-${result.source.name}-${result.id}',
+                        ),
                         Icons.check_circle,
                       ),
                     ),

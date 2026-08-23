@@ -812,18 +812,6 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
         _noteError = null;
       }
     });
-    final l10n = AppLocalizations.of(context);
-    // Same fallback the visible row uses (below, in build) for a dance id
-    // that resolves to nothing — keeps the announcement and the on-screen
-    // title consistent if the picked dance becomes unavailable between the
-    // pick and this frame.
-    final title =
-        widget.danceTitle?.call(picked) ?? l10n.programsDeletedDanceFallback;
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      l10n.programsReplacedDanceAnnounce(title),
-      Directionality.maybeOf(context) ?? TextDirection.ltr,
-    );
   }
 
   void _save() {
@@ -859,6 +847,16 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       plannedMinutes: minutes,
       performedAt: widget.slot.performedAt,
     );
+    if (_danceId != widget.slot.danceId && _danceId != null) {
+      final title =
+          widget.danceTitle?.call(_danceId!) ??
+          l10n.programsDeletedDanceFallback;
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        l10n.programsReplacedDanceAnnounce(title),
+        Directionality.maybeOf(context) ?? TextDirection.ltr,
+      );
+    }
     Navigator.of(context).pop(updated);
   }
 

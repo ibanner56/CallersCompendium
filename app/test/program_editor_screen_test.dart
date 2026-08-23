@@ -1622,8 +1622,10 @@ void main() {
         // text is gone rather than surviving as a redundant "Note: …"
         // subtitle (Isaac decided: the note only ever stood in for the
         // missing dance).
-        expect(find.byKey(const ValueKey('slot-s0-title')), findsOneWidget);
-        expect(find.text('Petronella'), findsOneWidget);
+        expect(
+          tester.widget<Text>(find.byKey(const ValueKey('slot-s0-title'))).data,
+          'Petronella',
+        );
         expect(find.textContaining('Note:'), findsNothing);
 
         await tester.tap(find.byKey(const ValueKey('save-program')));
