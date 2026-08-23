@@ -163,6 +163,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDiagnosticsTitle => '診断';
 
   @override
+  String get settingsExperimentalTitle => '実験的';
+
+  @override
+  String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
+
+  @override
   String get settingsAboutTitle => '情報';
 
   @override

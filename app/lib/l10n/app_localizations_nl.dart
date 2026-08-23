@@ -165,6 +165,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnostics';
 
   @override
+  String get settingsExperimentalTitle => 'Experimenteel';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
+
+  @override
   String get settingsAboutTitle => 'Over';
 
   @override
