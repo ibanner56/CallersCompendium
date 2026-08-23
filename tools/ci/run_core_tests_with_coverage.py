@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,10 @@ def run(core_dir: Path = CORE_DIR) -> int:
     if not any((core_dir / "test").rglob("*_test.dart")):
         print("No tests yet; skipping coverage.")
         return 0
+
+    coverage_dir = core_dir / "coverage"
+    if coverage_dir.exists():
+        shutil.rmtree(coverage_dir)
 
     commands = (
         ["dart", "test", "--coverage=coverage"],
