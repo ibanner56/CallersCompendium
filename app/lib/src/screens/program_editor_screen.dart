@@ -880,12 +880,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// catches up.
   final Map<String, Dance> _createdDances = {};
 
-  /// Resolves [danceId] to a [Dance]: the live [_data] snapshot first, then
-  /// [_createdDances] as a fallback for a dance the snapshot hasn't caught up
-  /// to yet. Returns null only when neither has it (a genuinely unavailable —
-  /// e.g. soft-deleted — dance).
+  /// Resolves [danceId] to a [Dance], preferring the overlay while the live
+  /// snapshot catches up with a newly imported or updated record.
   Dance? _danceById(String danceId) =>
-      _data?.dancesById[danceId] ?? _createdDances[danceId];
+      _createdDances[danceId] ?? _data?.dancesById[danceId];
 
   Future<void> _rememberImportedDance(String danceId) async {
     final dance = await _repos.dances.getById(danceId);

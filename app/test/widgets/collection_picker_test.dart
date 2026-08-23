@@ -57,6 +57,7 @@ Future<void> _pumpPicker(
   PickerRowAction rowAction = PickerRowAction.add,
   bool enableOnlineSearch = false,
   OnlineSearchService? callersBoxOnline,
+  OnlineSearchService? contraDbOnline,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -80,6 +81,7 @@ Future<void> _pumpPicker(
             rowAction: rowAction,
             enableOnlineSearch: enableOnlineSearch,
             callersBoxOnline: callersBoxOnline,
+            contraDbOnline: contraDbOnline,
           ),
         ),
       ),
@@ -88,25 +90,32 @@ Future<void> _pumpPicker(
 }
 
 class _DedupeOnlineService implements OnlineSearchService {
-  _DedupeOnlineService(this.ambiguousKind);
+  _DedupeOnlineService(
+    this.ambiguousKind, {
+    this.onlineSource = OnlineSource.callersBox,
+  });
 
   final OnlineImportKind ambiguousKind;
+  final OnlineSource onlineSource;
   var importCalls = 0;
+  final searchedTitles = <String>[];
 
   @override
-  OnlineSource get source => OnlineSource.callersBox;
+  OnlineSource get source => onlineSource;
 
   @override
-  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async =>
-      const [
-        OnlineSearchResultRow(
-          source: OnlineSource.callersBox,
-          id: 'remote',
-          name: 'Remote Dance',
-          author: '',
-          formation: '',
-        ),
-      ];
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
+    searchedTitles.add(query.title);
+    return [
+      OnlineSearchResultRow(
+        source: onlineSource,
+        id: 'remote',
+        name: 'Remote Dance',
+        author: '',
+        formation: '',
+      ),
+    ];
+  }
 
   @override
   Future<OnlinePreview> loadPreview(
@@ -716,6 +725,10 @@ void main() {
     await _tapVisible(tester, find.byType(OnlineResultTile));
 
     expect(added, hasLength(1));
+    expect(
+      find.byKey(const ValueKey('picker-online-added-10600')),
+      findsOneWidget,
+    );
     expect((await repos.dances.listAll()).map((dance) => dance.title), [
       'Money Musk',
     ]);
@@ -814,5 +827,46 @@ void main() {
         expect(added, ['imported']);
       },
     );
+  });
+
+  testWidgets('online picker routes title-only searches through ContraDB', (
+    tester,
+  ) async {
+    final callersBox = _DedupeOnlineService(OnlineImportKind.needsConfirmation);
+    final contraDb = _DedupeOnlineService(
+      OnlineImportKind.needsConfirmation,
+      onlineSource: OnlineSource.contraDb,
+    );
+    final repos = openTestRepositories();
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      enableOnlineSearch: true,
+      callersBoxOnline: callersBox,
+      contraDbOnline: contraDb,
+    );
+    await tester.pumpAndSettle();
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-advanced-panel')),
+    );
+    await _tapVisible(
+      tester,
+      find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    await tester.tap(find.text('ContraDB'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('picker-search')),
+      'Remote Dance',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(callersBox.searchedTitles, isEmpty);
+    expect(contraDb.searchedTitles, ['Remote Dance']);
+    expect(find.byKey(const ValueKey('picker-by-phrase-panel')), findsNothing);
   });
 }

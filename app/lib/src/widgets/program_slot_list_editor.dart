@@ -809,6 +809,7 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
         // Replacing a free-text slot converts it into a dance slot. The note
         // was the slot's old content, not a caller note for the dance.
         _note.clear();
+        _noteError = null;
       }
     });
     final l10n = AppLocalizations.of(context);
@@ -905,7 +906,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
                 border: const OutlineInputBorder(),
               ),
             ),
-            if (!_isDanceSlot && widget.onPickReplacementDance != null) ...[
+            if (!_isDanceSlot &&
+                !widget.slot.isBreak &&
+                widget.onPickReplacementDance != null) ...[
               const SizedBox(height: 4),
               Align(
                 alignment: Alignment.centerRight,

@@ -129,6 +129,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   String? _onlineError;
   int _onlineSeq = 0;
   bool _onlineImporting = false;
+  final Set<String> _onlineAddedIds = {};
   final Map<String, Dance> _importedDances = {};
 
   static const Duration _onlineDebounce = Duration(milliseconds: 500);
@@ -161,11 +162,24 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   void didUpdateWidget(CollectionPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    var onlineServiceChanged = false;
+    if (oldWidget.callersBoxOnline != widget.callersBoxOnline) {
+      _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
+      onlineServiceChanged = true;
+    }
+    if (oldWidget.contraDbOnline != widget.contraDbOnline) {
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
+      onlineServiceChanged = true;
+    }
     // The active dialect or the saved-dialect enrichment can change while the
     // picker is open (e.g. the user edits their dialect library).
     if (oldWidget.dialect != widget.dialect ||
         oldWidget.enrichment != widget.enrichment) {
       _runSearch();
+    }
+    if (onlineServiceChanged && _onlineEnabled) {
+      _onlineSeq++;
+      _runOnlineSearch();
     }
   }
 
@@ -228,7 +242,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _results = [
           for (final id in ids)
-            if ((data.dancesById[id] ?? _importedDances[id]) case final dance?)
+            if ((_importedDances[id] ?? data.dancesById[id]) case final dance?)
               data.entryFor(dance),
         ];
         _searching = false;
@@ -469,6 +483,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         if (dance != null) _importedDances[danceId] = dance;
         await widget.onDanceImported?.call(danceId);
         if (!mounted) return;
+        setState(() => _onlineAddedIds.add(onlineResult.id));
         widget.onAddDance(danceId);
       }
     } on UrlFetchException catch (error, stackTrace) {
@@ -893,10 +908,30 @@ class _CollectionPickerState extends State<CollectionPicker> {
           label: widget.rowAction == PickerRowAction.replace
               ? l10n.collectionPickerReplaceSemantic(result.name)
               : l10n.collectionPickerAddSemantic(result.name),
-          child: OnlineResultTile(
-            key: ValueKey('picker-online-result-${result.id}'),
-            result: result,
-            onTap: _onlineImporting ? null : () => _importOnlineResult(result),
+          child: Stack(
+            children: [
+              OnlineResultTile(
+                key: ValueKey('picker-online-result-${result.id}'),
+                result: result,
+                onTap: _onlineImporting
+                    ? null
+                    : () => _importOnlineResult(result),
+              ),
+              if (_onlineAddedIds.contains(result.id))
+                Positioned(
+                  top: 12,
+                  right: 16,
+                  child: IgnorePointer(
+                    child: Tooltip(
+                      message: l10n.collectionPickerAddedTooltip(result.name),
+                      child: Icon(
+                        key: ValueKey('picker-online-added-${result.id}'),
+                        Icons.check_circle,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },

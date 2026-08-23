@@ -83,7 +83,7 @@ void main() {
           body: ProgramSlotListEditor(
             slots: [
               ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
-              ProgramSlot(id: 's2', position: 1, text: 'Break'),
+              ProgramSlot(id: 's2', position: 1, text: 'Caller note'),
             ],
             danceTitles: (id) => 'Dance $id',
             formationFor: (_) => null,
@@ -127,6 +127,79 @@ void main() {
     expect(changes, hasLength(1));
     expect(changes.single.danceId, 'd2');
     expect(changes.single.text, isNull);
+  });
+
+  testWidgets('break slots do not offer dance replacement', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: [
+              ProgramSlot(
+                id: 'break',
+                position: 0,
+                text: Program.breakSlotText,
+              ),
+            ],
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, _) {},
+            onRemove: (_) {},
+            onCreateDance: (_) {},
+            onPickReplacementDance: () async => 'd2',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('slot-edit-replace-dance')), findsNothing);
+  });
+
+  testWidgets('replacing after a note validation error clears the error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: [ProgramSlot(id: 'note', position: 0, text: 'Caller note')],
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, _) {},
+            onRemove: (_) {},
+            onCreateDance: (_) {},
+            onPickReplacementDance: () async => 'd2',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('slot-edit-note')), '');
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter some text for this slot.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter some text for this slot.'), findsNothing);
   });
 
   // M3 (issue #964): a pick must be held in the dialog's own state and only
