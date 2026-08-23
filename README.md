@@ -25,8 +25,10 @@ Squares) callers — on desktop, tablet, and phone.
 > [Installation guide](docs/user/installation.md) walks you through it. **iPhone
 > and iPad** builds are delivered through **TestFlight** to invited testers rather
 > than the Releases page. **Android APKs are signed** and the **macOS build is
-> signed and notarized**; Linux and Windows desktop builds remain unsigned for
-> now, so those two still show a first-launch trust prompt. See
+> signed and notarized**. Linux desktop artifacts are unsigned; Windows artifacts
+> are signed via Azure Trusted Signing when the release workflow's five `AZURE_*`
+> repository variables and federated OIDC configuration are present, with an
+> unsigned fallback that may show a SmartScreen prompt. See
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
 
 ## What it does

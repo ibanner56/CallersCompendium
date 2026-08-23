@@ -46,8 +46,9 @@ Downloadable builds are ready for **Linux**, **macOS**, **Windows**, and
 **Android**, and **iPhone/iPad** builds go out through **TestFlight** to invited
 testers. The [Installation guide](./installation.md) walks you through
 downloading the right file (or joining the TestFlight beta), getting past the
-first-time security prompt you'll see on the unsigned Windows and Linux builds,
-and keeping the app up to date.
+first-time security prompt you may see on an unsigned Windows fallback (Linux
+artifacts are unsigned but generally have no signing prompt), and keeping the app
+up to date.
 
 ## Your first launch
 
