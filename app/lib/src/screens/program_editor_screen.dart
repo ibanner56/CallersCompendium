@@ -18,6 +18,7 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
+import '../data/online_search.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../data/venue_label.dart';
@@ -77,6 +78,8 @@ class ProgramEditorScreen extends StatefulWidget {
     this.onSaved,
     this.onDeleted,
     this.onNavigateTo,
+    this.callersBoxOnline,
+    this.contraDbOnline,
   });
 
   final String? programId;
@@ -89,6 +92,11 @@ class ProgramEditorScreen extends StatefulWidget {
 
   /// Called after duplication with the new copy's id (embedded mode).
   final void Function(String programId)? onNavigateTo;
+
+  /// Online services used by the picker; omitted in production for the normal
+  /// network-backed services and supplied by widget tests.
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
 
   /// Width (of the builder's own constraints) at/above which the picker shows
   /// as a persistent right pane instead of a modal sheet.
@@ -134,6 +142,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
+  bool _pickerImporting = false;
   bool _autoCommitEnabled = false;
   int _editGeneration = 0;
 
@@ -935,8 +944,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (created == null || created != observed) return;
       setState(() {
         if (current == null ||
-            (current == created &&
-                _data?.choreographersById[id] == current)) {
+            (current == created && _data?.choreographersById[id] == current)) {
           _createdChoreographers.remove(id);
           return;
         }
@@ -1539,9 +1547,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
     return PopScope<Object?>(
-      canPop: !_dirty && !isPersistedNewRoute,
+      canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
+        if (didPop || _pickerImporting) return;
         final ok = await _confirmDiscard();
         if (!context.mounted) return;
         if (ok) {
@@ -1678,6 +1686,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   addedDanceCounts: _pickerCounts.value,
                   onAddDance: _addDanceSlot,
                   onDanceImported: _rememberImportedDance,
+                  onImportingChanged: (value) {
+                    if (_pickerImporting == value || !mounted) return;
+                    setState(() => _pickerImporting = value);
+                  },
+                  callersBoxOnline: widget.callersBoxOnline,
+                  contraDbOnline: widget.contraDbOnline,
                   enableOnlineSearch: true,
                 ),
               ),
@@ -1929,6 +1943,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       await showModalBottomSheet<void>(
         context: context,
         isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
         builder: (sheetContext) {
           return ValueListenableBuilder<bool>(
             valueListenable: importing,
@@ -1975,6 +1991,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             onDanceImported: _rememberImportedDance,
                             onImportingChanged: (value) =>
                                 importing.value = value,
+                            callersBoxOnline: widget.callersBoxOnline,
+                            contraDbOnline: widget.contraDbOnline,
                             enableOnlineSearch: true,
                           ),
                         ),
@@ -2012,6 +2030,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return await showModalBottomSheet<String>(
         context: context,
         isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
         builder: (sheetContext) {
           return ValueListenableBuilder<bool>(
             valueListenable: importing,
@@ -2058,6 +2078,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                             onDanceImported: _rememberImportedDance,
                             onImportingChanged: (value) =>
                                 importing.value = value,
+                            callersBoxOnline: widget.callersBoxOnline,
+                            contraDbOnline: widget.contraDbOnline,
                             onAddDance: (danceId) =>
                                 Navigator.of(sheetContext).pop(danceId),
                           ),

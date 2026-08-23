@@ -833,6 +833,31 @@ void main() {
     expect(find.text('Couldn\'t import that dance.'), findsOneWidget);
   });
 
+  testWidgets('overlay hydration failure still adds the imported dance', (
+    tester,
+  ) async {
+    final service = _DedupeOnlineService(
+      OnlineImportKind.created,
+      alwaysCreate: true,
+    );
+    final added = <String>[];
+    final repos = openTestRepositories();
+
+    await _openOnlineResult(
+      tester,
+      repos,
+      service,
+      added.add,
+      onDanceImported: (_) async => throw StateError('overlay failed'),
+    );
+
+    expect(added, ['imported']);
+    expect(
+      find.byKey(const ValueKey('picker-online-added-callersBox-remote')),
+      findsOneWidget,
+    );
+  });
+
   group('online picker dedupe resolution', () {
     testWidgets('variation cancellation does not add a dance', (tester) async {
       final service = _DedupeOnlineService(OnlineImportKind.needsConfirmation);

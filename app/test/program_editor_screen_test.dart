@@ -7,10 +7,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
+import 'package:compendium_app/src/widgets/online_result_tile.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -22,10 +25,11 @@ Dance _dance({
   required String id,
   required String title,
   List<Figure> figures = const [],
+  List<String> authorIds = const [],
 }) => Dance(
   id: id,
   title: title,
-  authorIds: const [],
+  authorIds: authorIds,
   tagIds: const [],
   form: DanceForm.contra,
   formation: const Formation(FormationShape.dupleImproper),
@@ -48,6 +52,8 @@ Future<void> _pumpBuilder(
   void Function(String)? onSaved,
   VoidCallback? onDeleted,
   void Function(String)? onNavigateTo,
+  OnlineSearchService? callersBoxOnline,
+  OnlineSearchService? contraDbOnline,
   Size size = const Size(1200, 2000),
 }) async {
   await tester.binding.setSurfaceSize(size);
@@ -75,10 +81,90 @@ Future<void> _pumpBuilder(
         onSaved: onSaved ?? (_) {},
         onDeleted: onDeleted,
         onNavigateTo: onNavigateTo,
+        callersBoxOnline: callersBoxOnline,
+        contraDbOnline: contraDbOnline,
       ),
     ),
   );
   await tester.pumpAndSettle();
+}
+
+class _ProgramOnlineService implements OnlineSearchService {
+  @override
+  OnlineSource get source => OnlineSource.callersBox;
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async => [
+    const OnlineSearchResultRow(
+      source: OnlineSource.callersBox,
+      id: 'remote',
+      name: 'Imported Dance',
+      author: 'Imported Author',
+      formation: 'Duple Improper',
+    ),
+  ];
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    final dance = _dance(
+      id: '',
+      title: result.name,
+      authorIds: const ['imported-author'],
+    );
+    return OnlinePreview(
+      result: result,
+      detail: DanceDetailData(
+        dance: dance,
+        authorNames: const ['Imported Author'],
+        tagNames: const [],
+        customFields: const [],
+        relatedDanceTitles: const {},
+        sourcesById: const {},
+        crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
+      ),
+      plan: ImportRecordPlan(
+        draft: StructuredDraft(
+          dance: dance,
+          raw: const RawRecord(
+            source: ProvenanceSource.callersbox,
+            externalId: 'remote',
+            payload: '{}',
+          ),
+        ),
+        verdict: DedupeVerdict.isNew(),
+      ),
+    );
+  }
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+  }) async {
+    // ignore: unused_result
+    await repos.choreographers.upsert(
+      Choreographer(id: 'imported-author', name: 'Imported Author'),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'imported',
+        title: 'Imported Dance',
+        authorIds: const ['imported-author'],
+      ),
+    );
+    return const OnlineImportResult(
+      kind: OnlineImportKind.created,
+      title: 'Imported Dance',
+      danceId: 'imported',
+    );
+  }
 }
 
 Future<void> _pump(
@@ -798,6 +884,127 @@ void main() {
       expect(slot.danceId, 'd2');
       expect(slot.guestCaller, 'Guest Caller');
       expect(slot.plannedMinutes, 12);
+    },
+  );
+
+  testWidgets(
+    'inline online add hydrates imported dance and author before adding',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        callersBoxOnline: _ProgramOnlineService(),
+      );
+
+      final picker = find.byKey(const ValueKey('inline-picker'));
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-advanced-panel')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-online-search-enable')),
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-search')),
+        ),
+        'Imported Dance',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: picker, matching: find.byType(OnlineResultTile)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Imported Dance'), findsAtLeastNWidgets(2));
+      await tester.tap(find.byKey(const ValueKey('perform-program')));
+      await tester.pumpAndSettle();
+      expect(find.text('Imported Author'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'online replacement returns the imported dance to the slot dialog',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Original Dance'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(600, 2000),
+        callersBoxOnline: _ProgramOnlineService(),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit slot'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+      await tester.pumpAndSettle();
+
+      final picker = find.byKey(const ValueKey('replace-picker'));
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-advanced-panel')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-online-search-enable')),
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-search')),
+        ),
+        'Imported Dance',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(of: picker, matching: find.byType(OnlineResultTile)),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Imported Dance'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      expect(
+        (await repos.programs.getById('p1'))!.slots.single.danceId,
+        'imported',
+      );
     },
   );
 

@@ -529,7 +529,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
         final dance = await _repos.dances.getById(danceId);
         if (!mounted) return;
         if (dance != null) _importedDances[danceId] = dance;
-        await widget.onDanceImported?.call(danceId);
+        try {
+          await widget.onDanceImported?.call(danceId);
+        } catch (error, stackTrace) {
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'collection_picker.onDanceImported',
+          );
+        }
         if (!mounted) return;
         setState(
           () => _onlineAddedIds.add((
