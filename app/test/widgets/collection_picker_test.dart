@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/dance_list_tile.dart';
@@ -54,7 +56,7 @@ Future<void> _pumpPicker(
   SearchEnrichment? enrichment,
   PickerRowAction rowAction = PickerRowAction.add,
   bool enableOnlineSearch = false,
-  CallersBoxOnline? callersBoxOnline,
+  OnlineSearchService? callersBoxOnline,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -85,6 +87,83 @@ Future<void> _pumpPicker(
   );
 }
 
+class _DedupeOnlineService implements OnlineSearchService {
+  _DedupeOnlineService(this.ambiguousKind);
+
+  final OnlineImportKind ambiguousKind;
+  var importCalls = 0;
+
+  @override
+  OnlineSource get source => OnlineSource.callersBox;
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async =>
+      const [
+        OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: 'remote',
+          name: 'Remote Dance',
+          author: '',
+          formation: '',
+        ),
+      ];
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    final dance = _dance(id: '', title: result.name);
+    return OnlinePreview(
+      result: result,
+      detail: DanceDetailData(
+        dance: dance,
+        authorNames: const [],
+        tagNames: const [],
+        customFields: const [],
+        relatedDanceTitles: const {},
+        sourcesById: const {},
+        crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
+      ),
+      plan: ImportRecordPlan(
+        draft: StructuredDraft(
+          dance: dance,
+          raw: const RawRecord(
+            source: ProvenanceSource.callersbox,
+            externalId: 'remote',
+            payload: '{}',
+          ),
+        ),
+        verdict: DedupeVerdict.isNew(),
+      ),
+    );
+  }
+
+  @override
+  Future<OnlineImportResult> import(
+    CompendiumRepositories repos,
+    ImportRecordPlan plan, {
+    DateTime? now,
+    DedupeResolution? ambiguousResolution,
+  }) async {
+    importCalls++;
+    if (ambiguousResolution == null) {
+      return OnlineImportResult(
+        kind: ambiguousKind,
+        title: 'Existing Dance',
+        danceId: 'existing',
+      );
+    }
+    return const OnlineImportResult(
+      kind: OnlineImportKind.created,
+      title: 'Remote Dance',
+      danceId: 'imported',
+    );
+  }
+}
+
 List<String> _titles(WidgetTester tester) => tester
     .widgetList<DanceListTile>(find.byType(DanceListTile))
     .map((t) => t.entry.title)
@@ -95,6 +174,40 @@ Future<void> _tapVisible(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
   await tester.tap(finder);
   await tester.pumpAndSettle();
+}
+
+Future<void> _openOnlineResult(
+  WidgetTester tester,
+  CompendiumRepositories repos,
+  OnlineSearchService service,
+  void Function(String danceId) onAddDance,
+) async {
+  await _pumpPicker(
+    tester,
+    repos,
+    onAddDance: onAddDance,
+    enableOnlineSearch: true,
+    callersBoxOnline: service,
+  );
+  await tester.pumpAndSettle();
+  await _tapVisible(
+    tester,
+    find.byKey(const ValueKey('picker-advanced-panel')),
+  );
+  await _tapVisible(
+    tester,
+    find.byKey(const ValueKey('picker-online-search-enable')),
+  );
+  await tester.enterText(
+    find.byKey(const ValueKey('picker-search')),
+    'Remote Dance',
+  );
+  await tester.pump(const Duration(milliseconds: 600));
+  await tester.pumpAndSettle();
+  final result = find.byType(OnlineResultTile);
+  await tester.ensureVisible(result);
+  await tester.tap(result);
+  await tester.pump(const Duration(milliseconds: 500));
 }
 
 /// Comfortably longer than the picker's own add-confirmation linger, so a pump
@@ -614,5 +727,92 @@ void main() {
     expect((await repos.dances.listAll()).map((dance) => dance.title), [
       'Money Musk',
     ]);
+  });
+
+  group('online picker dedupe resolution', () {
+    testWidgets('variation cancellation does not add a dance', (tester) async {
+      final service = _DedupeOnlineService(OnlineImportKind.needsConfirmation);
+      final added = <String>[];
+      final repos = openTestRepositories();
+
+      await _openOnlineResult(tester, repos, service, added.add);
+      expect(
+        find.byKey(const ValueKey('online-import-variation-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('online-import-variation-cancel')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(service.importCalls, 1);
+      expect(added, isEmpty);
+    });
+
+    testWidgets('variation confirmation retries and adds the imported dance', (
+      tester,
+    ) async {
+      final service = _DedupeOnlineService(OnlineImportKind.needsConfirmation);
+      final added = <String>[];
+      final repos = openTestRepositories();
+
+      await _openOnlineResult(tester, repos, service, added.add);
+      await tester.tap(
+        find.byKey(const ValueKey('online-import-variation-as-variation')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(service.importCalls, 2);
+      expect(added, ['imported']);
+    });
+
+    testWidgets('cross-source cancellation does not add a dance', (
+      tester,
+    ) async {
+      final service = _DedupeOnlineService(
+        OnlineImportKind.needsConfirmationIdentical,
+      );
+      final added = <String>[];
+      final repos = openTestRepositories();
+
+      await _openOnlineResult(tester, repos, service, added.add);
+      expect(
+        find.byKey(
+          const ValueKey('online-import-cross-source-duplicate-dialog'),
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(
+          const ValueKey('online-import-cross-source-duplicate-cancel'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(service.importCalls, 1);
+      expect(added, isEmpty);
+    });
+
+    testWidgets(
+      'cross-source confirmation retries and adds the imported dance',
+      (tester) async {
+        final service = _DedupeOnlineService(
+          OnlineImportKind.needsConfirmationIdentical,
+        );
+        final added = <String>[];
+        final repos = openTestRepositories();
+
+        await _openOnlineResult(tester, repos, service, added.add);
+        await tester.tap(
+          find.byKey(
+            const ValueKey('online-import-cross-source-duplicate-import-copy'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(service.importCalls, 2);
+        expect(added, ['imported']);
+      },
+    );
   });
 }

@@ -802,11 +802,14 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     if (pick == null) return;
     final picked = await pick();
     if (picked == null || !mounted) return;
+    final wasNoteSlot = _danceId == null;
     setState(() {
       _danceId = picked;
-      // Replacing a free-text slot converts it into a dance slot. The note was
-      // the slot's old content, not a caller note for the selected dance.
-      _note.clear();
+      if (wasNoteSlot) {
+        // Replacing a free-text slot converts it into a dance slot. The note
+        // was the slot's old content, not a caller note for the dance.
+        _note.clear();
+      }
     });
     final l10n = AppLocalizations.of(context);
     // Same fallback the visible row uses (below, in build) for a dance id

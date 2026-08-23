@@ -45,6 +45,7 @@ class CollectionPicker extends StatefulWidget {
     this.enableOnlineSearch = false,
     this.callersBoxOnline,
     this.contraDbOnline,
+    this.onDanceImported,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -94,6 +95,9 @@ class CollectionPicker extends StatefulWidget {
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
 
+  /// Called after an online dance has been persisted and before [onAddDance].
+  final Future<void> Function(String danceId)? onDanceImported;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
 }
@@ -125,6 +129,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   String? _onlineError;
   int _onlineSeq = 0;
   bool _onlineImporting = false;
+  final Map<String, Dance> _importedDances = {};
 
   static const Duration _onlineDebounce = Duration(milliseconds: 500);
 
@@ -223,7 +228,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _results = [
           for (final id in ids)
-            if (data.dancesById[id] case final dance?) data.entryFor(dance),
+            if ((data.dancesById[id] ?? _importedDances[id]) case final dance?)
+              data.entryFor(dance),
         ];
         _searching = false;
       });
@@ -403,11 +409,12 @@ class _CollectionPickerState extends State<CollectionPicker> {
   Future<void> _importOnlineResult(OnlineSearchResultRow onlineResult) async {
     if (_onlineImporting) return;
     setState(() => _onlineImporting = true);
-    final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final service = _online;
     try {
-      final preview = await _online.loadPreview(_repos, onlineResult);
-      var result = await _online.import(_repos, preview.plan);
+      final preview = await service.loadPreview(_repos, onlineResult);
+      if (!mounted) return;
+      var result = await service.import(_repos, preview.plan);
       if (result.kind == OnlineImportKind.needsConfirmation) {
         final existingId = result.danceId;
         assert(
@@ -425,7 +432,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           existingId: existingId,
         );
         if (resolution == null || !mounted) return;
-        result = await _online.import(
+        result = await service.import(
           _repos,
           preview.plan,
           ambiguousResolution: resolution,
@@ -447,7 +454,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
           existingId: existingId,
         );
         if (resolution == null || !mounted) return;
-        result = await _online.import(
+        result = await service.import(
           _repos,
           preview.plan,
           ambiguousResolution: resolution,
@@ -458,6 +465,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
       if ((result.kind == OnlineImportKind.created ||
               result.kind == OnlineImportKind.alreadyInCollection) &&
           danceId != null) {
+        final dance = await _repos.dances.getById(danceId);
+        if (dance != null) _importedDances[danceId] = dance;
+        await widget.onDanceImported?.call(danceId);
+        if (!mounted) return;
         widget.onAddDance(danceId);
       }
     } on UrlFetchException catch (error, stackTrace) {
@@ -467,9 +478,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         source: 'collection_picker._importOnlineResult',
       );
       if (mounted) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(importErrorMessage(l10n, error))),
-        );
+        setState(() {
+          _onlineError = importErrorMessage(l10n, error);
+          _onlineSearching = false;
+        });
       }
     } catch (error, stackTrace) {
       logCaughtErrorTypeOnly(
@@ -478,7 +490,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
         source: 'collection_picker._importOnlineResult',
       );
       if (mounted) {
-        messenger.showSnackBar(SnackBar(content: Text(l10n.onlineImportError)));
+        setState(() {
+          _onlineError = l10n.onlineImportError;
+          _onlineSearching = false;
+        });
       }
     } finally {
       if (mounted) setState(() => _onlineImporting = false);
@@ -873,10 +888,16 @@ class _CollectionPickerState extends State<CollectionPicker> {
       itemCount: _onlineResults.length,
       itemBuilder: (context, index) {
         final result = _onlineResults[index];
-        return OnlineResultTile(
-          key: ValueKey('picker-online-result-${result.id}'),
-          result: result,
-          onTap: _onlineImporting ? null : () => _importOnlineResult(result),
+        return Semantics(
+          button: true,
+          label: widget.rowAction == PickerRowAction.replace
+              ? l10n.collectionPickerReplaceSemantic(result.name)
+              : l10n.collectionPickerAddSemantic(result.name),
+          child: OnlineResultTile(
+            key: ValueKey('picker-online-result-${result.id}'),
+            result: result,
+            onTap: _onlineImporting ? null : () => _importOnlineResult(result),
+          ),
         );
       },
     );

@@ -887,6 +887,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Dance? _danceById(String danceId) =>
       _data?.dancesById[danceId] ?? _createdDances[danceId];
 
+  Future<void> _rememberImportedDance(String danceId) async {
+    final dance = await _repos.dances.getById(danceId);
+    if (!mounted || dance == null) return;
+    setState(() => _createdDances[danceId] = dance);
+  }
+
   String? _titleForDance(String danceId) => _danceById(danceId)?.title;
 
   /// Resolves a dance's formation for the slot editor's redundant accent +
@@ -1574,6 +1580,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   enrichment: _enrichment,
                   addedDanceCounts: _pickerCounts.value,
                   onAddDance: _addDanceSlot,
+                  onDanceImported: _rememberImportedDance,
                   enableOnlineSearch: true,
                 ),
               ),
@@ -1860,6 +1867,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       addedDanceCounts: counts,
                       // Keep the sheet open so callers can add several dances.
                       onAddDance: _addDanceSlot,
+                      onDanceImported: _rememberImportedDance,
                       enableOnlineSearch: true,
                     ),
                   ),
@@ -1927,6 +1935,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                       addedDanceCounts: counts,
                       rowAction: PickerRowAction.replace,
                       enableOnlineSearch: true,
+                      onDanceImported: _rememberImportedDance,
                       onAddDance: (danceId) =>
                           Navigator.of(sheetContext).pop(danceId),
                     ),
