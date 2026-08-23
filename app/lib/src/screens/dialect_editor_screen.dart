@@ -46,9 +46,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   final Map<String, TextEditingController> _dancerCtrls = {};
 
   List<String> _discouraged = const [];
+  bool _showRoles = true;
   bool _showMoves = false;
   bool _showWordings = false;
   bool _showDancers = false;
+  bool _showDiscouraged = false;
 
   /// Model-level issues (empty/ambiguous substitutions) recomputed live on every
   /// edit via [Dialect.validate], surfaced inline so collisions show as the user
@@ -263,10 +265,33 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     setState(() => _discouraged = List.of(Dialect.defaultDiscouragedTerms));
   }
 
+  Future<void> _confirmRestoreDiscouragedDefaults() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('dialect-discouraged-reset-dialog'),
+        title: Text(l10n.dialectEditorDiscouragedResetTitle),
+        content: Text(l10n.dialectEditorDiscouragedResetBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('dialect-discouraged-reset-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.dialectEditorRestoreDefaults),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) _restoreDiscouragedDefaults();
+  }
+
   void _addMoveSubstitution(String moveId) {
     setState(() {
       _moveCtrls[moveId] = TextEditingController();
-      _showMoves = true;
     });
   }
 
@@ -280,7 +305,6 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       _wordingCtrls[moveId] = TextEditingController(
         text: _renderer.moveWordingTemplate(moveId) ?? '',
       );
-      _showWordings = true;
       _working = _assemble();
       _issues = _working.validate();
     });
@@ -302,10 +326,33 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     });
   }
 
+  Future<void> _confirmRestoreMoveWordings() async {
+    final l10n = AppLocalizations.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('dialect-wordings-reset-dialog'),
+        title: Text(l10n.dialectEditorMoveWordingsResetTitle),
+        content: Text(l10n.dialectEditorMoveWordingsResetBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            key: const ValueKey('dialect-wordings-reset-confirm'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.dialectEditorMoveWordingsReset),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) _restoreMoveWordings();
+  }
+
   void _addDancerSubstitution(String token) {
     setState(() {
       _dancerCtrls[token] = TextEditingController();
-      _showDancers = true;
     });
   }
 
@@ -314,24 +361,66 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     _onEdited();
   }
 
+  bool get _isDirty => _assemble() != widget.initial;
+
+  Future<void> _confirmExit() async {
+    final l10n = AppLocalizations.of(context);
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        key: const ValueKey('dialect-exit-dialog'),
+        title: Text(l10n.dialectEditorExitTitle),
+        content: Text(l10n.dialectEditorExitBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.commonCancel),
+          ),
+          TextButton(
+            key: const ValueKey('dialect-exit-without-saving'),
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.dialectEditorExitWithoutSaving),
+          ),
+          FilledButton(
+            key: const ValueKey('dialect-exit-save'),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.dialectEditorSaveAndExit),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (save == true) {
+      await _save();
+    } else if (save == false) {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final itemBuilders = _editorItemBuilders(l10n);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.dialectEditorTitle(widget.initial.name)),
-        actions: [
-          TextButton(
-            key: const ValueKey('dialect-editor-save'),
-            onPressed: _save,
-            child: Text(l10n.commonSave),
-          ),
-        ],
-      ),
-      body: ListView.builder(
-        itemCount: itemBuilders.length,
-        itemBuilder: (context, index) => itemBuilders[index](),
+    return PopScope<Dialect>(
+      canPop: !_isDirty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _confirmExit();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.dialectEditorTitle(widget.initial.name)),
+          actions: [
+            TextButton(
+              key: const ValueKey('dialect-editor-save'),
+              onPressed: _save,
+              child: Text(l10n.commonSave),
+            ),
+          ],
+        ),
+        body: ListView.builder(
+          itemCount: itemBuilders.length,
+          itemBuilder: (context, index) => itemBuilders[index](),
+        ),
       ),
     );
   }
@@ -346,51 +435,72 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
       ),
-    () => _EditorHeader(title: l10n.dialectEditorSectionRoleTerms),
-    () => _RoleTermsEditor(
-      role1Singular: _role1Singular,
-      role1Plural: _role1Plural,
-      role2Singular: _role2Singular,
-      role2Plural: _role2Plural,
-      onChanged: _onEdited,
+    () => _EditorSection(
+      sectionKey: const ValueKey('dialect-roles-toggle'),
+      title: l10n.dialectEditorSectionRoleTerms,
+      expanded: _showRoles,
+      onExpansionChanged: (expanded) => setState(() => _showRoles = expanded),
+      child: _RoleTermsEditor(
+        role1Singular: _role1Singular,
+        role1Plural: _role1Plural,
+        role2Singular: _role2Singular,
+        role2Plural: _role2Plural,
+        onChanged: _onEdited,
+      ),
     ),
-    () => _EditorHeader(title: l10n.dialectEditorSectionMoveSubs),
-    () => _MoveSubstitutionsEditor(
-      controllers: _moveCtrls,
+    () => _EditorSection(
+      sectionKey: const ValueKey('dialect-moves-toggle'),
+      title: l10n.dialectEditorSectionMoveSubs,
       expanded: _showMoves,
-      onToggle: () => setState(() => _showMoves = !_showMoves),
-      onEdited: _onEdited,
-      onAdd: _addMoveSubstitution,
-      onRemove: _removeMoveSubstitution,
+      onExpansionChanged: (expanded) => setState(() => _showMoves = expanded),
+      child: _MoveSubstitutionsEditor(
+        controllers: _moveCtrls,
+        onEdited: _onEdited,
+        onAdd: _addMoveSubstitution,
+        onRemove: _removeMoveSubstitution,
+      ),
     ),
-    () => _EditorHeader(title: l10n.dialectEditorSectionDancerSubs),
-    () => _DancerSubstitutionsEditor(
-      controllers: _dancerCtrls,
-      dialect: _working,
+    () => _EditorSection(
+      sectionKey: const ValueKey('dialect-dancers-toggle'),
+      title: l10n.dialectEditorSectionDancerSubs,
       expanded: _showDancers,
-      onToggle: () => setState(() => _showDancers = !_showDancers),
-      onEdited: _onEdited,
-      onAdd: _addDancerSubstitution,
-      onRemove: _removeDancerSubstitution,
+      onExpansionChanged: (expanded) => setState(() => _showDancers = expanded),
+      child: _DancerSubstitutionsEditor(
+        controllers: _dancerCtrls,
+        dialect: _working,
+        onEdited: _onEdited,
+        onAdd: _addDancerSubstitution,
+        onRemove: _removeDancerSubstitution,
+      ),
     ),
-    () => _EditorHeader(title: l10n.dialectEditorSectionMoveWordings),
-    () => _MoveWordingsEditor(
-      controllers: _wordingCtrls,
-      dialect: _working,
+    () => _EditorSection(
+      sectionKey: const ValueKey('dialect-wordings-toggle'),
+      title: l10n.dialectEditorSectionMoveWordings,
       expanded: _showWordings,
-      onToggle: () => setState(() => _showWordings = !_showWordings),
-      onEdited: _onEdited,
-      onAdd: _addMoveWording,
-      onRemove: _removeMoveWording,
-      onRestoreDefaults: _restoreMoveWordings,
+      onExpansionChanged: (expanded) =>
+          setState(() => _showWordings = expanded),
+      child: _MoveWordingsEditor(
+        controllers: _wordingCtrls,
+        dialect: _working,
+        onEdited: _onEdited,
+        onAdd: _addMoveWording,
+        onRemove: _removeMoveWording,
+        onRestoreDefaults: _confirmRestoreMoveWordings,
+      ),
     ),
-    () => _EditorHeader(title: l10n.dialectEditorSectionDiscouraged),
-    () => _DiscouragedTermsEditor(
-      terms: _discouraged,
-      input: _discouragedInput,
-      onAdd: _addDiscouraged,
-      onRemove: _removeDiscouraged,
-      onRestoreDefaults: _restoreDiscouragedDefaults,
+    () => _EditorSection(
+      sectionKey: const ValueKey('dialect-discouraged-toggle'),
+      title: l10n.dialectEditorSectionDiscouraged,
+      expanded: _showDiscouraged,
+      onExpansionChanged: (expanded) =>
+          setState(() => _showDiscouraged = expanded),
+      child: _DiscouragedTermsEditor(
+        terms: _discouraged,
+        input: _discouragedInput,
+        onAdd: _addDiscouraged,
+        onRemove: _removeDiscouraged,
+        onRestoreDefaults: _confirmRestoreDiscouragedDefaults,
+      ),
     ),
     () => _EditorHeader(title: l10n.dialectEditorSectionPreview),
     () => _DialectPreview(dialect: _working),
@@ -409,11 +519,46 @@ class _EditorHeader extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Text(
-        title,
+        title.toUpperCase(),
         style: theme.textTheme.labelLarge?.copyWith(
           color: theme.colorScheme.primary,
         ),
       ),
+    );
+  }
+}
+
+class _EditorSection extends StatelessWidget {
+  const _EditorSection({
+    required this.sectionKey,
+    required this.title,
+    required this.expanded,
+    required this.onExpansionChanged,
+    required this.child,
+  });
+
+  final Key sectionKey;
+  final String title;
+  final bool expanded;
+  final ValueChanged<bool> onExpansionChanged;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ExpansionTile(
+      key: sectionKey,
+      shape: const Border(),
+      collapsedShape: const Border(),
+      initiallyExpanded: expanded,
+      onExpansionChanged: onExpansionChanged,
+      title: Text(
+        title.toUpperCase(),
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+      ),
+      children: [child],
     );
   }
 }
@@ -517,16 +662,12 @@ class _RoleTermsEditor extends StatelessWidget {
 class _MoveSubstitutionsEditor extends StatelessWidget {
   const _MoveSubstitutionsEditor({
     required this.controllers,
-    required this.expanded,
-    required this.onToggle,
     required this.onEdited,
     required this.onAdd,
     required this.onRemove,
   });
 
   final Map<String, TextEditingController> controllers;
-  final bool expanded;
-  final VoidCallback onToggle;
   final VoidCallback onEdited;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
@@ -537,11 +678,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final overridden = controllers.keys.toList()
-      ..sort(
-        (a, b) =>
-            _moveLabel(a).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
-      );
+    final overridden = controllers.keys.toList().reversed;
     final available =
         [
           for (final m in contraTaxonomy.moves.values)
@@ -557,71 +694,62 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('dialect-moves-toggle'),
-              onPressed: onToggle,
-              icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              label: Text(
-                overridden.isEmpty
-                    ? l10n.dialectEditorMoveSubsAdd
-                    : l10n.dialectEditorMoveSubsCount(overridden.length),
-              ),
-            ),
-          ),
-          if (expanded) ...[
-            for (final id in overridden)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 140,
-                      child: Text(
-                        _moveLabel(id),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        key: ValueKey('dialect-move-$id'),
-                        controller: controllers[id],
-                        decoration: InputDecoration(
-                          labelText: _moveLabel(id),
-                          hintText: l10n.dialectEditorMoveSubHint,
-                        ),
-                        onChanged: (_) => onEdited(),
-                      ),
-                    ),
-                    IconButton(
-                      key: ValueKey('dialect-move-delete-$id'),
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: l10n.commonRemove,
-                      onPressed: () => onRemove(id),
-                    ),
-                  ],
+          if (available.isNotEmpty)
+            DropdownButton<String>(
+              key: const ValueKey('dialect-add-move'),
+              hint: Text(
+                l10n.dialectEditorAddMove,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
-            if (available.isNotEmpty)
-              DropdownButton<String>(
-                key: const ValueKey('dialect-add-move'),
-                hint: Text(l10n.dialectEditorAddMove),
-                value: null,
-                isExpanded: true,
-                items: [
-                  for (final id in available)
-                    DropdownMenuItem<String>(
-                      value: id,
-                      child: Text(_moveLabel(id)),
+              value: null,
+              isExpanded: true,
+              iconEnabledColor: Theme.of(context).colorScheme.secondary,
+              items: [
+                for (final id in available)
+                  DropdownMenuItem<String>(
+                    value: id,
+                    child: Text(_moveLabel(id)),
+                  ),
+              ],
+              onChanged: (id) {
+                if (id != null) onAdd(id);
+              },
+            ),
+          for (final id in overridden)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 140,
+                    child: Text(
+                      _moveLabel(id),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      key: ValueKey('dialect-move-$id'),
+                      controller: controllers[id],
+                      decoration: InputDecoration(
+                        labelText: _moveLabel(id),
+                        hintText: l10n.dialectEditorMoveSubHint,
+                      ),
+                      onChanged: (_) => onEdited(),
+                    ),
+                  ),
+                  IconButton(
+                    key: ValueKey('dialect-move-delete-$id'),
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: l10n.commonRemove,
+                    onPressed: () => onRemove(id),
+                  ),
                 ],
-                onChanged: (id) {
-                  if (id != null) onAdd(id);
-                },
               ),
-          ],
+            ),
         ],
       ),
     );
@@ -637,8 +765,6 @@ class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
     required this.controllers,
     required this.dialect,
-    required this.expanded,
-    required this.onToggle,
     required this.onEdited,
     required this.onAdd,
     required this.onRemove,
@@ -647,8 +773,6 @@ class _MoveWordingsEditor extends StatelessWidget {
 
   final Map<String, TextEditingController> controllers;
   final Dialect dialect;
-  final bool expanded;
-  final VoidCallback onToggle;
   final VoidCallback onEdited;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
@@ -659,11 +783,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final configured = controllers.keys.toList()
-      ..sort(
-        (a, b) =>
-            _moveLabel(a).toLowerCase().compareTo(_moveLabel(b).toLowerCase()),
-      );
+    final configured = controllers.keys.toList().reversed;
     final available =
         [
           for (final move in contraTaxonomy.moves.values)
@@ -684,44 +804,38 @@ class _MoveWordingsEditor extends StatelessWidget {
             l10n.dialectEditorMoveWordingsHelp,
             style: Theme.of(context).textTheme.bodySmall,
           ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('dialect-wordings-toggle'),
-              onPressed: onToggle,
-              icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              label: Text(
-                configured.isEmpty
-                    ? l10n.dialectEditorMoveWordingsAdd
-                    : l10n.dialectEditorMoveWordingsCount(configured.length),
+          if (available.isNotEmpty)
+            DropdownButton<String>(
+              key: const ValueKey('dialect-add-move-wording'),
+              hint: Text(
+                l10n.dialectEditorAddMoveWording,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
               ),
+              value: null,
+              isExpanded: true,
+              iconEnabledColor: Theme.of(context).colorScheme.secondary,
+              items: [
+                for (final id in available)
+                  DropdownMenuItem<String>(
+                    value: id,
+                    child: Text(_moveLabel(id)),
+                  ),
+              ],
+              onChanged: (id) {
+                if (id != null) onAdd(id);
+              },
             ),
+          for (final id in configured) _wordingRow(context, id, l10n),
+          TextButton(
+            key: const ValueKey('dialect-wordings-restore'),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: onRestoreDefaults,
+            child: Text(l10n.dialectEditorMoveWordingsReset),
           ),
-          if (expanded) ...[
-            for (final id in configured) _wordingRow(context, id, l10n),
-            if (available.isNotEmpty)
-              DropdownButton<String>(
-                key: const ValueKey('dialect-add-move-wording'),
-                hint: Text(l10n.dialectEditorAddMoveWording),
-                value: null,
-                isExpanded: true,
-                items: [
-                  for (final id in available)
-                    DropdownMenuItem<String>(
-                      value: id,
-                      child: Text(_moveLabel(id)),
-                    ),
-                ],
-                onChanged: (id) {
-                  if (id != null) onAdd(id);
-                },
-              ),
-            TextButton(
-              key: const ValueKey('dialect-wordings-restore'),
-              onPressed: onRestoreDefaults,
-              child: Text(l10n.dialectEditorMoveWordingsReset),
-            ),
-          ],
         ],
       ),
     );
@@ -760,7 +874,10 @@ class _MoveWordingsEditor extends StatelessWidget {
               ),
               IconButton(
                 key: ValueKey('dialect-wording-delete-$id'),
-                icon: const Icon(Icons.delete_outline),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
                 tooltip: l10n.commonRemove,
                 onPressed: () => onRemove(id),
               ),
@@ -825,8 +942,6 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
   const _DancerSubstitutionsEditor({
     required this.controllers,
     required this.dialect,
-    required this.expanded,
-    required this.onToggle,
     required this.onEdited,
     required this.onAdd,
     required this.onRemove,
@@ -838,8 +953,6 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
   /// caller is typing (`onesRole1` reads "first lark" the moment role1 becomes
   /// "lark").
   final Dialect dialect;
-  final bool expanded;
-  final VoidCallback onToggle;
   final VoidCallback onEdited;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
@@ -869,12 +982,7 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final overridden = controllers.keys.toList()
-      ..sort(
-        (a, b) => _dancerLabel(
-          a,
-        ).toLowerCase().compareTo(_dancerLabel(b).toLowerCase()),
-      );
+    final overridden = controllers.keys.toList().reversed;
     final available =
         [
           for (final token in _substitutableTokens)
@@ -890,71 +998,62 @@ class _DancerSubstitutionsEditor extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              key: const ValueKey('dialect-dancers-toggle'),
-              onPressed: onToggle,
-              icon: Icon(expanded ? Icons.expand_less : Icons.expand_more),
-              label: Text(
-                overridden.isEmpty
-                    ? l10n.dialectEditorDancerSubsAdd
-                    : l10n.dialectEditorDancerSubsCount(overridden.length),
-              ),
-            ),
-          ),
-          if (expanded) ...[
-            for (final token in overridden)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 140,
-                      child: Text(
-                        _dancerLabel(token),
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ),
-                    Expanded(
-                      child: TextField(
-                        key: ValueKey('dialect-dancer-$token'),
-                        controller: controllers[token],
-                        decoration: InputDecoration(
-                          labelText: _dancerLabel(token),
-                          hintText: l10n.dialectEditorDancerSubHint,
-                        ),
-                        onChanged: (_) => onEdited(),
-                      ),
-                    ),
-                    IconButton(
-                      key: ValueKey('dialect-dancer-delete-$token'),
-                      icon: const Icon(Icons.delete_outline),
-                      tooltip: l10n.commonRemove,
-                      onPressed: () => onRemove(token),
-                    ),
-                  ],
+          if (available.isNotEmpty)
+            DropdownButton<String>(
+              key: const ValueKey('dialect-add-dancer'),
+              hint: Text(
+                l10n.dialectEditorAddDancerTerm,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.secondary,
                 ),
               ),
-            if (available.isNotEmpty)
-              DropdownButton<String>(
-                key: const ValueKey('dialect-add-dancer'),
-                hint: Text(l10n.dialectEditorAddDancerTerm),
-                value: null,
-                isExpanded: true,
-                items: [
-                  for (final token in available)
-                    DropdownMenuItem<String>(
-                      value: token,
-                      child: Text(_dancerLabel(token)),
+              value: null,
+              isExpanded: true,
+              iconEnabledColor: Theme.of(context).colorScheme.secondary,
+              items: [
+                for (final token in available)
+                  DropdownMenuItem<String>(
+                    value: token,
+                    child: Text(_dancerLabel(token)),
+                  ),
+              ],
+              onChanged: (token) {
+                if (token != null) onAdd(token);
+              },
+            ),
+          for (final token in overridden)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 140,
+                    child: Text(
+                      _dancerLabel(token),
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
+                  ),
+                  Expanded(
+                    child: TextField(
+                      key: ValueKey('dialect-dancer-$token'),
+                      controller: controllers[token],
+                      decoration: InputDecoration(
+                        labelText: _dancerLabel(token),
+                        hintText: l10n.dialectEditorDancerSubHint,
+                      ),
+                      onChanged: (_) => onEdited(),
+                    ),
+                  ),
+                  IconButton(
+                    key: ValueKey('dialect-dancer-delete-$token'),
+                    icon: const Icon(Icons.delete_outline),
+                    tooltip: l10n.commonRemove,
+                    onPressed: () => onRemove(token),
+                  ),
                 ],
-                onChanged: (token) {
-                  if (token != null) onAdd(token);
-                },
               ),
-          ],
+            ),
         ],
       ),
     );
@@ -1033,6 +1132,9 @@ class _DiscouragedTermsEditor extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: TextButton(
               key: const ValueKey('dialect-discouraged-restore'),
+              style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error,
+              ),
               onPressed: onRestoreDefaults,
               child: Text(l10n.dialectEditorRestoreDefaults),
             ),

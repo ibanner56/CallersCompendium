@@ -34,6 +34,7 @@ void main() {
     }
     expect(target, findsOneWidget);
     await tester.ensureVisible(target);
+    await tester.pumpAndSettle();
   }
 
   testWidgets('typing a colliding substitution surfaces the collision live', (
@@ -168,7 +169,17 @@ void main() {
       await tester.pump();
       expect(find.textContaining('incomplete'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey('dialect-wordings-restore')));
+      final restore = find.byKey(const ValueKey('dialect-wordings-restore'));
+      await reveal(tester, restore);
+      await tester.tap(restore);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('dialect-wordings-reset-dialog')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('dialect-wordings-reset-confirm')),
+      );
       await tester.pump();
       expect(find.byKey(const ValueKey('dialect-wording-swing')), findsNothing);
       final movesToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
@@ -178,6 +189,247 @@ void main() {
       expect(find.byKey(const ValueKey('dialect-move-swing')), findsOneWidget);
     },
   );
+
+  testWidgets('resetting wording templates requires confirmation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(
+            name: 'Wording',
+            moveWordings: const {'swing': '{who} {move}'},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-wordings-toggle')));
+    await tester.pumpAndSettle();
+    final restore = find.byKey(const ValueKey('dialect-wordings-restore'));
+    await reveal(tester, restore);
+    await tester.tap(restore);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('dialect-wordings-reset-dialog')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('dialect-wording-swing')), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('dialect-wordings-reset-confirm')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('dialect-wording-swing')), findsNothing);
+  });
+
+  testWidgets('restoring discouraged terms requires confirmation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(name: 'Terms', discouragedTerms: const ['avoid']),
+        ),
+      ),
+    );
+
+    final toggle = find.byKey(const ValueKey('dialect-discouraged-toggle'));
+    await reveal(tester, toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+    final restore = find.byKey(const ValueKey('dialect-discouraged-restore'));
+    await reveal(tester, restore);
+    await tester.tap(restore);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('dialect-discouraged-reset-dialog')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('dialect-discouraged-chip-avoid')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('dialect-discouraged-reset-confirm')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-discouraged-chip-avoid')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('back navigation prompts to save or exit without saving', (
+    tester,
+  ) async {
+    Dialect? popped;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              popped = await Navigator.of(context).push<Dialect>(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      DialectEditorScreen(initial: Dialect.canonical),
+                ),
+              );
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('dialect-role1-singular')),
+      'star',
+    );
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('dialect-exit-dialog')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('dialect-exit-save')));
+    await tester.pumpAndSettle();
+    expect(popped?.roles['role1']?.singular, 'star');
+  });
+
+  testWidgets('back navigation can exit without saving', (tester) async {
+    var didReturn = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              await Navigator.of(context).push<Dialect>(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      DialectEditorScreen(initial: Dialect.canonical),
+                ),
+              );
+              didReturn = true;
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('dialect-role1-singular')),
+      'star',
+    );
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('dialect-exit-without-saving')));
+    await tester.pumpAndSettle();
+
+    expect(didReturn, isTrue);
+  });
+
+  testWidgets('sections use uppercase expansion headers and action colors', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(
+            name: 'Sections',
+            moves: const {'swing': 'twirl'},
+            moveWordings: const {'swing': '{who} {move}'},
+          ),
+        ),
+      ),
+    );
+
+    for (final entry in [
+      ('dialect-roles-toggle', 'ROLE TERMS'),
+      ('dialect-moves-toggle', 'MOVE SUBSTITUTIONS'),
+      ('dialect-dancers-toggle', 'DANCER SUBSTITUTIONS'),
+      ('dialect-wordings-toggle', 'MOVE WORDING TEMPLATES'),
+      ('dialect-discouraged-toggle', 'DISCOURAGED TERMS'),
+    ]) {
+      expect(find.byKey(ValueKey(entry.$1)), findsOneWidget);
+      expect(find.text(entry.$2), findsOneWidget);
+    }
+    expect(find.text('PREVIEW'), findsOneWidget);
+    expect(find.byType(ExpansionTile), findsNWidgets(5));
+
+    final wordingsToggle = find.byKey(
+      const ValueKey('dialect-wordings-toggle'),
+    );
+    await reveal(tester, wordingsToggle);
+    await tester.tap(wordingsToggle);
+    await tester.pumpAndSettle();
+
+    final context = tester.element(wordingsToggle);
+    final theme = Theme.of(context);
+    final reset = tester.widget<TextButton>(
+      find.byKey(const ValueKey('dialect-wordings-restore')),
+    );
+    expect(reset.style!.foregroundColor!.resolve({}), theme.colorScheme.error);
+    expect(
+      tester
+          .widget<Icon>(
+            find.descendant(
+              of: find.byKey(const ValueKey('dialect-wording-delete-swing')),
+              matching: find.byType(Icon),
+            ),
+          )
+          .color,
+      theme.colorScheme.error,
+    );
+    expect(
+      tester
+          .widget<Text>(
+            find.descendant(
+              of: find.byKey(const ValueKey('dialect-add-move-wording')),
+              matching: find.text('Add a move wording template…'),
+            ),
+          )
+          .style!
+          .color,
+      theme.colorScheme.secondary,
+    );
+
+    final moveToggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+    await reveal(tester, moveToggle);
+    await tester.tap(moveToggle);
+    await tester.pumpAndSettle();
+    final moves = tester.widget<DropdownButton<String>>(
+      find.byKey(const ValueKey('dialect-add-move')),
+    );
+    moves.onChanged!(
+      moves.items!
+          .map((item) => item.value)
+          .firstWhere((id) => id == 'balance'),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.byKey(const ValueKey('dialect-move-balance'))).dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('dialect-move-swing'))).dy,
+      ),
+    );
+  });
 
   testWidgets('adding a wording updates the main preview immediately', (
     tester,

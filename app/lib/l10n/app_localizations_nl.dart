@@ -6096,6 +6096,27 @@ class AppLocalizationsNl extends AppLocalizations {
   String get dialectEditorRestoreDefaults => 'Standaarden herstellen';
 
   @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Standaard afgeraden termen herstellen?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'Je huidige afgeraden termen worden vervangen door de standaardtermen.';
+
+  @override
+  String get dialectEditorExitTitle => 'Wijzigingen opslaan?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'Je hebt niet-opgeslagen wijzigingen in dit dialect.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Opslaan en afsluiten';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Afsluiten zonder opslaan';
+
+  @override
   String get dialectEditorPreviewHelp =>
       'Voorbeeldfiguren weergegeven met dit dialect. Wordt bijgewerkt tijdens het bewerken.';
 
@@ -6461,6 +6482,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get dialectEditorMoveWordingsReset =>
       'Sjablonen voor bewegingsformuleringen resetten';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Sjablonen voor bewegingsformuleringen resetten?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'Hiermee verwijder je al je aangepaste sjablonen voor bewegingsformuleringen.';
 
   @override
   String get dialectEditorMoveWordingConfirmTitle =>

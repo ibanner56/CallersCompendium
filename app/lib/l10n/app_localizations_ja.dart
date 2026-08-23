@@ -5842,6 +5842,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get dialectEditorRestoreDefaults => 'デフォルトに戻す';
 
   @override
+  String get dialectEditorDiscouragedResetTitle => '推奨されない用語をデフォルトに戻しますか？';
+
+  @override
+  String get dialectEditorDiscouragedResetBody => '現在の推奨されない用語をデフォルトに置き換えます。';
+
+  @override
+  String get dialectEditorExitTitle => '変更を保存しますか？';
+
+  @override
+  String get dialectEditorExitBody => 'この方言には未保存の変更があります。';
+
+  @override
+  String get dialectEditorSaveAndExit => '保存して終了';
+
+  @override
+  String get dialectEditorExitWithoutSaving => '保存せずに終了';
+
+  @override
   String get dialectEditorPreviewHelp =>
       'このダイアレクトでレンダリングされたサンプルフィギュア。編集に合わせて更新されます。';
 
@@ -6192,6 +6210,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingsReset => '動作の文言テンプレートをリセット';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle => '動作の文言テンプレートをリセットしますか？';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody => 'カスタムの動作文言テンプレートをすべて削除します。';
 
   @override
   String get dialectEditorMoveWordingConfirmTitle => '不完全な文言テンプレートを保存しますか？';
