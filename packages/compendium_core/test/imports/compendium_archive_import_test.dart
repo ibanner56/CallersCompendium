@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -112,6 +113,16 @@ void main() {
 
   final now = DateTime.utc(2026, 7, 18);
 
+  Future<int> programExistenceStamp(String id) async {
+    final rows = await db
+        .customSelect(
+          'SELECT existence_at AS v FROM programs WHERE id = ?',
+          variables: [Variable.withString(id)],
+        )
+        .get();
+    return rows.single.read<int>('v');
+  }
+
   test('imports the program AND its referenced dances', () async {
     final archive = _bundle();
     final result = await importer.import(
@@ -214,13 +225,14 @@ void main() {
 
   test('re-importing the same bundle dedupes — no duplicates', () async {
     final archive = _bundle();
-    await importer.import(
+    final first = await importer.import(
       encodeArchive(archive),
       archive,
       now: now,
       newId: sequentialIds('first'),
       newSlotId: sequentialIds('firstslot'),
     );
+    final firstStamp = await programExistenceStamp(first.programs.single.id);
 
     final result2 = await importer.import(
       encodeArchive(archive),
@@ -238,6 +250,59 @@ void main() {
     // The program was updated in place, not inserted again.
     expect(result2.updatedProgramCount, 1);
     expect(result2.insertedProgramCount, 0);
+    expect(
+      await programExistenceStamp(first.programs.single.id),
+      firstStamp,
+      reason: 'ordinary content re-imports are not existence transitions',
+    );
+  });
+
+  test('re-importing a deleted program restores existence ordering and undo '
+      're-tombstones it', () async {
+    final archive = _bundle();
+    final first = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('firstslot'),
+    );
+    final programId = first.programs.single.id;
+    final deletedAt = now.add(const Duration(days: 1));
+    await programs.softDelete(programId, at: deletedAt);
+    final tombstone = await programExistenceStamp(programId);
+
+    final updatedArchive = CompendiumArchive(
+      exportedAt: archive.exportedAt,
+      dances: archive.dances,
+      programs: [archive.programs.single.copyWith(title: 'Updated Fling')],
+    );
+    final importedAt = now.add(const Duration(days: 2));
+    final second = await importer.import(
+      encodeArchive(updatedArchive),
+      updatedArchive,
+      now: importedAt,
+      newId: sequentialIds('second'),
+      newSlotId: sequentialIds('secondslot'),
+    );
+
+    expect(second.restoredProgramIds, [programId]);
+    final revived = await programs.getById(programId);
+    expect(revived, isNotNull);
+    expect(revived!.title, 'Updated Fling');
+    final revivedStamp = await programExistenceStamp(programId);
+    expect(revivedStamp, greaterThan(tombstone));
+
+    await importer.undo(second);
+    final undone = await programs.getById(programId, includeDeleted: true);
+    expect(undone, isNotNull);
+    expect(undone!.deletedAt, isNotNull);
+    final undoneStamp = await programExistenceStamp(programId);
+    expect(
+      undoneStamp,
+      greaterThan(revivedStamp),
+      reason: 'undo must create a later causal tombstone',
+    );
   });
 
   test('undo reverts the imported program and dances', () async {

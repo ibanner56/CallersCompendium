@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -160,6 +161,16 @@ void main() {
   tearDown(() => db.close());
 
   final now = DateTime.utc(2026, 7, 15);
+
+  Future<int> programExistenceStamp(String id) async {
+    final rows = await db
+        .customSelect(
+          'SELECT existence_at AS v FROM programs WHERE id = ?',
+          variables: [Variable.withString(id)],
+        )
+        .get();
+    return rows.single.read<int>('v');
+  }
 
   Future<Map<String, String>> danceIdByExternalId(ImportSession session) async {
     final map = <String, String>{};
@@ -433,6 +444,49 @@ void main() {
       expect(all.single.provenance!.source, ProvenanceSource.callersCompanion);
       // Dances also deduped via the pipeline: still just the two.
       expect(await dances.listAll(), hasLength(2));
+    });
+
+    test('re-importing a deleted program restores existence ordering and undo '
+        're-tombstones it', () async {
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+      final programId = first.programs.single.id;
+      await programs.softDelete(
+        programId,
+        at: now.add(const Duration(days: 1)),
+      );
+      final tombstone = await programExistenceStamp(programId);
+
+      final importedAt = now.add(const Duration(days: 2));
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: importedAt,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+
+      expect(second.restoredProgramIds, [programId]);
+      final revived = await programs.getById(programId);
+      expect(revived, isNotNull);
+      expect(revived!.id, programId);
+      final revivedStamp = await programExistenceStamp(programId);
+      expect(revivedStamp, greaterThan(tombstone));
+
+      await importer.undo(second);
+      final undone = await programs.getById(programId, includeDeleted: true);
+      expect(undone, isNotNull);
+      expect(undone!.deletedAt, isNotNull);
+      expect(
+        await programExistenceStamp(programId),
+        greaterThan(revivedStamp),
+        reason: 'undo must create a later causal tombstone',
+      );
     });
 
     test(

@@ -36,12 +36,16 @@ class CcUsrImportResult {
     required List<ImportIssue> programIssues,
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
+    List<String> restoredProgramIds = const [],
+    DateTime? programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<ImportIssue> relatedDanceLinkIssues = const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
+       restoredProgramIds = List.unmodifiable(restoredProgramIds),
+       programRestoreAt = programRestoreAt,
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
        relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues);
 
@@ -64,6 +68,13 @@ class CcUsrImportResult {
   /// verbatim on [undo] so a re-import reverts losslessly (mirrors the dance
   /// pipeline's `updatedDancePriorStates`).
   final List<Program> updatedProgramPriorStates;
+
+  /// Ids of tombstoned programs restored by an exact provenance match. Soft-deleted
+  /// again on [undo] so the rollback records a later existence transition.
+  final List<String> restoredProgramIds;
+
+  /// Import timestamp used for the causal restore/re-tombstone transition.
+  final DateTime? programRestoreAt;
 
   /// Ids of the venues this import **inserted** while resolving each set's
   /// `location` text to a venue entity (issue #687) — one freshly-minted id
@@ -245,6 +256,7 @@ class CallersCompanionUsrImporter {
     );
     final insertedIds = <String>[];
     final priorStates = <Program>[];
+    final restoredProgramIds = <String>[];
     final persisted = <Program>[];
     final insertedVenueIds = <String>[];
     final relatedDanceLinkIssues = <ImportIssue>[];
@@ -355,6 +367,12 @@ class CallersCompanionUsrImporter {
             priorVenueId: prior.venueId,
           );
           priorStates.add(prior);
+          if (prior.deletedAt != null) {
+            await _programs.restore(existingId, at: now);
+            if (!restoredProgramIds.contains(existingId)) {
+              restoredProgramIds.add(existingId);
+            }
+          }
           await _programs.update(target);
           persisted.add(target);
         }
@@ -412,6 +430,9 @@ class CallersCompanionUsrImporter {
       for (final prior in priorStates) {
         await _programs.update(prior);
       }
+      for (final id in restoredProgramIds) {
+        await _programs.softDelete(id, at: now);
+      }
       await _venues.hardDelete(insertedVenueIds);
       await _pipeline.undo(danceSession);
       rethrow;
@@ -423,6 +444,8 @@ class CallersCompanionUsrImporter {
       programIssues: issues,
       insertedProgramIds: insertedIds,
       updatedProgramPriorStates: priorStates,
+      restoredProgramIds: restoredProgramIds,
+      programRestoreAt: restoredProgramIds.isEmpty ? null : now,
       insertedVenueIds: insertedVenueIds,
       relatedDanceLinkIssues: relatedDanceLinkIssues,
     );
@@ -495,6 +518,12 @@ class CallersCompanionUsrImporter {
     await _programs.hardDelete(result.insertedProgramIds);
     for (final prior in result.updatedProgramPriorStates) {
       await _programs.update(prior);
+    }
+    final programRestoreAt = result.programRestoreAt;
+    if (programRestoreAt != null) {
+      for (final id in result.restoredProgramIds) {
+        await _programs.softDelete(id, at: programRestoreAt);
+      }
     }
     for (final id in result.insertedVenueIds) {
       try {
