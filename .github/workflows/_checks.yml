@@ -176,6 +176,8 @@ jobs:
           python3 tools/release/test_gen_sbom.py
           python3 tools/release/test_gen_release_metadata.py
           python3 tools/release/test_gen_release_notes.py
+          python3 tools/release/test_gen_recovery_provenance.py
+          python3 tools/release/test_release_workflow_recovery.py
           python3 tools/release/test_publish_pages_manifest.py
           python3 tools/release/test_publish_pages_site.py
           python3 tools/release/test_check_pages_signature_files.py
