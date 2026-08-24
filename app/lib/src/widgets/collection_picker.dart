@@ -342,6 +342,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       ?widget.danceOverrides[id],
       ?_importedDances[id],
     ];
+    if (dances.isEmpty) return null;
     return dances.reduce(
       (latest, dance) =>
           dance.updatedAt.isAfter(latest.updatedAt) ? dance : latest,
