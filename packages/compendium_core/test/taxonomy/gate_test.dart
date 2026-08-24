@@ -524,6 +524,20 @@ void main() {
       );
     });
 
+    test(
+      'a subjectless directional gate has no space before its forward comma',
+      () {
+        final f = Figure(
+          move: 'gate',
+          params: {'direction': 'counterclockwise', 'whom': 'neighbors'},
+        );
+        expect(
+          renderer.render(f, Dialect.canonical),
+          'gate counterclockwise, neighbor forward',
+        );
+      },
+    );
+
     test('convention-dependent 3/4 still shows no facing clause', () {
       final out = renderer.render(
         gate('partners', 'counterclockwise', 0.75, beats: 6),

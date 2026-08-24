@@ -1373,28 +1373,21 @@ class FigureRenderer {
       final facingClause = (faceRaw is String && gateFacings.contains(faceRaw))
           ? ' to face ${_gateFacingPhrase(faceRaw)}'
           : '';
-      // Avoid leaving the template's separator before a leading comma when a
-      // subjectless gate names only the forward-walking object.
-      final template =
-          swho.isEmpty &&
-              objects.isEmpty &&
-              renderedDirection.isEmpty &&
-              turn.isEmpty &&
-              forwardClause.isNotEmpty
-          ? '{subject} {modifier}{move}{objects}{direction}{turn}'
-                '{forward}{facing}'
-          : '{subject} {modifier}{move} {objects} {direction} {turn}'
-                '{forward}{facing}';
+      // The forward clause starts with a comma, so append it to the assembled
+      // head rather than after a template separator. This keeps it adjacent to
+      // whichever slot was rendered last.
+      final head = [
+        swho,
+        '$modifier$move',
+        objects,
+        renderedDirection,
+        turn,
+      ].where((slot) => slot.isNotEmpty).join(' ');
       return _displayTemplate({
-        'subject': swho,
-        'modifier': modifier,
-        'move': move,
-        'objects': objects,
-        'direction': renderedDirection,
-        'turn': turn,
+        'head': head,
         'forward': forwardClause,
         'facing': facingClause,
-      }, template);
+      }, '{head}{forward}{facing}');
     },
     // The Caller's Box's standalone courtesy turn (taxonomy v23). Maintainer's
     // stated wording, verbatim:
