@@ -5739,14 +5739,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'このフィールドの値は、コレクションをエクスポートまたは共有するときに一緒に送られます';
+      'このフィールドの値はコレクションを共有するときに一緒に送られます。バックアップには常に含まれます';
 
   @override
   String get customFieldsSharingNoticeTitle => 'カスタムフィールドはコレクションと一緒に送られます';
 
   @override
   String get customFieldsSharingNoticeBody =>
-      '作成したカスタムフィールドの内容は、コレクションをエクスポートまたは共有するときに含まれます。フィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
+      '作成したカスタムフィールドの内容はバックアップに含まれます。コレクションを共有するときにフィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
 
   @override
   String get customFieldsSharingNoticeOk => '了解';

@@ -21,6 +21,8 @@ import 'figure_codec.dart';
 
 /// Canonical JSON (de)serialization for a [CompendiumArchive] — the versioned
 /// backup/exchange format (`docs/design/imports.md` §"Generic JSON (6.6)").
+/// [ArchiveSerializationMode.share] is the inter-user/public exchange boundary;
+/// [ArchiveSerializationMode.backup] is the owner's full-fidelity snapshot.
 ///
 /// [encodeArchive] produces a deterministic string: entities are ordered by id
 /// and keys are emitted in a stable order, so the design's round-trip identity
@@ -38,22 +40,36 @@ import 'figure_codec.dart';
 // Encoding
 // ---------------------------------------------------------------------------
 
-/// Serializes [archive] to a canonical JSON string.
-String encodeArchive(CompendiumArchive archive) =>
-    jsonEncode(archiveToJson(archive));
+/// Selects the egress contract for a serialized archive.
+///
+/// [share] is the default inter-user/public export mode and omits
+/// non-shareable custom fields and their values. [backup] is the owner's
+/// full-fidelity snapshot mode and preserves those fields, values, and their
+/// sharing flags.
+enum ArchiveSerializationMode { share, backup }
+
+/// Serializes [archive] to a canonical JSON string using [mode].
+String encodeArchive(
+  CompendiumArchive archive, {
+  ArchiveSerializationMode mode = ArchiveSerializationMode.share,
+}) => jsonEncode(archiveToJson(archive, mode: mode));
 
 /// The canonical JSON object for [archive] (entities sorted by id).
 ///
-/// Fields where [CustomFieldDef.shareable] is `false` are excluded from the
-/// encoded output: neither the field definition nor any dance's value for that
-/// field is emitted (#780). This makes the control observable on the existing
-/// archive/export surface without requiring a separate sync path.
-Map<String, Object?> archiveToJson(CompendiumArchive archive) {
+/// In [ArchiveSerializationMode.share], fields where
+/// [CustomFieldDef.shareable] is `false` are excluded from the encoded output:
+/// neither the field definition nor any dance's value for that field is
+/// emitted (#780). [ArchiveSerializationMode.backup] preserves every
+/// definition and value, including each definition's sharing flag.
+Map<String, Object?> archiveToJson(
+  CompendiumArchive archive, {
+  ArchiveSerializationMode mode = ArchiveSerializationMode.share,
+}) {
   // Compute the set of field IDs excluded from sharing once, then reference it
   // for both the field-def list and each dance's value list.
   final excludedFieldIds = {
     for (final f in archive.customFields)
-      if (!f.shareable) f.id,
+      if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
   };
   return {
     // Stamp at least the version the content requires (v2 when venue data is
@@ -76,7 +92,11 @@ Map<String, Object?> archiveToJson(CompendiumArchive archive) {
     ],
     'customFields': [
       for (final f in _sortedById(archive.customFields, (f) => f.id))
-        if (f.shareable) _customFieldDefToJson(f),
+        if (mode == ArchiveSerializationMode.backup || f.shareable)
+          _customFieldDefToJson(
+            f,
+            includeShareable: mode == ArchiveSerializationMode.backup,
+          ),
     ],
     'dances': [
       for (final d in _sortedById(archive.dances, (d) => d.id))
@@ -127,7 +147,10 @@ Map<String, Object?> _tagToJson(Tag t) => {
   if (t.color != null) 'color': t.color,
 };
 
-Map<String, Object?> _customFieldDefToJson(CustomFieldDef f) => {
+Map<String, Object?> _customFieldDefToJson(
+  CustomFieldDef f, {
+  required bool includeShareable,
+}) => {
   'id': f.id,
   'key': f.key,
   'label': f.label,
@@ -135,6 +158,7 @@ Map<String, Object?> _customFieldDefToJson(CustomFieldDef f) => {
   if (f.choices != null) 'choices': f.choices,
   'showInList': f.showInList,
   'searchable': f.searchable,
+  if (includeShareable) 'shareable': f.shareable,
 };
 
 Map<String, Object?> _danceToJson(Dance d, Set<String> excludedFieldIds) => {
@@ -620,6 +644,7 @@ CustomFieldDef _customFieldDefFromJson(Map<String, Object?> m) {
     choices: choices,
     showInList: _boolOr(m, 'showInList', false),
     searchable: _boolOr(m, 'searchable', true),
+    shareable: _boolOr(m, 'shareable', true),
   );
 }
 

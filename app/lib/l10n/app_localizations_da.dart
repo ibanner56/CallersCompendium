@@ -5943,7 +5943,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Dette felts værdier følger med din samling, når du eksporterer eller deler den';
+      'Dette felts værdier følger med din samling, når du deler den; sikkerhedskopier indeholder dem altid';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5951,7 +5951,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Indholdet af ethvert brugerdefineret felt, du opretter, inkluderes, når du eksporterer eller deler din samling. Slå „Inkludér ved deling“ fra i feltets indstillinger for at holde et felt privat.';
+      'Indholdet af alle brugerdefinerede felter, du opretter, inkluderes i dine sikkerhedskopier. Når du deler din samling, skal du slå \"Inkludér ved deling\" fra i feltets indstillinger for at holde feltet privat.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Forstået';
