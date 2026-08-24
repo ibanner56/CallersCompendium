@@ -1048,9 +1048,6 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _walkthroughSnippets.dispose();
     _updateController.dispose();
     _windowService.dispose();
-    // dispose() can't be async; explicitly mark the close as fire-and-forget
-    // rather than silently dropping an unawaited Future (unawaited_futures).
-    unawaited(_appData.close());
     super.dispose();
   }
 
