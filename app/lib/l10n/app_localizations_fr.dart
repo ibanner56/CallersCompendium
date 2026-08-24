@@ -6032,7 +6032,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Les valeurs de ce champ accompagnent votre collection lorsque vous l’exportez ou la partagez';
+      'Les valeurs de ce champ accompagnent votre collection lorsque vous la partagez ; les sauvegardes les incluent toujours';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6040,7 +6040,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Le contenu de tout champ personnalisé que vous créez est inclus lorsque vous exportez ou partagez votre collection. Pour garder un champ privé, désactivez « Inclure lors du partage » dans les paramètres de ce champ.';
+      'Le contenu de tout champ personnalisé que vous créez est inclus dans vos sauvegardes. Lorsque vous partagez votre collection, désactivez « Inclure lors du partage » dans les paramètres du champ pour le garder privé.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Compris';

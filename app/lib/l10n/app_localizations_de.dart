@@ -6022,7 +6022,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Die Werte dieses Feldes werden mit Ihrer Sammlung übertragen, wenn Sie sie exportieren oder teilen';
+      'Die Werte dieses Feldes werden beim Teilen mit Ihrer Sammlung übertragen; Sicherungen enthalten sie immer';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6030,7 +6030,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Die Inhalte aller von Ihnen erstellten benutzerdefinierten Felder werden beim Exportieren oder Teilen Ihrer Sammlung einbezogen. Um ein Feld privat zu halten, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen dieses Feldes.';
+      'Die Inhalte aller benutzerdefinierten Felder, die Sie erstellen, werden in Ihren Sicherungen eingeschlossen. Wenn Sie Ihre Sammlung teilen, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen des Feldes, um es privat zu halten.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Verstanden';

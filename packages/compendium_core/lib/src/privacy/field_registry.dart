@@ -361,12 +361,12 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'Per-field flag: whether this field and its values may travel in a '
         'shared archive. Classified shareable because the flag is carried on '
-        'the defs that *are* emitted — excluded defs are omitted entirely from '
-        'the encoded archive. Recipients see no indication that any fields were '
-        'withheld; disclosing the count of excluded fields would itself leak '
-        'information the sender chose not to share. This is the only field that '
-        'directly controls egress of another field '
-        '(custom_field_values.value_text). Added in #780.',
+        'the defs that *are* emitted in share mode and is preserved in the '
+        "owner's full-fidelity backup mode. Share mode omits definitions whose "
+        'flag is false and their values; backup mode includes both so restore '
+        'can reproduce the setting. This is the only field that directly '
+        'controls egress of another field (custom_field_values.value_text). '
+        'Added in #780; backup preservation fixed in #1037.',
   ),
   'custom_field_defs.updated_at': _recordStamp,
   'custom_field_defs.deleted_at': _tombstone,
@@ -380,12 +380,14 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'Holds either unbounded free text or a user-defined choice value, for '
         'a field the user invented and named. Shareable by maintainer ruling: '
-        'custom fields are core collection data. Egress is conditional on the '
-        'field definition\'s shareable flag (custom_field_defs.shareable, added '
-        'in #780): when shareable = false, neither this field def nor its '
-        'values are emitted in an archive. The one-time disclosure notice on '
-        'field creation (obligation 1) and the per-field exclusion control '
-        '(obligation 2) were both implemented in #780.',
+        'custom fields are core collection data. Egress in share mode is '
+        'conditional on the field definition\'s shareable flag '
+        '(custom_field_defs.shareable, added in #780): when shareable = false, '
+        'neither this field def nor its values are emitted. Full-fidelity backup '
+        'mode preserves the field and values regardless of that flag so restore '
+        'does not lose owner data (fixed in #1037). The one-time disclosure '
+        'notice on field creation (obligation 1) and the per-field exclusion '
+        'control (obligation 2) were both implemented in #780.',
   ),
   'custom_field_values.value_num': _choreography,
 
