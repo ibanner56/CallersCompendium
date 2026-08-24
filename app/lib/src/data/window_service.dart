@@ -77,7 +77,7 @@ class WindowService with WindowListener {
     this._settings, {
     this.frameKey = kWindowFrameKey,
     Future<void> Function()? onClose,
-  }) : _closeCoordinator = onClose == null
+  }) : _closeCoordinator = onClose == null || !isDesktopWindowPlatform
            ? null
            : WindowCloseCoordinator(
                closeApp: onClose,
