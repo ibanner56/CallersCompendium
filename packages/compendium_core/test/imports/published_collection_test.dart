@@ -5,9 +5,10 @@ import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
 
-Dance _dance(String id) => Dance(
+Dance _dance(String id, {String walkthrough = ''}) => Dance(
   id: id,
   title: 'Dance $id',
+  walkthrough: walkthrough,
   createdAt: DateTime.utc(2026, 1, 1),
   updatedAt: DateTime.utc(2026, 1, 1),
 );
@@ -148,7 +149,14 @@ void main() {
 
     test('stamps manifest metadata and exposes an idempotent event', () async {
       final now = DateTime.utc(2026, 8, 20);
-      final batch = await importer.plan(_payload(), metadata);
+      final batch = await importer.plan(
+        _payload(
+          dances: [
+            _dance('d1', walkthrough: 'Walk forward, turn, and return.'),
+          ],
+        ),
+        metadata,
+      );
       final raw = batch.records.single.draft.raw;
       expect(raw.source, ProvenanceSource.publishedCollection);
       expect(raw.externalId, 'book/d1');
@@ -177,6 +185,7 @@ void main() {
       );
 
       final dance = (await dances.listAll()).single;
+      expect(dance.walkthrough, 'Walk forward, turn, and return.');
       expect(dance.provenance?.source, ProvenanceSource.publishedCollection);
       expect(dance.provenance?.externalId, 'book/d1');
       expect(dance.provenance?.sourceVersion, 'v1');
