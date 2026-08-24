@@ -15,15 +15,17 @@ One unit has already shipped: the §3.1 schema migration, merged as
 [#898](https://github.com/ibanner56/CallersCompendium/issues/898), ahead of the
 ADR and deliberately — see *What must be serialised*, **S6**. Everything else is
 unstarted. That unit shipped its *migration* cleanly but not its *invariant*:
-§3.1's soft-delete join rule is violated in `main` today (#1016), which is why
-**W17** exists and why C0 carries a caveat.
+§3.1's soft-delete join rule was violated in `main` when **W17** was written,
+which is why W17 exists.
 
-Two further live defects were found while reviewing this plan and are filed
-rather than folded in: **#1020** (numeric custom fields accept `NaN` and
-`±Infinity`) and **#1021** (import dedupe misses NFD titles). Both are shipped
-bugs independent of sync, and both
-are prerequisites for a §9 bucket here — #1020 for *Wire format*, #1021 for
-*Dedupe*. They are W1's and W18's first acts respectively.
+Three live defects found while reviewing this plan were filed rather than folded
+in, and all three have since been fixed on `main`: **#1016** (an archive
+re-import resolving onto a tombstoned venue) by #1018, **#1020** (numeric custom
+fields accepting `NaN` and `±Infinity`) by #1022, and **#1021** (import dedupe
+missing NFD titles) by #1024. Each was a prerequisite for a §9 bucket here, so
+each is now inherited rather than owed — but **only the instance is fixed, not
+the class**, which is the whole argument for W17's ratchets: #1016 was a new
+read that no list would have covered, and it was closed by adding one filter.
 
 Where this document and the spec disagree, the spec governs. Where this document
 and reality disagree, this document is wrong: it is a plan, and plans are the
@@ -114,22 +116,42 @@ schedule, not slack in it.
 
 - **Serves** §4.1, §4.2.
 - **Inherits** nothing. This is the root of the graph.
-- **Produces** an RFC 8785 (JCS) canonicaliser; SHA-256 content hashing; the
-  NFC normalisation **primitive** and its application in the serialiser;
+- **Produces** an RFC 8785 (JCS) canonicaliser; SHA-256 content hashing;
+  **adoption of `unorm_dart`** as the NFC primitive, promoted to a dependency of
+  `app` and re-exported so write paths outside `compendium_core` can reach it;
   rejection of NaN and ±Infinity; rejection of unpaired surrogates **checked on
   the string before encoding**; and the **golden vector corpus** that every
   later unit tests against.
 - **Unblocks** W3, and transitively everything.
-- **Done when** the §9 *Wire format* bucket is green, including the imported
-  RFC 8785 conformance vectors, a fractional `custom_field_values.value_num`
-  agreeing across two independently written encoders, **a title created locally
-  in NFD and never synced serialising as NFC on its first upload**, and the
-  surrogate rejection firing before `utf8.encode` rather than after it.
+- **Done when** the §9 *Wire format* bucket is green **except** the
+  normalisation clauses W18 owns, including the imported RFC 8785 conformance
+  vectors, a fractional
+  `custom_field_values.value_num` agreeing across two independently written
+  encoders, and the surrogate rejection firing before `utf8.encode` rather than
+  after it.
 
-W1 owns the normalisation *function* and the serialiser's use of it. It does
-**not** own applying normalisation across the app's existing write paths or
-repairing rows already stored — that is W18, kept separate so that W1, the root
-of the serial phase, does not grow a data migration.
+W1 exposes the normalisation primitive; it does **not** normalise. The
+serialiser emits the string **as stored**, and that is a decision rather than an
+omission. A serialiser that normalised defensively on the way out would make the
+wire bytes converge while the local database stayed NFD — so the locally-created
+NFD test would pass, the write-path ratchet would have nothing to catch, and
+§6.10's dedupe, which reads *stored* values, would keep failing. The defect
+would survive in the one place it is most expensive to find. Emitting stored
+bytes is
+what makes §4.1's one-time pass necessary, and necessary is what makes it get
+written.
+
+Applying normalisation across the app's write paths, and repairing rows already
+stored, is therefore W18 — kept separate so that W1, the root of the serial
+phase, does not grow a data migration.
+
+The primitive itself is now mostly a packaging job rather than an
+implementation: `unorm_dart` is already a dependency of `compendium_core`, and
+`nfc()` already has two call sites. Both are **comparison-only** — inside
+`_foldDiacritics` in `dedupe.dart` and `_normalizeName` in
+`import_pipeline.dart` — and neither is reachable from `app`, which does not
+depend on the package and cannot see `nfc` through the barrel. Nothing
+normalises a value that gets **stored**.
 
 The golden corpus is the real deliverable. Code can be rewritten; the corpus is
 what makes a rewrite safe, and what lets the server be built by someone who
@@ -178,36 +200,87 @@ and program content — which is precisely what the editor-draft keys held until
 - **Inherits** W1's normalisation primitive. Nothing else — it touches no sync
   machinery, and can otherwise start the moment the ADR is accepted.
 - **Produces** NFC normalisation applied at every path that populates a
-  `shareable` string — the local edit surfaces and every import adapter in
-  `packages/compendium_core/lib/src/imports/`; a **one-time backfill migration**
-  over existing rows that leaves `updated_at`, `existence_at` and `deleted_at`
-  untouched; a ratchet asserting new write paths normalise; and, as its first
-  act, **the fix for #1021**.
-- **Unblocks** nothing directly, but it **gates C1**: the *Wire format* bucket
-  includes the locally-created-NFD vector and the pre-existing-row vector, and
-  neither can be green without this unit.
-- **Done when** those two *Wire format* clauses are green, the backfill is
-  proved not to move `updated_at`, and #1021's mid-word case (`résumé` in NFD
-  normalising equal to its NFC form) passes — proved by running it against the
-  unfixed code first and watching `re sume` come back.
+  `shareable` string, implemented at the **repository write choke point** each
+  kind already funnels through rather than per-writer; a **one-time backfill
+  migration** over existing rows that leaves `updated_at`, `existence_at` and
+  `deleted_at` untouched, **skips and reports `UNIQUE` collisions without
+  aborting**, and **rebuilds derived indexes** when it completes; and a
+  **structural** ratchet asserting that write paths normalise.
+- **Unblocks** nothing directly, but it **gates C1**: the *Wire format* bucket's
+  locally-created-NFD vector, pre-existing-row vector, collision, idempotence
+  and derived-rebuild clauses are all its, as is the write-path clause in
+  *Write-path invariants*.
+- **Done when** those clauses are green: a locally-created NFD title uploads as
+  NFC, a row written before the normalising build is NFC after upgrade, the
+  backfill is proved not to move any of the three stamps, a colliding local pair
+  leaves both rows untouched and is reported while the pass completes, a second
+  run of the pass changes nothing, a row whose text the pass changed is still
+  found by search, and the write-path ratchet catches a **newly added** writer
+  that skips normalisation rather than a writer removed from a list.
 
 **This unit exists because the round-31 fix to §4.1 corrected the rule without
-assigning the work it created.** The spec now requires normalisation on paths
-that have no normalisation at all today: there is none anywhere in the app.
-Correcting a rule and leaving its implementation unowned is a quieter version of
-not correcting it, because the plan is what gets built from.
+assigning the work it created.** Correcting a rule and leaving its
+implementation unowned is a quieter version of not correcting it, because the
+plan is what gets built from.
 
 It is deliberately separate from W17 rather than folded in, though both own
 standing properties. W17 ratchets invariants over code that already exists and
-ships no migration; W18 adds a dependency, touches every write surface in the
-app, and carries a **data** migration over user rows. Those are different risk
-classes, and a checkpoint that gates them together tells you less than one that
-gates them apart.
+ships no migration; W18 touches every write surface in the app and carries a
+**data** migration over user rows. Those are different risk classes, and a
+checkpoint that gates them together tells you less than one that gates them
+apart.
 
 The backfill is the part worth not deferring. "Normalise on write" repairs a row
 the next time it is written, and a library imported years ago and never edited
 is never written again — so the population the rule was written for is precisely
 the population it misses. §6.2 step 4 uploads exactly that library verbatim.
+
+**The backfill is the first work in this programme that rewrites stored user
+rows, and it should be planned as a migration rather than as a loop.** Three
+constraints on it are non-obvious and each has a matching test above.
+
+*It runs under an exception to invariant I1, and the exception is conditional.*
+§6.5 permits a content change without a stamp bump only for a pure, idempotent,
+row-local transformation that every device computes identically. That is not a
+courtesy extended to this pass; it is the reason the pass may leave stamps
+alone, and every other constraint here exists to keep the condition true.
+
+*Normalising can collide.* `choreographers.name`, `tags.name` and
+`custom_field_defs.key` are `UNIQUE`, so two rows differing only in Unicode form
+collapse onto one string. §6.6 already specifies this collision class for these
+exact columns — but only for the **inbound apply** path, so an implementer
+building W18 in isolation will not meet it. The pass skips both rows and
+reports; it does not merge. Merging would be a judgement about whether two
+similar names are one entity, and a user making that judgement differently on
+two devices produces exactly the divergence I1 orders — which would disqualify
+the pass from the exemption it depends on.
+
+*The pass must be total, not all-or-nothing.* The existing one-time sweeps in
+`repositories.dart` write their completion marker only after the whole pass
+succeeds, so a throwing row is retried from scratch on every launch and the
+sweep never completes. Skip-on-collision is what makes that idiom safe here:
+nothing raises, so there is nothing to retry into. Re-running is a no-op.
+
+*Derived indexes are maintained by the repository layer, not by SQLite.*
+`dance_fts` and `dance_substring_fts` hold literal text written on each
+repository write; a bulk `UPDATE` that bypasses that layer leaves them holding
+pre-normalisation text and search silently stops matching. Call
+`runDerivedRebuild()` on completion — unconditionally, as
+`_normaliseInversePairMoveIdsIfNeeded` already does. It rebuilds derived tables
+only, so it touches none of the three stamps and composes with the rule above.
+
+**Sizing note for the first sync after this unit ships.** The pass changes
+content without moving `updated_at`, so on the first device to upgrade *every*
+never-edited non-ASCII record becomes an equal-`updatedAt` difference against a
+peer that has not upgraded yet. §10 treats ties as an occasional edge case; here
+they arrive in a batch whose size is the user's non-ASCII library. They resolve
+correctly and are reported, so this is a UX volume question — the report must
+not be a per-record prompt — rather than a correctness one.
+
+**#1021 is no longer this unit's first act.** It was fixed on `main` by #1024
+while this plan was being written, so the red-run instruction that stood here
+does not apply. What remains is unaffected: #1024 repaired *comparison* in the
+import dedupe path, and nothing yet normalises a value that gets **stored**.
 
 ### Phase 2 — client foundation and server core, in parallel
 
@@ -326,7 +399,8 @@ otherwise.
   else, and can start the moment the ADR is accepted.
 - **Produces** a CI ratchet enumerating every read that joins through to a
   soft-deletable parent and asserting the `deleted_at IS NULL` filter; a ratchet
-  for I1/I2 over write paths; and, as its first act, **the fix for #1016**.
+  for I1/I2 over write paths. **The fix for #1016 is inherited, not owed** —
+  #1018 closed the instance on `main`, leaving W17 the class.
 - **Unblocks** nothing, in the sense that no unit must wait for it — but its
   I1/I2 ratchet **constrains** W6 and every write path built after it, and it
   gates **C0's honesty** (see below). A constraint is not a dependency: W6 can
@@ -571,7 +645,10 @@ Everything else has slack, and the slack is worth spending deliberately:
   normalisation primitive, then works entirely in app code the rest of the
   programme does not touch, so it parallelises cleanly against W2 and W3. It is
   easy to mistake for deferrable because nothing *inherits* from it — but C1
-  freezes the wire format, and two of the *Wire format* clauses are its.
+  freezes the wire format, and most of the *Wire format* clauses are its. Treat
+  the backfill as a **migration**: it is the first work in the programme to
+  rewrite stored user rows, and it should be reviewed by whoever reviews schema
+  changes rather than by whoever reviews sync.
 - **W11, W12 and W16 follow W10** and are independent of the entire client
   engine — but **C5 must precede C6**, so they are not deferrable past beta.
 
@@ -634,7 +711,7 @@ cannot fail is not a checkpoint.
 
 | ID | Lands after | Gate |
 | --- | --- | --- |
-| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. But §3.1 carries a §9 bucket — *Soft-delete join coverage* — that is **violated in `main` today** (#1016). C0 is green on the migration and not on the invariant; **W17 is what closes it**. |
+| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. But §3.1 carries a §9 bucket — *Soft-delete join coverage* — that nothing enforces. The one known violation (#1016) was fixed by #1018; the *rule* still decays silently, since a new unfiltered read compiles and passes. C0 is green on the migration and not on the invariant; **W17 is what closes it**. |
 | **C1** | W1, W2, W3, W18 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, a locally-created never-synced NFD title, and a row normalised by W18's backfill; the surrogate rejection fires before encoding; allow-list bijection green over real codec output, and non-vacuous. *Parallel work begins here.* |
 | **C2** | W10, W5 | **Loopback round trip.** One client against a local server: blob and manifest survive `PUT`/`GET` byte-identically; `413`, `415` and `422` paths exercised; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
 | **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
@@ -751,11 +828,11 @@ buckets. Ownership is now explicit:
 
 | §9 bucket | Owning unit(s) |
 | --- | --- |
-| Wire format | W1 + **W18** (the two normalisation vectors) |
+| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) |
 | Merge | W6 |
 | Existence | W6 |
 | Soft-delete join coverage | **W17** |
-| Write-path invariants | **W17** |
+| Write-path invariants | **W17** (I1, I2 and I1's exception) + **W18** (the write-path normalisation clause) |
 | Classification | W2 (registry property test) + W6 (inbound apply) |
 | Reconciliation | W7 |
 | Dedupe | W8 |
@@ -800,8 +877,8 @@ W13 spans two tracks, because pairing *is* a screen in the settings blade and
 splitting it puts one flow under two owners. W17 and W18 share a track and do
 not fit the others at all, which is the point of them: W17 is the only work here
 that never finishes, and W18 is the only work here that changes stored user rows
-outside a sync path. Both are separable into their own issues, and W18's first
-act (#1021) is already filed.
+outside a sync path. Both are separable into their own issues, and W18's should
+be filed as a migration rather than as a feature.
 
 Filing granularity is a separate decision from execution granularity, and it is
 the maintainer's. My recommendation is one issue per unit for W1–W3, because

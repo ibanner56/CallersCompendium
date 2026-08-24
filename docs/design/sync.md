@@ -2495,9 +2495,21 @@ while every peer that ingests it stores NFC. One record id, two byte strings,
 permanently. It also quietly broke §6.10, which assumes its inputs are already
 NFC on the strength of this very rule, while at fresh attach one side of every
 dedupe comparison is exactly that never-ingested local library. The rule now
-covers every write path that can populate a `shareable` string. There is no
-Unicode normalisation anywhere in the app today, so this is new work on the
-local edit and import paths, not a restatement of something already true.
+covers every write path that can populate a `shareable` string.
+
+**The claim that grounded this needed narrowing, not deleting.** When it was
+written it said there is no Unicode normalisation anywhere in the app, and by
+round 33 that was false as literally worded: #1024 added `nfc()` calls in
+`dedupe.dart` and `import_pipeline.dart`, and `unorm_dart` is a dependency of
+`compendium_core`. It remains true in the only sense the argument uses. Both
+call sites normalise a value being **compared** — a fold table and a
+choreographer matching key — and neither writes a normalised value back. Nothing
+in the storage layer, the models or `app` normalises a value that gets stored,
+and `app` does not depend on the package that could. So this is still new work
+on the write paths, and §4.1's one-time pass is still required. Narrowing the
+claim was the honest repair; deleting it would have removed the premise the
+whole rule rests on, and leaving it would have let a reader check one `grep` and
+discard the section.
 
 **Correcting the rule was not the same as assigning the work, and I did only
 the first.** Round 31 fixed §4.1 and left the implementation plan saying "NFC
@@ -2521,6 +2533,76 @@ stamps, so it presents as `same` and no conflict arises. Bumping the stamp
 instead would hand every normalised row to whichever device upgraded last — a
 mass, direction-arbitrary resolution over rows nobody edited. That is the same
 hazard as the migration-stamp wart, and it would be self-inflicted.
+
+**But "must not touch `updated_at`" collided head-on with invariant I1**, which
+requires any change to serialised content to advance it — and the collision was
+introduced by the same round that wrote both rules, in two documents, with a
+conformance test codifying each side. The two clauses were written a page apart
+and neither mentioned the other. §4.1 half-conceded the problem with a phrase —
+"content did not meaningfully change" — that quietly appealed to an exception I1
+does not contain. A hedge in prose is where a specification records that it
+knows it is contradicting itself.
+
+The resolution is worth stating in general form, because the tempting fix is
+worse than the problem. **Name the property, not the operation.** The obvious
+repair is to list §4.1's pass as I1's sanctioned exception, and that is a
+whitelist — the exact "maintained enumeration relocates the forgetting" that
+W17's own ratchet argument rejects three sections later. The next such pass gets
+added by whoever remembers, which is how the first omission happened. So I1 now
+carries a *condition*: a transformation that is pure, idempotent, row-local and
+computed identically by every device produces content that **cannot diverge**,
+and I1 exists to order content that **did** diverge. Nothing to order, nothing
+to stamp. §4.1's pass qualifies under that condition rather than by name, and a
+future claimant must prove the property by test.
+
+That reframing then did work I did not anticipate, which is the usual sign it is
+the right one. It settles the collision rule too: the pass must skip a `UNIQUE`
+collision rather than merge it, and the decisive argument is not "merging is
+rude" but that a *user* resolving the same pair differently on two devices is
+precisely the divergence I1 orders — so a pass that could merge would forfeit
+the exemption it depends on. Two blocking findings turned out to be one
+question.
+
+**Skipping is not free, and saying so is part of the fix.** A skipped pair stays
+un-normalised, so if a peer holds only one of the two rows, that peer normalises
+its copy and this device does not. The shared record then presents as
+`changed`/`changed` with equal `updatedAt`, which resolves and is **reported**.
+That is a visible outcome over a pair the user already has reason to look at,
+which this design consistently prefers to a silent merge — but it is a real
+residual, and a version of this section that claimed skip was costless would
+have been wrong in the direction that flatters the author.
+
+**A bulk write is not a loop, and the codebase already knew that.** Two further
+constraints came from reading how the existing one-time sweeps behave rather
+than from reasoning about sync. They write their completion marker only after
+the whole pass succeeds, so a single throwing row is retried from scratch on
+every launch and the sweep never completes — skip-on-collision is what makes
+that idiom safe here, since nothing raises. And `dance_fts` /
+`dance_substring_fts` hold literal text maintained by the *repository layer* on
+each write, so a bulk `UPDATE` that bypasses that layer leaves search matching
+the pre-normalisation text. `runDerivedRebuild()` fixes it and, conveniently,
+touches none of the three stamps, so it composes with the rule above. Both are
+the kind of defect that is invisible from inside the specification and obvious
+from inside the repository.
+
+**The general lesson, which is now four rounds old: the newest unit carries the
+round's defects.** W18 was created in round 32 to fix an ownership gap, and in
+round 33 it was where both blocking findings lived — including a fresh ownership
+gap, since its own ratchet was gated by no conformance bucket. Round 30's was
+the spec paraphrasing an algorithm; round 31's was the same thing twice more;
+round 32's was the plan getting less scrutiny than the spec. Scaffolding built
+to close a gap is written last, reviewed least, and inherits none of the
+scrutiny that produced it.
+
+**Normalise at the choke point, not in every writer.** The plan originally said
+"every import adapter", which is an enumeration — and enumerations are exactly
+what the same document argues against for the join ratchet and for I1. Every
+dance write in this codebase, local or imported, already funnels through
+`DanceRepository._upsert`. Requiring the property at that single point means a
+new adapter inherits it instead of restating it. Missing the choke point while
+arguing against enumerations elsewhere in the same file is the failure this
+design keeps rediscovering: a principle held in one section and not applied in
+the next.
 
 **Unpaired surrogates are the string-shaped version of NaN.** Dart strings are
 UTF-16, so one can hold a lone surrogate; UTF-8 cannot encode it and therefore
@@ -4345,9 +4427,10 @@ must say this plainly rather than implying sync is opaque to us.
   §3.1 as a property, and a property with no enumeration has no failure signal:
   a new read path that omits the filter compiles and passes. It has already
   decayed once, in shipped code — issue #1016, where
-  `VenueRepository.externalIdToVenueId` resolves an archive re-import onto a
-  tombstoned venue, so a program is written referencing a tombstone with no
-  error, while `listAllIds` on the same class filters correctly. Two things make
+  `VenueRepository.externalIdToVenueId` resolved an archive re-import onto a
+  tombstoned venue, so a program was written referencing a tombstone with no
+  error, while `listAllIds` on the same class filtered correctly. #1018 fixed
+  that read and changed nothing about the class. Two things make
   that instructive: the correct behaviour was already present *in the sibling
   method*, and the write-time guard that would have caught it exists but is
   bypassed on the `knownVenueIds` fast path. Neither a reviewer reading the

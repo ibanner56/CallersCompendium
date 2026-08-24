@@ -289,6 +289,15 @@ conforming client MUST normalise a `shareable` string column to NFC on **every**
 path that can populate it — local edits, every import adapter, and inbound sync
 alike — and MUST NOT skip it on the assumption that a sender normalised.
 
+Satisfying that by normalising in each writer is possible and inadvisable. It is
+an enumeration, and enumerations fail by omission: the next import adapter is
+correct only if its author remembers. Normalise instead at the single repository
+write path each kind already funnels through — in this codebase every dance
+write, local or imported, reaches `DanceRepository._upsert` — so a new caller
+inherits the rule rather than restating it. This specification requires the
+property, not the placement; it names the placement because the property is
+cheap to hold this way and expensive to hold any other.
+
 The scope is wider than the timestamp rule below, and the difference is
 load-bearing rather than stylistic. A timestamp is stored in a representation
 that *physically cannot* hold sub-tick precision, so normalising inbound values
@@ -316,8 +325,55 @@ on each device, at whatever time each device happens to upgrade. Two devices
 that normalise the same NFD row arrive at identical bytes *and* identical
 stamps, so the row presents as `same` on the next pass and no conflict arises.
 Bumping `updated_at` instead would hand every such row to whichever device
-upgraded last — a mass, silent, direction-arbitrary resolution over rows whose
-content did not meaningfully change.
+upgraded last — a mass, silent, direction-arbitrary resolution over rows nobody
+edited.
+
+This is a deliberate, bounded exception to invariant I1 (§6.5), which otherwise
+requires any change to serialised content to advance `updatedAt`. It holds
+because the pass satisfies I1's stated exception condition and for no other
+reason: NFC is a pure, idempotent function of the stored string, computed
+identically by every conforming device, consulting nothing outside the row. I1
+exists to let peers order content that *diverged*; this pass cannot produce
+divergent content, so there is nothing to order. Every constraint below exists
+to keep that property true.
+
+**Normalising can collide.** `choreographers.name`, `tags.name` and
+`custom_field_defs.key` are `UNIQUE` (§6.6), so two rows differing only in
+Unicode form collapse onto one string and the write fails. When normalising a
+row would collide with another local row, the pass MUST leave **both** rows
+un-normalised and report the pair. It MUST NOT merge them, MUST NOT rename
+either, and MUST NOT abort.
+
+Merging is excluded on the same grounds §6.6 step 1 excludes it for two
+pre-existing local rows: whether two similarly-named choreographers are one
+person is a judgement, and the two rows may differ in fields beyond the name. It
+is also excluded by the exception this pass depends on — a user resolving the
+same pair differently on two devices is exactly the divergence I1 orders, so a
+pass that could merge would no longer qualify for the exemption it claims. Skip
+keeps the pass a pure function of local state.
+
+Skipping is not free, and the cost is worth stating. A skipped row stays in its
+stored form, so it keeps whatever behaviour it has today, including exclusion
+from §6.10's dedupe. If one device holds such a colliding pair and a peer holds
+only one of the two rows, the peer normalises its copy while this device does
+not, and the shared record id then presents as `changed`/`changed` with equal
+`updatedAt` — resolved and **reported** as the tie in §6.3. That is a visible,
+recoverable outcome over a pair the user already has reason to look at, which
+this specification prefers to a silent merge.
+
+**The pass MUST be idempotent and safe to interrupt.** Because skipping is the
+only failure response, the pass is total: no row raises, so an interrupted pass
+cannot repeat a failure on every launch. Re-running it over already-normalised
+rows is a no-op, so a completion marker written only after a full pass — the
+idiom the existing one-time sweeps use — is sound here without further
+qualification.
+
+**The pass MUST rebuild derived indexes when it completes.** Full-text and
+substring indexes over `shareable` text are maintained by the repository layer
+on each write; a bulk normalisation that bypasses that layer leaves them holding
+the pre-normalisation text, so search silently stops matching rows the pass just
+changed. Rebuilding derived data is a local recomputation that touches none of
+the three stamps, so it composes with the rule above.
 
 Two number values that JSON cannot represent MUST be handled rather than
 emitted: a `shareable` float column can hold NaN or ±Infinity — `SQLite` REAL
@@ -800,6 +856,28 @@ hydrated from other tables, so a write that never touches the record's own row
 can still change what it publishes. I2 protects the repair classifier in §6.9,
 which compares body hashes: a metadata-only re-stamp would be invisible to it.
 
+**I1 has exactly one exception, and it is stated as a property rather than as a
+name.** An operation MAY change serialised content without advancing
+`updatedAt` if and only if it is a **pure, idempotent function of the row's
+existing content**, applied identically by every conforming device, that
+neither creates nor destroys records and consults no state outside the row.
+
+The condition is what makes the exception safe rather than convenient. I1 exists
+so that peers can *order* divergent content. A transformation meeting this
+condition cannot produce divergent content: every device computes the same
+output from the same input, independently and without coordinating, so there is
+nothing to order and a stamp bump would invent an ordering over rows nobody
+edited. §4.1's one-time normalisation pass is the only operation in this
+specification that qualifies, and any future claimant MUST demonstrate the
+property rather than cite this sentence.
+
+A conforming implementation MUST NOT satisfy this by maintaining a list of
+exempt operations. The exemption MUST be proved per operation, by a test showing
+that two independent runs over the same input produce identical output and leave
+`updated_at`, `existence_at` and `deleted_at` unchanged. A list would relocate
+the omission it exists to catch, which is the same argument §3.1's join ratchet
+rests on.
+
 ### 6.6 Collision reconciliation
 
 `choreographers.name`, `tags.name` and `custom_field_defs.key` are `UNIQUE`.
@@ -1031,8 +1109,10 @@ which makes it intermittent and hard to attribute. Normalising on write is what
 makes the two forms agree; the fold table is not going to. **The scope matters
 at exactly this section**: an ingest-only rule would leave both sides of a
 fresh-attach comparison un-normalised, because at fresh attach neither library
-has been through a sync path. This divergence is live in shipped import dedupe
-today, independently of sync — filed as #1021.
+has been through a sync path. This divergence was live in shipped import dedupe
+independently of sync — filed as #1021, fixed by #1024, which normalises inside
+the fold. That repair is on the **comparison** only; stored values are still
+un-normalised, which is what §4.1's one-time pass exists to fix.
 
 The definition is normative, and given by reference to real code rather than as
 a restatement, because an earlier draft of this paragraph *did* restate it — as
@@ -1406,7 +1486,16 @@ before the normalising build is NFC after upgrade** (mutation: normalise only
 on write — a library that is never edited again is never repaired, and §6.2
 step 4 uploads it verbatim), **and the pass leaves `updated_at` unchanged**
 (mutation: bump it — every normalised row is then handed to whichever device
-upgraded last).
+upgraded last). **A pass over a local pair whose names normalise to the same
+`UNIQUE` value leaves both rows untouched, reports the pair, and completes**
+(mutations: merge them — two devices resolving the pair differently then
+diverge, and the pass no longer qualifies for I1's exception; abort the pass —
+the row throws on every launch and the device never normalises anything).
+**Re-running the pass changes nothing** (mutation: make any step
+non-idempotent — a pass interrupted after its last write then repeats it). **A
+row whose text changed is still found by search afterwards** (mutation: skip the
+derived rebuild — the index keeps the pre-normalisation text and matches
+nothing).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -1431,12 +1520,12 @@ soft-deletable parent filters `parent.deleted_at IS NULL` MUST be enforced by a
 test that enumerates such reads, not left as prose. Stated as a property it has
 no failure signal: a new read path that omits the filter compiles, passes, and
 is caught only when a screen misbehaves. It has already decayed once — issue
-#1016, where `VenueRepository.externalIdToVenueId` resolves an archive
-re-import onto a tombstoned venue while the sibling `listAllIds` on the same
-class filters correctly, so a program is written referencing a tombstone with no
-error. Under sync that program publishes while its venue publishes as deleted.
-The mutation the test must catch is dropping the `deleted_at` predicate from any
-one such read.
+#1016, where `VenueRepository.externalIdToVenueId` resolved an archive re-import
+onto a tombstoned venue while the sibling `listAllIds` on the same class
+filtered correctly, so a program was written referencing a tombstone with no
+error. #1018 fixed that read; nothing yet stops the next one. Under sync that
+program publishes while its venue publishes as deleted. The mutation the test
+must catch is dropping the `deleted_at` predicate from any one such read.
 
 **Write-path invariants.** §6.5's **I1** and **I2** MUST be enforced by a test
 over write paths, not left as prose, for the same reason and with the same
@@ -1449,6 +1538,22 @@ metadata-only re-stamp that advances `updatedAt` while `body` and the existence
 state are unchanged, which is invisible to §6.9's repair classifier. The
 enforcement MUST be structural over write paths rather than a maintained list
 of known ones; a list relocates the omission it is meant to catch.
+
+I1's test MUST also pin the **exception** in §6.5, not just the rule: an
+operation claiming it MUST be shown to produce identical output on two
+independent runs over the same input while leaving all three stamps unchanged
+(mutation: let the exemption be claimed by declaration — an operation that
+consults the clock, the device id or any state outside the row then passes, and
+its output diverges between devices with no stamp to order it). The structural
+scan MUST cover repository write paths; a migration-path operation is in scope
+only through this proof, never through an exemption list.
+
+Separately, and gating the normalisation pass rather than I1: **every write path
+that populates a `shareable` string column normalises it**, asserted
+structurally over the write paths themselves rather than over a list of
+importers (mutation: add a writer that skips normalisation — the row is stored
+NFD, is never repaired because the one-time pass has already run, and is
+uploaded verbatim for the life of the install).
 
 **Classification.** `deviceLocal` never serialised — property test over the
 registry, and it MUST NOT be allowed to become vacuous. Inbound apply preserves
