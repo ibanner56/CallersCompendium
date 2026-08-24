@@ -178,21 +178,28 @@ def build_channel_manifests(
     dist: Path,
     pub_date: str,
     extra_files: list[Path] | None = None,
+    metadata: dict | None = None,
 ) -> dict[str, dict]:
-    """Build all manifests refreshed by a selected release channel."""
+    """Build all manifests refreshed by a selected release channel.
+
+    ``metadata`` lets callers that already built release metadata avoid hashing
+    every artifact again merely to change the manifest's channel field.
+    """
     channels = ("stable", "beta") if channel == "stable" else ("beta",)
-    manifests: dict[str, dict] = {}
-    for manifest_channel in channels:
-        _, manifests[manifest_channel] = build_metadata(
+    if metadata is None:
+        _, metadata = build_metadata(
             version=version,
             tag=tag,
-            channel=manifest_channel,
+            channel=channel,
             repo=repo,
             dist=dist,
             pub_date=pub_date,
             extra_files=extra_files,
         )
-    return manifests
+    return {
+        manifest_channel: {**metadata, "channel": manifest_channel}
+        for manifest_channel in channels
+    }
 
 
 def _default_pub_date() -> str:
@@ -243,6 +250,7 @@ def main(argv: list[str] | None = None) -> int:
         dist=dist,
         pub_date=pub_date,
         extra_files=args.extra_file,
+        metadata=manifest,
     )
 
     sums_path = dist / "SHA256SUMS"
