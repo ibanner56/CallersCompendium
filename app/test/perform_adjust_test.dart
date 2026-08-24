@@ -56,14 +56,23 @@ Future<List<Program>> _pumpAdjustable(
   required List<Dance> dances,
   required Program program,
   int initialGroup = 0,
+  List<Dance>? snapshotDances,
+  Map<String, Dance> danceOverrides = const {},
+  Map<String, String> authorNameOverrides = const {},
 }) async {
   await tester.binding.setSurfaceSize(const Size(1400, 2400));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final repos = openTestRepositories();
-  for (final d in dances) {
+  final initialDances = snapshotDances ?? dances;
+  for (final d in initialDances) {
     await repos.dances.create(d);
   }
   final data = await CollectionData.load(repos);
+  for (final d in dances) {
+    if (!initialDances.any((initial) => initial.id == d.id)) {
+      await repos.dances.create(d);
+    }
+  }
   final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
   addTearDown(notifier.dispose);
 
@@ -80,6 +89,8 @@ Future<List<Program>> _pumpAdjustable(
         program: program,
         data: data,
         renderer: _renderer,
+        danceOverrides: danceOverrides,
+        authorNameOverrides: authorNameOverrides,
         initialGroup: initialGroup,
         onProgramChanged: (updated) async => persisted.add(updated),
       ),
@@ -123,6 +134,32 @@ void main() {
         hasTapAction: true,
         tooltip: 'Adjust program',
       ),
+    );
+  });
+
+  testWidgets('adjust sheet and picker resolve fresh program dance overrides', (
+    tester,
+  ) async {
+    final fresh = _dance(id: 'fresh', title: 'Fresh Dance');
+    await _pumpAdjustable(
+      tester,
+      dances: [fresh],
+      snapshotDances: const [],
+      danceOverrides: {fresh.id: fresh},
+      program: _program([_slot(id: 's1', position: 0, danceId: fresh.id)]),
+    );
+
+    await _openAdjust(tester);
+    expect(find.text('Fresh Dance'), findsAtLeastNWidgets(2));
+
+    await tester.tap(find.byKey(const ValueKey('adjust-insert-dance')));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('adjust-picker')),
+        matching: find.text('Fresh Dance'),
+      ),
+      findsOneWidget,
     );
   });
 

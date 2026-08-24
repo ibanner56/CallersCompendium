@@ -673,6 +673,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         currentGroupIndex: _groupIndex,
         currentSlotId: _currentSlot.id,
         data: widget.data,
+        danceOverrides: widget.danceOverrides,
+        authorNameOverrides: widget.authorNameOverrides,
         dialect: _canonicalView
             ? Dialect.canonical
             : ActiveDialectScope.of(context),

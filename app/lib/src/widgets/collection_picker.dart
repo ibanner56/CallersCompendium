@@ -302,6 +302,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
         enrichment: widget.enrichment,
       );
       if (!mounted || seq != _searchSeq) return;
+      final choreographerNamesOverride = {
+        ...widget.choreographerNamesOverride,
+        for (final entry in _importedChoreographers.entries)
+          entry.key: entry.value.name,
+      };
       setState(() {
         _results = [
           for (final id in ids)
@@ -311,11 +316,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 case final dance?)
               data.entryFor(
                 dance,
-                choreographerNamesOverride: {
-                  ...widget.choreographerNamesOverride,
-                  for (final entry in _importedChoreographers.entries)
-                    entry.key: entry.value.name,
-                },
+                choreographerNamesOverride: choreographerNamesOverride,
               ),
         ];
         _searching = false;
@@ -520,6 +521,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final onDanceImported = widget.onDanceImported;
     final onAddDance = widget.onAddDance;
     final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
     final service = _online;
     final searchGeneration = _onlineSeq;
     var importReported = false;
@@ -534,17 +536,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
           existingId != null,
           'needsConfirmation must carry an existing dance id',
         );
-        if (existingId == null || !mounted) return;
+        if (existingId == null || !navigator.mounted) return;
         final existingTitle =
             (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
+        if (!navigator.mounted) return;
         final resolution = await showOnlineImportVariationDialog(
-          context,
+          navigator.context,
           l10n,
           existingTitle: existingTitle,
           existingId: existingId,
         );
-        if (resolution == null || !mounted) return;
+        if (resolution == null || !navigator.mounted) return;
         result = await service.import(
           _repos,
           preview.plan,
@@ -556,17 +558,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
           existingId != null,
           'needsConfirmationIdentical must carry an existing dance id',
         );
-        if (existingId == null || !mounted) return;
+        if (existingId == null || !navigator.mounted) return;
         final existingTitle =
             (await _repos.dances.getById(existingId))?.title ?? result.title;
-        if (!mounted) return;
+        if (!navigator.mounted) return;
         final resolution = await showOnlineImportCrossSourceDuplicateDialog(
-          context,
+          navigator.context,
           l10n,
           existingTitle: existingTitle,
           existingId: existingId,
         );
-        if (resolution == null || !mounted) return;
+        if (resolution == null || !navigator.mounted) return;
         result = await service.import(
           _repos,
           preview.plan,
@@ -674,60 +676,63 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final l10n = AppLocalizations.of(context);
     // Picker call sites pass no visibleFields to DanceListTile, so they
     // default to all-visible — no scope override needed here.
-    return IgnorePointer(
-      ignoring: _onlineImporting,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: TextField(
-              key: const ValueKey('picker-search'),
-              controller: _ftsController,
-              onChanged: _onFtsChanged,
-              textInputAction: TextInputAction.search,
-              decoration: InputDecoration(
-                labelText: _onlineEnabled
-                    ? l10n.onlineSearchFieldLabel(_onlineSource.label)
-                    : l10n.collectionPickerSearchLabel,
-                hintText: _onlineEnabled
-                    ? l10n.onlineSearchFieldHint
-                    : l10n.collectionSearchFieldHint,
-                prefixIcon: Icon(
-                  _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+    return ExcludeFocus(
+      excluding: _onlineImporting,
+      child: IgnorePointer(
+        ignoring: _onlineImporting,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                key: const ValueKey('picker-search'),
+                controller: _ftsController,
+                onChanged: _onFtsChanged,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  labelText: _onlineEnabled
+                      ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+                      : l10n.collectionPickerSearchLabel,
+                  hintText: _onlineEnabled
+                      ? l10n.onlineSearchFieldHint
+                      : l10n.collectionSearchFieldHint,
+                  prefixIcon: Icon(
+                    _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+                  ),
+                  suffixIcon: _hasActiveQuery
+                      ? IconButton(
+                          tooltip: l10n.collectionClearSearchTooltip,
+                          icon: const Icon(Icons.clear),
+                          onPressed: _clearAll,
+                        )
+                      : null,
+                  border: const OutlineInputBorder(),
                 ),
-                suffixIcon: _hasActiveQuery
-                    ? IconButton(
-                        tooltip: l10n.collectionClearSearchTooltip,
-                        icon: const Icon(Icons.clear),
-                        onPressed: _clearAll,
-                      )
-                    : null,
-                border: const OutlineInputBorder(),
               ),
             ),
-          ),
-          Expanded(
-            child: CustomScrollView(
-              controller: widget.scrollController,
-              slivers: [
-                SliverList(
-                  delegate: SliverChildListDelegate([
-                    if (!_onlineEnabled) _buildFiltersPanel(data),
-                    if (!_onlineEnabled || _onlineSource.supportsByPhrase)
-                      _buildByPhrasePanel(data),
-                    _buildAdvancedPanel(data),
-                    _buildResultCount(),
-                    const Divider(height: 1),
-                  ]),
-                ),
-                _onlineEnabled
-                    ? _buildOnlineResultsSliver()
-                    : _buildResultsSliver(),
-              ],
+            Expanded(
+              child: CustomScrollView(
+                controller: widget.scrollController,
+                slivers: [
+                  SliverList(
+                    delegate: SliverChildListDelegate([
+                      if (!_onlineEnabled) _buildFiltersPanel(data),
+                      if (!_onlineEnabled || _onlineSource.supportsByPhrase)
+                        _buildByPhrasePanel(data),
+                      _buildAdvancedPanel(data),
+                      _buildResultCount(),
+                      const Divider(height: 1),
+                    ]),
+                  ),
+                  _onlineEnabled
+                      ? _buildOnlineResultsSliver()
+                      : _buildResultsSliver(),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
