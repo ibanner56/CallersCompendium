@@ -21,6 +21,13 @@ each release so store builds and tags can be traced back to an entry.
 
 - **Figure alias editor previews** — changing a shoulder or hand parameter now
   immediately updates the inverse-pair move name in the editor.
+  
+- **Compact do-si-do and see-saw names** — canonical figure text now uses
+  `dosido` and `seesaw`, while imports and full-text search continue accepting
+  the legacy spaced and hyphenated spellings. (issue #1056)
+  
+- **AirDrop `.ccshare` files** — iOS and macOS now identify shared program
+  bundles as Caller's Compendium files instead of generic JSON/text.
 
 - **Parameter-aware dialect move wording** — global wording now has separate,
   complete templates for parameter branches of long waves, promenades, and
@@ -53,6 +60,11 @@ each release so store builds and tags can be traced back to an entry.
   window is destroyed, preventing an intermittent crash during application exit.
 
 ### Added
+
+- **iOS browser sharing** — share supported Caller's Box and ContraDB dance
+  links, or ContraDB program links, to queue them for review in Caller's
+  Compendium. The share extension confirms the queueing result in the app's
+  selected language; open the app to review and import the link.
 
 - **Experimental settings** — a new section provides a home for features that
   are still in development.

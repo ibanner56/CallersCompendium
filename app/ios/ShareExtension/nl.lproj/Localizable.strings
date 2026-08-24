@@ -1,0 +1,9 @@
+"share_extension.action.done" = "Gereed";
+"share_extension.title.preparing_import" = "Import voorbereiden";
+"share_extension.message.saving_link" = "Deze link wordt opgeslagen voor Caller's Compendium.";
+"share_extension.title.ready_to_import" = "Klaar om te importeren";
+"share_extension.message.link_saved" = "Deze link is opgeslagen. Open Caller's Compendium om de link te bekijken en te importeren.";
+"share_extension.title.no_link" = "Geen link om te importeren";
+"share_extension.message.no_link" = "Deze deelactie bevatte geen link die Caller's Compendium kan importeren.";
+"share_extension.title.save_failed" = "Link kon niet worden opgeslagen";
+"share_extension.message.save_failed" = "Caller's Compendium kon deze link niet opslaan voor import. Probeer het opnieuw.";

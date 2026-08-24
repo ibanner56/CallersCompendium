@@ -850,7 +850,7 @@ void main() {
 
     test(
       'an alias of a NON-split move is labelled under its OWN display name, '
-      'not its target\'s (issue #933 — see_saw must not read as "do si do")',
+      'not its target\'s (issue #933 — see_saw must not read as "dosido")',
       () {
         const seeSawCol = MatrixColumn(
           moveId: 'see_saw',
@@ -862,11 +862,11 @@ void main() {
         );
         expect(
           matrixColumnLabel(seeSawCol, contraTaxonomy, Dialect.canonical),
-          'see saw',
+          'seesaw',
         );
         expect(
           matrixColumnLabel(doSiDoCol, contraTaxonomy, Dialect.canonical),
-          'do si do',
+          'dosido',
         );
         // The load-bearing assertion: two figures a caller can tell apart
         // must not collapse to one header.
@@ -903,7 +903,7 @@ void main() {
       );
       expect(
         matrixColumnLabel(seeSawCol, contraTaxonomy, aliasKeyedDialect),
-        'see saw',
+        'seesaw',
       );
     });
   });

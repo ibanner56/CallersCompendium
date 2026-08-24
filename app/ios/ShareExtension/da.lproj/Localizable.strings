@@ -1,0 +1,9 @@
+"share_extension.action.done" = "Færdig";
+"share_extension.title.preparing_import" = "Forbereder import";
+"share_extension.message.saving_link" = "Gemmer dette link til Caller's Compendium.";
+"share_extension.title.ready_to_import" = "Klar til import";
+"share_extension.message.link_saved" = "Dette link er gemt. Åbn Caller's Compendium for at gennemgå og importere det.";
+"share_extension.title.no_link" = "Intet link at importere";
+"share_extension.message.no_link" = "Denne deling indeholdt ikke et link, som Caller's Compendium kan importere.";
+"share_extension.title.save_failed" = "Kunne ikke gemme link";
+"share_extension.message.save_failed" = "Caller's Compendium kunne ikke gemme dette link til import. Prøv igen.";

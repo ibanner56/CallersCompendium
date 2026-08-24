@@ -4072,6 +4072,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cela ne ressemble pas à une URL http(s) valide.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Ce lien n\'est pas pris en charge pour l\'importation.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Cette URL a effectué trop de redirections.';
 

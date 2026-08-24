@@ -218,6 +218,12 @@ const String chainHandBackfillDoneKey = '__chain_hand_backfill_done__';
 const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
     '__promenade_turn_circle_wording_canonical_rebuild_done__';
 
+/// Settings key for the one-time compact do-si-do/seesaw canonical-text
+/// rebuild owed by taxonomy v32. Existing figures keep their stable IDs and
+/// JSON, but their rendered canonical names and FTS rows change.
+const String compactDosidoSeesawCanonicalRebuildDoneKey =
+    '__compact_dosido_seesaw_canonical_rebuild_done__';
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.

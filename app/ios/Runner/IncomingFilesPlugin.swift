@@ -10,18 +10,17 @@ import UIKit
 /// **path** of a local copy of an incoming file (#298), or the **raw URL
 /// string** shared into the app (#343). It never parses, trusts, or interprets
 /// a payload — Dart owns every byte of validation and import (`ArchiveIntake`
-/// for files, `validateSharedContraDbProgramUrl` for URLs; both are untrusted
-/// input). Incoming files are copied into the app's temporary directory first,
-/// so the path Dart receives is always readable.
+/// for files, and Dart's supported program/dance URL classifiers for URLs; both
+/// are untrusted input). Incoming files are copied into the app's temporary
+/// directory first, so the path Dart receives is always readable.
 ///
 /// Shared URLs are delivered out-of-band: the Share Extension writes them into
-/// the shared App Group, then best-effort wakes this app via its custom scheme.
-/// Because that wake is best-effort (issue #428), this app treats the App Group
-/// as the source of truth and **drains it on every activation**
-/// (`sceneDidBecomeActive`), so a payload left behind by a missed wake — or one
-/// shared while the app was suspended/closed — is always recovered. The drain is
-/// an atomic take-and-clear, so a wake (`openURLContexts`) and the foreground
-/// drain firing for the same payload never double-imports it.
+/// the shared App Group, then the user dismisses the extension and opens this
+/// app. The App Group is the source of truth, so this plugin **drains it on
+/// every activation** (`sceneDidBecomeActive`); a payload shared while the app
+/// was suspended or closed is recovered on the next activation. The drain is an
+/// atomic take-and-clear, so repeated foreground activations never double-import
+/// the same payload.
 ///
 /// Registered manually from `AppDelegate.didInitializeImplicitFlutterEngine`.
 /// It receives scene life-cycle events via `registrar.addSceneDelegate`, so the
@@ -34,12 +33,13 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   private static let appGroupId = "group.org.callerscompendium.compendiumApp"
 
   /// Legacy single-value slot written by pre-#428 Share Extension builds. Still
-  /// drained so a payload orphaned by an old (broken-wake) build is recovered on
-  /// the next launch.
+  /// drained so a payload orphaned by an old queue implementation is recovered
+  /// on the next launch.
   private static let legacySharedUrlKey = "SharedImportURL"
 
-  /// Custom scheme the Share Extension uses to wake this app.
-  private static let hostScheme = "callerscompendium"
+  /// Custom scheme retained to drain payloads from legacy Share Extension
+  /// releases that tried to wake the host app.
+  private static let legacyHostScheme = "callerscompendium"
 
   /// Path captured from a launch (cold-start) file URL, consumed exactly once
   /// by the `getInitialFile` pull once the Dart UI is ready.
@@ -88,7 +88,7 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   /// `getInitialFile` pull — the Dart UI opens first, then imports over the app
   /// shell. Shared URLs are NOT read here: they're delivered out-of-band via the
   /// App Group and drained on activation (`sceneDidBecomeActive`), which also
-  /// recovers a cold orphan the wake never triggered.
+  /// recovers a link queued before the host was launched.
   @available(iOS 13.0, *)
   @objc public func scene(
     _ scene: UIScene,
@@ -103,16 +103,16 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
     return true
   }
 
-  /// Warm start: a file or the Share Extension's custom-scheme wake arrives
-  /// while the app is already running. A wake drains the App Group immediately
-  /// for responsiveness; `sceneDidBecomeActive` re-drains as the authoritative
-  /// fallback, and the take-and-clear makes that double-fire idempotent.
+  /// Warm start: a file or a legacy Share Extension custom-scheme wake arrives
+  /// while the app is already running. A legacy wake drains the App Group
+  /// immediately; `sceneDidBecomeActive` remains the authoritative foreground
+  /// drain, and the take-and-clear makes that double-fire idempotent.
   @available(iOS 13.0, *)
   @objc public func scene(
     _ scene: UIScene,
     openURLContexts URLContexts: Set<UIOpenURLContext>
   ) -> Bool {
-    if URLContexts.contains(where: { $0.url.scheme == Self.hostScheme }) {
+    if URLContexts.contains(where: { $0.url.scheme == Self.legacyHostScheme }) {
       drainSharedURLs()
       return true
     }
@@ -122,8 +122,8 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   }
 
   /// Authoritative foreground drain (issue #428): fires on every activation, so
-  /// any payload left in the App Group — because the wake never fired, or the
-  /// item was shared while the app was suspended/closed — is always recovered.
+  /// any payload left in the App Group — including one shared while the app was
+  /// suspended or closed — is always recovered.
   @available(iOS 13.0, *)
   @objc public func sceneDidBecomeActive(_ scene: UIScene) {
     drainSharedURLs()
@@ -166,7 +166,8 @@ public class IncomingFilesPlugin: NSObject, FlutterPlugin, FlutterSceneLifeCycle
   }
 
   /// Takes every pending shared URL and clears the container, so each payload is
-  /// delivered exactly once even if both the wake and the foreground drain fire.
+  /// delivered exactly once even if both a legacy wake and the foreground drain
+  /// fire.
   ///
   /// The primary queue is a directory of per-payload files (`SharedImportQueue`):
   /// draining enumerates a snapshot and deletes each file as it's read, so a
@@ -298,8 +299,8 @@ enum SharedImportQueue {
     var urls: [String] = []
     for file in payloads {
       let contents = try? String(contentsOf: file, encoding: .utf8)
-      // Delete before yielding so a re-entrant drain (wake + foreground) can't
-      // take the same file twice; whichever drain removed it owns delivery.
+      // Delete before yielding so a re-entrant drain (legacy wake + foreground)
+      // can't take the same file twice; whichever drain removed it owns delivery.
       try? fileManager.removeItem(at: file)
       if let normalized = normalizedURLString(contents) {
         urls.append(normalized)

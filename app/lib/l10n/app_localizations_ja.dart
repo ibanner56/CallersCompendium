@@ -3876,6 +3876,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importErrorInvalidUrl => '有効なhttp(s) URLのように見えません。';
 
   @override
+  String get importErrorUnsupportedSharedLink => 'このリンクはインポートに対応していません。';
+
+  @override
   String get importErrorTooManyRedirects => 'そのURLはリダイレクトが多すぎました。';
 
   @override

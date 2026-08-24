@@ -2,7 +2,7 @@
 // readable as present once tombstoned (issue #898).
 //
 // `settings` became soft-deletable in schema v25, and this table also holds
-// four internal markers that `CompendiumRepositories.ensureMigrated` reads with
+// several internal markers that `CompendiumRepositories.ensureMigrated` reads with
 // raw SQL to decide whether a one-time repair still needs to run. Three of them
 // are "done" markers, where a marker wrongly read as present **skips a repair
 // permanently** — for `purgeCorruptionRepairDoneKey` that repair is the one
@@ -28,7 +28,14 @@ import 'test_database.dart';
 void main() {
   late CompendiumDatabase db;
 
-  setUp(() => db = openTestDatabase());
+  setUp(() async {
+    db = openTestDatabase();
+    // Keep unrelated migration tests focused on their marker. The compact-name
+    // test below removes this marker to exercise the new sweep.
+    await SettingsRepository(
+      db,
+    ).set(compactDosidoSeesawCanonicalRebuildDoneKey, 'done');
+  });
   tearDown(() => db.close());
 
   /// Tombstones [key] the way a backup restore does — through the repository,
@@ -203,6 +210,28 @@ void main() {
       await repos.settings.get(
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
       ),
+      'done',
+    );
+  });
+
+  test('compact dosido/seesaw canonical text rebuild runs once', () async {
+    final repos = _CountingRepositories(db, contraTaxonomy);
+    await repos.settings.remove(compactDosidoSeesawCanonicalRebuildDoneKey);
+    await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+    await repos.settings.set(inversePairNormalisationDoneKey, 'done');
+    await repos.settings.set(starPromenadeHandRemovalDoneKey, 'done');
+    await repos.settings.set(gripSingleFileCanonicalInclusionDoneKey, 'done');
+    await repos.settings.set(
+      promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+      'done',
+    );
+    await repos.settings.set(chainHandBackfillDoneKey, 'done');
+
+    await repos.ensureMigrated();
+
+    expect(repos.rebuildAttempts, 1);
+    expect(
+      await repos.settings.get(compactDosidoSeesawCanonicalRebuildDoneKey),
       'done',
     );
   });

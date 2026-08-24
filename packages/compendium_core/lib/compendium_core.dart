@@ -98,6 +98,7 @@ export 'src/storage/database.dart'
         gripSingleFileCanonicalInclusionDoneKey,
         chainHandBackfillDoneKey,
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;

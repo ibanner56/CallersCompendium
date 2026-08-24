@@ -4059,6 +4059,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Das sieht nicht wie eine gültige http(s)-URL aus.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Dieser Link wird für den Import nicht unterstützt.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Diese URL hat zu viele Umleitungen durchgeführt.';
 
