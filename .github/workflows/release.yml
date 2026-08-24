@@ -978,8 +978,9 @@ jobs:
         working-directory: app
         # The code is derived from the resolved tag: radix-1000 SemVer core
         # packing plus a channel bit (beta < stable for one core).
-        run: flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
-          --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Android (signed APK)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -1002,8 +1003,9 @@ jobs:
       - name: Build Android App Bundle (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
-        run: flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
-          --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Android (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
