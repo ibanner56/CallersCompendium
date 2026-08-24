@@ -6434,6 +6434,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Optionele sjablonen voor alleen de weergave vervangen de normale zin van een beweging. Canonieke tekst en zoeken blijven ongewijzigd.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Sjablonen voor bewegingsformuleringen toevoegen';
 

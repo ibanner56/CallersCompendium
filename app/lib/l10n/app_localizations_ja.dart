@@ -6167,6 +6167,10 @@ class AppLocalizationsJa extends AppLocalizations {
       '表示専用の任意のテンプレートで、動作の通常の文を置き換えます。正規テキストと検索は変わりません。';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      '条件付き動作テンプレートは図形のパラメーターで選択されます。表示されたすべてのスロットを入力してください。不完全な条件付きテンプレートは無視されます。';
+
+  @override
   String get dialectEditorMoveWordingsAdd => '動作の文言テンプレートを追加';
 
   @override

@@ -6481,6 +6481,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les modèles facultatifs, réservés à l’affichage, remplacent la phrase normale d’un mouvement. Le texte canonique et la recherche restent inchangés.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Ajouter des modèles de formulation';
 

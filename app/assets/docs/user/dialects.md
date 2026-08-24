@@ -124,6 +124,14 @@ contains that move. For moves that come in left- and right-handed versions, you
 can include a placeholder so the app fills in "left" or "right" for you rather
 than making you write two versions.
 
+Some moves have parameter-dependent choreography. The editor provides separate
+templates for each supported branch of a long wave, promenade, or circle, and
+shows the exact slots that branch can use. Complete every listed slot: an
+incomplete conditional template is ignored and the normal wording is shown, so a
+single-file prefix or a dancer's in/out instruction can never disappear. Older
+single-template wordings remain available for their ordinary/default branch only;
+they are not reused for a different parameter branch.
+
 ### Dancer wording
 
 Reword the way the app refers to *who* is dancing — for example the words for

@@ -9803,6 +9803,12 @@ abstract class AppLocalizations {
   /// **'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.'**
   String get dialectEditorMoveWordingsHelp;
 
+  /// Helper text explaining branch-specific move wording templates and their required slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
+  String get dialectEditorMoveWordingsConditionalHelp;
+
   /// Collapsed header/empty state for the move wording template section.
   ///
   /// In en, this message translates to:

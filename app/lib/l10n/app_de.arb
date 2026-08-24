@@ -6429,6 +6429,10 @@
     "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
   },
   "dialectEditorMoveWordingsHelp": "Optionale Vorlagen nur für die Anzeige ersetzen den normalen Satz einer Bewegung. Kanonischer Text und Suche bleiben unverändert.",
+  "dialectEditorMoveWordingsConditionalHelp": "Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.",
+  "@dialectEditorMoveWordingsConditionalHelp": {
+    "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
   "@dialectEditorMoveWordingsHelp": {
     "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
   },

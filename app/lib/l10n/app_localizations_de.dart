@@ -6473,6 +6473,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Optionale Vorlagen nur für die Anzeige ersetzen den normalen Satz einer Bewegung. Kanonischer Text und Suche bleiben unverändert.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Vorlagen für Bewegungsformulierungen hinzufügen';
 

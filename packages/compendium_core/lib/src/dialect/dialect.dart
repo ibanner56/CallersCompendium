@@ -10,6 +10,13 @@ const int kMaxMoveWordingLength = 512;
 /// Maximum number of move wording entries retained in one dialect.
 const int kMaxMoveWordingEntries = 256;
 
+/// Fixed branch keys supported by parameter-dependent display wordings.
+const Map<String, Set<String>> kMoveWordingBranchKeys = {
+  'form_a_long_wave': {'inOnly', 'outOnly', 'inAndOut', 'neither'},
+  'promenade': {'ordinary', 'singleFile'},
+  'circle': {'ordinary', 'singleFile'},
+};
+
 /// A role display term: singular plus plural (plural derived with a basic
 /// consonant+y→ies / +s rule unless given explicitly — "Lady" → "Ladies",
 /// but "Boy" → "Boys" since the `y` follows a vowel).
@@ -60,6 +67,7 @@ class RoleTerm {
 
 const MapEquality<Object?, Object?> _mapEq = MapEquality<Object?, Object?>();
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
+const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 
 /// A user-level presentation mapping applied at render time. Storage is
 /// always canonical; dialects are named, switchable, and purely local.
@@ -71,11 +79,18 @@ class Dialect {
     Map<String, String> moves = const {},
     Map<String, String> dancers = const {},
     Map<String, String> moveWordings = const {},
+    Map<String, Map<String, String>> moveWordingBranches = const {},
     List<String> discouragedTerms = const [],
   }) : roles = Map.unmodifiable(roles),
        moves = Map.unmodifiable(moves),
        dancers = Map.unmodifiable(dancers),
        moveWordings = Map.unmodifiable(moveWordings),
+       moveWordingBranches = Map<String, Map<String, String>>.unmodifiable(
+         moveWordingBranches.map(
+           (key, value) =>
+               MapEntry(key, Map<String, String>.unmodifiable(value)),
+         ),
+       ),
        discouragedTerms = List.unmodifiable(
          discouragedTerms.map((t) => t.toLowerCase()),
        );
@@ -98,6 +113,10 @@ class Dialect {
   /// Canonical move id → display-only wording template. Template placeholders
   /// are resolved by [FigureRenderer]; canonical rendering never reads this map.
   final Map<String, String> moveWordings;
+
+  /// Canonical move ID → fixed parameter branch ID → display-only wording
+  /// template. Branches are resolved by [FigureRenderer] from effective params.
+  final Map<String, Map<String, String>> moveWordingBranches;
 
   /// Terms the entry editor flags (struck through, never blocked).
   /// User-editable data with shipped defaults — not hardcoded policy.
@@ -185,6 +204,7 @@ class Dialect {
     Map<String, String>? moves,
     Map<String, String>? dancers,
     Map<String, String>? moveWordings,
+    Map<String, Map<String, String>>? moveWordingBranches,
     List<String>? discouragedTerms,
   }) => Dialect(
     name: name ?? this.name,
@@ -192,6 +212,7 @@ class Dialect {
     moves: moves ?? this.moves,
     dancers: dancers ?? this.dancers,
     moveWordings: moveWordings ?? this.moveWordings,
+    moveWordingBranches: moveWordingBranches ?? this.moveWordingBranches,
     discouragedTerms: discouragedTerms ?? this.discouragedTerms,
   );
 
@@ -204,6 +225,10 @@ class Dialect {
     'moves': Map<String, String>.from(moves),
     'dancers': Map<String, String>.from(dancers),
     'moveWordings': Map<String, String>.from(moveWordings),
+    'moveWordingBranches': {
+      for (final entry in moveWordingBranches.entries)
+        entry.key: Map<String, String>.from(entry.value),
+    },
     'discouragedTerms': List<String>.from(discouragedTerms),
   };
 
@@ -238,10 +263,12 @@ class Dialect {
       }
     }
     final moveWordings = <String, String>{};
+    final moveWordingBranches = <String, Map<String, String>>{};
+    var wordingCount = 0;
     final moveWordingsJson = json['moveWordings'];
     if (moveWordingsJson is Map) {
       for (final entry in moveWordingsJson.entries) {
-        if (moveWordings.length >= kMaxMoveWordingEntries) break;
+        if (wordingCount >= kMaxMoveWordingEntries) break;
         final value = entry.value;
         if (value is! String) continue;
         final sanitized = sanitizeImportedText(value, allowLineBreaks: false);
@@ -250,6 +277,35 @@ class Dialect {
             .toString()] = sanitized.length <= kMaxMoveWordingLength
             ? sanitized
             : sanitized.substring(0, kMaxMoveWordingLength);
+        wordingCount++;
+      }
+    }
+    final branchesJson = json['moveWordingBranches'];
+    if (branchesJson is Map) {
+      for (final moveEntry in branchesJson.entries) {
+        if (wordingCount >= kMaxMoveWordingEntries) break;
+        final moveId = moveEntry.key.toString();
+        final allowedBranches = kMoveWordingBranchKeys[moveId];
+        if (allowedBranches == null || moveEntry.value is! Map) continue;
+        final branches = <String, String>{};
+        for (final branchEntry in (moveEntry.value as Map).entries) {
+          if (wordingCount >= kMaxMoveWordingEntries) break;
+          final branchId = branchEntry.key.toString();
+          if (!allowedBranches.contains(branchId) ||
+              branchEntry.value is! String) {
+            continue;
+          }
+          final sanitized = sanitizeImportedText(
+            branchEntry.value as String,
+            allowLineBreaks: false,
+          );
+          if (sanitized.trim().isEmpty) continue;
+          branches[branchId] = sanitized.length <= kMaxMoveWordingLength
+              ? sanitized
+              : sanitized.substring(0, kMaxMoveWordingLength);
+          wordingCount++;
+        }
+        if (branches.isNotEmpty) moveWordingBranches[moveId] = branches;
       }
     }
     final discouraged = <String>[];
@@ -266,6 +322,7 @@ class Dialect {
       moves: moves,
       dancers: dancers,
       moveWordings: moveWordings,
+      moveWordingBranches: moveWordingBranches,
       discouragedTerms: discouraged,
     );
   }
@@ -330,6 +387,7 @@ class Dialect {
       _mapEq.equals(other.moves, moves) &&
       _mapEq.equals(other.dancers, dancers) &&
       _mapEq.equals(other.moveWordings, moveWordings) &&
+      _deepEq.equals(other.moveWordingBranches, moveWordingBranches) &&
       _listEq.equals(other.discouragedTerms, discouragedTerms);
 
   @override
@@ -339,6 +397,7 @@ class Dialect {
     _mapEq.hash(moves),
     _mapEq.hash(dancers),
     _mapEq.hash(moveWordings),
+    _deepEq.hash(moveWordingBranches),
     _listEq.hash(discouragedTerms),
   );
 }

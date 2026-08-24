@@ -6371,6 +6371,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.';
+
+  @override
   String get dialectEditorMoveWordingsAdd => 'Add move wording templates';
 
   @override

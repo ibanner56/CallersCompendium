@@ -180,12 +180,22 @@ void main() {
         },
         'moves': {'swing': 'swing', 'bad': 7},
         'dancers': {'neighbors': 'others', 'bad': 7},
+        'moveWordingBranches': {
+          'form_a_long_wave': {
+            'outOnly': 'out {other} {balance}',
+            'bad': 'ignored',
+          },
+          'bad_move': {'ordinary': 'ignored'},
+        },
         'discouragedTerms': ['gypsy', 8],
       });
       expect(d.name, Dialect.customName);
       expect(d.roles.keys, ['role1']);
       expect(d.moves, {'swing': 'swing'});
       expect(d.dancers, {'neighbors': 'others'});
+      expect(d.moveWordingBranches, {
+        'form_a_long_wave': {'outOnly': 'out {other} {balance}'},
+      });
       expect(d.discouragedTerms, ['gypsy']);
     });
 
@@ -194,6 +204,12 @@ void main() {
         name: 'Custom',
         roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
         moves: const {'shoulder_round': '%S shoulder round'},
+        moveWordingBranches: const {
+          'promenade': {
+            'ordinary': '{who} {move} {direction} {destination}',
+            'singleFile': '{prefix} {move} {direction} {destination}',
+          },
+        },
         discouragedTerms: const ['gypsy', 'gents'],
       );
       expect(Dialect.fromJson(custom.toJson()), custom);
@@ -211,6 +227,7 @@ void main() {
       expect(d.roles, isEmpty);
       expect(d.moves, isEmpty);
       expect(d.dancers, isEmpty);
+      expect(d.moveWordingBranches, isEmpty);
       expect(d.discouragedTerms, isEmpty);
     });
 
@@ -244,6 +261,46 @@ void main() {
       expect(d.moveWordings.containsKey('empty'), isFalse);
     });
 
+    test('fromJson bounds branch templates with the shared wording limit', () {
+      final long = 'x' * (kMaxMoveWordingLength + 20);
+      final d = Dialect.fromJson({
+        'name': 'Bounded',
+        'moveWordings': {'legacy': 'legacy'},
+        'moveWordingBranches': {
+          'form_a_long_wave': {
+            'outOnly': 'clean\u200B wording',
+            'inOnly': long,
+            'inAndOut': '\u200B',
+          },
+          'promenade': {'ordinary': 'ordinary', 'singleFile': 'single file'},
+        },
+      });
+      expect(d.moveWordingBranches['form_a_long_wave'], {
+        'outOnly': 'clean wording',
+        'inOnly': long.substring(0, kMaxMoveWordingLength),
+      });
+      expect(d.moveWordingBranches['promenade'], {
+        'ordinary': 'ordinary',
+        'singleFile': 'single file',
+      });
+    });
+
+    test('fromJson combines legacy and branch entry limits', () {
+      final legacy = <String, Object?>{};
+      for (var i = 0; i < kMaxMoveWordingEntries; i++) {
+        legacy['legacy$i'] = 'legacy $i';
+      }
+      final d = Dialect.fromJson({
+        'name': 'Bounded',
+        'moveWordings': legacy,
+        'moveWordingBranches': {
+          'circle': {'ordinary': 'ordinary'},
+        },
+      });
+      expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
+      expect(d.moveWordingBranches, isEmpty);
+    });
+
     test('fromJson defaults a missing name to Custom', () {
       expect(Dialect.fromJson(const {}).name, Dialect.customName);
     });
@@ -272,6 +329,24 @@ void main() {
       expect(
         Dialect(name: 'x', moveWordings: const {'swing': '{move}'}),
         isNot(Dialect(name: 'x', moveWordings: const {'swing': 'swing'})),
+      );
+    });
+    test('differing branch wordings compare unequal', () {
+      expect(
+        Dialect(
+          name: 'x',
+          moveWordingBranches: const {
+            'circle': {'ordinary': '{move} {turn} {places}'},
+          },
+        ),
+        isNot(
+          Dialect(
+            name: 'x',
+            moveWordingBranches: const {
+              'circle': {'ordinary': '{move} {places}'},
+            },
+          ),
+        ),
       );
     });
     test('equal dancers compare equal (and hash equally)', () {

@@ -6429,6 +6429,10 @@
     "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
   },
   "dialectEditorMoveWordingsHelp": "表示専用の任意のテンプレートで、動作の通常の文を置き換えます。正規テキストと検索は変わりません。",
+  "dialectEditorMoveWordingsConditionalHelp": "条件付き動作テンプレートは図形のパラメーターで選択されます。表示されたすべてのスロットを入力してください。不完全な条件付きテンプレートは無視されます。",
+  "@dialectEditorMoveWordingsConditionalHelp": {
+    "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
   "@dialectEditorMoveWordingsHelp": {
     "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
   },

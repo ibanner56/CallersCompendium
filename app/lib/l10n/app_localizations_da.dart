@@ -6387,6 +6387,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Valgfrie skabeloner kun til visning erstatter en bevægelses normale sætning. Kanonisk tekst og søgning ændres ikke.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Tilføj skabeloner til bevægelsesformulering';
 

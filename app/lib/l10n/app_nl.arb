@@ -6429,6 +6429,10 @@
     "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
   },
   "dialectEditorMoveWordingsHelp": "Optionele sjablonen voor alleen de weergave vervangen de normale zin van een beweging. Canonieke tekst en zoeken blijven ongewijzigd.",
+  "dialectEditorMoveWordingsConditionalHelp": "Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.",
+  "@dialectEditorMoveWordingsConditionalHelp": {
+    "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
   "@dialectEditorMoveWordingsHelp": {
     "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
   },
