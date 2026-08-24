@@ -164,6 +164,8 @@ STEPS: tuple[Step, ...] = (
             py("tools/release/test_gen_sbom.py"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
+            py("tools/release/test_gen_recovery_provenance.py"),
+            py("tools/release/test_release_workflow_recovery.py"),
             py("tools/release/test_publish_pages_manifest.py"),
             py("tools/release/test_publish_pages_site.py"),
             py("tools/release/test_check_pages_signature_files.py"),

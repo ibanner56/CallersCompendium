@@ -61,10 +61,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Fresh-install path works (DB created at current schema, no migration).
 
 ## 3. Build & signing (Gate)
-- [ ] Android release build is SIGNED — on the **actual tag push** (which builds the
- signed APK because the `ANDROID_*` secrets are configured), confirm the signing
- steps (Reconstruct signing config → Build signed APK → Package signed APK)
- succeeded on **that tag's** release run, not a prior run and not a build-only
+- [ ] Android release build is SIGNED — on the **actual tag push**, or an explicit
+ existing-tag recovery after the tag workflow failed, confirm the signing steps
+ (Reconstruct signing config → Build signed APK → Package signed APK) succeeded
+ for that immutable tag, not a prior run and not a build-only
  `workflow_dispatch`. (Without the secrets the Android leg is a no-op — it emits
  `::notice::…skipping Android release artifact` and stages no APK.)
 - [ ] Desktop artifacts build for the platforms you're shipping. **macOS** is
@@ -79,11 +79,14 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  (which exports the App Store `.ipa` with manual signing and runs
  `xcrun altool --upload-app` when the App Store Connect API key, Apple
  Distribution certificate, and both provisioning-profile secret sets are
- configured), confirm the
+ configured), confirm the `release-signing` protected environment was approved
+ and the
  `Prepare iOS signing` → `Build signed iOS .ipa` → `Upload iOS build to
  TestFlight` steps succeeded on **that tag's** release run — **not** a
  `workflow_dispatch` (which builds+signs but never uploads). Then confirm the
  build appears in **App Store Connect → TestFlight** and reaches internal testers.
+ An existing-tag recovery deliberately skips the entire iOS leg; use the original
+ tag run's successful upload as this evidence rather than sending a duplicate.
  (Without all eight secrets the iOS leg is a clean skip; the API key needs the
  **App Manager** role or the upload fails.)
 - [ ] iOS **export compliance** needs no per-build action — `Info.plist` declares

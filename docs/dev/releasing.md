@@ -39,7 +39,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
 - [Signing the update manifest (Ed25519, issue #431)](#signing-the-update-manifest-ed25519-issue-431) — 96 lines
 - [Landing page and user guides (GitHub Pages)](#landing-page-and-user-guides-github-pages) — 74 lines
-- [Dry run (no release created)](#dry-run-no-release-created) — 16 lines
+- [Dry run (no release created)](#dry-run-no-release-created) — 36 lines
 - [macOS (Developer ID signed + notarized)](#macos-developer-id-signed--notarized) — 85 lines
 - [Android (signed APK)](#android-signed-apk) — 143 lines
 - [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api) — 125 lines
@@ -312,8 +312,9 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   versioned section must also have a **Data / Migrations** schema range ending
   at the current version. These checks run before the build matrix.
 
-The stable guard runs the tool in `--check` mode from the `meta` job; a
-build-only `workflow_dispatch` dry run is exempt (it never publishes).
+The stable guard runs the tool in `--check` mode from the `meta` job; an
+ordinary build-only `workflow_dispatch` dry run is exempt (it never publishes).
+An existing-tag recovery is not exempt.
 
 Run it locally to preview a body (also how its unit tests are exercised):
 
@@ -430,9 +431,10 @@ fetch-and-retry loop on a non-fast-forward push. The guarantee is covered offlin
 by `tools/release/test_publish_pages_manifest.py`.
 
 **Least privilege.** The `pages` job has `permissions: contents: write` **only**
-(no `id-token`/`attestations`), and it reuses the same canonical-repo + tag-push
-guard as `publish`, so forks, PRs, and manual `workflow_dispatch` runs can never
-publish the site.
+(no `id-token`/`attestations`), and it reuses the same canonical-repo + release
+guard as `publish`, so forks, PRs, and build-only manual runs can never publish
+the site. An explicit existing-tag recovery is a release operation and does
+refresh the selected channel.
 
 ### One-time maintainer step: enable GitHub Pages
 
@@ -691,9 +693,9 @@ gh workflow run pages-site.yml
 
 ## Dry run (no release created)
 
-A manual dispatch builds + packages without creating any release (the `publish`
-job only runs on a tag push) — the packaged artifacts are uploaded as
-**workflow run artifacts** instead:
+A manual dispatch with no `release_tag` builds + packages without creating any
+release. The packaged artifacts are uploaded as **workflow run artifacts**
+instead:
 
 ```sh
 gh workflow run release.yml
@@ -704,6 +706,26 @@ gh workflow run release.yml
 > whose core matches the pubspec (e.g. `v0.1.0-beta`) — a tag push runs the
 > workflow from the tagged commit and produces a **draft** (never public);
 > delete the draft release and the tag afterward.
+
+### Recovering a failed existing-tag run
+
+If a tag run fails after an irreversible side effect (for example, its iOS
+build reached TestFlight), do not move or re-push the tag and do not rerun the
+unchanged failed job. Land the workflow fix on `main`, then dispatch the fixed
+workflow with the existing tag:
+
+```sh
+gh workflow run release.yml --ref main -f release_tag=v0.1.1-beta
+```
+
+Recovery validates that the input is an existing accepted release tag, checks
+out that immutable tag for every build and publishing step, and creates or
+refreshes the same draft release. It deliberately marks the iOS signing gate
+`skipped-recovery`, so it neither builds another `.ipa` nor uploads another
+TestFlight build. Its SLSA predicate records the tagged source SHA and the
+`main` workflow SHA as separate resolved dependencies, rather than claiming the
+recovery workflow commit was the released source. Ordinary input-free
+dispatches remain build-only.
 
 ## Windows (Azure Trusted Signing)
 
@@ -986,9 +1008,11 @@ debugging).
 > **Status.** On a `v*` tag the `build` matrix's iOS leg (`macos-latest`), when
 > its App Store Connect API key, Apple Distribution certificate, and both
 > provisioning-profile secret sets are present, builds an unsigned archive and
-> exports a manually signed App Store `.ipa`. It then uploads that `.ipa` to
-> TestFlight with `xcrun altool --upload-app`. An `always()` step removes key
-> material, profiles, the ephemeral keychain, and the injected team.
+> exports a manually signed App Store `.ipa`. The protected `publish` job,
+> which requires `release-signing` environment approval, then uploads that
+> artifact to TestFlight with `xcrun altool --upload-app`. An `always()` step
+> removes the build runner's key material, profiles, ephemeral keychain, and
+> injected team.
 >
 > **Gated exactly like macOS/Android:** the `Determine iOS signing availability`
 > step sets `signing=configured` **only** when `APPLE_API_KEY_P8`,
@@ -1026,16 +1050,18 @@ higher. The valid release grammar allows only those two tags, so no manually
 maintained pubspec suffix is needed. `manageAppVersionAndBuildNumber` is set to
 `false` in `ExportOptions.plist` so this derived code stays authoritative.
 
-### Upload gated to real tags only
+### Upload gated to real tags and environment approval
 
-The `.ipa` is **built + signed on both** a tag push **and** a manual
-`workflow_dispatch` (so the sign path can be validated), but the
-`xcrun altool --upload-app` step runs **only** for a real tag push
-(`github.event_name == 'push'` on a `refs/tags/v*` ref). A `workflow_dispatch`
-dry run therefore never uploads to TestFlight — mirroring how the desktop publish
-is gated to tags. The upload makes the build available to **internal** TestFlight
-testers automatically; it does **not** submit to Beta App Review or the public App
-Store.
+The `.ipa` is **built + signed on both** a tag push **and** an ordinary,
+input-free `workflow_dispatch` (so the sign path can be validated), but the
+`xcrun altool --upload-app` step runs in the `publish` job **only** for a real
+tag push (`github.event_name == 'push'` on a `refs/tags/v*` ref), after the
+`release-signing` protected environment is approved. A `workflow_dispatch` dry
+run therefore never uploads to TestFlight. An existing-tag recovery skips the
+entire iOS leg so it cannot duplicate an upload that succeeded before another
+platform failed. The upload makes the build available to **internal** TestFlight
+testers automatically; it does **not** submit to Beta App Review or the public
+App Store.
 
 > **Note.** The full sign + upload path only fully exercises on a tag (or a
 > `workflow_dispatch` for build/sign validation). A PR's own CI does **not** run
@@ -1072,10 +1098,11 @@ your Apple **Team ID**.
 
 ### Maintainer: GitHub Actions secrets (the last step to enable iOS)
 
-Add **all eight** and the pipeline starts signing + uploading iOS to TestFlight on
-the next tag; omit any and the iOS leg stays a clean skip. The API key and team ID
-are shared with the macOS Developer ID leg for notarization; the iOS distribution
-certificate and profiles are iOS-only.
+Add **all eight** and the pipeline starts signing iOS on the next tag; its
+approval-gated `publish` job uploads the resulting IPA to TestFlight. Omit any
+and the iOS leg stays a clean skip. The API key and team ID are shared with the
+macOS Developer ID leg for notarization; the iOS distribution certificate and
+profiles are iOS-only.
 
 | Secret | Contents |
 |--------|----------|
