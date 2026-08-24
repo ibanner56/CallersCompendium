@@ -219,6 +219,11 @@ class _CollectionPickerState extends State<CollectionPicker> {
       });
       dataChanged = true;
     }
+    final hostOverrideAdvanced = _results.any((entry) {
+      final override = widget.danceOverrides[entry.dance.id];
+      return override != null &&
+          override.updatedAt.isAfter(entry.dance.updatedAt);
+    });
     var onlineServiceChanged = false;
     if (oldWidget.callersBoxOnline != widget.callersBoxOnline) {
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
@@ -233,11 +238,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final searchInputsChanged =
         oldWidget.dialect != widget.dialect ||
         oldWidget.enrichment != widget.enrichment;
-    if (searchInputsChanged) {
+    if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
     }
     if (onlineDisabled ||
-        (dataChanged && !_onlineEnabled && !searchInputsChanged)) {
+        ((dataChanged || hostOverrideAdvanced) &&
+            !_onlineEnabled &&
+            !searchInputsChanged)) {
       _runSearch();
     }
     if (onlineServiceChanged && _onlineEnabled) {
@@ -310,10 +317,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
       setState(() {
         _results = [
           for (final id in ids)
-            if ((_importedDances[id] ??
-                    widget.danceOverrides[id] ??
-                    data.dancesById[id])
-                case final dance?)
+            if (_latestDanceFor(id, data) case final dance?)
               data.entryFor(
                 dance,
                 choreographerNamesOverride: choreographerNamesOverride,
@@ -330,6 +334,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _searching = false;
       });
     }
+  }
+
+  Dance? _latestDanceFor(String id, CollectionData data) {
+    final dances = [
+      ?data.dancesById[id],
+      ?widget.danceOverrides[id],
+      ?_importedDances[id],
+    ];
+    return dances.reduce(
+      (latest, dance) =>
+          dance.updatedAt.isAfter(latest.updatedAt) ? dance : latest,
+    );
   }
 
   void _onFtsChanged(String _) {

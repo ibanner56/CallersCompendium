@@ -916,7 +916,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         return true;
       }
       if (current == null && _pendingDanceStatusChecks.add(id)) {
-        unawaited(_checkCreatedDanceStatus(id, created.updatedAt));
+        unawaited(_checkCreatedDanceStatus(id, created));
       }
       return false;
     });
@@ -930,17 +930,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     }
   }
 
-  Future<void> _checkCreatedDanceStatus(
-    String id,
-    DateTime overlayUpdatedAt,
-  ) async {
+  Future<void> _checkCreatedDanceStatus(String id, Dance observed) async {
     try {
       final current = await _repos.dances.getById(id, includeDeleted: true);
-      if (!mounted || current == null || !current.isDeleted) return;
-      if (current.updatedAt.isBefore(overlayUpdatedAt)) return;
+      if (!mounted) return;
       setState(() {
         final created = _createdDances[id];
-        if (created != null && !current.updatedAt.isBefore(created.updatedAt)) {
+        if (created == null || created != observed) return;
+        if (current == null ||
+            (current.isDeleted &&
+                !current.updatedAt.isBefore(created.updatedAt))) {
           _createdDances.remove(id);
         }
       });
@@ -961,7 +960,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       setState(() {
         if (generation != _collectionDataGeneration) {
           final live = _data?.choreographersById[id];
-          if (live != null || current == null) {
+          if (live == current || current == null) {
             _createdChoreographers.remove(id);
           }
           return;
