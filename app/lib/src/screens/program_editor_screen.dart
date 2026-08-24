@@ -950,6 +950,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<void> _reconcileChoreographer(String id) async {
     final observed = _createdChoreographers[id];
+    var retry = false;
     try {
       if (observed == null) return;
       final generation = _collectionDataGeneration;
@@ -962,6 +963,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           final live = _data?.choreographersById[id];
           if (live == current || current == null) {
             _createdChoreographers.remove(id);
+          } else {
+            retry = true;
           }
           return;
         }
@@ -974,6 +977,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       });
     } finally {
       _pendingChoreographerReconciliations.remove(id);
+      if (retry &&
+          mounted &&
+          _createdChoreographers.containsKey(id) &&
+          _pendingChoreographerReconciliations.add(id)) {
+        unawaited(_reconcileChoreographer(id));
+      }
     }
   }
 
