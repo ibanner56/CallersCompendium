@@ -168,7 +168,9 @@ void main() {
       );
       await tester.pump();
       expect(
-        find.text('This template is invalid, so the normal wording will be used.'),
+        find.text(
+          'This template is invalid, so the normal wording will be used.',
+        ),
         findsOneWidget,
       );
 
