@@ -1309,6 +1309,42 @@ void main() {
       );
     });
 
+    test('backup mode preserves definitions, values, and sharing flags', () {
+      final archive = archiveWithExclusion();
+      final encoded = encodeArchive(
+        archive,
+        mode: ArchiveSerializationMode.backup,
+      );
+      final json = jsonDecode(encoded) as Map<String, Object?>;
+      final fields = (json['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      expect(fields, hasLength(2));
+      expect(
+        fields.singleWhere((f) => f['id'] == 'f_private')['shareable'],
+        isFalse,
+      );
+
+      final dances = (json['dances'] as List).cast<Map<String, Object?>>();
+      final values = (dances.single['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      expect(values, hasLength(2));
+      expect(values.map((v) => v['fieldId']), contains('f_private'));
+
+      final decoded = decodeArchive(encoded);
+      expect(decoded.hasErrors, isFalse);
+      expect(
+        decoded.archive.customFields
+            .singleWhere((f) => f.id == 'f_private')
+            .shareable,
+        isFalse,
+      );
+      expect(decoded.archive.dances.single.customFields, hasLength(2));
+      expect(
+        encodeArchive(decoded.archive, mode: ArchiveSerializationMode.backup),
+        encoded,
+      );
+    });
+
     test(
       'all-shareable archive is bit-identical to baseline (no exclusions)',
       () {

@@ -5948,17 +5948,17 @@
   "@customFieldsShareable": {
     "x-sourceSha256": "9805204a2ac39637da9026930ca8cec225d8cb9c85d51561a7e0dea778405826"
   },
-  "customFieldsShareableSubtitle": "De waarden van dit veld gaan mee met je collectie wanneer je die exporteert of deelt",
+  "customFieldsShareableSubtitle": "De waarden van dit veld gaan mee met je collectie wanneer je die deelt; back-ups bevatten ze altijd",
   "@customFieldsShareableSubtitle": {
-    "x-sourceSha256": "cbd2c6ef24a9c3ab9a586a9766eac5720008dcc973ec16742fb13c248b354e4a"
+    "x-sourceSha256": "f89851c1dbfaf17c932b15cf7846fe2ac405f7897b2c2d411e5eef72f4378f0d"
   },
   "customFieldsSharingNoticeTitle": "Aangepaste velden gaan mee met je collectie",
   "@customFieldsSharingNoticeTitle": {
     "x-sourceSha256": "809665c936b4d5704b0f62203370969b74f9250e74ab322d91378def0e3c74a1"
   },
-  "customFieldsSharingNoticeBody": "De inhoud van elk aangepast veld dat je aanmaakt, wordt meegenomen wanneer je je collectie exporteert of deelt. Zet “Opnemen bij delen” uit in de instellingen van dat veld om een veld privé te houden.",
+  "customFieldsSharingNoticeBody": "De inhoud van elk aangepast veld dat je aanmaakt, wordt opgenomen in je back-ups. Zet \"Opnemen bij delen\" uit in de instellingen van het veld wanneer je je collectie deelt om het veld privé te houden.",
   "@customFieldsSharingNoticeBody": {
-    "x-sourceSha256": "9a0f3dbfedab18868eaaadde9bdb74ab1724a648f9ef78ff6cdb249009f149ba"
+    "x-sourceSha256": "5d0563d1a447693421b4d9aa9ed1fb112ad5e57cd39a7833fe0d808e0a5bf0ed"
   },
   "customFieldsSharingNoticeOk": "Begrepen",
   "@customFieldsSharingNoticeOk": {

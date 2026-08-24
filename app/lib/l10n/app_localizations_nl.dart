@@ -5989,7 +5989,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'De waarden van dit veld gaan mee met je collectie wanneer je die exporteert of deelt';
+      'De waarden van dit veld gaan mee met je collectie wanneer je die deelt; back-ups bevatten ze altijd';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5997,7 +5997,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'De inhoud van elk aangepast veld dat je aanmaakt, wordt meegenomen wanneer je je collectie exporteert of deelt. Zet “Opnemen bij delen” uit in de instellingen van dat veld om een veld privé te houden.';
+      'De inhoud van elk aangepast veld dat je aanmaakt, wordt opgenomen in je back-ups. Zet \"Opnemen bij delen\" uit in de instellingen van het veld wanneer je je collectie deelt om het veld privé te houden.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Begrepen';

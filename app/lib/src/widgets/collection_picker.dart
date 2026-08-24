@@ -5,15 +5,22 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 
+import '../data/callersbox_online.dart';
+import '../data/contradb_online.dart';
+import '../data/import_error_labels.dart';
+import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
 import '../search/collection_query.dart';
+import '../screens/online_import_variation_dialog.dart';
 import 'advanced_query_builder.dart';
 import 'by_phrase_panel.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
+import 'online_result_tile.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
 /// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
@@ -35,6 +42,13 @@ class CollectionPicker extends StatefulWidget {
     this.addedDanceCounts = const {},
     this.scrollController,
     this.rowAction = PickerRowAction.add,
+    this.enableOnlineSearch = false,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+    this.onDanceImported,
+    this.onImportingChanged,
+    this.danceOverrides = const {},
+    this.choreographerNamesOverride = const {},
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -73,6 +87,38 @@ class CollectionPicker extends StatefulWidget {
   /// existing consumer.
   final PickerRowAction rowAction;
 
+  /// Whether the Advanced panel offers the Collection's online search mode.
+  ///
+  /// Hosts opt in because an online result imports before [onAddDance] runs,
+  /// unlike a local result which is already persisted.
+  final bool enableOnlineSearch;
+
+  /// Online services used when [enableOnlineSearch] is true. They are optional
+  /// test seams; the state creates the normal services when omitted.
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+
+  /// Called after an online dance has been persisted and before [onAddDance].
+  ///
+  /// This also runs when the online service resolves the selection to an
+  /// existing collection dance without creating a new record.
+  final Future<void> Function(String danceId)? onDanceImported;
+
+  /// Notifies hosts while an online import is in flight so they can prevent
+  /// dismissing or navigating away before the dance is added to the program.
+  ///
+  /// [owner] is stable for this picker instance. Hosts must track owners
+  /// independently: a replaced picker can finish after its replacement starts.
+  final void Function(Object owner, bool active)? onImportingChanged;
+
+  /// Temporary dance records the host has written but whose debounced
+  /// [CollectionData] snapshot has not yet observed.
+  final Map<String, Dance> danceOverrides;
+
+  /// Names for authors referenced by [danceOverrides] while the collection
+  /// snapshot has not yet observed those choreographers.
+  final Map<String, String> choreographerNamesOverride;
+
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
 }
@@ -95,6 +141,23 @@ class _CollectionPickerState extends State<CollectionPicker> {
   final _advancedRoot = BuilderGroup();
   bool _advancedEnabled = false;
 
+  late OnlineSearchService _callersBox;
+  late OnlineSearchService _contraDb;
+  OnlineSource _onlineSource = OnlineSource.callersBox;
+  bool _onlineEnabled = false;
+  List<OnlineSearchResultRow> _onlineResults = const [];
+  bool _onlineSearching = false;
+  String? _onlineError;
+  String? _onlineImportError;
+  int _onlineSeq = 0;
+  bool _onlineImporting = false;
+  final Set<({OnlineSource source, String id})> _onlineAddedIds = {};
+  final Map<String, Dance> _importedDances = {};
+  final Map<String, Choreographer> _importedChoreographers = {};
+  final Object _importActivityOwner = Object();
+
+  static const Duration _onlineDebounce = Duration(milliseconds: 500);
+
   /// Dance ids whose row is currently showing its post-add check, each mapped
   /// to the timer that will clear it.
   final Map<String, Timer> _confirmTimers = {};
@@ -114,6 +177,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       _runSearch();
     }
   }
@@ -121,11 +186,70 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   void didUpdateWidget(CollectionPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
+    var dataChanged = false;
+    var onlineDisabled = false;
+    if (oldWidget.enableOnlineSearch &&
+        !widget.enableOnlineSearch &&
+        _onlineEnabled) {
+      _debounceTimer?.cancel();
+      _searchSeq++;
+      _onlineSeq++;
+      setState(() {
+        _onlineEnabled = false;
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineImportError = null;
+        _onlineSearching = false;
+      });
+      onlineDisabled = true;
+    }
+    if (oldWidget.data != widget.data) {
+      _importedDances.removeWhere((id, imported) {
+        final current = widget.data.dancesById[id];
+        return current != null &&
+            !current.updatedAt.isBefore(imported.updatedAt);
+      });
+      _importedChoreographers.removeWhere((id, imported) {
+        final current = widget.data.choreographersById[id];
+        if (current == imported) return true;
+        return current != null &&
+            !_importedDances.values.any(
+              (dance) => dance.authorIds.contains(id),
+            );
+      });
+      dataChanged = true;
+    }
+    final hostOverrideAdvanced = _results.any((entry) {
+      final override = widget.danceOverrides[entry.dance.id];
+      return override != null &&
+          override.updatedAt.isAfter(entry.dance.updatedAt);
+    });
+    var onlineServiceChanged = false;
+    if (oldWidget.callersBoxOnline != widget.callersBoxOnline) {
+      _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
+      onlineServiceChanged = true;
+    }
+    if (oldWidget.contraDbOnline != widget.contraDbOnline) {
+      _contraDb = widget.contraDbOnline ?? ContraDbOnline();
+      onlineServiceChanged = true;
+    }
     // The active dialect or the saved-dialect enrichment can change while the
     // picker is open (e.g. the user edits their dialect library).
-    if (oldWidget.dialect != widget.dialect ||
-        oldWidget.enrichment != widget.enrichment) {
+    final searchInputsChanged =
+        oldWidget.dialect != widget.dialect ||
+        oldWidget.enrichment != widget.enrichment;
+    if (searchInputsChanged && !_onlineEnabled) {
       _runSearch();
+    }
+    if (onlineDisabled ||
+        ((dataChanged || hostOverrideAdvanced) &&
+            !_onlineEnabled &&
+            !searchInputsChanged)) {
+      _runSearch();
+    }
+    if (onlineServiceChanged && _onlineEnabled) {
+      _onlineSeq++;
+      _runOnlineSearch();
     }
   }
 
@@ -185,10 +309,19 @@ class _CollectionPickerState extends State<CollectionPicker> {
         enrichment: widget.enrichment,
       );
       if (!mounted || seq != _searchSeq) return;
+      final choreographerNamesOverride = {
+        ...widget.choreographerNamesOverride,
+        for (final entry in _importedChoreographers.entries)
+          entry.key: entry.value.name,
+      };
       setState(() {
         _results = [
           for (final id in ids)
-            if (data.dancesById[id] case final dance?) data.entryFor(dance),
+            if (_latestDanceFor(id, data) case final dance?)
+              data.entryFor(
+                dance,
+                choreographerNamesOverride: choreographerNamesOverride,
+              ),
         ];
         _searching = false;
       });
@@ -203,11 +336,29 @@ class _CollectionPickerState extends State<CollectionPicker> {
     }
   }
 
+  Dance? _latestDanceFor(String id, CollectionData data) {
+    final dances = [
+      ?data.dancesById[id],
+      ?widget.danceOverrides[id],
+      ?_importedDances[id],
+    ];
+    if (dances.isEmpty) return null;
+    return dances.reduce(
+      (latest, dance) =>
+          dance.updatedAt.isAfter(latest.updatedAt) ? dance : latest,
+    );
+  }
+
   void _onFtsChanged(String _) {
     _debounceTimer?.cancel();
-    _searchSeq++;
-    _debounceTimer = Timer(_debounce, _runSearch);
-    setState(() {});
+    if (_onlineEnabled) {
+      _prepareDebouncedOnlineSearch();
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      _searchSeq++;
+      _debounceTimer = Timer(_debounce, _runSearch);
+      setState(() {});
+    }
   }
 
   void _onFacetsChanged() {
@@ -216,8 +367,25 @@ class _CollectionPickerState extends State<CollectionPicker> {
   }
 
   void _onByPhraseChanged() {
-    setState(() {});
-    _runSearch();
+    if (_onlineEnabled) {
+      _debounceTimer?.cancel();
+      _prepareDebouncedOnlineSearch();
+      _debounceTimer = Timer(_onlineDebounce, _runOnlineSearch);
+    } else {
+      setState(() {});
+      _runSearch();
+    }
+  }
+
+  void _prepareDebouncedOnlineSearch() {
+    _onlineSeq++;
+    setState(() {
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineImportError = null;
+      _onlineSearching =
+          _ftsController.text.trim().isNotEmpty || _effectivePhrases() != null;
+    });
   }
 
   void _onAdvancedChanged() {
@@ -234,6 +402,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   void _clearAll() {
     _debounceTimer?.cancel();
     _searchSeq++;
+    _onlineSeq++;
     setState(() {
       _ftsController.clear();
       _facets.clear();
@@ -241,8 +410,267 @@ class _CollectionPickerState extends State<CollectionPicker> {
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineImportError = null;
+      _onlineSearching = false;
     });
-    _runSearch();
+    if (!_onlineEnabled) _runSearch();
+  }
+
+  OnlineSearchService get _online =>
+      _onlineSource == OnlineSource.contraDb ? _contraDb : _callersBox;
+
+  CallersBoxPhraseQuery? _onlinePhrases() {
+    if (_byPhrase.isEmpty) return null;
+    final phrases = CallersBoxPhraseQuery.fromSelections(
+      _byPhrase,
+      widget.data.taxonomy,
+    );
+    return phrases.isEmpty ? null : phrases;
+  }
+
+  CallersBoxPhraseQuery? _effectivePhrases() =>
+      _onlineSource.supportsByPhrase ? _onlinePhrases() : null;
+
+  void _onOnlineToggled(bool value) {
+    _debounceTimer?.cancel();
+    _searchSeq++;
+    _onlineSeq++;
+    setState(() {
+      _onlineEnabled = value;
+      _onlineError = null;
+      _onlineImportError = null;
+      if (!value) {
+        _onlineResults = const [];
+        _onlineSearching = false;
+      }
+    });
+    if (value) {
+      if (_ftsController.text.trim().isNotEmpty ||
+          _effectivePhrases() != null) {
+        _runOnlineSearch();
+      }
+    } else {
+      _runSearch();
+    }
+  }
+
+  void _onOnlineSourceChanged(OnlineSource source) {
+    if (source == _onlineSource) return;
+    _debounceTimer?.cancel();
+    _onlineSeq++;
+    setState(() {
+      _onlineSource = source;
+      _onlineResults = const [];
+      _onlineError = null;
+      _onlineImportError = null;
+      _onlineSearching = false;
+    });
+    if (_ftsController.text.trim().isNotEmpty || _effectivePhrases() != null) {
+      _runOnlineSearch();
+    }
+  }
+
+  Future<void> _runOnlineSearch() async {
+    final title = _ftsController.text.trim();
+    final phrases = _effectivePhrases();
+    if (title.isEmpty && phrases == null) {
+      setState(() {
+        _onlineResults = const [];
+        _onlineError = null;
+        _onlineImportError = null;
+        _onlineSearching = false;
+      });
+      return;
+    }
+    final seq = ++_onlineSeq;
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _onlineResults = const [];
+      _onlineSearching = true;
+      _onlineError = null;
+      _onlineImportError = null;
+    });
+    try {
+      final results = await _online.search(
+        OnlineSearchQuery(title: title, phrases: phrases),
+      );
+      if (!mounted || seq != _onlineSeq) return;
+      setState(() {
+        _onlineResults = results;
+        _onlineSearching = false;
+      });
+    } on UrlFetchException catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_picker._runOnlineSearch',
+      );
+      setState(() {
+        _onlineError = importErrorMessage(l10n, error);
+        _onlineResults = const [];
+        _onlineSearching = false;
+      });
+    } catch (error, stackTrace) {
+      if (!mounted || seq != _onlineSeq) return;
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_picker._runOnlineSearch',
+      );
+      setState(() {
+        _onlineError = l10n.onlineSearchFailed(_onlineSource.label);
+        _onlineResults = const [];
+        _onlineSearching = false;
+      });
+    }
+  }
+
+  Future<void> _importOnlineResult(OnlineSearchResultRow onlineResult) async {
+    if (_onlineImporting) return;
+    setState(() {
+      _onlineImporting = true;
+      _onlineImportError = null;
+    });
+    final onImportingChanged = widget.onImportingChanged;
+    final onDanceImported = widget.onDanceImported;
+    final onAddDance = widget.onAddDance;
+    final l10n = AppLocalizations.of(context);
+    final navigator = Navigator.of(context);
+    final service = _online;
+    final searchGeneration = _onlineSeq;
+    var importReported = false;
+    try {
+      importReported = true;
+      onImportingChanged?.call(_importActivityOwner, true);
+      final preview = await service.loadPreview(_repos, onlineResult);
+      var result = await service.import(_repos, preview.plan);
+      if (result.kind == OnlineImportKind.needsConfirmation) {
+        final existingId = result.danceId;
+        assert(
+          existingId != null,
+          'needsConfirmation must carry an existing dance id',
+        );
+        if (existingId == null || !navigator.mounted) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!navigator.mounted) return;
+        final resolution = await showOnlineImportVariationDialog(
+          navigator.context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !navigator.mounted) return;
+        result = await service.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      } else if (result.kind == OnlineImportKind.needsConfirmationIdentical) {
+        final existingId = result.danceId;
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry an existing dance id',
+        );
+        if (existingId == null || !navigator.mounted) return;
+        final existingTitle =
+            (await _repos.dances.getById(existingId))?.title ?? result.title;
+        if (!navigator.mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
+          navigator.context,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !navigator.mounted) return;
+        result = await service.import(
+          _repos,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      }
+      final danceId = result.danceId;
+      if ((result.kind == OnlineImportKind.created ||
+              result.kind == OnlineImportKind.alreadyInCollection) &&
+          danceId != null) {
+        try {
+          final dance = await _repos.dances.getById(danceId);
+          if (dance != null) {
+            final choreographers = await Future.wait(
+              dance.authorIds.map(_repos.choreographers.getById),
+            );
+            if (mounted) {
+              _importedDances[danceId] = dance;
+              for (final choreographer in choreographers) {
+                if (choreographer != null) {
+                  _importedChoreographers[choreographer.id] = choreographer;
+                }
+              }
+            }
+          }
+        } catch (error, stackTrace) {
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'collection_picker.importedMetadata',
+          );
+        }
+        try {
+          await onDanceImported?.call(danceId);
+        } catch (error, stackTrace) {
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'collection_picker.onDanceImported',
+          );
+        }
+        if (mounted) {
+          setState(
+            () => _onlineAddedIds.add((
+              source: onlineResult.source,
+              id: onlineResult.id,
+            )),
+          );
+        }
+        onAddDance(danceId);
+      }
+    } on UrlFetchException catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'collection_picker._importOnlineResult',
+      );
+      if (mounted) {
+        if (searchGeneration != _onlineSeq) return;
+        setState(() {
+          _onlineImportError = importErrorMessage(l10n, error);
+          _onlineSearching = false;
+        });
+      }
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'collection_picker._importOnlineResult',
+      );
+      if (mounted) {
+        if (searchGeneration != _onlineSeq) return;
+        setState(() {
+          _onlineImportError = l10n.onlineImportError;
+          _onlineSearching = false;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _onlineImporting = false);
+      }
+      if (importReported) {
+        onImportingChanged?.call(_importActivityOwner, false);
+      }
+    }
   }
 
   int _activeFacetCount() {
@@ -265,49 +693,64 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final l10n = AppLocalizations.of(context);
     // Picker call sites pass no visibleFields to DanceListTile, so they
     // default to all-visible — no scope override needed here.
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-          child: TextField(
-            key: const ValueKey('picker-search'),
-            controller: _ftsController,
-            onChanged: _onFtsChanged,
-            textInputAction: TextInputAction.search,
-            decoration: InputDecoration(
-              labelText: l10n.collectionPickerSearchLabel,
-              hintText: l10n.collectionSearchFieldHint,
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _hasActiveQuery
-                  ? IconButton(
-                      tooltip: l10n.collectionClearSearchTooltip,
-                      icon: const Icon(Icons.clear),
-                      onPressed: _clearAll,
-                    )
-                  : null,
-              border: const OutlineInputBorder(),
-            ),
-          ),
-        ),
-        Expanded(
-          child: CustomScrollView(
-            controller: widget.scrollController,
-            slivers: [
-              SliverList(
-                delegate: SliverChildListDelegate([
-                  _buildFiltersPanel(data),
-                  _buildByPhrasePanel(data),
-                  _buildAdvancedPanel(data),
-                  _buildResultCount(),
-                  const Divider(height: 1),
-                ]),
+    return ExcludeFocus(
+      excluding: _onlineImporting,
+      child: IgnorePointer(
+        ignoring: _onlineImporting,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: TextField(
+                key: const ValueKey('picker-search'),
+                controller: _ftsController,
+                onChanged: _onFtsChanged,
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  labelText: _onlineEnabled
+                      ? l10n.onlineSearchFieldLabel(_onlineSource.label)
+                      : l10n.collectionPickerSearchLabel,
+                  hintText: _onlineEnabled
+                      ? l10n.onlineSearchFieldHint
+                      : l10n.collectionSearchFieldHint,
+                  prefixIcon: Icon(
+                    _onlineEnabled ? Icons.cloud_outlined : Icons.search,
+                  ),
+                  suffixIcon: _hasActiveQuery
+                      ? IconButton(
+                          tooltip: l10n.collectionClearSearchTooltip,
+                          icon: const Icon(Icons.clear),
+                          onPressed: _clearAll,
+                        )
+                      : null,
+                  border: const OutlineInputBorder(),
+                ),
               ),
-              _buildResultsSliver(),
-            ],
-          ),
+            ),
+            Expanded(
+              child: CustomScrollView(
+                controller: widget.scrollController,
+                slivers: [
+                  SliverList(
+                    delegate: SliverChildListDelegate([
+                      if (!_onlineEnabled) _buildFiltersPanel(data),
+                      if (!_onlineEnabled || _onlineSource.supportsByPhrase)
+                        _buildByPhrasePanel(data),
+                      _buildAdvancedPanel(data),
+                      _buildResultCount(),
+                      const Divider(height: 1),
+                    ]),
+                  ),
+                  _onlineEnabled
+                      ? _buildOnlineResultsSliver()
+                      : _buildResultsSliver(),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -381,18 +824,53 @@ class _CollectionPickerState extends State<CollectionPicker> {
       title: Text(l10n.collectionPickerAdvanced),
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       children: [
+        if (widget.enableOnlineSearch) ...[
+          SwitchListTile(
+            key: const ValueKey('picker-online-search-enable'),
+            contentPadding: EdgeInsets.zero,
+            secondary: const Icon(Icons.cloud_outlined),
+            title: Text(l10n.onlineSearchToggleTitle),
+            subtitle: Text(l10n.onlineSearchToggleSubtitle),
+            value: _onlineEnabled,
+            onChanged: _onlineImporting ? null : _onOnlineToggled,
+          ),
+          if (_onlineEnabled)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SegmentedButton<OnlineSource>(
+                  key: const ValueKey('picker-online-source-selector'),
+                  segments: [
+                    for (final source in OnlineSource.values)
+                      ButtonSegment<OnlineSource>(
+                        value: source,
+                        label: Text(source.label),
+                      ),
+                  ],
+                  selected: {_onlineSource},
+                  showSelectedIcon: false,
+                  onSelectionChanged: _onlineImporting
+                      ? null
+                      : (selection) => _onOnlineSourceChanged(selection.first),
+                ),
+              ),
+            ),
+        ],
         SwitchListTile(
           key: const ValueKey('picker-advanced-enable'),
           contentPadding: EdgeInsets.zero,
           title: Text(l10n.collectionPickerUseAdvancedQuery),
           subtitle: Text(l10n.collectionPickerAdvancedQueryHelp),
           value: _advancedEnabled,
-          onChanged: (value) {
-            setState(() => _advancedEnabled = value);
-            _runSearch();
-          },
+          onChanged: _onlineEnabled
+              ? null
+              : (value) {
+                  setState(() => _advancedEnabled = value);
+                  _runSearch();
+                },
         ),
-        if (_advancedEnabled)
+        if (_advancedEnabled && !_onlineEnabled)
           AdvancedQueryBuilder(
             root: _advancedRoot,
             taxonomy: data.taxonomy,
@@ -406,7 +884,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   Widget _buildResultCount() {
     final l10n = AppLocalizations.of(context);
-    final count = _results.length;
+    final count = _onlineEnabled ? _onlineResults.length : _results.length;
+    final searching = _onlineEnabled ? _onlineSearching : _searching;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Align(
@@ -417,11 +896,13 @@ class _CollectionPickerState extends State<CollectionPicker> {
             Semantics(
               liveRegion: true,
               child: Text(
-                l10n.collectionDanceCount(count),
+                _onlineEnabled
+                    ? l10n.onlineResultCount(count)
+                    : l10n.collectionDanceCount(count),
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
-            if (_searching) ...[
+            if (searching || _onlineImporting) ...[
               const SizedBox(width: 8),
               const SizedBox(
                 width: 12,
@@ -538,6 +1019,104 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   onPressed: () => _handleAdd(entry.dance.id),
                 ),
               ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOnlineResultsSliver() {
+    final l10n = AppLocalizations.of(context);
+    if (_onlineError != null) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(_onlineError!, textAlign: TextAlign.center),
+          ),
+        ),
+      );
+    }
+    if (_onlineSearching && _onlineResults.isEmpty) {
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (_ftsController.text.trim().isEmpty && _effectivePhrases() == null) {
+      final hint = _onlineSource.supportsByPhrase
+          ? l10n.onlineSearchHintByPhrase(_onlineSource.label)
+          : l10n.onlineSearchHintTitle(_onlineSource.label);
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(child: Text(hint, textAlign: TextAlign.center)),
+        ),
+      );
+    }
+    if (_onlineResults.isEmpty) {
+      return SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              _onlineImportError ?? l10n.onlineNoResults(_onlineSource.label),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+    return SliverList.builder(
+      itemCount: _onlineResults.length + (_onlineImportError == null ? 0 : 1),
+      itemBuilder: (context, index) {
+        if (_onlineImportError != null && index == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text(_onlineImportError!, textAlign: TextAlign.center),
+          );
+        }
+        final resultIndex = index - (_onlineImportError == null ? 0 : 1);
+        final result = _onlineResults[resultIndex];
+        return Semantics(
+          button: true,
+          enabled: !_onlineImporting,
+          label: widget.rowAction == PickerRowAction.replace
+              ? l10n.collectionPickerReplaceSemantic(result.name)
+              : l10n.collectionPickerAddSemantic(result.name),
+          child: Stack(
+            children: [
+              OnlineResultTile(
+                key: ValueKey(
+                  'picker-online-result-${result.source.name}-${result.id}',
+                ),
+                result: result,
+                onTap: _onlineImporting
+                    ? null
+                    : () => _importOnlineResult(result),
+              ),
+              if (_onlineAddedIds.contains((
+                source: result.source,
+                id: result.id,
+              )))
+                Positioned(
+                  top: 12,
+                  right: 16,
+                  child: IgnorePointer(
+                    child: Tooltip(
+                      message: l10n.collectionPickerAddedTooltip(result.name),
+                      child: Icon(
+                        key: ValueKey(
+                          'picker-online-added-${result.source.name}-${result.id}',
+                        ),
+                        Icons.check_circle,
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         );

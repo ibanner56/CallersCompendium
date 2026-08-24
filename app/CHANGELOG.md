@@ -22,17 +22,28 @@ each release so store builds and tags can be traced back to an entry.
 - **Imported walkthroughs** — preserve dance walkthrough text when committing
   published collections and generic archive/JSON imports. (issue #1040)
   
+- **Program auto-commit** — edits made while an auto-commit clears its recovery
+  draft are no longer overwritten by the older committed snapshot.
+  
 - **Programming Matrix PDF privacy** — linked venue postal addresses are now
   removed from the exported matrix header while the public venue name remains.
 
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
-  
+
+- **Complete backups** — backups now preserve custom fields and their values even
+  when **Include in sharing** is turned off; that setting still keeps them out of
+  files you share with other people.
+
 ### Added
 
 - **Experimental settings** — a new section provides a home for features that
   are still in development.
+
+- **Program picker online search** — search The Caller's Box or ContraDB from
+  the program builder, then import and add a result directly. Non-break note
+  slots can also be replaced with a selected dance from their edit dialog.
 
 ## [0.1.0] - 2026-08-21
 
