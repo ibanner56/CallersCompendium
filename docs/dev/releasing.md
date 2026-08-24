@@ -1008,9 +1008,11 @@ debugging).
 > **Status.** On a `v*` tag the `build` matrix's iOS leg (`macos-latest`), when
 > its App Store Connect API key, Apple Distribution certificate, and both
 > provisioning-profile secret sets are present, builds an unsigned archive and
-> exports a manually signed App Store `.ipa`. It then uploads that `.ipa` to
-> TestFlight with `xcrun altool --upload-app`. An `always()` step removes key
-> material, profiles, the ephemeral keychain, and the injected team.
+> exports a manually signed App Store `.ipa`. The protected `publish` job,
+> which requires `release-signing` environment approval, then uploads that
+> artifact to TestFlight with `xcrun altool --upload-app`. An `always()` step
+> removes the build runner's key material, profiles, ephemeral keychain, and
+> injected team.
 >
 > **Gated exactly like macOS/Android:** the `Determine iOS signing availability`
 > step sets `signing=configured` **only** when `APPLE_API_KEY_P8`,
@@ -1048,17 +1050,18 @@ higher. The valid release grammar allows only those two tags, so no manually
 maintained pubspec suffix is needed. `manageAppVersionAndBuildNumber` is set to
 `false` in `ExportOptions.plist` so this derived code stays authoritative.
 
-### Upload gated to real tags only
+### Upload gated to real tags and environment approval
 
 The `.ipa` is **built + signed on both** a tag push **and** an ordinary,
 input-free `workflow_dispatch` (so the sign path can be validated), but the
-`xcrun altool --upload-app` step runs **only** for a real tag push
-(`github.event_name == 'push'` on a `refs/tags/v*` ref). A `workflow_dispatch`
-dry run therefore never uploads to TestFlight. An existing-tag recovery skips
-the entire iOS leg so it cannot duplicate an upload that succeeded before
-another platform failed. The upload makes the build available to **internal**
-TestFlight testers automatically; it does **not** submit to Beta App Review or
-the public App Store.
+`xcrun altool --upload-app` step runs in the `publish` job **only** for a real
+tag push (`github.event_name == 'push'` on a `refs/tags/v*` ref), after the
+`release-signing` protected environment is approved. A `workflow_dispatch` dry
+run therefore never uploads to TestFlight. An existing-tag recovery skips the
+entire iOS leg so it cannot duplicate an upload that succeeded before another
+platform failed. The upload makes the build available to **internal** TestFlight
+testers automatically; it does **not** submit to Beta App Review or the public
+App Store.
 
 > **Note.** The full sign + upload path only fully exercises on a tag (or a
 > `workflow_dispatch` for build/sign validation). A PR's own CI does **not** run
@@ -1095,10 +1098,11 @@ your Apple **Team ID**.
 
 ### Maintainer: GitHub Actions secrets (the last step to enable iOS)
 
-Add **all eight** and the pipeline starts signing + uploading iOS to TestFlight on
-the next tag; omit any and the iOS leg stays a clean skip. The API key and team ID
-are shared with the macOS Developer ID leg for notarization; the iOS distribution
-certificate and profiles are iOS-only.
+Add **all eight** and the pipeline starts signing iOS on the next tag; its
+approval-gated `publish` job uploads the resulting IPA to TestFlight. Omit any
+and the iOS leg stays a clean skip. The API key and team ID are shared with the
+macOS Developer ID leg for notarization; the iOS distribution certificate and
+profiles are iOS-only.
 
 | Secret | Contents |
 |--------|----------|

@@ -38,13 +38,25 @@ def main() -> None:
     assert 'if [ "$RECOVERY" = "true" ]; then' in ios_gate
     assert "signing=skipped-recovery" in ios_gate
 
-    testflight = _section(
+    ios_build = _section(
         text,
-        "      - name: Upload iOS build to TestFlight",
-        "      - name: Upload iOS .ipa artifact",
+        "      - name: Build signed iOS .ipa (App Store archive)",
+        "      - name: Clean up iOS signing material",
     )
-    assert "github.event_name == 'push'" in testflight
-    assert "startsWith(github.ref, 'refs/tags/v')" in testflight
+    assert "Upload iOS build to TestFlight" not in ios_build
+    assert "ios-testflight-status" in ios_build
+
+    publish = _section(
+        text,
+        "  publish:\n",
+        "  # Close the supply-chain loop",
+    )
+    assert "runs-on: macos-latest" in publish
+    assert "environment: release-signing" in publish
+    assert "name: ios-testflight-status" in publish
+    assert "      - name: Upload iOS build to TestFlight" in publish
+    assert "EVENT_NAME: ${{ github.event_name }}" in publish
+    assert '[[ "$REF" == refs/tags/v* ]]' in publish
 
     release_step = _section(
         text,
