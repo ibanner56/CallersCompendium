@@ -12,6 +12,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-08-24
+
 ### Changed
 
 - **Dialect editor** — organize dialect settings into collapsible sections,
@@ -76,6 +78,13 @@ from that tag, so new entries need no visible or manually maintained suffix.
 - **Program picker online search** — search The Caller's Box or ContraDB from
   the program builder, then import and add a result directly. Non-break note
   slots can also be replaced with a selected dance from their edit dialog.
+
+### Data / Migrations
+
+- **Taxonomy 31 -> 32** — canonical figure names for do-si-do and see-saw are
+  now `dosido` and `seesaw`; legacy spellings remain accepted and normalized at
+  the full-text query boundary. Existing stored figure JSON and SQLite schema
+  are unchanged; derived FTS rows rebuild once.
 
 ## [0.1.0] - 2026-08-21
 
