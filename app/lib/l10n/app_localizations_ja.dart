@@ -6191,7 +6191,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get dialectEditorMoveWordingInvalid => 'このテンプレートは不完全なため、通常の文言を使用します。';
+  String get dialectEditorMoveWordingInvalid => 'このテンプレートは無効なため、通常の文言を使用します。';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return '保存する前に無効な動作表現テンプレートを修正してください: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

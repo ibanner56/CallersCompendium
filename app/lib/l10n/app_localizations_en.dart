@@ -6397,7 +6397,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'This template is incomplete, so the normal wording will be used.';
+      'This template is invalid, so the normal wording will be used.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Fix invalid move wording templates before saving: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

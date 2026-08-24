@@ -6415,7 +6415,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Denne skabelon er ufuldstændig, så den normale formulering bruges.';
+      'Denne skabelon er ugyldig, så den normale formulering bruges.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Ret ugyldige skabeloner for bevægelsesformuleringer, før du gemmer: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

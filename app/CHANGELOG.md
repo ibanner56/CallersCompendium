@@ -19,6 +19,10 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Dialect wording templates** — the dialect editor now blocks malformed or
+  oversized move wording templates instead of saving settings the renderer will
+  ignore. (issue #1043)
+
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.

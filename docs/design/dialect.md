@@ -52,10 +52,11 @@ It is never included in canonical figure text, search, or deduplication.
   templates**. Templates use the computed slots for that move (for example
   `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
-  Malformed or empty templates fall back to the normal renderer. The editor
-  warns when a template omits available slots and requires confirmation before
-  saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
-  each, and limited to 256 entries per dialect.
+  The editor rejects malformed, empty, or overlong templates before saving, and
+  warns when a valid template omits available slots before requiring
+  confirmation. The renderer still falls back to normal wording defensively for
+  imported or migrated data. Imported templates are sanitized, capped at 512
+  UTF-16 code units each, and limited to 256 entries per dialect.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms

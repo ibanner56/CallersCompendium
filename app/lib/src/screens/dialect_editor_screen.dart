@@ -16,9 +16,9 @@ import '../search/facet_labels.dart' show humanizeToken;
 /// action in the dialect library so it can uniquify against presets/customs.
 ///
 /// A live [_DialectPreview] renders representative sample figures through the
-/// working dialect, and [Dialect.validate] runs on every edit so collision /
-/// empty-substitution issues surface inline as the user types (the same check
-/// still guards Save so an invalid dialect is never returned).
+/// working dialect. [Dialect.validate] and the move-wording template validator
+/// run on every edit so substitution and wording issues surface inline as the
+/// user types; both checks also guard Save so invalid data is never returned.
 class DialectEditorScreen extends StatefulWidget {
   const DialectEditorScreen({super.key, required this.initial});
 
@@ -52,11 +52,12 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   bool _showDancers = false;
   bool _showDiscouraged = false;
 
-  /// Model-level issues (empty/ambiguous substitutions) recomputed live on every
-  /// edit via [Dialect.validate], surfaced inline so collisions show as the user
-  /// types; the same check still guards Save so an invalid dialect is never
-  /// returned.
+  /// Model-level substitution issues recomputed live on every edit via
+  /// [Dialect.validate], surfaced inline so collisions show as the user types.
+  /// Move-wording syntax/length issues are tracked separately because valid
+  /// missing-slot templates have a distinct confirmation flow.
   List<ValidationIssue> _issues = const [];
+  List<String> _invalidMoveWordings = const [];
 
   /// The dialect assembled from the current editor state, kept in sync on every
   /// edit so the live preview and validation both read from it.
@@ -70,6 +71,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     _syncFrom(widget.initial);
     _working = _assemble();
     _issues = _working.validate();
+    _invalidMoveWordings = _invalidMoveWordingLabels(_working);
   }
 
   void _syncFrom(Dialect d) {
@@ -177,8 +179,15 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     setState(() {
       _working = _assemble();
       _issues = _working.validate();
+      _invalidMoveWordings = _invalidMoveWordingLabels(_working);
     });
   }
+
+  List<String> _invalidMoveWordingLabels(Dialect dialect) => [
+    for (final entry in dialect.moveWordings.entries)
+      if (!FigureRenderer.isValidMoveWordingTemplate(entry.value))
+        _moveLabel(entry.key),
+  ];
 
   Map<String, String> _incompleteMoveWordings(Dialect dialect) {
     final incomplete = <String, String>{};
@@ -205,10 +214,20 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   Future<void> _save() async {
     final edited = _assemble();
     final issues = edited.validate();
+    final invalidMoveWordings = _invalidMoveWordingLabels(edited);
+    if (invalidMoveWordings.isNotEmpty) {
+      setState(() {
+        _working = edited;
+        _issues = issues;
+        _invalidMoveWordings = invalidMoveWordings;
+      });
+      return;
+    }
     if (issues.isNotEmpty) {
       setState(() {
         _working = edited;
         _issues = issues;
+        _invalidMoveWordings = invalidMoveWordings;
       });
       return;
     }
@@ -309,6 +328,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       );
       _working = _assemble();
       _issues = _working.validate();
+      _invalidMoveWordings = _invalidMoveWordingLabels(_working);
     });
   }
 
@@ -325,6 +345,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       _wordingCtrls.clear();
       _working = _assemble();
       _issues = _working.validate();
+      _invalidMoveWordings = _invalidMoveWordingLabels(_working);
     });
   }
 
@@ -428,11 +449,17 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   }
 
   List<Widget Function()> _editorItemBuilders(AppLocalizations l10n) => [
-    if (_issues.isNotEmpty)
+    if (_issues.isNotEmpty || _invalidMoveWordings.isNotEmpty)
       () => Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         child: Text(
-          _issues.map((i) => validationIssueMessage(l10n, i)).join('\n'),
+          [
+            ..._issues.map((i) => validationIssueMessage(l10n, i)),
+            if (_invalidMoveWordings.isNotEmpty)
+              l10n.dialectEditorMoveWordingSaveError(
+                _invalidMoveWordings.join(', '),
+              ),
+          ].join('\n'),
           key: const ValueKey('dialect-validation-error'),
           style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
@@ -761,8 +788,9 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
 String _moveLabel(String id) => contraTaxonomy.moves[id]?.displayName ?? id;
 
 /// Collapsible display-only per-move wording editor. Templates use the slots
-/// shown below each field; unknown slots are rendered empty and warned about,
-/// while malformed templates fall back to the normal renderer.
+/// shown below each field; unknown slots are rendered empty and warned about.
+/// Malformed templates are blocked by the parent editor's save guard, while the
+/// renderer still falls back defensively for imported or migrated data.
 class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
     required this.controllers,

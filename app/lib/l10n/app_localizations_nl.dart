@@ -6462,7 +6462,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Dit sjabloon is onvolledig; daarom wordt de normale formulering gebruikt.';
+      'Dit sjabloon is ongeldig; daarom wordt de normale formulering gebruikt.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Los ongeldige sjablonen voor bewegingsformuleringen op voordat u opslaat: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

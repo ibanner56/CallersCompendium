@@ -9833,11 +9833,17 @@ abstract class AppLocalizations {
   /// **'Available slots: {slots}'**
   String dialectEditorMoveWordingSlots(String slots);
 
-  /// Non-blocking warning shown for an incomplete move wording template.
+  /// Non-blocking warning shown for a malformed move wording template.
   ///
   /// In en, this message translates to:
-  /// **'This template is incomplete, so the normal wording will be used.'**
+  /// **'This template is invalid, so the normal wording will be used.'**
   String get dialectEditorMoveWordingInvalid;
+
+  /// Blocking editor error listing malformed move wording templates that must be fixed before saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix invalid move wording templates before saving: {figures}'**
+  String dialectEditorMoveWordingSaveError(String figures);
 
   /// Warning shown when a move wording template references unknown placeholders.
   ///

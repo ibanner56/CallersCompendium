@@ -8519,9 +8519,19 @@
       }
     }
   },
-  "dialectEditorMoveWordingInvalid": "This template is incomplete, so the normal wording will be used.",
+  "dialectEditorMoveWordingInvalid": "This template is invalid, so the normal wording will be used.",
   "@dialectEditorMoveWordingInvalid": {
-    "description": "Non-blocking warning shown for an incomplete move wording template."
+    "description": "Non-blocking warning shown for a malformed move wording template."
+  },
+  "dialectEditorMoveWordingSaveError": "Fix invalid move wording templates before saving: {figures}",
+  "@dialectEditorMoveWordingSaveError": {
+    "description": "Blocking editor error listing malformed move wording templates that must be fixed before saving.",
+    "placeholders": {
+      "figures": {
+        "type": "String",
+        "example": "Swing, Balance"
+      }
+    }
   },
   "dialectEditorMoveWordingUnknownSlots": "Unknown slots are empty: {slots}",
   "@dialectEditorMoveWordingUnknownSlots": {
