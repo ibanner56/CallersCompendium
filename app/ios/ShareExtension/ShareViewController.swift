@@ -2,14 +2,13 @@ import UIKit
 import UniformTypeIdentifiers
 
 /// Share Extension entry point (issue #343). It appears in the Safari / browser
-/// share sheet; when the user shares a web page (e.g. a ContraDB program page),
-/// this stashes the shared URL string in the shared App Group and wakes the
-/// host app so it can import it through the existing hardened pipeline.
+/// share sheet; when the user shares a web page, this stashes the shared URL
+/// string in the shared App Group for the host app to import.
 ///
-/// **Write-then-signal (issue #428):** the payload is appended to the App Group
-/// queue *first* (durable), *then* the host is woken best-effort. The host also
-/// drains the queue on its next activation, so delivery survives a failed wake —
-/// nothing is orphaned even if the app was suspended/closed when it was shared.
+/// **Write-then-confirm:** the payload is appended to the App Group queue
+/// *before* the extension presents a confirmation. A Share Extension cannot
+/// foreground its containing app, so the user explicitly dismisses this surface
+/// and opens Caller's Compendium to review and import the queued link.
 ///
 /// This extension deliberately does **no** validation and **no** import: it
 /// only forwards the raw shared string verbatim. The host app treats it as
@@ -32,18 +31,54 @@ final class ShareViewController: UIViewController {
   /// (e.g. a transient atomic-write temp file) is ignored by the drain.
   private static let payloadExtension = "ccurl"
 
-  /// Custom URL scheme used only to wake the host app (NOT a universal link —
-  /// see issue #343). Confirmed against `Runner/Info.plist` `CFBundleURLSchemes`.
-  private static let hostScheme = "callerscompendium"
-
   /// Upper bound on queued payloads so repeatedly sharing into a suspended app
   /// can't grow the App Group unbounded; the host drains and clears it on its
   /// next activation. Oldest entries beyond the cap are dropped.
   private static let maxQueuedURLs = 16
+  private let titleLabel = UILabel()
+  private let messageLabel = UILabel()
+  private let activityIndicator = UIActivityIndicatorView(style: .large)
+  private let doneButton = UIButton(type: .system)
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    configureView()
+    showLoading()
     handleShare()
+  }
+
+  private func configureView() {
+    view.backgroundColor = .systemBackground
+    let content = UIStackView(arrangedSubviews: [
+      titleLabel,
+      activityIndicator,
+      messageLabel,
+      doneButton,
+    ])
+    content.axis = .vertical
+    content.spacing = 16
+    content.alignment = .fill
+    content.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(content)
+
+    titleLabel.font = .preferredFont(forTextStyle: .headline)
+    titleLabel.textAlignment = .center
+    titleLabel.adjustsFontForContentSizeCategory = true
+
+    messageLabel.font = .preferredFont(forTextStyle: .body)
+    messageLabel.numberOfLines = 0
+    messageLabel.textAlignment = .center
+    messageLabel.adjustsFontForContentSizeCategory = true
+
+    doneButton.configuration = .filled()
+    doneButton.setTitle("Done", for: .normal)
+    doneButton.addTarget(self, action: #selector(dismissExtension), for: .touchUpInside)
+
+    NSLayoutConstraint.activate([
+      content.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+      content.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+      content.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+    ])
   }
 
   private func handleShare() {
@@ -51,7 +86,9 @@ final class ShareViewController: UIViewController {
       let item = extensionContext?.inputItems.first as? NSExtensionItem,
       let attachments = item.attachments
     else {
-      return complete()
+      return showFailure(
+        title: "No link to import",
+        message: "This share did not include a link that Caller's Compendium can import.")
     }
 
     let urlType = UTType.url.identifier
@@ -73,22 +110,30 @@ final class ShareViewController: UIViewController {
         return
       }
     }
-    complete()
+    showFailure(
+      title: "No link to import",
+      message: "This share did not include a link that Caller's Compendium can import.")
   }
 
-  /// Writes the shared string to the App Group and wakes the host app. Runs the
-  /// hand-off on the main thread because `loadItem` completes off-main.
-  ///
-  /// Write-then-signal (issue #428): the payload is made durable *before* the
-  /// wake is attempted, so a failed wake never loses it.
+  /// Writes the shared string to the App Group. Runs the hand-off on the main
+  /// thread because `loadItem` completes off-main.
   private func forward(_ shared: String?) {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       let trimmed = shared?.trimmingCharacters(in: .whitespacesAndNewlines)
       if let trimmed, !trimmed.isEmpty {
-        self.enqueueSharedURL(trimmed)
+        if self.enqueueSharedURL(trimmed) {
+          self.showConfirmation()
+        } else {
+          self.showFailure(
+            title: "Couldn't save link",
+            message: "Caller's Compendium could not save this link for import. Please try again.")
+        }
+      } else {
+        self.showFailure(
+          title: "No link to import",
+          message: "This share did not include a link that Caller's Compendium can import.")
       }
-      self.wakeHostAndComplete()
     }
   }
 
@@ -97,10 +142,10 @@ final class ShareViewController: UIViewController {
   /// concurrently — only ever observes a fully-written payload (issue #428, PR
   /// #484 review). The host treats every entry as untrusted input and
   /// OWASP-validates it before import.
-  private func enqueueSharedURL(_ url: String) {
+  private func enqueueSharedURL(_ url: String) -> Bool {
     guard let data = url.data(using: .utf8),
       let directory = Self.queueDirectory()
-    else { return }
+    else { return false }
     let fileManager = FileManager.default
     do {
       try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -110,10 +155,9 @@ final class ShareViewController: UIViewController {
       // atomic within the directory, so the host never reads a half-written file.
       try data.write(to: destination, options: .atomic)
       pruneQueue(in: directory)
+      return true
     } catch {
-      // Best-effort: if the container is briefly unavailable we skip this payload
-      // rather than crash the share sheet. Delivery of prior payloads is
-      // unaffected — the host drains whatever is present on its next foreground.
+      return false
     }
   }
 
@@ -151,30 +195,30 @@ final class ShareViewController: UIViewController {
       ?? .distantPast
   }
 
-  /// Opportunistically wakes the host, then finishes the request. Delivery is
-  /// NOT dependent on this: the payload is already durably queued in the App
-  /// Group and the host drains it on its next foreground (issue #428).
-  ///
-  /// `NSExtensionContext.open` is documented for Today/iMessage extensions and
-  /// is unsupported by the Share extension point — it typically reports failure
-  /// without foregrounding the host (PR #484 review). We therefore treat it as a
-  /// best-effort nudge only: the result flag is ignored and the extension always
-  /// completes SUCCESSFULLY, because the durable queue + host foreground-drain is
-  /// the authoritative, guaranteed delivery path. We must never reach
-  /// `UIApplication` or the private `openURL:` selector (a no-op on scene-based
-  /// iOS).
-  private func wakeHostAndComplete() {
-    guard let context = extensionContext,
-      let url = URL(string: "\(Self.hostScheme)://import")
-    else {
-      complete()
-      return
-    }
-    // Ignore the result: open() may report failure on the Share extension point;
-    // that is expected and non-fatal since the payload is already enqueued.
-    context.open(url) { [weak self] _ in
-      self?.complete()
-    }
+  private func showLoading() {
+    titleLabel.text = "Preparing import"
+    messageLabel.text = "Saving this link for Caller's Compendium."
+    activityIndicator.startAnimating()
+    doneButton.isHidden = true
+  }
+
+  private func showConfirmation() {
+    titleLabel.text = "Ready to import"
+    messageLabel.text =
+      "This link has been saved. Open Caller's Compendium to review and import it."
+    activityIndicator.stopAnimating()
+    doneButton.isHidden = false
+  }
+
+  private func showFailure(title: String, message: String) {
+    titleLabel.text = title
+    messageLabel.text = message
+    activityIndicator.stopAnimating()
+    doneButton.isHidden = false
+  }
+
+  @objc private func dismissExtension() {
+    complete()
   }
 
   private func complete() {
