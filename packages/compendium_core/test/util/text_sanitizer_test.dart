@@ -104,6 +104,35 @@ void main() {
     });
   });
 
+  group('sanitizeImportedText strips unpaired surrogates', () {
+    test('removes lone high and low surrogates', () {
+      final input = String.fromCharCodes([0x61, 0xD800, 0x62, 0xDC00, 0x63]);
+
+      expect(sanitizeImportedText(input), 'abc');
+    });
+
+    test('removes malformed runs without replacing them', () {
+      final input = String.fromCharCodes([
+        0x61,
+        0xD800,
+        0xD801,
+        0x62,
+        0xDC00,
+        0xDC01,
+        0x63,
+      ]);
+
+      expect(sanitizeImportedText(input), 'abc');
+    });
+
+    test('preserves valid surrogate pairs', () {
+      const input = 'a😀b';
+
+      expect(sanitizeImportedText(input), input);
+      expect(containsDisallowedText(input), isFalse);
+    });
+  });
+
   group('containsDisallowedText flags without mutating', () {
     test('true when a disallowed character is present', () {
       expect(containsDisallowedText('safe\u202Eevil'), isTrue);
@@ -111,6 +140,12 @@ void main() {
 
     test('false for clean text', () {
       expect(containsDisallowedText('perfectly safe title'), isFalse);
+    });
+
+    test('true for an unpaired surrogate', () {
+      final input = String.fromCharCode(0xD800);
+
+      expect(containsDisallowedText(input), isTrue);
     });
 
     test('respects allowLineBreaks', () {

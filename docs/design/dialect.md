@@ -10,6 +10,11 @@ Storage is canonical for structured data (move IDs, role IDs) and for
 figure-bearing free text; hand-typed prose is stored verbatim (see
 "Canonicalization on input").
 
+A dance may also carry a per-figure **wording override** for display-only
+authoring. It is stored with that dance occurrence, rendered through the
+active dialect, and replaces the rendered line (including summary additions).
+It is never included in canonical figure text, search, or deduplication.
+
 ```json
 {
   "name": "Custom",
@@ -19,6 +24,13 @@ figure-bearing free text; hand-typed prose is stored verbatim (see
   },
   "moves":  {"shoulder_round": "%S shoulder round", "do_si_do": "dosido"},
   "dancers": {"neighbors": "the others", "nextNeighbors": "the next couple"},
+  "moveWordings": {"swing": "[{who} ]{move}"},
+  "moveWordingBranches": {
+    "promenade": {
+      "ordinary": "{who} {move} {turn} {direction} {destination}",
+      "singleFile": "{prefix} {move} {turn} {direction} {destination}"
+    }
+  },
   "discouragedTerms": ["gypsy", "gents", "ladies", "..."]
 }
 ```
@@ -42,6 +54,23 @@ figure-bearing free text; hand-typed prose is stored verbatim (see
 - `discouragedTerms` is **user-editable data with shipped defaults**, not
   hardcoded (ContraDB pitfall #3): the entry editor flags these terms, it
   never blocks.
+- `moveWordings` maps canonical move IDs to optional **display-only sentence
+  templates**. Templates use the computed slots for that move (for example
+  `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
+  omitted when their slots are empty, and substituted values are not rescanned.
+  Malformed or empty templates fall back to the normal renderer. The editor
+  warns when a template omits available slots and requires confirmation before
+  saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
+  each, and limited to 256 entries per dialect.
+- `moveWordingBranches` stores fixed branch-specific templates for
+  `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`), `promenade`
+  (`ordinary`, `singleFile`), and `circle` (`ordinary`, `singleFile`). A branch
+  template is usable only when it is valid and contains every slot in that
+  branch's contract. Missing or incomplete branch entries, including imported
+  or programmatically constructed values, fail closed to the normal renderer.
+  Legacy `moveWordings` entries remain compatible only with their default branch;
+  they never cross into a different guarded branch. Branch templates are
+  display-only and share the 512-code-unit/256-entry limits.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms
@@ -63,6 +92,12 @@ free text (notes/custom) ──term regex (case-preserving)──▶ display tex
   (positional/relational sets and single-dancer identities alike), and terms
   inside free text (notes, hooks, custom figures) via compiled word-boundary
   regex with case preservation.
+- Per-dance wording overrides use the same dialect substitution, but do not
+  enter the canonical rendering or any search/deduplication identity.
+- Display wording precedence is per-dance wording override, then the active
+  dialect's move template, then the existing renderer output. Move templates
+  replace the display line; summary modifiers are not appended to a templated
+  line.
 - Search always runs against canonical text/structures → dialect never affects
   results (dialect-agnostic search for free).
 - Print/export lets the user choose canonical or active dialect; exports embed
@@ -143,6 +178,7 @@ Edge rules:
 | Dance card, editor previews, performance mode | ✅ |
 | Free text: custom figures, figure notes | ✅ (canonical on save, rendered on read) |
 | Hand-typed prose: hooks, calling notes, walkthrough | ❌ verbatim (intentional; #613) |
+| Per-dance figure wording override | ✅ display-only; canonical identity unchanged |
 | Program notes / free-text slots | ❌ verbatim (intentional; #665 not planned) |
 | Search input | canonicalized before matching |
 | Stored data, snapshots, JSON export (canonical mode) | ❌ canonical |

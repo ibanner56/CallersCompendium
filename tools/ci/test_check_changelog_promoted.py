@@ -38,12 +38,12 @@ def taxonomy(version: int) -> str:
     return f"const int contraTaxonomyVersion = {version};\n"
 
 
-def changelog(*, unreleased: str, released: str) -> str:
+def changelog(*, unreleased: str, released: str, core: str = "0.1.0") -> str:
     return f"""\
 ## [Unreleased]
 
 {unreleased}
-## [0.1.0] - 2026-08-07
+## [{core}] - 2026-08-07
 
 {released}
 """
@@ -77,10 +77,9 @@ def main() -> int:
         subprocess.run(["git", "add", "."], cwd=repo, check=True)
         subprocess.run(["git", "commit", "-qm", "previous release"], cwd=repo,
                        check=True)
-        subprocess.run(["git", "tag", "v0.1.0-beta.6"], cwd=repo, check=True)
+        subprocess.run(["git", "tag", "v0.1.0-beta"], cwd=repo, check=True)
 
-        # This mirrors the stale beta.6 section plus populated Unreleased that
-        # previously passed gen_release_notes.py --check for beta.7.
+        # This mirrors a stale beta section plus populated Unreleased.
         write(repo, DATABASE, database(24))
         write(repo, Path("app/CHANGELOG.md"), changelog(
             unreleased="### Added\n\n- New beta work.\n",
@@ -90,8 +89,8 @@ def main() -> int:
                 "- Schema advances from version 15 to 20.\n"
             ),
         ))
-        stale = run("--version", "0.1.0-beta.7", "--previous-ref",
-                    "v0.1.0-beta.6", cwd=repo)
+        stale = run("--version", "0.1.0-beta", "--previous-ref",
+                    "v0.1.0-beta", cwd=repo)
         check("stale beta section is rejected", stale.returncode == 1,
               stale.stderr)
         check("unpromoted entries are named", "Unreleased" in stale.stderr,
@@ -106,8 +105,8 @@ def main() -> int:
                 "- Schema advances from version 20 to 24.\n"
             ),
         ))
-        promoted = run("--version", "0.1.0-beta.7", "--previous-ref",
-                       "v0.1.0-beta.6", cwd=repo)
+        promoted = run("--version", "0.1.0-beta", "--previous-ref",
+                       "v0.1.0-beta", cwd=repo)
         check("promoted beta with current migration endpoint passes",
               promoted.returncode == 0, promoted.stderr)
 
@@ -117,7 +116,7 @@ def main() -> int:
             released="### Added\n\n- No schema migration.\n",
         ))
         unchanged = run("--version", "0.1.0", "--previous-ref",
-                        "v0.1.0-beta.6", cwd=repo)
+                        "v0.1.0-beta", cwd=repo)
         check("unchanged schema needs no migration section",
               unchanged.returncode == 0, unchanged.stderr)
 
@@ -132,8 +131,8 @@ def main() -> int:
             "## [0.1.0] - 2026-08-01\n\n"
             "### Added\n\n- Previous release.\n"
         ))
-        duplicated = run("--version", "0.1.0-beta.7", "--previous-ref",
-                         "v0.1.0-beta.6", cwd=repo)
+        duplicated = run("--version", "0.1.0-beta", "--previous-ref",
+                         "v0.1.0-beta", cwd=repo)
         check("a second [0.1.0] heading is rejected",
               duplicated.returncode == 1, duplicated.stderr)
         check("the duplicate error names the count",
@@ -149,7 +148,7 @@ def main() -> int:
         subprocess.run(["git", "add", "."], cwd=repo, check=True)
         subprocess.run(["git", "commit", "-qm", "taxonomy baseline"], cwd=repo,
                        check=True)
-        subprocess.run(["git", "tag", "v0.1.0-beta.7"], cwd=repo, check=True)
+        subprocess.run(["git", "tag", "v0.2.0-beta"], cwd=repo, check=True)
 
         write(repo, TAXONOMY, taxonomy(27))
         write(repo, Path("app/CHANGELOG.md"), changelog(
@@ -158,9 +157,10 @@ def main() -> int:
                 "### Data / Migrations\n\n"
                 "- Schema unchanged.\n"
             ),
+            core="0.2.0",
         ))
-        taxonomy_missing = run("--version", "0.1.0-beta.8", "--previous-ref",
-                               "v0.1.0-beta.7", cwd=repo)
+        taxonomy_missing = run("--version", "0.2.0-beta", "--previous-ref",
+                               "v0.2.0-beta", cwd=repo)
         check("taxonomy move without a note is rejected",
               taxonomy_missing.returncode == 1, taxonomy_missing.stderr)
         check("the taxonomy error names the range",
@@ -172,17 +172,22 @@ def main() -> int:
                 "### Data / Migrations\n\n"
                 "- Taxonomy advances from version 23 to 27.\n"
             ),
+            core="0.2.0",
         ))
-        taxonomy_noted = run("--version", "0.1.0-beta.8", "--previous-ref",
-                             "v0.1.0-beta.7", cwd=repo)
+        taxonomy_noted = run("--version", "0.2.0-beta", "--previous-ref",
+                             "v0.2.0-beta", cwd=repo)
         check("taxonomy move with a note passes",
               taxonomy_noted.returncode == 0, taxonomy_noted.stderr)
 
         write(repo, TAXONOMY, taxonomy(23))
-        unchanged_taxonomy = run("--version", "0.1.0-beta.8", "--previous-ref",
-                                 "v0.1.0-beta.7", cwd=repo)
+        unchanged_taxonomy = run("--version", "0.2.0-beta", "--previous-ref",
+                                 "v0.2.0-beta", cwd=repo)
         check("unchanged taxonomy needs no note",
               unchanged_taxonomy.returncode == 0, unchanged_taxonomy.stderr)
+
+        invalid_beta = run("--version", "0.2.0-beta.1", cwd=repo)
+        check("beta counters are rejected", invalid_beta.returncode != 0,
+              invalid_beta.stderr)
 
     if FAILURES:
         for failure in FAILURES:

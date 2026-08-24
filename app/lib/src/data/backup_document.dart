@@ -28,6 +28,9 @@ const int backupSchemaVersion = 1;
 /// carried inside the payload.
 const int backupContainerVersion = 1;
 
+/// Maximum custom dialects restored from one backup.
+const int kMaxCustomDialects = 128;
+
 /// The only checksum algorithm the container understands. A backup that names
 /// anything else is refused rather than trusted.
 const String kBackupChecksumAlgorithm = 'sha256';
@@ -153,8 +156,9 @@ class BackupReadResult {
 /// and refuses a payload that has been corrupted or altered.
 ///
 /// The nested core archive is emitted via the core codec's canonical
-/// [archiveToJson] (structured JSON, not a double-encoded string), so the
-/// document round-trips deterministically.
+/// [archiveToJson] in [ArchiveSerializationMode.backup] (structured JSON, not a
+/// double-encoded string), so the document retains every custom field and
+/// round-trips deterministically.
 String encodeBackup(BackupDocument doc) =>
     jsonEncode(_wrapWithChecksum(encodeBackupPayload(doc)));
 
@@ -195,7 +199,7 @@ bool _hexEquals(String a, String b) {
 Map<String, Object?> backupToJson(BackupDocument doc) => {
   'backupVersion': doc.schemaVersion,
   'createdAt': doc.createdAt.toUtc().toIso8601String(),
-  'core': archiveToJson(doc.core),
+  'core': archiveToJson(doc.core, mode: ArchiveSerializationMode.backup),
   'app': {
     'dialects': {
       'custom': [for (final d in doc.customDialects) d.toJson()],
@@ -472,7 +476,19 @@ BackupReadResult backupFromJson(Map<String, Object?> root) {
       final dialects = rawDialects.cast<String, Object?>();
       final rawCustom = dialects['custom'];
       if (rawCustom is List) {
-        for (final entry in rawCustom) {
+        for (var index = 0; index < rawCustom.length; index++) {
+          if (index >= kMaxCustomDialects) {
+            errors.add(
+              ArchiveError(
+                kind: ArchiveErrorKind.read,
+                entityType: 'dialect',
+                message:
+                    'custom dialect limit exceeded; remaining entries skipped', // i18n-ignore: internal diagnostic, never shown
+              ),
+            );
+            break;
+          }
+          final entry = rawCustom[index];
           if (entry is Map) {
             try {
               customDialects.add(

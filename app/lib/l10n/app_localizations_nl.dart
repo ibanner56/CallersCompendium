@@ -165,6 +165,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnostics';
 
   @override
+  String get settingsExperimentalTitle => 'Experimenteel';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'Nieuwe functies kunnen hier verschijnen terwijl ze nog in ontwikkeling zijn.';
+
+  @override
   String get settingsAboutTitle => 'Over';
 
   @override
@@ -4033,6 +4040,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat ziet er niet uit als een geldige http(s)-URL.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Die link wordt niet ondersteund voor import.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Die URL heeft te vaak doorgestuurd.';
 
@@ -4669,6 +4680,26 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorWalkthroughStepHelper =>
       'Opgeslagen als je standaard voor deze figuur en overal hergebruikt waar ze voorkomt.';
+
+  @override
+  String get danceEditorAddWordingOverride =>
+      'Woording voor deze dans aanpassen';
+
+  @override
+  String get danceEditorWordingOverrideLabel =>
+      'Woording van de figuur voor deze dans';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Vervangt de weergegeven regel voor deze figuur in deze dans. De canonieke figuur blijft doorzoekbaar.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Standaardwoording gebruiken';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Voorbeeld: $text';
+  }
 
   @override
   String get danceEditorSnippetDivergenceTitle =>
@@ -5962,7 +5993,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'De waarden van dit veld gaan mee met je collectie wanneer je die exporteert of deelt';
+      'De waarden van dit veld gaan mee met je collectie wanneer je die deelt; back-ups bevatten ze altijd';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5970,7 +6001,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'De inhoud van elk aangepast veld dat je aanmaakt, wordt meegenomen wanneer je je collectie exporteert of deelt. Zet “Opnemen bij delen” uit in de instellingen van dat veld om een veld privé te houden.';
+      'De inhoud van elk aangepast veld dat je aanmaakt, wordt opgenomen in je back-ups. Zet \"Opnemen bij delen\" uit in de instellingen van het veld wanneer je je collectie deelt om het veld privé te houden.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Begrepen';
@@ -6067,6 +6098,27 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get dialectEditorRestoreDefaults => 'Standaarden herstellen';
+
+  @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Standaard afgeraden termen herstellen?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'Je huidige afgeraden termen worden vervangen door de standaardtermen.';
+
+  @override
+  String get dialectEditorExitTitle => 'Wijzigingen opslaan?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'Je hebt niet-opgeslagen wijzigingen in dit dialect.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Opslaan en afsluiten';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Afsluiten zonder opslaan';
 
   @override
   String get dialectEditorPreviewHelp =>
@@ -6375,5 +6427,117 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String publishedCollectionSupersedes(String version) {
     return 'Vervangt versie $version';
+  }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Sjablonen voor bewegingsformuleringen';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Optionele sjablonen voor alleen de weergave vervangen de normale zin van een beweging. Canonieke tekst en zoeken blijven ongewijzigd.';
+
+  @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (voorwaardelijk)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Alleen in';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Alleen uit';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'In en uit';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Geen van beide';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Gewoon';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Enkele rij';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Sjablonen voor bewegingsformuleringen toevoegen';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sjablonen voor bewegingsformulering',
+      one: '1 sjabloon voor bewegingsformulering',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording =>
+      'Een sjabloon voor bewegingsformulering toevoegen…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Weergavesjabloon';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Beschikbare plaatshouders: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Dit sjabloon is ongeldig; daarom wordt de normale formulering gebruikt.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Los ongeldige sjablonen voor bewegingsformuleringen op voordat u opslaat: $figures';
+  }
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Onbekende plaatshouders zijn leeg: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Deze template laat beschikbare slots weg: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Deze template laat optionele slots weg: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Voorbeeld: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Sjablonen voor bewegingsformuleringen resetten';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Sjablonen voor bewegingsformuleringen resetten?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'Hiermee verwijder je al je aangepaste sjablonen voor bewegingsformuleringen.';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Onvolledige woordingssjablonen opslaan?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Deze sjablonen laten beschikbare slots weg en kunnen figuurdetails verbergen:\n$figures\n\nToch opslaan?';
   }
 }

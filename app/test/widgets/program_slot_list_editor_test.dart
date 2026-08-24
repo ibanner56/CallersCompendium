@@ -69,59 +69,155 @@ void main() {
     expect(data['textDirection'], isNot(TextDirection.ltr.index));
   });
 
-  // M4 (issue #964): the replace affordance is a dance-slot-only concept —
-  // converting a note's danceId to a picked one would corrupt a slot whose
-  // danceId is meant to stay null (see ProgramSlot's constructor invariant).
-  testWidgets(
-    'the replace-dance affordance appears only for a dance slot, never a '
-    'free-text slot (issue #964)',
-    (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: testLocalizationsDelegates,
-          supportedLocales: testSupportedLocales,
-          home: Scaffold(
-            body: ProgramSlotListEditor(
-              slots: [
-                ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
-                ProgramSlot(id: 's2', position: 1, text: 'Break'),
-              ],
-              danceTitles: (id) => 'Dance $id',
-              formationFor: (_) => null,
-              mixerFor: (_) => false,
-              onReorder: (_, _) {},
-              onSlotChanged: (_, _) {},
-              onRemove: (_) {},
-              onCreateDance: (_) {},
-              onPickReplacementDance: () async => 'd2',
-            ),
+  // A note's replacement is held locally until Save, just like a dance's
+  // replacement. Saving converts the note slot into a dance slot.
+  testWidgets('replacing a free-text slot converts it to a dance slot', (
+    tester,
+  ) async {
+    final changes = <ProgramSlot>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: [
+              ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+              ProgramSlot(id: 's2', position: 1, text: 'Caller note'),
+            ],
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, updated) => changes.add(updated),
+            onRemove: (_) {},
+            onCreateDance: (_) {},
+            onPickReplacementDance: () async => 'd2',
           ),
         ),
-      );
+      ),
+    );
 
-      // Dance slot: the replace affordance is present.
-      await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit slot'));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('slot-edit-replace-dance')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('slot-edit-cancel')));
-      await tester.pumpAndSettle();
+    // Dance slot: the replace affordance is present.
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('slot-edit-replace-dance')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('slot-edit-cancel')));
+    await tester.pumpAndSettle();
 
-      // Free-text slot: no replace affordance at all.
-      await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Edit slot'));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('slot-edit-replace-dance')),
-        findsNothing,
-      );
-    },
-  );
+    // Free-text slots offer the same replacement flow.
+    await tester.tap(find.byKey(const ValueKey('slot-1-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('slot-edit-replace-dance')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+
+    expect(changes, hasLength(1));
+    expect(changes.single.danceId, 'd2');
+    expect(changes.single.text, isNull);
+  });
+
+  testWidgets('break slots do not offer dance replacement', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: [
+              ProgramSlot(
+                id: 'break',
+                position: 0,
+                text: Program.breakSlotText,
+              ),
+            ],
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, _) {},
+            onRemove: (_) {},
+            onCreateDance: (_) {},
+            onPickReplacementDance: () async => 'd2',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('slot-edit-replace-dance')), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Breakdance',
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey('slot-edit-replace-dance')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Break',
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey('slot-edit-replace-dance')), findsNothing);
+  });
+
+  testWidgets('replacing after a note validation error clears the error', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: ProgramSlotListEditor(
+            slots: [ProgramSlot(id: 'note', position: 0, text: 'Caller note')],
+            danceTitles: (id) => 'Dance $id',
+            formationFor: (_) => null,
+            mixerFor: (_) => false,
+            onReorder: (_, _) {},
+            onSlotChanged: (_, _) {},
+            onRemove: (_) {},
+            onCreateDance: (_) {},
+            onPickReplacementDance: () async => 'd2',
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('slot-edit-note')), '');
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter some text for this slot.'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('slot-edit-replace-dance')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enter some text for this slot.'), findsNothing);
+  });
 
   // M3 (issue #964): a pick must be held in the dialog's own state and only
   // committed by Save — otherwise Cancel (or dismissing the dialog any other

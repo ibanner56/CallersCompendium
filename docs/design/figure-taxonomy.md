@@ -41,7 +41,7 @@ searchKeywords: [allemande, almond]
   loaded per dance-form. Adding moves/params is additive; renames are
   migrations. Stored figures carry `schemaVersion` so old data always parses.
 - **Aliases** are entries that resolve to a canonical move with pinned params
-  (see saw → do si do{shoulder: left}; swat the flea → box the gnat{hand:
+  (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
   left}). Search de-aliases automatically.
 - **`custom`** is a first-class move: `{text, beats}`; its text is
   dialect-processed and FTS-indexed. `contra corners` and `turn alone` embed an
@@ -80,7 +80,7 @@ Adopted from ContraDB, with renames noted:
 allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
 California twirl · chain (role-parameterized, not "ladies chain") · circle ·
-contra corners · cross trails · **custom** · do si do (alias: see saw) ·
+contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
@@ -640,7 +640,8 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `hand` (default `unspecified`), and two inverse pairs are declared
   (`box_the_gnat` ⇄ `swat_the_flea` on `hand`, `do_si_do` ⇄ `see_saw` on
   `shoulder`) so a figure whose effective param contradicts its alias pin is
-  re-routed at write time. Canonical keys change (`hand=unspecified` joins every
+  re-routed by the editor while authoring and re-checked at write time.
+  Canonical keys change (`hand=unspecified` joins every
   balance key); the derived rebuild rides the one-time
   `inversePairNormalisationDoneKey` pass, NOT the version bump — nothing reads
   `Taxonomy.version` at runtime.
@@ -1254,9 +1255,9 @@ fails a PR that moves the constant without adding the matching entry.
     canonical-key change ships with a stale FTS index, so the mechanism is
     named explicitly here rather than assumed.)
 
-    The inverse-pair re-routing changes only `figure.move` at write time
-    (import, editor save); canonical keys are unaffected because both
-    halves of a pair already resolve to the same `MoveDef` id.
+    The inverse-pair re-routing changes only `figure.move` in the editor and at
+    write time (import, editor save); canonical keys are unaffected because
+    both halves of a pair already resolve to the same `MoveDef` id.
 - v26 (#843): `star_promenade` LOSES its `hand` param, and `{hand}` leaves its
     `renderTemplate`. This is a param REMOVAL — the first in this taxonomy;
     v19's `allemande_orbit` retired a whole move, and v21 renamed one.
@@ -1520,12 +1521,14 @@ fails a PR that moves the constant without adding the matching entry.
     CONCRETE default with sentinel-admitting `choices`; every other
     sentinel-admitting param still defaults TO the sentinel.
 
-    **Rendering silencing (derived, not templated).** `turn` is silenced in
-    display only at the pure-default combination — `turn=='counterclockwise'`
-    **and** no `destination` stated — mirroring how `dir` has always been
-    silenced only at its own default. Any departure (a non-default `turn`, a
-    non-default `dir`, or a stated `destination`) shows both `dir` and `turn`
-    together. Canonical never applies this default-silencing: `turn` is
+    **Rendering silencing (derived, not templated).** On the non-single-file
+    display path, the concrete default `turn` is omitted when `dir` is
+    `across`, `rightDiagonal`, or `leftDiagonal` and no destination is
+    rendered. `along` is the exception: it un-silences the concrete default
+    turn. A non-default `turn` or a rendered destination shows both `dir` and
+    `turn` together. Rotationless directions (`in`/`out`/`up`/`down`) reset
+    `turn` to the `unspecified` sentinel in the editor, so no turn token is
+    rendered. Canonical never applies this default-silencing: `turn` is
     omitted from canonical text only at the `unspecified` sentinel, exactly
     like `dir`'s existing canonical behaviour of always rendering even at its
     default.
@@ -1565,6 +1568,14 @@ fails a PR that moves the constant without adding the matching entry.
     used together. Both are additive taxonomy moves with no schema migration.
     The existing hall + `turnCouple` fold remains the representation for
     turn-as-couples lines attached to a down/up-the-hall sequence.
+- v32 (#1056): changes the canonical display names of the do-si-do pair to
+  `dosido` and `seesaw`, matching the compact vocabulary used by CallersBox.
+  The permanent move IDs and alias pin are unchanged. Existing `do si do`,
+  `do-si-do`, `see saw`, and `see-saw` spellings remain accepted on import and
+  are normalized at the full-text query boundary. Because canonical figure
+  text and FTS rows use the display names, existing derived rows are rebuilt
+  once under `compactDosidoSeesawCanonicalRebuildDoneKey`; stored figure JSON
+  and the SQLite schema are unchanged.
 
 ## Open questions (to resolve during implementation, with user input)
 

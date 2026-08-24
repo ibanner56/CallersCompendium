@@ -174,6 +174,13 @@ void main() {
       expect(f.params['turn'], 1.5);
     });
 
+    test('compact seesaw resolves to the alias', () {
+      final f = _parse('neighbors seesaw');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'see_saw');
+      expect(f.params['who'], 'neighbors');
+    });
+
     group('allemande (generic renderer: who allemande hand rotation)', () {
       test('gentlespoons allemande left once', () {
         final f = _parse('gentlespoons allemande left once');

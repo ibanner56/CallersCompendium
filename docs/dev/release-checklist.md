@@ -1,6 +1,6 @@
 # Beta Release Checklist — Caller's Compendium
 
-Use one copy of this per beta tag (e.g. v0.1.0-beta.1). Check every box or
+Use one copy of this per beta tag (e.g. v0.1.0-beta). Check every box or
 explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 
 > **First time submitting to the App Store or Google Play?** This checklist is per
@@ -18,15 +18,23 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Working tree clean; you are on `main` at the exact commit you intend to tag.
 
 ## 1. Version & metadata (Gate)
-- [ ] `app/pubspec.yaml` `version:` carries the **core** `x.y.z` being shipped,
- with **no prerelease suffix** — a beta ships with the plain core (`0.1.0+1` for
- every `v0.1.0-beta.N`), and the channel comes from the tag. The gate compares
- the tag's core (prerelease stripped) against the pubspec version with only
- `+build` stripped — the prerelease is *kept* on the pubspec side — so
- `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and **fails the
- `meta` gate**. Bump it only when the core version itself changes. (The repo-root
- `pubspec.yaml` is the workspace file and has **no** `version:`; the releasable
- version lives in `app/pubspec.yaml`.)
+- [ ] Inputs are decided and recorded: beta status and valid no-leading-zero
+ `X.Y.Z`. The only tags are `vX.Y.Z-beta` and `vX.Y.Z`; the selected tag
+ determines channel and prerelease status.
+- [ ] `app/pubspec.yaml` and `kAppVersion` are both exactly `X.Y.Z`, with no
+ build metadata or prerelease suffix. The workflow rejects any other pubspec
+ format or a tag whose core differs. (The repo-root `pubspec.yaml` is the
+ workspace file and has **no** `version:`.)
+- [ ] Each `X.Y.Z` component is in `0..999`. The workflow derives Android's
+ `versionCode` from the tag, with beta lower than stable for the same core; no
+ manually maintained store-build suffix exists.
+- [ ] The updater uses strict SemVer unchanged: `X.Y.Z-beta` ranks above older
+ cores/betas and below `X.Y.Z`; release builds pass that tag-derived value to
+ the updater while pubspec stays bare. Do not introduce a custom comparison
+ rule.
+- [ ] A bare beta core has no pre-existing non-identical prerelease tag. For
+ example, after `v0.1.0-beta.1` through `.9`, `v0.1.0-beta` would sort older
+ and the workflow rejects it; choose a newer `X.Y.Z` core.
 - [ ] Version string is consistent everywhere it appears (about screen, update
  manifest, any hardcoded constant).
 - [ ] `kCompendiumSchemaVersion` matches the schema actually shipped; if it moved
@@ -40,6 +48,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Exactly one `## [x.y.z]` heading for the release's core version
  (`grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md` → `1`). Promotion merges into the
  existing section; a second heading renders fine and orphans the older one.
+- [ ] The required shared `## [X.Y.Z]` section exists for **both** beta and stable.
+ The beta establishes it from `Unreleased`; beta-to-stable fixes are added to
+ that same section.
 
 ## 2. Data safety (Gate — local-first app, user data is sacred)
 - [ ] Every schema migration since the last release has a v(N-1)→vN migration test
@@ -65,15 +76,16 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  confirm the actual tag run's Windows signing and installer-signing steps, and
  note any expected SmartScreen warning for an unsigned fallback.
 - [ ] iOS build is SIGNED + uploaded to TestFlight — on the **actual tag push**
- (which archives + signs the App Store `.ipa` via automatic signing and runs
- `xcrun altool --upload-app` because `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID` /
- `APPLE_API_ISSUER_ID` / `APPLE_TEAM_ID` are configured), confirm the
+ (which exports the App Store `.ipa` with manual signing and runs
+ `xcrun altool --upload-app` when the App Store Connect API key, Apple
+ Distribution certificate, and both provisioning-profile secret sets are
+ configured), confirm the
  `Prepare iOS signing` → `Build signed iOS .ipa` → `Upload iOS build to
  TestFlight` steps succeeded on **that tag's** release run — **not** a
  `workflow_dispatch` (which builds+signs but never uploads). Then confirm the
  build appears in **App Store Connect → TestFlight** and reaches internal testers.
- (Without the secrets the iOS leg is a clean skip; the API key needs the **App
- Manager** role or the upload fails.)
+ (Without all eight secrets the iOS leg is a clean skip; the API key needs the
+ **App Manager** role or the upload fails.)
 - [ ] iOS **export compliance** needs no per-build action — `Info.plist` declares
  `ITSAppUsesNonExemptEncryption = false` (app uses only exempt encryption), so
  App Store Connect skips the "Missing Compliance" prompt automatically.
@@ -85,14 +97,13 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  expected URL.
 - [ ] The update manifest points at the artifacts this tag will publish
  (URLs + versions + checksums line up).
-- [ ] **Update manifest is SIGNED (Gate — first enforced at beta.4).** The client
- now fail-closes on an unsigned/mis-signed manifest, so the `UPDATE_SIGNING_KEY`
- secret (Ed25519 private key, PEM) MUST be provisioned before tagging — its public
- half must match the pinned `kUpdateManifestPublicKey`. On the tag's release run,
- confirm the `Sign the channel manifest` step ran (not the `::notice::` skip) and a
- `<channel>.json.sig` is published to gh-pages next to the manifest. Then verify a
- real client accepts the signed update end-to-end (beta.4 is the first signed
- release, so this is the first live verification). See
+- [ ] **Update manifests are signed (Gate).** `UPDATE_SIGNING_KEY` (Ed25519
+ private-key PEM) MUST be provisioned; its absence fails publication. Confirm
+ `Sign refreshed manifests` ran and each published manifest has its matching
+ current `.sig` — no changed manifest may retain a stale signature. A stable
+ refreshes signed `stable.json` **and** `beta.json`; a beta refreshes signed
+ `beta.json` only. Then verify a real client accepts the signed update
+ end-to-end. See
  [releasing.md → Signing the update manifest](releasing.md#signing-the-update-manifest-ed25519-issue-431).
 - [ ] **`pages-sig-gate` is green (Gate — issues #759, #810).**
  The post-publish `Assert gh-pages signature invariant` step in the `pages` job
@@ -169,7 +180,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 
 ## 8. Tag & publish
 - [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
-- [ ] Annotated tag created on the exact reviewed commit: `v0.1.0-beta.1`.
+- [ ] Annotated tag created on the exact reviewed commit: `vX.Y.Z-beta` or
+  `vX.Y.Z`.
 - [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
 - [ ] Post-publish: download each artifact FROM the release and re-launch once
  (catches broken uploads).

@@ -163,6 +163,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDiagnosticsTitle => '診断';
 
   @override
+  String get settingsExperimentalTitle => '実験的';
+
+  @override
+  String get settingsExperimentalPlaceholder => '開発中の新機能がここに表示される場合があります。';
+
+  @override
   String get settingsAboutTitle => '情報';
 
   @override
@@ -3870,6 +3876,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importErrorInvalidUrl => '有効なhttp(s) URLのように見えません。';
 
   @override
+  String get importErrorUnsupportedSharedLink => 'このリンクはインポートに対応していません。';
+
+  @override
   String get importErrorTooManyRedirects => 'そのURLはリダイレクトが多すぎました。';
 
   @override
@@ -4471,6 +4480,24 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get danceEditorWalkthroughStepHelper =>
       'このフィギュアの既定値として保存され、登場するすべての箇所で再利用されます。';
+
+  @override
+  String get danceEditorAddWordingOverride => 'このダンスの呼び方をカスタマイズ';
+
+  @override
+  String get danceEditorWordingOverrideLabel => 'このダンスでのフィギュアの呼び方';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'このダンスでこのフィギュアに表示される行を置き換えます。標準のフィギュアは検索できます。';
+
+  @override
+  String get danceEditorResetWordingOverride => '標準の呼び方を使用';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'プレビュー: $text';
+  }
 
   @override
   String get danceEditorSnippetDivergenceTitle => '保存済みスニペットを更新しますか？';
@@ -5715,14 +5742,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'このフィールドの値は、コレクションをエクスポートまたは共有するときに一緒に送られます';
+      'このフィールドの値はコレクションを共有するときに一緒に送られます。バックアップには常に含まれます';
 
   @override
   String get customFieldsSharingNoticeTitle => 'カスタムフィールドはコレクションと一緒に送られます';
 
   @override
   String get customFieldsSharingNoticeBody =>
-      '作成したカスタムフィールドの内容は、コレクションをエクスポートまたは共有するときに含まれます。フィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
+      '作成したカスタムフィールドの内容はバックアップに含まれます。コレクションを共有するときにフィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
 
   @override
   String get customFieldsSharingNoticeOk => '了解';
@@ -5816,6 +5843,24 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get dialectEditorRestoreDefaults => 'デフォルトに戻す';
+
+  @override
+  String get dialectEditorDiscouragedResetTitle => '推奨されない用語をデフォルトに戻しますか？';
+
+  @override
+  String get dialectEditorDiscouragedResetBody => '現在の推奨されない用語をデフォルトに置き換えます。';
+
+  @override
+  String get dialectEditorExitTitle => '変更を保存しますか？';
+
+  @override
+  String get dialectEditorExitBody => 'この方言には未保存の変更があります。';
+
+  @override
+  String get dialectEditorSaveAndExit => '保存して終了';
+
+  @override
+  String get dialectEditorExitWithoutSaving => '保存せずに終了';
 
   @override
   String get dialectEditorPreviewHelp =>
@@ -6115,5 +6160,108 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String publishedCollectionSupersedes(String version) {
     return 'バージョン $version を置き換え';
+  }
+
+  @override
+  String get dialectEditorSectionMoveWordings => '動作の文言テンプレート';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      '表示専用の任意のテンプレートで、動作の通常の文を置き換えます。正規テキストと検索は変わりません。';
+
+  @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      '条件付き動作テンプレートは図形のパラメーターで選択されます。表示されたすべてのスロットを入力してください。不完全な条件付きテンプレートは無視されます。';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move（条件付き）';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'インのみ';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'アウトのみ';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'インとアウト';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'どちらもなし';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => '通常';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => '一列';
+
+  @override
+  String get dialectEditorMoveWordingsAdd => '動作の文言テンプレートを追加';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count 個の動作の文言テンプレート',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording => '動作の文言テンプレートを追加…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => '表示テンプレート';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return '使用可能なスロット: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid => 'このテンプレートは無効なため、通常の文言を使用します。';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return '保存する前に無効な動作表現テンプレートを修正してください: $figures';
+  }
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return '不明なスロットは空になります: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'このテンプレートでは利用可能なスロットが省略されています: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'このテンプレートでは任意のスロットが省略されています: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'プレビュー: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset => '動作の文言テンプレートをリセット';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle => '動作の文言テンプレートをリセットしますか？';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody => 'カスタムの動作文言テンプレートをすべて削除します。';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle => '不完全な文言テンプレートを保存しますか？';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'これらのテンプレートでは利用可能なスロットが省略されているため、フィギュアの詳細が隠れる可能性があります:\n$figures\n\nそれでも保存しますか？';
   }
 }

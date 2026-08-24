@@ -2,6 +2,7 @@ import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
+import '../storage/repositories/venue_repository.dart';
 import 'compendium_archive.dart';
 
 /// Reads the entire core-persisted collection into a [CompendiumArchive] for
@@ -83,6 +84,7 @@ class ArchiveRestorer {
     RestoreMode mode = RestoreMode.replace,
   }) async {
     final errors = <ArchiveError>[];
+    final causalAt = DateTime.now().toUtc();
     // Distinguishes an intentional abort-to-rollback (replace mode saw a write
     // error) from an unexpected transaction failure, without depending on how
     // the database layer re-surfaces the thrown sentinel.
@@ -102,13 +104,13 @@ class ArchiveRestorer {
           // replace never leaves the user with wiped data and a half-applied
           // archive — either the whole archive writes, or live data is intact.
           await _clearAll();
-          await _load(archive, errors);
+          await _load(archive, errors, causalAt: causalAt);
           if (errors.isNotEmpty) {
             abortedForRollback = true;
             throw const _RestoreAborted();
           }
         } else {
-          await _load(archive, errors);
+          await _load(archive, errors, causalAt: causalAt);
         }
       });
     } on Exception catch (e) {
@@ -162,8 +164,9 @@ class ArchiveRestorer {
   /// persisted.
   Future<void> _load(
     CompendiumArchive archive,
-    List<ArchiveError> errors,
-  ) async {
+    List<ArchiveError> errors, {
+    required DateTime causalAt,
+  }) async {
     // archiveId -> writtenId for the three entity kinds that dance references.
     // An entry is only added on success; a failed upsert leaves no entry.
     final choreoRemap = <String, String>{};
@@ -198,9 +201,38 @@ class ArchiveRestorer {
     }
     for (final d in archive.dances) {
       await _guard('dance', d.id, errors, () async {
-        await _repos.dances.create(
-          _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
-        );
+        final existingDeleted = await _repos.dances.isDeletedById(d.id);
+        final wasTombstoned = existingDeleted == true && d.deletedAt == null;
+        final wasLive = existingDeleted == false && d.deletedAt != null;
+        final existing = wasTombstoned || wasLive
+            ? await _repos.dances.getById(d.id, includeDeleted: true)
+            : null;
+        if (wasTombstoned) {
+          await _repos.dances.restore(d.id, at: causalAt);
+        }
+        try {
+          await _repos.dances.create(
+            wasLive
+                ? _applyRemap(
+                    d,
+                    choreoRemap,
+                    tagRemap,
+                    fieldRemap,
+                  ).copyWith(clearDeletedAt: true)
+                : _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
+          );
+          if (wasLive) {
+            await _repos.dances.softDelete(d.id, at: causalAt);
+          }
+        } on Exception {
+          if (existing != null) {
+            await _repos.dances.create(existing);
+            if (wasTombstoned) {
+              await _repos.dances.softDelete(d.id, at: causalAt);
+            }
+          }
+          rethrow;
+        }
       });
     }
     // Venues before programs: a program's `venueId` soft-references a venue, so
@@ -220,10 +252,37 @@ class ArchiveRestorer {
     final knownVenueIds = await _repos.venues.listAllIds();
     for (final p in archive.programs) {
       await _guard('program', p.id, errors, () async {
-        await _repos.programs.create(
-          _withResolvedVenue(p, knownVenueIds),
-          knownVenueIds: knownVenueIds,
-        );
+        final existingDeleted = await _repos.programs.isDeletedById(p.id);
+        final wasTombstoned = existingDeleted == true && p.deletedAt == null;
+        final wasLive = existingDeleted == false && p.deletedAt != null;
+        final existing = wasTombstoned || wasLive
+            ? await _repos.programs.getById(p.id, includeDeleted: true)
+            : null;
+        if (wasTombstoned) {
+          await _repos.programs.restore(p.id, at: causalAt);
+        }
+        try {
+          await _repos.programs.create(
+            wasLive
+                ? _withResolvedVenue(
+                    p.copyWith(clearDeletedAt: true),
+                    knownVenueIds,
+                  )
+                : _withResolvedVenue(p, knownVenueIds),
+            knownVenueIds: knownVenueIds,
+          );
+          if (wasLive) {
+            await _repos.programs.softDelete(p.id, at: causalAt);
+          }
+        } on Exception {
+          if (existing != null) {
+            await _repos.programs.create(existing);
+            if (wasTombstoned) {
+              await _repos.programs.softDelete(p.id, at: causalAt);
+            }
+          }
+          rethrow;
+        }
       });
     }
   }
@@ -272,7 +331,7 @@ class ArchiveRestorer {
   /// OWASP-aligned import contract forbids, so it is nulled rather than
   /// persisted as an unresolvable reference. A resolvable (or already-null)
   /// `venueId` is left untouched.
-  Program _withResolvedVenue(Program p, Set<String> knownVenueIds) {
+  Program _withResolvedVenue(Program p, LiveVenueIds knownVenueIds) {
     final venueId = p.venueId;
     if (venueId == null) return p;
     return knownVenueIds.contains(venueId) ? p : p.copyWith(clearVenueId: true);

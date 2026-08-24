@@ -12,10 +12,9 @@ details.
 > first time a dance term appears it links to the [Glossary](./glossary.md), so
 > you can get a plain-language definition without losing your place.
 
-*Wireframe sketch of the Settings screen: a section list on the left beside the
-settings for the chosen section. This is a low-fidelity layout sketch, not the
-finished app.*
-![Wireframe sketch of the Settings screen showing the section list beside the controls for the selected section](../design/wireframes/7-settings.svg)
+*The Settings Dialect section with the section list beside controls for the
+active dialect and custom wording.*
+![The Settings Dialect section showing the section list, active-dialect picker, and custom wording controls](images/settings-dialect.png)
 
 ## Finding Settings
 
@@ -26,7 +25,7 @@ rail.
 
 Inside, a list of sections sits beside the controls for the section you've
 chosen. On a narrow screen you pick a section and it opens as its own page, then
-you step back to switch sections. There are nine sections, always in this order:
+you step back to switch sections. There are ten sections, always in this order:
 
 1. **General**
 2. **Program**
@@ -36,7 +35,8 @@ you step back to switch sections. There are nine sections, always in this order:
 6. **Defaults**
 7. **Updates**
 8. **Diagnostics**
-9. **About**
+9. **Experimental**
+10. **About**
 
 ## General
 
@@ -75,6 +75,9 @@ the full picture.
 
 - **Import dances** — the entry point for bringing dances in from other sources.
   See [Imports & migration](./imports.md).
+- **Published collections** — browse signed collections from the trusted catalog
+  and send one through the review flow. See
+  [Imports & migration](./imports.md#import-a-published-collection).
 - **Re-check custom figures** — re-reads imported dances whose figures were kept
   as plain custom text only because the app couldn't recognise them at the time.
   You preview and confirm before anything changes, and your tags, ratings, and
@@ -388,6 +391,12 @@ of producing an empty file.
 Filing a bug? A scrubbed log attached to a
 [GitHub issue](https://github.com/ibanner56/CallersCompendium/issues) is the most
 useful thing you can send.
+
+## Experimental
+
+The **Experimental** section is a home for features that are still in
+development. It may be empty, and anything that appears there can change before
+it becomes a regular setting.
 
 ## About
 

@@ -134,7 +134,7 @@ column headings, and prints a legend along the bottom:
 
 | Mark | Meaning |
 |---|---|
-| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in Settings ▸ General ▸ Programs) |
+| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in Settings ▸ Program ▸ Programs) |
 | `★` | Introduced here |
 | `▸` | Dance's first figure |
 | `✓` | Present |
@@ -211,6 +211,10 @@ They are different tools for different jobs:
 | **Meant for** | Handing to another person | Keeping safe, or moving to your own new device |
 | **Privacy** | Private contact details stripped or opt-in | Complete — it is your own data, unredacted |
 | **Where** | The **Export** menu on a dance or program | **Settings** ▸ **General** ▸ **Export a backup** |
+
+The **Include in sharing** setting on a custom field applies to share/export
+files sent to other people. Your own backup remains complete, including fields
+whose sharing setting is turned off.
 
 Because a backup is complete and unredacted, treat a backup file as you would
 your own address book — it is for you, not for sharing.

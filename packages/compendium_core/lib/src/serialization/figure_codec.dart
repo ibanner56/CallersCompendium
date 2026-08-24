@@ -16,7 +16,8 @@ import '../model/figure.dart';
 /// `assumedSubject` is written only when `true` (a parser-defaulted subject),
 /// so existing data and ordinary figures stay byte-for-byte compatible.
 /// `walkthroughOverride` (#411) is written only when present/non-blank and is
-/// soft-clamped on decode. A `meanwhile` container figure (#590) additionally
+/// soft-clamped on decode. `wordingOverride` is handled the same way. A
+/// `meanwhile` container figure (#590) additionally
 /// carries its concurrent sides in `params['figures']`; those sub-figures are
 /// (de)serialized **recursively** through this same codec and the shared beat
 /// count lives in `params['beats']`. This is all additive — there is **no**
@@ -39,6 +40,9 @@ Map<String, Object?> figureToJson(Figure figure) {
     if (figure.walkthroughOverride != null &&
         figure.walkthroughOverride!.trim().isNotEmpty)
       'walkthroughOverride': figure.walkthroughOverride,
+    if (figure.wordingOverride != null &&
+        figure.wordingOverride!.trim().isNotEmpty)
+      'wordingOverride': figure.wordingOverride,
   };
 }
 
@@ -105,6 +109,7 @@ Figure figureFromJson(Map<String, Object?> json) {
   } else {
     walkthroughOverride = null;
   }
+  final wordingOverride = _optionalOverride(json['wordingOverride']);
   return Figure(
     schemaVersion: schemaVersion,
     move: move,
@@ -118,7 +123,15 @@ Figure figureFromJson(Map<String, Object?> json) {
     customOrigin: customOrigin,
     assumedSubject: assumedSubject,
     walkthroughOverride: walkthroughOverride,
+    wordingOverride: wordingOverride,
   );
+}
+
+String? _optionalOverride(Object? raw) {
+  if (raw is! String || raw.trim().isEmpty) return null;
+  return raw.length > kMaxWalkthroughSnippetLength
+      ? raw.substring(0, kMaxWalkthroughSnippetLength)
+      : raw;
 }
 
 /// Replaces a meanwhile container's raw `params['figures']` (a JSON array) with

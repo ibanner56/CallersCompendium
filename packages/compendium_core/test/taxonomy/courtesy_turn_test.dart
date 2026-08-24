@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 31', () {
-      expect(contraTaxonomyVersion, 31);
-      expect(tax.version, 31);
+    test('contraTaxonomyVersion is 32', () {
+      expect(contraTaxonomyVersion, 32);
+      expect(tax.version, 32);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {

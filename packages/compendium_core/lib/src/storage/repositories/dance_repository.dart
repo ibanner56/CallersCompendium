@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../dialect/canonicalize.dart';
 import '../../dialect/dialect.dart';
 import '../../dialect/renderer.dart';
 import '../../model/custom_field.dart';
@@ -146,7 +147,8 @@ class DanceRepository {
       }
       if (subs == null) return figure;
       // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
-      // assumedSubject / walkthroughOverride survive the one-time pass.
+      // assumedSubject / walkthroughOverride / wordingOverride survive the
+      // one-time pass.
       return figure.copyWith(
         params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
       );
@@ -198,7 +200,8 @@ class DanceRepository {
       }
       if (subs == null) return figure;
       // copyWith, not a bare Figure(...), so schemaVersion / customOrigin /
-      // assumedSubject / walkthroughOverride survive the one-time pass.
+      // assumedSubject / walkthroughOverride / wordingOverride survive the
+      // one-time pass.
       return figure.copyWith(
         params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
       );
@@ -229,8 +232,9 @@ class DanceRepository {
       }
       if (subs == null) return figure;
       // Use copyWith so schemaVersion, customOrigin, assumedSubject, and
-      // walkthroughOverride survive — a bare Figure(...) resets them to
-      // defaults, which silently loses metadata during the one-time migration.
+      // walkthroughOverride / wordingOverride survive — a bare Figure(...)
+      // resets them to defaults, which silently loses metadata during the
+      // one-time migration.
       return figure.copyWith(
         params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
       );
@@ -690,6 +694,18 @@ class DanceRepository {
             .getSingleOrNull();
     if (row == null) return null;
     return _toModel(row);
+  }
+
+  /// Returns the soft-delete state for [id] without hydrating child
+  /// collections. Returns `null` when no row exists.
+  Future<bool?> isDeletedById(String id) async {
+    final row =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([_db.dances.deletedAt])
+              ..where(_db.dances.id.equals(id)))
+            .getSingleOrNull();
+    if (row == null) return null;
+    return row.read(_db.dances.deletedAt) != null;
   }
 
   Future<List<Dance>> listAll({bool includeDeleted = false}) async {
@@ -1527,13 +1543,21 @@ class DanceRepository {
   /// consistent with every other list/search path (mirrors the
   /// `FilterCompiler._compileRelevance` convention). Ranking/order is unchanged.
   Future<List<String>> searchText(String query) async {
+    final canonicalQuery = toFtsMatchQuery(
+      canonicalizeMoveSearchText(
+        canonicalizeText(query, Dialect.canonical),
+        _taxonomy,
+      ),
+    );
+    final rawTitleQuery = toFtsMatchQuery(query);
+    final ftsQuery = '($canonicalQuery OR title : $rawTitleQuery)';
     final rows = await _db
         .customSelect(
           'SELECT dance_fts.dance_id FROM dance_fts '
           'JOIN dances ON dances.id = dance_fts.dance_id '
           'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
           'ORDER BY bm25(dance_fts)',
-          variables: [Variable.withString(toFtsMatchQuery(query))],
+          variables: [Variable.withString(ftsQuery)],
         )
         .get();
     return [for (final r in rows) r.read<String>('dance_id')];
@@ -1586,6 +1610,7 @@ class DanceRepository {
     final compiled = FilterCompiler(
       dialect,
       enrichment,
+      _taxonomy,
     ).compile(filter, sort: sort, direction: dir);
     final rows = await _db
         .customSelect(

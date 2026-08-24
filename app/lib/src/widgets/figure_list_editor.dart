@@ -55,6 +55,7 @@ class FigureListEditor extends StatefulWidget {
     this.shorthandMappings,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
+    this.showWordingOverride = false,
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
   });
@@ -140,6 +141,11 @@ class FigureListEditor extends StatefulWidget {
   /// divergence-prompt flow (#411) and may update [draft.walkthroughOverride]
   /// and/or the global library. Only wired when [snippetLibraryDefaultFor] is.
   final void Function(FigureDraft draft)? onSnippetCommitted;
+
+  /// Whether this dance-scoped editor should expose the per-figure display
+  /// wording override. Disabled for reusable defaults and shorthand mappings,
+  /// where a per-dance value would be misleading.
+  final bool showWordingOverride;
 
   /// Groups [draft] with the figure immediately after it into a **meanwhile**
   /// group (#590/#593): the caller replaces both top-level entries with one
@@ -558,6 +564,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         onCut: isCutCard ? null : () => _startCut(draft.id),
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
+        showWordingOverride: widget.showWordingOverride,
         onGroupWithNext:
             (widget.onGroupWithNext == null ||
                 draft.isMeanwhileGroup ||
@@ -852,6 +859,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.onCut,
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
+    this.showWordingOverride = false,
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
   });
@@ -923,6 +931,8 @@ class _FigureDraftCard extends StatefulWidget {
   /// [FigureListEditor.onSnippetCommitted].
   final void Function(FigureDraft draft)? onSnippetCommitted;
 
+  final bool showWordingOverride;
+
   /// Resolved "group with next" action for THIS row (#590/#593), already
   /// accounting for adjacency/flat-only conditions (see
   /// [FigureListEditor.onGroupWithNext]). `null` hides the menu item.
@@ -973,10 +983,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// One-shot autofocus flag for the snippet field, mirroring [_justRevealedNote].
   bool _justRevealedSnippet = false;
 
+  /// Whether the per-dance wording field is revealed.
+  bool _showWordingOverride = false;
+
   @override
   void initState() {
     super.initState();
     _showNote = widget.draft.note.trim().isNotEmpty;
+    _showWordingOverride =
+        widget.draft.wordingOverride?.trim().isNotEmpty ?? false;
     _showSnippet = _resolvedSnippet().trim().isNotEmpty;
     // Seed beats for custom figures loaded from data that predates #795.
     // Old custom figures carry no 'beats' key; the editor would display
@@ -1015,6 +1030,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // …and the figure is now a stated, user-authored choice, so it is no longer
     // a parser-gap custom (#419): drop any inherited importGap origin.
     widget.draft.customOrigin = CustomOrigin.userEntered;
+    widget.draft.wordingOverride = null;
     // A fresh move brings a fresh canonical beat default; that default is
     // authoritative until the user overrides it again. A saved per-move beats
     // default (DD.3) is a user-configured value, so _applyMoveParamDefaults
@@ -1049,6 +1065,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.assumedSubject = false;
     // Authoring a custom by hand is a stated choice, not a parser gap (#419).
     widget.draft.customOrigin = CustomOrigin.userEntered;
+    widget.draft.wordingOverride = null;
     _applyMoveParamDefaults(customMove);
     widget.draft.params['text'] = trimmed;
     _showMoreOptions = false;
@@ -1083,6 +1100,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     widget.draft.move = null;
     widget.draft.params.clear();
     widget.draft.beatsTouched = false;
+    widget.draft.wordingOverride = null;
     _showMoreOptions = false;
     widget.onChanged();
   }
@@ -1148,6 +1166,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (draft.move == 'chain' && key == 'who') {
       _seedChainHand('chain', draft.params);
     }
+    _rerouteInversePair(draft, widget.taxonomy);
     final newDefault = _canonicalBeats(draft.params);
     if (newDefault == null) return;
     if (draft.beatsTouched) {
@@ -1669,6 +1688,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 const SizedBox(height: 8),
                 _buildNote(context),
                 _buildWalkthroughSnippet(context),
+                if (widget.showWordingOverride) _buildWordingOverride(context),
               ],
             ],
           ),
@@ -1747,6 +1767,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   },
                 ),
                 const SizedBox(height: 12),
+                if (widget.showWordingOverride) _buildWordingOverride(context),
                 for (var i = 0; i < sides.length; i++)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
@@ -1760,6 +1781,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       dialect: widget.dialect,
                       mixer: widget.mixer,
                       moveParamDefaults: widget.moveParamDefaults,
+                      showWordingOverride: widget.showWordingOverride,
                       onChanged: widget.onChanged,
                       onMoveUp: i == 0 ? null : () => _reorderSide(i, i - 1),
                       onMoveDown: i == sides.length - 1
@@ -1840,6 +1862,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ..assumedSubject = remaining.assumedSubject
         ..customOrigin = remaining.customOrigin
         ..walkthroughOverride = remaining.walkthroughOverride
+        ..wordingOverride = remaining.wordingOverride
         ..meanwhileSides = null;
       draft.params
         ..clear()
@@ -1922,6 +1945,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               const SizedBox(height: 8),
               _buildNote(context),
               _buildWalkthroughSnippet(context),
+              if (widget.showWordingOverride) _buildWordingOverride(context),
             ],
           ),
         ),
@@ -2165,6 +2189,66 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       onCommit: () => widget.onSnippetCommitted?.call(draft),
     );
   }
+
+  /// Per-dance display wording. Unlike the walkthrough snippet, this value
+  /// never participates in the global snippet library and replaces the entire
+  /// rendered line, so the preview uses the same renderer as the card summary.
+  Widget _buildWordingOverride(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    if (draft.move == null || draft.move == customMove) {
+      return const SizedBox.shrink();
+    }
+    final value = draft.wordingOverride ?? '';
+    final showField = _showWordingOverride || value.trim().isNotEmpty;
+    if (!showField) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: ValueKey('figure-${widget.index}-add-wording-override'),
+          onPressed: () => setState(() => _showWordingOverride = true),
+          icon: const Icon(Icons.edit_note, size: 18),
+          label: Text(l10n.danceEditorAddWordingOverride),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+      );
+    }
+    final figure = draft.toFigure();
+    final preview = figure == null
+        ? ''
+        : FigureRenderer(widget.taxonomy).render(figure, widget.dialect);
+    return _WordingOverrideField(
+      key: ValueKey('figure-${widget.index}-wording-override-${draft.id}'),
+      fieldKey: 'figure-${widget.index}-wording-override',
+      value: value,
+      preview: preview,
+      onChanged: (text) {
+        draft.wordingOverride = text;
+        widget.onChanged();
+      },
+      onCommit: () {
+        final trimmed = draft.wordingOverride?.trim();
+        final normalized = trimmed == null || trimmed.isEmpty ? null : trimmed;
+        if (draft.wordingOverride == normalized) return;
+        draft.wordingOverride = normalized;
+        widget.onChanged();
+      },
+      onClear: () {
+        draft.wordingOverride = null;
+        setState(() => _showWordingOverride = false);
+        widget.onChanged();
+      },
+    );
+  }
+}
+
+void _rerouteInversePair(FigureDraft draft, Taxonomy taxonomy) {
+  final move = draft.move;
+  if (move == null) return;
+  final resolved = taxonomy.resolvedMoveId(
+    Figure(move: move, params: draft.params),
+  );
+  if (resolved != move) draft.move = resolved;
 }
 
 // ---------------------------------------------------------------------------
@@ -2229,6 +2313,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     required this.dialect,
     this.mixer = false,
     this.moveParamDefaults,
+    this.showWordingOverride = false,
     required this.onChanged,
     this.onMoveUp,
     this.onMoveDown,
@@ -2249,6 +2334,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
   final bool mixer;
 
   final Map<String, Map<String, Object?>>? moveParamDefaults;
+  final bool showWordingOverride;
   final VoidCallback onChanged;
 
   /// Null when this side is already first/last within the group.
@@ -2262,11 +2348,14 @@ class _MeanwhileSideEditor extends StatefulWidget {
 
 class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
   bool _showNote = false;
+  bool _showWordingOverride = false;
 
   @override
   void initState() {
     super.initState();
     _showNote = widget.draft.note.trim().isNotEmpty;
+    _showWordingOverride =
+        widget.draft.wordingOverride?.trim().isNotEmpty ?? false;
   }
 
   void _selectMove(String moveId) {
@@ -2278,6 +2367,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
       ..addAll(widget.taxonomy.effectiveParams(Figure(move: moveId)));
     draft.assumedSubject = false;
     draft.customOrigin = CustomOrigin.userEntered;
+    draft.wordingOverride = null;
     draft.beatsTouched = false;
     // #976: apply a saved per-move default FIRST — it may itself override
     // `who` (defaults are sparse per-param diffs, `display_defaults.dart`),
@@ -2329,7 +2419,55 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     draft.move = null;
     draft.params.clear();
     draft.beatsTouched = false;
+    draft.wordingOverride = null;
     widget.onChanged();
+  }
+
+  Widget _buildSideWordingOverride(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final draft = widget.draft;
+    if (draft.move == null || draft.move == customMove) {
+      return const SizedBox.shrink();
+    }
+    final value = draft.wordingOverride ?? '';
+    if (!_showWordingOverride && value.trim().isEmpty) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          key: ValueKey('${widget.keyPrefix}-add-wording-override'),
+          onPressed: () => setState(() => _showWordingOverride = true),
+          icon: const Icon(Icons.edit_note, size: 18),
+          label: Text(l10n.danceEditorAddWordingOverride),
+          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+        ),
+      );
+    }
+    final figure = draft.toFigure();
+    final preview = figure == null
+        ? ''
+        : FigureRenderer(widget.taxonomy).render(figure, widget.dialect);
+    return _WordingOverrideField(
+      key: ValueKey('${widget.keyPrefix}-wording-override-${draft.id}'),
+      fieldKey: '${widget.keyPrefix}-wording-override',
+      value: value,
+      preview: preview,
+      onChanged: (text) {
+        draft.wordingOverride = text;
+        widget.onChanged();
+      },
+      onCommit: () {
+        final trimmed = draft.wordingOverride?.trim();
+        final normalized = trimmed == null || trimmed.isEmpty ? null : trimmed;
+        if (draft.wordingOverride == normalized) return;
+        draft.wordingOverride = normalized;
+        widget.onChanged();
+      },
+      onClear: () {
+        draft.wordingOverride = null;
+        setState(() => _showWordingOverride = false);
+        widget.onChanged();
+      },
+    );
   }
 
   @override
@@ -2424,6 +2562,8 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                 _buildSideParams(context, def),
               const SizedBox(height: 8),
               _buildSideNote(context),
+              if (widget.showWordingOverride)
+                _buildSideWordingOverride(context),
             ],
           ],
         ),
@@ -2464,6 +2604,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               if (draft.move == 'chain' && entry.key == 'who') {
                 _seedChainHand('chain', draft.params);
               }
+              _rerouteInversePair(draft, widget.taxonomy);
               widget.onChanged();
             },
           ),
@@ -2865,6 +3006,108 @@ class _SnippetFieldState extends State<_SnippetField> {
           ),
           onChanged: widget.onChanged,
         ),
+      ],
+    );
+  }
+}
+
+/// A display-only wording override for one figure occurrence. Text is stored
+/// live for autosave/undo, while [onCommit] normalizes it when focus leaves.
+class _WordingOverrideField extends StatefulWidget {
+  const _WordingOverrideField({
+    super.key,
+    required this.fieldKey,
+    required this.value,
+    required this.preview,
+    required this.onChanged,
+    required this.onCommit,
+    required this.onClear,
+  });
+
+  final String fieldKey;
+  final String value;
+  final String preview;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onCommit;
+  final VoidCallback onClear;
+
+  @override
+  State<_WordingOverrideField> createState() => _WordingOverrideFieldState();
+}
+
+class _WordingOverrideFieldState extends State<_WordingOverrideField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode(debugLabel: widget.fieldKey)
+      ..addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) widget.onCommit();
+  }
+
+  @override
+  void didUpdateWidget(_WordingOverrideField old) {
+    super.didUpdateWidget(old);
+    if (widget.value != old.value && _controller.text != widget.value) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TextField(
+          key: ValueKey(widget.fieldKey),
+          controller: _controller,
+          focusNode: _focusNode,
+          minLines: 1,
+          maxLines: 4,
+          maxLength: kMaxWalkthroughSnippetLength,
+          decoration: InputDecoration(
+            labelText: l10n.danceEditorWordingOverrideLabel,
+            helperText: l10n.danceEditorWordingOverrideHelper,
+            helperMaxLines: 3,
+            isDense: true,
+            border: const OutlineInputBorder(),
+            suffixIcon: IconButton(
+              key: ValueKey('${widget.fieldKey}-clear'),
+              tooltip: l10n.danceEditorResetWordingOverride,
+              icon: const Icon(Icons.restart_alt),
+              onPressed: widget.onClear,
+            ),
+          ),
+          onChanged: widget.onChanged,
+        ),
+        if (widget.preview.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              l10n.danceEditorWordingOverridePreview(widget.preview),
+              key: ValueKey('${widget.fieldKey}-preview'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
       ],
     );
   }

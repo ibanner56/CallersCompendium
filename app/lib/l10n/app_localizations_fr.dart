@@ -169,6 +169,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnostic';
 
   @override
+  String get settingsExperimentalTitle => 'Expérimental';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'De nouvelles fonctionnalités peuvent apparaître ici pendant qu’elles sont encore en développement.';
+
+  @override
   String get settingsAboutTitle => 'À propos';
 
   @override
@@ -4065,6 +4072,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Cela ne ressemble pas à une URL http(s) valide.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Ce lien n\'est pas pris en charge pour l\'importation.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Cette URL a effectué trop de redirections.';
 
@@ -4704,6 +4715,27 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceEditorWalkthroughStepHelper =>
       'Enregistré comme valeur par défaut pour cette figure et réutilisé partout où elle apparaît.';
+
+  @override
+  String get danceEditorAddWordingOverride =>
+      'Personnaliser la formulation de cette danse';
+
+  @override
+  String get danceEditorWordingOverrideLabel =>
+      'Formulation de la figure pour cette danse';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Remplace la ligne rendue pour cette figure dans cette danse. La figure canonique reste consultable.';
+
+  @override
+  String get danceEditorResetWordingOverride =>
+      'Utiliser la formulation par défaut';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Aperçu : $text';
+  }
 
   @override
   String get danceEditorSnippetDivergenceTitle =>
@@ -6004,7 +6036,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Les valeurs de ce champ accompagnent votre collection lorsque vous l’exportez ou la partagez';
+      'Les valeurs de ce champ accompagnent votre collection lorsque vous la partagez ; les sauvegardes les incluent toujours';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6012,7 +6044,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Le contenu de tout champ personnalisé que vous créez est inclus lorsque vous exportez ou partagez votre collection. Pour garder un champ privé, désactivez « Inclure lors du partage » dans les paramètres de ce champ.';
+      'Le contenu de tout champ personnalisé que vous créez est inclus dans vos sauvegardes. Lorsque vous partagez votre collection, désactivez « Inclure lors du partage » dans les paramètres du champ pour le garder privé.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Compris';
@@ -6111,6 +6143,27 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dialectEditorRestoreDefaults => 'Restaurer les valeurs par défaut';
+
+  @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Restaurer les termes déconseillés par défaut ?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'Cela remplace vos termes déconseillés actuels par les valeurs par défaut.';
+
+  @override
+  String get dialectEditorExitTitle => 'Enregistrer les modifications ?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'Vous avez des modifications non enregistrées dans ce dialecte.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Enregistrer et quitter';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Quitter sans enregistrer';
 
   @override
   String get dialectEditorPreviewHelp =>
@@ -6421,5 +6474,116 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String publishedCollectionSupersedes(String version) {
     return 'Remplace la version $version';
+  }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Modèles de formulation des mouvements';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Les modèles facultatifs, réservés à l’affichage, remplacent la phrase normale d’un mouvement. Le texte canonique et la recherche restent inchangés.';
+
+  @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (conditionnel)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Entrée seulement';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Sortie seulement';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Entrée et sortie';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Ni l’un ni l’autre';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Ordinaire';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'File simple';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Ajouter des modèles de formulation';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count modèles de formulation',
+      one: '1 modèle de formulation',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording => 'Ajouter un modèle de formulation…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Modèle d’affichage';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Emplacements disponibles : $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Ce modèle est invalide ; la formulation normale sera donc utilisée.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Corrigez les modèles de formulation de mouvements invalides avant d\'enregistrer : $figures';
+  }
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Les emplacements inconnus sont vides : $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Ce modèle omet des emplacements disponibles : $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Ce modèle omet des emplacements facultatifs : $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Aperçu : $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Réinitialiser les modèles de formulation';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Réinitialiser les modèles de formulation des mouvements ?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'Cela supprime tous vos modèles personnalisés de formulation des mouvements.';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Enregistrer les modèles de formulation incomplets ?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Ces modèles omettent des emplacements disponibles et peuvent masquer des détails de figure :\n$figures\n\nEnregistrer quand même ?';
   }
 }

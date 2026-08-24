@@ -232,7 +232,15 @@ class CustomFieldDefRepository {
     case CustomFieldType.choice:
       return (value.value as String, null);
     case CustomFieldType.number:
-      return (null, (value.value as num).toDouble());
+      final numeric = value.value as num;
+      if (!isFiniteCustomFieldNumber(numeric)) {
+        throw ArgumentError.value(
+          value.value,
+          'value',
+          'must be finite and representable as a double',
+        );
+      }
+      return (null, numeric.toDouble());
     case CustomFieldType.boolean:
       return (null, (value.value as bool) ? 1.0 : 0.0);
   }

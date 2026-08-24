@@ -3,9 +3,10 @@
 This guide is about getting dances *into* [Caller's Compendium](./glossary.md#callers-compendium)
 and moving your whole library between devices. It covers bringing in single
 dances from [The Caller's Box](./glossary.md#the-callers-box) and
-[ContraDB](./glossary.md#contradb), importing a Caller's Compendium file, moving
-a whole library across from Caller's Companion, and backing up and restoring
-everything you own. Where a feature is still on the way, it says so plainly.
+[ContraDB](./glossary.md#contradb), importing signed published collections and
+Caller's Compendium files, moving a whole library across from Caller's Companion,
+and backing up and restoring everything you own. Where a feature is still on the
+way, it says so plainly.
 
 > **Finding your way around these words.** On-screen buttons and screens are
 > written in **bold** — like **Settings**, **Import…**, and **Choose file…**. The
@@ -92,7 +93,7 @@ you so and does not add a second copy — see
 If you already have a dance's web address — or even its number — you can import
 it directly:
 
-1. Open **Settings**, go to the **Import** section, and choose **Import…**.
+1. Open **Settings**, choose **General**, and choose **Import…**.
 2. In the source selector, choose **The Caller's Box** or **ContraDB**.
 3. Paste the dance's **web address** — for The Caller's Box a `dance.php?id=…`
    link, for ContraDB a `…/dances/N` link — or enter its **ID number** (for
@@ -144,6 +145,19 @@ When you give the app a web address to fetch:
 Refusals never echo the address back at you, so a link that happened to contain
 something private does not end up on your screen or in a log.
 
+## Import a published collection
+
+Published collections are curated dance collections delivered through the
+trusted Compendium Analect catalog. They are signed and checked before the app
+offers them for import, and the app records their source and version so you can
+see where the dances came from.
+
+1. Open **Settings**, choose **General**, and select **Published collections**.
+2. Choose a collection to read its description, license, and permissions.
+3. Select **Import collection** and review what it contains.
+4. Confirm the import when you are ready. Nothing is added until you commit it,
+   and the same review flow lets you skip items you do not want.
+
 ## Bring in a list of dance titles
 
 If you have a list of titles written down — an evening's set list, a workshop
@@ -151,7 +165,7 @@ handout, dances a friend recommended — you can paste the whole list at once an
 let the app find them, **without** building a program.
 
 1. Open **Collection** and choose **Import dances**, or open **Settings** →
-   **Import** → **Import…**.
+   **General** → **Import…**.
 2. In the source selector, choose **a list of titles**.
 3. Paste your titles, **one per line**, and choose **Review import**.
 4. The app checks each title against your own collection first, then searches
@@ -200,7 +214,7 @@ A few honest notes:
 Dances shared as a **Caller's Compendium** file (the app's own `.json` format)
 come in through the same review flow:
 
-1. Open **Settings**, go to the **Import** section, and choose **Import…**.
+1. Open **Settings**, choose **General**, and choose **Import…**.
 2. Set the source to **a Caller's Compendium JSON file**.
 3. Choose the file with **Choose file…**, paste its contents, or enter a URL and
    choose **Fetch**.
@@ -217,7 +231,7 @@ below.
 If another caller shares a **program bundle** with you — the
 **Share (program + dances)** file described in
 [Share, print & export](./sharing.md#share-a-program-with-its-dances) — you don't
-have to go through **Settings › Import** by hand. Caller's Compendium registers
+have to go through **Settings › General** and choose **Import…** by hand. Caller's Compendium registers
 itself as a place that can open those files, so you can just **open the file**:
 AirDrop it (on a Mac, iPhone, or iPad), use your system's **Open with** /
 **Share** menu, or tap it wherever it arrives. The app launches and takes you
@@ -240,7 +254,7 @@ and nothing is ever deleted.
 Moving from **Caller's Companion**? Caller's Compendium can read its exported
 `.USR` library file and bring your material across in one pass:
 
-1. Open **Settings**, go to the **Import** section, and choose **Import…**.
+1. Open **Settings**, choose **General**, and choose **Import…**.
 2. In the source selector, choose **a Caller's Companion .USR file**.
 3. Choose your `.USR` file when the app asks for it.
 4. Review and commit, as described in
@@ -331,6 +345,11 @@ source you pick:
 5. **Undo** — right after committing, the summary offers **Undo**, which removes
    everything that import added. This is the review-and-undo queue for
    bringing in more than one dance at a time.
+
+*The import review screen lists each dance and the action available for its
+current result, so you can inspect the batch before committing it.*
+
+![The import review screen showing per-dance results with actions to import, edit, skip, or resolve each item](images/import-review.png)
 
 ## Avoiding duplicates
 

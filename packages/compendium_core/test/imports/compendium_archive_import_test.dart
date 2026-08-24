@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -112,6 +113,16 @@ void main() {
 
   final now = DateTime.utc(2026, 7, 18);
 
+  Future<int> programExistenceStamp(String id) async {
+    final rows = await db
+        .customSelect(
+          'SELECT existence_at AS v FROM programs WHERE id = ?',
+          variables: [Variable.withString(id)],
+        )
+        .get();
+    return rows.single.read<int>('v');
+  }
+
   test('imports the program AND its referenced dances', () async {
     final archive = _bundle();
     final result = await importer.import(
@@ -214,13 +225,14 @@ void main() {
 
   test('re-importing the same bundle dedupes — no duplicates', () async {
     final archive = _bundle();
-    await importer.import(
+    final first = await importer.import(
       encodeArchive(archive),
       archive,
       now: now,
       newId: sequentialIds('first'),
       newSlotId: sequentialIds('firstslot'),
     );
+    final firstStamp = await programExistenceStamp(first.programs.single.id);
 
     final result2 = await importer.import(
       encodeArchive(archive),
@@ -238,7 +250,135 @@ void main() {
     // The program was updated in place, not inserted again.
     expect(result2.updatedProgramCount, 1);
     expect(result2.insertedProgramCount, 0);
+    expect(
+      await programExistenceStamp(first.programs.single.id),
+      firstStamp,
+      reason: 'ordinary content re-imports are not existence transitions',
+    );
   });
+
+  test('re-importing a deleted program restores existence ordering and undo '
+      're-tombstones it', () async {
+    final archive = _bundle();
+    final first = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('firstslot'),
+    );
+    final programId = first.programs.single.id;
+    final deletedAt = now.add(const Duration(days: 1));
+    await programs.softDelete(programId, at: deletedAt);
+    final tombstone = await programExistenceStamp(programId);
+
+    final updatedArchive = CompendiumArchive(
+      exportedAt: archive.exportedAt,
+      dances: archive.dances,
+      programs: [archive.programs.single.copyWith(title: 'Updated Fling')],
+    );
+    final importedAt = now.add(const Duration(days: 2));
+    final second = await importer.import(
+      encodeArchive(updatedArchive),
+      updatedArchive,
+      now: importedAt,
+      newId: sequentialIds('second'),
+      newSlotId: sequentialIds('secondslot'),
+    );
+
+    expect(second.restoredProgramIds, [programId]);
+    final revived = await programs.getById(programId);
+    expect(revived, isNotNull);
+    expect(revived!.title, 'Updated Fling');
+    final revivedStamp = await programExistenceStamp(programId);
+    expect(revivedStamp, greaterThan(tombstone));
+
+    final undoAt = importedAt.add(const Duration(days: 90));
+    await importer.undo(second, now: () => undoAt);
+    final undone = await programs.getById(programId, includeDeleted: true);
+    expect(undone, isNotNull);
+    expect(undone!.deletedAt, isNotNull);
+    final undoneStamp = await programExistenceStamp(programId);
+    expect(
+      undoneStamp,
+      greaterThan(revivedStamp),
+      reason: 'undo must create a later causal tombstone',
+    );
+    expect(
+      undone.updatedAt,
+      undoAt,
+      reason: 'undo must not move updatedAt back to the import timestamp',
+    );
+    expect(
+      await programs.purgeDeleted(now: undoAt),
+      0,
+      reason: 'a delayed undo must not make the program immediately purgeable',
+    );
+  });
+
+  test(
+    'a later program failure re-tombstones a program restored earlier',
+    () async {
+      final archive = _bundle();
+      final secondProgram = Program(
+        id: 'orig-p2',
+        title: 'Second Fling',
+        slots: [ProgramSlot(id: 'orig-sl5', position: 0, danceId: 'orig-d1')],
+        createdAt: DateTime.utc(2026, 4, 2),
+        updatedAt: DateTime.utc(2026, 4, 2),
+      );
+      final twoPrograms = CompendiumArchive(
+        exportedAt: archive.exportedAt,
+        dances: archive.dances,
+        programs: [archive.programs.single, secondProgram],
+      );
+      final first = await importer.import(
+        encodeArchive(twoPrograms),
+        twoPrograms,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('firstslot'),
+      );
+      final restoredId = first.programs.first.id;
+      await programs.softDelete(
+        restoredId,
+        at: now.add(const Duration(days: 1)),
+      );
+      final tombstone = await programExistenceStamp(restoredId);
+
+      final failing = _FailingSecondProgramUpdateRepository(db);
+      final rollbackImporter = CompendiumArchiveImporter(
+        ImportPipeline(
+          DanceRepository(db, contraTaxonomy),
+          ChoreographerRepository(db),
+        ),
+        failing,
+        venues,
+      );
+      await expectLater(
+        rollbackImporter.import(
+          encodeArchive(twoPrograms),
+          twoPrograms,
+          now: now.add(const Duration(days: 2)),
+          newId: sequentialIds('second'),
+          newSlotId: sequentialIds('secondslot'),
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      final rolledBack = await programs.getById(
+        restoredId,
+        includeDeleted: true,
+      );
+      expect(rolledBack, isNotNull);
+      expect(rolledBack!.deletedAt, isNotNull);
+      expect(
+        await programExistenceStamp(restoredId),
+        greaterThan(tombstone),
+        reason: 'compensating rollback must leave a later tombstone',
+      );
+    },
+  );
 
   test('undo reverts the imported program and dances', () async {
     final archive = _bundle();
@@ -958,6 +1098,38 @@ void main() {
       },
     );
 
+    test(
+      're-import restores an exact soft-deleted venue before linking',
+      () async {
+        final archive = bundleWithVenue(
+          programVenueId: 'orig-v1',
+          venues: [
+            Venue(id: 'orig-v1', name: 'Town Hall', city: 'Amherst'),
+            Venue(id: 'orig-v2', name: 'Town Hall', city: 'Amherst'),
+          ],
+        );
+        final result1 = await run(archive);
+        final deletedVenueId = (await venues.listAll()).single.id;
+
+        // The venue delete guard counts soft-deleted programs too, so remove the
+        // imported program before tombstoning the venue.
+        await programs.hardDelete(result1.insertedProgramIds);
+        await venues.delete(deletedVenueId);
+        expect(await venues.getById(deletedVenueId), isNull);
+
+        final result2 = await run(archive);
+
+        expect(result2.insertedVenueCount, 0);
+        final program = (await programs.listAll()).single;
+        expect(program.venueId, deletedVenueId);
+        expect(await venues.getById(deletedVenueId), isNotNull);
+        expect(result2.restoredVenueIds, [deletedVenueId]);
+
+        await importer.undo(result2);
+        expect(await venues.getById(deletedVenueId), isNull);
+      },
+    );
+
     test('local-only venue with no provenance row is never matched by an '
         'incoming bundle id (no false provenance-match)', () async {
       // A locally-created venue (not imported from any bundle) has no
@@ -1206,7 +1378,7 @@ void main() {
       expect(await venues.listAll(), hasLength(1));
     });
 
-    test('validates venueIds against the minted set (no per-program venue '
+    test('validates venueIds against the live snapshot (no per-program venue '
         'SELECT)', () async {
       final counter = VenueSelectCounter();
       final countingDb = openCountingTestDatabase(counter);
@@ -1256,19 +1428,17 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      // The only venue SELECT the import issues is the single fingerprint-index
-      // preload (one `listAll` before the venue loop — O(1), not per-venue). The
-      // program write phase then validates each `venueId` against the in-memory
-      // known set, adding no per-program venue existence SELECT; with 3 programs
-      // an N+1 regression would push this to 4+.
-      expect(counter.count, 1);
+      // Two provenance lookups (live and tombstoned), one fingerprint-index
+      // preload, and one live-id snapshot are fixed reads; the program write
+      // phase adds no per-program venue existence SELECT.
+      expect(counter.count, 4);
       expect(await countingPrograms.listAll(), hasLength(3));
     });
 
-    test('a weak-key-only bundle skips the dedupe preload (zero venue '
-        'SELECTs)', () async {
-      // No bundled venue clears the strong-key threshold, so cross-import
-      // dedupe is impossible and the `listAll` preload must be skipped entirely.
+    test('a weak-key-only bundle skips the fingerprint preload', () async {
+      // No bundled venue clears the strong-key threshold, so the fingerprint
+      // preload is skipped. Provenance lookups and the linked-program snapshot
+      // remain necessary.
       final counter = VenueSelectCounter();
       final countingDb = openCountingTestDatabase(counter);
       addTearDown(countingDb.close);
@@ -1307,7 +1477,7 @@ void main() {
         newSlotId: sequentialIds('slot'),
       );
 
-      expect(counter.count, 0);
+      expect(counter.count, 3);
     });
 
     test(
@@ -1428,4 +1598,21 @@ void main() {
       expect(prog.venueId, mintedId);
     });
   });
+}
+
+/// Lets the first re-import update succeed, then fails the next one so the
+/// importer's compensation must restore and re-tombstone the first program.
+class _FailingSecondProgramUpdateRepository extends ProgramRepository {
+  _FailingSecondProgramUpdateRepository(super.db);
+
+  var _updateCount = 0;
+
+  @override
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) {
+    _updateCount++;
+    if (_updateCount == 2) {
+      throw StateError('simulated later program persist failure');
+    }
+    return super.update(program, knownVenueIds: knownVenueIds);
+  }
 }

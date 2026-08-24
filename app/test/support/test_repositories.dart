@@ -81,6 +81,9 @@ class DelayedSettingsRepository extends SettingsRepository {
   Completer<void>? _armedGate;
   Completer<void>? _activeGate;
   Completer<void>? _writeStarted;
+  Completer<void>? _armedRemoveGate;
+  Completer<void>? _activeRemoveGate;
+  Completer<void>? _removeStarted;
 
   /// Total number of [set] calls that have begun executing (gated or not),
   /// so a test can assert a later write hasn't started yet — e.g. because
@@ -114,6 +117,23 @@ class DelayedSettingsRepository extends SettingsRepository {
     if (gate != null && !gate.isCompleted) gate.complete();
   }
 
+  /// Arms the gate: the next [remove] call will complete [removeStarted] and
+  /// then suspend until [releaseRemove] is called.
+  void holdNextRemove() {
+    _armedRemoveGate = Completer<void>();
+    _removeStarted = Completer<void>();
+  }
+
+  /// Resolves once a gated [remove] call has started and is suspended.
+  Future<void> get removeStarted =>
+      _removeStarted?.future ?? Future<void>.value();
+
+  /// Lets a remove suspended by [holdNextRemove] proceed.
+  void releaseRemove() {
+    final gate = _activeRemoveGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
   @override
   Future<void> set(String key, Object? value, {DateTime? at}) async {
     writesStarted++;
@@ -127,6 +147,24 @@ class DelayedSettingsRepository extends SettingsRepository {
       _activeGate = null;
     }
     await super.set(key, value, at: at);
+  }
+
+  @override
+  Future<void> remove(
+    String key, {
+    DateTime? at,
+    bool permanent = false,
+  }) async {
+    final gate = _armedRemoveGate;
+    if (gate != null) {
+      _armedRemoveGate = null;
+      _activeRemoveGate = gate;
+      _removeStarted?.complete();
+      _removeStarted = null;
+      await gate.future;
+      _activeRemoveGate = null;
+    }
+    await super.remove(key, at: at, permanent: permanent);
   }
 }
 
@@ -168,13 +206,13 @@ class DelayedProgramRepository extends ProgramRepository {
   }
 
   @override
-  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
     await super.create(program, knownVenueIds: knownVenueIds);
   }
 
   @override
-  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
     await super.update(program, knownVenueIds: knownVenueIds);
   }
@@ -192,13 +230,13 @@ class FailingProgramRepository extends ProgramRepository {
   }
 
   @override
-  Future<void> create(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async {
     _checkWrite();
     await super.create(program, knownVenueIds: knownVenueIds);
   }
 
   @override
-  Future<void> update(Program program, {Set<String>? knownVenueIds}) async {
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     _checkWrite();
     await super.update(program, knownVenueIds: knownVenueIds);
   }
@@ -228,8 +266,8 @@ openTestRepositoriesWithDelayedPrograms() {
 }
 
 /// Opens in-memory repositories backed by a [DelayedSettingsRepository], so
-/// tests can hold an autosave write open while exercising a concurrent draft
-/// cleanup.
+/// tests can hold an autosave write or draft removal open while exercising a
+/// concurrent draft cleanup.
 ({CompendiumRepositories repos, DelayedSettingsRepository settings})
 openTestRepositoriesWithDelayedSettings() {
   final db = openWidgetTestDatabase();

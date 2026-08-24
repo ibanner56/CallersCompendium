@@ -39,7 +39,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
 | **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; formation strings mapped to the enum (+detail). |
-| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
+| **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
 | **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
 
@@ -107,8 +107,9 @@ to the **same** author set, so dedupe's author-overlap signal is consistent
 across sources regardless of which adapter produced it.
 
 - **Matching policy — exact, normalized, conservative.** A name matches an existing
-  `Choreographer` iff its normalized form (trim → collapse internal whitespace →
-  lowercase) equals an existing row's normalized name. **Punctuation is significant**
+  `Choreographer` iff its normalized form (NFC composition → trim → collapse
+  internal whitespace → lowercase) equals an existing row's normalized name.
+  **Punctuation is significant**
   (never stripped) and there is **no fuzzy matching** (v1): a wrong merge
   (miscrediting a dance) is worse than an occasional near-duplicate row. The seeded
   `Traditional`/`Unknown` rows are ordinary rows — a name normalizing to them
@@ -617,9 +618,11 @@ imports of *Tangled Yarns* remain distinguishable on `who` even after the fix;
 what the fix removes is the fabricated dancers and the doubled balance.
 
 ### 4. Generic JSON (6.6)
-- Our own canonical export format (full fidelity: figures, programs, custom
-  fields, provenance, dialect definitions). Serves backup/restore and
-  user-to-user sharing. Versioned schema; forward-compatible reader.
+- Our own canonical archive format (figures, programs, custom fields, provenance,
+  dialect definitions). It serves both backup/restore and user-to-user sharing
+  through explicit serialization modes: share mode omits custom fields marked
+  `shareable = false`, while backup mode preserves every custom field and value.
+  Versioned schema; forward-compatible reader.
 
 ### Signed published collections (#862)
 

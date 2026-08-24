@@ -46,8 +46,9 @@ Downloadable builds are ready for **Linux**, **macOS**, **Windows**, and
 **Android**, and **iPhone/iPad** builds go out through **TestFlight** to invited
 testers. The [Installation guide](./installation.md) walks you through
 downloading the right file (or joining the TestFlight beta), getting past the
-first-time security prompt you'll see on the unsigned Windows and Linux builds,
-and keeping the app up to date.
+first-time security prompt you may see on an unsigned Windows fallback (Linux
+artifacts are unsigned but generally have no signing prompt), and keeping the app
+up to date.
 
 ## Your first launch
 
@@ -60,12 +61,10 @@ add or import a dance to get started, alongside a **New dance** button. This is
 your starting point: from here you can build your library by hand, bring in
 dances you already have, or pull dances from an online source.
 
-*Wireframe sketch of the Collection screen: a search bar across the top with
-Sort, New, Import, and Batch actions; a Filters panel and a virtualized list of
-dances on the left; and a dance detail preview on the right. This is a low-fidelity
-layout sketch, not the finished app.*
+*The Collection screen with a search query, the Filters panel open, and matching
+dances visible.*
 
-![Wireframe sketch of the Collection screen, showing a search bar with New and Import actions, a Filters panel, a list of dances, and a detail preview pane](../design/wireframes/1-collection.svg)
+![The Collection screen showing a search query with the Filters panel open and several matching dances listed](images/collection-search-filters.png)
 
 Two small things worth knowing on day one:
 
@@ -123,11 +122,10 @@ from your collection, an alternate dance (an [alt](./glossary.md#alt)) tucked
 under its primary, and free-text slots for the things between dances — a break,
 a waltz, announcements. A program also carries its event date, venue, and notes.
 
-*Wireframe sketch of the Programs builder: a two-pane layout with the ordered
-program slots on the left and a searchable collection picker on the right. This
-is a low-fidelity layout sketch, not the finished app.*
+*The Programs builder with ordered program slots beside a searchable collection
+picker.*
 
-![Wireframe sketch of the Programs builder, showing ordered program slots on the left and a collection picker with filters on the right](../design/wireframes/4-programs-builder.svg)
+![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
 
 Each program also has a **[matrix](./glossary.md#matrix)** — a figures-by-dances
 grid worked out from the choreography — so you can see the shape and variety of
@@ -153,12 +151,10 @@ need to make a change on the fly — reorder what is left, swap in an alt, or ad
 quick note — an **adjust** panel lets you do it without disturbing the card you
 are reading.
 
-*Wireframe sketch of Perform mode: a full-screen, dark, high-contrast dance card
-with very large text, large previous/next arrows at the screen edges, a slot
-indicator, and controls to swap an alternate, jump to a slot, adjust, or exit.
-This is a low-fidelity layout sketch, not the finished app.*
+*Perform mode in the dark-stage theme, with large type and controls for moving
+through the program.*
 
-![Wireframe sketch of Perform mode, showing a full-screen dark card with very large text, edge next/previous arrows, a slot indicator, and adjust and exit controls](../design/wireframes/6-perform.svg)
+![Perform mode showing a dark high-contrast dance card with large figures, navigation controls, a slot indicator, and stage actions](images/perform-mode-dark.png)
 
 A full walkthrough — from getting set up before the music starts to making
 changes mid-gig — is in the [Perform mode guide](./perform.md).

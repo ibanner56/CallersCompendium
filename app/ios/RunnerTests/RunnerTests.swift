@@ -60,9 +60,8 @@ final class SharedImportQueueTests: XCTestCase {
       "A second drain must find nothing — take-and-delete is idempotent")
   }
 
-  /// A re-entrant drain (an immediate wake racing the foreground drain) can
-  /// never take the same payload twice: whichever drain removed the file owns
-  /// delivery.
+  /// A re-entrant drain (a legacy wake racing the foreground drain) can never
+  /// take the same payload twice: whichever drain removed the file owns delivery.
   func testReentrantDrainNeverDoubleDelivers() {
     XCTAssertTrue(
       SharedImportQueue.enqueue("https://contradb.com/programs/42", into: queueDirectory))

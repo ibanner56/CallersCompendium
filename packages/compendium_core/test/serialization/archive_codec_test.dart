@@ -212,6 +212,60 @@ CompendiumArchive _sampleArchive() {
 }
 
 void main() {
+  test('reports legacy non-finite custom values with entity context', () {
+    final archive = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 1, 1),
+      dances: [
+        Dance(
+          id: 'bad-dance',
+          title: 'Legacy value',
+          customFields: [
+            CustomFieldValue(fieldId: 'bad-number', value: double.infinity),
+          ],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      ],
+    );
+
+    expect(
+      () => encodeArchive(archive),
+      throwsA(
+        isA<ArchiveEncodingException>()
+            .having((e) => e.danceId, 'danceId', 'bad-dance')
+            .having((e) => e.fieldId, 'fieldId', 'bad-number'),
+      ),
+    );
+  });
+
+  test('uses a broad numeric diagnostic for archive encoding failures', () {
+    final archive = CompendiumArchive(
+      exportedAt: DateTime.utc(2026, 1, 1),
+      dances: [
+        Dance(
+          id: 'large-dance',
+          title: 'Large value',
+          customFields: [
+            CustomFieldValue(fieldId: 'large-number', value: double.infinity),
+          ],
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      ],
+    );
+
+    expect(
+      () => encodeArchive(archive),
+      throwsA(
+        isA<ArchiveEncodingException>().having(
+          (e) => e.toString(),
+          'message',
+          contains('non-finite or unrepresentable numeric value'),
+        ),
+      ),
+    );
+  });
+
   group('archive JSON round-trip', () {
     test('export -> import -> export is identity (design property)', () {
       final archive = _sampleArchive();
@@ -1119,7 +1173,7 @@ void main() {
       expect(result.archive.dances.single.walkthrough, 'step1\nstep2');
     });
 
-    test('figure walkthroughOverride round-trips and is clamped (#411)', () {
+    test('figure display overrides round-trip, sanitize, and clamp (#822)', () {
       final archive = {
         'schemaVersion': archiveSchemaVersion,
         'exportedAt': '2026-01-01T00:00:00.000Z',
@@ -1134,12 +1188,14 @@ void main() {
                 'move': 'swing',
                 'params': {'who': 'partners', 'beats': 16},
                 'walkthroughOverride': 'Balance\u0007 and swing.\u202E',
+                'wordingOverride': 'Robins\u0007 pass right.\u202E',
               },
               {
                 'move': 'circle',
                 'params': {'turn': 'left'},
                 'walkthroughOverride':
                     'y' * (kMaxWalkthroughSnippetLength + 50),
+                'wordingOverride': 'z' * (kMaxWalkthroughSnippetLength + 50),
               },
             ],
             'createdAt': '2026-01-01T00:00:00.000Z',
@@ -1152,11 +1208,13 @@ void main() {
       final figures = result.archive.dances.single.figures;
       // Control/bidi stripped from the override, exactly like `note`.
       expect(figures[0].walkthroughOverride, 'Balance and swing.');
+      expect(figures[0].wordingOverride, 'Robins pass right.');
       // Oversized override truncated, never rejected.
       expect(
         figures[1].walkthroughOverride!.length,
         kMaxWalkthroughSnippetLength,
       );
+      expect(figures[1].wordingOverride!.length, kMaxWalkthroughSnippetLength);
     });
   });
 
@@ -1248,6 +1306,42 @@ void main() {
         values.any((v) => v['fieldId'] == 'f_shared'),
         isTrue,
         reason: 'value for shareable field must still appear in dance JSON',
+      );
+    });
+
+    test('backup mode preserves definitions, values, and sharing flags', () {
+      final archive = archiveWithExclusion();
+      final encoded = encodeArchive(
+        archive,
+        mode: ArchiveSerializationMode.backup,
+      );
+      final json = jsonDecode(encoded) as Map<String, Object?>;
+      final fields = (json['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      expect(fields, hasLength(2));
+      expect(
+        fields.singleWhere((f) => f['id'] == 'f_private')['shareable'],
+        isFalse,
+      );
+
+      final dances = (json['dances'] as List).cast<Map<String, Object?>>();
+      final values = (dances.single['customFields'] as List)
+          .cast<Map<String, Object?>>();
+      expect(values, hasLength(2));
+      expect(values.map((v) => v['fieldId']), contains('f_private'));
+
+      final decoded = decodeArchive(encoded);
+      expect(decoded.hasErrors, isFalse);
+      expect(
+        decoded.archive.customFields
+            .singleWhere((f) => f.id == 'f_private')
+            .shareable,
+        isFalse,
+      );
+      expect(decoded.archive.dances.single.customFields, hasLength(2));
+      expect(
+        encodeArchive(decoded.archive, mode: ArchiveSerializationMode.backup),
+        encoded,
       );
     });
 

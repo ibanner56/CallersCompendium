@@ -27,12 +27,10 @@ and step back out deliberately when you are done. It fills the whole screen.
 
 When you exit, the app takes you back to wherever you came from.
 
-*Wireframe sketch of Perform mode: a full-screen, dark, high-contrast dance card
-with very large text, large previous and next arrows at the screen edges, a slot
-indicator, and controls to swap an alternate, jump to a slot, adjust, or exit.
-This is a low-fidelity layout sketch, not the finished app.*
+*Perform mode in the dark-stage theme, with large type and controls for moving
+through the program.*
 
-![Wireframe sketch of Perform mode, showing a full-screen dark card with very large text, edge next and previous arrows, a slot indicator, and adjust and exit controls](../design/wireframes/6-perform.svg)
+![Perform mode showing a dark high-contrast dance card with large figures, navigation controls, a slot indicator, and stage actions](images/perform-mode-dark.png)
 
 ## Read the card
 
@@ -65,7 +63,7 @@ so there is no guessing, and it stays where you put it — next time too.
 current dance's full text fits the screen without scrolling, recomputing whenever
 you move to a new dance or slot, rotate the device, or resize the window. So the
 text is always as large as it can be while still fitting. It starts however you
-set **Auto-size Perform cards** in [Settings › General](./settings.md#general),
+set **Auto-size Perform cards** in [Settings › Program](./settings.md#program),
 and the in-view toggle flips it for the night.
 
 **A− and A+.** The **Decrease text size** and **Increase text size** controls step

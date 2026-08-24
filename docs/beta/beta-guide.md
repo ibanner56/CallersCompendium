@@ -47,11 +47,13 @@ Being honest about the state of things saves everyone time:
 - **Signing and first-run steps vary by platform.** The **macOS** build is signed
   with an Apple Developer ID and notarized, so it opens normally. The **Android**
   APK is signed, but because it isn't on the Play Store you'll still grant a
-  one-time **"install unknown apps"** permission to sideload it. **Windows** isn't
-  code-signed yet, so **SmartScreen** shows a caution the first time you run it.
-  **Linux** has no signing prompt at all — you just mark the AppImage as runnable.
-  [How to install](#how-to-install) walks through each; code-signing for Windows is
-  planned for a later release.
+  one-time **"install unknown apps"** permission to sideload it. **Windows**
+  artifacts are signed via Azure Trusted Signing when the release workflow's five
+  `AZURE_*` repository variables and federated OIDC configuration are present;
+  otherwise the unsigned fallback may show a **SmartScreen** caution the first
+  time you run it. **Linux** artifacts are unsigned, but Linux has no signing
+  prompt — you just mark the AppImage as runnable. [How to install](#how-to-install)
+  walks through each platform.
 - **You may hit bugs.** That is the point — when you do, tell us (see
   [How to give feedback](#how-to-give-feedback)).
 
@@ -100,8 +102,9 @@ Packaged beta builds are ready on the
 [Releases page](https://github.com/ibanner56/CallersCompendium/releases). The
 [Installation guide](../user/installation.md) walks you through downloading and
 opening the app on Linux, macOS, Windows, and Android — including the first-time
-security warning you will see on the **Windows and Linux** builds, which aren't
-code-signed yet (macOS is signed and notarized, so it opens normally). The
+security warning you may see on an **unsigned Windows fallback** (Linux artifacts
+are unsigned but generally have no signing prompt; macOS is signed and notarized,
+so it opens normally). The
 **iPhone/iPad** build is delivered through **TestFlight** to invited testers —
 ask in the beta channels if you'd like in.
 

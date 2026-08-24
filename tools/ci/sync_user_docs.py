@@ -13,8 +13,9 @@ What gets mirrored, from ``docs/`` into ``app/assets/docs/`` (paths preserved):
   * every ``docs/user/*.md`` guide **except** ``style-guide.md`` (a contributor
     authoring-conventions doc, not user-facing).
 
-The guide is **text-only** for now: images embedded in the guides are rendered
-in-app as alt-text captions rather than bundled, so no image assets are copied.
+The in-app guide is intentionally **text-only**: images embedded in the guides
+are rendered there as alt-text captions rather than bundled. The hosted Pages
+renderer handles its own image assets separately.
 
 Guides are **discovered**, never hard-coded, so a new ``docs/user/*.md`` guide
 is picked up automatically and the drift-check then enforces that the committed

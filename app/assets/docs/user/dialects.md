@@ -58,11 +58,10 @@ follow on their own:
 - **Nothing is ever lost in translation.** Switching between dialects — even
   repeatedly, even mid-evening — can't corrupt or reword your saved dances.
 
-![Wireframe sketch of the dance-detail screen, showing a figure list grouped into sections A1, A2, B1, and B2 with a "canonical to dialect" view toggle above it](../design/wireframes/2-dance-detail.svg)
+![A dance detail view with figures grouped into A1, A2, B1, and B2 sections and the toggle for showing canonical wording visible](images/dance-detail-dialect.png)
 
-*Wireframe of the dance card. The figure list at the centre is drawn in your
-active dialect; the toggle above it flips the same card to the shared canonical
-wording without changing the saved dance.*
+*The dance card in the active dialect, with the toggle that switches to shared
+canonical wording without changing the saved dance.*
 
 ## The dialects that come built in
 
@@ -90,11 +89,10 @@ The built-in dialects carry a **Preset** badge and are read-only, so you can't
 change their wording by accident. Your own dialects sit below them and can be
 edited freely.
 
-![Wireframe sketch of the Settings screen on the Dialect section, listing a dialect manager with an active-dialect picker, a "new dialect" button, a role and move term editor, a collision warning, a live preview, and a discouraged-terms list](../design/wireframes/7-settings.svg)
+![The Settings Dialect section showing the active-dialect picker and controls for managing custom role and move terms](images/settings-dialect.png)
 
-*Wireframe of Settings. The Dialect section is a manager for your whole library
-of dialects: pick which one is active, create new ones, and edit the wording of
-your own.*
+*The Dialect section manages the active dialect and the wording of your own
+custom dialects.*
 
 ## Make your own dialect
 
@@ -125,6 +123,22 @@ particular name, set it here and the app will use your wording on every dance th
 contains that move. For moves that come in left- and right-handed versions, you
 can include a placeholder so the app fills in "left" or "right" for you rather
 than making you write two versions.
+
+### Move wording templates
+
+For a complete sentence around a move, add a display template and use the slots
+shown in the editor, such as `{who}` and `{move}`. Legacy templates may omit
+available slots, but the editor will ask you to confirm before saving one.
+Templates with invalid syntax or more than 512 characters must be fixed before
+the dialect can be saved.
+
+Some moves have parameter-dependent choreography. The editor provides separate
+templates for each supported branch of a long wave, promenade, or circle, and
+shows the exact slots that branch can use. Complete every listed slot: an
+incomplete conditional template is ignored and the normal wording is shown, so a
+single-file prefix or a dancer's in/out instruction can never disappear. Older
+single-template wordings remain available for their ordinary/default branch only;
+they are not reused for a different parameter branch.
 
 ### Dancer wording
 

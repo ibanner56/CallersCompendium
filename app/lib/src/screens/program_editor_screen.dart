@@ -18,14 +18,15 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
+import '../data/online_search.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
-import '../data/venue_label.dart';
 import '../diagnostics/error_log.dart';
 
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
+import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart' show formationLabel;
 import '../theme/keyboard_dismiss.dart';
@@ -77,6 +78,8 @@ class ProgramEditorScreen extends StatefulWidget {
     this.onSaved,
     this.onDeleted,
     this.onNavigateTo,
+    this.callersBoxOnline,
+    this.contraDbOnline,
   });
 
   final String? programId;
@@ -89,6 +92,11 @@ class ProgramEditorScreen extends StatefulWidget {
 
   /// Called after duplication with the new copy's id (embedded mode).
   final void Function(String programId)? onNavigateTo;
+
+  /// Online services used by the picker; omitted in production for the normal
+  /// network-backed services and supplied by widget tests.
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
 
   /// Width (of the builder's own constraints) at/above which the picker shows
   /// as a persistent right pane instead of a modal sheet.
@@ -134,8 +142,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   CollectionData? _data;
   bool _saving = false;
   bool _dirty = false;
+  final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
   int _editGeneration = 0;
+  int _collectionDataGeneration = 0;
+
+  bool get _pickerImporting => _pickerImportOwners.isNotEmpty;
+
+  void _setPickerImportActivity(Object owner, bool active) {
+    if (!mounted || active == _pickerImportOwners.contains(owner)) return;
+    setState(() {
+      if (active) {
+        _pickerImportOwners.add(owner);
+      } else {
+        _pickerImportOwners.remove(owner);
+      }
+    });
+  }
 
   /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
   /// on-screen program matrix via each column header's hide glyph (#669).
@@ -316,7 +339,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       final data = await _watchCollectionData(callerFilter);
       if (!mounted) return;
-      setState(() => _data = _latestData ?? data);
+      setState(() => _setCollectionData(_latestData ?? data));
     } on _SupersededLoad {
       // diagnostics: silent — a newer re-subscribe replaced this one; it owns
       // `_data` now. Not a failure, just a superseded race loser.
@@ -410,7 +433,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               first.complete(data);
               return;
             }
-            if (mounted) setState(() => _data = data);
+            if (mounted) {
+              setState(() => _setCollectionData(data));
+            }
             // Re-resolve the linked venue on every later emit (issue #944).
             //
             // Opting into `watchVenues` is necessary and not sufficient: it makes
@@ -471,7 +496,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (program == null) {
           if (!mounted) return;
           setState(() {
-            _data = _latestData ?? data;
+            _setCollectionData(_latestData ?? data);
             _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
@@ -501,7 +526,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       // widget may have been disposed while they were in-flight.
       if (!mounted) return;
       setState(() {
-        _data = _latestData ?? data;
+        _setCollectionData(_latestData ?? data);
         _existing = program;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
@@ -681,8 +706,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
         return;
       }
-      await _clearDraft(waitForCommits: false);
+      await _clearDraft(waitForCommits: false, resetEditorState: false);
       if (!mounted) return;
+      if (generation != _editGeneration) {
+        await _saveDraft();
+        if (!mounted) return;
+        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+        return;
+      }
       setState(() {
         _existing = persisted;
         _dirty = false;
@@ -731,12 +762,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Awaits every autosave write scheduled so far (via the chained
   /// [_saveQueueTail]) before removing, so none of them can complete *after*
   /// the removal and resurrect the draft (issue #616).
-  Future<void> _clearDraft({bool waitForCommits = true}) async {
+  Future<void> _clearDraft({
+    bool waitForCommits = true,
+    bool resetEditorState = true,
+  }) async {
     _autosaveTimer?.cancel();
     _autoCommitTimer?.cancel();
-    _editGeneration++;
     _draftGeneration++;
-    if (mounted) setState(() => _dirty = false);
+    if (resetEditorState) {
+      _editGeneration++;
+      if (mounted) setState(() => _dirty = false);
+    }
     if (waitForCommits) await _commitQueueTail;
     await _saveQueueTail;
     try {
@@ -867,8 +903,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots[i].position == i ? slots[i] : slots[i].copyWith(position: i),
   ];
 
-  /// Dances created via "create a dance from this" (issue #881) during this
-  /// screen's lifetime, keyed by id.
+  /// Dances created or imported during this screen's lifetime, keyed by id.
   ///
   /// [_data] is a *live but debounced* snapshot: [CollectionData.watch]
   /// coalesces on a short trailing window and then re-`load()`s the whole
@@ -879,13 +914,125 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// instead of rendering the deleted-dance placeholder until the snapshot
   /// catches up.
   final Map<String, Dance> _createdDances = {};
+  final Map<String, Choreographer> _createdChoreographers = {};
+  final Set<String> _pendingChoreographerReconciliations = {};
+  final Set<String> _pendingDanceStatusChecks = {};
 
-  /// Resolves [danceId] to a [Dance]: the live [_data] snapshot first, then
-  /// [_createdDances] as a fallback for a dance the snapshot hasn't caught up
-  /// to yet. Returns null only when neither has it (a genuinely unavailable —
-  /// e.g. soft-deleted — dance).
+  void _setCollectionData(CollectionData data) {
+    _collectionDataGeneration++;
+    _data = data;
+    _createdDances.removeWhere((id, created) {
+      final current = data.dancesById[id];
+      if (current != null && !current.updatedAt.isBefore(created.updatedAt)) {
+        return true;
+      }
+      if (current == null && _pendingDanceStatusChecks.add(id)) {
+        unawaited(_checkCreatedDanceStatus(id, created));
+      }
+      return false;
+    });
+    for (final entry in _createdChoreographers.entries.toList()) {
+      final current = data.choreographersById[entry.key];
+      if (current == entry.value) {
+        _createdChoreographers.remove(entry.key);
+      } else if (_pendingChoreographerReconciliations.add(entry.key)) {
+        unawaited(_reconcileChoreographer(entry.key));
+      }
+    }
+  }
+
+  Future<void> _checkCreatedDanceStatus(String id, Dance observed) async {
+    try {
+      final current = await _repos.dances.getById(id, includeDeleted: true);
+      if (!mounted) return;
+      setState(() {
+        final created = _createdDances[id];
+        if (created == null || created != observed) return;
+        if (current == null ||
+            (current.isDeleted &&
+                !current.updatedAt.isBefore(created.updatedAt))) {
+          _createdDances.remove(id);
+        }
+      });
+    } finally {
+      _pendingDanceStatusChecks.remove(id);
+    }
+  }
+
+  Future<void> _reconcileChoreographer(String id) async {
+    final observed = _createdChoreographers[id];
+    var retry = false;
+    try {
+      if (observed == null) return;
+      final generation = _collectionDataGeneration;
+      final current = await _repos.choreographers.getById(id);
+      if (!mounted) return;
+      final created = _createdChoreographers[id];
+      if (created == null || created != observed) return;
+      setState(() {
+        if (generation != _collectionDataGeneration) {
+          final live = _data?.choreographersById[id];
+          if (live == current || current == null) {
+            _createdChoreographers.remove(id);
+          } else {
+            retry = true;
+          }
+          return;
+        }
+        if (current == null ||
+            (current == created && _data?.choreographersById[id] == current)) {
+          _createdChoreographers.remove(id);
+          return;
+        }
+        _createdChoreographers[id] = current;
+      });
+    } finally {
+      _pendingChoreographerReconciliations.remove(id);
+      if (retry &&
+          mounted &&
+          _createdChoreographers.containsKey(id) &&
+          _pendingChoreographerReconciliations.add(id)) {
+        unawaited(_reconcileChoreographer(id));
+      }
+    }
+  }
+
+  /// Resolves [danceId] to a [Dance], preferring the overlay while the live
+  /// snapshot catches up with a newly imported or updated record.
   Dance? _danceById(String danceId) =>
-      _data?.dancesById[danceId] ?? _createdDances[danceId];
+      _createdDances[danceId] ?? _data?.dancesById[danceId];
+
+  Future<void> _rememberImportedDance(String danceId) async {
+    final dance = await _repos.dances.getById(danceId);
+    if (!mounted || dance == null) return;
+    final authorIds = dance.authorIds.toSet();
+    final knownAuthorIds = _data?.choreographersById.keys.toSet() ?? {};
+    final choreographers = await Future.wait(
+      authorIds
+          .where((id) => !knownAuthorIds.contains(id))
+          .map(_repos.choreographers.getById),
+    );
+    if (!mounted) return;
+    final choreographersToReconcile = <String>[];
+    setState(() {
+      final currentDance = _data?.dancesById[danceId];
+      if (currentDance == null ||
+          currentDance.updatedAt.isBefore(dance.updatedAt)) {
+        _createdDances[danceId] = dance;
+      }
+      for (final choreographer in choreographers) {
+        if (choreographer != null) {
+          _createdChoreographers[choreographer.id] = choreographer;
+          if (_pendingChoreographerReconciliations.add(choreographer.id)) {
+            choreographersToReconcile.add(choreographer.id);
+          }
+        }
+      }
+    });
+    for (final id in choreographersToReconcile) {
+      unawaited(_reconcileChoreographer(id));
+    }
+  }
 
   String? _titleForDance(String danceId) => _danceById(danceId)?.title;
 
@@ -926,6 +1073,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _performProgram() {
+    if (_pickerImporting) return;
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
@@ -934,6 +1082,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          danceOverrides: Map<String, Dance>.of(_createdDances),
+          authorNameOverrides: {
+            for (final entry in _createdChoreographers.entries)
+              entry.key: entry.value.name,
+          },
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434): thread the last
           // position + clock back in, and capture the new one on exit. The
@@ -1050,6 +1203,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _addDanceSlot(String danceId) {
+    if (!mounted) return;
     setState(() {
       _slots = _renumber([
         ..._slots,
@@ -1293,6 +1447,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _save() async {
+    if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
     _autoCommitTimer?.cancel();
@@ -1335,6 +1490,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _duplicate() async {
+    if (_pickerImporting) return;
     final source = _existing;
     if (source == null) return;
     final l10n = AppLocalizations.of(context);
@@ -1365,6 +1521,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _delete() async {
+    if (_pickerImporting) return;
     final source = _existing;
     if (source == null) return;
     final title = source.title;
@@ -1436,10 +1593,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final l10n = AppLocalizations.of(context);
     final hasPersistedProgram = _existing != null;
     final isPersistedNewRoute = widget.isNew && hasPersistedProgram;
+    final tabBar = TabBar(
+      controller: _tabController,
+      tabs: [
+        Tab(
+          key: const ValueKey('program-build-tab'),
+          icon: const Icon(Icons.list_alt_outlined),
+          text: l10n.programsBuildTab,
+        ),
+        Tab(
+          key: const ValueKey('program-matrix-tab'),
+          icon: const Icon(Icons.grid_on_outlined),
+          text: l10n.programsMatrixTab,
+        ),
+      ],
+    );
     return PopScope<Object?>(
-      canPop: !_dirty && !isPersistedNewRoute,
+      canPop: !_pickerImporting && !_dirty && !isPersistedNewRoute,
       onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
+        if (didPop || _pickerImporting) return;
         final ok = await _confirmDiscard();
         if (!context.mounted) return;
         if (ok) {
@@ -1457,20 +1629,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 ? l10n.programsBuildProgram
                 : l10n.programsNewProgram,
           ),
-          bottom: TabBar(
-            controller: _tabController,
-            tabs: [
-              Tab(
-                key: const ValueKey('program-build-tab'),
-                icon: const Icon(Icons.list_alt_outlined),
-                text: l10n.programsBuildTab,
-              ),
-              Tab(
-                key: const ValueKey('program-matrix-tab'),
-                icon: const Icon(Icons.grid_on_outlined),
-                text: l10n.programsMatrixTab,
-              ),
-            ],
+          bottom: PreferredSize(
+            preferredSize: tabBar.preferredSize,
+            child: ExcludeFocus(
+              excluding: _pickerImporting,
+              child: IgnorePointer(ignoring: _pickerImporting, child: tabBar),
+            ),
           ),
           actions: [
             if (_loaded &&
@@ -1481,15 +1645,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 key: const ValueKey('perform-program'),
                 tooltip: l10n.programsPerformTooltip,
                 icon: const Icon(Icons.slideshow),
-                onPressed: _performProgram,
+                onPressed: _pickerImporting ? null : _performProgram,
               ),
             if (_loaded && _loadError == null && _draftProgram != null)
-              ProgramExportMenu(
-                program: _draftProgram!,
-                titleFor: _titleForDance,
-                venuesById: _exportVenuesById,
-                danceFor: _danceById,
-                choreographerFor: (id) => _data?.choreographersById[id],
+              ExcludeFocus(
+                excluding: _pickerImporting,
+                child: IgnorePointer(
+                  ignoring: _pickerImporting,
+                  child: ProgramExportMenu(
+                    program: _draftProgram!,
+                    titleFor: _titleForDance,
+                    venuesById: _exportVenuesById,
+                    danceFor: _danceById,
+                    choreographerFor: (id) =>
+                        _createdChoreographers[id] ??
+                        _data?.choreographersById[id],
+                  ),
+                ),
               ),
             if (hasPersistedProgram) ...[
               if (_slots.any((s) => s.danceId != null))
@@ -1497,25 +1669,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('mark-all-performed'),
                   tooltip: l10n.programsMarkAllPerformedTooltip,
                   icon: const Icon(Icons.done_all),
-                  onPressed: _markAllPerformed,
+                  onPressed: _pickerImporting ? null : _markAllPerformed,
                 ),
               IconButton(
                 key: const ValueKey('duplicate-program'),
                 tooltip: l10n.commonDuplicate,
                 icon: const Icon(Icons.copy_all_outlined),
-                onPressed: _duplicate,
+                onPressed: _pickerImporting ? null : _duplicate,
               ),
               IconButton(
                 key: const ValueKey('delete-program'),
                 tooltip: l10n.commonDelete,
                 icon: const Icon(Icons.delete_outline),
-                onPressed: _delete,
+                onPressed: _pickerImporting ? null : _delete,
               ),
             ],
           ],
         ),
         body: TabBarView(
           controller: _tabController,
+          physics: _pickerImporting
+              ? const NeverScrollableScrollPhysics()
+              : null,
           children: [_buildBody(), _buildMatrixTab()],
         ),
         floatingActionButton:
@@ -1523,7 +1698,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ? FloatingActionButton.extended(
                 key: const ValueKey('save-program'),
                 heroTag: 'save-program',
-                onPressed: _saving ? null : _save,
+                onPressed: _saving || _pickerImporting ? null : _save,
                 icon: const Icon(Icons.save_outlined),
                 label: Text(_dirty ? l10n.programsSaveDirty : l10n.commonSave),
               )
@@ -1557,7 +1732,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       builder: (context, constraints) {
         final twoPane =
             constraints.maxWidth >= ProgramEditorScreen.twoPaneBreakpoint;
-        final left = _buildEditorColumn(twoPane: twoPane);
+        final left = ExcludeFocus(
+          excluding: _pickerImporting,
+          child: IgnorePointer(
+            ignoring: _pickerImporting,
+            child: _buildEditorColumn(twoPane: twoPane),
+          ),
+        );
         if (!twoPane) return left;
         final data = _data;
         return Row(
@@ -1567,13 +1748,29 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             const VerticalDivider(width: 1, thickness: 1),
             if (data != null)
               Expanded(
-                child: CollectionPicker(
-                  key: const ValueKey('inline-picker'),
-                  data: data,
-                  dialect: _dialect,
-                  enrichment: _enrichment,
-                  addedDanceCounts: _pickerCounts.value,
-                  onAddDance: _addDanceSlot,
+                child: ExcludeFocus(
+                  excluding: _saving || _pickerImporting,
+                  child: IgnorePointer(
+                    ignoring: _saving || _pickerImporting,
+                    child: CollectionPicker(
+                      key: const ValueKey('inline-picker'),
+                      data: data,
+                      dialect: _dialect,
+                      enrichment: _enrichment,
+                      addedDanceCounts: _pickerCounts.value,
+                      onAddDance: _addDanceSlot,
+                      onDanceImported: _rememberImportedDance,
+                      onImportingChanged: _setPickerImportActivity,
+                      callersBoxOnline: widget.callersBoxOnline,
+                      contraDbOnline: widget.contraDbOnline,
+                      danceOverrides: _createdDances,
+                      choreographerNamesOverride: {
+                        for (final entry in _createdChoreographers.entries)
+                          entry.key: entry.value.name,
+                      },
+                      enableOnlineSearch: true,
+                    ),
+                  ),
                 ),
               ),
           ],
@@ -1706,9 +1903,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
-    // Prefer a linked venue's display label over the free-text field, matching
-    // the set-list export and on-screen resolution.
-    final venue = resolveVenueLabelParts(
+    // Prefer a linked venue's sanitized display label over free text. The
+    // linked-record precedence matches the set-list export and screen.
+    final venue = resolveSanitizedVenueLabelParts(
       _venueId,
       _venueController.text,
       _exportVenuesById,
@@ -1819,55 +2016,96 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     if (data == null) return;
     final l10n = AppLocalizations.of(context);
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Text(
-                      l10n.programsAddADanceSheetTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      key: const ValueKey('picker-sheet-close'),
-                      tooltip: l10n.commonClose,
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: ValueListenableBuilder<Map<String, int>>(
-                    valueListenable: _pickerCounts,
-                    builder: (context, counts, _) => CollectionPicker(
-                      key: const ValueKey('sheet-picker'),
-                      data: data,
-                      dialect: _dialect,
-                      enrichment: _enrichment,
-                      scrollController: scrollController,
-                      addedDanceCounts: counts,
-                      // Keep the sheet open so callers can add several dances.
-                      onAddDance: _addDanceSlot,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    final importing = ValueNotifier(false);
+    final importOwners = <Object>{};
+    var importingDisposed = false;
+    void onImportingChanged(Object owner, bool active) {
+      if (active) {
+        importOwners.add(owner);
+      } else {
+        importOwners.remove(owner);
+      }
+      _setPickerImportActivity(owner, active);
+      if (!importingDisposed && importing.value != importOwners.isNotEmpty) {
+        importing.value = importOwners.isNotEmpty;
+      }
+    }
+
+    try {
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        builder: (sheetContext) {
+          return ValueListenableBuilder<bool>(
+            valueListenable: importing,
+            builder: (context, isImporting, _) => PopScope(
+              canPop: !isImporting,
+              child: DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.85,
+                maxChildSize: 0.95,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          Text(
+                            l10n.programsAddADanceSheetTitle,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            key: const ValueKey('picker-sheet-close'),
+                            tooltip: l10n.commonClose,
+                            icon: const Icon(Icons.close),
+                            onPressed: isImporting
+                                ? null
+                                : () => Navigator.of(sheetContext).pop(),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: ValueListenableBuilder<Map<String, int>>(
+                          valueListenable: _pickerCounts,
+                          builder: (context, counts, _) => CollectionPicker(
+                            key: const ValueKey('sheet-picker'),
+                            data: data,
+                            dialect: _dialect,
+                            enrichment: _enrichment,
+                            scrollController: scrollController,
+                            addedDanceCounts: counts,
+                            // Keep the sheet open so callers can add several dances.
+                            onAddDance: _addDanceSlot,
+                            onDanceImported: _rememberImportedDance,
+                            onImportingChanged: onImportingChanged,
+                            callersBoxOnline: widget.callersBoxOnline,
+                            contraDbOnline: widget.contraDbOnline,
+                            danceOverrides: _createdDances,
+                            choreographerNamesOverride: {
+                              for (final entry
+                                  in _createdChoreographers.entries)
+                                entry.key: entry.value.name,
+                            },
+                            enableOnlineSearch: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      importingDisposed = true;
+      importing.dispose();
+    }
   }
 
   /// Opens a picker sheet that resolves to the id of the dance the user
@@ -1885,56 +2123,106 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     if (data == null) return null;
     final l10n = AppLocalizations.of(context);
-    return showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          expand: false,
-          initialChildSize: 0.85,
-          maxChildSize: 0.95,
-          builder: (context, scrollController) {
-            return Column(
-              children: [
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const SizedBox(width: 16),
-                    Text(
-                      l10n.programsReplaceDanceSheetTitle,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      key: const ValueKey('replace-picker-sheet-close'),
-                      tooltip: l10n.commonClose,
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(sheetContext).pop(),
-                    ),
-                  ],
-                ),
-                Expanded(
-                  child: ValueListenableBuilder<Map<String, int>>(
-                    valueListenable: _pickerCounts,
-                    builder: (context, counts, _) => CollectionPicker(
-                      key: const ValueKey('replace-picker'),
-                      data: data,
-                      dialect: _dialect,
-                      enrichment: _enrichment,
-                      scrollController: scrollController,
-                      addedDanceCounts: counts,
-                      rowAction: PickerRowAction.replace,
-                      onAddDance: (danceId) =>
-                          Navigator.of(sheetContext).pop(danceId),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
+    final importing = ValueNotifier(false);
+    final importOwners = <Object>{};
+    var importingDisposed = false;
+    String? selectedDanceId;
+    BuildContext? activeSheetContext;
+    void onImportingChanged(Object owner, bool active) {
+      if (active) {
+        importOwners.add(owner);
+      } else {
+        importOwners.remove(owner);
+      }
+      _setPickerImportActivity(owner, active);
+      if (!importingDisposed && importing.value != importOwners.isNotEmpty) {
+        importing.value = importOwners.isNotEmpty;
+      }
+    }
+
+    try {
+      final result = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        isDismissible: false,
+        enableDrag: false,
+        builder: (sheetContext) {
+          activeSheetContext = sheetContext;
+          return ValueListenableBuilder<bool>(
+            valueListenable: importing,
+            builder: (context, isImporting, _) => PopScope(
+              canPop: !isImporting,
+              child: DraggableScrollableSheet(
+                expand: false,
+                initialChildSize: 0.85,
+                maxChildSize: 0.95,
+                builder: (context, scrollController) {
+                  return Column(
+                    children: [
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 16),
+                          Text(
+                            l10n.programsReplaceDanceSheetTitle,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            key: const ValueKey('replace-picker-sheet-close'),
+                            tooltip: l10n.commonClose,
+                            icon: const Icon(Icons.close),
+                            onPressed: isImporting
+                                ? null
+                                : () => Navigator.of(sheetContext).pop(),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: ValueListenableBuilder<Map<String, int>>(
+                          valueListenable: _pickerCounts,
+                          builder: (context, counts, _) => CollectionPicker(
+                            key: const ValueKey('replace-picker'),
+                            data: data,
+                            dialect: _dialect,
+                            enrichment: _enrichment,
+                            scrollController: scrollController,
+                            addedDanceCounts: counts,
+                            rowAction: PickerRowAction.replace,
+                            enableOnlineSearch: true,
+                            onDanceImported: _rememberImportedDance,
+                            onImportingChanged: onImportingChanged,
+                            callersBoxOnline: widget.callersBoxOnline,
+                            contraDbOnline: widget.contraDbOnline,
+                            danceOverrides: _createdDances,
+                            choreographerNamesOverride: {
+                              for (final entry
+                                  in _createdChoreographers.entries)
+                                entry.key: entry.value.name,
+                            },
+                            onAddDance: (danceId) {
+                              selectedDanceId = danceId;
+                              final sheetContext = activeSheetContext;
+                              if (sheetContext?.mounted ?? false) {
+                                Navigator.of(sheetContext!).pop(danceId);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+        },
+      );
+      return result ?? selectedDanceId;
+    } finally {
+      importingDisposed = true;
+      importing.dispose();
+    }
   }
 
   /// Builds the venue editor for the active venue entity mode.

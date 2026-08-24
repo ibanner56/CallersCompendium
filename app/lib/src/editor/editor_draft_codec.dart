@@ -46,7 +46,10 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// v8 → v9: adds `mixer` (bool — a dance in which dancers change partners each
 /// time through, issue #732; a flag orthogonal to `formationShape`). Older
 /// drafts (v ≤ 8) decode with `mixer: false`.
-const _kDraftVersion = 9;
+///
+/// v9 → v10: adds a per-figure `wordingOverride` (display-only text for this
+/// occurrence). Older drafts decode each figure with `wordingOverride: null`.
+const _kDraftVersion = 10;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -55,10 +58,10 @@ const _kDraftVersion = 9;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v9):
+/// Schema (v10):
 /// ```jsonc
 /// {
-///   "v": 9,
+///   "v": 10,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -150,6 +153,8 @@ String encodeDraft(EditorSnapshot snapshot) {
           if (d.walkthroughOverride != null &&
               d.walkthroughOverride!.trim().isNotEmpty)
             'walkthroughOverride': d.walkthroughOverride,
+          if (d.wordingOverride != null && d.wordingOverride!.trim().isNotEmpty)
+            'wordingOverride': d.wordingOverride,
         },
     ],
   });
@@ -412,6 +417,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
         : CustomOrigin.userEntered,
     // Additive/tolerant (#411): absent/blank/non-string → no override.
     walkthroughOverride: _optSnippet(m['walkthroughOverride']),
+    wordingOverride: _optSnippet(m['wordingOverride']),
   );
 }
 

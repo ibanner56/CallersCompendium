@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:compendium_app/src/data/backup_document.dart';
 import 'package:compendium_app/src/data/backup_service.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
@@ -73,6 +74,68 @@ void main() {
       expect(doc.settings.containsKey(kLastBackupAtKey), isFalse);
       expect(doc.settings.containsKey(kCustomDialectsKey), isFalse);
       expect(doc.settings.containsKey(kCustomThemesKey), isFalse);
+    },
+  );
+
+  test(
+    'backup preserves non-shareable custom fields and their values',
+    () async {
+      final source = openTestRepositories();
+      // ignore: unused_result
+      await source.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f_shared',
+          key: 'region',
+          label: 'Region',
+          type: CustomFieldType.text,
+        ),
+      );
+      // ignore: unused_result
+      await source.customFieldDefs.upsert(
+        CustomFieldDef(
+          id: 'f_private',
+          key: 'organizer_email',
+          label: 'Organizer email',
+          type: CustomFieldType.text,
+          shareable: false,
+        ),
+      );
+      await source.dances.create(
+        _dance('custom', 'Custom fields').copyWith(
+          customFields: [
+            CustomFieldValue(fieldId: 'f_shared', value: 'New England'),
+            CustomFieldValue(fieldId: 'f_private', value: 'secret@example.com'),
+          ],
+        ),
+      );
+
+      final json = await BackupService(source).exportToJson();
+      final decoded = decodeBackup(json);
+      expect(decoded.hasErrors, isFalse);
+      final privateDef = decoded.document.core.customFields.singleWhere(
+        (field) => field.id == 'f_private',
+      );
+      expect(privateDef.shareable, isFalse);
+      expect(
+        decoded.document.core.dances.single.customFields,
+        contains(
+          CustomFieldValue(fieldId: 'f_private', value: 'secret@example.com'),
+        ),
+      );
+
+      final target = openTestRepositories();
+      final outcome = await BackupService(target).restoreFromJson(json);
+      expect(outcome.hasErrors, isFalse);
+      expect(
+        (await target.customFieldDefs.getById('f_private'))?.shareable,
+        isFalse,
+      );
+      expect(
+        (await target.dances.getById('custom'))?.customFields,
+        contains(
+          CustomFieldValue(fieldId: 'f_private', value: 'secret@example.com'),
+        ),
+      );
     },
   );
 

@@ -16,7 +16,8 @@ Squares) callers — on desktop, tablet, and phone.
 > named-dialect library manager), importing from community sources and migrating
 > from Caller's Companion have landed (Phase 6), and the release pipeline
 > (Phase 7) now produces downloadable builds for every platform. Releases have
-> shipped steadily since `v0.1.0-beta.1`, and we are now on **`v0.1.0-beta.6`**.
+> shipped steadily since `v0.1.0-beta.1` (legacy `-beta.N` series); going forward
+> beta tags are `vX.Y.Z-beta` (no counter). The latest published legacy beta is **`v0.1.0-beta.9`**.
 > **Download the latest beta from the
 > [Releases page](https://github.com/ibanner56/CallersCompendium/releases)** —
 > pick the newest release (marked *Pre-release*) and expand its **Assets** for
@@ -25,8 +26,10 @@ Squares) callers — on desktop, tablet, and phone.
 > [Installation guide](docs/user/installation.md) walks you through it. **iPhone
 > and iPad** builds are delivered through **TestFlight** to invited testers rather
 > than the Releases page. **Android APKs are signed** and the **macOS build is
-> signed and notarized**; Linux and Windows desktop builds remain unsigned for
-> now, so those two still show a first-launch trust prompt. See
+> signed and notarized**. Linux desktop artifacts are unsigned; Windows artifacts
+> are signed via Azure Trusted Signing when the release workflow's five `AZURE_*`
+> repository variables and federated OIDC configuration are present, with an
+> unsigned fallback that may show a SmartScreen prompt. See
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
 
 ## What it does
@@ -124,12 +127,7 @@ and **Import source problem** forms are all live there — or start a conversati
 
 This project is made available free-of-charge (free of a kind, the birds and the frees, Staying Alive by the Free-Gees, etc.) under the GNU Affero General Public License, because the developer does not believe in putting financial barriers between aspiring callers and accessible calling resources[^1] and because Open Source Software has always been the one true path forward in the modern digital era. 
 
-Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can donate through either of these:
-
-- **❤️ [GitHub Sponsors](https://github.com/sponsors/ibanner56)** — one-time or recurring; GitHub takes no platform cut (standard payment-processing fees may still apply).
-- **[PayPal](https://paypal.me/IsaacBanner)** — quick one-time tip, no GitHub account needed.
-
-Sponsorships and donations go directly toward development time and keeping the project free for everyone. You can also support the project without spending a cent — star the repo, file issues, and contribute (see [Contributing](#contributing)).
+Maybe that means something to you, maybe you're just reading this because you like Isaac Banner rants (I don't understand why, but I'm glad you're here). Either way, if you like what this project is doing and you'd like to support it, you can do so by sharing it with other callers in your local community. As of right now, this project is not accepting donations or sponsorship, but I appreciate the thought and maybe you can buy me a coffee sometime.
 
 ## Choreography and Copyright
 

@@ -32,9 +32,11 @@ Dance _dance({
   required String id,
   required String title,
   String walkthrough = '',
+  List<String> authorIds = const [],
 }) => Dance(
   id: id,
   title: title,
+  authorIds: authorIds,
   figures: [
     Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
   ],
@@ -88,6 +90,8 @@ Future<void> _pumpProgram(
   bool autoSize = false,
   Size surfaceSize = const Size(1400, 2400),
   DialectLibraryController? dialectLibrary,
+  Map<String, Dance> danceOverrides = const {},
+  Map<String, String> authorNameOverrides = const {},
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -112,6 +116,8 @@ Future<void> _pumpProgram(
         program: program,
         data: data,
         renderer: _renderer,
+        danceOverrides: danceOverrides,
+        authorNameOverrides: authorNameOverrides,
         initialGroup: initialGroup,
       ),
     ),
@@ -145,6 +151,43 @@ String _fmt(int totalSeconds) {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('perform resolves dances from fresh editor overrides', (
+    tester,
+  ) async {
+    final data = await _dataWith(const []);
+    final dance = _dance(id: 'fresh', title: 'Fresh Dance');
+
+    await _pumpProgram(
+      tester,
+      program: _program([_slot(id: 's1', position: 0, danceId: dance.id)]),
+      data: data,
+      danceOverrides: {dance.id: dance},
+    );
+
+    expect(find.text('Fresh Dance'), findsOneWidget);
+  });
+
+  testWidgets('perform resolves fresh author names with dance overrides', (
+    tester,
+  ) async {
+    final data = await _dataWith(const []);
+    final dance = _dance(
+      id: 'fresh',
+      title: 'Fresh Dance',
+      authorIds: const ['author-1'],
+    );
+
+    await _pumpProgram(
+      tester,
+      program: _program([_slot(id: 's1', position: 0, danceId: dance.id)]),
+      data: data,
+      danceOverrides: {dance.id: dance},
+      authorNameOverrides: const {'author-1': 'Fresh Choreographer'},
+    );
+
+    expect(find.text('Fresh Choreographer'), findsOneWidget);
+  });
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   setUp(installFakeWakelock);

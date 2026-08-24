@@ -21,9 +21,9 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 31', () {
-    expect(contraTaxonomyVersion, 31);
-    expect(tax.version, 31);
+  test('contraTaxonomyVersion is 32', () {
+    expect(contraTaxonomyVersion, 32);
+    expect(tax.version, 32);
   });
 
   group('box_circulate', () {

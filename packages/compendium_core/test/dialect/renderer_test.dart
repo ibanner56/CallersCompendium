@@ -14,7 +14,7 @@ void main() {
         move: 'allemande',
         params: {'hand': 'left', 'turn': 1.5},
       ),
-      'partners do si do once': Figure(
+      'partners dosido once': Figure(
         move: 'do_si_do',
         params: {'who': 'partners'},
       ),
@@ -46,10 +46,10 @@ void main() {
   });
 
   group('aliases render under their own name', () {
-    test('see saw, not do si do', () {
+    test('seesaw, not dosido', () {
       expect(
         renderer.renderCanonical(Figure(move: 'see_saw')),
-        'neighbors see saw once',
+        'neighbors seesaw once',
       );
     });
 
@@ -296,6 +296,65 @@ void main() {
     });
   });
 
+  group('per-dance wording override (#822)', () {
+    test('replaces every display line and still applies dialect terms', () {
+      final figure = Figure(
+        move: 'long_lines',
+        params: {'goBack': true},
+        wordingOverride: 'ROLE2S call the line',
+      );
+      expect(renderer.render(figure, larks), 'ROBINS call the line');
+      expect(renderer.renderVerbose(figure, larks), 'ROBINS call the line');
+      // Decision C: the override replaces the whole summary, including the
+      // balance prefix and long-lines suffix.
+      expect(renderer.renderSummary(figure, larks), 'ROBINS call the line');
+    });
+
+    test('does not affect canonical rendering', () {
+      final figure = Figure(
+        move: 'swing',
+        params: {'who': 'partners'},
+        wordingOverride: 'ROLE2S pass right to start a full hey',
+      );
+      expect(renderer.renderCanonical(figure), 'partners swing');
+    });
+
+    test('does not replace custom figure text', () {
+      final figure = testFigure(
+        move: customMove,
+        params: {'text': 'say this instead'},
+      ).copyWith(wordingOverride: 'ignored structured wording');
+      expect(renderer.render(figure, larks), 'say this instead');
+      expect(renderer.renderSummary(figure, larks), 'say this instead');
+    });
+
+    test('applies to meanwhile sides and can replace the container line', () {
+      final sideOverride = Figure(
+        move: 'swing',
+        wordingOverride: 'ROLE2S pass right',
+      );
+      final container = Figure.meanwhile(
+        figures: [
+          sideOverride,
+          Figure(move: 'allemande', params: {'who': 'neighbors'}),
+        ],
+        beats: 16,
+      );
+      expect(
+        renderer.render(container, larks),
+        'ROBINS pass right while neighbor allemande right once',
+      );
+      final wholeLine = container.copyWith(
+        wordingOverride: 'ROLE1S call together',
+      );
+      expect(renderer.render(wholeLine, larks), 'LARKS call together');
+      expect(
+        renderer.renderCanonical(wholeLine),
+        'partners swing meanwhile neighbors allemande right once',
+      );
+    });
+  });
+
   group('verbose (spoken-friendly) rendering', () {
     test('spells out mixed-turn rotations, no glyphs', () {
       expect(
@@ -334,7 +393,7 @@ void main() {
           Figure(move: 'do_si_do', params: {'who': 'partners'}),
           larks,
         ),
-        'partner do si do once',
+        'partner dosido once',
       );
       expect(
         renderer.renderVerbose(
@@ -800,10 +859,7 @@ void main() {
 
   group('displayMoveName (editor move display)', () {
     test('plain taxonomy display name under canonical', () {
-      expect(
-        renderer.displayMoveName('do_si_do', Dialect.canonical),
-        'do si do',
-      );
+      expect(renderer.displayMoveName('do_si_do', Dialect.canonical), 'dosido');
       expect(renderer.displayMoveName('swing', Dialect.canonical), 'swing');
     });
 
@@ -811,7 +867,7 @@ void main() {
       final custom = Dialect(name: 'Custom', moves: const {'swing': 'buzz'});
       expect(renderer.displayMoveName('swing', custom), 'buzz');
       // Unmapped moves fall back to the taxonomy display name.
-      expect(renderer.displayMoveName('do_si_do', custom), 'do si do');
+      expect(renderer.displayMoveName('do_si_do', custom), 'dosido');
     });
 
     test('injects %S from the figure shoulder/hand param', () {
@@ -2080,6 +2136,16 @@ void main() {
           'mad robin',
         );
       });
+      test('mad_robin surfaces an explicit unspecified subject', () {
+        expect(
+          renderer.render(
+            // invalid-fixture: value is deliberately out of domain — unspecified is not a valid mad_robin subject
+            Figure(move: 'mad_robin', params: {'who': 'unspecified'}),
+            d,
+          ),
+          'mad robin, unspecified in front',
+        );
+      });
       test('revolving_door surfaces unknown who/whom/hand values', () {
         expect(
           renderer.render(
@@ -2804,6 +2870,329 @@ void main() {
       );
       expect(statedOut, isNot(contains('(assumed)')));
       expect(statedOut, startsWith('partner circulate -'));
+    });
+  });
+
+  group('global move wording templates', () {
+    test('persisted branch registry matches renderer contracts', () {
+      for (final entry in kMoveWordingBranchKeys.entries) {
+        expect(
+          renderer.moveWordingBranchIds(entry.key).toSet(),
+          entry.value,
+          reason:
+              '${entry.key} branch IDs drifted between Dialect and renderer',
+        );
+        for (final branch in entry.value) {
+          expect(
+            renderer.moveWordingBranchSlots(entry.key, branch),
+            isNotEmpty,
+            reason: '${entry.key}/$branch has no renderer slot contract',
+          );
+        }
+      }
+    });
+
+    test('legacy wording does not cross parameter branches', () {
+      final dialect = Dialect.larksRobins.copyWith(
+        moveWordings: const {
+          'form_a_long_wave':
+              '{subject} dance in to a long wave in the center{balance}',
+          'promenade': '{who} {move} {direction} {destination}',
+          'circle': '{move} {turn} {places}',
+        },
+      );
+
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': false, 'out': true}),
+          dialect,
+        ),
+        'larks dance out & balance',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          dialect,
+        ),
+        'single file promenade across',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'circle',
+            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+          ),
+          dialect,
+        ),
+        'single file circle left 4 places',
+      );
+    });
+
+    test('branch templates preserve every conditional wording shape', () {
+      final dialect = Dialect.larksRobins.copyWith(
+        moveWordingBranches: const {
+          'form_a_long_wave': {
+            'inOnly': '{subject} IN {balance}',
+            'outOnly': '{other} OUT {balance}',
+            'inAndOut': '{other} OUT {subject} IN {balance}',
+            'neither': '{subject} {move} {balance}',
+          },
+          'promenade': {
+            'ordinary': '{who} {move} {turn} {direction} {destination}',
+            'singleFile': '{prefix} {move} {turn} {direction} {destination}',
+          },
+          'circle': {
+            'ordinary': '{move} {turn} {places}',
+            'singleFile': '{prefix} {move} {turn} {places}',
+          },
+        },
+      );
+
+      expect(
+        renderer.render(Figure(move: 'form_a_long_wave'), dialect),
+        'robins IN - balance the wave',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': false, 'out': true}),
+          dialect,
+        ),
+        'larks OUT & balance',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': true, 'out': true}),
+          dialect,
+        ),
+        'larks OUT robins IN - balance the wave',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'form_a_long_wave',
+            params: {'in': false, 'out': false, 'balance': false},
+          ),
+          dialect,
+        ),
+        'robins form a long wave',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          dialect,
+        ),
+        'single file promenade across',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'circle',
+            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+          ),
+          dialect,
+        ),
+        'single file circle left 4 places',
+      );
+    });
+
+    test('incomplete guarded branches fail closed at render time', () {
+      final incomplete = Dialect.larksRobins.copyWith(
+        moveWordingBranches: const {
+          'form_a_long_wave': {'outOnly': '{subject} IN'},
+          'promenade': {'singleFile': '{move} {direction} {destination}'},
+          'circle': {'singleFile': '{move} {turn} {places}'},
+        },
+      );
+
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': false, 'out': true}),
+          incomplete,
+        ),
+        'larks dance out & balance',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          incomplete,
+        ),
+        'single file promenade across',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'circle',
+            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+          ),
+          incomplete,
+        ),
+        'single file circle left 4 places',
+      );
+    });
+
+    test('incomplete guarded branches from JSON fail closed', () {
+      final dialect = Dialect.fromJson({
+        'name': 'Imported',
+        'roles': {
+          'role1': {'singular': 'lark'},
+          'role2': {'singular': 'robin'},
+        },
+        'moveWordingBranches': {
+          'promenade': {'singleFile': '{move} {direction} {destination}'},
+        },
+      });
+
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          dialect,
+        ),
+        'single file promenade across',
+      );
+    });
+
+    test(
+      'branch templates take precedence and summaries use the same gate',
+      () {
+        final dialect = Dialect.larksRobins.copyWith(
+          moveWordings: const {'form_a_long_wave': '{move} legacy'},
+          moveWordingBranches: const {
+            'form_a_long_wave': {'outOnly': '{other} branch {balance}'},
+          },
+        );
+        final figure = Figure(
+          move: 'form_a_long_wave',
+          params: {'in': false, 'out': true},
+        );
+
+        expect(renderer.render(figure, dialect), 'larks branch & balance');
+        expect(
+          renderer.renderSummary(figure, dialect),
+          'larks branch & balance',
+        );
+        expect(renderer.renderCanonical(figure), 'role2s form a long wave');
+      },
+    );
+
+    test('replace display wording with one-pass slot substitution', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '[{who} ]{move} {unknown}'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      expect(renderer.render(figure, dialect), 'partner swing');
+      expect(renderer.renderVerbose(figure, dialect), 'partner swing');
+      expect(renderer.renderSummary(figure, dialect), 'partner swing');
+    });
+
+    test('per-dance wording override takes precedence over global wording', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '{move} globally'},
+      );
+      final figure = Figure(
+        move: 'swing',
+        wordingOverride: 'custom local wording',
+      );
+      expect(renderer.renderSummary(figure, dialect), 'custom local wording');
+    });
+
+    test('canonical wording applies to aliases in renderSummary', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'box_the_gnat': '{move} globally'},
+      );
+      final figure = Figure(
+        move: 'swat_the_flea',
+        params: const {'balance': true},
+      );
+
+      expect(renderer.renderSummary(figure, dialect), 'swat the flea globally');
+    });
+
+    test('editor wording slots use canonical alias display templates', () {
+      expect(
+        renderer.moveWordingTemplate('meltdown_swing'),
+        renderer.moveWordingTemplate('swing'),
+      );
+      expect(
+        renderer.moveWordingSlots('meltdown_swing'),
+        containsAll({'who', 'prefix', 'move', 'end_facing'}),
+      );
+    });
+
+    test('hey wording accepts either shoulder slot', () {
+      const withShoulder =
+          '{who} {article} {dir} {length} {move} {shoulder} {until} {ricochets}';
+      const withShoulderClause =
+          '{who} {article} {dir} {length} {move} {shoulder_clause} {until} {ricochets}';
+      const withoutEither =
+          '{who} {article} {dir} {length} {move} {until} {ricochets}';
+
+      expect(renderer.moveWordingSlots('hey'), contains('shoulder'));
+      expect(
+        renderer.moveWordingSlotLabels('hey', renderer.moveWordingSlots('hey')),
+        containsAllInOrder([
+          '{length}',
+          '{move}',
+          '{shoulder}/{shoulder_clause}',
+          '{until}',
+        ]),
+      );
+      expect(
+        renderer.moveWordingMissingSlots('hey', withShoulder),
+        isNot(contains('shoulder_clause')),
+      );
+      expect(
+        renderer.moveWordingMissingSlots('hey', withShoulderClause),
+        isNot(contains('shoulder')),
+      );
+      final missingBoth = renderer.moveWordingMissingSlots(
+        'hey',
+        withoutEither,
+      );
+      expect(missingBoth, containsAll({'shoulder', 'shoulder_clause'}));
+      expect(
+        renderer.moveWordingSlotLabels('hey', missingBoth),
+        contains('{shoulder}/{shoulder_clause}'),
+      );
+    });
+
+    test('invalid global wording falls back to existing display output', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '{who'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      expect(renderer.render(figure, dialect), 'partner swing');
+    });
+
+    test('rejects malformed placeholder names', () {
+      expect(FigureRenderer.isValidMoveWordingTemplate('{foo bar}'), isFalse);
+    });
+
+    test('nested optional groups render depth-aware', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': '[[{who} ]]{move}'},
+      );
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+
+      expect(
+        FigureRenderer.isValidMoveWordingTemplate('[[{who} ]]{move}'),
+        isTrue,
+      );
+      expect(renderer.render(figure, dialect), 'partner swing');
+    });
+
+    test('global wording never changes canonical output', () {
+      final figure = Figure(move: 'swing', params: const {'who': 'partners'});
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'swing': 'completely different {move}'},
+      );
+      expect(renderer.renderCanonical(figure), 'partners swing');
+      expect(renderer.render(figure, dialect), 'completely different swing');
     });
   });
 }

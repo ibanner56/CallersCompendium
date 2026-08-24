@@ -575,6 +575,50 @@ void main() {
       expect(all.single.title, 'After');
     });
 
+    testWidgets('auto-commit preserves edits made while clearing the draft', (
+      tester,
+    ) async {
+      final delayed = openTestRepositoriesWithDelayedSettings();
+      await delayed.repos.programs.create(_program(id: 'p1', title: 'Before'));
+      await _pumpEditor(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.settings.holdNextRemove();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'First title',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.settings.removeStarted;
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Second title',
+      );
+      await tester.tap(find.byKey(const ValueKey('insert-break-slot')));
+      await tester.pump();
+
+      expect(_titleText(tester), 'Second title');
+      expect(find.text(Program.breakSlotText), findsOneWidget);
+      expect(find.text('Save *'), findsOneWidget);
+
+      delayed.settings.releaseRemove();
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Second title');
+      expect(saved.slots, hasLength(1));
+      expect(saved.slots.single.isBreak, isTrue);
+      expect(
+        await delayed.repos.settings.contains('program_editor_draft:p1'),
+        isFalse,
+      );
+    });
+
     testWidgets('auto-created program exposes Delete and deletes its id', (
       tester,
     ) async {

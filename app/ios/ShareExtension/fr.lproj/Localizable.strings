@@ -1,0 +1,9 @@
+"share_extension.action.done" = "Terminé";
+"share_extension.title.preparing_import" = "Préparation de l’importation";
+"share_extension.message.saving_link" = "Enregistrement de ce lien pour Caller's Compendium.";
+"share_extension.title.ready_to_import" = "Prêt à importer";
+"share_extension.message.link_saved" = "Ce lien a été enregistré. Ouvrez Caller's Compendium pour le consulter et l’importer.";
+"share_extension.title.no_link" = "Aucun lien à importer";
+"share_extension.message.no_link" = "Ce partage ne contenait pas de lien que Caller's Compendium peut importer.";
+"share_extension.title.save_failed" = "Impossible d’enregistrer le lien";
+"share_extension.message.save_failed" = "Caller's Compendium n’a pas pu enregistrer ce lien pour l’importation. Veuillez réessayer.";

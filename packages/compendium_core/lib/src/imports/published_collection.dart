@@ -286,6 +286,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
                 _choreographersById[authorId]!,
           ],
         ),
+        mode: ArchiveSerializationMode.share,
       ),
       contentType: 'application/json',
     );

@@ -33,16 +33,16 @@
 /// share.
 library;
 
-/// The four cardinal facings a gate can end in, relative to a longways contra
-/// set: `up`/`down` the hall, and `in`/`out` across the set (toward / away from
-/// the other line). These reuse the tokens already in the taxonomy's
-/// `direction` vocabulary (see `ParamVocab.directions`) and are the same four
-/// `swing.endFacing` uses.
+/// The set-relative facings a gate can end in, relative to a longways contra
+/// set: `up`/`down` the hall, `in`/`out` across the set (toward / away from
+/// the other line), and `along` the set (side-to-side). The first four reuse
+/// the tokens already in the taxonomy's `direction` vocabulary (see
+/// `ParamVocab.directions`) and are the same tokens `swing.endFacing` uses.
 ///
 /// Sourced from ContraDB `libfigure` `param.js` `_stringParamGateFace`:
 /// `{up: "up the set", down: "down the set", in: "into the set",
 /// out: "out of the set"}`.
-const List<String> gateFacings = ['up', 'down', 'in', 'out'];
+const List<String> gateFacings = ['up', 'down', 'in', 'out', 'along'];
 
 /// Valid `direction` tokens for a gate — The Caller's Box's rotation sense.
 /// `mirror` (the two-couple gate, where the two roles rotate in opposite

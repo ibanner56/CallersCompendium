@@ -186,11 +186,17 @@ class RenderResult:
 # A link resolver maps a Markdown href to the href to emit, or ``None`` to drop
 # the link (keeping its text). ``render`` sanitises whatever it returns.
 LinkResolver = Callable[[str], Optional[str]]
+ImageResolver = Callable[[str], Optional[str]]
 
 
 class _Context:
-    def __init__(self, link_resolver: Optional[LinkResolver]) -> None:
+    def __init__(
+        self,
+        link_resolver: Optional[LinkResolver],
+        image_resolver: Optional[ImageResolver],
+    ) -> None:
         self.link_resolver = link_resolver
+        self.image_resolver = image_resolver
         self.headings: list[Heading] = []
         self.duplicate_anchors: list[Heading] = []
         self._seen_anchors: set[str] = set()
@@ -217,6 +223,12 @@ class _Context:
                 return None
             target = resolved
         return sanitize_href(target)
+
+    def resolve_image(self, href: str) -> Optional[str]:
+        if self.image_resolver is None:
+            return None
+        target = self.image_resolver(href)
+        return sanitize_href(target) if target is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -251,12 +263,18 @@ def _inline(text: str, ctx: _Context) -> str:
         if char == "!" and i + 1 < length and text[i + 1] == "[":
             parsed = _link_at(text, i + 1)
             if parsed is not None:
-                label, _dest, _title, end = parsed
-                # Text-only guides: an image renders as its alt text, matching
-                # the in-app reader (see docs/user/style-guide.md). Decorative
-                # images (empty alt) render as nothing at all.
+                label, dest, title, end = parsed
                 alt = _plain_text(label).strip()
-                if alt:
+                image_src = ctx.resolve_image(dest)
+                if image_src is not None:
+                    title_attr = (
+                        f' title="{escape_attr(title)}"' if title is not None else ""
+                    )
+                    out.append(
+                        f'<img src="{escape_attr(image_src)}" '
+                        f'alt="{escape_attr(alt)}"{title_attr} />'
+                    )
+                elif alt:
                     out.append(f'<em class="guide-figure">{escape_text(alt)}</em>')
                 i = end
                 continue
@@ -818,15 +836,19 @@ def _parse_list(lines: list[str], start: int, ctx: _Context) -> tuple[str, int]:
 
 
 def render(
-    markdown: str, *, link_resolver: Optional[LinkResolver] = None
+    markdown: str,
+    *,
+    link_resolver: Optional[LinkResolver] = None,
+    image_resolver: Optional[ImageResolver] = None,
 ) -> RenderResult:
     """Render ``markdown`` to HTML.
 
     ``link_resolver`` maps each Markdown href to the href to emit (or ``None``
-    to drop the link, keeping its text). Whatever it returns still goes through
+    to drop the link, keeping its text). ``image_resolver`` does the same for
+    image sources. Whatever either resolver returns still goes through
     :func:`sanitize_href` — a resolver can narrow the allow-list, never widen it.
     """
-    ctx = _Context(link_resolver)
+    ctx = _Context(link_resolver, image_resolver)
     normalized = markdown.replace("\r\n", "\n").replace("\r", "\n")
     lines = _strip_html_comments(normalized.split("\n"))
     return RenderResult(

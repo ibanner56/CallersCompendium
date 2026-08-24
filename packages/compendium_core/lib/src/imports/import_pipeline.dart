@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
+import 'package:unorm_dart/unorm_dart.dart';
 
 import '../model/choreographer.dart';
 import '../model/dance.dart';
@@ -718,13 +719,13 @@ class ImportPipeline {
     session._undone = true;
   }
 
-  /// Normalizes an author name for matching: trims, collapses internal
-  /// whitespace, and lowercases. Deliberately conservative — punctuation is
-  /// preserved (never stripped) so distinct people (e.g. "O'More" vs "OMore")
-  /// are not merged. A wrong merge (miscrediting a dance) is worse than a
-  /// near-duplicate row.
+  /// Normalizes an author name for matching: NFC-composes, trims, collapses
+  /// internal whitespace, and lowercases. Deliberately conservative —
+  /// punctuation is preserved (never stripped) so distinct people (e.g.
+  /// "O'More" vs "OMore") are not merged. A wrong merge (miscrediting a dance)
+  /// is worse than a near-duplicate row.
   String _normalizeName(String name) =>
-      name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+      nfc(name).trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
   /// Resolves [names] to [Choreographer] ids: matches an existing row by
   /// normalized name, else creates a new row (name only) via [newId] + upsert.
@@ -900,6 +901,7 @@ class ImportPipeline {
     figures: src.figures,
     hook: src.hook,
     callingNotes: src.callingNotes,
+    walkthrough: src.walkthrough,
     status: src.status,
     level: src.level,
     mixedLevel: src.mixedLevel,

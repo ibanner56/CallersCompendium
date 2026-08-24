@@ -165,6 +165,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnostics';
 
   @override
+  String get settingsExperimentalTitle => 'Experimental';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'New features may appear here while they are still in development.';
+
+  @override
   String get settingsAboutTitle => 'About';
 
   @override
@@ -3996,6 +4003,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That doesn\'t look like a valid http(s) URL.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'That link isn\'t supported for import.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'That URL redirected too many times.';
 
@@ -4628,6 +4639,25 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get danceEditorWalkthroughStepHelper =>
       'Saved as your default for this figure and reused wherever it appears.';
+
+  @override
+  String get danceEditorAddWordingOverride =>
+      'Customize wording for this dance';
+
+  @override
+  String get danceEditorWordingOverrideLabel => 'Figure wording for this dance';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Replaces the rendered line for this figure in this dance. The canonical figure stays searchable.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Use default wording';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Preview: $text';
+  }
 
   @override
   String get danceEditorSnippetDivergenceTitle => 'Update your saved snippet?';
@@ -5904,7 +5934,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'This field\'s values travel with your collection when you export or share it';
+      'This field\'s values travel with your collection when you share it; backups always include them';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5912,7 +5942,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+      'The contents of any custom field you create are included in your backups. When you share your collection, turn off \"Include in sharing\" in that field\'s settings to keep a field private.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Got it';
@@ -6008,6 +6038,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialectEditorRestoreDefaults => 'Restore defaults';
+
+  @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Restore default discouraged terms?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'This replaces your current discouraged terms with the defaults.';
+
+  @override
+  String get dialectEditorExitTitle => 'Save changes?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'You have unsaved changes to this dialect.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Save and exit';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Exit without saving';
 
   @override
   String get dialectEditorPreviewHelp =>
@@ -6314,5 +6365,113 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String publishedCollectionSupersedes(String version) {
     return 'Supersedes version $version';
+  }
+
+  @override
+  String get dialectEditorSectionMoveWordings => 'Move wording templates';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.';
+
+  @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (conditional)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'In only';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Out only';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'In and out';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Neither';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Ordinary';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Single file';
+
+  @override
+  String get dialectEditorMoveWordingsAdd => 'Add move wording templates';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count move wording templates',
+      one: '1 move wording template',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording => 'Add a move wording template…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Display template';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Available slots: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'This template is invalid, so the normal wording will be used.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Fix invalid move wording templates before saving: $figures';
+  }
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Unknown slots are empty: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'This template omits available slots: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'This template omits optional slots: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Preview: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset => 'Reset move wording templates';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Reset move wording templates?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'This removes all of your custom move wording templates.';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Save incomplete wording templates?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'These templates omit available slots and may hide figure details:\n$figures\n\nSave anyway?';
   }
 }

@@ -122,7 +122,7 @@ void main() {
       expect(text, contains('Figures:'));
       // First figure starts at beat 0 → section A1; second at beat 16 → A2.
       expect(text, contains('A1  partner swing (16 beats)'));
-      expect(text, contains('A2  partner do si do once (8 beats)'));
+      expect(text, contains('A2  partner dosido once (8 beats)'));
     });
 
     // #594: a `meanwhile` container (#590) exports as one figure line with

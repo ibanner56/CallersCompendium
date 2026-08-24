@@ -88,7 +88,7 @@ class CustomFieldEditor extends StatelessWidget {
             validator: (value) {
               final text = value?.trim() ?? '';
               if (text.isEmpty) return null;
-              return num.tryParse(text) == null ? 'Enter a number' : null;
+              return parseFiniteNumber(text) == null ? 'Enter a number' : null;
             },
           ),
         );

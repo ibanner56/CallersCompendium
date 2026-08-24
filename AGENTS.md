@@ -27,13 +27,19 @@ touch it.
 ## Run the gates before you push
 
 ```sh
-python3 tools/preflight.py          # every gate CI runs, terse output
+python3 tools/preflight.py          # every locally available CI gate; missing SDKs visibly skip
 python3 tools/preflight.py --list   # what it will run, and why
 ```
 
 A clean `dart test` is not the same as a clean gate run: some ratchets — figure
 fixtures against the taxonomy, most notably — are not exercised by the test
-suites at all. Before merging, run:
+suites at all.
+
+Copilot cloud sessions created after `.github/workflows/copilot-setup-steps.yml`
+reaches `main` receive the pinned Flutter SDK; it cannot provision a session
+that has already started.
+
+Before merging, run:
 
 ```sh
 python3 tools/ci/check_pr_review_gates.py all <PR> --closes <ISSUE>...

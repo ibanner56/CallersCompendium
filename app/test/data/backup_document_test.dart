@@ -25,7 +25,17 @@ BackupDocument _sampleDoc() => BackupDocument(
       ),
     ],
   ),
-  customDialects: [Dialect(name: 'My Dialect')],
+  customDialects: [
+    Dialect(
+      name: 'My Dialect',
+      moveWordingBranches: const {
+        'circle': {
+          'ordinary': '{move} {turn} {places}',
+          'singleFile': '{prefix} {move} {turn} {places}',
+        },
+      },
+    ),
+  ],
   activeDialectRef: 'My Dialect',
   customThemes: [
     const CustomTheme(
@@ -60,6 +70,10 @@ void main() {
 
     expect(decoded.core.dances.map((d) => d.id), ['d1', 'd2']);
     expect(decoded.customDialects.single.name, 'My Dialect');
+    expect(
+      decoded.customDialects.single.moveWordingBranches,
+      _sampleDoc().customDialects.single.moveWordingBranches,
+    );
     expect(decoded.activeDialectRef, 'My Dialect');
     expect(decoded.customThemes.single.id, 'custom-1');
     expect(decoded.customThemes.single.brightness, Brightness.dark);
@@ -125,6 +139,29 @@ void main() {
     );
     expect(decoded.hasErrors, isFalse);
     expect(decoded.document.settings, isEmpty);
+  });
+
+  test('custom dialect restore caps entries and records the skipped tail', () {
+    final custom = List.generate(
+      kMaxCustomDialects + 3,
+      (index) => <String, Object?>{'name': 'Dialect $index'},
+    );
+    final decoded = decodeBackup(
+      jsonEncode({
+        'backupVersion': 1,
+        'createdAt': '2026-07-15T00:00:00.000Z',
+        'core': <String, Object?>{},
+        'app': {
+          'dialects': {'custom': custom},
+        },
+      }),
+    );
+    expect(decoded.document.customDialects, hasLength(kMaxCustomDialects));
+    expect(decoded.document.customDialects.last.name, 'Dialect 127');
+    expect(
+      decoded.errors.where((e) => e.entityType == 'dialect'),
+      hasLength(1),
+    );
   });
 
   group('integrity container (#536)', () {

@@ -30,12 +30,10 @@ the essentials at a glance:
 - any custom fields you have chosen to show in the list (more on those under
   [Make your own fields](#make-your-own-fields)).
 
-*Wireframe sketch of the Collection screen: a search bar across the top with
-sort, New, Import, and batch actions; a Filters panel and a scrolling list of
-dances on the left; and a dance detail preview on the right. This is a
-low-fidelity layout sketch, not the finished app.*
+*The Collection screen with a search query, the Filters panel open, and matching
+dances visible.*
 
-![Wireframe sketch of the Collection screen, showing a search bar with New and Import actions, a Filters panel, a list of dances, and a detail preview pane](../design/wireframes/1-collection.svg)
+![The Collection screen showing a search query with the Filters panel open and several matching dances listed](images/collection-search-filters.png)
 
 To change the order, open the **Sort** control at the top of the list. You can
 sort by:
@@ -163,12 +161,10 @@ never hidden behind a visual-only cue.
 
 Selecting a dance opens its detail view — the full picture of a single dance.
 
-*Wireframe sketch of the dance detail view: a header with title, authors,
-formation, and level; the figures grouped into sections A1, A2, B1, and B2 with
-a beats column; and a toggle to switch between your dialect and the neutral
-wording. This is a low-fidelity layout sketch, not the finished app.*
+*The dance detail view with figures grouped into sections and a toggle between
+your dialect and neutral wording.*
 
-![Wireframe sketch of the dance detail view, showing a header with title and formation, a figure list grouped into sections A1, A2, B1, and B2 with a beats column, and a dialect-to-canonical view toggle](../design/wireframes/2-dance-detail.svg)
+![A dance detail view with figures grouped into A1, A2, B1, and B2 sections and the dialect-to-canonical wording toggle visible](images/dance-detail-dialect.png)
 
 The detail view brings together:
 

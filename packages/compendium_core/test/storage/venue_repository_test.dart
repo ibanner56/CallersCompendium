@@ -88,6 +88,23 @@ void main() {
     expect(await repo.getById('nope'), isNull);
   });
 
+  test('external provenance lookup excludes soft-deleted venues', () async {
+    await repo.upsert(
+      Venue(
+        id: 'v1',
+        name: 'Imported Hall',
+        provenance: Provenance(
+          source: ProvenanceSource.json,
+          externalId: 'external-v1',
+          importedAt: DateTime.utc(2026),
+        ),
+      ),
+    );
+    await repo.delete('v1');
+
+    expect(await repo.externalIdToVenueId(ProvenanceSource.json), isEmpty);
+  });
+
   test('delete removes an unreferenced venue', () async {
     await repo.upsert(Venue(id: 'v1', name: 'Solo Hall'));
     await repo.delete('v1');

@@ -370,6 +370,18 @@ abstract class AppLocalizations {
   /// **'Diagnostics'**
   String get settingsDiagnosticsTitle;
 
+  /// Settings section navigation title (sidebar/app bar) and content header for features still in development.
+  ///
+  /// In en, this message translates to:
+  /// **'Experimental'**
+  String get settingsExperimentalTitle;
+
+  /// Placeholder text explaining that the Experimental settings section will contain features still in development.
+  ///
+  /// In en, this message translates to:
+  /// **'New features may appear here while they are still in development.'**
+  String get settingsExperimentalPlaceholder;
+
   /// Settings section navigation title (sidebar/app bar) for app version, license, and help links.
   ///
   /// In en, this message translates to:
@@ -6260,6 +6272,12 @@ abstract class AppLocalizations {
   /// **'That doesn\'t look like a valid http(s) URL.'**
   String get importErrorInvalidUrl;
 
+  /// Error shown when an operating-system shared link is neither a supported program nor a supported dance.
+  ///
+  /// In en, this message translates to:
+  /// **'That link isn\'t supported for import.'**
+  String get importErrorUnsupportedSharedLink;
+
   /// Error shown when fetching an import URL exceeded the redirect limit.
   ///
   /// In en, this message translates to:
@@ -7135,6 +7153,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Saved as your default for this figure and reused wherever it appears.'**
   String get danceEditorWalkthroughStepHelper;
+
+  /// Button that reveals the optional per-figure display wording override for the current dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Customize wording for this dance'**
+  String get danceEditorAddWordingOverride;
+
+  /// Label for the per-figure display wording override field.
+  ///
+  /// In en, this message translates to:
+  /// **'Figure wording for this dance'**
+  String get danceEditorWordingOverrideLabel;
+
+  /// Helper text explaining that a per-dance wording override is display-only and preserves canonical search.
+  ///
+  /// In en, this message translates to:
+  /// **'Replaces the rendered line for this figure in this dance. The canonical figure stays searchable.'**
+  String get danceEditorWordingOverrideHelper;
+
+  /// Tooltip for clearing a per-dance figure wording override.
+  ///
+  /// In en, this message translates to:
+  /// **'Use default wording'**
+  String get danceEditorResetWordingOverride;
+
+  /// Live preview of the rendered per-dance figure wording override.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview: {text}'**
+  String danceEditorWordingOverridePreview(Object text);
 
   /// Title of the prompt shown when a per-figure walkthrough snippet differs from the saved default (#411).
   ///
@@ -9038,7 +9086,7 @@ abstract class AppLocalizations {
   /// Subtitle for the 'include in sharing' toggle on the custom field form.
   ///
   /// In en, this message translates to:
-  /// **'This field\'s values travel with your collection when you export or share it'**
+  /// **'This field\'s values travel with your collection when you share it; backups always include them'**
   String get customFieldsShareableSubtitle;
 
   /// Title of the one-time disclosure dialog shown when a user creates their first custom field, explaining that custom field values are included in exports and shares.
@@ -9050,7 +9098,7 @@ abstract class AppLocalizations {
   /// Body of the one-time disclosure dialog shown when a user creates their first custom field.
   ///
   /// In en, this message translates to:
-  /// **'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.'**
+  /// **'The contents of any custom field you create are included in your backups. When you share your collection, turn off \"Include in sharing\" in that field\'s settings to keep a field private.'**
   String get customFieldsSharingNoticeBody;
 
   /// Dismiss button for the one-time custom field sharing disclosure dialog.
@@ -9202,6 +9250,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore defaults'**
   String get dialectEditorRestoreDefaults;
+
+  /// Confirmation-dialog title before restoring the default discouraged-terms list.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore default discouraged terms?'**
+  String get dialectEditorDiscouragedResetTitle;
+
+  /// Confirmation-dialog body before restoring the default discouraged-terms list.
+  ///
+  /// In en, this message translates to:
+  /// **'This replaces your current discouraged terms with the defaults.'**
+  String get dialectEditorDiscouragedResetBody;
+
+  /// Confirmation-dialog title shown before leaving a dirty dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Save changes?'**
+  String get dialectEditorExitTitle;
+
+  /// Confirmation-dialog body shown before leaving a dirty dialect editor.
+  ///
+  /// In en, this message translates to:
+  /// **'You have unsaved changes to this dialect.'**
+  String get dialectEditorExitBody;
+
+  /// Button that saves dialect changes and exits the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and exit'**
+  String get dialectEditorSaveAndExit;
+
+  /// Button that discards dialect changes and exits the editor.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit without saving'**
+  String get dialectEditorExitWithoutSaving;
 
   /// Helper text for the dialect live-preview section.
   ///
@@ -9712,6 +9796,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Supersedes version {version}'**
   String publishedCollectionSupersedes(String version);
+
+  /// Dialect editor section header for display-only per-move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Move wording templates'**
+  String get dialectEditorSectionMoveWordings;
+
+  /// Helper text explaining that move wording templates affect display only.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.'**
+  String get dialectEditorMoveWordingsHelp;
+
+  /// Helper text explaining branch-specific move wording templates and their required slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
+  String get dialectEditorMoveWordingsConditionalHelp;
+
+  /// Header for a move's parameter-dependent wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} (conditional)'**
+  String dialectEditorMoveWordingsConditionalLabel(String move);
+
+  /// Label for the long-wave branch where dancers move in only.
+  ///
+  /// In en, this message translates to:
+  /// **'In only'**
+  String get dialectEditorMoveWordingBranchInOnly;
+
+  /// Label for the long-wave branch where dancers move out only.
+  ///
+  /// In en, this message translates to:
+  /// **'Out only'**
+  String get dialectEditorMoveWordingBranchOutOnly;
+
+  /// Label for the long-wave branch where dancers move in and out.
+  ///
+  /// In en, this message translates to:
+  /// **'In and out'**
+  String get dialectEditorMoveWordingBranchInAndOut;
+
+  /// Label for the long-wave branch where dancers move neither in nor out.
+  ///
+  /// In en, this message translates to:
+  /// **'Neither'**
+  String get dialectEditorMoveWordingBranchNeither;
+
+  /// Label for the ordinary (not single-file) branch.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordinary'**
+  String get dialectEditorMoveWordingBranchOrdinary;
+
+  /// Label for the single-file branch.
+  ///
+  /// In en, this message translates to:
+  /// **'Single file'**
+  String get dialectEditorMoveWordingBranchSingleFile;
+
+  /// Collapsed header/empty state for the move wording template section.
+  ///
+  /// In en, this message translates to:
+  /// **'Add move wording templates'**
+  String get dialectEditorMoveWordingsAdd;
+
+  /// Header showing how many move wording templates are defined.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 move wording template} other{{count} move wording templates}}'**
+  String dialectEditorMoveWordingsCount(int count);
+
+  /// Placeholder for the dropdown that adds a move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a move wording template…'**
+  String get dialectEditorAddMoveWording;
+
+  /// Label for a display-only move wording template field.
+  ///
+  /// In en, this message translates to:
+  /// **'Display template'**
+  String get dialectEditorMoveWordingLabel;
+
+  /// Legend listing the placeholders available in a move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Available slots: {slots}'**
+  String dialectEditorMoveWordingSlots(String slots);
+
+  /// Non-blocking warning shown for a malformed move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'This template is invalid, so the normal wording will be used.'**
+  String get dialectEditorMoveWordingInvalid;
+
+  /// Blocking editor error listing malformed move wording templates that must be fixed before saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix invalid move wording templates before saving: {figures}'**
+  String dialectEditorMoveWordingSaveError(String figures);
+
+  /// Warning shown when a move wording template references unknown placeholders.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown slots are empty: {slots}'**
+  String dialectEditorMoveWordingUnknownSlots(String slots);
+
+  /// Warning shown when a move wording template omits available placeholders.
+  ///
+  /// In en, this message translates to:
+  /// **'This template omits available slots: {slots}'**
+  String dialectEditorMoveWordingMissingSlots(String slots);
+
+  /// Notice shown when a move wording template omits optional placeholders.
+  ///
+  /// In en, this message translates to:
+  /// **'This template omits optional slots: {slots}'**
+  String dialectEditorMoveWordingOptionalSlots(String slots);
+
+  /// Representative rendered preview for one move wording template.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview: {preview}'**
+  String dialectEditorMoveWordingPreview(String preview);
+
+  /// Action that independently clears all move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset move wording templates'**
+  String get dialectEditorMoveWordingsReset;
+
+  /// Confirmation-dialog title before removing all custom move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset move wording templates?'**
+  String get dialectEditorMoveWordingsResetTitle;
+
+  /// Confirmation-dialog body before removing all custom move wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'This removes all of your custom move wording templates.'**
+  String get dialectEditorMoveWordingsResetBody;
+
+  /// Confirmation dialog title shown before saving templates that omit available slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Save incomplete wording templates?'**
+  String get dialectEditorMoveWordingConfirmTitle;
+
+  /// Confirmation dialog body listing figures whose wording templates omit available slots.
+  ///
+  /// In en, this message translates to:
+  /// **'These templates omit available slots and may hide figure details:\n{figures}\n\nSave anyway?'**
+  String dialectEditorMoveWordingConfirmBody(String figures);
 }
 
 class _AppLocalizationsDelegate

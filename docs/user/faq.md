@@ -70,7 +70,8 @@ text or export a PDF. A program also offers **Share (program + dances)**, which
 bundles the set list together with every dance it uses into one file — dances and
 all, not just a list of titles. The recipient can **open that file directly**
 (AirDrop, "Open with", or a share intent), which takes them to the import review
-screen already loaded with it, or they can import it from **Settings › Import**.
+screen already loaded with it, or they can import it from **Settings › General** by
+choosing **Import…**.
 Either way nothing lands in their collection until they confirm. This is separate
 from a full backup. See [Share, print & export](./sharing.md).
 

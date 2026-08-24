@@ -167,6 +167,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDiagnosticsTitle => 'Diagnostik';
 
   @override
+  String get settingsExperimentalTitle => 'Eksperimentelt';
+
+  @override
+  String get settingsExperimentalPlaceholder =>
+      'Nye funktioner vises muligvis her, mens de stadig er under udvikling.';
+
+  @override
   String get settingsAboutTitle => 'Om';
 
   @override
@@ -4003,6 +4010,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importErrorInvalidUrl => 'Det ligner ikke en gyldig http(s)-URL.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Det link understøttes ikke til import.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Den URL omdirigerede for mange gange.';
 
@@ -4634,6 +4645,24 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get danceEditorWalkthroughStepHelper =>
       'Gemt som din standard for denne figur og genbrugt overalt, hvor den optræder.';
+
+  @override
+  String get danceEditorAddWordingOverride => 'Tilpas ordlyden for denne dans';
+
+  @override
+  String get danceEditorWordingOverrideLabel => 'Figurordlyd for denne dans';
+
+  @override
+  String get danceEditorWordingOverrideHelper =>
+      'Erstatter den viste linje for denne figur i denne dans. Den kanoniske figur forbliver søgbar.';
+
+  @override
+  String get danceEditorResetWordingOverride => 'Brug standardordlyd';
+
+  @override
+  String danceEditorWordingOverridePreview(Object text) {
+    return 'Forhåndsvisning: $text';
+  }
 
   @override
   String get danceEditorSnippetDivergenceTitle => 'Opdater dit gemte uddrag?';
@@ -5918,7 +5947,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Dette felts værdier følger med din samling, når du eksporterer eller deler den';
+      'Dette felts værdier følger med din samling, når du deler den; sikkerhedskopier indeholder dem altid';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5926,7 +5955,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Indholdet af ethvert brugerdefineret felt, du opretter, inkluderes, når du eksporterer eller deler din samling. Slå „Inkludér ved deling“ fra i feltets indstillinger for at holde et felt privat.';
+      'Indholdet af alle brugerdefinerede felter, du opretter, inkluderes i dine sikkerhedskopier. Når du deler din samling, skal du slå \"Inkludér ved deling\" fra i feltets indstillinger for at holde feltet privat.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Forstået';
@@ -6022,6 +6051,27 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get dialectEditorRestoreDefaults => 'Gendan standarder';
+
+  @override
+  String get dialectEditorDiscouragedResetTitle =>
+      'Gendan standardtermer for frarådede ord?';
+
+  @override
+  String get dialectEditorDiscouragedResetBody =>
+      'Dette erstatter dine nuværende frarådede termer med standarderne.';
+
+  @override
+  String get dialectEditorExitTitle => 'Gem ændringer?';
+
+  @override
+  String get dialectEditorExitBody =>
+      'Du har ændringer i denne dialekt, der ikke er gemt.';
+
+  @override
+  String get dialectEditorSaveAndExit => 'Gem og afslut';
+
+  @override
+  String get dialectEditorExitWithoutSaving => 'Afslut uden at gemme';
 
   @override
   String get dialectEditorPreviewHelp =>
@@ -6330,5 +6380,117 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String publishedCollectionSupersedes(String version) {
     return 'Erstatter version $version';
+  }
+
+  @override
+  String get dialectEditorSectionMoveWordings =>
+      'Skabeloner til bevægelsesformulering';
+
+  @override
+  String get dialectEditorMoveWordingsHelp =>
+      'Valgfrie skabeloner kun til visning erstatter en bevægelses normale sætning. Kanonisk tekst og søgning ændres ikke.';
+
+  @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (betinget)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Kun ind';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Kun ud';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Ind og ud';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Ingen af delene';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Almindelig';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Enkelt række';
+
+  @override
+  String get dialectEditorMoveWordingsAdd =>
+      'Tilføj skabeloner til bevægelsesformulering';
+
+  @override
+  String dialectEditorMoveWordingsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count skabeloner til bevægelsesformulering',
+      one: '1 skabelon til bevægelsesformulering',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get dialectEditorAddMoveWording =>
+      'Tilføj en skabelon til bevægelsesformulering…';
+
+  @override
+  String get dialectEditorMoveWordingLabel => 'Visningsskabelon';
+
+  @override
+  String dialectEditorMoveWordingSlots(String slots) {
+    return 'Tilgængelige pladsholdere: $slots';
+  }
+
+  @override
+  String get dialectEditorMoveWordingInvalid =>
+      'Denne skabelon er ugyldig, så den normale formulering bruges.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Ret ugyldige skabeloner for bevægelsesformuleringer, før du gemmer: $figures';
+  }
+
+  @override
+  String dialectEditorMoveWordingUnknownSlots(String slots) {
+    return 'Ukendte pladsholdere er tomme: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingMissingSlots(String slots) {
+    return 'Denne skabelon udelader tilgængelige pladsholdere: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingOptionalSlots(String slots) {
+    return 'Denne skabelon udelader valgfrie pladsholdere: $slots';
+  }
+
+  @override
+  String dialectEditorMoveWordingPreview(String preview) {
+    return 'Forhåndsvisning: $preview';
+  }
+
+  @override
+  String get dialectEditorMoveWordingsReset =>
+      'Nulstil skabeloner til bevægelsesformulering';
+
+  @override
+  String get dialectEditorMoveWordingsResetTitle =>
+      'Nulstil skabeloner til bevægelsesformulering?';
+
+  @override
+  String get dialectEditorMoveWordingsResetBody =>
+      'Dette fjerner alle dine tilpassede skabeloner til bevægelsesformuleringer.';
+
+  @override
+  String get dialectEditorMoveWordingConfirmTitle =>
+      'Gem ufuldstændige ordlydsskabeloner?';
+
+  @override
+  String dialectEditorMoveWordingConfirmBody(String figures) {
+    return 'Disse skabeloner udelader tilgængelige pladsholdere og kan skjule figurdetaljer:\n$figures\n\nGem alligevel?';
   }
 }

@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 31;
+const int contraTaxonomyVersion = 32;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -202,7 +202,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'endFacing': ParamSpec(
           ParamKind.choice,
           defaultValue: 'in',
-          choices: ['in', 'out', 'up', 'down'],
+          choices: ['in', 'out', 'up', 'down', 'along'],
         ),
       },
       renderTemplate: '{who} {prefix} {move}',
@@ -268,7 +268,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
     const MoveDef(
       id: 'do_si_do',
-      displayName: 'do si do',
+      displayName: 'dosido',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
@@ -276,7 +276,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       renderTemplate: '{who} {move} {turn}',
-      searchKeywords: ['dosido', 'do-si-do'],
+      searchKeywords: ['do si do', 'do-si-do'],
       goodBeats: [8],
     ),
     const MoveDef(
@@ -1604,10 +1604,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
   aliases: [
     const MoveAlias(
       id: 'see_saw',
-      displayName: 'see saw',
+      displayName: 'seesaw',
       targetMove: 'do_si_do',
       pinnedParams: {'shoulder': 'left'},
       inversePairId: 'do_si_do',
+      searchKeywords: ['see saw', 'see-saw'],
     ),
     const MoveAlias(
       id: 'swat_the_flea',

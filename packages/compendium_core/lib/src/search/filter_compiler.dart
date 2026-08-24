@@ -1,6 +1,7 @@
 import '../dialect/canonicalize.dart';
 import '../dialect/dialect.dart';
 import '../model/enums.dart';
+import '../taxonomy/taxonomy.dart';
 import 'filter.dart';
 import 'fts_query.dart';
 import 'search_enrichment.dart';
@@ -48,9 +49,12 @@ String escapeLikePattern(String term) =>
 /// the built-in legacy synonyms already do. The active dialect (and legacy
 /// synonyms) always win where they overlap the enrichment.
 class FilterCompiler {
-  FilterCompiler([Dialect? dialect, SearchEnrichment? enrichment])
-    : dialect = dialect ?? Dialect.canonical,
-      enrichment = enrichment ?? SearchEnrichment.empty {
+  FilterCompiler([
+    Dialect? dialect,
+    SearchEnrichment? enrichment,
+    this.taxonomy,
+  ]) : dialect = dialect ?? Dialect.canonical,
+       enrichment = enrichment ?? SearchEnrichment.empty {
     // Reverse the dialect's move substitutions (display → canonical id),
     // skipping templated (`%S`) substitutions which aren't reversible by a
     // plain word match. Conservative: unknown/unmapped moves pass through.
@@ -68,6 +72,7 @@ class FilterCompiler {
 
   final Dialect dialect;
   final SearchEnrichment enrichment;
+  final Taxonomy? taxonomy;
   late final Map<String, String> _moveReverse;
 
   /// Compiles [filter] with the given [sort] (default [SearchSort.title]) and
@@ -258,12 +263,15 @@ class FilterCompiler {
     final queryBuilder = isPrefix
         ? toFtsPrefixMatchQuery
         : toFtsSubstringMatchQuery;
+    final canonicalText = canonicalizeText(
+      rawQuery,
+      dialect,
+      extraRoleSynonyms: enrichment.roleSynonyms,
+    );
     final canonicalQuery = queryBuilder(
-      canonicalizeText(
-        rawQuery,
-        dialect,
-        extraRoleSynonyms: enrichment.roleSynonyms,
-      ),
+      taxonomy == null
+          ? canonicalText
+          : canonicalizeMoveSearchText(canonicalText, taxonomy!),
     );
     final rawTextQuery = queryBuilder(rawQuery);
 

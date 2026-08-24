@@ -52,6 +52,7 @@ class _Host extends StatefulWidget {
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.aggressiveBeatsUpdate = false,
+    this.showWordingOverride = false,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
 
   final List<FigureDraft> drafts;
@@ -67,6 +68,7 @@ class _Host extends StatefulWidget {
   /// (issue #689). Defaults to `false` so existing tests exercise today's
   /// behavior unchanged.
   final bool aggressiveBeatsUpdate;
+  final bool showWordingOverride;
 
   @override
   State<_Host> createState() => _HostState();
@@ -110,6 +112,7 @@ class _HostState extends State<_Host> {
               moveParamDefaults: widget.moveParamDefaults,
               mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
+              showWordingOverride: widget.showWordingOverride,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
               onAddFreeText: widget.freeTextEntry
@@ -184,6 +187,7 @@ Future<void> _pump(
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool aggressiveBeatsUpdate = false,
+  bool showWordingOverride = false,
   Taxonomy? taxonomy,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1200, 2400));
@@ -199,6 +203,7 @@ Future<void> _pump(
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
+      showWordingOverride: showWordingOverride,
     ),
   );
   await tester.pumpAndSettle();
@@ -275,6 +280,48 @@ void main() {
     await _pump(tester, []);
     expect(find.text('No figures yet.'), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-add')), findsOneWidget);
+  });
+
+  testWidgets('wording override is opt-in, previews, trims, and resets', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+    expect(
+      find.byKey(const ValueKey('figure-0-add-wording-override')),
+      findsNothing,
+    );
+
+    await tester.pumpWidget(_Host(drafts: drafts, showWordingOverride: true));
+    await tester.pumpAndSettle();
+    await _openFigure(tester, 0);
+    final add = find.byKey(const ValueKey('figure-0-add-wording-override'));
+    expect(add, findsOneWidget);
+    await tester.tap(add);
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('figure-0-wording-override'));
+    await tester.enterText(field, '  custom wording  ');
+    expect(find.textContaining('Preview:'), findsOneWidget);
+    expect(drafts.single.wordingOverride, '  custom wording  ');
+
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    expect(drafts.single.wordingOverride, 'custom wording');
+
+    await _openFigure(tester, 0);
+    await tester.tap(
+      find.byKey(const ValueKey('figure-0-wording-override-clear')),
+    );
+    await tester.pumpAndSettle();
+    expect(drafts.single.wordingOverride, isNull);
+    expect(
+      find.byKey(const ValueKey('figure-0-add-wording-override')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('add creates an empty figure row', (tester) async {
@@ -730,6 +777,139 @@ void main() {
     expect(drafts.single.move, 'see_saw');
     // Alias pins the do-si-do shoulder to left.
     expect(drafts.single.params['shoulder'], 'left');
+  });
+
+  testWidgets('changing shoulder reroutes dosido and updates the preview', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'do_si_do',
+        params: {
+          'who': 'neighbors',
+          'shoulder': 'right',
+          'turn': 1.0,
+          'beats': 8,
+        },
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await _selectDropdownOption(tester, 'figure-0-shoulder', 'left');
+
+    expect(drafts.single.move, 'see_saw');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('figure-0-move-input')))
+          .controller
+          ?.text,
+      'seesaw',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-summary')),
+        matching: find.textContaining('seesaw'),
+      ),
+      findsOneWidget,
+    );
+
+    await _selectDropdownOption(tester, 'figure-0-shoulder', 'right');
+
+    expect(drafts.single.move, 'do_si_do');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('figure-0-move-input')))
+          .controller
+          ?.text,
+      'dosido',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-summary')),
+        matching: find.textContaining('dosido'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('changing hand reroutes box the gnat and updates the preview', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        move: 'box_the_gnat',
+        params: {
+          'who': 'partners',
+          'hand': 'right',
+          'balance': false,
+          'beats': 4,
+        },
+      ),
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await _selectDropdownOption(tester, 'figure-0-hand', 'left');
+
+    expect(drafts.single.move, 'swat_the_flea');
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('figure-0-move-input')))
+          .controller
+          ?.text,
+      'swat the flea',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-summary')),
+        matching: find.textContaining('swat the flea'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('meanwhile side parameter edits reroute its alias live', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        meanwhileSides: [
+          FigureDraft(
+            move: 'do_si_do',
+            params: {
+              'who': 'neighbors',
+              'shoulder': 'right',
+              'turn': 1.0,
+              'beats': 8,
+            },
+          ),
+          FigureDraft(move: 'swing', params: {'beats': 8, 'who': 'partners'}),
+        ],
+      )..params['beats'] = 8,
+    ];
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    await _selectDropdownOption(tester, 'figure-0-side-0-shoulder', 'left');
+
+    expect(drafts.single.meanwhileSides!.first.move, 'see_saw');
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('figure-0-side-0-move-input')),
+          )
+          .controller
+          ?.text,
+      'seesaw',
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('figure-0-summary')),
+        matching: find.textContaining('seesaw'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('unmatched text creates a custom figure', (tester) async {

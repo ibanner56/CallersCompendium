@@ -11,10 +11,18 @@ from pathlib import Path
 
 SCHEMA_CONSTANT = "kCompendiumSchemaVersion"
 TAXONOMY_CONSTANT = "contraTaxonomyVersion"
+_CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
+_SELECTED_VERSION = re.compile(rf"^(?P<core>{_CORE})(?:-beta)?$")
 
 
 def _core_version(version: str) -> str:
-    return re.split(r"[-+]", version.strip(), maxsplit=1)[0]
+    match = _SELECTED_VERSION.fullmatch(version)
+    if match is None:
+        raise ValueError(
+            "version must be X.Y.Z or bare beta X.Y.Z-beta with a valid "
+            "no-leading-zero core"
+        )
+    return match.group("core")
 
 
 def _section(changelog: str, heading: str, level: int = 2) -> str | None:
@@ -109,10 +117,15 @@ def validate(
         )
 
     heading_count = _core_heading_count(changelog_text, core)
+    if heading_count == 0:
+        errors.append(
+            f"expected exactly one ## [{core}] heading, found 0. "
+            "Every stable and bare beta release requires its shared section."
+        )
     if heading_count > 1:
         errors.append(
             f"expected exactly one ## [{core}] heading, found {heading_count}. "
-            "Successive prereleases in a line share one section: merge the "
+            "The bare beta and its stable release share one section: merge "
             "promoted items into the existing one rather than adding another. "
             "Release notes render from the first section, so the later "
             "duplicate is silently orphaned."

@@ -102,18 +102,21 @@ panes side by side that work together. On a narrower screen, such as a phone,
 the same pieces are still there: your program fills the screen and the
 collection picker opens as a panel when you go to add a dance.
 
-*Wireframe sketch of the Programs builder: a two-pane layout with the ordered
-program slots on the left and a searchable collection picker on the right. This
-is a low-fidelity layout sketch, not the finished app.*
+*The Programs builder with ordered program slots beside a searchable collection
+picker.*
 
-![Wireframe sketch of the Programs builder, showing ordered program slots on the left and a collection picker with filters on the right](../design/wireframes/4-programs-builder.svg)
+![The Programs builder showing ordered program slots beside a searchable collection picker with filters](images/programs-builder.png)
 
 - **Your program** — the ordered list of
   [slots](./glossary.md#slot) that make up the evening.
 - **The collection picker** — the same search tools you know from
   [Collection & search](./collection.md): the **Filters** panel, the
   **Advanced** figure builder, and the **By-Phrase** panel. Find a dance and add
-  it to the program.
+  it to the program. In the **Advanced** panel, turn on **Online search** to
+  search The Caller's Box or ContraDB; selecting a result imports it and adds it
+  immediately. An exact match selects the dance already in your collection
+  without prompting. When the import needs your choice between a likely match
+  and a separate record, a resolution dialog appears before the dance is added.
 
 ### Kinds of slots
 
@@ -125,7 +128,9 @@ A program is made of three kinds of slots:
   dance from this** on its **…** menu, which opens the dance editor pre-filled
   with that text as the title; saving links the slot to the new dance in one
   step, so a note left behind by an import that couldn't find a match doesn't
-  need a separate trip through the collection to fix.
+  need a separate trip through the collection to fix. A non-break note slot
+  also offers **Replace…**, which imports or selects a dance and swaps it into
+  that slot while clearing the old note and preserving its timing details.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
@@ -150,7 +155,7 @@ A program carries the details of its event:
 - program-level **band**, **caller**, and dancer **level**.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
-reusable venue records** in **Settings → General → Venues** — a saved
+reusable venue records** in **Settings → Program → Venues** — a saved
 [venue](./glossary.md#venue) record you can reuse across programs, with its own
 address, contacts, and schedule that you edit in one place. A program linked to
 a saved venue shows and exports that record's details; otherwise the free-text
@@ -166,13 +171,10 @@ Defaults** and new programs will prefill them — see
 The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
 
-*Wireframe sketch of the program matrix: a grid with moves as columns and dances
-as rows, a star marking where each move is first introduced in the program, a
-flag marking each dance's own first figure, and a check mark where a move
-appears, with the row and column headers pinned. This is a low-fidelity layout
-sketch, not the finished app.*
+*The program matrix with moves as columns, dances as rows, pinned headers, and
+markers that explain how figures are introduced and reused.*
 
-![Wireframe sketch of the program matrix, showing moves as columns and dances as rows, with a star marking where each move is first introduced in the program, a flag marking each dance's first figure, check marks where a move appears, and pinned row and column headers](../design/wireframes/5-program-matrix.svg)
+![The program matrix showing dances as rows and moves as columns, with pinned headers and a legend for introduced-here, dance's-first-figure, present, and adjacent-dance beat-overlap markers](images/program-matrix.png)
 
 Here is how to read it:
 

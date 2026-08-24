@@ -83,6 +83,28 @@ String canonicalizeText(
   Map<String, String> extraRoleSynonyms = const {},
 }) => canonicalize(text, dialect, extraRoleSynonyms: extraRoleSynonyms).text;
 
+/// Rewrites taxonomy move display names and legacy keywords to their canonical
+/// display names for full-text search. Unlike role canonicalization, this is
+/// intentionally query-only: persisted figure text is produced by the renderer
+/// and remains canonical without storing duplicate legacy spellings.
+String canonicalizeMoveSearchText(String text, Taxonomy taxonomy) {
+  final replacements = <String, String>{};
+  for (final move in taxonomy.moves.values) {
+    if (move.id == customMoveId) continue;
+    replacements[move.displayName] = move.displayName;
+    for (final keyword in move.searchKeywords) {
+      replacements[keyword] = move.displayName;
+    }
+  }
+  for (final alias in taxonomy.aliases.values) {
+    replacements[alias.displayName] = alias.displayName;
+    for (final keyword in alias.searchKeywords) {
+      replacements[keyword] = alias.displayName;
+    }
+  }
+  return Substitutor(replacements, caseInsensitive: true).apply(text);
+}
+
 /// Whether [token] is one of the canonical role tokens.
 bool isRoleToken(String token) => roleTokens.contains(token);
 

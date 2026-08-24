@@ -176,6 +176,14 @@
   "@settingsDiagnosticsTitle": {
     "x-sourceSha256": "268f14bbfe119c1e92150583af960a086d7db9619a097f8aa72ff6779842f610"
   },
+  "settingsExperimentalTitle": "Eksperimentelt",
+  "@settingsExperimentalTitle": {
+    "x-sourceSha256": "3dc9f569422dcfdadcb2c33f3eb2ee6fcebc8ba679bd63e690f9ddd0ff7c24be"
+  },
+  "settingsExperimentalPlaceholder": "Nye funktioner vises muligvis her, mens de stadig er under udvikling.",
+  "@settingsExperimentalPlaceholder": {
+    "x-sourceSha256": "a268657b05fd60bc06b7df9f6abc968d3f880d899c7599cf0c000ff6dce634f5"
+  },
   "settingsAboutTitle": "Om",
   "@settingsAboutTitle": {
     "x-sourceSha256": "4efca0d10c5feb8e9b35eb1d994f2905bb71714e6a271f511d713b539ea5faa1"
@@ -4080,6 +4088,10 @@
   "@importErrorInvalidUrl": {
     "x-sourceSha256": "8ae430a7d5bd8be981ced412bd101ea45eb5c5a682e48443b4b336f97ec32f7c"
   },
+  "importErrorUnsupportedSharedLink": "Det link understøttes ikke til import.",
+  "@importErrorUnsupportedSharedLink": {
+    "x-sourceSha256": "e9aa5483ef48bad5bbe043ff4eb792f2808d548b017c557e40b9da634263220f"
+  },
   "importErrorTooManyRedirects": "Den URL omdirigerede for mange gange.",
   "@importErrorTooManyRedirects": {
     "x-sourceSha256": "849e5da3dea6d013f85c5965eef38b9202f621b4e0c2545e3b6647dd9fea1f7d"
@@ -4663,6 +4675,26 @@
   "danceEditorWalkthroughStepHelper": "Gemt som din standard for denne figur og genbrugt overalt, hvor den optræder.",
   "@danceEditorWalkthroughStepHelper": {
     "x-sourceSha256": "4b53810b2ac46679f46122110d27603bdf29339b4264dfb9bff4471c52d42690"
+  },
+  "danceEditorAddWordingOverride": "Tilpas ordlyden for denne dans",
+  "@danceEditorAddWordingOverride": {
+    "x-sourceSha256": "96cc21c207cb28a6f3e778e37321df2e4668b079b8639863872d662628c1a8f7"
+  },
+  "danceEditorWordingOverrideLabel": "Figurordlyd for denne dans",
+  "@danceEditorWordingOverrideLabel": {
+    "x-sourceSha256": "fcd6694dec4af263e410ae7ea671e17e63561aafaab0d3c3f25961429c2eaf06"
+  },
+  "danceEditorWordingOverrideHelper": "Erstatter den viste linje for denne figur i denne dans. Den kanoniske figur forbliver søgbar.",
+  "@danceEditorWordingOverrideHelper": {
+    "x-sourceSha256": "8f6f458914763733e6c8e34636a148a001f9baf6d24e7591ea6021af4e23b748"
+  },
+  "danceEditorResetWordingOverride": "Brug standardordlyd",
+  "@danceEditorResetWordingOverride": {
+    "x-sourceSha256": "ae76f93889ad5fbda4f449cb296762f929c46c4be3a3f28cdbeeed019a6701a9"
+  },
+  "danceEditorWordingOverridePreview": "Forhåndsvisning: {text}",
+  "@danceEditorWordingOverridePreview": {
+    "x-sourceSha256": "3f4e8845d312c56f6d88f902b9a0d9f5e7efa72821818c0c6edb068d4465de9f"
   },
   "danceEditorSnippetDivergenceTitle": "Opdater dit gemte uddrag?",
   "@danceEditorSnippetDivergenceTitle": {
@@ -5920,17 +5952,17 @@
   "@customFieldsShareable": {
     "x-sourceSha256": "9805204a2ac39637da9026930ca8cec225d8cb9c85d51561a7e0dea778405826"
   },
-  "customFieldsShareableSubtitle": "Dette felts værdier følger med din samling, når du eksporterer eller deler den",
+  "customFieldsShareableSubtitle": "Dette felts værdier følger med din samling, når du deler den; sikkerhedskopier indeholder dem altid",
   "@customFieldsShareableSubtitle": {
-    "x-sourceSha256": "cbd2c6ef24a9c3ab9a586a9766eac5720008dcc973ec16742fb13c248b354e4a"
+    "x-sourceSha256": "f89851c1dbfaf17c932b15cf7846fe2ac405f7897b2c2d411e5eef72f4378f0d"
   },
   "customFieldsSharingNoticeTitle": "Brugerdefinerede felter følger med din samling",
   "@customFieldsSharingNoticeTitle": {
     "x-sourceSha256": "809665c936b4d5704b0f62203370969b74f9250e74ab322d91378def0e3c74a1"
   },
-  "customFieldsSharingNoticeBody": "Indholdet af ethvert brugerdefineret felt, du opretter, inkluderes, når du eksporterer eller deler din samling. Slå „Inkludér ved deling“ fra i feltets indstillinger for at holde et felt privat.",
+  "customFieldsSharingNoticeBody": "Indholdet af alle brugerdefinerede felter, du opretter, inkluderes i dine sikkerhedskopier. Når du deler din samling, skal du slå \"Inkludér ved deling\" fra i feltets indstillinger for at holde feltet privat.",
   "@customFieldsSharingNoticeBody": {
-    "x-sourceSha256": "9a0f3dbfedab18868eaaadde9bdb74ab1724a648f9ef78ff6cdb249009f149ba"
+    "x-sourceSha256": "5d0563d1a447693421b4d9aa9ed1fb112ad5e57cd39a7833fe0d808e0a5bf0ed"
   },
   "customFieldsSharingNoticeOk": "Forstået",
   "@customFieldsSharingNoticeOk": {
@@ -6031,6 +6063,30 @@
   "dialectEditorRestoreDefaults": "Gendan standarder",
   "@dialectEditorRestoreDefaults": {
     "x-sourceSha256": "602f8e637002a585092d04310da6f16cba500d1940e4201239bb56e00314137a"
+  },
+  "dialectEditorDiscouragedResetTitle": "Gendan standardtermer for frarådede ord?",
+  "@dialectEditorDiscouragedResetTitle": {
+    "x-sourceSha256": "076d958607381e392340baf5fff8f67a9e97db27958665c7f358782952f4b663"
+  },
+  "dialectEditorDiscouragedResetBody": "Dette erstatter dine nuværende frarådede termer med standarderne.",
+  "@dialectEditorDiscouragedResetBody": {
+    "x-sourceSha256": "5194bec8f5f59c1bf4ce689aeef4a8b1c78a22495389ae0d53cae8934bbcbd36"
+  },
+  "dialectEditorExitTitle": "Gem ændringer?",
+  "@dialectEditorExitTitle": {
+    "x-sourceSha256": "a241799a18cc0cd639ca184dd1aa73a5de44afcbe174ef3224c71e7ca632e5cb"
+  },
+  "dialectEditorExitBody": "Du har ændringer i denne dialekt, der ikke er gemt.",
+  "@dialectEditorExitBody": {
+    "x-sourceSha256": "b8c3675753ff2fbc10b519af712ebb861033f3bd7e4934188a50334a2dfcf646"
+  },
+  "dialectEditorSaveAndExit": "Gem og afslut",
+  "@dialectEditorSaveAndExit": {
+    "x-sourceSha256": "a5ca802c0dc6615ff8a18c7815218e8be7b0fe00c4feef3090a6cac578b8115a"
+  },
+  "dialectEditorExitWithoutSaving": "Afslut uden at gemme",
+  "@dialectEditorExitWithoutSaving": {
+    "x-sourceSha256": "e08eaabcd33ba9c5d0547e4ef41e9b283eb8d5e165289ad11d8a5fa32907ae90"
   },
   "dialectEditorPreviewHelp": "Eksempelfigurer renderet med denne dialekt. Opdateres, når du redigerer.",
   "@dialectEditorPreviewHelp": {
@@ -6371,5 +6427,109 @@
   "publishedCollectionSupersedes": "Erstatter version {version}",
   "@publishedCollectionSupersedes": {
     "x-sourceSha256": "284aeb42ae95b58f9aafc2bf463c0cfbd95a7e3a6707441badaf38a7e0e037e1"
+  },
+  "dialectEditorSectionMoveWordings": "Skabeloner til bevægelsesformulering",
+  "@dialectEditorSectionMoveWordings": {
+    "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
+  },
+  "dialectEditorMoveWordingsHelp": "Valgfrie skabeloner kun til visning erstatter en bevægelses normale sætning. Kanonisk tekst og søgning ændres ikke.",
+  "@dialectEditorMoveWordingsHelp": {
+    "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
+  },
+  "dialectEditorMoveWordingsConditionalHelp": "Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.",
+  "@dialectEditorMoveWordingsConditionalHelp": {
+    "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
+  "dialectEditorMoveWordingsConditionalLabel": "{move} (betinget)",
+  "@dialectEditorMoveWordingsConditionalLabel": {
+    "x-sourceSha256": "e1b698fe9873272c260a19c673da431f630c0196f34b94835cbddc7793855c37"
+  },
+  "dialectEditorMoveWordingBranchInOnly": "Kun ind",
+  "@dialectEditorMoveWordingBranchInOnly": {
+    "x-sourceSha256": "eaf8528920bbdf39ae8da16431154b0750079ee325d92d9f939a458bba0def84"
+  },
+  "dialectEditorMoveWordingBranchOutOnly": "Kun ud",
+  "@dialectEditorMoveWordingBranchOutOnly": {
+    "x-sourceSha256": "0fc52ba1386f6d3b8a7dd9b3d03d9385246741a4512524e0899361f8515da8ee"
+  },
+  "dialectEditorMoveWordingBranchInAndOut": "Ind og ud",
+  "@dialectEditorMoveWordingBranchInAndOut": {
+    "x-sourceSha256": "87632e2cb00fbfc32ad24ebe7c1dc5cc4ca5ff28bb9931894a341097916f9873"
+  },
+  "dialectEditorMoveWordingBranchNeither": "Ingen af delene",
+  "@dialectEditorMoveWordingBranchNeither": {
+    "x-sourceSha256": "9957d09c21ebc6cad181d56bc43cbd9bde18999c98bd708a416c29fcd3705b7f"
+  },
+  "dialectEditorMoveWordingBranchOrdinary": "Almindelig",
+  "@dialectEditorMoveWordingBranchOrdinary": {
+    "x-sourceSha256": "f46f36f72dc634e236787d444cf10ee3c22280413e0cdeda3d3a8d7d1714f7fd"
+  },
+  "dialectEditorMoveWordingBranchSingleFile": "Enkelt række",
+  "@dialectEditorMoveWordingBranchSingleFile": {
+    "x-sourceSha256": "c8bfd38b98637807f9121e7f44305b993c4d6119075b994d966654a79ed3d503"
+  },
+  "dialectEditorMoveWordingsAdd": "Tilføj skabeloner til bevægelsesformulering",
+  "@dialectEditorMoveWordingsAdd": {
+    "x-sourceSha256": "572c7331f1927051d65a5b8aad3901bbfca57eb16b7552303a562358bad7fa8f"
+  },
+  "dialectEditorMoveWordingsCount": "{count, plural, =1{1 skabelon til bevægelsesformulering} other{{count} skabeloner til bevægelsesformulering}}",
+  "@dialectEditorMoveWordingsCount": {
+    "x-sourceSha256": "485175faa3ea285d529c9c0bdacbb7ab13fed23c22e9db1a74119f9d8372c478"
+  },
+  "dialectEditorAddMoveWording": "Tilføj en skabelon til bevægelsesformulering…",
+  "@dialectEditorAddMoveWording": {
+    "x-sourceSha256": "e79095cf90f43cdae1d4dc4078672c76da8aefc8de7b1bc10bb10444afeb2ffb"
+  },
+  "dialectEditorMoveWordingLabel": "Visningsskabelon",
+  "@dialectEditorMoveWordingLabel": {
+    "x-sourceSha256": "2a53764a5d944c36112e1c3e25a4da40826ce67bd23cd70552c23fe79f48e141"
+  },
+  "dialectEditorMoveWordingSlots": "Tilgængelige pladsholdere: {slots}",
+  "@dialectEditorMoveWordingSlots": {
+    "x-sourceSha256": "f48b49339c2633613c708334bcf874efa16032e1559f864855dab5c873622810"
+  },
+  "dialectEditorMoveWordingInvalid": "Denne skabelon er ugyldig, så den normale formulering bruges.",
+  "@dialectEditorMoveWordingInvalid": {
+    "x-sourceSha256": "75208996f5a3de732968e35c2a456e07ae6ad7986a9e17efe461441f13108c86"
+  },
+  "dialectEditorMoveWordingSaveError": "Ret ugyldige skabeloner for bevægelsesformuleringer, før du gemmer: {figures}",
+  "@dialectEditorMoveWordingSaveError": {
+    "x-sourceSha256": "bda0bd00f9f267ad6105147dd29294ce1122fb9708765a52d6dacd047c496675"
+  },
+  "dialectEditorMoveWordingUnknownSlots": "Ukendte pladsholdere er tomme: {slots}",
+  "@dialectEditorMoveWordingUnknownSlots": {
+    "x-sourceSha256": "dde3c367ca0367ead22428fbc85f271dfced3551c383eaa1a7b802be45828d2e"
+  },
+  "dialectEditorMoveWordingMissingSlots": "Denne skabelon udelader tilgængelige pladsholdere: {slots}",
+  "@dialectEditorMoveWordingMissingSlots": {
+    "x-sourceSha256": "3426369df24bbb63eb6223087bcfe4c111e6c6e5424616d6bddb2d0e9f371b37"
+  },
+  "dialectEditorMoveWordingOptionalSlots": "Denne skabelon udelader valgfrie pladsholdere: {slots}",
+  "@dialectEditorMoveWordingOptionalSlots": {
+    "x-sourceSha256": "c83e2a59ab83671799d5dc290d7783a6f95509a6de891d8f219f8a2834a3e782"
+  },
+  "dialectEditorMoveWordingPreview": "Forhåndsvisning: {preview}",
+  "@dialectEditorMoveWordingPreview": {
+    "x-sourceSha256": "eb74dfe9699ddb9f3228db695dcb5912dfd5d282c1dee2a3fe95b33ae2eaa42b"
+  },
+  "dialectEditorMoveWordingsReset": "Nulstil skabeloner til bevægelsesformulering",
+  "@dialectEditorMoveWordingsReset": {
+    "x-sourceSha256": "c1384a65483f73ab0f7a946327262497817cd12c9e9e84faf569ff9539d36737"
+  },
+  "dialectEditorMoveWordingsResetTitle": "Nulstil skabeloner til bevægelsesformulering?",
+  "@dialectEditorMoveWordingsResetTitle": {
+    "x-sourceSha256": "7b136825007b4ff58697fa84f53a5d2bcbf85d79f6eccf1ec2a3c408805ec9e7"
+  },
+  "dialectEditorMoveWordingsResetBody": "Dette fjerner alle dine tilpassede skabeloner til bevægelsesformuleringer.",
+  "@dialectEditorMoveWordingsResetBody": {
+    "x-sourceSha256": "03d74231c9dc3afc7814c1d6d2972dc46a4a82476e6eb785c568ec9366f9baa6"
+  },
+  "dialectEditorMoveWordingConfirmTitle": "Gem ufuldstændige ordlydsskabeloner?",
+  "@dialectEditorMoveWordingConfirmTitle": {
+    "x-sourceSha256": "acf92e20c8a89719edfb58d0767e917e81bbee977fcfde70b83167f8e111d974"
+  },
+  "dialectEditorMoveWordingConfirmBody": "Disse skabeloner udelader tilgængelige pladsholdere og kan skjule figurdetaljer:\n{figures}\n\nGem alligevel?",
+  "@dialectEditorMoveWordingConfirmBody": {
+    "x-sourceSha256": "4495d1a42205b677e8271a54bfab129e8bebcc9267877bf5fd4baba6d3fb9c73"
   }
 }

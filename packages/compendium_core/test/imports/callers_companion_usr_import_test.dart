@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -18,50 +19,71 @@ String Function() sequentialIds() {
 /// id (`99`) that is not in the file. Mirrors the real CC schema
 /// (record id ≠ `zk_*_ID`) so the importer's FK resolution is exercised
 /// end-to-end.
-Uint8List _ccUsrBytes() => buildFmp12Fixture([
-  FmpFixtureTable(
-    index: 1,
-    name: 'Dance',
-    columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
-    rows: [
-      MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
-      MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
-    ],
-  ),
-  FmpFixtureTable(
-    index: 2,
-    name: 'Set',
-    columnNames: ['zk_Set_ID', 'Date', 'Location', 'Band', 'Caller', 'Notes'],
-    rows: [
-      MapEntry(20, {
-        1: '1',
-        2: '3/14/2020',
-        3: 'Grange Hall',
-        4: 'The Band',
-        5: 'Jane',
-        6: 'a good night',
-      }),
-    ],
-  ),
-  FmpFixtureTable(
-    index: 3,
-    name: 'SetItem',
-    columnNames: [
-      'zk_Set_ID',
-      'zk_SetItem_ID',
-      'zk_Dance_ID',
-      'Order',
-      'Time',
-      'Break',
-    ],
-    rows: [
-      MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
-      MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
-      MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
-      MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
-    ],
-  ),
-]);
+Uint8List _ccUsrBytes({String? secondSetId}) {
+  final secondSet = secondSetId == null
+      ? const <MapEntry<int, Map<int, String>>>[]
+      : [
+          MapEntry(21, {
+            1: secondSetId,
+            2: '3/15/2020',
+            3: 'Second Hall',
+            4: 'The Other Band',
+            5: 'Jane',
+            6: 'second set',
+          }),
+        ];
+  final secondSetItems = secondSetId == null
+      ? const <MapEntry<int, Map<int, String>>>[]
+      : [
+          MapEntry(34, {1: secondSetId, 2: '201', 3: '4', 4: '1', 5: '8'}),
+        ];
+  return buildFmp12Fixture([
+    FmpFixtureTable(
+      index: 1,
+      name: 'Dance',
+      columnNames: ['zk_Dance_ID', 'Name', 'Author1'],
+      rows: [
+        MapEntry(10, {1: '4', 2: 'Simplicity Swing', 3: 'Becky Hill'}),
+        MapEntry(11, {1: '7', 2: 'Petronella', 3: 'Trad'}),
+      ],
+    ),
+    FmpFixtureTable(
+      index: 2,
+      name: 'Set',
+      columnNames: ['zk_Set_ID', 'Date', 'Location', 'Band', 'Caller', 'Notes'],
+      rows: [
+        MapEntry(20, {
+          1: '1',
+          2: '3/14/2020',
+          3: 'Grange Hall',
+          4: 'The Band',
+          5: 'Jane',
+          6: 'a good night',
+        }),
+        ...secondSet,
+      ],
+    ),
+    FmpFixtureTable(
+      index: 3,
+      name: 'SetItem',
+      columnNames: [
+        'zk_Set_ID',
+        'zk_SetItem_ID',
+        'zk_Dance_ID',
+        'Order',
+        'Time',
+        'Break',
+      ],
+      rows: [
+        MapEntry(30, {1: '1', 2: '101', 3: '4', 4: '1', 5: '8'}),
+        MapEntry(31, {1: '1', 2: '102', 3: '7', 4: '2'}),
+        MapEntry(32, {1: '1', 2: '103', 4: '3', 6: 'Waltz break'}),
+        MapEntry(33, {1: '1', 2: '104', 3: '99', 4: '4'}),
+        ...secondSetItems,
+      ],
+    ),
+  ]);
+}
 
 /// Same base fixture as [_ccUsrBytes], plus a `Dance_Related` table carrying
 /// [relatedRows] (each a `(zk_Dance1_ID, zk_Dance2_ID)` pair) — for issue #688
@@ -160,6 +182,16 @@ void main() {
   tearDown(() => db.close());
 
   final now = DateTime.utc(2026, 7, 15);
+
+  Future<int> programExistenceStamp(String id) async {
+    final rows = await db
+        .customSelect(
+          'SELECT existence_at AS v FROM programs WHERE id = ?',
+          variables: [Variable.withString(id)],
+        )
+        .get();
+    return rows.single.read<int>('v');
+  }
 
   Future<Map<String, String>> danceIdByExternalId(ImportSession session) async {
     final map = <String, String>{};
@@ -394,6 +426,54 @@ void main() {
         expect(await programs.listAll(includeDeleted: true), isEmpty);
       },
     );
+
+    test(
+      'a later program failure re-tombstones a program restored earlier',
+      () async {
+        final first = await importer.import(
+          _ccUsrBytes(secondSetId: '2'),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          newSlotId: sequentialIds(),
+        );
+        final restoredId = first.programs.first.id;
+        await programs.softDelete(
+          restoredId,
+          at: now.add(const Duration(days: 1)),
+        );
+        final tombstone = await programExistenceStamp(restoredId);
+
+        final failing = _FailingSecondProgramUpdateRepository(db);
+        final rollbackImporter = CallersCompanionUsrImporter(
+          pipeline,
+          failing,
+          venues,
+        );
+        await expectLater(
+          rollbackImporter.import(
+            _ccUsrBytes(secondSetId: '2'),
+            now: now.add(const Duration(days: 2)),
+            venueEntityMode: false,
+            newId: nextId,
+            newSlotId: sequentialIds(),
+          ),
+          throwsA(isA<StateError>()),
+        );
+
+        final rolledBack = await programs.getById(
+          restoredId,
+          includeDeleted: true,
+        );
+        expect(rolledBack, isNotNull);
+        expect(rolledBack!.deletedAt, isNotNull);
+        expect(
+          await programExistenceStamp(restoredId),
+          greaterThan(tombstone),
+          reason: 'compensating rollback must leave a later tombstone',
+        );
+      },
+    );
   });
 
   group('program dedupe on re-import', () {
@@ -409,6 +489,7 @@ void main() {
       expect(first.insertedProgramCount, 1);
       expect(first.updatedProgramCount, 0);
       final firstId = first.programs.single.id;
+      final stampBeforeReimport = await programExistenceStamp(firstId);
 
       // Re-import the identical archive with a *fresh* id minter — a naive
       // insert would mint a new program id and duplicate. Dedupe must reuse the
@@ -424,6 +505,11 @@ void main() {
       expect(second.insertedProgramCount, 0);
       expect(second.updatedProgramCount, 1);
       expect(second.programs.single.id, firstId, reason: 'same program reused');
+      expect(
+        await programExistenceStamp(firstId),
+        stampBeforeReimport,
+        reason: 'a live re-import is a content update, not an existence change',
+      );
 
       // Exactly one program in the DB, still carrying its provenance.
       final all = await programs.listAll();
@@ -434,6 +520,96 @@ void main() {
       // Dances also deduped via the pipeline: still just the two.
       expect(await dances.listAll(), hasLength(2));
     });
+
+    test('re-importing a deleted program restores existence ordering and undo '
+        're-tombstones it', () async {
+      final first = await importer.import(
+        _ccUsrBytes(),
+        now: now,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+      final programId = first.programs.single.id;
+      await programs.softDelete(
+        programId,
+        at: now.add(const Duration(days: 1)),
+      );
+      final tombstone = await programExistenceStamp(programId);
+
+      final importedAt = now.add(const Duration(days: 2));
+      final second = await importer.import(
+        _ccUsrBytes(),
+        now: importedAt,
+        venueEntityMode: false,
+        newId: nextId,
+        newSlotId: sequentialIds(),
+      );
+
+      expect(second.restoredProgramIds, [programId]);
+      final revived = await programs.getById(programId);
+      expect(revived, isNotNull);
+      expect(revived!.id, programId);
+      final revivedStamp = await programExistenceStamp(programId);
+      expect(revivedStamp, greaterThan(tombstone));
+
+      final undoAt = importedAt.add(const Duration(days: 90));
+      await importer.undo(second, now: () => undoAt);
+      final undone = await programs.getById(programId, includeDeleted: true);
+      expect(undone, isNotNull);
+      expect(undone!.deletedAt, isNotNull);
+      expect(
+        await programExistenceStamp(programId),
+        greaterThan(revivedStamp),
+        reason: 'undo must create a later causal tombstone',
+      );
+      expect(
+        undone.updatedAt,
+        undoAt,
+        reason: 'undo must not move updatedAt back to the import timestamp',
+      );
+      expect(
+        await programs.purgeDeleted(now: undoAt),
+        0,
+        reason:
+            'a delayed undo must not make the program immediately purgeable',
+      );
+    });
+
+    test(
+      'duplicate set ids restore the original prior program only once',
+      () async {
+        final first = await importer.import(
+          _ccUsrBytes(),
+          now: now,
+          venueEntityMode: false,
+          newId: nextId,
+          newSlotId: sequentialIds(),
+        );
+        final programId = first.programs.single.id;
+        await programs.softDelete(
+          programId,
+          at: now.add(const Duration(days: 1)),
+        );
+
+        final second = await importer.import(
+          _ccUsrBytes(secondSetId: '1'),
+          now: now.add(const Duration(days: 2)),
+          venueEntityMode: false,
+          newId: nextId,
+          newSlotId: sequentialIds(),
+        );
+
+        await importer.undo(
+          second,
+          now: () => now.add(const Duration(days: 90)),
+        );
+        final undone = await programs.getById(programId, includeDeleted: true);
+        expect(undone, isNotNull);
+        expect(undone!.deletedAt, isNotNull);
+        expect(undone.notes, 'a good night');
+      },
+    );
 
     test(
       're-import preserves a venueId linked after the first import',
@@ -1004,8 +1180,25 @@ class _FailingProgramRepository extends ProgramRepository {
   _FailingProgramRepository(super.db);
 
   @override
-  Future<void> create(Program program, {Set<String>? knownVenueIds}) async =>
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async =>
       throw StateError('simulated program persist failure');
+}
+
+/// Lets the first re-import update succeed, then fails the next one so the
+/// importer's compensation must restore and re-tombstone the first program.
+class _FailingSecondProgramUpdateRepository extends ProgramRepository {
+  _FailingSecondProgramUpdateRepository(super.db);
+
+  var _updateCount = 0;
+
+  @override
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) {
+    _updateCount++;
+    if (_updateCount == 2) {
+      throw StateError('simulated later program persist failure');
+    }
+    return super.update(program, knownVenueIds: knownVenueIds);
+  }
 }
 
 /// A [VenueRepository] that counts [listAll] calls, to assert the venue-

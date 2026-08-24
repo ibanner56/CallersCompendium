@@ -14,9 +14,11 @@ import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
 import 'src/data/archive_intake_service.dart';
 import 'src/data/backup_controller_scope.dart';
+import 'src/data/callersbox_online.dart';
 import 'src/data/collection_filter_scope.dart';
 import 'src/data/collection_tile_fields_scope.dart';
 import 'src/data/confirm_before_delete_scope.dart';
+import 'src/data/contradb_online.dart';
 import 'src/data/custom_themes_controller.dart';
 import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
@@ -31,6 +33,8 @@ import 'src/data/incoming_file_channel.dart';
 import 'src/data/locale_scope.dart';
 import 'src/data/migration_error_labels.dart';
 import 'src/data/migration_guard.dart';
+import 'src/data/online_search.dart';
+import 'src/data/online_search_labels.dart';
 import 'src/data/colour_dance_theme_scope.dart';
 import 'src/data/reduce_motion_scope.dart';
 import 'src/data/regional_formats.dart';
@@ -59,7 +63,9 @@ import 'src/diagnostics/error_log.dart';
 import 'src/licenses.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/contradb_program_import_screen.dart';
+import 'src/screens/dance_detail_screen.dart';
 import 'src/screens/import_review_screen.dart';
+import 'src/screens/online_import_variation_dialog.dart';
 import 'src/screens/settings_screen.dart'
     show
         kAppThemeKey,
@@ -77,6 +83,11 @@ import 'src/app_metadata.dart';
 import 'src/update/update_controller.dart';
 import 'src/update/update_scope.dart';
 import 'src/widgets/app_bootstrap.dart';
+
+AppData _defaultAppDataFactory() => AppData(openAppDatabase());
+
+Future<ResetResult> _resetDatabaseFile(File dbFile) =>
+    performReset(dbFile: dbFile);
 
 Future<void> main() async {
   // Install the local, offline crash log and global error-capture stack (issue
@@ -126,7 +137,10 @@ Future<void> main() async {
     // AppBootstrap error/retry screen instead of throwing out of `main` before
     // `runApp` — which would leave a blank window with no way to recover.
     final appData = AppData(openAppDatabase());
-    final windowService = WindowService(appData.repositories.settings);
+    final windowService = WindowService(
+      appData.repositories.settings,
+      onClose: appData.close,
+    );
     runApp(
       CompendiumApp(
         appData: appData,
@@ -143,10 +157,11 @@ Future<void> main() async {
   }, crashReporter);
 }
 
-/// Root widget. The on-device database is opened once (in [main]) and injected;
-/// this widget's bootstrap future ([_startupSequence]) then, in order: restores
-/// the desktop window frame (no-op off desktop; forces the DB open), runs any
-/// pending schema migration / derived-index back-fill via
+/// Root widget. The on-device database is initially opened in [main] and
+/// injected; the reset flow can replace it with a fresh instance. This widget's
+/// bootstrap future ([_startupSequence]) then, in order: restores the desktop
+/// window frame (no-op off desktop; forces the DB open), runs any pending schema
+/// migration / derived-index back-fill via
 /// [CompendiumRepositories.ensureMigrated] (schema-v2 `dance_figures.section`),
 /// runs a fast `PRAGMA quick_check` integrity probe once per launch
 /// ([CompendiumDatabase.quickCheck]; a failure warns the user but still opens
@@ -167,6 +182,7 @@ class CompendiumApp extends StatefulWidget {
     super.key,
     required this.appData,
     required this.windowService,
+    this.initialRequirePerformedForHistory = false,
     this.migrationPreflight,
     this.integrityCheck,
     this.crashReporter,
@@ -175,15 +191,24 @@ class CompendiumApp extends StatefulWidget {
     this.incomingFileReader,
     this.incomingUrlFetcher,
     this.nowOverride,
+    this.appDataFactory = _defaultAppDataFactory,
+    this.windowServiceFactory,
+    this.databaseFileResolver = resolveDatabaseFile,
+    this.databaseResetter = _resetDatabaseFile,
   });
 
-  /// The already-opened database + repositories facade. Injected from [main]
+  /// The initially opened database + repositories facade. Injected from [main]
   /// so the desktop window frame can be read before `runApp`; the app owns its
-  /// disposal.
+  /// disposal and replaces it after a successful reset.
   final AppData appData;
 
   /// The desktop window service to tear down on dispose (no-op off desktop).
   final WindowService windowService;
+
+  /// Initial value for the history preference notifier. Exposed for widget
+  /// tests that need to verify replacement resets a stale in-memory value.
+  @visibleForTesting
+  final bool initialRequirePerformedForHistory;
 
   /// Data-safety preflight run as the *first* bootstrap step, before anything
   /// forces the database open (see `migration_guard.dart`): it guards against
@@ -250,12 +275,29 @@ class CompendiumApp extends StatefulWidget {
   /// single-snapshot purge design in [DanceRepository.purgeDeleted].
   final DateTime Function()? nowOverride;
 
+  /// Creates a fresh database facade after an in-process reset. The default
+  /// opens the on-device database; the seam keeps reset lifecycle tests
+  /// independent from platform storage.
+  final AppData Function() appDataFactory;
+
+  /// Creates the window service for replacement databases. When omitted,
+  /// replacement services use the production [WindowService] constructor.
+  final WindowService Function(SettingsRepository settings)?
+  windowServiceFactory;
+
+  /// Resolves the database file used by the reset flow.
+  final Future<File> Function() databaseFileResolver;
+
+  /// Deletes the database file during reset.
+  final Future<ResetResult> Function(File dbFile) databaseResetter;
+
   @override
   State<CompendiumApp> createState() => _CompendiumAppState();
 }
 
 class _CompendiumAppState extends State<CompendiumApp> {
-  late final AppData _appData;
+  late AppData _appData;
+  late WindowService _windowService;
   late Future<void> _bootstrap;
 
   /// Determinate progress of the post-migration derived-index rebuild, surfaced
@@ -272,9 +314,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<AppThemeSelection> _themeNotifier = ValueNotifier(
     AppThemeSelection.system,
   );
-  final ValueNotifier<bool> _requirePerformedForHistoryNotifier = ValueNotifier(
-    false,
-  );
+  late final ValueNotifier<bool> _requirePerformedForHistoryNotifier =
+      ValueNotifier(widget.initialRequirePerformedForHistory);
   final ValueNotifier<Set<CollectionTileField>> _collectionTileFieldsNotifier =
       ValueNotifier(CollectionTileField.all);
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
@@ -322,24 +363,24 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// navigator so pushed detail routes can reach it.
   final CollectionFilterController _collectionFilterController =
       CollectionFilterController();
-  late final CustomThemesController _customThemes;
-  late final FormationColorsController _formationColors;
-  late final DialectLibraryController _dialectLibrary;
+  late CustomThemesController _customThemes;
+  late FormationColorsController _formationColors;
+  late DialectLibraryController _dialectLibrary;
 
   /// Owns the user's shorthand → figure(s) mappings (issue #420), consulted by
   /// the free-text entry path. Loaded during bootstrap; exposed via
   /// [ShorthandMappingsScope].
-  late final ShorthandMappingsController _shorthandMappings;
+  late ShorthandMappingsController _shorthandMappings;
 
   /// Owns the user's personal walkthrough snippet library (#411): per-figure
   /// step descriptions keyed by figure signature. Loaded during bootstrap;
   /// exposed via [WalkthroughSnippetLibraryScope].
-  late final WalkthroughSnippetLibraryController _walkthroughSnippets;
+  late WalkthroughSnippetLibraryController _walkthroughSnippets;
 
   /// Owns the update-check preferences and latest check result (ADR-002 §4/§5).
   /// Loaded during bootstrap; the auto-check (opt-in, default off) is kicked off
   /// once per launch after preferences load.
-  late final UpdateController _updateController;
+  late UpdateController _updateController;
 
   /// Result of the once-per-launch [_runIntegrityCheck]. `false` means the
   /// `PRAGMA quick_check` probe failed, so the ready app surfaces a (non-fatal)
@@ -369,6 +410,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// Null when no [CompendiumApp.incomingFileChannel] was injected.
   StreamSubscription<String>? _incomingUrlSub;
 
+  bool _incomingDanceImporting = false;
+
   /// Guards the one-time cold-start file check so it runs only once, after the
   /// ready UI is first shown.
   bool _initialFileChecked = false;
@@ -376,7 +419,22 @@ class _CompendiumAppState extends State<CompendiumApp> {
   @override
   void initState() {
     super.initState();
-    _appData = widget.appData;
+    _initializeDatabaseBackedServices(widget.appData);
+    _windowService = widget.windowService;
+    // Listen for files opened while the app is running (AirDrop / "Open with"
+    // on an already-launched app). The cold-start file is pulled once the ready
+    // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
+    final channel = widget.incomingFileChannel;
+    if (channel != null) {
+      channel.start();
+      _incomingFileSub = channel.files.listen(_handleIncomingFile);
+      _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
+    }
+    _bootstrap = _startupSequence();
+  }
+
+  void _initializeDatabaseBackedServices(AppData appData) {
+    _appData = appData;
     _customThemes = CustomThemesController(_appData.repositories.settings);
     _formationColors = FormationColorsController(
       _appData.repositories.settings,
@@ -393,16 +451,67 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _appData.repositories.settings,
     );
     _updateController = UpdateController(_appData.repositories.settings);
-    // Listen for files opened while the app is running (AirDrop / "Open with"
-    // on an already-launched app). The cold-start file is pulled once the ready
-    // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
-    final channel = widget.incomingFileChannel;
-    if (channel != null) {
-      channel.start();
-      _incomingFileSub = channel.files.listen(_handleIncomingFile);
-      _incomingUrlSub = channel.urls.listen(_handleIncomingUrl);
-    }
-    _bootstrap = _startupSequence();
+  }
+
+  void _replaceDatabaseBackedServices() {
+    // Controllers retain their SettingsRepository, so they must be recreated
+    // with the replacement database rather than reusing closed repositories.
+    _resetAppPreferenceNotifiers();
+    _windowService.dispose();
+    _customThemes.dispose();
+    _formationColors.dispose();
+    _dialectLibrary.removeListener(_syncActiveDialect);
+    _dialectLibrary.dispose();
+    _shorthandMappings.dispose();
+    _walkthroughSnippets.dispose();
+    _updateController.dispose();
+
+    _initializeDatabaseBackedServices(widget.appDataFactory());
+    _windowService =
+        widget.windowServiceFactory?.call(_appData.repositories.settings) ??
+        WindowService(_appData.repositories.settings, onClose: _appData.close);
+  }
+
+  void _resetAppPreferenceNotifiers() {
+    _dialectNotifier.value = Dialect.larksRobins;
+    _themeNotifier.value = AppThemeSelection.system;
+    _requirePerformedForHistoryNotifier.value = false;
+    _collectionTileFieldsNotifier.value = CollectionTileField.all;
+    _trackHistoryForAllCallersNotifier.value = false;
+    _sortIgnoreArticlesNotifier.value = true;
+    _reduceMotionNotifier.value = null;
+    _verboseFigureRenderingNotifier.value = false;
+    _decimalTurnsNotifier.value = false;
+    _aggressiveBeatsUpdateNotifier.value = false;
+    _confirmBeforeDeleteNotifier.value = false;
+    _venueEntityModeNotifier.value = false;
+    _autoCommitProgramChangesNotifier.value = false;
+    _colourDanceThemeNotifier.value = false;
+    _setListColorCodingNotifier.value = true;
+    _matrixExactBeatCollisionNotifier.value = true;
+    _programMatrixColumnsNotifier.value = MatrixColumnConfig.empty;
+    _dateFormatNotifier.value = DateFormatSetting.system;
+    _firstDayOfWeekNotifier.value = FirstDayOfWeekPref.system;
+    _localeNotifier.value = null;
+  }
+
+  void _startBootstrap() {
+    _corruptionBannerShown = false;
+    // Let AppBootstrap subscribe before running a replacement bootstrap, so a
+    // synchronously failing preflight is still delivered to its recovery UI.
+    final bootstrap = Completer<void>();
+    _bootstrap = bootstrap.future;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await _startupSequence();
+        bootstrap.complete();
+      } on Object catch (error, stackTrace) {
+        // diagnostics: silent — FutureBuilder receives and surfaces this
+        // bootstrap error in the recovery UI.
+        bootstrap.completeError(error, stackTrace);
+      }
+    });
   }
 
   /// Mirrors the library's resolved active dialect into [_dialectNotifier] so
@@ -462,58 +571,250 @@ class _CompendiumAppState extends State<CompendiumApp> {
   }
 
   /// Handles a URL shared into the app from the OS share sheet / an
-  /// `ACTION_SEND` intent (issue #343) — e.g. a ContraDB program page shared
-  /// from Safari or Chrome.
+  /// `ACTION_SEND` intent (issue #343) — e.g. a supported ContraDB program or
+  /// single-dance page shared from Safari or Chrome.
   ///
   /// The raw string is **untrusted OS input**: any app or user can share any
   /// string here. It is OWASP-validated at this ingest boundary by
-  /// [extractSharedContraDbProgramUrl] — which pulls exactly one `https` URL
-  /// token out of the payload (Chrome/Samsung Internet share a bare URL;
-  /// Firefox shares `"title\nurl"`), then runs the strict
-  /// [validateSharedContraDbProgramUrl] (https only, `contradb.com` host
-  /// allow-list, `/programs/N` path) — *before* it reaches the import pipeline.
-  /// A bad share surfaces a generic snackbar (never echoing the raw input) and
-  /// never navigates or writes. A valid share opens
-  /// [ContraDbProgramImportScreen] pre-filled + auto-fetching, so the user
-  /// reviews the preview before committing — the URL then flows through the
-  /// existing hardened `buildContraDbProgramUrl → fetchImportUrl →
-  /// parseContraDbProgram → resolveContraDbProgram` pipeline (SSRF-guarded,
-  /// #332), which re-validates at fetch time. Defense in depth.
+  /// [extractSharedContraDbProgramUrl] / [extractSharedDanceLink] — which pull
+  /// exactly one `https` URL token out of the payload (Chrome/Samsung Internet
+  /// share a bare URL; Firefox shares `"title\nurl"`), then require a
+  /// source-allowlisted program or dance-page shape *before* it reaches an
+  /// import pipeline. A bad share surfaces a generic snackbar (never echoing
+  /// the raw input) and never navigates or writes.
   Future<void> _handleIncomingUrl(String raw) async {
-    final String validated;
+    String? programUrl;
+    SharedDanceLink? danceLink;
     try {
-      validated = extractSharedContraDbProgramUrl(raw);
-    } on UrlFetchException catch (e, stackTrace) {
-      // UrlFetchException is log-safe by construction (typed reason + status/
-      // timeout fields only, never a URL or raw prose — see
-      // `import_io.dart`'s `UrlFetchException` doc), so it's always logged
-      // here regardless of whether there's a mounted surface to also show it
-      // on (issue #963 — this was the reported failure path: a caught error
-      // that reached a snackbar but never the diagnostic log).
-      logCaughtError(e, stackTrace, source: 'main._handleIncomingUrl');
-      if (!mounted) return;
-      // Localize the curated, URL-free failure reason. Use the navigator's
-      // context (under MaterialApp's Localizations); if it isn't available yet
-      // there is no localized surface to show, so skip silently.
-      final navContext = _navigatorKey.currentContext;
-      if (navContext == null || !navContext.mounted) return;
-      _messengerKey.currentState?.showSnackBar(
-        SnackBar(
-          key: const ValueKey('shared-url-import-error'),
-          content: Text(importErrorMessage(AppLocalizations.of(navContext), e)),
-        ),
-      );
+      programUrl = extractSharedContraDbProgramUrl(raw);
+    } on UrlFetchException {
+      try {
+        danceLink = extractSharedDanceLink(raw);
+      } on UrlFetchException catch (_, danceStackTrace) {
+        const error = UrlFetchException(
+          UrlFetchFailureReason.unsupportedSharedLink,
+        );
+        logCaughtError(
+          error,
+          danceStackTrace,
+          source: 'main._handleIncomingUrl',
+        );
+        if (!mounted) return;
+        final navContext = _navigatorKey.currentContext;
+        if (navContext == null || !navContext.mounted) return;
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(
+            key: const ValueKey('shared-url-import-error'),
+            content: Text(
+              importErrorMessage(AppLocalizations.of(navContext), error),
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    if (danceLink != null) {
+      await _openIncomingDancePreview(danceLink);
       return;
     }
-    if (!mounted) return;
+
+    if (!mounted || programUrl == null) return;
     await _navigatorKey.currentState?.push(
       MaterialPageRoute<void>(
         builder: (_) => ContraDbProgramImportScreen(
-          initialUrl: validated,
+          initialUrl: programUrl,
           programFetcher: widget.incomingUrlFetcher,
         ),
       ),
     );
+  }
+
+  Future<void> _openIncomingDancePreview(SharedDanceLink link) async {
+    final navigator = _navigatorKey.currentState;
+    final navContext = _navigatorKey.currentContext;
+    if (navigator == null || navContext == null || !navContext.mounted) return;
+
+    final OnlineSearchService service;
+    final OnlineSearchResultRow result;
+    switch (link.source) {
+      case SharedDanceSource.callersBox:
+        service = CallersBoxOnline(jsonFetcher: widget.incomingUrlFetcher);
+        result = OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: link.id,
+          name: '',
+          author: '',
+          formation: '',
+        );
+      case SharedDanceSource.contraDb:
+        service = ContraDbOnline(htmlFetcher: widget.incomingUrlFetcher);
+        result = OnlineSearchResultRow(
+          source: OnlineSource.contraDb,
+          id: link.id,
+          name: '',
+          author: '',
+          formation: '',
+        );
+    }
+
+    showDialog<void>(
+      context: navContext,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(
+          key: ValueKey('incoming-dance-preview-loading'),
+        ),
+      ),
+    );
+
+    late OnlinePreview preview;
+    try {
+      preview = await service.loadPreview(_appData.repositories, result);
+    } on UrlFetchException catch (e, stackTrace) {
+      // UrlFetchException is log-safe by construction (typed reason + status/
+      // timeout fields only, never a URL or raw prose — see
+      // `import_io.dart`'s `UrlFetchException` doc), so it's always logged
+      // here regardless of whether there's a mounted surface to also show it.
+      logCaughtError(e, stackTrace, source: 'main._openIncomingDancePreview');
+      if (!mounted || !navContext.mounted) return;
+      navigator.pop();
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(importErrorMessage(AppLocalizations.of(navContext), e)),
+        ),
+      );
+      return;
+    } catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'main._openIncomingDancePreview',
+      );
+      if (!mounted || !navContext.mounted) return;
+      navigator.pop();
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(
+              navContext,
+            ).onlineLoadError(service.source.label),
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    navigator.pop();
+    final imported = await navigator.push<OnlineImportResult>(
+      MaterialPageRoute<OnlineImportResult>(
+        builder: (_) => DanceDetailScreen.preview(
+          data: preview.detail,
+          onImport: () => _importIncomingDance(service, preview),
+        ),
+      ),
+    );
+    if (!mounted || !navContext.mounted || imported == null) return;
+    final danceId = imported.danceId;
+    if (imported.danceCount == 1 && danceId != null) {
+      await navigator.push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => DanceDetailScreen(danceId: danceId),
+        ),
+      );
+    }
+    if (!mounted || !navContext.mounted) return;
+    _messengerKey.currentState?.showSnackBar(
+      SnackBar(
+        content: Text(
+          onlineImportMessage(AppLocalizations.of(navContext), imported),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importIncomingDance(
+    OnlineSearchService service,
+    OnlinePreview preview,
+  ) async {
+    if (_incomingDanceImporting) return;
+    _incomingDanceImporting = true;
+    final navigator = _navigatorKey.currentState;
+    final navContext = _navigatorKey.currentContext;
+    if (navigator == null || navContext == null || !navContext.mounted) {
+      _incomingDanceImporting = false;
+      return;
+    }
+    final l10n = AppLocalizations.of(navContext);
+    try {
+      var imported = await service.import(_appData.repositories, preview.plan);
+      if (imported.kind == OnlineImportKind.needsConfirmation) {
+        final existingId = imported.danceId;
+        assert(existingId != null, 'needsConfirmation must carry a dance id');
+        if (existingId == null) return;
+        final existingTitle =
+            (await _appData.repositories.dances.getById(existingId))?.title ??
+            imported.title;
+        if (!mounted || !navContext.mounted) return;
+        final resolution = await showOnlineImportVariationDialog(
+          navContext,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return;
+        imported = await service.import(
+          _appData.repositories,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      } else if (imported.kind == OnlineImportKind.needsConfirmationIdentical) {
+        final existingId = imported.danceId;
+        assert(
+          existingId != null,
+          'needsConfirmationIdentical must carry a dance id',
+        );
+        if (existingId == null) return;
+        final existingTitle =
+            (await _appData.repositories.dances.getById(existingId))?.title ??
+            imported.title;
+        if (!mounted || !navContext.mounted) return;
+        final resolution = await showOnlineImportCrossSourceDuplicateDialog(
+          navContext,
+          l10n,
+          existingTitle: existingTitle,
+          existingId: existingId,
+        );
+        if (resolution == null || !mounted) return;
+        imported = await service.import(
+          _appData.repositories,
+          preview.plan,
+          ambiguousResolution: resolution,
+        );
+      }
+      if (mounted && navigator.canPop()) navigator.pop(imported);
+    } on UrlFetchException catch (e, stackTrace) {
+      logCaughtError(e, stackTrace, source: 'main._importIncomingDance');
+      if (mounted) {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(importErrorMessage(l10n, e))),
+        );
+      }
+    } catch (e, stackTrace) {
+      logCaughtErrorTypeOnly(
+        e,
+        stackTrace,
+        source: 'main._importIncomingDance',
+      );
+      if (mounted) {
+        _messengerKey.currentState?.showSnackBar(
+          SnackBar(content: Text(l10n.onlineImportError)),
+        );
+      }
+    } finally {
+      _incomingDanceImporting = false;
+    }
   }
 
   /// Consent seam for the pre-migration snapshot guard (issue #442). Passed to
@@ -581,7 +882,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // rather than before `runApp`. A corrupt/locked database therefore surfaces
     // on the error/retry screen instead of throwing out of `main` and leaving a
     // blank window with no way to recover (Stage 1.6).
-    await widget.windowService.initialize();
+    await _windowService.initialize();
     // Reset progress at the start of each attempt (retry re-runs this) so a
     // prior run's final value never lingers on the loading screen.
     _derivedRebuildProgress.value = null;
@@ -946,10 +1247,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _shorthandMappings.dispose();
     _walkthroughSnippets.dispose();
     _updateController.dispose();
-    widget.windowService.dispose();
-    // dispose() can't be async; explicitly mark the close as fire-and-forget
-    // rather than silently dropping an unawaited Future (unawaited_futures).
-    unawaited(_appData.close());
+    _windowService.dispose();
     super.dispose();
   }
 
@@ -978,7 +1276,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (context == null || !context.mounted) return;
 
     final l10n = AppLocalizations.of(context);
-    final dbFile = await resolveDatabaseFile();
+    final dbFile = await widget.databaseFileResolver();
     final snapshotDir = Directory(
       p.join(dbFile.parent.path, kDatabaseBackupsDirName),
     );
@@ -1098,7 +1396,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
     if (confirmed != true) return;
 
-    final dbFile = await resolveDatabaseFile();
+    final dbFile = await widget.databaseFileResolver();
     await _doReset(dbFile, l10n);
   }
 
@@ -1113,15 +1411,14 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // Close the database before deleting its file so the OS (particularly
     // Windows) does not hold a lock that prevents deletion.
     await _appData.close();
-    final result = await performReset(dbFile: dbFile);
+    final result = await widget.databaseResetter(dbFile);
     if (result is ResetFailed) {
       // Deletion failed: the file is intact. Reopen so the app is not left
       // with a closed database, then surface the error.
       if (mounted) {
         setState(() {
-          _appData = AppData(openAppDatabase());
-          _corruptionBannerShown = false;
-          _bootstrap = _startupSequence();
+          _replaceDatabaseBackedServices();
+          _startBootstrap();
         });
         final context = _navigatorKey.currentContext;
         if (context != null && context.mounted) {
@@ -1145,11 +1442,11 @@ class _CompendiumAppState extends State<CompendiumApp> {
       return;
     }
     if (!mounted) return;
-    // Deletion succeeded — reopen a fresh database and restart bootstrap.
+    // Deletion succeeded — reopen a fresh database-backed runtime and restart
+    // bootstrap.
     setState(() {
-      _appData = AppData(openAppDatabase());
-      _corruptionBannerShown = false;
-      _bootstrap = _startupSequence();
+      _replaceDatabaseBackedServices();
+      _startBootstrap();
     });
   }
 

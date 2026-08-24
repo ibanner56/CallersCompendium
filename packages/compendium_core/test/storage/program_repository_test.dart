@@ -40,6 +40,21 @@ void main() {
   tearDown(() => db.close());
 
   group('create / getById', () {
+    test('bulk validation rejects a tombstoned venue', () async {
+      final venues = VenueRepository(db);
+      await venues.upsert(Venue(id: 'v1', name: 'Deleted Hall'));
+      await venues.delete('v1');
+      final liveVenueIds = await venues.listAllIds();
+
+      await expectLater(
+        repo.create(
+          sampleProgram().copyWith(venueId: 'v1'),
+          knownVenueIds: liveVenueIds,
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
+
     test('round-trips a program with no slots', () async {
       final program = sampleProgram();
       await repo.create(program);

@@ -74,7 +74,7 @@ it. Fields:
 {
   "manifestSchemaVersion": 1,          // int, required. Client hard-refuses a value it doesn't recognize.
   "channel": "stable",                 // "stable" | "beta", required. Must equal the file's channel.
-  "version": "0.2.0",                  // SemVer string, required. Compared against kAppVersion.
+  "version": "0.2.0",                  // SemVer string, required. Compared against the release updater identity.
   "releaseNotesUrl": "https://github.com/ibanner56/CallersCompendium/releases/tag/v0.2.0",
   "pubDate": "2026-08-01T00:00:00Z",   // RFC3339 UTC, required. Also feeds appcast <pubDate>.
   "artifacts": [                       // required, >= 1 entry, one per platform+arch.
@@ -97,8 +97,10 @@ Field rules:
   increments this integer and is a Revisit trigger.
 - `channel` — must equal the channel implied by the filename (`stable.json` →
   `"stable"`), so a mis-published file is detectable.
-- `version` — SemVer; the pure-Dart client compares it against `kAppVersion`
-  (`app/lib/src/app_metadata.dart`).
+- `version` — SemVer; the pure-Dart client compares it against
+  `kUpdaterVersion` (`app/lib/src/app_metadata.dart`). Release builds inject the
+  tag's SemVer identity there so a beta compares as `X.Y.Z-beta`, while the
+  visible `kAppVersion` and `app/pubspec.yaml` remain bare `X.Y.Z`.
 - `releaseNotesUrl` — opened via the existing `launchExternalUrl` seam from the
   update banner.
 - `pubDate` — RFC3339 UTC; also reused verbatim when generating the appcast.
@@ -279,31 +281,24 @@ Program (**$99/yr**). (Flutter: *Build and release a macOS app*.)
 **iOS.** Flutter's iOS deployment doc covers App Store / TestFlight distribution
 via Xcode; there is **no sideload or unsigned path** — Apple is the only channel.
 We distribute **first to TestFlight** (internal testers, no App Review wait), not
-the public App Store, using **automatic (Xcode-managed) code signing driven by an
-App Store Connect API key** rather than a manually-created distribution
-certificate + provisioning profile. `flutter build ipa` passes
-`-allowProvisioningUpdates` to xcodebuild, so the iOS **distribution certificate +
-App Store provisioning profile are created/managed in the cloud** at build time —
-nothing to store or commit. The unified Apple bundle id is
+the public App Store. The unified Apple bundle id is
 `org.callerscompendium.compendiumApp`; no entitlements are declared. (Flutter:
 *Build and release an iOS app*.)
 
 > **Implemented (gated on secrets).** The iOS App Store archive + TestFlight
-> upload is now wired into `.github/workflows/release.yml`: on a `v*` tag the iOS
-> leg (`macos-latest`) archives + signs the `.ipa` with automatic signing and
-> uploads it to TestFlight via `xcrun altool --upload-app`. It is **gated exactly
-> like macOS/Android** — active only when `APPLE_API_KEY_P8` / `APPLE_API_KEY_ID`
-> / `APPLE_API_ISSUER_ID` / `APPLE_TEAM_ID` are all present (the key needs the
-> **App Manager** role, required for TestFlight upload); otherwise the leg is a
-> clean skip. The build number is a monotonic `GITHUB_RUN_NUMBER * 1000 +
-> GITHUB_RUN_ATTEMPT` (unique across re-runs; TestFlight rejects duplicates)
-> passed on the CLI, **not** committed to `pubspec.yaml`.
+> upload is wired into `.github/workflows/release.yml`: on a `v*` tag the iOS leg
+> (`macos-latest`) archives unsigned, then manually exports a signed `.ipa` with
+> the configured Apple Distribution certificate and per-target provisioning
+> profiles before uploading it via `xcrun altool --upload-app`. It is active only
+> when all App Store Connect, certificate, and profile secrets are present (the
+> key needs the **App Manager** role); otherwise the leg is a clean skip. Its
+> `CFBundleVersion` is the bounded SemVer-derived code for the release tag, shared
+> with Android's `versionCode`; `app/pubspec.yaml` remains exactly `X.Y.Z`.
 > Upload is gated to **real tag pushes** (a `workflow_dispatch` builds + signs the
-> `.ipa` for validation but never uploads). **No manual cert or provisioning
-> profile is required**, and no Beta App Review / public App Store submission is
-> triggered. The signed `.ipa` is store-delivered — it is **not** a GitHub Release
-> asset and never enters `SHA256SUMS` / the channel manifest / the SLSA subject
-> glob. See
+> `.ipa` for validation but never uploads), and no Beta App Review / public App
+> Store submission is triggered. The signed `.ipa` is store-delivered — it is
+> **not** a GitHub Release asset and never enters `SHA256SUMS` / the channel
+> manifest / the SLSA subject glob. See
 > [docs/dev/releasing.md](../dev/releasing.md#ios-testflight-via-app-store-connect-api).
 
 **Linux.** Alongside the AppImage + `tar.gz` baseline and Flathub, we also list
@@ -357,7 +352,7 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   launch seams are app-layer).
 - The model is **pure Dart and unit-testable without I/O**: a manifest model
   (parse + `manifestSchemaVersion` guard), a **SemVer compare**, a **channel
-  filter**, and `isNewerThan(kAppVersion)`.
+  filter**, and `isNewerThan(kUpdaterVersion)`.
 - Network is an **injected fetch seam mirroring the existing `UrlFetcher`
   pattern** in `app/lib/src/data/import_io.dart` (injectable `http.Client`,
   short timeout, message-safe failures). `package:http` is already an app
