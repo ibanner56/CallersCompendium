@@ -19,6 +19,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Imported walkthroughs** — preserve dance walkthrough text when committing
+  published collections and generic archive/JSON imports. (issue #1040)
+
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
