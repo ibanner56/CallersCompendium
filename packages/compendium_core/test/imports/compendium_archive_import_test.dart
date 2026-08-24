@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -112,6 +113,16 @@ void main() {
 
   final now = DateTime.utc(2026, 7, 18);
 
+  Future<int> programExistenceStamp(String id) async {
+    final rows = await db
+        .customSelect(
+          'SELECT existence_at AS v FROM programs WHERE id = ?',
+          variables: [Variable.withString(id)],
+        )
+        .get();
+    return rows.single.read<int>('v');
+  }
+
   test('imports the program AND its referenced dances', () async {
     final archive = _bundle();
     final result = await importer.import(
@@ -214,13 +225,14 @@ void main() {
 
   test('re-importing the same bundle dedupes — no duplicates', () async {
     final archive = _bundle();
-    await importer.import(
+    final first = await importer.import(
       encodeArchive(archive),
       archive,
       now: now,
       newId: sequentialIds('first'),
       newSlotId: sequentialIds('firstslot'),
     );
+    final firstStamp = await programExistenceStamp(first.programs.single.id);
 
     final result2 = await importer.import(
       encodeArchive(archive),
@@ -238,7 +250,135 @@ void main() {
     // The program was updated in place, not inserted again.
     expect(result2.updatedProgramCount, 1);
     expect(result2.insertedProgramCount, 0);
+    expect(
+      await programExistenceStamp(first.programs.single.id),
+      firstStamp,
+      reason: 'ordinary content re-imports are not existence transitions',
+    );
   });
+
+  test('re-importing a deleted program restores existence ordering and undo '
+      're-tombstones it', () async {
+    final archive = _bundle();
+    final first = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('first'),
+      newSlotId: sequentialIds('firstslot'),
+    );
+    final programId = first.programs.single.id;
+    final deletedAt = now.add(const Duration(days: 1));
+    await programs.softDelete(programId, at: deletedAt);
+    final tombstone = await programExistenceStamp(programId);
+
+    final updatedArchive = CompendiumArchive(
+      exportedAt: archive.exportedAt,
+      dances: archive.dances,
+      programs: [archive.programs.single.copyWith(title: 'Updated Fling')],
+    );
+    final importedAt = now.add(const Duration(days: 2));
+    final second = await importer.import(
+      encodeArchive(updatedArchive),
+      updatedArchive,
+      now: importedAt,
+      newId: sequentialIds('second'),
+      newSlotId: sequentialIds('secondslot'),
+    );
+
+    expect(second.restoredProgramIds, [programId]);
+    final revived = await programs.getById(programId);
+    expect(revived, isNotNull);
+    expect(revived!.title, 'Updated Fling');
+    final revivedStamp = await programExistenceStamp(programId);
+    expect(revivedStamp, greaterThan(tombstone));
+
+    final undoAt = importedAt.add(const Duration(days: 90));
+    await importer.undo(second, now: () => undoAt);
+    final undone = await programs.getById(programId, includeDeleted: true);
+    expect(undone, isNotNull);
+    expect(undone!.deletedAt, isNotNull);
+    final undoneStamp = await programExistenceStamp(programId);
+    expect(
+      undoneStamp,
+      greaterThan(revivedStamp),
+      reason: 'undo must create a later causal tombstone',
+    );
+    expect(
+      undone.updatedAt,
+      undoAt,
+      reason: 'undo must not move updatedAt back to the import timestamp',
+    );
+    expect(
+      await programs.purgeDeleted(now: undoAt),
+      0,
+      reason: 'a delayed undo must not make the program immediately purgeable',
+    );
+  });
+
+  test(
+    'a later program failure re-tombstones a program restored earlier',
+    () async {
+      final archive = _bundle();
+      final secondProgram = Program(
+        id: 'orig-p2',
+        title: 'Second Fling',
+        slots: [ProgramSlot(id: 'orig-sl5', position: 0, danceId: 'orig-d1')],
+        createdAt: DateTime.utc(2026, 4, 2),
+        updatedAt: DateTime.utc(2026, 4, 2),
+      );
+      final twoPrograms = CompendiumArchive(
+        exportedAt: archive.exportedAt,
+        dances: archive.dances,
+        programs: [archive.programs.single, secondProgram],
+      );
+      final first = await importer.import(
+        encodeArchive(twoPrograms),
+        twoPrograms,
+        now: now,
+        newId: sequentialIds('first'),
+        newSlotId: sequentialIds('firstslot'),
+      );
+      final restoredId = first.programs.first.id;
+      await programs.softDelete(
+        restoredId,
+        at: now.add(const Duration(days: 1)),
+      );
+      final tombstone = await programExistenceStamp(restoredId);
+
+      final failing = _FailingSecondProgramUpdateRepository(db);
+      final rollbackImporter = CompendiumArchiveImporter(
+        ImportPipeline(
+          DanceRepository(db, contraTaxonomy),
+          ChoreographerRepository(db),
+        ),
+        failing,
+        venues,
+      );
+      await expectLater(
+        rollbackImporter.import(
+          encodeArchive(twoPrograms),
+          twoPrograms,
+          now: now.add(const Duration(days: 2)),
+          newId: sequentialIds('second'),
+          newSlotId: sequentialIds('secondslot'),
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      final rolledBack = await programs.getById(
+        restoredId,
+        includeDeleted: true,
+      );
+      expect(rolledBack, isNotNull);
+      expect(rolledBack!.deletedAt, isNotNull);
+      expect(
+        await programExistenceStamp(restoredId),
+        greaterThan(tombstone),
+        reason: 'compensating rollback must leave a later tombstone',
+      );
+    },
+  );
 
   test('undo reverts the imported program and dances', () async {
     final archive = _bundle();
@@ -1458,4 +1598,21 @@ void main() {
       expect(prog.venueId, mintedId);
     });
   });
+}
+
+/// Lets the first re-import update succeed, then fails the next one so the
+/// importer's compensation must restore and re-tombstone the first program.
+class _FailingSecondProgramUpdateRepository extends ProgramRepository {
+  _FailingSecondProgramUpdateRepository(super.db);
+
+  var _updateCount = 0;
+
+  @override
+  Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) {
+    _updateCount++;
+    if (_updateCount == 2) {
+      throw StateError('simulated later program persist failure');
+    }
+    return super.update(program, knownVenueIds: knownVenueIds);
+  }
 }

@@ -207,12 +207,15 @@ class CompendiumArchiveImportResult {
     required List<ImportIssue> programIssues,
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
+    List<String> restoredProgramIds = const [],
+    this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<String> restoredVenueIds = const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
+       restoredProgramIds = List.unmodifiable(restoredProgramIds),
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
        restoredVenueIds = List.unmodifiable(restoredVenueIds);
 
@@ -232,6 +235,14 @@ class CompendiumArchiveImportResult {
   /// re-import matched their `(json, externalId)` provenance key. Restored
   /// verbatim on [undo].
   final List<Program> updatedProgramPriorStates;
+
+  /// Ids of tombstoned programs restored by an exact provenance match. Soft-deleted
+  /// again on [undo] so the rollback records a later existence transition.
+  final List<String> restoredProgramIds;
+
+  /// Import timestamp used for causal restore and failed-commit compensation.
+  /// [undo] takes a fresh timestamp instead.
+  final DateTime? programRestoreAt;
 
   /// Ids of the venues this import **inserted** (one freshly-minted id per
   /// bundled venue). Hard-deleted on [undo] once the referencing programs have
@@ -333,6 +344,8 @@ class CompendiumArchiveImporter {
     final insertedIdSet = <String>{};
     final priorCapturedFor = <String>{};
     final priorStates = <Program>[];
+    final restoredProgramIds = <String>[];
+    final restoredProgramIdSet = <String>{};
     final insertedVenueIds = <String>[];
     final restoredVenueIds = <String>[];
     // Keyed by final program id so repeated externalIds collapse to one entry
@@ -539,6 +552,12 @@ class CompendiumArchiveImporter {
               priorCapturedFor.add(mappedId)) {
             priorStates.add(existing);
           }
+          if (existing.deletedAt != null) {
+            await _programs.restore(mappedId, at: now);
+            if (restoredProgramIdSet.add(mappedId)) {
+              restoredProgramIds.add(mappedId);
+            }
+          }
           final venueId = target.venueId;
           final knownVenueIds = venueId == null
               ? LiveVenueIds.empty
@@ -554,6 +573,8 @@ class CompendiumArchiveImporter {
         programIssues: built.issues,
         insertedProgramIds: insertedIds,
         updatedProgramPriorStates: priorStates,
+        restoredProgramIds: restoredProgramIds,
+        programRestoreAt: restoredProgramIds.isEmpty ? null : now,
         insertedVenueIds: insertedVenueIds,
         restoredVenueIds: restoredVenueIds,
       );
@@ -564,6 +585,9 @@ class CompendiumArchiveImporter {
       await _programs.hardDelete(insertedIds);
       for (final prior in priorStates) {
         await _programs.update(prior);
+      }
+      for (final id in restoredProgramIds) {
+        await _programs.softDelete(id, at: now);
       }
       await _venues.hardDelete(insertedVenueIds);
       for (final id in restoredVenueIds) {
@@ -637,11 +661,23 @@ class CompendiumArchiveImporter {
   /// when no program still references it (the repository guard throws
   /// otherwise); a still-referenced venue is retained. Inserted programs are
   /// removed first, so a venue referenced solely by this import is reclaimed.
-  Future<void> undo(CompendiumArchiveImportResult result) async {
+  ///
+  /// [now] is an optional clock seam for deterministic callers; production
+  /// undo timestamps default to the current UTC time.
+  Future<void> undo(
+    CompendiumArchiveImportResult result, {
+    DateTime Function()? now,
+  }) async {
     if (result.isUndone) return;
+    final undoAt = (now?.call() ?? DateTime.now()).toUtc();
     await _programs.hardDelete(result.insertedProgramIds);
     for (final prior in result.updatedProgramPriorStates) {
       await _programs.update(prior);
+    }
+    if (result.programRestoreAt != null) {
+      for (final id in result.restoredProgramIds) {
+        await _programs.softDelete(id, at: undoAt);
+      }
     }
     for (final id in result.insertedVenueIds) {
       try {
