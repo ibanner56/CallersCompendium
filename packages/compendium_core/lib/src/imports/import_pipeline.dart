@@ -901,6 +901,7 @@ class ImportPipeline {
     figures: src.figures,
     hook: src.hook,
     callingNotes: src.callingNotes,
+    walkthrough: src.walkthrough,
     status: src.status,
     level: src.level,
     mixedLevel: src.mixedLevel,

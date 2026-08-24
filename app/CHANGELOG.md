@@ -19,6 +19,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Imported walkthroughs** — preserve dance walkthrough text when committing
+  published collections and generic archive/JSON imports. (issue #1040)
+  
 - **Program auto-commit** — edits made while an auto-commit clears its recovery
   draft are no longer overwritten by the older committed snapshot.
   
