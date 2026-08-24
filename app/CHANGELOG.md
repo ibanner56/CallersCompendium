@@ -20,7 +20,7 @@ each release so store builds and tags can be traced back to an entry.
 ### Fixed
 
 - **Gate previews** no longer show the internal `unspecified` label when you
-  add a gate without filling in its subject.
+  add a gate without filling in its subject. (issue #1038)
   
 - **Dialect wording templates** — the dialect editor now blocks malformed or
   oversized move wording templates instead of saving settings the renderer will
