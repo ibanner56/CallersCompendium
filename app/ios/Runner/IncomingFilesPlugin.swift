@@ -10,9 +10,9 @@ import UIKit
 /// **path** of a local copy of an incoming file (#298), or the **raw URL
 /// string** shared into the app (#343). It never parses, trusts, or interprets
 /// a payload — Dart owns every byte of validation and import (`ArchiveIntake`
-/// for files, `validateSharedContraDbProgramUrl` for URLs; both are untrusted
-/// input). Incoming files are copied into the app's temporary directory first,
-/// so the path Dart receives is always readable.
+/// for files, and Dart's supported program/dance URL classifiers for URLs; both
+/// are untrusted input). Incoming files are copied into the app's temporary
+/// directory first, so the path Dart receives is always readable.
 ///
 /// Shared URLs are delivered out-of-band: the Share Extension writes them into
 /// the shared App Group, then best-effort wakes this app via its custom scheme.

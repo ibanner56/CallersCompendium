@@ -41,8 +41,9 @@ class IncomingFileChannel {
   /// browser "Share" of a program page sends a `text/plain` URL via an Android
   /// `ACTION_SEND` intent or an iOS Share Extension). Broadcast, mirroring
   /// [files]. The string is **untrusted OS input** — Dart validates it
-  /// (`validateSharedContraDbProgramUrl`) before it reaches the import
-  /// pipeline; the native side forwards it verbatim and interprets nothing.
+  /// (`extractSharedContraDbProgramUrl` / `extractSharedDanceLink`) before it
+  /// reaches an import pipeline; the native side forwards it verbatim and
+  /// interprets nothing.
   Stream<String> get urls => _urlController.stream;
 
   /// Registers the handler for files delivered while the app is running.

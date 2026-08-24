@@ -13,10 +13,9 @@ import UniformTypeIdentifiers
 ///
 /// This extension deliberately does **no** validation and **no** import: it
 /// only forwards the raw shared string verbatim. The host app treats it as
-/// untrusted input and OWASP-validates it (`validateSharedContraDbProgramUrl`:
-/// https only, `contradb.com` host allow-list, `/programs/N` path) before it
-/// touches the import pipeline. Keeping the native surface dumb keeps the trust
-/// boundary in one place (Dart).
+/// untrusted input and OWASP-validates it against the supported program and
+/// single-dance page URL shapes before it touches an import pipeline. Keeping
+/// the native surface dumb keeps the trust boundary in one place (Dart).
 final class ShareViewController: UIViewController {
   /// App Group shared with the host app; shared URLs are handed over through the
   /// `SharedImportQueue` directory in its container.

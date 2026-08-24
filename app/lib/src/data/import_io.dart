@@ -1400,6 +1400,69 @@ String extractSharedContraDbProgramUrl(String rawShared) {
   return validateSharedContraDbProgramUrl(candidates.first);
 }
 
+/// Source of a single-dance URL shared through the operating system.
+enum SharedDanceSource { callersBox, contraDb }
+
+/// A validated, source-specific single-dance target from an OS share payload.
+///
+/// The canonical [id] is deliberately kept separate from the original URL. The
+/// import services rebuild their fixed source URLs from it, so query parameters,
+/// fragments, and credentials from the shared string can never reach a fetch.
+class SharedDanceLink {
+  const SharedDanceLink({required this.source, required this.id});
+
+  final SharedDanceSource source;
+  final String id;
+}
+
+/// Extracts one supported single-dance URL from raw OS share text.
+///
+/// A browser may share a bare URL or title plus URL. As with
+/// [extractSharedContraDbProgramUrl], this accepts exactly one bounded `https`
+/// token, then requires an allowlisted source and a canonical dance-page shape.
+/// It never returns a URL supplied by the sharing app; downstream services
+/// rebuild their source-specific fetch URLs from the validated numeric [id].
+SharedDanceLink extractSharedDanceLink(String rawShared) {
+  const rejected = UrlFetchException(
+    UrlFetchFailureReason.contraDbInvalidProgramLink,
+  );
+
+  final trimmed = rawShared.trim();
+  if (trimmed.isEmpty || trimmed.length > kMaxSharedImportTextLength) {
+    throw rejected;
+  }
+
+  final candidates = _sharedHttpsUrlToken
+      .allMatches(trimmed)
+      .map((m) => m.group(0)!)
+      .toList(growable: false);
+  if (candidates.length != 1) throw rejected;
+
+  final uri = Uri.tryParse(candidates.first);
+  if (uri == null || !uri.isScheme('https')) throw rejected;
+
+  final callersBoxPath = uri.normalizePath().path.toLowerCase();
+  if (_isCallersBoxUrl(uri) &&
+      callersBoxPath == '$callersBoxPathPrefix/dance.php') {
+    final id = uri.queryParameters['id'];
+    if (id != null && RegExp(r'^\d+$').hasMatch(id)) {
+      return SharedDanceLink(source: SharedDanceSource.callersBox, id: id);
+    }
+  }
+
+  if (_isContraDbUrl(uri)) {
+    final match = RegExp(r'^/dances/(\d+)/?$').firstMatch(uri.path);
+    if (match != null) {
+      return SharedDanceLink(
+        source: SharedDanceSource.contraDb,
+        id: match.group(1)!,
+      );
+    }
+  }
+
+  throw rejected;
+}
+
 /// The ContraDB JSON search endpoint. ContraDB (a Rails app) exposes
 /// `POST https://contradb.com/api/v1/dances` (Content-Type application/json);
 /// the controller does `skip_before_action :verify_authenticity_token`, so no
