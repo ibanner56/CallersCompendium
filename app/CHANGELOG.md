@@ -46,6 +46,9 @@ each release so store builds and tags can be traced back to an entry.
   when **Include in sharing** is turned off; that setting still keeps them out of
   files you share with other people.
 
+- **macOS shutdown stability** — the database now closes before the native
+  window is destroyed, preventing an intermittent crash during application exit.
+
 ### Added
 
 - **Experimental settings** — a new section provides a home for features that
