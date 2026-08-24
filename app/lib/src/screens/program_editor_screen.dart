@@ -20,12 +20,12 @@ import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
-import '../data/venue_label.dart';
 import '../diagnostics/error_log.dart';
 
 import '../editor/program_editor_draft_codec.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
+import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart' show formationLabel;
 import '../theme/keyboard_dismiss.dart';
@@ -1706,9 +1706,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final localizations = MaterialLocalizations.of(context);
     final l10n = AppLocalizations.of(context);
     final title = _titleController.text.trim();
-    // Prefer a linked venue's display label over the free-text field, matching
-    // the set-list export and on-screen resolution.
-    final venue = resolveVenueLabelParts(
+    // Prefer a linked venue's sanitized display label over free text. The
+    // linked-record precedence matches the set-list export and screen.
+    final venue = resolveSanitizedVenueLabelParts(
       _venueId,
       _venueController.text,
       _exportVenuesById,
