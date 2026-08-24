@@ -170,7 +170,7 @@ class FigureRenderer {
         : _renderWordingOverride(figure, dialect);
     if (override != null) return override;
     if (!figure.isCustom &&
-        _hasUsableMoveWording(figure.move, dialect) &&
+        _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
       return _render(figure, dialect, verbose: verbose, decimals: decimals);
     }
@@ -333,7 +333,7 @@ class FigureRenderer {
     // stays byte-for-byte stable — EXCEPT for the three moves below that have
     // explicit canonical overrides.
     if (!forCanonical) {
-      final wording = dialect.moveWordings[def.id];
+      final wording = _resolvedMoveWording(figure, dialect, def.id, params);
       if (_isUsableMoveWording(wording)) {
         final displayBase = _displayBaseRenderers[def.id];
         final displayTemplate = displayBase != null
@@ -634,9 +634,148 @@ class FigureRenderer {
   static bool _isUsableMoveWording(String? wording) =>
       wording != null && isValidMoveWordingTemplate(wording);
 
-  bool _hasUsableMoveWording(String moveId, Dialect dialect) {
+  static const Map<String, Map<String, Set<String>>> _moveWordingBranchSlots = {
+    'form_a_long_wave': {
+      'inOnly': {'subject', 'balance'},
+      'outOnly': {'other', 'balance'},
+      'inAndOut': {'other', 'subject', 'balance'},
+      'neither': {'subject', 'move', 'balance'},
+    },
+    'promenade': {
+      'ordinary': {'who', 'move', 'turn', 'direction', 'destination'},
+      'singleFile': {'prefix', 'move', 'turn', 'direction', 'destination'},
+    },
+    'circle': {
+      'ordinary': {'move', 'turn', 'places'},
+      'singleFile': {'prefix', 'move', 'turn', 'places'},
+    },
+  };
+
+  static const Map<String, String> _moveWordingDefaultBranches = {
+    'form_a_long_wave': 'inOnly',
+    'promenade': 'ordinary',
+    'circle': 'ordinary',
+  };
+
+  String? _resolvedMoveWording(
+    Figure figure,
+    Dialect dialect, [
+    String? canonicalMoveId,
+    Map<String, Object?>? effectiveParams,
+  ]) {
+    final moveId = canonicalMoveId ?? taxonomy.resolve(figure.move)?.id;
+    if (moveId == null) return null;
+    final params = effectiveParams ?? taxonomy.effectiveParams(figure);
+    final branch = _moveWordingBranch(moveId, params);
+    if (branch != null) {
+      final branchWording = dialect.moveWordingBranches[moveId]?[branch];
+      if (_isCompleteBranchWording(moveId, branch, branchWording)) {
+        return branchWording;
+      }
+      if (branch != _moveWordingDefaultBranches[moveId]) return null;
+    }
+    final legacy = dialect.moveWordings[moveId];
+    return _isUsableMoveWording(legacy) ? legacy : null;
+  }
+
+  static bool _isCompleteBranchWording(
+    String moveId,
+    String branch,
+    String? wording,
+  ) {
+    if (!_isUsableMoveWording(wording)) return false;
+    final required = _moveWordingBranchSlots[moveId]?[branch];
+    if (required == null) return false;
+    final used = _placeholder
+        .allMatches(wording!)
+        .map((match) => match[1]!)
+        .toSet();
+    return required.every(used.contains);
+  }
+
+  static String? _moveWordingBranch(
+    String moveId,
+    Map<String, Object?> params,
+  ) {
+    switch (moveId) {
+      case 'form_a_long_wave':
+        final inFlag = params['in'] == true;
+        final outFlag = params['out'] == true;
+        if (inFlag && outFlag) return 'inAndOut';
+        if (outFlag) return 'outOnly';
+        if (inFlag) return 'inOnly';
+        return 'neither';
+      case 'promenade':
+      case 'circle':
+        return params['singleFile'] == true ? 'singleFile' : 'ordinary';
+      default:
+        return null;
+    }
+  }
+
+  /// Returns the fixed branch IDs supported by [moveId].
+  List<String> moveWordingBranchIds(String moveId) {
     final canonicalMoveId = taxonomy.resolve(moveId)?.id ?? moveId;
-    return _isUsableMoveWording(dialect.moveWordings[canonicalMoveId]);
+    return _moveWordingBranchSlots[canonicalMoveId]?.keys.toList() ?? const [];
+  }
+
+  /// Returns the complete slot contract for a supported branch.
+  Set<String> moveWordingBranchSlots(String moveId, String branch) {
+    final canonicalMoveId = taxonomy.resolve(moveId)?.id ?? moveId;
+    return _moveWordingBranchSlots[canonicalMoveId]?[branch] ?? const {};
+  }
+
+  /// Returns the display template for a supported branch.
+  String? moveWordingBranchTemplate(String moveId, String branch) {
+    final def = taxonomy.resolve(moveId);
+    final canonicalMoveId = def?.id;
+    final branches = canonicalMoveId == null
+        ? null
+        : _moveWordingBranchSlots[canonicalMoveId];
+    if (canonicalMoveId == null ||
+        branches == null ||
+        !branches.containsKey(branch)) {
+      return null;
+    }
+    final base = _displayBaseRenderers[canonicalMoveId];
+    if (base == null) return null;
+    final figure = _representativeBranchFigure(canonicalMoveId, branch);
+    final params = taxonomy.effectiveParams(figure);
+    return base(this, def!, params, Dialect.canonical, false, false).template;
+  }
+
+  /// Returns the slots omitted by a branch template.
+  Set<String> moveWordingBranchMissingSlots(
+    String moveId,
+    String branch,
+    String wording,
+  ) {
+    final used = _placeholder
+        .allMatches(wording)
+        .map((match) => match[1]!)
+        .toSet();
+    return moveWordingBranchSlots(moveId, branch).difference(used);
+  }
+
+  static Figure _representativeBranchFigure(String moveId, String branch) {
+    switch (moveId) {
+      case 'form_a_long_wave':
+        return Figure(
+          move: moveId,
+          params: {
+            'in': branch == 'inOnly' || branch == 'inAndOut',
+            'out': branch == 'outOnly' || branch == 'inAndOut',
+          },
+        );
+      case 'promenade':
+      case 'circle':
+        return Figure(
+          move: moveId,
+          params: {'singleFile': branch == 'singleFile'},
+        );
+      default:
+        return Figure(move: moveId);
+    }
   }
 
   /// The shipped display template's slots for [moveId], used by the editor's

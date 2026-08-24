@@ -9803,6 +9803,54 @@ abstract class AppLocalizations {
   /// **'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.'**
   String get dialectEditorMoveWordingsHelp;
 
+  /// Helper text explaining branch-specific move wording templates and their required slots.
+  ///
+  /// In en, this message translates to:
+  /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
+  String get dialectEditorMoveWordingsConditionalHelp;
+
+  /// Header for a move's parameter-dependent wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} (conditional)'**
+  String dialectEditorMoveWordingsConditionalLabel(String move);
+
+  /// Label for the long-wave branch where dancers move in only.
+  ///
+  /// In en, this message translates to:
+  /// **'In only'**
+  String get dialectEditorMoveWordingBranchInOnly;
+
+  /// Label for the long-wave branch where dancers move out only.
+  ///
+  /// In en, this message translates to:
+  /// **'Out only'**
+  String get dialectEditorMoveWordingBranchOutOnly;
+
+  /// Label for the long-wave branch where dancers move in and out.
+  ///
+  /// In en, this message translates to:
+  /// **'In and out'**
+  String get dialectEditorMoveWordingBranchInAndOut;
+
+  /// Label for the long-wave branch where dancers move neither in nor out.
+  ///
+  /// In en, this message translates to:
+  /// **'Neither'**
+  String get dialectEditorMoveWordingBranchNeither;
+
+  /// Label for the ordinary (not single-file) branch.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordinary'**
+  String get dialectEditorMoveWordingBranchOrdinary;
+
+  /// Label for the single-file branch.
+  ///
+  /// In en, this message translates to:
+  /// **'Single file'**
+  String get dialectEditorMoveWordingBranchSingleFile;
+
   /// Collapsed header/empty state for the move wording template section.
   ///
   /// In en, this message translates to:

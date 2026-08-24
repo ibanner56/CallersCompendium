@@ -15,6 +15,12 @@ Future<(DialectLibraryController, SettingsRepository)> _controller() async {
 Dialect _custom(String name) => Dialect(
   name: name,
   roles: const {'role1': RoleTerm('Jet'), 'role2': RoleTerm('Ruby')},
+  moveWordingBranches: const {
+    'promenade': {
+      'ordinary': '{who} {move} {direction} {destination}',
+      'singleFile': '{prefix} {move} {direction} {destination}',
+    },
+  },
   discouragedTerms: const ['foo'],
 );
 
@@ -113,6 +119,10 @@ void main() {
       await second.load();
       expect(second.customDialects, hasLength(1));
       expect(second.customByName('Mine'), _custom('Mine'));
+      expect(
+        second.customByName('Mine')!.moveWordingBranches,
+        _custom('Mine').moveWordingBranches,
+      );
       expect(second.active.name, 'Mine');
     });
 

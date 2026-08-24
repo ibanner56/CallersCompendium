@@ -6473,6 +6473,33 @@ class AppLocalizationsDe extends AppLocalizations {
       'Optionale Vorlagen nur für die Anzeige ersetzen den normalen Satz einer Bewegung. Kanonischer Text und Suche bleiben unverändert.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (bedingt)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Nur hinein';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Nur hinaus';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Hinein und hinaus';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Weder noch';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Gewöhnlich';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Einzelne Reihe';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Vorlagen für Bewegungsformulierungen hinzufügen';
 

@@ -127,10 +127,18 @@ than making you write two versions.
 ### Move wording templates
 
 For a complete sentence around a move, add a display template and use the slots
-shown in the editor, such as `{who}` and `{move}`. A template may leave out
-optional details, but the editor will ask you to confirm before saving one that
-omits required details. Templates with invalid syntax or more than 512 characters
-must be fixed before the dialect can be saved.
+shown in the editor, such as `{who}` and `{move}`. Legacy templates may omit
+available slots, but the editor will ask you to confirm before saving one.
+Templates with invalid syntax or more than 512 characters must be fixed before
+the dialect can be saved.
+
+Some moves have parameter-dependent choreography. The editor provides separate
+templates for each supported branch of a long wave, promenade, or circle, and
+shows the exact slots that branch can use. Complete every listed slot: an
+incomplete conditional template is ignored and the normal wording is shown, so a
+single-file prefix or a dancer's in/out instruction can never disappear. Older
+single-template wordings remain available for their ordinary/default branch only;
+they are not reused for a different parameter branch.
 
 ### Dancer wording
 

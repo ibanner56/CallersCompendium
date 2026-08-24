@@ -6371,6 +6371,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Optional display-only templates replace a move\'s normal sentence. Canonical text and search are unchanged.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (conditional)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'In only';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Out only';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'In and out';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Neither';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Ordinary';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Single file';
+
+  @override
   String get dialectEditorMoveWordingsAdd => 'Add move wording templates';
 
   @override

@@ -6481,6 +6481,33 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les modèles facultatifs, réservés à l’affichage, remplacent la phrase normale d’un mouvement. Le texte canonique et la recherche restent inchangés.';
 
   @override
+  String get dialectEditorMoveWordingsConditionalHelp =>
+      'Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.';
+
+  @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (conditionnel)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Entrée seulement';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Sortie seulement';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Entrée et sortie';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Ni l’un ni l’autre';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Ordinaire';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'File simple';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Ajouter des modèles de formulation';
 

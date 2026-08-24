@@ -25,6 +25,12 @@ It is never included in canonical figure text, search, or deduplication.
   "moves":  {"shoulder_round": "%S shoulder round", "do_si_do": "dosido"},
   "dancers": {"neighbors": "the others", "nextNeighbors": "the next couple"},
   "moveWordings": {"swing": "[{who} ]{move}"},
+  "moveWordingBranches": {
+    "promenade": {
+      "ordinary": "{who} {move} {turn} {direction} {destination}",
+      "singleFile": "{prefix} {move} {turn} {direction} {destination}"
+    }
+  },
   "discouragedTerms": ["gypsy", "gents", "ladies", "..."]
 }
 ```
@@ -52,11 +58,19 @@ It is never included in canonical figure text, search, or deduplication.
   templates**. Templates use the computed slots for that move (for example
   `{who}` and `{move}`); unknown slots are empty, nested bracketed groups are
   omitted when their slots are empty, and substituted values are not rescanned.
-  The editor rejects malformed, empty, or overlong templates before saving, and
-  warns when a valid template omits available slots before requiring
-  confirmation. The renderer still falls back to normal wording defensively for
-  imported or migrated data. Imported templates are sanitized, capped at 512
-  UTF-16 code units each, and limited to 256 entries per dialect.
+  Malformed or empty templates fall back to the normal renderer. The editor
+  warns when a template omits available slots and requires confirmation before
+  saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
+  each, and limited to 256 entries per dialect.
+- `moveWordingBranches` stores fixed branch-specific templates for
+  `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`), `promenade`
+  (`ordinary`, `singleFile`), and `circle` (`ordinary`, `singleFile`). A branch
+  template is usable only when it is valid and contains every slot in that
+  branch's contract. Missing or incomplete branch entries, including imported
+  or programmatically constructed values, fail closed to the normal renderer.
+  Legacy `moveWordings` entries remain compatible only with their default branch;
+  they never cross into a different guarded branch. Branch templates are
+  display-only and share the 512-code-unit/256-entry limits.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms

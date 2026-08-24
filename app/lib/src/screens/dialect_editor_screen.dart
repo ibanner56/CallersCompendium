@@ -40,6 +40,8 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
   /// substitution row, keyed by canonical move id.
   final Map<String, TextEditingController> _moveCtrls = {};
   final Map<String, TextEditingController> _wordingCtrls = {};
+  final Map<String, Map<String, TextEditingController>> _branchWordingCtrls =
+      {};
 
   /// One controller per dancer token that currently has (or is being given) a
   /// substitution row, keyed by canonical dancer token.
@@ -93,6 +95,21 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     for (final entry in d.moveWordings.entries) {
       _wordingCtrls[entry.key] = TextEditingController(text: entry.value);
     }
+    for (final branches in _branchWordingCtrls.values) {
+      for (final c in branches.values) {
+        c.dispose();
+      }
+    }
+    _branchWordingCtrls.clear();
+    for (final moveId in ['form_a_long_wave', 'promenade', 'circle']) {
+      final branches = <String, TextEditingController>{};
+      for (final branch in _renderer.moveWordingBranchIds(moveId)) {
+        branches[branch] = TextEditingController(
+          text: d.moveWordingBranches[moveId]?[branch] ?? '',
+        );
+      }
+      _branchWordingCtrls[moveId] = branches;
+    }
     for (final c in _dancerCtrls.values) {
       c.dispose();
     }
@@ -115,6 +132,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     }
     for (final c in _wordingCtrls.values) {
       c.dispose();
+    }
+    for (final branches in _branchWordingCtrls.values) {
+      for (final c in branches.values) {
+        c.dispose();
+      }
     }
     for (final c in _dancerCtrls.values) {
       c.dispose();
@@ -156,6 +178,18 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       if (v.isNotEmpty) moveWordings[entry.key] = v;
     }
 
+    final moveWordingBranches = <String, Map<String, String>>{};
+    for (final moveEntry in _branchWordingCtrls.entries) {
+      final branches = <String, String>{};
+      for (final branchEntry in moveEntry.value.entries) {
+        final v = branchEntry.value.text.trim();
+        if (v.isNotEmpty) branches[branchEntry.key] = v;
+      }
+      if (branches.isNotEmpty) {
+        moveWordingBranches[moveEntry.key] = branches;
+      }
+    }
+
     final dancers = <String, String>{};
     for (final entry in _dancerCtrls.entries) {
       final v = entry.value.text.trim();
@@ -167,6 +201,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       roles: roles,
       moves: moves,
       moveWordings: moveWordings,
+      moveWordingBranches: moveWordingBranches,
       dancers: dancers,
       discouragedTerms: _discouraged,
     );
@@ -207,6 +242,39 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     return incomplete;
   }
 
+  Map<String, String> _incompleteBranchWordings(
+    Dialect dialect,
+    AppLocalizations l10n,
+  ) {
+    final incomplete = <String, String>{};
+    for (final moveEntry in dialect.moveWordingBranches.entries) {
+      for (final branchEntry in moveEntry.value.entries) {
+        final wording = branchEntry.value;
+        final missing =
+            _renderer
+                .moveWordingBranchMissingSlots(
+                  moveEntry.key,
+                  branchEntry.key,
+                  wording,
+                )
+                .toList()
+              ..sort();
+        if (missing.isNotEmpty ||
+            !FigureRenderer.isValidMoveWordingTemplate(wording)) {
+          final label = l10n.dialectEditorMoveWordingsConditionalLabel(
+            '${_moveLabel(moveEntry.key)}: ${_branchLabel(branchEntry.key, l10n)}',
+          );
+          incomplete[label] = missing.isEmpty
+              ? l10n.dialectEditorMoveWordingInvalid
+              : _renderer
+                    .moveWordingSlotLabels(moveEntry.key, missing)
+                    .join(', ');
+        }
+      }
+    }
+    return incomplete;
+  }
+
   /// Returns the edited dialect to the caller. If the assembled dialect has
   /// validation issues (empty or ambiguous substitutions), they are surfaced
   /// inline and the editor stays open. Templates that omit available slots are
@@ -232,6 +300,17 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       return;
     }
     final incomplete = _incompleteMoveWordings(edited);
+    final incompleteBranches = _incompleteBranchWordings(
+      edited,
+      AppLocalizations.of(context),
+    );
+    if (incompleteBranches.isNotEmpty) {
+      setState(() {
+        _working = edited;
+        _issues = issues;
+      });
+      return;
+    }
     if (incomplete.isNotEmpty) {
       final details = incomplete.entries
           .map((entry) => '${entry.key}: ${entry.value}')
@@ -343,6 +422,11 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         c.dispose();
       }
       _wordingCtrls.clear();
+      for (final branches in _branchWordingCtrls.values) {
+        for (final c in branches.values) {
+          c.clear();
+        }
+      }
       _working = _assemble();
       _issues = _working.validate();
       _invalidMoveWordings = _invalidMoveWordingLabels(_working);
@@ -510,6 +594,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
           setState(() => _showWordings = expanded),
       child: _MoveWordingsEditor(
         controllers: _wordingCtrls,
+        branchControllers: _branchWordingCtrls,
         dialect: _working,
         onEdited: _onEdited,
         onAdd: _addMoveWording,
@@ -787,6 +872,16 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
 
 String _moveLabel(String id) => contraTaxonomy.moves[id]?.displayName ?? id;
 
+String _branchLabel(String branch, AppLocalizations l10n) => switch (branch) {
+  'inOnly' => l10n.dialectEditorMoveWordingBranchInOnly,
+  'outOnly' => l10n.dialectEditorMoveWordingBranchOutOnly,
+  'inAndOut' => l10n.dialectEditorMoveWordingBranchInAndOut,
+  'neither' => l10n.dialectEditorMoveWordingBranchNeither,
+  'singleFile' => l10n.dialectEditorMoveWordingBranchSingleFile,
+  'ordinary' => l10n.dialectEditorMoveWordingBranchOrdinary,
+  _ => branch,
+};
+
 /// Collapsible display-only per-move wording editor. Templates use the slots
 /// shown below each field; unknown slots are rendered empty and warned about.
 /// Malformed templates are blocked by the parent editor's save guard, while the
@@ -794,6 +889,7 @@ String _moveLabel(String id) => contraTaxonomy.moves[id]?.displayName ?? id;
 class _MoveWordingsEditor extends StatelessWidget {
   const _MoveWordingsEditor({
     required this.controllers,
+    required this.branchControllers,
     required this.dialect,
     required this.onEdited,
     required this.onAdd,
@@ -802,6 +898,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   });
 
   final Map<String, TextEditingController> controllers;
+  final Map<String, Map<String, TextEditingController>> branchControllers;
   final Dialect dialect;
   final VoidCallback onEdited;
   final ValueChanged<String> onAdd;
@@ -818,7 +915,7 @@ class _MoveWordingsEditor extends StatelessWidget {
         [
           for (final move in contraTaxonomy.moves.values)
             if (move.id != customMoveId && !controllers.containsKey(move.id))
-              move.id,
+              if (_renderer.moveWordingBranchIds(move.id).isEmpty) move.id,
         ]..sort(
           (a, b) => _moveLabel(
             a,
@@ -834,6 +931,14 @@ class _MoveWordingsEditor extends StatelessWidget {
             l10n.dialectEditorMoveWordingsHelp,
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (branchControllers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                l10n.dialectEditorMoveWordingsConditionalHelp,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
           if (available.isNotEmpty)
             DropdownButton<String>(
               key: const ValueKey('dialect-add-move-wording'),
@@ -857,6 +962,8 @@ class _MoveWordingsEditor extends StatelessWidget {
                 if (id != null) onAdd(id);
               },
             ),
+          for (final entry in branchControllers.entries)
+            _branchWordingGroup(context, entry.key, entry.value, l10n),
           for (final id in configured) _wordingRow(context, id, l10n),
           TextButton(
             key: const ValueKey('dialect-wordings-restore'),
@@ -963,6 +1070,123 @@ class _MoveWordingsEditor extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Widget _branchWordingGroup(
+    BuildContext context,
+    String moveId,
+    Map<String, TextEditingController> controllers,
+    AppLocalizations l10n,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 4),
+          child: Text(
+            l10n.dialectEditorMoveWordingsConditionalLabel(_moveLabel(moveId)),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ),
+        for (final entry in controllers.entries)
+          _branchWordingRow(context, moveId, entry.key, entry.value, l10n),
+      ],
+    );
+  }
+
+  Widget _branchWordingRow(
+    BuildContext context,
+    String moveId,
+    String branch,
+    TextEditingController controller,
+    AppLocalizations l10n,
+  ) {
+    final known = _renderer.moveWordingBranchSlots(moveId, branch);
+    final text = controller.text;
+    final hasText = text.trim().isNotEmpty;
+    final valid = !hasText || FigureRenderer.isValidMoveWordingTemplate(text);
+    final missing = hasText
+        ? (_renderer
+              .moveWordingBranchMissingSlots(moveId, branch, text)
+              .toList()
+            ..sort())
+        : const <String>[];
+    final previewDialect = dialect.copyWith(
+      moveWordingBranches: {
+        ...dialect.moveWordingBranches,
+        moveId: {...dialect.moveWordingBranches[moveId] ?? {}, branch: text},
+      },
+    );
+    final preview = _renderer.render(
+      _branchFigure(moveId, branch),
+      previewDialect,
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _branchLabel(branch, l10n),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          TextField(
+            key: ValueKey('dialect-wording-$moveId-$branch'),
+            controller: controller,
+            maxLength: kMaxMoveWordingLength,
+            decoration: InputDecoration(
+              labelText: l10n.dialectEditorMoveWordingLabel,
+              hintText: _renderer.moveWordingBranchTemplate(moveId, branch),
+            ),
+            onChanged: (_) => onEdited(),
+          ),
+          Text(
+            l10n.dialectEditorMoveWordingSlots(
+              _renderer.moveWordingSlotLabels(moveId, known).join(', '),
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          if (!valid)
+            Text(
+              l10n.dialectEditorMoveWordingInvalid,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          if (missing.isNotEmpty)
+            Text(
+              l10n.dialectEditorMoveWordingMissingSlots(
+                _renderer.moveWordingSlotLabels(moveId, missing).join(', '),
+              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          Text(
+            l10n.dialectEditorMoveWordingPreview(preview),
+            key: ValueKey('dialect-wording-preview-$moveId-$branch'),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Figure _branchFigure(String moveId, String branch) {
+    switch (moveId) {
+      case 'form_a_long_wave':
+        return Figure(
+          move: moveId,
+          params: {
+            'in': branch == 'inOnly' || branch == 'inAndOut',
+            'out': branch == 'outOnly' || branch == 'inAndOut',
+          },
+        );
+      case 'promenade':
+      case 'circle':
+        return Figure(
+          move: moveId,
+          params: {'singleFile': branch == 'singleFile'},
+        );
+      default:
+        return Figure(move: moveId);
+    }
   }
 }
 

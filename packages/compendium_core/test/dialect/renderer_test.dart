@@ -2877,6 +2877,206 @@ void main() {
   });
 
   group('global move wording templates', () {
+    test('persisted branch registry matches renderer contracts', () {
+      for (final entry in kMoveWordingBranchKeys.entries) {
+        expect(
+          renderer.moveWordingBranchIds(entry.key).toSet(),
+          entry.value,
+          reason:
+              '${entry.key} branch IDs drifted between Dialect and renderer',
+        );
+        for (final branch in entry.value) {
+          expect(
+            renderer.moveWordingBranchSlots(entry.key, branch),
+            isNotEmpty,
+            reason: '${entry.key}/$branch has no renderer slot contract',
+          );
+        }
+      }
+    });
+
+    test('legacy wording does not cross parameter branches', () {
+      final dialect = Dialect.larksRobins.copyWith(
+        moveWordings: const {
+          'form_a_long_wave':
+              '{subject} dance in to a long wave in the center{balance}',
+          'promenade': '{who} {move} {direction} {destination}',
+          'circle': '{move} {turn} {places}',
+        },
+      );
+
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': false, 'out': true}),
+          dialect,
+        ),
+        'larks dance out & balance',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          dialect,
+        ),
+        'single file promenade across',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'circle',
+            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+          ),
+          dialect,
+        ),
+        'single file circle left 4 places',
+      );
+    });
+
+    test('branch templates preserve every conditional wording shape', () {
+      final dialect = Dialect.larksRobins.copyWith(
+        moveWordingBranches: const {
+          'form_a_long_wave': {
+            'inOnly': '{subject} IN {balance}',
+            'outOnly': '{other} OUT {balance}',
+            'inAndOut': '{other} OUT {subject} IN {balance}',
+            'neither': '{subject} {move} {balance}',
+          },
+          'promenade': {
+            'ordinary': '{who} {move} {turn} {direction} {destination}',
+            'singleFile': '{prefix} {move} {turn} {direction} {destination}',
+          },
+          'circle': {
+            'ordinary': '{move} {turn} {places}',
+            'singleFile': '{prefix} {move} {turn} {places}',
+          },
+        },
+      );
+
+      expect(
+        renderer.render(Figure(move: 'form_a_long_wave'), dialect),
+        'robins IN - balance the wave',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': false, 'out': true}),
+          dialect,
+        ),
+        'larks OUT & balance',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': true, 'out': true}),
+          dialect,
+        ),
+        'larks OUT robins IN - balance the wave',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'form_a_long_wave',
+            params: {'in': false, 'out': false, 'balance': false},
+          ),
+          dialect,
+        ),
+        'robins form a long wave',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          dialect,
+        ),
+        'single file promenade across',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'circle',
+            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+          ),
+          dialect,
+        ),
+        'single file circle left 4 places',
+      );
+    });
+
+    test('incomplete guarded branches fail closed at render time', () {
+      final incomplete = Dialect.larksRobins.copyWith(
+        moveWordingBranches: const {
+          'form_a_long_wave': {'outOnly': '{subject} IN'},
+          'promenade': {'singleFile': '{move} {direction} {destination}'},
+          'circle': {'singleFile': '{move} {turn} {places}'},
+        },
+      );
+
+      expect(
+        renderer.render(
+          Figure(move: 'form_a_long_wave', params: {'in': false, 'out': true}),
+          incomplete,
+        ),
+        'larks dance out & balance',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          incomplete,
+        ),
+        'single file promenade across',
+      );
+      expect(
+        renderer.render(
+          Figure(
+            move: 'circle',
+            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+          ),
+          incomplete,
+        ),
+        'single file circle left 4 places',
+      );
+    });
+
+    test('incomplete guarded branches from JSON fail closed', () {
+      final dialect = Dialect.fromJson({
+        'name': 'Imported',
+        'roles': {
+          'role1': {'singular': 'lark'},
+          'role2': {'singular': 'robin'},
+        },
+        'moveWordingBranches': {
+          'promenade': {'singleFile': '{move} {direction} {destination}'},
+        },
+      });
+
+      expect(
+        renderer.render(
+          Figure(move: 'promenade', params: {'singleFile': true}),
+          dialect,
+        ),
+        'single file promenade across',
+      );
+    });
+
+    test(
+      'branch templates take precedence and summaries use the same gate',
+      () {
+        final dialect = Dialect.larksRobins.copyWith(
+          moveWordings: const {'form_a_long_wave': '{move} legacy'},
+          moveWordingBranches: const {
+            'form_a_long_wave': {'outOnly': '{other} branch {balance}'},
+          },
+        );
+        final figure = Figure(
+          move: 'form_a_long_wave',
+          params: {'in': false, 'out': true},
+        );
+
+        expect(renderer.render(figure, dialect), 'larks branch & balance');
+        expect(
+          renderer.renderSummary(figure, dialect),
+          'larks branch & balance',
+        );
+        expect(renderer.renderCanonical(figure), 'role2s form a long wave');
+      },
+    );
+
     test('replace display wording with one-pass slot substitution', () {
       final dialect = Dialect(
         name: 'Wording',

@@ -6429,6 +6429,38 @@
     "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
   },
   "dialectEditorMoveWordingsHelp": "Optionele sjablonen voor alleen de weergave vervangen de normale zin van een beweging. Canonieke tekst en zoeken blijven ongewijzigd.",
+  "dialectEditorMoveWordingsConditionalHelp": "Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.",
+  "@dialectEditorMoveWordingsConditionalHelp": {
+    "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
+  },
+  "dialectEditorMoveWordingsConditionalLabel": "{move} (voorwaardelijk)",
+  "@dialectEditorMoveWordingsConditionalLabel": {
+    "x-sourceSha256": "e1b698fe9873272c260a19c673da431f630c0196f34b94835cbddc7793855c37"
+  },
+  "dialectEditorMoveWordingBranchInOnly": "Alleen in",
+  "@dialectEditorMoveWordingBranchInOnly": {
+    "x-sourceSha256": "eaf8528920bbdf39ae8da16431154b0750079ee325d92d9f939a458bba0def84"
+  },
+  "dialectEditorMoveWordingBranchOutOnly": "Alleen uit",
+  "@dialectEditorMoveWordingBranchOutOnly": {
+    "x-sourceSha256": "0fc52ba1386f6d3b8a7dd9b3d03d9385246741a4512524e0899361f8515da8ee"
+  },
+  "dialectEditorMoveWordingBranchInAndOut": "In en uit",
+  "@dialectEditorMoveWordingBranchInAndOut": {
+    "x-sourceSha256": "87632e2cb00fbfc32ad24ebe7c1dc5cc4ca5ff28bb9931894a341097916f9873"
+  },
+  "dialectEditorMoveWordingBranchNeither": "Geen van beide",
+  "@dialectEditorMoveWordingBranchNeither": {
+    "x-sourceSha256": "9957d09c21ebc6cad181d56bc43cbd9bde18999c98bd708a416c29fcd3705b7f"
+  },
+  "dialectEditorMoveWordingBranchOrdinary": "Gewoon",
+  "@dialectEditorMoveWordingBranchOrdinary": {
+    "x-sourceSha256": "f46f36f72dc634e236787d444cf10ee3c22280413e0cdeda3d3a8d7d1714f7fd"
+  },
+  "dialectEditorMoveWordingBranchSingleFile": "Enkele rij",
+  "@dialectEditorMoveWordingBranchSingleFile": {
+    "x-sourceSha256": "c8bfd38b98637807f9121e7f44305b993c4d6119075b994d966654a79ed3d503"
+  },
   "@dialectEditorMoveWordingsHelp": {
     "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
   },

@@ -580,6 +580,58 @@ void main() {
     }
   });
 
+  testWidgets(
+    'incomplete conditional wording blocks saving without legacy confirmation',
+    (tester) async {
+      Dialect? popped;
+      var didPop = false;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    popped = await Navigator.of(context).push<Dialect>(
+                      MaterialPageRoute(
+                        builder: (_) => DialectEditorScreen(
+                          initial: Dialect(
+                            name: 'Conditional',
+                            moveWordingBranches: const {
+                              'promenade': {
+                                'singleFile': '{move} {destination}',
+                              },
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                    didPop = true;
+                  },
+                  child: const Text('open'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(didPop, isFalse);
+      expect(popped, isNull);
+      expect(
+        find.byKey(const ValueKey('dialect-wording-confirm-dialog')),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('Save is still guarded: an invalid dialect is not returned', (
     tester,
   ) async {

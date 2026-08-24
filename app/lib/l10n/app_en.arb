@@ -8487,6 +8487,44 @@
   "@dialectEditorMoveWordingsHelp": {
     "description": "Helper text explaining that move wording templates affect display only."
   },
+  "dialectEditorMoveWordingsConditionalHelp": "Conditional move templates are selected by the figure's parameters. Complete every listed slot; unfinished conditional templates are ignored.",
+  "@dialectEditorMoveWordingsConditionalHelp": {
+    "description": "Helper text explaining branch-specific move wording templates and their required slots."
+  },
+  "dialectEditorMoveWordingsConditionalLabel": "{move} (conditional)",
+  "@dialectEditorMoveWordingsConditionalLabel": {
+    "description": "Header for a move's parameter-dependent wording templates.",
+    "placeholders": {
+      "move": {
+        "type": "String",
+        "example": "Promenade"
+      }
+    }
+  },
+  "dialectEditorMoveWordingBranchInOnly": "In only",
+  "@dialectEditorMoveWordingBranchInOnly": {
+    "description": "Label for the long-wave branch where dancers move in only."
+  },
+  "dialectEditorMoveWordingBranchOutOnly": "Out only",
+  "@dialectEditorMoveWordingBranchOutOnly": {
+    "description": "Label for the long-wave branch where dancers move out only."
+  },
+  "dialectEditorMoveWordingBranchInAndOut": "In and out",
+  "@dialectEditorMoveWordingBranchInAndOut": {
+    "description": "Label for the long-wave branch where dancers move in and out."
+  },
+  "dialectEditorMoveWordingBranchNeither": "Neither",
+  "@dialectEditorMoveWordingBranchNeither": {
+    "description": "Label for the long-wave branch where dancers move neither in nor out."
+  },
+  "dialectEditorMoveWordingBranchOrdinary": "Ordinary",
+  "@dialectEditorMoveWordingBranchOrdinary": {
+    "description": "Label for the ordinary (not single-file) branch."
+  },
+  "dialectEditorMoveWordingBranchSingleFile": "Single file",
+  "@dialectEditorMoveWordingBranchSingleFile": {
+    "description": "Label for the single-file branch."
+  },
   "dialectEditorMoveWordingsAdd": "Add move wording templates",
   "@dialectEditorMoveWordingsAdd": {
     "description": "Collapsed header/empty state for the move wording template section."
