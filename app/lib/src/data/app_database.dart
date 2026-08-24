@@ -54,5 +54,16 @@ class AppData {
   /// Desktop shutdown can reach both the window-close handler and the widget
   /// tree's disposal. Sharing one close operation prevents the background Drift
   /// isolate from receiving overlapping shutdown requests.
-  Future<void> close() => _closeFuture ??= db.close();
+  Future<void> close() => _closeFuture ??= _closeDatabase();
+
+  Future<void> _closeDatabase() async {
+    try {
+      await db.close();
+    } catch (error, stackTrace) {
+      // diagnostics: silent — the returned close future preserves this failure;
+      // clear the cache so a later shutdown attempt can retry.
+      _closeFuture = null;
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+  }
 }

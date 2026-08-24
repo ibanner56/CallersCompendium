@@ -39,14 +39,15 @@ class WindowCloseCoordinator {
 
   Future<void> _closeAndDestroy() async {
     try {
-      await closeApp();
-    } catch (error, stackTrace) {
-      logCaughtErrorTypeOnly(
-        error,
-        stackTrace,
-        source: 'window_service._closeApp',
-      );
-    } finally {
+      try {
+        await closeApp();
+      } catch (error, stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'window_service._closeApp',
+        );
+      }
       try {
         await destroyWindow();
       } catch (error, stackTrace) {
@@ -56,6 +57,8 @@ class WindowCloseCoordinator {
           source: 'window_service._destroyWindow',
         );
       }
+    } finally {
+      _closeFuture = null;
     }
   }
 }
