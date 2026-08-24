@@ -46,6 +46,8 @@ library;
 ///   risk; distinct from the newline preserved above).
 /// - **Noncharacters** `U+FDD0–U+FDEF` and the `U+xxFFFE`/`U+xxFFFF` pair in
 ///   every plane.
+/// - **Unpaired UTF-16 surrogates** `U+D800–U+DFFF`. Valid surrogate pairs are
+///   decoded by [String.runes] as one astral code point and are preserved.
 ///
 /// Legitimate content is preserved: ordinary letters/marks/punctuation in any
 /// script, emoji (including emoji *ZWJ sequences* such as family/profession
@@ -102,6 +104,11 @@ bool containsDisallowedText(String input, {bool allowLineBreaks = true}) {
 }
 
 bool _isDisallowed(int cp, bool allowLineBreaks) {
+  // `String.runes` exposes an unpaired UTF-16 code unit as its surrogate value,
+  // while a valid pair is exposed as one astral code point and cannot match
+  // this range.
+  if (cp >= 0xD800 && cp <= 0xDFFF) return true;
+
   // Ordinary whitespace controls are legitimate structure in most fields.
   if (cp == 0x09 || cp == 0x0A || cp == 0x0D) return !allowLineBreaks;
 
