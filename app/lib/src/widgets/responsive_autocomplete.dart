@@ -164,8 +164,8 @@ class _ResponsiveAutocompleteState<T extends Object>
     if (widget.textEditingController != null) {
       return widget.textEditingController!;
     }
-    return _ownedController ??= TextEditingController(
-      text: widget.initialValue?.text,
+    return _ownedController ??= TextEditingController.fromValue(
+      widget.initialValue ?? const TextEditingValue(),
     );
   }
 
@@ -195,10 +195,8 @@ class _ResponsiveAutocompleteState<T extends Object>
   void didUpdateWidget(covariant ResponsiveAutocomplete<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.textEditingController == null &&
-        oldWidget.initialValue?.text != widget.initialValue?.text) {
-      _controller.value = TextEditingValue(
-        text: widget.initialValue?.text ?? '',
-      );
+        oldWidget.initialValue != widget.initialValue) {
+      _controller.value = widget.initialValue ?? const TextEditingValue();
     }
   }
 

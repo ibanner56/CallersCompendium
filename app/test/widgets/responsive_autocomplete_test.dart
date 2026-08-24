@@ -17,6 +17,7 @@ class _TestPicker extends StatefulWidget {
     this.compactHeightBreakpoint = 480,
     this.autofocus = false,
     this.initialText = '',
+    this.initialValue,
     this.focusNode,
     this.refocusAfterSelect = false,
   });
@@ -28,6 +29,7 @@ class _TestPicker extends StatefulWidget {
   final double compactHeightBreakpoint;
   final bool autofocus;
   final String initialText;
+  final TextEditingValue? initialValue;
   final FocusNode? focusNode;
 
   /// Mirrors `name_picker.dart`'s `_AddAutocomplete.onSelected`
@@ -83,7 +85,7 @@ class _TestPickerState extends State<_TestPicker> {
       compactHeightBreakpoint: widget.compactHeightBreakpoint,
       initialValue: widget.refocusAfterSelect
           ? null
-          : TextEditingValue(text: widget.initialText),
+          : widget.initialValue ?? TextEditingValue(text: widget.initialText),
       displayStringForOption: (o) => o,
       optionsBuilder: _optionsFor,
       onSelected: _handleSelected,
@@ -126,6 +128,7 @@ Future<void> _pump(
   double compactHeightBreakpoint = 480,
   bool autofocus = false,
   String initialText = '',
+  TextEditingValue? initialValue,
   TextDirection textDirection = TextDirection.ltr,
   FocusNode? focusNode,
   bool refocusAfterSelect = false,
@@ -143,6 +146,7 @@ Future<void> _pump(
             compactHeightBreakpoint: compactHeightBreakpoint,
             autofocus: autofocus,
             initialText: initialText,
+            initialValue: initialValue,
             focusNode: focusNode,
             refocusAfterSelect: refocusAfterSelect,
           ),
@@ -204,7 +208,10 @@ void main() {
         tester,
         options: const ['swing'],
         onSelected: (_) {},
-        initialText: 'do si do',
+        initialValue: const TextEditingValue(
+          text: 'do si do',
+          selection: TextSelection.collapsed(offset: 3),
+        ),
       );
       expect(
         tester
@@ -213,12 +220,23 @@ void main() {
             ?.text,
         'do si do',
       );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.selection
+            .baseOffset,
+        3,
+      );
 
       await _pump(
         tester,
         options: const ['swing'],
         onSelected: (_) {},
-        initialText: 'see saw',
+        initialValue: const TextEditingValue(
+          text: 'see saw',
+          selection: TextSelection.collapsed(offset: 2),
+        ),
       );
       expect(
         tester
@@ -227,17 +245,40 @@ void main() {
             ?.text,
         'see saw',
       );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.selection
+            .baseOffset,
+        2,
+      );
     });
 
     testWidgets('updates the sheet field when initial text changes', (
       tester,
     ) async {
       await setScreenSize(tester, const Size(360, 720));
-      await _pump(
-        tester,
-        options: const ['swing'],
-        onSelected: (_) {},
-        initialText: 'do si do',
+      final initialText = ValueNotifier('do si do');
+      addTearDown(initialText.dispose);
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MaterialApp(
+            home: Scaffold(
+              body: ValueListenableBuilder<String>(
+                valueListenable: initialText,
+                builder: (context, text, child) {
+                  return _TestPicker(
+                    options: const ['swing'],
+                    onSelected: (_) {},
+                    initialText: text,
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
       );
       await tester.tap(
         find.byKey(const ValueKey('test-input')),
@@ -246,12 +287,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(BottomSheet), findsOneWidget);
 
-      await _pump(
-        tester,
-        options: const ['swing'],
-        onSelected: (_) {},
-        initialText: 'see saw',
-      );
+      initialText.value = 'see saw';
+      await tester.pumpAndSettle();
       expect(
         tester
             .widget<TextField>(find.byKey(const ValueKey('test-input')))
