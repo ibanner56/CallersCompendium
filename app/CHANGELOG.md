@@ -21,6 +21,9 @@ each release so store builds and tags can be traced back to an entry.
 
 - **Imported walkthroughs** — preserve dance walkthrough text when committing
   published collections and generic archive/JSON imports. (issue #1040)
+  
+- **Programming Matrix PDF privacy** — linked venue postal addresses are now
+  removed from the exported matrix header while the public venue name remains.
 
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
