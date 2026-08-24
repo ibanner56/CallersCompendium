@@ -1557,9 +1557,7 @@ class DanceRepository {
           'JOIN dances ON dances.id = dance_fts.dance_id '
           'WHERE dance_fts MATCH ? AND dances.deleted_at IS NULL '
           'ORDER BY bm25(dance_fts)',
-          variables: [
-            Variable.withString(ftsQuery),
-          ],
+          variables: [Variable.withString(ftsQuery)],
         )
         .get();
     return [for (final r in rows) r.read<String>('dance_id')];
