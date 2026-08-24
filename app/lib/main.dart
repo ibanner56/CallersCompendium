@@ -584,11 +584,18 @@ class _CompendiumAppState extends State<CompendiumApp> {
     SharedDanceLink? danceLink;
     try {
       programUrl = extractSharedContraDbProgramUrl(raw);
-    } on UrlFetchException catch (e, stackTrace) {
+    } on UrlFetchException {
       try {
         danceLink = extractSharedDanceLink(raw);
-      } on UrlFetchException {
-        logCaughtError(e, stackTrace, source: 'main._handleIncomingUrl');
+      } on UrlFetchException catch (_, danceStackTrace) {
+        const error = UrlFetchException(
+          UrlFetchFailureReason.unsupportedSharedLink,
+        );
+        logCaughtError(
+          error,
+          danceStackTrace,
+          source: 'main._handleIncomingUrl',
+        );
         if (!mounted) return;
         final navContext = _navigatorKey.currentContext;
         if (navContext == null || !navContext.mounted) return;
@@ -596,7 +603,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
           SnackBar(
             key: const ValueKey('shared-url-import-error'),
             content: Text(
-              importErrorMessage(AppLocalizations.of(navContext), e),
+              importErrorMessage(AppLocalizations.of(navContext), error),
             ),
           ),
         );

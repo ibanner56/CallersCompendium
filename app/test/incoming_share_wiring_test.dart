@@ -298,6 +298,38 @@ void main() {
   );
 
   testWidgets(
+    'an unsupported shared dance link has a neutral rejection message',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl: 'https://contradb.com/dances/not-a-numeric-id',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('shared-url-import-error')),
+        findsOneWidget,
+      );
+      expect(
+        find.text("That link isn't supported for import."),
+        findsOneWidget,
+      );
+      expect(find.byType(ContraDbProgramImportScreen), findsNothing);
+      expect(find.byType(DanceDetailScreen), findsNothing);
+    },
+  );
+
+  testWidgets(
     'issue #963: a rejected shared URL is also written to the diagnostic log',
     (tester) async {
       // This is the exact failure path reported in #963: a caught error that

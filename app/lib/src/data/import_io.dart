@@ -219,6 +219,8 @@ enum UrlFetchFailureReason {
   unreachable,
   httpStatus,
   emptyResponse,
+  // A URL shared through the operating system matched no supported import type.
+  unsupportedSharedLink,
   // The Caller's Box.
   callersBoxEmptyInput,
   callersBoxInvalidUrl,
@@ -1424,7 +1426,7 @@ class SharedDanceLink {
 /// rebuild their source-specific fetch URLs from the validated numeric [id].
 SharedDanceLink extractSharedDanceLink(String rawShared) {
   const rejected = UrlFetchException(
-    UrlFetchFailureReason.contraDbInvalidProgramLink,
+    UrlFetchFailureReason.unsupportedSharedLink,
   );
 
   final trimmed = rawShared.trim();

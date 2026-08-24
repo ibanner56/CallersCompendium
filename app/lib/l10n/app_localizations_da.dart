@@ -4010,6 +4010,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importErrorInvalidUrl => 'Det ligner ikke en gyldig http(s)-URL.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Det link understøttes ikke til import.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Den URL omdirigerede for mange gange.';
 

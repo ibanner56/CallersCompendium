@@ -4088,6 +4088,10 @@
   "@importErrorInvalidUrl": {
     "x-sourceSha256": "8ae430a7d5bd8be981ced412bd101ea45eb5c5a682e48443b4b336f97ec32f7c"
   },
+  "importErrorUnsupportedSharedLink": "Ce lien n'est pas pris en charge pour l'importation.",
+  "@importErrorUnsupportedSharedLink": {
+    "x-sourceSha256": "e9aa5483ef48bad5bbe043ff4eb792f2808d548b017c557e40b9da634263220f"
+  },
   "importErrorTooManyRedirects": "Cette URL a effectué trop de redirections.",
   "@importErrorTooManyRedirects": {
     "x-sourceSha256": "849e5da3dea6d013f85c5965eef38b9202f621b4e0c2545e3b6647dd9fea1f7d"
@@ -6429,6 +6433,9 @@
     "x-sourceSha256": "e776e219bd5c6c0c9a4c6e9dccb50dca6355b01218be78e525e72658db282512"
   },
   "dialectEditorMoveWordingsHelp": "Les modèles facultatifs, réservés à l’affichage, remplacent la phrase normale d’un mouvement. Le texte canonique et la recherche restent inchangés.",
+  "@dialectEditorMoveWordingsHelp": {
+    "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
+  },
   "dialectEditorMoveWordingsConditionalHelp": "Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.",
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
@@ -6460,9 +6467,6 @@
   "dialectEditorMoveWordingBranchSingleFile": "File simple",
   "@dialectEditorMoveWordingBranchSingleFile": {
     "x-sourceSha256": "c8bfd38b98637807f9121e7f44305b993c4d6119075b994d966654a79ed3d503"
-  },
-  "@dialectEditorMoveWordingsHelp": {
-    "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
   },
   "dialectEditorMoveWordingsAdd": "Ajouter des modèles de formulation",
   "@dialectEditorMoveWordingsAdd": {
