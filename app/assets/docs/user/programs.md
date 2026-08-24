@@ -155,7 +155,7 @@ A program carries the details of its event:
 - program-level **band**, **caller**, and dancer **level**.
 
 The **venue** can be a simple free-text label, or — when you turn on **Use
-reusable venue records** in **Settings → General → Venues** — a saved
+reusable venue records** in **Settings → Program → Venues** — a saved
 [venue](./glossary.md#venue) record you can reuse across programs, with its own
 address, contacts, and schedule that you edit in one place. A program linked to
 a saved venue shows and exports that record's details; otherwise the free-text

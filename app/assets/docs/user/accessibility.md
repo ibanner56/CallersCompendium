@@ -35,7 +35,7 @@ case. Perform text starts large — sized to be readable at arm's length — and
 there's a very wide range beyond that.
 
 - **Auto-size** fits each card's text to the screen so nothing scrolls off. It's
-  on by default. Set how it starts under **Settings › General › Auto-size Perform
+  on by default. Set how it starts under **Settings › Program › Auto-size Perform
   cards**, and flip it for the night with **Auto-size text to screen** in Perform
   itself.
 - The **Decrease text size** and **Increase text size** buttons — **A−** and

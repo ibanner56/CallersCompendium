@@ -134,7 +134,7 @@ column headings, and prints a legend along the bottom:
 
 | Mark | Meaning |
 |---|---|
-| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in Settings ▸ General ▸ Programs) |
+| `‼` | Shares beats with an adjacent dance (or same phrase as adjacent dance, if you've turned off **Flag exact beat overlap only** in Settings ▸ Program ▸ Programs) |
 | `★` | Introduced here |
 | `▸` | Dance's first figure |
 | `✓` | Present |

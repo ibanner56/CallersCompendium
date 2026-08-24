@@ -49,6 +49,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 - **Programming Matrix PDF privacy** — linked venue postal addresses are now
   removed from the exported matrix header while the public venue name remains.
 
+- **User-guide navigation** — Settings and import instructions now match the
+  current section layout, and the guide now covers signed published collections.
+
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
@@ -242,9 +245,6 @@ install notes follow.
   via Azure Trusted Signing when the release workflow's five `AZURE_*` repository
   variables and federated OIDC configuration are present; otherwise the unsigned
   fallback may show a SmartScreen warning (see Platforms & install).
-- **The user guide has no screenshots yet.** The written guides are current; the
-  images pass is still to come.
-
 ### What you can do today
 
 - **Build your Collection.** Create, edit, and tag dances, organize them your way, and
@@ -307,7 +307,8 @@ source is safe. Before a large import — or any upgrade — you can export a ba
 
 Please tell us what breaks or feels wrong:
 <https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version (`0.1.0-beta.6`), and the steps you took. For import problems, a small
+version shown under **Settings › About**, and the steps you took. If you installed
+a beta from Releases, include its release tag too. For import problems, a small
 sanitized sample of the file you were importing helps enormously.
 
 ### License

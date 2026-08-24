@@ -37,6 +37,7 @@ Everything else can wait until you need it.
 |---|---|
 | Install or update the app | [Installation](installation.md) |
 | Fill an empty collection quickly | [Imports & migration](imports.md) |
+| Import a signed published collection | [Imports & migration — Import a published collection](imports.md#import-a-published-collection) |
 | Find one dance in a big collection | [Collection & search — Search across your dances](collection.md#search-across-your-dances) |
 | Narrow a list by level, formation, or tag | [Collection & search — Narrow things down with filters](collection.md#narrow-things-down-with-filters) |
 | Write a new dance, or fix one that came in wrong | [Write & edit dances](authoring.md) |
