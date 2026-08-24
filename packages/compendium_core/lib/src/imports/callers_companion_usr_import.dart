@@ -72,7 +72,8 @@ class CcUsrImportResult {
   /// again on [undo] so the rollback records a later existence transition.
   final List<String> restoredProgramIds;
 
-  /// Import timestamp used for the causal restore/re-tombstone transition.
+  /// Import timestamp used for causal restore and failed-commit compensation.
+  /// [undo] takes a fresh timestamp instead.
   final DateTime? programRestoreAt;
 
   /// Ids of the venues this import **inserted** while resolving each set's
@@ -254,6 +255,7 @@ class CallersCompanionUsrImporter {
       ProvenanceSource.callersCompanion,
     );
     final insertedIds = <String>[];
+    final priorCapturedFor = <String>{};
     final priorStates = <Program>[];
     final restoredProgramIds = <String>[];
     final persisted = <Program>[];
@@ -365,7 +367,9 @@ class CallersCompanionUsrImporter {
             createdAt: prior.createdAt,
             priorVenueId: prior.venueId,
           );
-          priorStates.add(prior);
+          if (priorCapturedFor.add(existingId)) {
+            priorStates.add(prior);
+          }
           if (prior.deletedAt != null) {
             await _programs.restore(existingId, at: now);
             if (!restoredProgramIds.contains(existingId)) {
@@ -512,16 +516,22 @@ class CallersCompanionUsrImporter {
   /// `DanceRepository.update`), so any related-dance link [commit] appended
   /// afterward is discarded along with the rest of the reverted state — with
   /// zero additional bookkeeping.
-  Future<void> undo(CcUsrImportResult result) async {
+  ///
+  /// [now] is an optional clock seam for deterministic callers; production
+  /// undo timestamps default to the current UTC time.
+  Future<void> undo(
+    CcUsrImportResult result, {
+    DateTime Function()? now,
+  }) async {
     if (result.isUndone) return;
+    final undoAt = (now?.call() ?? DateTime.now()).toUtc();
     await _programs.hardDelete(result.insertedProgramIds);
     for (final prior in result.updatedProgramPriorStates) {
       await _programs.update(prior);
     }
-    final programRestoreAt = result.programRestoreAt;
-    if (programRestoreAt != null) {
+    if (result.programRestoreAt != null) {
       for (final id in result.restoredProgramIds) {
-        await _programs.softDelete(id, at: programRestoreAt);
+        await _programs.softDelete(id, at: undoAt);
       }
     }
     for (final id in result.insertedVenueIds) {

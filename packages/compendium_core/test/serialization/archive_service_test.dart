@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
+import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
@@ -142,6 +143,16 @@ Future<void> _seed(CompendiumRepositories repos) async {
       updatedAt: DateTime.utc(2026, 4, 3),
     ),
   );
+}
+
+Future<int> _existenceStamp(CompendiumDatabase db, String id) async {
+  final rows = await db
+      .customSelect(
+        'SELECT existence_at AS v FROM programs WHERE id = ?',
+        variables: [Variable.withString(id)],
+      )
+      .get();
+  return rows.single.read<int>('v');
 }
 
 void main() {
@@ -300,6 +311,93 @@ void main() {
 
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
+    });
+
+    test('merge revives a tombstoned program with a causal stamp', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Old',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await repos.programs.softDelete('p1', at: DateTime.utc(2026, 7, 1));
+      final before = await _existenceStamp(db, 'p1');
+
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Restored',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 7, 2),
+          ),
+        ],
+      );
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final restored = await repos.programs.getById('p1');
+      expect(restored, isNotNull);
+      expect(restored!.title, 'Restored');
+      expect(await _existenceStamp(db, 'p1'), greaterThan(before));
+    });
+
+    test('merge revives a tombstoned dance with a causal stamp', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Old',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      await repos.dances.softDelete('d1', at: DateTime.utc(2026, 7, 1));
+      final before = await db
+          .customSelect(
+            'SELECT existence_at AS v FROM dances WHERE id = ?',
+            variables: [Variable.withString('d1')],
+          )
+          .getSingle()
+          .then((row) => row.read<int>('v'));
+
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Restored',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 7, 2),
+          ),
+        ],
+      );
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final restored = await repos.dances.getById('d1');
+      expect(restored, isNotNull);
+      expect(restored!.title, 'Restored');
+      final after = await db
+          .customSelect(
+            'SELECT existence_at AS v FROM dances WHERE id = ?',
+            variables: [Variable.withString('d1')],
+          )
+          .getSingle()
+          .then((row) => row.read<int>('v'));
+      expect(after, greaterThan(before));
     });
 
     test(

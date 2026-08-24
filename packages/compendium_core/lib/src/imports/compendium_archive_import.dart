@@ -240,7 +240,8 @@ class CompendiumArchiveImportResult {
   /// again on [undo] so the rollback records a later existence transition.
   final List<String> restoredProgramIds;
 
-  /// Import timestamp used for the causal restore/re-tombstone transition.
+  /// Import timestamp used for causal restore and failed-commit compensation.
+  /// [undo] takes a fresh timestamp instead.
   final DateTime? programRestoreAt;
 
   /// Ids of the venues this import **inserted** (one freshly-minted id per
@@ -659,16 +660,22 @@ class CompendiumArchiveImporter {
   /// when no program still references it (the repository guard throws
   /// otherwise); a still-referenced venue is retained. Inserted programs are
   /// removed first, so a venue referenced solely by this import is reclaimed.
-  Future<void> undo(CompendiumArchiveImportResult result) async {
+  ///
+  /// [now] is an optional clock seam for deterministic callers; production
+  /// undo timestamps default to the current UTC time.
+  Future<void> undo(
+    CompendiumArchiveImportResult result, {
+    DateTime Function()? now,
+  }) async {
     if (result.isUndone) return;
+    final undoAt = (now?.call() ?? DateTime.now()).toUtc();
     await _programs.hardDelete(result.insertedProgramIds);
     for (final prior in result.updatedProgramPriorStates) {
       await _programs.update(prior);
     }
-    final programRestoreAt = result.programRestoreAt;
-    if (programRestoreAt != null) {
+    if (result.programRestoreAt != null) {
       for (final id in result.restoredProgramIds) {
-        await _programs.softDelete(id, at: programRestoreAt);
+        await _programs.softDelete(id, at: undoAt);
       }
     }
     for (final id in result.insertedVenueIds) {
