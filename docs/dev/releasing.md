@@ -104,11 +104,12 @@ and produces no Android artifact.
 
 ## Safety model
 
-- Global workflow token is **read-only**. Only the `publish` job elevates to
-  `contents: write` (plus `id-token`/`attestations: write` for the provenance
-  and SBOM attestations); the `verify` job is read-only (`attestations: read` to
-  query the attestations API — no write, no `id-token`); and the `pages` job
-  elevates to `contents: write`
+- Global workflow token is **read-only**. Only the `publish_draft` job elevates
+  to `contents: write` (plus `id-token`/`attestations: write` for the provenance
+  and SBOM attestations); the approval-gated `publish_mobile` job remains
+  read-only; the `verify` job is read-only (`attestations: read` to query the
+  attestations API — no write, no `id-token`); and the `pages` job elevates to
+  `contents: write`
   **only** — just enough to push the manifest to the `gh-pages` branch (see
   [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages)).
 - Every job is guarded to the canonical repo on a tag ref (or a manual
@@ -300,7 +301,7 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
 - It always appends the safety footer: the per-platform signing posture, a
   reminder to verify against `SHA256SUMS`, and a note that a maintainer
   publishes the draft after review. The macOS line is **honest about the actual
-  signing outcome** — the publish job passes `--macos-signing configured` only
+  signing outcome** — `publish_draft` passes `--macos-signing configured` only
   when the Apple secrets are present (so macOS was Developer ID-signed &
   notarized); otherwise the footer reports all three desktops as **unsigned**.
 - If **no matching section exists**, either selected channel fails fast in the
@@ -338,7 +339,7 @@ supply chain with signed provenance.
   recorded in `metadata.properties`. First-party workspace packages and the
   Flutter SDK packages themselves are not listed as components (the SDK is pinned
   via `.fvmrc` and captured by the build provenance).
-- **How it's produced.** In the `publish` job, `flutter pub get
+- **How it's produced.** In the `publish_draft` job, `flutter pub get
   --enforce-lockfile` resolves the single root `pubspec.lock`, `dart pub deps
   --json` dumps the resolved graph, and `tools/release/gen_sbom.py` turns it into
   the SBOM. Output is deterministic (components sorted by purl; only
@@ -551,7 +552,7 @@ fully unit-tested with in-test keypairs.
 
 ### How CI signs it (required for publication)
 
-The `publish` job requires `UPDATE_SIGNING_KEY` (the Ed25519 **private key** in
+The `publish_draft` job requires `UPDATE_SIGNING_KEY` (the Ed25519 **private key** in
 PEM form). The `Determine update-signing availability` gate fails the release
 when it is absent; it never creates an unsigned draft or Pages publication.
 When present, `Sign refreshed manifests` signs every manifest selected by the
@@ -1008,7 +1009,7 @@ debugging).
 > **Status.** On a `v*` tag the `build` matrix's iOS leg (`macos-latest`), when
 > its App Store Connect API key, Apple Distribution certificate, and both
 > provisioning-profile secret sets are present, builds an unsigned archive and
-> exports a manually signed App Store `.ipa`. The protected `publish` job,
+> exports a manually signed App Store `.ipa`. The protected `publish_mobile` job,
 > which requires `release-signing` environment approval, then uploads that
 > artifact to TestFlight with `xcrun altool --upload-app`. An `always()` step
 > removes the build runner's key material, profiles, ephemeral keychain, and
@@ -1054,7 +1055,7 @@ maintained pubspec suffix is needed. `manageAppVersionAndBuildNumber` is set to
 
 The `.ipa` is **built + signed on both** a tag push **and** an ordinary,
 input-free `workflow_dispatch` (so the sign path can be validated), but the
-`xcrun altool --upload-app` step runs in the `publish` job **only** for a real
+`xcrun altool --upload-app` step runs in the `publish_mobile` job **only** for a real
 tag push (`github.event_name == 'push'` on a `refs/tags/v*` ref), after the
 `release-signing` protected environment is approved. A `workflow_dispatch` dry
 run therefore never uploads to TestFlight. An existing-tag recovery skips the
@@ -1099,7 +1100,7 @@ your Apple **Team ID**.
 ### Maintainer: GitHub Actions secrets (the last step to enable iOS)
 
 Add **all eight** and the pipeline starts signing iOS on the next tag; its
-approval-gated `publish` job uploads the resulting IPA to TestFlight. Omit any
+approval-gated `publish_mobile` job uploads the resulting IPA to TestFlight. Omit any
 and the iOS leg stays a clean skip. The API key and team ID are shared with the
 macOS Developer ID leg for notarization; the iOS distribution certificate and
 profiles are iOS-only.
