@@ -681,8 +681,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
         return;
       }
-      await _clearDraft(waitForCommits: false);
+      await _clearDraft(waitForCommits: false, resetEditorState: false);
       if (!mounted) return;
+      if (generation != _editGeneration) {
+        await _saveDraft();
+        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+        return;
+      }
       setState(() {
         _existing = persisted;
         _dirty = false;
@@ -731,12 +736,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// Awaits every autosave write scheduled so far (via the chained
   /// [_saveQueueTail]) before removing, so none of them can complete *after*
   /// the removal and resurrect the draft (issue #616).
-  Future<void> _clearDraft({bool waitForCommits = true}) async {
+  Future<void> _clearDraft({
+    bool waitForCommits = true,
+    bool resetEditorState = true,
+  }) async {
     _autosaveTimer?.cancel();
     _autoCommitTimer?.cancel();
-    _editGeneration++;
     _draftGeneration++;
-    if (mounted) setState(() => _dirty = false);
+    if (resetEditorState) {
+      _editGeneration++;
+      if (mounted) setState(() => _dirty = false);
+    }
     if (waitForCommits) await _commitQueueTail;
     await _saveQueueTail;
     try {
