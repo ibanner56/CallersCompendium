@@ -5930,7 +5930,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'This field\'s values travel with your collection when you export or share it';
+      'This field\'s values travel with your collection when you share it; backups always include them';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5938,7 +5938,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+      'The contents of any custom field you create are included in your backups. When you share your collection, turn off \"Include in sharing\" in that field\'s settings to keep a field private.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Got it';

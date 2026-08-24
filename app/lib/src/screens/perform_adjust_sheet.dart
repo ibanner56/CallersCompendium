@@ -26,6 +26,8 @@ class PerformAdjustSheet extends StatefulWidget {
     required this.data,
     required this.dialect,
     required this.enrichment,
+    this.danceOverrides = const {},
+    this.authorNameOverrides = const {},
   });
 
   final Program program;
@@ -39,6 +41,13 @@ class PerformAdjustSheet extends StatefulWidget {
   final String currentSlotId;
 
   final CollectionData data;
+
+  /// Fresh dance records the source [PerformProgramScreen] has loaded while the
+  /// debounced collection snapshot is catching up.
+  final Map<String, Dance> danceOverrides;
+
+  /// Fresh author names paired with [danceOverrides].
+  final Map<String, String> authorNameOverrides;
 
   /// Active dialect for the quick-search picker's canonicalization.
   final Dialect dialect;
@@ -119,7 +128,9 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
 
   String _label(AppLocalizations l10n, ProgramSlot slot) {
     if (slot.danceId != null) {
-      final dance = widget.data.dancesById[slot.danceId];
+      final dance =
+          widget.danceOverrides[slot.danceId] ??
+          widget.data.dancesById[slot.danceId];
       if (dance != null) return dance.title;
     }
     final text = slot.text?.trim();
@@ -197,7 +208,9 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
       _changed = true;
     });
     final title =
-        widget.data.dancesById[danceId]?.title ?? l10n.performDanceFallback;
+        (widget.danceOverrides[danceId] ?? widget.data.dancesById[danceId])
+            ?.title ??
+        l10n.performDanceFallback;
     _announce(l10n.performInsertedAnnounce(title));
   }
 
@@ -247,6 +260,8 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
                     data: widget.data,
                     dialect: widget.dialect,
                     enrichment: widget.enrichment,
+                    danceOverrides: widget.danceOverrides,
+                    choreographerNamesOverride: widget.authorNameOverrides,
                     onAddDance: (id) {
                       _insertDance(id);
                       Navigator.of(sheetContext).pop();

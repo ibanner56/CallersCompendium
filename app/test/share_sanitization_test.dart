@@ -240,4 +240,26 @@ void main() {
       );
     });
   });
+
+  group('resolveSanitizedVenueLabelParts', () {
+    test('keeps only the public name for a linked venue', () {
+      final venue = fullVenue();
+
+      expect(
+        resolveSanitizedVenueLabelParts(venue.id, 'Free-text fallback', {
+          venue.id: venue,
+        }),
+        'Town Hall',
+      );
+    });
+
+    test('preserves free-text fallback when the linked venue is absent', () {
+      expect(
+        resolveSanitizedVenueLabelParts('missing', '  The Barn  ', {
+          'v1': fullVenue(),
+        }),
+        'The Barn',
+      );
+    });
+  });
 }
