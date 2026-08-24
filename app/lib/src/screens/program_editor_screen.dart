@@ -685,6 +685,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (!mounted) return;
       if (generation != _editGeneration) {
         await _saveDraft();
+        if (!mounted) return;
         if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
         return;
       }
