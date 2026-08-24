@@ -16,8 +16,8 @@ Squares) callers — on desktop, tablet, and phone.
 > named-dialect library manager), importing from community sources and migrating
 > from Caller's Companion have landed (Phase 6), and the release pipeline
 > (Phase 7) now produces downloadable builds for every platform. Releases have
-> shipped steadily since `v0.1.0-beta.1`, and the latest published beta is
-> **`v0.1.0-beta.9`**.
+> shipped steadily since `v0.1.0-beta.1` (legacy `-beta.N` series); going forward
+> beta tags are `vX.Y.Z-beta` (no counter). The latest published legacy beta is **`v0.1.0-beta.9`**.
 > **Download the latest beta from the
 > [Releases page](https://github.com/ibanner56/CallersCompendium/releases)** —
 > pick the newest release (marked *Pre-release*) and expand its **Assets** for
