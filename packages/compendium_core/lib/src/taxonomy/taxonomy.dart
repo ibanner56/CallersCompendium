@@ -167,8 +167,9 @@ class Taxonomy {
   /// whose pin matches the effective param value. Returns [figure.move]
   /// unchanged when no re-routing applies.
   ///
-  /// Call at **write time** (import, editor save) rather than on every read —
-  /// `effectiveParams` is on the hot path and is deliberately untouched.
+  /// Call when an authoring surface needs the effective move (the editor may
+  /// route live; persistence also re-checks at write time) rather than on every
+  /// read — `effectiveParams` is on the hot path and is deliberately untouched.
   /// Canonical keys are unaffected because both halves of a pair resolve to
   /// the same [MoveDef] id.
   String resolvedMoveId(Figure figure) {

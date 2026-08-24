@@ -19,6 +19,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Figure alias editor previews** — changing a shoulder or hand parameter now
+  immediately updates the inverse-pair move name in the editor.
+  
 - **Compact do-si-do and see-saw names** — canonical figure text now uses
   `dosido` and `seesaw`, while imports and full-text search continue accepting
   the legacy spaced and hyphenated spellings. (issue #1056)

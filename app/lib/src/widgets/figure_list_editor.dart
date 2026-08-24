@@ -1166,6 +1166,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     if (draft.move == 'chain' && key == 'who') {
       _seedChainHand('chain', draft.params);
     }
+    _rerouteInversePair(draft, widget.taxonomy);
     final newDefault = _canonicalBeats(draft.params);
     if (newDefault == null) return;
     if (draft.beatsTouched) {
@@ -2241,6 +2242,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   }
 }
 
+void _rerouteInversePair(FigureDraft draft, Taxonomy taxonomy) {
+  final move = draft.move;
+  if (move == null) return;
+  final resolved = taxonomy.resolvedMoveId(
+    Figure(move: move, params: draft.params),
+  );
+  if (resolved != move) draft.move = resolved;
+}
+
 // ---------------------------------------------------------------------------
 // Inline emphasis affordance (issue #369)
 // ---------------------------------------------------------------------------
@@ -2594,6 +2604,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               if (draft.move == 'chain' && entry.key == 'who') {
                 _seedChainHand('chain', draft.params);
               }
+              _rerouteInversePair(draft, widget.taxonomy);
               widget.onChanged();
             },
           ),

@@ -16,6 +16,8 @@ class _TestPicker extends StatefulWidget {
     this.compactWidthBreakpoint = 600,
     this.compactHeightBreakpoint = 480,
     this.autofocus = false,
+    this.initialText = '',
+    this.initialValue,
     this.focusNode,
     this.refocusAfterSelect = false,
   });
@@ -26,6 +28,8 @@ class _TestPicker extends StatefulWidget {
   final double compactWidthBreakpoint;
   final double compactHeightBreakpoint;
   final bool autofocus;
+  final String initialText;
+  final TextEditingValue? initialValue;
   final FocusNode? focusNode;
 
   /// Mirrors `name_picker.dart`'s `_AddAutocomplete.onSelected`
@@ -79,6 +83,9 @@ class _TestPickerState extends State<_TestPicker> {
       textEditingController: widget.refocusAfterSelect ? _controller : null,
       compactWidthBreakpoint: widget.compactWidthBreakpoint,
       compactHeightBreakpoint: widget.compactHeightBreakpoint,
+      initialValue: widget.refocusAfterSelect
+          ? null
+          : widget.initialValue ?? TextEditingValue(text: widget.initialText),
       displayStringForOption: (o) => o,
       optionsBuilder: _optionsFor,
       onSelected: _handleSelected,
@@ -120,6 +127,8 @@ Future<void> _pump(
   double compactWidthBreakpoint = 600,
   double compactHeightBreakpoint = 480,
   bool autofocus = false,
+  String initialText = '',
+  TextEditingValue? initialValue,
   TextDirection textDirection = TextDirection.ltr,
   FocusNode? focusNode,
   bool refocusAfterSelect = false,
@@ -136,6 +145,8 @@ Future<void> _pump(
             compactWidthBreakpoint: compactWidthBreakpoint,
             compactHeightBreakpoint: compactHeightBreakpoint,
             autofocus: autofocus,
+            initialText: initialText,
+            initialValue: initialValue,
             focusNode: focusNode,
             refocusAfterSelect: refocusAfterSelect,
           ),
@@ -188,6 +199,103 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(custom, 'a brand new figure');
+    });
+
+    testWidgets('updates an owned field when initial text changes', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        options: const ['swing'],
+        onSelected: (_) {},
+        initialValue: const TextEditingValue(
+          text: 'do si do',
+          selection: TextSelection.collapsed(offset: 3),
+        ),
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.text,
+        'do si do',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.selection
+            .baseOffset,
+        3,
+      );
+
+      await _pump(
+        tester,
+        options: const ['swing'],
+        onSelected: (_) {},
+        initialValue: const TextEditingValue(
+          text: 'see saw',
+          selection: TextSelection.collapsed(offset: 2),
+        ),
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.text,
+        'see saw',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.selection
+            .baseOffset,
+        2,
+      );
+    });
+
+    testWidgets('updates the sheet field when initial text changes', (
+      tester,
+    ) async {
+      await setScreenSize(tester, const Size(360, 720));
+      final initialText = ValueNotifier('do si do');
+      addTearDown(initialText.dispose);
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MaterialApp(
+            home: Scaffold(
+              body: ValueListenableBuilder<String>(
+                valueListenable: initialText,
+                builder: (context, text, child) {
+                  return _TestPicker(
+                    options: const ['swing'],
+                    onSelected: (_) {},
+                    initialText: text,
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('test-input')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      initialText.value = 'see saw';
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.text,
+        'see saw',
+      );
     });
   });
 

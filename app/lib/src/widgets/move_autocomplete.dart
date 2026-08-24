@@ -42,7 +42,8 @@ class MoveAutocomplete extends StatefulWidget {
   /// displays and is searchable). Null falls back to canonical taxonomy names.
   final Dialect? dialect;
 
-  /// Text shown initially in the field (e.g. the current move's display name).
+  /// Text shown in the field (e.g. the current move's display name). Changes
+  /// after mount update the field when it owns its controller.
   final String initialText;
 
   /// Called when the user picks a move/alias from the options.
