@@ -63,7 +63,7 @@ so there is no guessing, and it stays where you put it — next time too.
 current dance's full text fits the screen without scrolling, recomputing whenever
 you move to a new dance or slot, rotate the device, or resize the window. So the
 text is always as large as it can be while still fitting. It starts however you
-set **Auto-size Perform cards** in [Settings › General](./settings.md#general),
+set **Auto-size Perform cards** in [Settings › Program](./settings.md#program),
 and the in-view toggle flips it for the night.
 
 **A− and A+.** The **Decrease text size** and **Increase text size** controls step
