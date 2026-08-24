@@ -22,6 +22,8 @@ def main() -> None:
     assert "recovery: ${{ steps.resolve.outputs.recovery }}" in text
     assert "release_ref: ${{ steps.resolve.outputs.release_ref }}" in text
     assert "source_sha: ${{ steps.resolve.outputs.source_sha }}" in text
+    assert 'if [ "$GITHUB_REF" != "refs/heads/main" ]; then' in text
+    assert "::error::existing-tag recovery must be dispatched from main" in text
 
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"

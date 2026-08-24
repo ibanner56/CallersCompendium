@@ -94,6 +94,10 @@ jobs:
             is_release=true
             if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
               recovery=true
+              if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+                echo "::error::existing-tag recovery must be dispatched from main (got $GITHUB_REF)"
+                exit 1
+              fi
               tag="$RECOVERY_TAG"
             else
               tag="$GITHUB_REF_NAME"
