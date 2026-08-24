@@ -6452,9 +6452,13 @@
   "@dialectEditorMoveWordingSlots": {
     "x-sourceSha256": "f48b49339c2633613c708334bcf874efa16032e1559f864855dab5c873622810"
   },
-  "dialectEditorMoveWordingInvalid": "Diese Vorlage ist unvollständig; daher wird die normale Formulierung verwendet.",
+  "dialectEditorMoveWordingInvalid": "Diese Vorlage ist ungültig; daher wird die normale Formulierung verwendet.",
   "@dialectEditorMoveWordingInvalid": {
-    "x-sourceSha256": "82d181f4940bf5056476d4c9ff8d14923cf765549b0916400dbebaea9f376c46"
+    "x-sourceSha256": "75208996f5a3de732968e35c2a456e07ae6ad7986a9e17efe461441f13108c86"
+  },
+  "dialectEditorMoveWordingSaveError": "Beheben Sie ungültige Vorlagen für Bewegungsformulierungen, bevor Sie speichern: {figures}",
+  "@dialectEditorMoveWordingSaveError": {
+    "x-sourceSha256": "bda0bd00f9f267ad6105147dd29294ce1122fb9708765a52d6dacd047c496675"
   },
   "dialectEditorMoveWordingUnknownSlots": "Unbekannte Platzhalter bleiben leer: {slots}",
   "@dialectEditorMoveWordingUnknownSlots": {

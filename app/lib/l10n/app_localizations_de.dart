@@ -6501,7 +6501,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Diese Vorlage ist unvollständig; daher wird die normale Formulierung verwendet.';
+      'Diese Vorlage ist ungültig; daher wird die normale Formulierung verwendet.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Beheben Sie ungültige Vorlagen für Bewegungsformulierungen, bevor Sie speichern: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {
