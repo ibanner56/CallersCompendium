@@ -5279,6 +5279,10 @@
   "@importErrorInvalidUrl": {
     "description": "Error shown when the entered import URL is not a valid http/https URL."
   },
+  "importErrorUnsupportedSharedLink": "That link isn't supported for import.",
+  "@importErrorUnsupportedSharedLink": {
+    "description": "Error shown when an operating-system shared link is neither a supported program nor a supported dance."
+  },
   "importErrorTooManyRedirects": "That URL redirected too many times.",
   "@importErrorTooManyRedirects": {
     "description": "Error shown when fetching an import URL exceeded the redirect limit."

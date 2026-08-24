@@ -54,6 +54,11 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Added
 
+- **iOS browser sharing** — share supported Caller's Box and ContraDB dance
+  links, or ContraDB program links, to queue them for review in Caller's
+  Compendium. The share extension confirms the queueing result in the app's
+  selected language; open the app to review and import the link.
+
 - **Experimental settings** — a new section provides a home for features that
   are still in development.
 

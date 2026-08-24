@@ -6272,6 +6272,12 @@ abstract class AppLocalizations {
   /// **'That doesn\'t look like a valid http(s) URL.'**
   String get importErrorInvalidUrl;
 
+  /// Error shown when an operating-system shared link is neither a supported program nor a supported dance.
+  ///
+  /// In en, this message translates to:
+  /// **'That link isn\'t supported for import.'**
+  String get importErrorUnsupportedSharedLink;
+
   /// Error shown when fetching an import URL exceeded the redirect limit.
   ///
   /// In en, this message translates to:

@@ -1,0 +1,9 @@
+"share_extension.action.done" = "完了";
+"share_extension.title.preparing_import" = "インポートを準備中";
+"share_extension.message.saving_link" = "このリンクをCaller's Compendium用に保存しています。";
+"share_extension.title.ready_to_import" = "インポートの準備ができました";
+"share_extension.message.link_saved" = "このリンクは保存されました。Caller's Compendiumを開いて確認し、インポートしてください。";
+"share_extension.title.no_link" = "インポートするリンクがありません";
+"share_extension.message.no_link" = "この共有にはCaller's Compendiumでインポートできるリンクが含まれていません。";
+"share_extension.title.save_failed" = "リンクを保存できませんでした";
+"share_extension.message.save_failed" = "Caller's Compendiumでこのリンクをインポート用に保存できませんでした。もう一度お試しください。";

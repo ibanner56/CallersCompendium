@@ -4040,6 +4040,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Dat ziet er niet uit als een geldige http(s)-URL.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'Die link wordt niet ondersteund voor import.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'Die URL heeft te vaak doorgestuurd.';
 

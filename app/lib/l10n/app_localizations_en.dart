@@ -4003,6 +4003,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'That doesn\'t look like a valid http(s) URL.';
 
   @override
+  String get importErrorUnsupportedSharedLink =>
+      'That link isn\'t supported for import.';
+
+  @override
   String get importErrorTooManyRedirects =>
       'That URL redirected too many times.';
 

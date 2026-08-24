@@ -36,6 +36,8 @@ String importErrorMessage(AppLocalizations l10n, UrlFetchException error) {
           ? l10n.importErrorUnreachable
           : l10n.importErrorHttpStatus(error.statusCode!),
     UrlFetchFailureReason.emptyResponse => l10n.importErrorEmptyResponse,
+    UrlFetchFailureReason.unsupportedSharedLink =>
+      l10n.importErrorUnsupportedSharedLink,
     UrlFetchFailureReason.callersBoxEmptyInput =>
       l10n.importErrorCallersBoxEmptyInput,
     UrlFetchFailureReason.callersBoxInvalidUrl =>

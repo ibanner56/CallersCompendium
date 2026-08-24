@@ -2,22 +2,59 @@ import UIKit
 import UniformTypeIdentifiers
 
 /// Share Extension entry point (issue #343). It appears in the Safari / browser
-/// share sheet; when the user shares a web page (e.g. a ContraDB program page),
-/// this stashes the shared URL string in the shared App Group and wakes the
-/// host app so it can import it through the existing hardened pipeline.
+/// share sheet; when the user shares a web page, this stashes the shared URL
+/// string in the shared App Group for the host app to import.
 ///
-/// **Write-then-signal (issue #428):** the payload is appended to the App Group
-/// queue *first* (durable), *then* the host is woken best-effort. The host also
-/// drains the queue on its next activation, so delivery survives a failed wake —
-/// nothing is orphaned even if the app was suspended/closed when it was shared.
+/// **Write-then-confirm:** the payload is appended to the App Group queue
+/// *before* the extension presents a confirmation. A Share Extension cannot
+/// foreground its containing app, so the user explicitly dismisses this surface
+/// and opens Caller's Compendium to review and import the queued link.
 ///
 /// This extension deliberately does **no** validation and **no** import: it
 /// only forwards the raw shared string verbatim. The host app treats it as
-/// untrusted input and OWASP-validates it (`validateSharedContraDbProgramUrl`:
-/// https only, `contradb.com` host allow-list, `/programs/N` path) before it
-/// touches the import pipeline. Keeping the native surface dumb keeps the trust
-/// boundary in one place (Dart).
+/// untrusted input and OWASP-validates it against the supported program and
+/// single-dance page URL shapes before it touches an import pipeline. Keeping
+/// the native surface dumb keeps the trust boundary in one place (Dart).
 final class ShareViewController: UIViewController {
+  private enum L10n {
+    static let done = NSLocalizedString(
+      "share_extension.action.done",
+      bundle: .main,
+      comment: "Dismisses the Share Extension after its result is shown.")
+    static let preparingImportTitle = NSLocalizedString(
+      "share_extension.title.preparing_import",
+      bundle: .main,
+      comment: "Title shown while the shared link is being queued.")
+    static let savingLinkMessage = NSLocalizedString(
+      "share_extension.message.saving_link",
+      bundle: .main,
+      comment: "Message shown while the shared link is being queued.")
+    static let readyToImportTitle = NSLocalizedString(
+      "share_extension.title.ready_to_import",
+      bundle: .main,
+      comment: "Title shown when the shared link was queued successfully.")
+    static let linkSavedMessage = NSLocalizedString(
+      "share_extension.message.link_saved",
+      bundle: .main,
+      comment: "Explains how to import a successfully queued shared link.")
+    static let noLinkTitle = NSLocalizedString(
+      "share_extension.title.no_link",
+      bundle: .main,
+      comment: "Title shown when the share contained no usable link.")
+    static let noLinkMessage = NSLocalizedString(
+      "share_extension.message.no_link",
+      bundle: .main,
+      comment: "Explains that the share contained no usable link.")
+    static let saveFailedTitle = NSLocalizedString(
+      "share_extension.title.save_failed",
+      bundle: .main,
+      comment: "Title shown when the shared link could not be queued.")
+    static let saveFailedMessage = NSLocalizedString(
+      "share_extension.message.save_failed",
+      bundle: .main,
+      comment: "Explains that queuing the shared link failed.")
+  }
+
   /// App Group shared with the host app; shared URLs are handed over through the
   /// `SharedImportQueue` directory in its container.
   private static let appGroupId = "group.org.callerscompendium.compendiumApp"
@@ -33,18 +70,54 @@ final class ShareViewController: UIViewController {
   /// (e.g. a transient atomic-write temp file) is ignored by the drain.
   private static let payloadExtension = "ccurl"
 
-  /// Custom URL scheme used only to wake the host app (NOT a universal link —
-  /// see issue #343). Confirmed against `Runner/Info.plist` `CFBundleURLSchemes`.
-  private static let hostScheme = "callerscompendium"
-
   /// Upper bound on queued payloads so repeatedly sharing into a suspended app
   /// can't grow the App Group unbounded; the host drains and clears it on its
   /// next activation. Oldest entries beyond the cap are dropped.
   private static let maxQueuedURLs = 16
+  private let titleLabel = UILabel()
+  private let messageLabel = UILabel()
+  private let activityIndicator = UIActivityIndicatorView(style: .large)
+  private let doneButton = UIButton(type: .system)
 
   override func viewDidLoad() {
     super.viewDidLoad()
+    configureView()
+    showLoading()
     handleShare()
+  }
+
+  private func configureView() {
+    view.backgroundColor = .systemBackground
+    let content = UIStackView(arrangedSubviews: [
+      titleLabel,
+      activityIndicator,
+      messageLabel,
+      doneButton,
+    ])
+    content.axis = .vertical
+    content.spacing = 16
+    content.alignment = .fill
+    content.translatesAutoresizingMaskIntoConstraints = false
+    view.addSubview(content)
+
+    titleLabel.font = .preferredFont(forTextStyle: .headline)
+    titleLabel.textAlignment = .center
+    titleLabel.adjustsFontForContentSizeCategory = true
+
+    messageLabel.font = .preferredFont(forTextStyle: .body)
+    messageLabel.numberOfLines = 0
+    messageLabel.textAlignment = .center
+    messageLabel.adjustsFontForContentSizeCategory = true
+
+    doneButton.configuration = .filled()
+    doneButton.setTitle(L10n.done, for: .normal)
+    doneButton.addTarget(self, action: #selector(dismissExtension), for: .touchUpInside)
+
+    NSLayoutConstraint.activate([
+      content.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+      content.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+      content.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+    ])
   }
 
   private func handleShare() {
@@ -52,7 +125,9 @@ final class ShareViewController: UIViewController {
       let item = extensionContext?.inputItems.first as? NSExtensionItem,
       let attachments = item.attachments
     else {
-      return complete()
+      return showFailure(
+        title: L10n.noLinkTitle,
+        message: L10n.noLinkMessage)
     }
 
     let urlType = UTType.url.identifier
@@ -74,22 +149,30 @@ final class ShareViewController: UIViewController {
         return
       }
     }
-    complete()
+    showFailure(
+      title: L10n.noLinkTitle,
+      message: L10n.noLinkMessage)
   }
 
-  /// Writes the shared string to the App Group and wakes the host app. Runs the
-  /// hand-off on the main thread because `loadItem` completes off-main.
-  ///
-  /// Write-then-signal (issue #428): the payload is made durable *before* the
-  /// wake is attempted, so a failed wake never loses it.
+  /// Writes the shared string to the App Group. Runs the hand-off on the main
+  /// thread because `loadItem` completes off-main.
   private func forward(_ shared: String?) {
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
       let trimmed = shared?.trimmingCharacters(in: .whitespacesAndNewlines)
       if let trimmed, !trimmed.isEmpty {
-        self.enqueueSharedURL(trimmed)
+        if self.enqueueSharedURL(trimmed) {
+          self.showConfirmation()
+        } else {
+          self.showFailure(
+            title: L10n.saveFailedTitle,
+            message: L10n.saveFailedMessage)
+        }
+      } else {
+        self.showFailure(
+          title: L10n.noLinkTitle,
+          message: L10n.noLinkMessage)
       }
-      self.wakeHostAndComplete()
     }
   }
 
@@ -98,10 +181,10 @@ final class ShareViewController: UIViewController {
   /// concurrently — only ever observes a fully-written payload (issue #428, PR
   /// #484 review). The host treats every entry as untrusted input and
   /// OWASP-validates it before import.
-  private func enqueueSharedURL(_ url: String) {
+  private func enqueueSharedURL(_ url: String) -> Bool {
     guard let data = url.data(using: .utf8),
       let directory = Self.queueDirectory()
-    else { return }
+    else { return false }
     let fileManager = FileManager.default
     do {
       try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -111,10 +194,9 @@ final class ShareViewController: UIViewController {
       // atomic within the directory, so the host never reads a half-written file.
       try data.write(to: destination, options: .atomic)
       pruneQueue(in: directory)
+      return true
     } catch {
-      // Best-effort: if the container is briefly unavailable we skip this payload
-      // rather than crash the share sheet. Delivery of prior payloads is
-      // unaffected — the host drains whatever is present on its next foreground.
+      return false
     }
   }
 
@@ -152,30 +234,29 @@ final class ShareViewController: UIViewController {
       ?? .distantPast
   }
 
-  /// Opportunistically wakes the host, then finishes the request. Delivery is
-  /// NOT dependent on this: the payload is already durably queued in the App
-  /// Group and the host drains it on its next foreground (issue #428).
-  ///
-  /// `NSExtensionContext.open` is documented for Today/iMessage extensions and
-  /// is unsupported by the Share extension point — it typically reports failure
-  /// without foregrounding the host (PR #484 review). We therefore treat it as a
-  /// best-effort nudge only: the result flag is ignored and the extension always
-  /// completes SUCCESSFULLY, because the durable queue + host foreground-drain is
-  /// the authoritative, guaranteed delivery path. We must never reach
-  /// `UIApplication` or the private `openURL:` selector (a no-op on scene-based
-  /// iOS).
-  private func wakeHostAndComplete() {
-    guard let context = extensionContext,
-      let url = URL(string: "\(Self.hostScheme)://import")
-    else {
-      complete()
-      return
-    }
-    // Ignore the result: open() may report failure on the Share extension point;
-    // that is expected and non-fatal since the payload is already enqueued.
-    context.open(url) { [weak self] _ in
-      self?.complete()
-    }
+  private func showLoading() {
+    titleLabel.text = L10n.preparingImportTitle
+    messageLabel.text = L10n.savingLinkMessage
+    activityIndicator.startAnimating()
+    doneButton.isHidden = true
+  }
+
+  private func showConfirmation() {
+    titleLabel.text = L10n.readyToImportTitle
+    messageLabel.text = L10n.linkSavedMessage
+    activityIndicator.stopAnimating()
+    doneButton.isHidden = false
+  }
+
+  private func showFailure(title: String, message: String) {
+    titleLabel.text = title
+    messageLabel.text = message
+    activityIndicator.stopAnimating()
+    doneButton.isHidden = false
+  }
+
+  @objc private func dismissExtension() {
+    complete()
   }
 
   private func complete() {
