@@ -2549,11 +2549,8 @@ repair is to list §4.1's pass as I1's sanctioned exception, and that is a
 whitelist — the exact "maintained enumeration relocates the forgetting" that
 W17's own ratchet argument rejects three sections later. The next such pass gets
 added by whoever remembers, which is how the first omission happened. So I1 now
-carries a *condition*: a transformation that is pure, idempotent, row-local and
-computed identically by every device produces content that **cannot diverge**,
-and I1 exists to order content that **did** diverge. Nothing to order, nothing
-to stamp. §4.1's pass qualifies under that condition rather than by name, and a
-future claimant must prove the property by test.
+carries a *condition* that a claimant proves by test rather than a name it
+cites.
 
 That reframing then did work I did not anticipate, which is the usual sign it is
 the right one. It settles the collision rule too: the pass must skip a `UNIQUE`
@@ -2563,14 +2560,86 @@ precisely the divergence I1 orders — so a pass that could merge would forfeit
 the exemption it depends on. Two blocking findings turned out to be one
 question.
 
-**Skipping is not free, and saying so is part of the fix.** A skipped pair stays
-un-normalised, so if a peer holds only one of the two rows, that peer normalises
-its copy and this device does not. The shared record then presents as
-`changed`/`changed` with equal `updatedAt`, which resolves and is **reported**.
-That is a visible outcome over a pair the user already has reason to look at,
-which this design consistently prefers to a silent merge — but it is a real
-residual, and a version of this section that claimed skip was costless would
-have been wrong in the direction that flatters the author.
+**And then the property I named was false, which is the more useful half of the
+story.** The condition I wrote was "pure, idempotent, **row-local**, computed
+identically by every device" — and the collision rule I derived from it in the
+same commit *reads sibling rows by construction*. Whether a row is normalised
+depends on whether some other row normalises to the same `UNIQUE` value, so a
+device holding a colliding pair skips while a device holding only one of them
+does not. The pass is not row-local, and the sentence authorising it said it
+was.
+
+The lesson is not "check your work". It is that **a fix and the justification
+written to support it are two artefacts, and only one of them gets reviewed.**
+The collision rule was scrutinised hard — it is the part with the failure modes.
+The clause it hangs from was treated as settled because it was the thing being
+applied. Generalising: when a round produces both a rule and the principle the
+rule is justified by, the principle is the newer of the two even when it reads
+as the older, and it inherits none of the scrutiny the rule attracts.
+
+**The mandated proof could not have caught it, and that is the part worth
+keeping.** I had required a claimant to show that "two independent runs over the
+same input produce identical output". That test is aimed at nondeterminism —
+clocks, device ids, randomness — and a cross-row read is *perfectly
+deterministic* given a fixed database, so the collision pass sails through it
+while doing the exact thing the property forbids. A proof obligation that cannot
+fail against the defect it was written for is worse than none, because it
+converts an unexamined assumption into a discharged one. The condition is now
+two-part — content-derived **and** divergence-surfacing — and the second half is
+proved by running the operation over *two databases containing the same row*,
+which is the only shape that can see a sibling read at all.
+
+The repaired property is also the more honest one, and it was already in the
+document: the pass does not guarantee that no divergence occurs, it guarantees
+that **any divergence it can produce is reported and never silently resolved**.
+That is what a stamp would have bought, obtained without inventing an order over
+rows nobody edited. I had this argument in hand and wrote the exception on a
+stronger claim instead, because the stronger claim sounded cleaner.
+
+**Skipping is not free, and my description of the cost was itself too kind.** A
+skipped pair stays un-normalised, so if a peer holds only one of the two rows,
+that peer normalises its copy and this device does not. I wrote that the
+resulting `changed`/`changed` tie "resolves and is reported". §6.3, ten
+paragraphs away, says the opposite in as many words: neither side wins, neither
+body is applied, and it is re-reported on **every** subsequent pass until a human
+edits one side. It is a standing non-convergent state, not a resolution — and
+"resolved and reported" is the exact hedge-shaped phrasing this design already
+identified as how a specification records that it knows it is contradicting
+itself. The design still prefers it to a silent merge. It is a residual, and it
+had to be written as one.
+
+**A skip recorded as final is a defect with two faces.** Nothing re-ran the pass
+after the completion marker was written, so a skipped row stayed un-normalised
+permanently — and separately, tombstones occupy their natural keys, because soft
+delete is an `UPDATE` and none of the three `UNIQUE` indexes filters on
+`deleted_at`. Compose those and a **live** row is blocked forever by a **dead**
+one the user cannot see, cannot list and cannot act on. I had reached for a
+special case for tombstones. The better fix was one rule that dissolves both:
+record the skipped groups and retry them on each open. Then every blocking
+condition — a rename, a delete, a purge, a reconciliation — resolves itself at
+the next launch with no rule naming any of them. Two findings, one root, and the
+narrower fix would have left the other half live.
+
+**The obvious implementation of "detect a collision" violates the rule it
+implements.** Try the write, catch the `UNIQUE` violation. But when two rows sit
+in different decompositions, the first write *succeeds* — nothing holds the
+target value yet, because the second row is still in its own un-normalised form
+— so exactly one member of a pair the rule says to leave alone gets normalised,
+and which member depends on row order. The spec had a MUST ("leave **both**
+un-normalised") and no mechanism that could deliver it. The fix is to group by
+target value before writing anything, which removes the ordering question rather
+than answering it. **Specifying an outcome is not specifying a procedure**, and
+where the natural procedure quietly fails the outcome, the spec owes the
+procedure.
+
+**A pass defined over a classification will reach columns the classification
+does not know about.** "Every `shareable` string column" includes `settings.key`
+— which is `shareable`, and is also the settings record's *identity*, so
+normalising it renames the record instead of repairing it. It is inert today
+because settings keys are ASCII app constants and NFC is the identity function
+over them, which is precisely why nobody would find it. A rule scoped by a tag
+inherits everything the tag was drawn around, and the registry was drawn around
+egress, not identity.
 
 **A bulk write is not a loop, and the codebase already knew that.** Two further
 constraints came from reading how the existing one-time sweeps behave rather
@@ -2585,14 +2654,33 @@ touches none of the three stamps, so it composes with the rule above. Both are
 the kind of defect that is invisible from inside the specification and obvious
 from inside the repository.
 
-**The general lesson, which is now four rounds old: the newest unit carries the
-round's defects.** W18 was created in round 32 to fix an ownership gap, and in
-round 33 it was where both blocking findings lived — including a fresh ownership
-gap, since its own ratchet was gated by no conformance bucket. Round 30's was
-the spec paraphrasing an algorithm; round 31's was the same thing twice more;
-round 32's was the plan getting less scrutiny than the spec. Scaffolding built
-to close a gap is written last, reviewed least, and inherits none of the
-scrutiny that produced it.
+**Reading the precedent is not the same as citing it.** The plan told an
+implementer to call `runDerivedRebuild()` "unconditionally, as
+`_normaliseInversePairMoveIdsIfNeeded` already does". It does not: it gates the
+rebuild on `!alreadyRebuilt || rewroteAny`, and a second call site in the same
+file gates on a rewrite count alone, with a comment written specifically to
+contrast the two forms. So the plan cited a precedent that says the opposite of
+the instruction it was supporting — and the instruction was *also* wrong once
+skips became retryable, because a retry pass in which every group still collides
+writes nothing and has no index to rebuild. The citation was doing the work of
+an argument. This is the same class as the paraphrase failures of rounds 30–31,
+one step removed: there the spec restated an algorithm it named, here the plan
+characterised a function it named. **A named function in a normative sentence is
+a claim about code, and it is checkable in one `grep`** — which is exactly why
+leaving it unchecked is expensive.
+
+**The general lesson, which is now five rounds old: the newest machinery carries
+the round's defects.** W18 was created in round 32 to fix an ownership gap, and
+in round 33 it was where both blocking findings lived — including a fresh
+ownership gap, since its own ratchet was gated by no conformance bucket. Round
+34 then found that the *property* written in round 33 to close that round's
+blocking finding was itself false, and false in a way round 33's own new proof
+obligation was structurally unable to detect. Round 30's instance was the spec
+paraphrasing an algorithm; round 31's was the same thing twice more; round 32's
+was the plan getting less scrutiny than the spec. Scaffolding built to close a
+gap is written last, reviewed least, and inherits none of the scrutiny that
+produced it — and a *justification* written to close a gap is the least reviewed
+artefact of all, because it reads as the premise rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
@@ -4498,6 +4586,34 @@ must say this plainly rather than implying sync is opaque to us.
   after. Mutation-proved by bumping it: every normalised row is then won by
   whichever device upgraded last, which is a conflict storm over rows nobody
   touched.
+- **A colliding pair is detected before any write, not by catching the
+  violation** — seed two rows whose names normalise to the same `UNIQUE` value
+  and assert **both** are left in their stored form. Mutation-proved by
+  try-and-catch: the first row writes successfully, because the second still
+  holds its own un-normalised value and nothing occupies the target yet, so
+  exactly one member is normalised and which one depends on row order.
+- **A tombstone blocks, and the block is temporary** — seed a live row whose
+  only colliding partner is soft-deleted, assert the live row is skipped, purge
+  the tombstone, re-open, assert the live row is now NFC. Mutation-proved twice:
+  by excluding soft-deleted rows from the grouping, which makes the write fail
+  against an index that does not filter `deleted_at`; and by treating the skip
+  as final, which leaves a live row blocked forever by a record the user cannot
+  see, list or act on.
+- **Editing a member of a skipped group succeeds** — mutation-proved by applying
+  the write-path normalisation rule unconditionally, which rejects the user's
+  edit to satisfy an internal invariant.
+- **The pass does not rewrite `settings.key`** — mutation-proved by taking
+  "every `shareable` string column" literally: the settings record is renamed
+  rather than repaired. Inert today, since settings keys are ASCII constants,
+  which is why the test matters more than the current behaviour.
+- **An operation claiming I1's exception is proved over two databases, not two
+  runs** — run it against a database where its cross-row dependency fires and
+  one where it does not. Mutation-proved by asserting only the same-database
+  property: it is satisfied by any deterministic operation, including one that
+  reads every other row, so a deterministic sibling read whose result differs
+  between devices passes unchanged. This is the hole §4.1's collision skip went
+  through while its justifying sentence claimed the pass read nothing outside
+  the row.
 - **A record that would need NaN or ±Infinity is rejected** — not coerced to
   `null` or `0`. Mutation-proved by coercing: the record then syncs, silently
   carrying a value the user never entered, and still fails to converge.

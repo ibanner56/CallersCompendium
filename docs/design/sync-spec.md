@@ -330,50 +330,99 @@ edited.
 
 This is a deliberate, bounded exception to invariant I1 (§6.5), which otherwise
 requires any change to serialised content to advance `updatedAt`. It holds
-because the pass satisfies I1's stated exception condition and for no other
-reason: NFC is a pure, idempotent function of the stored string, computed
-identically by every conforming device, consulting nothing outside the row. I1
-exists to let peers order content that *diverged*; this pass cannot produce
-divergent content, so there is nothing to order. Every constraint below exists
-to keep that property true.
+because the pass satisfies I1's exception condition in §6.5 and for no other
+reason. NFC is a pure, idempotent function of the stored string, and the pass
+consults no clock, device identity or external state; where it does read beyond
+the row being written — the collision check below — it does so under the bounded
+carve-out §6.5 states, and any divergence that carve-out admits is **always
+reported and never silently resolved**. Every constraint below exists to keep
+that true.
+
+**The scope is `shareable` string columns that are not record identity.** A
+column whose value *is* the record's id MUST be excluded: `settings.key` is a
+`shareable` string, but §4.4 makes it the settings record's identity, so
+normalising it would rename the record rather than repair its content. Today
+this is a no-op — settings keys are ASCII app constants, for which NFC is the
+identity function — but the exclusion is stated because the pass is defined over
+a classification, and the classification does not know which columns are ids.
 
 **Normalising can collide.** `choreographers.name`, `tags.name` and
 `custom_field_defs.key` are `UNIQUE` (§6.6), so two rows differing only in
-Unicode form collapse onto one string and the write fails. When normalising a
-row would collide with another local row, the pass MUST leave **both** rows
-un-normalised and report the pair. It MUST NOT merge them, MUST NOT rename
-either, and MUST NOT abort.
+Unicode form collapse onto one string and the write fails.
 
-Merging is excluded on the same grounds §6.6 step 1 excludes it for two
-pre-existing local rows: whether two similarly-named choreographers are one
-person is a judgement, and the two rows may differ in fields beyond the name. It
-is also excluded by the exception this pass depends on — a user resolving the
-same pair differently on two devices is exactly the divergence I1 orders, so a
-pass that could merge would no longer qualify for the exemption it claims. Skip
-keeps the pass a pure function of local state.
+**Collisions MUST be detected against a pre-pass snapshot, not by attempting the
+write.** The pass MUST first compute the target value for every in-scope row,
+group the rows by that target, and only then write. Any group with more than one
+member MUST be skipped whole, leaving **every** member in its stored form.
+
+Detecting collisions by catching the `UNIQUE` violation instead is
+order-dependent and produces the wrong outcome. If two rows are stored in
+different decompositions that normalise to the same target, the first is written
+successfully — nothing holds the target yet, because the second is still in its
+own un-normalised form — and only the second fails. That normalises one member
+of a pair the rule requires to be left alone, and *which* member depends on
+row-processing order, which no rule fixes. Two devices could then normalise
+opposite members of the same pair. Grouping before writing removes the ordering
+question entirely rather than answering it.
+
+Grouping MUST include soft-deleted rows, because a tombstone continues to
+occupy its natural key: soft delete is an `UPDATE`, and none of the three
+`UNIQUE` indexes is filtered on `deleted_at`. A tombstone can therefore block a
+live row.
+
+The pass MUST NOT merge colliding rows. Merging is excluded on the same grounds
+§6.6 step 1 excludes it for two pre-existing local rows: whether two
+similarly-named choreographers are one person is a judgement, and the rows may
+differ in fields beyond the name. It is also excluded by the exemption this pass
+depends on — a *user* resolving the same pair differently on two devices is
+exactly the divergence I1 orders.
+
+**A skip MUST be recorded and retried, not treated as final.** The pass MUST
+persist the identity of every skipped group and MUST re-attempt those groups on
+each subsequent open, writing any group that no longer collides. Re-attempting
+is bounded by the number of recorded groups rather than by the size of the
+library, so it is not a repeated full scan.
+
+Retry is what keeps every blocking condition resolvable, and it is the reason
+this specification does not need a special case for tombstones. A blocked group
+unblocks when the user renames or deletes a member, when a blocking tombstone is
+purged, or when reconciliation renames one side — and in each case the next open
+completes the repair with no further rule. Without retry, a live row could be
+left permanently un-normalised by a tombstone the user cannot see, cannot list
+and cannot act on, which is strictly worse than the live-pair case and would be
+invisible in support.
+
+**A later ordinary write to a member of a skipped group MUST NOT fail.** §4.1's
+write-path rule requires every write to normalise, which would re-attempt the
+same colliding value. The write MUST instead store the value un-normalised and
+record the group as skipped. A user's edit is never rejected to satisfy a
+normalisation rule.
 
 Skipping is not free, and the cost is worth stating. A skipped row stays in its
 stored form, so it keeps whatever behaviour it has today, including exclusion
-from §6.10's dedupe. If one device holds such a colliding pair and a peer holds
-only one of the two rows, the peer normalises its copy while this device does
-not, and the shared record id then presents as `changed`/`changed` with equal
-`updatedAt` — resolved and **reported** as the tie in §6.3. That is a visible,
-recoverable outcome over a pair the user already has reason to look at, which
-this specification prefers to a silent merge.
+from §6.10's dedupe. If one device holds a colliding group and a peer holds only
+one of its members, the peer normalises its copy while this device does not, and
+the shared record id then presents as `changed`/`changed` with equal
+`updatedAt`. Per §6.3 that state does **not** resolve: neither side wins,
+neither body is applied, and it is reported on that pass and on every subsequent
+pass until a human edits one side. That is a standing, visible, non-convergent
+state over a pair the user already has reason to look at — which this
+specification prefers to a silent merge, but which is a real cost and not a
+formality.
 
 **The pass MUST be idempotent and safe to interrupt.** Because skipping is the
 only failure response, the pass is total: no row raises, so an interrupted pass
 cannot repeat a failure on every launch. Re-running it over already-normalised
-rows is a no-op, so a completion marker written only after a full pass — the
-idiom the existing one-time sweeps use — is sound here without further
-qualification.
+rows is a no-op.
 
-**The pass MUST rebuild derived indexes when it completes.** Full-text and
+**The pass MUST rebuild derived indexes if it wrote anything.** Full-text and
 substring indexes over `shareable` text are maintained by the repository layer
 on each write; a bulk normalisation that bypasses that layer leaves them holding
 the pre-normalisation text, so search silently stops matching rows the pass just
 changed. Rebuilding derived data is a local recomputation that touches none of
-the three stamps, so it composes with the rule above.
+the three stamps, so it composes with the rule above. A pass that wrote nothing
+— including a retry pass in which every recorded group still collides — leaves
+the indexes correct and MUST NOT rebuild them.
 
 Two number values that JSON cannot represent MUST be handled rather than
 emitted: a `shareable` float column can hold NaN or ±Infinity — `SQLite` REAL
@@ -869,25 +918,57 @@ which compares body hashes: a metadata-only re-stamp would be invisible to it.
 
 **I1 has exactly one exception, and it is stated as a property rather than as a
 name.** An operation MAY change serialised content without advancing
-`updatedAt` if and only if it is a **pure, idempotent function of the row's
-existing content**, applied identically by every conforming device, that
-neither creates nor destroys records and consults no state outside the row.
+`updatedAt` if and only if it satisfies **both** of the following.
 
-The condition is what makes the exception safe rather than convenient. I1 exists
-so that peers can *order* divergent content. A transformation meeting this
-condition cannot produce divergent content: every device computes the same
-output from the same input, independently and without coordinating, so there is
-nothing to order and a stamp bump would invent an ordering over rows nobody
-edited. §4.1's one-time normalisation pass is the only operation in this
-specification that qualifies, and any future claimant MUST demonstrate the
-property rather than cite this sentence.
+1. **Content-derived.** Its output is a pure, idempotent function of the
+   database's existing content. It MUST NOT consult the clock, the device
+   identity, a random source, peer state, or any input outside the database.
+2. **Divergence-surfacing.** It MUST be row-local, *or* every way in which its
+   output can depend on rows other than the one being written MUST be
+   enumerated in this specification, and each such dependency MUST produce
+   divergence that is **reported** under §6.3 and never silently resolved.
+
+Condition 1 alone was the original formulation and it was **wrong**, because it
+was written as "consults no state outside the row" — which §4.1's own collision
+rule then violated by design, since whether a row is normalised depends on
+whether a sibling row normalises to the same `UNIQUE` value. The rule was not
+the mistake; the property was too strong to describe it, and a specification
+whose justifying sentence is false for the one path it authorises is worse than
+one that never stated a justification.
+
+The two conditions together are what actually make the exception safe. I1 exists
+so that peers can **order** content that diverged. Condition 1 ensures the
+operation invents no ordering of its own. Condition 2 concedes that a
+content-derived operation may still produce different results on two devices
+holding different libraries, and requires that when it does, the difference
+**surfaces** rather than resolving silently — which is the same protection a
+stamp would have provided, obtained without inventing an order over rows nobody
+edited.
+
+§4.1's one-time normalisation pass is the only operation in this specification
+that qualifies. Its single cross-row dependency — the `UNIQUE` collision skip —
+is enumerated there, and its divergence surfaces as an equal-`updatedAt`
+`changed`/`changed` report under §6.3.
 
 A conforming implementation MUST NOT satisfy this by maintaining a list of
-exempt operations. The exemption MUST be proved per operation, by a test showing
-that two independent runs over the same input produce identical output and leave
-`updated_at`, `existence_at` and `deleted_at` unchanged. A list would relocate
-the omission it exists to catch, which is the same argument §3.1's join ratchet
-rests on.
+exempt operations; a list would relocate the omission it exists to catch, which
+is the same argument §3.1's join ratchet rests on. The exemption MUST be proved
+per operation, and the proof MUST cover both conditions:
+
+- For condition 1, two independent runs over the **same** database produce
+  identical output and leave `updated_at`, `existence_at` and `deleted_at`
+  unchanged.
+- For condition 2, the operation is run over **two different databases that
+  contain the same row** — one where the enumerated cross-row dependency is
+  triggered and one where it is not — and either the row's output is identical
+  in both, or the resulting difference is shown to surface as a §6.3 report.
+
+The second half is not optional padding. A same-input-twice test is satisfied by
+any deterministic operation, including one that reads every other row in the
+table, so on its own it detects nondeterminism and nothing else. The failure
+this exception must actually guard against is a *deterministic* cross-row read
+whose result differs between two devices — which is precisely what the
+single-database test cannot see.
 
 ### 6.6 Collision reconciliation
 
@@ -1501,12 +1582,24 @@ upgraded last). **A pass over a local pair whose names normalise to the same
 `UNIQUE` value leaves both rows untouched, reports the pair, and completes**
 (mutations: merge them — two devices resolving the pair differently then
 diverge, and the pass no longer qualifies for I1's exception; abort the pass —
-the row throws on every launch and the device never normalises anything).
-**Re-running the pass changes nothing** (mutation: make any step
-non-idempotent — a pass interrupted after its last write then repeats it). **A
-row whose text changed is still found by search afterwards** (mutation: skip the
-derived rebuild — the index keeps the pre-normalisation text and matches
-nothing).
+the row throws on every launch and the device never normalises anything;
+**detect the collision by catching the `UNIQUE` violation instead of grouping
+before writing** — the first row of the pair writes successfully because nothing
+holds the target yet, so exactly one member is normalised and which one depends
+on row order). **A live row whose only colliding partner is a tombstone is also
+skipped, and is normalised on a later run once that tombstone is purged**
+(mutations: ignore soft-deleted rows when grouping — the write then fails
+against an index that does not filter `deleted_at`; treat a skip as final — the
+live row is blocked forever by a record the user cannot see or list). **An
+ordinary edit to a member of a skipped group succeeds** (mutation: apply the
+write-path normalisation rule unconditionally — the user's edit is rejected to
+satisfy an internal invariant). **`settings.key` is not rewritten by the pass**
+(mutation: include every `shareable` string column without excluding record
+identity — the settings record is renamed rather than repaired). **Re-running
+the pass changes nothing** (mutation: make any step non-idempotent — a pass
+interrupted after its last write then repeats it). **A row whose text changed is
+still found by search afterwards** (mutation: skip the derived rebuild — the
+index keeps the pre-normalisation text and matches nothing).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -1550,14 +1643,25 @@ state are unchanged, which is invisible to §6.9's repair classifier. The
 enforcement MUST be structural over write paths rather than a maintained list
 of known ones; a list relocates the omission it is meant to catch.
 
-I1's test MUST also pin the **exception** in §6.5, not just the rule: an
-operation claiming it MUST be shown to produce identical output on two
-independent runs over the same input while leaving all three stamps unchanged
+I1's test MUST also pin the **exception** in §6.5, not just the rule, and it
+MUST cover both of the exception's conditions. For the content-derived
+condition, an operation claiming the exemption is shown to produce identical
+output on two independent runs over the same database while leaving all three
+stamps unchanged
 (mutation: let the exemption be claimed by declaration — an operation that
-consults the clock, the device id or any state outside the row then passes, and
-its output diverges between devices with no stamp to order it). The structural
-scan MUST cover repository write paths; a migration-path operation is in scope
-only through this proof, never through an exemption list.
+consults the clock, the device id or a random source then passes, and its output
+diverges between devices with no stamp to order it). For the
+divergence-surfacing condition, the operation is run over **two databases that
+contain the same row** and differ only in whether its enumerated cross-row
+dependency fires, and the row's output is either identical in both or shown to
+surface as a §6.3 report (mutation: assert only the same-database property — it
+is satisfied by any deterministic operation, including one that reads every
+other row in the table, so a deterministic sibling read whose result differs
+between devices passes it unchanged; this is the exact hole through which
+§4.1's collision skip entered the specification while its justifying sentence
+claimed the pass consulted nothing outside the row). The structural scan MUST
+cover repository write paths; a migration-path operation is in scope only
+through this proof, never through an exemption list.
 
 Separately, and gating the normalisation pass rather than I1: **every write path
 that populates a `shareable` string column normalises it**, asserted

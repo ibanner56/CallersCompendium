@@ -240,34 +240,73 @@ rows, and it should be planned as a migration rather than as a loop.** Three
 constraints on it are non-obvious and each has a matching test above.
 
 *It runs under an exception to invariant I1, and the exception is conditional.*
-§6.5 permits a content change without a stamp bump only for a pure, idempotent,
-row-local transformation that every device computes identically. That is not a
-courtesy extended to this pass; it is the reason the pass may leave stamps
-alone, and every other constraint here exists to keep the condition true.
+§6.5 permits a content change without a stamp bump only for an operation that is
+content-derived — no clock, device identity or randomness — **and** whose every
+cross-row dependency is enumerated in the spec and produces divergence that is
+reported rather than silently resolved. This pass has exactly one such
+dependency, the collision skip below. That is not a courtesy extended to the
+pass; it is the reason it may leave stamps alone, and every other constraint
+here exists to keep the condition true. The §6.5 proof obligation has two
+halves, and the second is the one worth reading before writing the test:
+running the pass twice over the same database proves nothing about a cross-row
+read, because such a read is perfectly deterministic. The pass must also be run
+over two databases containing the same row — one where the collision fires, one
+where it does not.
 
-*Normalising can collide.* `choreographers.name`, `tags.name` and
-`custom_field_defs.key` are `UNIQUE`, so two rows differing only in Unicode form
-collapse onto one string. §6.6 already specifies this collision class for these
-exact columns — but only for the **inbound apply** path, so an implementer
-building W18 in isolation will not meet it. The pass skips both rows and
-reports; it does not merge. Merging would be a judgement about whether two
+*Normalising can collide, and the collision must be found before writing.*
+`choreographers.name`, `tags.name` and `custom_field_defs.key` are `UNIQUE`, so
+two rows differing only in Unicode form collapse onto one string. §6.6 already
+specifies this collision class for these exact columns — but only for the
+**inbound apply** path, so an implementer building W18 in isolation will not
+meet it. Compute every target value first, group by it, and skip whole groups
+of more than one; do **not** implement this by catching the `UNIQUE` violation.
+With try-and-catch the first row of a colliding pair writes successfully —
+nothing holds the target yet — so one member is normalised and which one depends
+on row order. The spec requires both to be left alone. Grouping must include
+soft-deleted rows: soft delete is an `UPDATE` and none of the three `UNIQUE`
+indexes is filtered on `deleted_at`, so a tombstone occupies its natural key and
+can block a live row.
+
+The pass does not merge. Merging would be a judgement about whether two
 similar names are one entity, and a user making that judgement differently on
 two devices produces exactly the divergence I1 orders — which would disqualify
 the pass from the exemption it depends on.
+
+*Skips are recorded and retried; they are not final.* Persist the skipped groups
+and re-attempt them on each subsequent open. This is the whole of the tombstone
+answer: a blocked group unblocks when a member is renamed or deleted, when a
+blocking tombstone is purged, or when reconciliation renames one side, and the
+next open finishes the job. Without retry a live row can be left un-normalised
+forever by a tombstone the user cannot see or list. Note also that a later
+ordinary edit to a member of a skipped group must **not** fail — store the value
+un-normalised and re-record the skip.
 
 *The pass must be total, not all-or-nothing.* The existing one-time sweeps in
 `repositories.dart` write their completion marker only after the whole pass
 succeeds, so a throwing row is retried from scratch on every launch and the
 sweep never completes. Skip-on-collision is what makes that idiom safe here:
-nothing raises, so there is nothing to retry into. Re-running is a no-op.
+nothing raises, so there is nothing to retry into. Re-running is a no-op. Note
+the marker records that a *scan* completed; the recorded skip groups are a
+separate, retried set, so the two coexist rather than conflicting.
+
+*`settings.key` is in scope by classification and must be excluded by hand.* It
+is a `shareable` string column, so "every `shareable` string column" reaches it,
+but §4.4 makes it the settings record's id — normalising it would rename the
+record. Harmless today, since settings keys are ASCII app constants, and that is
+exactly why it will not be noticed.
 
 *Derived indexes are maintained by the repository layer, not by SQLite.*
 `dance_fts` and `dance_substring_fts` hold literal text written on each
 repository write; a bulk `UPDATE` that bypasses that layer leaves them holding
 pre-normalisation text and search silently stops matching. Call
-`runDerivedRebuild()` on completion — unconditionally, as
-`_normaliseInversePairMoveIdsIfNeeded` already does. It rebuilds derived tables
-only, so it touches none of the three stamps and composes with the rule above.
+`runDerivedRebuild()` when the pass wrote something. The nearby precedent is
+`_normaliseInversePairMoveIdsIfNeeded`, which gates its rebuild on
+`!alreadyRebuilt || rewroteAny` rather than calling it unconditionally, and a
+second call site in the same file gates on a rewrite count alone; follow the
+rewrite-gated shape. A retry pass in which every recorded group still collides
+writes nothing and must not rebuild. `runDerivedRebuild()` rebuilds derived
+tables only, so it touches none of the three stamps and composes with the rule
+above.
 
 **Sizing note for the first sync after this unit ships.** The pass changes
 content without moving `updated_at`, so on the first device to upgrade *every*
