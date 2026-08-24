@@ -2,8 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-const _shareTypeIdentifier =
-    'org.callerscompendium.compendiumApp.share';
+const _shareTypeIdentifier = 'org.callerscompendium.compendiumApp.share';
 
 void main() {
   for (final platform in ['ios', 'macos']) {
