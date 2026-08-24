@@ -271,6 +271,7 @@ class _ResponsiveAutocompleteState<T extends Object>
             builder: (sheetContext, scrollController) {
               return _AutocompleteSheetContent<T>(
                 initialText: _controller.text,
+                sourceController: _controller,
                 optionsBuilder: widget.optionsBuilder,
                 fieldViewBuilder: widget.fieldViewBuilder,
                 optionTileBuilder: widget.optionTileBuilder,
@@ -417,6 +418,7 @@ class _ResponsiveAutocompleteState<T extends Object>
 class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
   const _AutocompleteSheetContent({
     required this.initialText,
+    required this.sourceController,
     required this.optionsBuilder,
     required this.fieldViewBuilder,
     required this.optionTileBuilder,
@@ -425,6 +427,7 @@ class _AutocompleteSheetContent<T extends Object> extends StatefulWidget {
   });
 
   final String initialText;
+  final TextEditingController sourceController;
   final PickerOptionsBuilder<T> optionsBuilder;
   final AutocompleteFieldViewBuilder fieldViewBuilder;
   final AutocompleteOptionTileBuilder<T> optionTileBuilder;
@@ -442,6 +445,7 @@ class _AutocompleteSheetContentState<T extends Object>
     text: widget.initialText,
   );
   late final FocusNode _focusNode = FocusNode();
+  bool _syncScheduled = false;
   late Iterable<T> _options = widget.optionsBuilder(
     TextEditingValue(text: widget.initialText),
   );
@@ -449,6 +453,7 @@ class _AutocompleteSheetContentState<T extends Object>
   @override
   void initState() {
     super.initState();
+    widget.sourceController.addListener(_syncSourceValue);
     // Sheets open already focused so typing can start immediately — matches
     // the keyboard-up state the user was just in before opening the sheet.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -458,6 +463,7 @@ class _AutocompleteSheetContentState<T extends Object>
 
   @override
   void dispose() {
+    widget.sourceController.removeListener(_syncSourceValue);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -468,6 +474,25 @@ class _AutocompleteSheetContentState<T extends Object>
       _options = widget.optionsBuilder(
         TextEditingValue(text: _controller.text),
       );
+    });
+  }
+
+  void _syncSourceValue() {
+    if (!mounted || _controller.value.text == widget.sourceController.text) {
+      return;
+    }
+    if (_syncScheduled) {
+      return;
+    }
+    _syncScheduled = true;
+    // The source can change while the sheet route is being rebuilt. Defer both
+    // the controller update and options refresh until that build is complete.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncScheduled = false;
+      if (mounted && _controller.text != widget.sourceController.text) {
+        _controller.value = widget.sourceController.value;
+        _recompute();
+      }
     });
   }
 

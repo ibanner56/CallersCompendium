@@ -228,6 +228,38 @@ void main() {
         'see saw',
       );
     });
+
+    testWidgets('updates the sheet field when initial text changes', (
+      tester,
+    ) async {
+      await setScreenSize(tester, const Size(360, 720));
+      await _pump(
+        tester,
+        options: const ['swing'],
+        onSelected: (_) {},
+        initialText: 'do si do',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('test-input')),
+        warnIfMissed: false,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await _pump(
+        tester,
+        options: const ['swing'],
+        onSelected: (_) {},
+        initialText: 'see saw',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.text,
+        'see saw',
+      );
+    });
   });
 
   group('narrow layout (compact width)', () {
