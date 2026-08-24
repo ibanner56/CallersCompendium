@@ -144,10 +144,18 @@ class WindowService with WindowListener {
     });
     _restoring = false;
 
-    if (_closeCoordinator != null) {
-      await windowManager.setPreventClose(true);
-    }
     windowManager.addListener(this);
+    if (_closeCoordinator != null) {
+      try {
+        await windowManager.setPreventClose(true);
+      } catch (error, stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'window_service._enablePreventClose',
+        );
+      }
+    }
   }
 
   /// Stops listening and cancels any pending debounced write. Safe to call off
