@@ -16,6 +16,45 @@ import UniformTypeIdentifiers
 /// single-dance page URL shapes before it touches an import pipeline. Keeping
 /// the native surface dumb keeps the trust boundary in one place (Dart).
 final class ShareViewController: UIViewController {
+  private enum L10n {
+    static let done = NSLocalizedString(
+      "share_extension.action.done",
+      bundle: .main,
+      comment: "Dismisses the Share Extension after its result is shown.")
+    static let preparingImportTitle = NSLocalizedString(
+      "share_extension.title.preparing_import",
+      bundle: .main,
+      comment: "Title shown while the shared link is being queued.")
+    static let savingLinkMessage = NSLocalizedString(
+      "share_extension.message.saving_link",
+      bundle: .main,
+      comment: "Message shown while the shared link is being queued.")
+    static let readyToImportTitle = NSLocalizedString(
+      "share_extension.title.ready_to_import",
+      bundle: .main,
+      comment: "Title shown when the shared link was queued successfully.")
+    static let linkSavedMessage = NSLocalizedString(
+      "share_extension.message.link_saved",
+      bundle: .main,
+      comment: "Explains how to import a successfully queued shared link.")
+    static let noLinkTitle = NSLocalizedString(
+      "share_extension.title.no_link",
+      bundle: .main,
+      comment: "Title shown when the share contained no usable link.")
+    static let noLinkMessage = NSLocalizedString(
+      "share_extension.message.no_link",
+      bundle: .main,
+      comment: "Explains that the share contained no usable link.")
+    static let saveFailedTitle = NSLocalizedString(
+      "share_extension.title.save_failed",
+      bundle: .main,
+      comment: "Title shown when the shared link could not be queued.")
+    static let saveFailedMessage = NSLocalizedString(
+      "share_extension.message.save_failed",
+      bundle: .main,
+      comment: "Explains that queuing the shared link failed.")
+  }
+
   /// App Group shared with the host app; shared URLs are handed over through the
   /// `SharedImportQueue` directory in its container.
   private static let appGroupId = "group.org.callerscompendium.compendiumApp"
@@ -71,7 +110,7 @@ final class ShareViewController: UIViewController {
     messageLabel.adjustsFontForContentSizeCategory = true
 
     doneButton.configuration = .filled()
-    doneButton.setTitle("Done", for: .normal)
+    doneButton.setTitle(L10n.done, for: .normal)
     doneButton.addTarget(self, action: #selector(dismissExtension), for: .touchUpInside)
 
     NSLayoutConstraint.activate([
@@ -87,8 +126,8 @@ final class ShareViewController: UIViewController {
       let attachments = item.attachments
     else {
       return showFailure(
-        title: "No link to import",
-        message: "This share did not include a link that Caller's Compendium can import.")
+        title: L10n.noLinkTitle,
+        message: L10n.noLinkMessage)
     }
 
     let urlType = UTType.url.identifier
@@ -111,8 +150,8 @@ final class ShareViewController: UIViewController {
       }
     }
     showFailure(
-      title: "No link to import",
-      message: "This share did not include a link that Caller's Compendium can import.")
+      title: L10n.noLinkTitle,
+      message: L10n.noLinkMessage)
   }
 
   /// Writes the shared string to the App Group. Runs the hand-off on the main
@@ -126,13 +165,13 @@ final class ShareViewController: UIViewController {
           self.showConfirmation()
         } else {
           self.showFailure(
-            title: "Couldn't save link",
-            message: "Caller's Compendium could not save this link for import. Please try again.")
+            title: L10n.saveFailedTitle,
+            message: L10n.saveFailedMessage)
         }
       } else {
         self.showFailure(
-          title: "No link to import",
-          message: "This share did not include a link that Caller's Compendium can import.")
+          title: L10n.noLinkTitle,
+          message: L10n.noLinkMessage)
       }
     }
   }
@@ -196,16 +235,15 @@ final class ShareViewController: UIViewController {
   }
 
   private func showLoading() {
-    titleLabel.text = "Preparing import"
-    messageLabel.text = "Saving this link for Caller's Compendium."
+    titleLabel.text = L10n.preparingImportTitle
+    messageLabel.text = L10n.savingLinkMessage
     activityIndicator.startAnimating()
     doneButton.isHidden = true
   }
 
   private func showConfirmation() {
-    titleLabel.text = "Ready to import"
-    messageLabel.text =
-      "This link has been saved. Open Caller's Compendium to review and import it."
+    titleLabel.text = L10n.readyToImportTitle
+    messageLabel.text = L10n.linkSavedMessage
     activityIndicator.stopAnimating()
     doneButton.isHidden = false
   }
