@@ -102,6 +102,7 @@ void main() {
       'Right left through': (move: 'right_left_through', params: {}),
       'Pass through': (move: 'pass_through', params: {}),
       'Promenade': (move: 'promenade', params: {}),
+      'Neighbors seesaw': (move: 'see_saw', params: {'who': 'neighbors'}),
       'Box the gnat': (move: 'box_the_gnat', params: {'who': 'partners'}),
       'Swat the flea': (move: 'swat_the_flea', params: {'who': 'partners'}),
       // box_circulate (v11, ContraDB-sourced). A standalone line states no

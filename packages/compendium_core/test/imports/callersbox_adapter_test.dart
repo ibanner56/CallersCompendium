@@ -807,6 +807,22 @@ void main() {
         expect(draft.dance.figures[1].params['hand'], 'left');
       });
 
+      test('structures compact seesaw from CallersBox', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              phrases: [
+                _phrase('B1', ['(8) Men seesaw']),
+              ],
+            ),
+          ),
+        );
+        expect(draft.dance.figures, hasLength(1));
+        expect(draft.dance.figures.single.isCustom, isFalse);
+        expect(draft.dance.figures.single.move, 'see_saw');
+        expect(draft.dance.figures.single.params['who'], 'role1s');
+      });
+
       test('substitutes gypsy → shoulder round (safety net)', () async {
         final draft = await _importOne(
           jsonEncode(

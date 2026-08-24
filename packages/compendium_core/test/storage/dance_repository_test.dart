@@ -1151,7 +1151,7 @@ void main() {
       await dances.rebuildAllDerived();
       final after = await dances.danceIdsWithFigure('do_si_do');
       expect(after, before);
-      expect(await dances.searchText('dosido'), isEmpty); // sanity: no dupes
+      expect(await dances.searchText('dosido'), ['d1']); // sanity: no dupes
     });
 
     Future<int> ftsRowCount(CompendiumDatabase database) async {

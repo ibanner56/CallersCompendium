@@ -19,6 +19,10 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Compact do-si-do and see-saw names** — canonical figure text now uses
+  `dosido` and `seesaw`, while imports and full-text search continue accepting
+  the legacy spaced and hyphenated spellings. (issue #1056)
+
 - **Parameter-aware dialect move wording** — global wording now has separate,
   complete templates for parameter branches of long waves, promenades, and
   circles, preventing single-file and in/out choreography from being lost.
