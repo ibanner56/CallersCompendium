@@ -19,6 +19,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Program auto-commit** — edits made while an auto-commit clears its recovery
+  draft are no longer overwritten by the older committed snapshot.
+  
 - **Programming Matrix PDF privacy** — linked venue postal addresses are now
   removed from the exported matrix header while the public venue name remains.
 
