@@ -695,6 +695,18 @@ class DanceRepository {
     return _toModel(row);
   }
 
+  /// Returns the soft-delete state for [id] without hydrating child
+  /// collections. Returns `null` when no row exists.
+  Future<bool?> isDeletedById(String id) async {
+    final row =
+        await (_db.selectOnly(_db.dances)
+              ..addColumns([_db.dances.deletedAt])
+              ..where(_db.dances.id.equals(id)))
+            .getSingleOrNull();
+    if (row == null) return null;
+    return row.read(_db.dances.deletedAt) != null;
+  }
+
   Future<List<Dance>> listAll({bool includeDeleted = false}) async {
     final query = _db.select(_db.dances)
       ..orderBy([(t) => OrderingTerm(expression: t.title)]);

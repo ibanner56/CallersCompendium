@@ -258,6 +258,7 @@ class CallersCompanionUsrImporter {
     final priorCapturedFor = <String>{};
     final priorStates = <Program>[];
     final restoredProgramIds = <String>[];
+    final restoredProgramIdSet = <String>{};
     final persisted = <Program>[];
     final insertedVenueIds = <String>[];
     final relatedDanceLinkIssues = <ImportIssue>[];
@@ -372,7 +373,7 @@ class CallersCompanionUsrImporter {
           }
           if (prior.deletedAt != null) {
             await _programs.restore(existingId, at: now);
-            if (!restoredProgramIds.contains(existingId)) {
+            if (restoredProgramIdSet.add(existingId)) {
               restoredProgramIds.add(existingId);
             }
           }

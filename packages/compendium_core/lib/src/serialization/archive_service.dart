@@ -201,22 +201,33 @@ class ArchiveRestorer {
     }
     for (final d in archive.dances) {
       await _guard('dance', d.id, errors, () async {
-        final existing = await _repos.dances.getById(
-          d.id,
-          includeDeleted: true,
-        );
-        final wasTombstoned =
-            existing?.deletedAt != null && d.deletedAt == null;
+        final existingDeleted = await _repos.dances.isDeletedById(d.id);
+        final wasTombstoned = existingDeleted == true && d.deletedAt == null;
+        final wasLive = existingDeleted == false && d.deletedAt != null;
+        final existing = wasTombstoned
+            ? await _repos.dances.getById(d.id, includeDeleted: true)
+            : null;
         if (wasTombstoned) {
           await _repos.dances.restore(d.id, at: causalAt);
         }
         try {
           await _repos.dances.create(
-            _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
+            wasLive
+                ? _applyRemap(
+                    d,
+                    choreoRemap,
+                    tagRemap,
+                    fieldRemap,
+                  ).copyWith(clearDeletedAt: true)
+                : _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
           );
+          if (wasLive) {
+            await _repos.dances.softDelete(d.id, at: causalAt);
+          }
         } on Exception {
           if (wasTombstoned) {
             await _repos.dances.create(existing!);
+            await _repos.dances.softDelete(d.id, at: causalAt);
           }
           rethrow;
         }
@@ -239,23 +250,32 @@ class ArchiveRestorer {
     final knownVenueIds = await _repos.venues.listAllIds();
     for (final p in archive.programs) {
       await _guard('program', p.id, errors, () async {
-        final existing = await _repos.programs.getById(
-          p.id,
-          includeDeleted: true,
-        );
-        final wasTombstoned =
-            existing?.deletedAt != null && p.deletedAt == null;
+        final existingDeleted = await _repos.programs.isDeletedById(p.id);
+        final wasTombstoned = existingDeleted == true && p.deletedAt == null;
+        final wasLive = existingDeleted == false && p.deletedAt != null;
+        final existing = wasTombstoned
+            ? await _repos.programs.getById(p.id, includeDeleted: true)
+            : null;
         if (wasTombstoned) {
           await _repos.programs.restore(p.id, at: causalAt);
         }
         try {
           await _repos.programs.create(
-            _withResolvedVenue(p, knownVenueIds),
+            wasLive
+                ? _withResolvedVenue(
+                    p.copyWith(clearDeletedAt: true),
+                    knownVenueIds,
+                  )
+                : _withResolvedVenue(p, knownVenueIds),
             knownVenueIds: knownVenueIds,
           );
+          if (wasLive) {
+            await _repos.programs.softDelete(p.id, at: causalAt);
+          }
         } on Exception {
           if (wasTombstoned) {
             await _repos.programs.create(existing!);
+            await _repos.programs.softDelete(p.id, at: causalAt);
           }
           rethrow;
         }

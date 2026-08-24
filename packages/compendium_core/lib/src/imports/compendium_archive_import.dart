@@ -345,6 +345,7 @@ class CompendiumArchiveImporter {
     final priorCapturedFor = <String>{};
     final priorStates = <Program>[];
     final restoredProgramIds = <String>[];
+    final restoredProgramIdSet = <String>{};
     final insertedVenueIds = <String>[];
     final restoredVenueIds = <String>[];
     // Keyed by final program id so repeated externalIds collapse to one entry
@@ -553,7 +554,7 @@ class CompendiumArchiveImporter {
           }
           if (existing.deletedAt != null) {
             await _programs.restore(mappedId, at: now);
-            if (!restoredProgramIds.contains(mappedId)) {
+            if (restoredProgramIdSet.add(mappedId)) {
               restoredProgramIds.add(mappedId);
             }
           }

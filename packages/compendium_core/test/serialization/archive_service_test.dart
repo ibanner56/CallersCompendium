@@ -400,6 +400,97 @@ void main() {
       expect(after, greaterThan(before));
     });
 
+    test('merge causally tombstones a live program from the archive', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Old',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final before = await _existenceStamp(db, 'p1');
+      final archivedDeletedAt = DateTime.utc(2026, 7, 1);
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Deleted',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: archivedDeletedAt,
+            deletedAt: archivedDeletedAt,
+          ),
+        ],
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final deleted = await repos.programs.getById('p1', includeDeleted: true);
+      expect(deleted, isNotNull);
+      expect(deleted!.deletedAt, isNot(archivedDeletedAt));
+      expect(deleted.title, 'Deleted');
+      expect(await _existenceStamp(db, 'p1'), greaterThan(before));
+    });
+
+    test('merge causally tombstones a live dance from the archive', () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      await repos.dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Old',
+          createdAt: DateTime.utc(2026, 1, 1),
+          updatedAt: DateTime.utc(2026, 1, 1),
+        ),
+      );
+      final before = await db
+          .customSelect(
+            'SELECT existence_at AS v FROM dances WHERE id = ?',
+            variables: [Variable.withString('d1')],
+          )
+          .getSingle()
+          .then((row) => row.read<int>('v'));
+      final archivedDeletedAt = DateTime.utc(2026, 7, 1);
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        dances: [
+          Dance(
+            id: 'd1',
+            title: 'Deleted',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: archivedDeletedAt,
+            deletedAt: archivedDeletedAt,
+          ),
+        ],
+      );
+
+      final result = await ArchiveRestorer(
+        repos,
+      ).restore(archive, mode: RestoreMode.merge);
+
+      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+      final deleted = await repos.dances.getById('d1', includeDeleted: true);
+      expect(deleted, isNotNull);
+      expect(deleted!.deletedAt, isNot(archivedDeletedAt));
+      expect(deleted.title, 'Deleted');
+      final after = await db
+          .customSelect(
+            'SELECT existence_at AS v FROM dances WHERE id = ?',
+            variables: [Variable.withString('d1')],
+          )
+          .getSingle()
+          .then((row) => row.read<int>('v'));
+      expect(after, greaterThan(before));
+    });
+
     test(
       'replace aborts and preserves live data when an entity fails to write',
       () async {

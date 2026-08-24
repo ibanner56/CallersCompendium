@@ -387,6 +387,18 @@ class ProgramRepository {
     return _toModel(row, await slots, await provenance);
   }
 
+  /// Returns the soft-delete state for [id] without hydrating its slots or
+  /// provenance. Returns `null` when no row exists.
+  Future<bool?> isDeletedById(String id) async {
+    final row =
+        await (_db.selectOnly(_db.programs)
+              ..addColumns([_db.programs.deletedAt])
+              ..where(_db.programs.id.equals(id)))
+            .getSingleOrNull();
+    if (row == null) return null;
+    return row.read(_db.programs.deletedAt) != null;
+  }
+
   Future<List<Program>> listAll({bool includeDeleted = false}) async {
     final query = _db.select(_db.programs)
       ..orderBy([(t) => OrderingTerm(expression: t.title)]);
