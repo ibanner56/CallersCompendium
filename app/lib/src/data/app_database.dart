@@ -47,5 +47,12 @@ class AppData {
   final CompendiumDatabase db;
   final CompendiumRepositories repositories;
 
-  Future<void> close() => db.close();
+  Future<void>? _closeFuture;
+
+  /// Closes the database once, sharing the result with concurrent callers.
+  ///
+  /// Desktop shutdown can reach both the window-close handler and the widget
+  /// tree's disposal. Sharing one close operation prevents the background Drift
+  /// isolate from receiving overlapping shutdown requests.
+  Future<void> close() => _closeFuture ??= db.close();
 }

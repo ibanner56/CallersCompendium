@@ -131,7 +131,10 @@ Future<void> main() async {
     // AppBootstrap error/retry screen instead of throwing out of `main` before
     // `runApp` — which would leave a blank window with no way to recover.
     final appData = AppData(openAppDatabase());
-    final windowService = WindowService(appData.repositories.settings);
+    final windowService = WindowService(
+      appData.repositories.settings,
+      onClose: appData.close,
+    );
     runApp(
       CompendiumApp(
         appData: appData,
@@ -458,7 +461,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _initializeDatabaseBackedServices(widget.appDataFactory());
     _windowService =
         widget.windowServiceFactory?.call(_appData.repositories.settings) ??
-        WindowService(_appData.repositories.settings);
+        WindowService(_appData.repositories.settings, onClose: _appData.close);
   }
 
   void _resetAppPreferenceNotifiers() {

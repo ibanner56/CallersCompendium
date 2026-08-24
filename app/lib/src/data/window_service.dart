@@ -19,6 +19,32 @@ const String kWindowFrameKey = 'window_frame';
 bool get isDesktopWindowPlatform =>
     !kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux);
 
+/// Coordinates an orderly desktop shutdown.
+///
+/// The window must remain alive while Drift sends its close request to the
+/// background database isolate. Destroying it first lets Flutter tear down the
+/// Dart isolate while sqlite3 native finalizers are still pending.
+class WindowCloseCoordinator {
+  WindowCloseCoordinator({required this.closeApp, required this.destroyWindow});
+
+  final Future<void> Function() closeApp;
+  final Future<void> Function() destroyWindow;
+
+  Future<void>? _closeFuture;
+
+  /// Closes application resources before force-destroying the native window.
+  /// Repeated close events share the first in-flight operation.
+  Future<void> handle() => _closeFuture ??= _closeAndDestroy();
+
+  Future<void> _closeAndDestroy() async {
+    try {
+      await closeApp();
+    } finally {
+      await destroyWindow();
+    }
+  }
+}
+
 /// Desktop-only wiring around the `window_manager` plugin that restores the
 /// last-known window size/position on startup and persists changes as the user
 /// resizes/moves/maximizes the window.
@@ -29,10 +55,20 @@ bool get isDesktopWindowPlatform =>
 /// tested there. Everything here is plugin glue guarded by
 /// [isDesktopWindowPlatform].
 class WindowService with WindowListener {
-  WindowService(this._settings, {this.frameKey = kWindowFrameKey});
+  WindowService(
+    this._settings, {
+    this.frameKey = kWindowFrameKey,
+    Future<void> Function()? onClose,
+  }) : _closeCoordinator = onClose == null
+           ? null
+           : WindowCloseCoordinator(
+               closeApp: onClose,
+               destroyWindow: windowManager.destroy,
+             );
 
   final SettingsRepository _settings;
   final String frameKey;
+  final WindowCloseCoordinator? _closeCoordinator;
 
   /// Debounce delay for persisting size/position during a drag — mirrors the
   /// editor autosave (500 ms) so we don't hammer settings mid-drag.
@@ -90,6 +126,9 @@ class WindowService with WindowListener {
     });
     _restoring = false;
 
+    if (_closeCoordinator != null) {
+      await windowManager.setPreventClose(true);
+    }
     windowManager.addListener(this);
   }
 
@@ -158,6 +197,12 @@ class WindowService with WindowListener {
   void onWindowUnmaximize() {
     _debounce?.cancel();
     unawaited(_captureAndPersist());
+  }
+
+  @override
+  void onWindowClose() {
+    final coordinator = _closeCoordinator;
+    if (coordinator != null) unawaited(coordinator.handle());
   }
 
   void _schedulePersist() {
