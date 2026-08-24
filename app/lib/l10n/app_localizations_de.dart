@@ -6022,7 +6022,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Die Werte dieses Feldes werden mit Ihrer Sammlung übertragen, wenn Sie sie exportieren oder teilen';
+      'Die Werte dieses Feldes werden beim Teilen mit Ihrer Sammlung übertragen; Sicherungen enthalten sie immer';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6030,7 +6030,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Die Inhalte aller von Ihnen erstellten benutzerdefinierten Felder werden beim Exportieren oder Teilen Ihrer Sammlung einbezogen. Um ein Feld privat zu halten, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen dieses Feldes.';
+      'Die Inhalte aller benutzerdefinierten Felder, die Sie erstellen, werden in Ihren Sicherungen eingeschlossen. Wenn Sie Ihre Sammlung teilen, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen des Feldes, um es privat zu halten.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Verstanden';
@@ -6477,6 +6477,29 @@ class AppLocalizationsDe extends AppLocalizations {
       'Bedingte Bewegungsvorlagen werden anhand der Parameter der Figur ausgewählt. Fülle alle aufgeführten Platzhalter aus; unvollständige bedingte Vorlagen werden ignoriert.';
 
   @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (bedingt)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Nur hinein';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Nur hinaus';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Hinein und hinaus';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Weder noch';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Gewöhnlich';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Einzelne Reihe';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Vorlagen für Bewegungsformulierungen hinzufügen';
 
@@ -6505,7 +6528,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Diese Vorlage ist unvollständig; daher wird die normale Formulierung verwendet.';
+      'Diese Vorlage ist ungültig; daher wird die normale Formulierung verwendet.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Beheben Sie ungültige Vorlagen für Bewegungsformulierungen, bevor Sie speichern: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

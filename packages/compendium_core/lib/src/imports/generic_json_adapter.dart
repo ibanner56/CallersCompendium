@@ -262,6 +262,7 @@ class GenericJsonAdapter implements SourceAdapter {
       dances: [dance],
       choreographers: choreographers,
     ),
+    mode: ArchiveSerializationMode.share,
   );
 
   /// Strips any embedded provenance from an imported dance; the pipeline owns

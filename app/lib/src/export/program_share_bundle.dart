@@ -131,6 +131,7 @@ String buildProgramShareBundle(
       choreographers: choreographers,
       venues: venues,
     ),
+    mode: ArchiveSerializationMode.share,
   );
 }
 

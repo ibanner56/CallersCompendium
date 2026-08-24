@@ -6032,7 +6032,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Les valeurs de ce champ accompagnent votre collection lorsque vous l’exportez ou la partagez';
+      'Les valeurs de ce champ accompagnent votre collection lorsque vous la partagez ; les sauvegardes les incluent toujours';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6040,7 +6040,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Le contenu de tout champ personnalisé que vous créez est inclus lorsque vous exportez ou partagez votre collection. Pour garder un champ privé, désactivez « Inclure lors du partage » dans les paramètres de ce champ.';
+      'Le contenu de tout champ personnalisé que vous créez est inclus dans vos sauvegardes. Lorsque vous partagez votre collection, désactivez « Inclure lors du partage » dans les paramètres du champ pour le garder privé.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Compris';
@@ -6485,6 +6485,29 @@ class AppLocalizationsFr extends AppLocalizations {
       'Les modèles conditionnels d’un mouvement sont choisis selon les paramètres de la figure. Complétez chaque emplacement indiqué ; les modèles conditionnels incomplets sont ignorés.';
 
   @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (conditionnel)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Entrée seulement';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Sortie seulement';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Entrée et sortie';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Ni l’un ni l’autre';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Ordinaire';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'File simple';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Ajouter des modèles de formulation';
 
@@ -6512,7 +6535,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Ce modèle est incomplet ; la formulation normale sera donc utilisée.';
+      'Ce modèle est invalide ; la formulation normale sera donc utilisée.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Corrigez les modèles de formulation de mouvements invalides avant d\'enregistrer : $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

@@ -156,8 +156,9 @@ class BackupReadResult {
 /// and refuses a payload that has been corrupted or altered.
 ///
 /// The nested core archive is emitted via the core codec's canonical
-/// [archiveToJson] (structured JSON, not a double-encoded string), so the
-/// document round-trips deterministically.
+/// [archiveToJson] in [ArchiveSerializationMode.backup] (structured JSON, not a
+/// double-encoded string), so the document retains every custom field and
+/// round-trips deterministically.
 String encodeBackup(BackupDocument doc) =>
     jsonEncode(_wrapWithChecksum(encodeBackupPayload(doc)));
 
@@ -198,7 +199,7 @@ bool _hexEquals(String a, String b) {
 Map<String, Object?> backupToJson(BackupDocument doc) => {
   'backupVersion': doc.schemaVersion,
   'createdAt': doc.createdAt.toUtc().toIso8601String(),
-  'core': archiveToJson(doc.core),
+  'core': archiveToJson(doc.core, mode: ArchiveSerializationMode.backup),
   'app': {
     'dialects': {
       'custom': [for (final d in doc.customDialects) d.toJson()],

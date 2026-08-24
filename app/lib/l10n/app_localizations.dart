@@ -9080,7 +9080,7 @@ abstract class AppLocalizations {
   /// Subtitle for the 'include in sharing' toggle on the custom field form.
   ///
   /// In en, this message translates to:
-  /// **'This field\'s values travel with your collection when you export or share it'**
+  /// **'This field\'s values travel with your collection when you share it; backups always include them'**
   String get customFieldsShareableSubtitle;
 
   /// Title of the one-time disclosure dialog shown when a user creates their first custom field, explaining that custom field values are included in exports and shares.
@@ -9092,7 +9092,7 @@ abstract class AppLocalizations {
   /// Body of the one-time disclosure dialog shown when a user creates their first custom field.
   ///
   /// In en, this message translates to:
-  /// **'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.'**
+  /// **'The contents of any custom field you create are included in your backups. When you share your collection, turn off \"Include in sharing\" in that field\'s settings to keep a field private.'**
   String get customFieldsSharingNoticeBody;
 
   /// Dismiss button for the one-time custom field sharing disclosure dialog.
@@ -9809,6 +9809,48 @@ abstract class AppLocalizations {
   /// **'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.'**
   String get dialectEditorMoveWordingsConditionalHelp;
 
+  /// Header for a move's parameter-dependent wording templates.
+  ///
+  /// In en, this message translates to:
+  /// **'{move} (conditional)'**
+  String dialectEditorMoveWordingsConditionalLabel(String move);
+
+  /// Label for the long-wave branch where dancers move in only.
+  ///
+  /// In en, this message translates to:
+  /// **'In only'**
+  String get dialectEditorMoveWordingBranchInOnly;
+
+  /// Label for the long-wave branch where dancers move out only.
+  ///
+  /// In en, this message translates to:
+  /// **'Out only'**
+  String get dialectEditorMoveWordingBranchOutOnly;
+
+  /// Label for the long-wave branch where dancers move in and out.
+  ///
+  /// In en, this message translates to:
+  /// **'In and out'**
+  String get dialectEditorMoveWordingBranchInAndOut;
+
+  /// Label for the long-wave branch where dancers move neither in nor out.
+  ///
+  /// In en, this message translates to:
+  /// **'Neither'**
+  String get dialectEditorMoveWordingBranchNeither;
+
+  /// Label for the ordinary (not single-file) branch.
+  ///
+  /// In en, this message translates to:
+  /// **'Ordinary'**
+  String get dialectEditorMoveWordingBranchOrdinary;
+
+  /// Label for the single-file branch.
+  ///
+  /// In en, this message translates to:
+  /// **'Single file'**
+  String get dialectEditorMoveWordingBranchSingleFile;
+
   /// Collapsed header/empty state for the move wording template section.
   ///
   /// In en, this message translates to:
@@ -9839,11 +9881,17 @@ abstract class AppLocalizations {
   /// **'Available slots: {slots}'**
   String dialectEditorMoveWordingSlots(String slots);
 
-  /// Non-blocking warning shown for an incomplete move wording template.
+  /// Non-blocking warning shown for a malformed move wording template.
   ///
   /// In en, this message translates to:
-  /// **'This template is incomplete, so the normal wording will be used.'**
+  /// **'This template is invalid, so the normal wording will be used.'**
   String get dialectEditorMoveWordingInvalid;
+
+  /// Blocking editor error listing malformed move wording templates that must be fixed before saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Fix invalid move wording templates before saving: {figures}'**
+  String dialectEditorMoveWordingSaveError(String figures);
 
   /// Warning shown when a move wording template references unknown placeholders.
   ///

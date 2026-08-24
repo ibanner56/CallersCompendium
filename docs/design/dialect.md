@@ -25,6 +25,12 @@ It is never included in canonical figure text, search, or deduplication.
   "moves":  {"shoulder_round": "%S shoulder round", "do_si_do": "dosido"},
   "dancers": {"neighbors": "the others", "nextNeighbors": "the next couple"},
   "moveWordings": {"swing": "[{who} ]{move}"},
+  "moveWordingBranches": {
+    "promenade": {
+      "ordinary": "{who} {move} {turn} {direction} {destination}",
+      "singleFile": "{prefix} {move} {turn} {direction} {destination}"
+    }
+  },
   "discouragedTerms": ["gypsy", "gents", "ladies", "..."]
 }
 ```

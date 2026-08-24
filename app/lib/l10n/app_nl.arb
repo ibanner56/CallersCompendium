@@ -5948,17 +5948,17 @@
   "@customFieldsShareable": {
     "x-sourceSha256": "9805204a2ac39637da9026930ca8cec225d8cb9c85d51561a7e0dea778405826"
   },
-  "customFieldsShareableSubtitle": "De waarden van dit veld gaan mee met je collectie wanneer je die exporteert of deelt",
+  "customFieldsShareableSubtitle": "De waarden van dit veld gaan mee met je collectie wanneer je die deelt; back-ups bevatten ze altijd",
   "@customFieldsShareableSubtitle": {
-    "x-sourceSha256": "cbd2c6ef24a9c3ab9a586a9766eac5720008dcc973ec16742fb13c248b354e4a"
+    "x-sourceSha256": "f89851c1dbfaf17c932b15cf7846fe2ac405f7897b2c2d411e5eef72f4378f0d"
   },
   "customFieldsSharingNoticeTitle": "Aangepaste velden gaan mee met je collectie",
   "@customFieldsSharingNoticeTitle": {
     "x-sourceSha256": "809665c936b4d5704b0f62203370969b74f9250e74ab322d91378def0e3c74a1"
   },
-  "customFieldsSharingNoticeBody": "De inhoud van elk aangepast veld dat je aanmaakt, wordt meegenomen wanneer je je collectie exporteert of deelt. Zet “Opnemen bij delen” uit in de instellingen van dat veld om een veld privé te houden.",
+  "customFieldsSharingNoticeBody": "De inhoud van elk aangepast veld dat je aanmaakt, wordt opgenomen in je back-ups. Zet \"Opnemen bij delen\" uit in de instellingen van het veld wanneer je je collectie deelt om het veld privé te houden.",
   "@customFieldsSharingNoticeBody": {
-    "x-sourceSha256": "9a0f3dbfedab18868eaaadde9bdb74ab1724a648f9ef78ff6cdb249009f149ba"
+    "x-sourceSha256": "5d0563d1a447693421b4d9aa9ed1fb112ad5e57cd39a7833fe0d808e0a5bf0ed"
   },
   "customFieldsSharingNoticeOk": "Begrepen",
   "@customFieldsSharingNoticeOk": {
@@ -6433,6 +6433,34 @@
   "@dialectEditorMoveWordingsConditionalHelp": {
     "x-sourceSha256": "ba57af9dcdc3deb6400d85b49bb8995e8400dff7fbb53c64b7b94c3ab35808ff"
   },
+  "dialectEditorMoveWordingsConditionalLabel": "{move} (voorwaardelijk)",
+  "@dialectEditorMoveWordingsConditionalLabel": {
+    "x-sourceSha256": "e1b698fe9873272c260a19c673da431f630c0196f34b94835cbddc7793855c37"
+  },
+  "dialectEditorMoveWordingBranchInOnly": "Alleen in",
+  "@dialectEditorMoveWordingBranchInOnly": {
+    "x-sourceSha256": "eaf8528920bbdf39ae8da16431154b0750079ee325d92d9f939a458bba0def84"
+  },
+  "dialectEditorMoveWordingBranchOutOnly": "Alleen uit",
+  "@dialectEditorMoveWordingBranchOutOnly": {
+    "x-sourceSha256": "0fc52ba1386f6d3b8a7dd9b3d03d9385246741a4512524e0899361f8515da8ee"
+  },
+  "dialectEditorMoveWordingBranchInAndOut": "In en uit",
+  "@dialectEditorMoveWordingBranchInAndOut": {
+    "x-sourceSha256": "87632e2cb00fbfc32ad24ebe7c1dc5cc4ca5ff28bb9931894a341097916f9873"
+  },
+  "dialectEditorMoveWordingBranchNeither": "Geen van beide",
+  "@dialectEditorMoveWordingBranchNeither": {
+    "x-sourceSha256": "9957d09c21ebc6cad181d56bc43cbd9bde18999c98bd708a416c29fcd3705b7f"
+  },
+  "dialectEditorMoveWordingBranchOrdinary": "Gewoon",
+  "@dialectEditorMoveWordingBranchOrdinary": {
+    "x-sourceSha256": "f46f36f72dc634e236787d444cf10ee3c22280413e0cdeda3d3a8d7d1714f7fd"
+  },
+  "dialectEditorMoveWordingBranchSingleFile": "Enkele rij",
+  "@dialectEditorMoveWordingBranchSingleFile": {
+    "x-sourceSha256": "c8bfd38b98637807f9121e7f44305b993c4d6119075b994d966654a79ed3d503"
+  },
   "@dialectEditorMoveWordingsHelp": {
     "x-sourceSha256": "afee3f5d46b074933a7ca14c8d1232545908bc9b7485f47a4ce6904bc1370142"
   },
@@ -6456,9 +6484,13 @@
   "@dialectEditorMoveWordingSlots": {
     "x-sourceSha256": "f48b49339c2633613c708334bcf874efa16032e1559f864855dab5c873622810"
   },
-  "dialectEditorMoveWordingInvalid": "Dit sjabloon is onvolledig; daarom wordt de normale formulering gebruikt.",
+  "dialectEditorMoveWordingInvalid": "Dit sjabloon is ongeldig; daarom wordt de normale formulering gebruikt.",
   "@dialectEditorMoveWordingInvalid": {
-    "x-sourceSha256": "82d181f4940bf5056476d4c9ff8d14923cf765549b0916400dbebaea9f376c46"
+    "x-sourceSha256": "75208996f5a3de732968e35c2a456e07ae6ad7986a9e17efe461441f13108c86"
+  },
+  "dialectEditorMoveWordingSaveError": "Los ongeldige sjablonen voor bewegingsformuleringen op voordat u opslaat: {figures}",
+  "@dialectEditorMoveWordingSaveError": {
+    "x-sourceSha256": "bda0bd00f9f267ad6105147dd29294ce1122fb9708765a52d6dacd047c496675"
   },
   "dialectEditorMoveWordingUnknownSlots": "Onbekende plaatshouders zijn leeg: {slots}",
   "@dialectEditorMoveWordingUnknownSlots": {

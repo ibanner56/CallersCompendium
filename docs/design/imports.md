@@ -618,9 +618,11 @@ imports of *Tangled Yarns* remain distinguishable on `who` even after the fix;
 what the fix removes is the fabricated dancers and the doubled balance.
 
 ### 4. Generic JSON (6.6)
-- Our own canonical export format (full fidelity: figures, programs, custom
-  fields, provenance, dialect definitions). Serves backup/restore and
-  user-to-user sharing. Versioned schema; forward-compatible reader.
+- Our own canonical archive format (figures, programs, custom fields, provenance,
+  dialect definitions). It serves both backup/restore and user-to-user sharing
+  through explicit serialization modes: share mode omits custom fields marked
+  `shareable = false`, while backup mode preserves every custom field and value.
+  Versioned schema; forward-compatible reader.
 
 ### Signed published collections (#862)
 

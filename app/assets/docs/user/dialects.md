@@ -124,6 +124,14 @@ contains that move. For moves that come in left- and right-handed versions, you
 can include a placeholder so the app fills in "left" or "right" for you rather
 than making you write two versions.
 
+### Move wording templates
+
+For a complete sentence around a move, add a display template and use the slots
+shown in the editor, such as `{who}` and `{move}`. Legacy templates may omit
+available slots, but the editor will ask you to confirm before saving one.
+Templates with invalid syntax or more than 512 characters must be fixed before
+the dialect can be saved.
+
 Some moves have parameter-dependent choreography. The editor provides separate
 templates for each supported branch of a long wave, promenade, or circle, and
 shows the exact slots that branch can use. Complete every listed slot: an

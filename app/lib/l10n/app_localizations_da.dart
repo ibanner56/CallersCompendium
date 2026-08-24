@@ -5943,7 +5943,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Dette felts værdier følger med din samling, når du eksporterer eller deler den';
+      'Dette felts værdier følger med din samling, når du deler den; sikkerhedskopier indeholder dem altid';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5951,7 +5951,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Indholdet af ethvert brugerdefineret felt, du opretter, inkluderes, når du eksporterer eller deler din samling. Slå „Inkludér ved deling“ fra i feltets indstillinger for at holde et felt privat.';
+      'Indholdet af alle brugerdefinerede felter, du opretter, inkluderes i dine sikkerhedskopier. Når du deler din samling, skal du slå \"Inkludér ved deling\" fra i feltets indstillinger for at holde feltet privat.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Forstået';
@@ -6391,6 +6391,29 @@ class AppLocalizationsDa extends AppLocalizations {
       'Betingede bevægelsesskabeloner vælges ud fra figurens parametre. Udfyld alle viste pladsholdere; ufærdige betingede skabeloner ignoreres.';
 
   @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (betinget)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Kun ind';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Kun ud';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'Ind og ud';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Ingen af delene';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Almindelig';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Enkelt række';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Tilføj skabeloner til bevægelsesformulering';
 
@@ -6419,7 +6442,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Denne skabelon er ufuldstændig, så den normale formulering bruges.';
+      'Denne skabelon er ugyldig, så den normale formulering bruges.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Ret ugyldige skabeloner for bevægelsesformuleringer, før du gemmer: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

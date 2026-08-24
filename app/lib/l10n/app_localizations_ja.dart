@@ -5739,14 +5739,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'このフィールドの値は、コレクションをエクスポートまたは共有するときに一緒に送られます';
+      'このフィールドの値はコレクションを共有するときに一緒に送られます。バックアップには常に含まれます';
 
   @override
   String get customFieldsSharingNoticeTitle => 'カスタムフィールドはコレクションと一緒に送られます';
 
   @override
   String get customFieldsSharingNoticeBody =>
-      '作成したカスタムフィールドの内容は、コレクションをエクスポートまたは共有するときに含まれます。フィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
+      '作成したカスタムフィールドの内容はバックアップに含まれます。コレクションを共有するときにフィールドを非公開にするには、そのフィールドの設定で「共有に含める」をオフにしてください。';
 
   @override
   String get customFieldsSharingNoticeOk => '了解';
@@ -6171,6 +6171,29 @@ class AppLocalizationsJa extends AppLocalizations {
       '条件付き動作テンプレートは図形のパラメーターで選択されます。表示されたすべてのスロットを入力してください。不完全な条件付きテンプレートは無視されます。';
 
   @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move（条件付き）';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'インのみ';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'アウトのみ';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'インとアウト';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'どちらもなし';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => '通常';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => '一列';
+
+  @override
   String get dialectEditorMoveWordingsAdd => '動作の文言テンプレートを追加';
 
   @override
@@ -6195,7 +6218,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get dialectEditorMoveWordingInvalid => 'このテンプレートは不完全なため、通常の文言を使用します。';
+  String get dialectEditorMoveWordingInvalid => 'このテンプレートは無効なため、通常の文言を使用します。';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return '保存する前に無効な動作表現テンプレートを修正してください: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

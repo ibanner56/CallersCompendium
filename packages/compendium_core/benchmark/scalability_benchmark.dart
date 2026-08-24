@@ -193,7 +193,10 @@ Future<void> main() async {
           _,
         ) async {
           final archive = await ArchiveExporter(repos).export();
-          final json = encodeArchive(archive);
+          final json = encodeArchive(
+            archive,
+            mode: ArchiveSerializationMode.backup,
+          );
           if (json.isEmpty) throw StateError('empty backup payload');
           return archive.dances.length;
         }),

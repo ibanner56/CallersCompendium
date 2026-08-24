@@ -5930,7 +5930,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'This field\'s values travel with your collection when you export or share it';
+      'This field\'s values travel with your collection when you share it; backups always include them';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5938,7 +5938,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.';
+      'The contents of any custom field you create are included in your backups. When you share your collection, turn off \"Include in sharing\" in that field\'s settings to keep a field private.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Got it';
@@ -6375,6 +6375,29 @@ class AppLocalizationsEn extends AppLocalizations {
       'Conditional move templates are selected by the figure\'s parameters. Complete every listed slot; unfinished conditional templates are ignored.';
 
   @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (conditional)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'In only';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Out only';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'In and out';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Neither';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Ordinary';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Single file';
+
+  @override
   String get dialectEditorMoveWordingsAdd => 'Add move wording templates';
 
   @override
@@ -6401,7 +6424,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'This template is incomplete, so the normal wording will be used.';
+      'This template is invalid, so the normal wording will be used.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Fix invalid move wording templates before saving: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

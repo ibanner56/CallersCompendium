@@ -5989,7 +5989,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'De waarden van dit veld gaan mee met je collectie wanneer je die exporteert of deelt';
+      'De waarden van dit veld gaan mee met je collectie wanneer je die deelt; back-ups bevatten ze altijd';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -5997,7 +5997,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'De inhoud van elk aangepast veld dat je aanmaakt, wordt meegenomen wanneer je je collectie exporteert of deelt. Zet “Opnemen bij delen” uit in de instellingen van dat veld om een veld privé te houden.';
+      'De inhoud van elk aangepast veld dat je aanmaakt, wordt opgenomen in je back-ups. Zet \"Opnemen bij delen\" uit in de instellingen van het veld wanneer je je collectie deelt om het veld privé te houden.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Begrepen';
@@ -6438,6 +6438,29 @@ class AppLocalizationsNl extends AppLocalizations {
       'Voorwaardelijke bewegingssjablonen worden gekozen op basis van de parameters van de figuur. Vul elke vermelde invulplaats in; onvolledige voorwaardelijke sjablonen worden genegeerd.';
 
   @override
+  String dialectEditorMoveWordingsConditionalLabel(String move) {
+    return '$move (voorwaardelijk)';
+  }
+
+  @override
+  String get dialectEditorMoveWordingBranchInOnly => 'Alleen in';
+
+  @override
+  String get dialectEditorMoveWordingBranchOutOnly => 'Alleen uit';
+
+  @override
+  String get dialectEditorMoveWordingBranchInAndOut => 'In en uit';
+
+  @override
+  String get dialectEditorMoveWordingBranchNeither => 'Geen van beide';
+
+  @override
+  String get dialectEditorMoveWordingBranchOrdinary => 'Gewoon';
+
+  @override
+  String get dialectEditorMoveWordingBranchSingleFile => 'Enkele rij';
+
+  @override
   String get dialectEditorMoveWordingsAdd =>
       'Sjablonen voor bewegingsformuleringen toevoegen';
 
@@ -6466,7 +6489,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Dit sjabloon is onvolledig; daarom wordt de normale formulering gebruikt.';
+      'Dit sjabloon is ongeldig; daarom wordt de normale formulering gebruikt.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Los ongeldige sjablonen voor bewegingsformuleringen op voordat u opslaat: $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {

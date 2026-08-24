@@ -56,6 +56,41 @@ void main() {
       },
     );
 
+    test(
+      'display omits an unspecified subject without leaking the sentinel',
+      () {
+        final bare = Figure(move: 'gate');
+        expect(renderer.render(bare, Dialect.canonical), 'gate');
+        expect(renderer.renderSummary(bare, Dialect.canonical), 'gate');
+        expect(renderer.renderVerbose(bare, Dialect.canonical), 'gate');
+        expect(renderer.renderCanonical(bare), 'gate');
+      },
+    );
+
+    test('display preserves each stated subject and object/facing clause', () {
+      expect(
+        renderer.render(
+          Figure(move: 'gate', params: {'who': 'ones'}),
+          Dialect.canonical,
+        ),
+        'ones gate',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'gate', params: {'pair': 'partners'}),
+          Dialect.canonical,
+        ),
+        'partner gate',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'gate', params: {'whom': 'neighbors', 'face': 'up'}),
+          Dialect.canonical,
+        ),
+        'gate, neighbor forward to face up the hall',
+      );
+    });
+
     test('defaults validate (incl. the rotation sentinel on `turn`)', () {
       final figure = Figure(move: 'gate');
       final issues = tax.validateFigure(
@@ -476,6 +511,39 @@ void main() {
         renderer.render(f, Dialect.canonical),
         'neighbor mirror gate once, ones forward',
       );
+    });
+
+    test('a subjectless mirror gate has no space before its forward comma', () {
+      final f = Figure(
+        move: 'gate',
+        params: {'direction': 'mirror', 'whom': 'neighbors'},
+      );
+      expect(
+        renderer.render(f, Dialect.canonical),
+        'mirror gate, neighbor forward',
+      );
+    });
+
+    test(
+      'a subjectless directional gate has no space before its forward comma',
+      () {
+        final f = Figure(
+          move: 'gate',
+          params: {'direction': 'counterclockwise', 'whom': 'neighbors'},
+        );
+        expect(
+          renderer.render(f, Dialect.canonical),
+          'gate counterclockwise, neighbor forward',
+        );
+      },
+    );
+
+    test('a custom gate wording preserves legacy display slots', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'gate': '{move} custom'},
+      );
+      expect(renderer.render(Figure(move: 'gate'), dialect), 'gate custom');
     });
 
     test('convention-dependent 3/4 still shows no facing clause', () {

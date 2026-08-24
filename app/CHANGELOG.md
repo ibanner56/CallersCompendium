@@ -23,13 +23,29 @@ each release so store builds and tags can be traced back to an entry.
   complete templates for parameter branches of long waves, promenades, and
   circles, preventing single-file and in/out choreography from being lost.
 
+- **Gate previews** no longer show the internal `unspecified` label when you
+  add a gate without filling in its subject. (issue #1038)
+
+- **Dialect wording templates** — the dialect editor now blocks malformed or
+  oversized move wording templates instead of saving settings the renderer will
+  ignore. (issue #1043)
+
+- **Imported walkthroughs** — preserve dance walkthrough text when committing
+  published collections and generic archive/JSON imports. (issue #1040)
+
+- **Program auto-commit** — edits made while an auto-commit clears its recovery
+  draft are no longer overwritten by the older committed snapshot.
 - **Programming Matrix PDF privacy** — linked venue postal addresses are now
   removed from the exported matrix header while the public venue name remains.
 
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
-  
+
+- **Complete backups** — backups now preserve custom fields and their values even
+  when **Include in sharing** is turned off; that setting still keeps them out of
+  files you share with other people.
+
 ### Added
 
 - **Experimental settings** — a new section provides a home for features that

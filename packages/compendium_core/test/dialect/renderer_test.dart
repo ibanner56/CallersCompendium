@@ -2139,6 +2139,16 @@ void main() {
           'mad robin',
         );
       });
+      test('mad_robin surfaces an explicit unspecified subject', () {
+        expect(
+          renderer.render(
+            // invalid-fixture: value is deliberately out of domain — unspecified is not a valid mad_robin subject
+            Figure(move: 'mad_robin', params: {'who': 'unspecified'}),
+            d,
+          ),
+          'mad robin, unspecified in front',
+        );
+      });
       test('revolving_door surfaces unknown who/whom/hand values', () {
         expect(
           renderer.render(
@@ -2867,6 +2877,24 @@ void main() {
   });
 
   group('global move wording templates', () {
+    test('persisted branch registry matches renderer contracts', () {
+      for (final entry in kMoveWordingBranchKeys.entries) {
+        expect(
+          renderer.moveWordingBranchIds(entry.key).toSet(),
+          entry.value,
+          reason:
+              '${entry.key} branch IDs drifted between Dialect and renderer',
+        );
+        for (final branch in entry.value) {
+          expect(
+            renderer.moveWordingBranchSlots(entry.key, branch),
+            isNotEmpty,
+            reason: '${entry.key}/$branch has no renderer slot contract',
+          );
+        }
+      }
+    });
+
     test('legacy wording does not cross parameter branches', () {
       final dialect = Dialect.larksRobins.copyWith(
         moveWordings: const {
