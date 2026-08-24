@@ -739,10 +739,15 @@ class FigureRenderer {
   String _subjectWho(Map<String, Object?> params, Dialect dialect) =>
       _subjectToken(params['who'], dialect);
 
-  /// [_subjectWho] for an arbitrary subject [value] — used by the merged `gate`
-  /// base line, whose grammatical subject is `who` (ContraDB) OR `pair` (The
-  /// Caller's Box) depending on which the source stated.
-  String _subjectToken(Object? value, Dialect dialect) {
+  /// [_subjectWho] for an arbitrary subject [value]. The unspecified sentinel
+  /// is omitted only for consumers whose grammar treats it like `null`; other
+  /// non-null values are always surfaced.
+  String _subjectToken(
+    Object? value,
+    Dialect dialect, {
+    bool omitUnspecified = false,
+  }) {
+    if (omitUnspecified && _isUnspecified(value)) return '';
     final subject = _displaySubject(
       value,
       dialect,
@@ -1325,7 +1330,11 @@ class FigureRenderer {
       final whoRaw = params['who'];
       final pairRaw = params['pair'];
       final whoLeads = !_isUnspecified(whoRaw) && whoRaw != null;
-      final swho = r._subjectToken(whoLeads ? whoRaw : pairRaw, dialect);
+      final swho = r._subjectToken(
+        whoLeads ? whoRaw : pairRaw,
+        dialect,
+        omitUnspecified: true,
+      );
       final whomRaw = params['whom'];
       final hasWhom = !_isUnspecified(whomRaw) && whomRaw != null;
       // ContraDB's grammar puts the object straight after the move — but that
@@ -1364,20 +1373,31 @@ class FigureRenderer {
       final facingClause = (faceRaw is String && gateFacings.contains(faceRaw))
           ? ' to face ${_gateFacingPhrase(faceRaw)}'
           : '';
-      return _displayTemplate(
-        {
-          'subject': swho,
-          'modifier': modifier,
-          'move': move,
-          'objects': objects,
-          'direction': renderedDirection,
-          'turn': turn,
-          'forward': forwardClause,
-          'facing': facingClause,
-        },
-        '{subject} {modifier}{move} {objects} {direction} {turn}'
-        '{forward}{facing}',
-      );
+      // The forward clause starts with a comma, so append it to the assembled
+      // head rather than after a template separator. This keeps it adjacent to
+      // whichever slot was rendered last.
+      final head = [
+        swho,
+        '$modifier$move',
+        objects,
+        renderedDirection,
+        turn,
+      ].where((slot) => slot.isNotEmpty).join(' ');
+      return _displayTemplate({
+        'head': head,
+        // Keep these slots for persisted dialect wording templates. The default
+        // template uses `head` so a comma-prefixed forward clause is adjacent
+        // to the final rendered slot, but user templates still expand legacy
+        // placeholders independently.
+        'subject': swho,
+        'modifier': modifier,
+        'move': move,
+        'objects': objects,
+        'direction': renderedDirection,
+        'turn': turn,
+        'forward': forwardClause,
+        'facing': facingClause,
+      }, '{head}{forward}{facing}');
     },
     // The Caller's Box's standalone courtesy turn (taxonomy v23). Maintainer's
     // stated wording, verbatim:
