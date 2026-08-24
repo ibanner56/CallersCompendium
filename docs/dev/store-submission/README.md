@@ -54,7 +54,7 @@ Keep this handy — every form asks some slice of it.
 |-------|-------|
 | App name | **Caller's Compendium** |
 | Bundle ID / package name | `org.callerscompendium.compendiumApp` (same on both platforms) |
-| Current version | `0.1.0` (Flutter `0.1.0+1`), cutting `v0.1.0-beta.4` |
+| Release version | Ask beta status and base `X.Y.Z`; use `vX.Y.Z-beta` for beta or `vX.Y.Z` for stable, with Flutter `X.Y.Z` |
 | Price | **Free** |
 | In-app purchases / subscriptions | **None** |
 | Ads | **None** |

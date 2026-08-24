@@ -169,6 +169,32 @@ def build_metadata(
     return sums_text, manifest
 
 
+def build_channel_manifests(
+    *,
+    version: str,
+    tag: str,
+    channel: str,
+    repo: str,
+    dist: Path,
+    pub_date: str,
+    extra_files: list[Path] | None = None,
+) -> dict[str, dict]:
+    """Build all manifests refreshed by a selected release channel."""
+    channels = ("stable", "beta") if channel == "stable" else ("beta",)
+    manifests: dict[str, dict] = {}
+    for manifest_channel in channels:
+        _, manifests[manifest_channel] = build_metadata(
+            version=version,
+            tag=tag,
+            channel=manifest_channel,
+            repo=repo,
+            dist=dist,
+            pub_date=pub_date,
+            extra_files=extra_files,
+        )
+    return manifests
+
+
 def _default_pub_date() -> str:
     return _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -199,25 +225,37 @@ def main(argv: list[str] | None = None) -> int:
     if args.channel not in ("stable", "beta"):
         raise SystemExit(f"::error::bad channel: {args.channel}")
 
+    pub_date = args.pub_date or _default_pub_date()
     sums_text, manifest = build_metadata(
         version=args.version,
         tag=args.tag,
         channel=args.channel,
         repo=args.repo,
         dist=dist,
-        pub_date=args.pub_date or _default_pub_date(),
+        pub_date=pub_date,
+        extra_files=args.extra_file,
+    )
+    manifests = build_channel_manifests(
+        version=args.version,
+        tag=args.tag,
+        channel=args.channel,
+        repo=args.repo,
+        dist=dist,
+        pub_date=pub_date,
         extra_files=args.extra_file,
     )
 
     sums_path = dist / "SHA256SUMS"
-    manifest_path = dist / f"{args.channel}.json"
     sums_path.write_text(sums_text, encoding="utf-8")
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=False) + "\n", encoding="utf-8"
-    )
 
     print(f"Wrote {sums_path} ({len(sums_text.splitlines())} entries)")
-    print(f"Wrote {manifest_path} ({len(manifest['artifacts'])} artifacts)")
+    for channel, channel_manifest in manifests.items():
+        manifest_path = dist / f"{channel}.json"
+        manifest_path.write_text(
+            json.dumps(channel_manifest, indent=2, sort_keys=False) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Wrote {manifest_path} ({len(channel_manifest['artifacts'])} artifacts)")
     print(sums_text, end="")
     print(json.dumps(manifest, indent=2))
     return 0

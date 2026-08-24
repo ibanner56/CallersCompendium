@@ -56,6 +56,8 @@ jobs:
       version: ${{ steps.resolve.outputs.version }}
       tag: ${{ steps.resolve.outputs.tag }}
       channel: ${{ steps.resolve.outputs.channel }}
+      manifest_channels: ${{ steps.resolve.outputs.manifest_channels }}
+      android_version_code: ${{ steps.resolve.outputs.android_version_code }}
       prerelease: ${{ steps.resolve.outputs.prerelease }}
       pub_date: ${{ steps.resolve.outputs.pub_date }}
     steps:
@@ -67,41 +69,65 @@ jobs:
         id: resolve
         run: |
           set -euo pipefail
-          # pubspec semver is the single source of truth for what we build; the
-          # in-code kAppVersion is already guarded equal to it by _checks.yml.
-          pubspec_ver="$(grep -E '^version:' app/pubspec.yaml | head -n1 \
-            | sed -E 's/^version:[[:space:]]*//' | tr -d '[:space:]')"
-          pubspec_semver="${pubspec_ver%%+*}"
+          # The only accepted release tags are vX.Y.Z and vX.Y.Z-beta. Both
+          # require app/pubspec.yaml's exact X.Y.Z release version.
+          core_re='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
+          pubspec_line="$(grep -E '^version:' app/pubspec.yaml | head -n1)"
+          if [[ ! "$pubspec_line" =~ ^version:[[:space:]]*($core_re)[[:space:]]*$ ]]; then
+            echo "::error::app/pubspec.yaml version must be valid X.Y.Z with no build metadata or prerelease suffix"
+            exit 1
+          fi
+          pubspec_semver="${BASH_REMATCH[1]}"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # No tag on a manual run; name artifacts after the built version.
             version="$pubspec_semver"
+            tag="v$version"
+            channel="stable"
+            prerelease="false"
+            manifest_channels="stable beta"
           else
-            version="${GITHUB_REF_NAME#v}"   # v0.1.0 -> 0.1.0, v0.1.0-beta.1 -> 0.1.0-beta.1
+            tag="$GITHUB_REF_NAME"
+            if [[ "$tag" =~ ^v($core_re)$ ]]; then
+              version="${tag#v}"
+              channel="stable"
+              prerelease="false"
+              manifest_channels="stable beta"
+            elif [[ "$tag" =~ ^v($core_re)-beta$ ]]; then
+              version="${tag#v}"
+              channel="beta"
+              prerelease="true"
+              manifest_channels="beta"
+            else
+              echo "::error::invalid release tag '$tag'; expected vX.Y.Z or vX.Y.Z-beta with a valid no-leading-zero core"
+              exit 1
+            fi
           fi
 
-          core="${version%%-*}"              # strip any prerelease suffix
+          core="${version%-beta}"
           if [ "$core" != "$pubspec_semver" ]; then
             echo "::error::tag version core ($core) != app/pubspec.yaml semver ($pubspec_semver)"
             exit 1
           fi
-
-          case "$version" in
-            *-*) channel="beta";   prerelease="true"  ;;
-            *)   channel="stable"; prerelease="false" ;;
-          esac
+          if [ "$channel" = "beta" ]; then
+            git tag --list | python3 tools/release/check_beta_prerelease_history.py \
+              --candidate-tag "$tag"
+          fi
+          android_version_code="$(python3 tools/release/android_version_code.py --tag "$tag")"
 
           pub_date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
           {
             echo "version=$version"
-            echo "tag=v$version"
+            echo "tag=$tag"
             echo "channel=$channel"
+            echo "manifest_channels=$manifest_channels"
+            echo "android_version_code=$android_version_code"
             echo "prerelease=$prerelease"
             echo "pub_date=$pub_date"
           } >> "$GITHUB_OUTPUT"
 
-          echo "Resolved: version=$version tag=v$version channel=$channel prerelease=$prerelease"
+          echo "Resolved: version=$version tag=$tag channel=$channel android_version_code=$android_version_code prerelease=$prerelease"
 
       # Fail-fast CHANGELOG checks run only for tag pushes, so a build-only
       # workflow_dispatch dry run is never blocked.
@@ -111,6 +137,7 @@ jobs:
           VERSION: ${{ steps.resolve.outputs.version }}
           TAG: ${{ steps.resolve.outputs.tag }}
           CHANNEL: ${{ steps.resolve.outputs.channel }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           python3 tools/release/gen_release_notes.py --check \
@@ -118,8 +145,17 @@ jobs:
             --tag "$TAG" \
             --channel "$CHANNEL" \
             --changelog app/CHANGELOG.md
-          previous_tag="$(git tag --merged HEAD --sort=-version:refname |
-            grep -E '^v[0-9]' | grep -Fxv "$TAG" | head -n1 || true)"
+          previous_tag=""
+          while IFS= read -r candidate; do
+            if gh release view "$candidate" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              previous_tag="$candidate"
+              break
+            fi
+          done < <(
+            git tag --merged HEAD --sort=-creatordate |
+              grep -E '^v[0-9]' |
+              grep -Fxv "$TAG" || true
+          )
           args=(--version "$VERSION")
           if [ -n "$previous_tag" ]; then
             args+=(--previous-ref "$previous_tag")
@@ -175,6 +211,7 @@ jobs:
       contents: read
     env:
       VERSION: ${{ needs.meta.outputs.version }}
+      ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -315,7 +352,7 @@ jobs:
       - name: Build Linux release bundle
         if: matrix.platform == 'linux'
         working-directory: app
-        run: flutter build linux --release
+        run: flutter build linux --release --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Linux (tar.gz + AppImage)
         if: matrix.platform == 'linux'
@@ -363,7 +400,7 @@ jobs:
       - name: Build macOS release bundle
         if: matrix.platform == 'macos'
         working-directory: app
-        run: flutter build macos --release
+        run: flutter build macos --release --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       # UNSIGNED path (secrets absent): byte-for-byte identical to the previous
       # behaviour — a ditto zip + an hdiutil drag-to-Applications dmg, no deps.
@@ -721,15 +758,11 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           set -euo pipefail
-          # Monotonic, unique CFBundleVersion so TestFlight never rejects a
-          # duplicate build number. GITHUB_RUN_NUMBER only ever increases, but it
-          # is reused when a run is re-run, so fold in GITHUB_RUN_ATTEMPT (starts
-          # at 1, increments per re-run) to keep re-runs unique too. The result
-          # stays a single monotonic integer (attempts are << 1000). We pass it on
-          # the CLI so app/pubspec.yaml (0.1.0+1) is untouched and the meta/version
-          # gate (tag core == pubspec semver) stays green.
-          build_number=$(( GITHUB_RUN_NUMBER * 1000 + GITHUB_RUN_ATTEMPT ))
-          echo "Using CFBundleVersion (build number): ${build_number}"
+          # The resolved tag's bounded SemVer-derived Android code also gives
+          # TestFlight a deterministic, unique CFBundleVersion. It needs no
+          # manual pubspec build suffix and keeps the host/extension in lockstep.
+          build_number="${ANDROID_VERSION_CODE:?missing Android version code from meta job}"
+          echo "Using tag-derived CFBundleVersion: ${build_number}"
 
           # Keep the Share Extension's version + build in lockstep with the host
           # app. `flutter build --build-number` only stamps the Runner target via
@@ -738,10 +771,10 @@ jobs:
           # CFBundleShortVersionString / CFBundleVersion would otherwise stay the
           # checked-in placeholder (1.0 / 1). App Store validation REJECTS an
           # embedded extension whose version or build differs from the host, so
-          # stamp them here to the pubspec marketing version + this build number.
+          # stamp them here to the pubspec release version + derived build code.
           # Reverted by the always() cleanup step (git checkout), mirroring how
           # the DEVELOPMENT_TEAM line is appended to Release.xcconfig above.
-          build_name="$(sed -n 's/^version:[[:space:]]*\([^+]*\).*/\1/p' pubspec.yaml | tr -d '[:space:]')"
+          build_name="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml | head -n1 | tr -d '[:space:]')"
           if [ -z "$build_name" ]; then
             echo "::error::Could not parse a marketing version from app/pubspec.yaml ('version:') to stamp the ShareExtension." >&2
             exit 1
@@ -774,7 +807,8 @@ jobs:
           # 1) Flutter build — populates Generated.xcconfig (incl. the build
           #    number) and compiles the Dart/asset bundle. --no-codesign because
           #    signing happens once, at export (step 3).
-          flutter build ios --release --no-codesign --build-number="${build_number}"
+          flutter build ios --release --no-codesign --build-number="${build_number}" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
           # 2) Archive WITHOUT signing. No -allowProvisioningUpdates (that flag
           #    is what authorizes Xcode to create portal resources) and no API
@@ -942,7 +976,10 @@ jobs:
       - name: Build Android release APK (signed)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
-        run: flutter build apk --release
+        # The code is derived from the resolved tag: radix-1000 SemVer core
+        # packing plus a channel bit (beta < stable for one core).
+        run: flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
+          --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Android (signed APK)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -965,7 +1002,8 @@ jobs:
       - name: Build Android App Bundle (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
+          --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Android (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -1065,7 +1103,7 @@ jobs:
       # --- Windows: zip (portable) + Inno Setup installer ------------------
       - name: Build Windows release bundle
         working-directory: app
-        run: flutter build windows --release
+        run: flutter build windows --release --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Azure Login
         if: steps.windows_signing.outputs.signing == 'configured'
@@ -1232,7 +1270,7 @@ jobs:
             --version "${{ needs.meta.outputs.version }}" \
             --output "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
-      - name: Generate SHA256SUMS + channel manifest
+      - name: Generate SHA256SUMS + channel manifests
         run: |
           set -euo pipefail
           python3 tools/release/gen_release_metadata.py \
@@ -1244,14 +1282,8 @@ jobs:
             --pub-date "${{ needs.meta.outputs.pub_date }}" \
             --extra-file "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
-      # Update-manifest signing availability gate (issue #431), mirroring the
-      # Apple/Android signing gates above: `secrets` context is NOT allowed in a
-      # step-level `if:`, so read the secret via `env:` and export a plain
-      # `signing=configured|missing` output the sign step below gates on. The
-      # signing key is the maintainer's Ed25519 PRIVATE key (PEM). When it is
-      # absent the whole signing path is skipped with a ::notice:: so CI stays
-      # green WITHOUT the secret (the client then fails closed and simply never
-      # offers an update until the key + pinned public key are provisioned).
+      # The manifest signature is a publication gate. An unsigned or stale
+      # signature makes clients fail closed, so absent signing material fails.
       - name: Determine update-signing availability
         id: update_signing
         env:
@@ -1260,57 +1292,61 @@ jobs:
           set -euo pipefail
           if [ -n "${UPDATE_SIGNING_KEY:-}" ]; then
             echo "signing=configured" >> "$GITHUB_OUTPUT"
-            echo "Update-signing key configured; signing the channel manifest."
+            echo "Update-signing key configured; signing every refreshed manifest."
           else
-            echo "signing=missing" >> "$GITHUB_OUTPUT"
-            echo "::notice::UPDATE_SIGNING_KEY not configured; skipping update-manifest signing (client fails closed until the key + pinned public key are provisioned)."
+            echo "::error::UPDATE_SIGNING_KEY is required to publish signed update manifests."
+            exit 1
           fi
 
-      # Produce the manifest's detached Ed25519 signature (issue #431): a raw
+      # Produce each refreshed manifest's detached Ed25519 signature: a raw
       # (PureEdDSA) signature over the EXACT bytes of dist/<channel>.json,
       # base64-encoded into dist/<channel>.json.sig — the format the in-app
       # client verifies against the pinned public key. `openssl pkeyutl -rawin`
       # is required for Ed25519 (one-shot over the whole message; no external
       # digest). The private key never touches disk beyond RUNNER_TEMP and is
-      # removed immediately. Gated on the secret being present, so this step is a
-      # no-op when unsigned (CI stays green).
-      - name: Sign the channel manifest (Ed25519 detached)
-        if: steps.update_signing.outputs.signing == 'configured'
+      # removed immediately.
+      - name: Sign refreshed manifests (Ed25519 detached)
         env:
           UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
-          CHANNEL: ${{ needs.meta.outputs.channel }}
+          CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
         run: |
           set -euo pipefail
           key_file="$RUNNER_TEMP/update_signing_key.pem"
           umask 077
           printf '%s' "$UPDATE_SIGNING_KEY" > "$key_file"
           trap 'rm -f "$key_file"' EXIT
-          sig_raw="$RUNNER_TEMP/${CHANNEL}.json.sig.raw"
-          openssl pkeyutl -sign -rawin \
-            -inkey "$key_file" \
-            -in "dist/${CHANNEL}.json" \
-            -out "$sig_raw"
-          # 64-byte Ed25519 signature -> single-line standard base64.
-          base64 -w0 "$sig_raw" > "dist/${CHANNEL}.json.sig" 2>/dev/null \
-            || base64 "$sig_raw" | tr -d '\n' > "dist/${CHANNEL}.json.sig"
-          echo "Wrote dist/${CHANNEL}.json.sig ($(wc -c < "dist/${CHANNEL}.json.sig") base64 bytes)"
+          for channel in $CHANNELS; do
+            sig_raw="$RUNNER_TEMP/${channel}.json.sig.raw"
+            openssl pkeyutl -sign -rawin \
+              -inkey "$key_file" \
+              -in "dist/${channel}.json" \
+              -out "$sig_raw"
+            # 64-byte Ed25519 signature -> single-line standard base64.
+            base64 -w0 "$sig_raw" > "dist/${channel}.json.sig" 2>/dev/null \
+              || base64 "$sig_raw" | tr -d '\n' > "dist/${channel}.json.sig"
+            echo "Wrote dist/${channel}.json.sig ($(wc -c < "dist/${channel}.json.sig") base64 bytes)"
+          done
 
-      # Hand the freshly-generated channel manifest to the `pages` job (A11c),
+      # Hand every freshly-generated manifest to the `pages` job (A11c),
       # which publishes it to the gh-pages branch so the client's fixed URL
       # (kUpdateManifestBaseUrl) resolves. Uploading just this one file keeps the
       # Pages publish decoupled from the release assets and lets `pages` run with
       # contents:write ONLY (no id-token/attestations).
-      - name: Upload channel manifest for the Pages publish
+      - name: Stage signed manifests for the Pages publish
+        env:
+          CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
+        run: |
+          set -euo pipefail
+          mkdir manifest
+          for channel in $CHANNELS; do
+            cp "dist/${channel}.json" "dist/${channel}.json.sig" manifest/
+          done
+
+      - name: Upload signed manifests for the Pages publish
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: channel-manifest
-          # The manifest is always present; the `.sig` is included only when the
-          # signing step ran (secret present). `if-no-files-found: error` still
-          # guards the required manifest — a missing optional `.sig` does not
-          # fail the upload because the manifest pattern always matches.
-          path: |
-            dist/${{ needs.meta.outputs.channel }}.json
-            dist/${{ needs.meta.outputs.channel }}.json.sig
+          name: channel-manifests
+          path: manifest/
           if-no-files-found: error
           retention-days: 7
 
@@ -1331,12 +1367,9 @@ jobs:
           sbom-path: 'dist/sbom-${{ needs.meta.outputs.version }}.cdx.json'
 
       # Release notes come from app/CHANGELOG.md (A12): gen_release_notes.py
-      # extracts the `## [x.y.z]` section for this version, adds a beta banner
-      # for prerelease tags, and appends the signing/verify/maintainer footer.
-      # A missing section falls back to a loud "add notes" body (+ ::warning::)
-      # rather than failing the run — the release is a DRAFT until a human
-      # publishes it. Maintain notes by promoting `## [Unreleased]` before
-      # tagging (see docs/dev/releasing.md).
+      # extracts the required `## [x.y.z]` section, adds a beta banner for a
+      # bare beta tag, and appends the signing/verify/maintainer footer. The
+      # meta job rejects a missing section before any build begins.
       #
       # The footer's macOS line must match what actually happened in the build
       # matrix. macOS signing is gated on the six Apple secrets (same gate as the
@@ -1381,15 +1414,14 @@ jobs:
           VERSION: ${{ needs.meta.outputs.version }}
           TAG: ${{ needs.meta.outputs.tag }}
           CHANNEL: ${{ needs.meta.outputs.channel }}
+          CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
         run: |
           set -euo pipefail
-          files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/${CHANNEL}.json" "dist/sbom-${VERSION}.cdx.json")
-          # Attach the manifest's detached signature too when it was produced
-          # (issue #431); absent when UPDATE_SIGNING_KEY is not configured.
-          if [ -f "dist/${CHANNEL}.json.sig" ]; then
-            files+=("dist/${CHANNEL}.json.sig")
-          fi
+          files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/sbom-${VERSION}.cdx.json")
+          for channel in $CHANNELS; do
+            files+=("dist/${channel}.json" "dist/${channel}.json.sig")
+          done
 
           pre_flag=()
           if [ "$PRERELEASE" = "true" ]; then pre_flag=(--prerelease); fi
@@ -1475,13 +1507,13 @@ jobs:
           done
           echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
 
-  # Publish the channel manifest (stable.json / beta.json) to the persistent
+  # Publish refreshed manifests (stable.json / beta.json) to the persistent
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
   #
   # CROSS-CHANNEL PRESERVATION: publish_pages_manifest.sh starts from the EXISTING
-  # gh-pages content and overwrites ONLY the current channel's file, so a stable
-  # release never erases beta.json and vice-versa (proven offline by
+  # gh-pages content and overwrites only the selected file. A stable release
+  # refreshes both manifests for beta opt-ins; a beta refreshes beta only (proven by
   # tools/release/test_publish_pages_manifest.py). This uses the "Deploy from a
   # branch" Pages source — NOT actions/deploy-pages, which replaces the whole
   # site each deploy and would clobber the other channel.
@@ -1506,30 +1538,25 @@ jobs:
       # publisher pushes gh-pages through; no new/third-party action is needed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Download the channel manifest
+      - name: Download signed manifests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: channel-manifest
+          name: channel-manifests
           path: manifest
 
-      - name: Publish the channel manifest to gh-pages
+      - name: Publish signed manifests to gh-pages
         env:
-          CHANNEL: ${{ needs.meta.outputs.channel }}
+          CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
           TAG: ${{ needs.meta.outputs.tag }}
         run: |
           set -euo pipefail
-          sig_args=()
-          # Publish the detached signature next to the manifest when it exists
-          # (issue #431); the client fetches <channel>.json.sig and verifies it
-          # against the pinned public key. Absent when signing was skipped.
-          if [ -f "manifest/${CHANNEL}.json.sig" ]; then
-            sig_args=(--signature "manifest/${CHANNEL}.json.sig")
-          fi
-          bash tools/release/publish_pages_manifest.sh \
-            --manifest "manifest/${CHANNEL}.json" \
-            --channel "$CHANNEL" \
-            --tag "$TAG" \
-            "${sig_args[@]}"
+          for channel in $CHANNELS; do
+            bash tools/release/publish_pages_manifest.sh \
+              --manifest "manifest/${channel}.json" \
+              --signature "manifest/${channel}.json.sig" \
+              --channel "$channel" \
+              --tag "$TAG"
+          done
 
       # Defence in depth (#759, #810): assert the published gh-pages state
       # immediately after a manifest publish, catching a missing or invalid

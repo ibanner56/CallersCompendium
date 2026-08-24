@@ -94,7 +94,7 @@ class UpdateController extends ChangeNotifier {
   }) : _service = service ?? UpdateService(),
        currentVersion =
            currentVersion ??
-           (SemVer.tryParse(kAppVersion) ??
+           (SemVer.tryParse(kUpdaterVersion) ??
                const SemVer(major: 0, minor: 0, patch: 0)),
        _platform = platform ?? currentUpdatePlatform(),
        _arch = arch ?? currentUpdateArch(),
@@ -114,8 +114,8 @@ class UpdateController extends ChangeNotifier {
   final ArtifactHandoff _handoff;
   final Future<Directory> Function() _temporaryDirectoryProvider;
 
-  /// The running app version (parsed from [kAppVersion]) that manifest versions
-  /// are compared against.
+  /// The running release identity (parsed from [kUpdaterVersion]) that manifest
+  /// versions are compared against.
   final SemVer currentVersion;
 
   final UpdatePlatform _platform;

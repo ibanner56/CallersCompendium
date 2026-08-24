@@ -52,12 +52,14 @@ already true, verify it. **[One-time]** = account/setup step you do once.
 
 - [ ] **[Confirm]** A build has landed in **ASC → TestFlight → iOS builds**.
   CI uploads it via `xcrun altool --upload-app` on a real `v*` tag (a
-  `workflow_dispatch` builds+signs but does **not** upload). Cut `v0.1.0-beta.4`
+  `workflow_dispatch` builds+signs but does **not** upload). Cut a bare beta tag
+  such as `vX.Y.Z-beta`
   and confirm the build appears and finishes **processing**.
-- [ ] **[Confirm]** Signing is Xcode-managed/automatic via the API key — no manual
-  cert or provisioning profile to create. Nothing to do unless the build fails.
-- [ ] **[Confirm]** Build number is unique (CI computes `CFBundleVersion` from the
-  run number; TestFlight rejects duplicates). If you ever upload manually, bump it.
+- [ ] **[Confirm]** CI manually signs the export with the configured Apple
+  Distribution certificate and app/Share Extension provisioning profiles.
+- [ ] **[Confirm]** CI's tag-derived `CFBundleVersion` is unique. It uses the
+  bounded SemVer core plus a channel bit (beta below stable for the same core);
+  TestFlight rejects duplicates.
 - [ ] **[Gate]** **Export compliance.** `Info.plist` sets
   `ITSAppUsesNonExemptEncryption = false`, so ASC skips the per-build
   "Missing Compliance" prompt. This is the honest answer: the app uses only
@@ -181,8 +183,8 @@ Open beta does not require full App Review; the public store does. When ready:
 | Bundle id | `org.callerscompendium.compendiumApp` |
 | SKU | `CallersCompendiumApp` |
 | Program | Apple Developer Program ($99/yr, active) |
-| Upload path | CI: `flutter build ipa` + `xcrun altool --upload-app` on `v*` tag |
-| Signing | Automatic (Xcode-managed) via App Store Connect API key (App Manager role) |
+| Upload path | CI: unsigned `xcodebuild archive`, manually signed `xcodebuild -exportArchive`, then `xcrun altool --upload-app` on a release tag |
+| Signing | Manual export with the App Store Connect API key (App Manager role), Apple Distribution certificate, and app/Share Extension provisioning profiles |
 | Export compliance | `ITSAppUsesNonExemptEncryption=false` — exempt (signatures + SHA-256 checksum only, no confidentiality crypto) |
 | Open beta = | TestFlight **external** testing + **public link** (after Beta App Review) |
 | Internal testers | ≤100, no review (already live) |

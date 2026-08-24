@@ -15,12 +15,12 @@
 # action, nothing new to SHA-pin).
 #
 # Usage:
-#   publish_pages_manifest.sh --manifest <path> --channel <stable|beta> --tag <vX.Y.Z> [--signature <path>]
+#   publish_pages_manifest.sh --manifest <path> --channel <stable|beta> --tag <vX.Y.Z> --signature <path>
 #
 # When --signature is given (issue #431), its file is published alongside the
 # manifest as `<channel>.json.sig` (the detached Ed25519 signature the in-app
-# client verifies against the pinned public key). When omitted the behaviour is
-# byte-identical to before (manifest only) so an unsigned release stays green.
+# client verifies against the pinned public key). It is required, so a changed
+# manifest can never be published beside a stale detached signature.
 #
 # Environment overrides (defaults target the real release):
 #   REMOTE            git remote to push to           (default: origin)
@@ -48,6 +48,7 @@ done
 [ -n "$manifest" ] || { echo "::error::--manifest is required" >&2; exit 2; }
 [ -n "$channel" ]  || { echo "::error::--channel is required" >&2; exit 2; }
 [ -n "$tag" ]      || { echo "::error::--tag is required" >&2; exit 2; }
+[ -n "$signature" ] || { echo "::error::--signature is required; refusing to publish an unsigned manifest" >&2; exit 2; }
 case "$channel" in
   stable|beta) ;;
   *) echo "::error::--channel must be 'stable' or 'beta', got: $channel" >&2; exit 2 ;;

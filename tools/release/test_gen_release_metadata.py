@@ -82,6 +82,23 @@ def _cases() -> None:
         assert base_manifest["channel"] == "stable"
         assert base_manifest["version"] == VERSION
 
+        # A stable release also refreshes beta opt-ins with the same release
+        # identity; a beta release produces only beta.json.
+        stable_manifests = g.build_channel_manifests(
+            version=VERSION, tag=TAG, channel="stable", repo=REPO,
+            dist=dist, pub_date=PUB_DATE,
+        )
+        assert set(stable_manifests) == {"stable", "beta"}
+        assert all(manifest["version"] == VERSION
+                   for manifest in stable_manifests.values())
+        assert all(manifest["releaseNotesUrl"].endswith(f"/{TAG}")
+                   for manifest in stable_manifests.values())
+        beta_manifests = g.build_channel_manifests(
+            version=VERSION, tag="v0.1.0-beta", channel="beta",
+            repo=REPO, dist=dist, pub_date=PUB_DATE,
+        )
+        assert set(beta_manifests) == {"beta"}
+
         # --- With an extra (SBOM) asset ---------------------------------
         sbom = dist / "sbom-0.1.0.cdx.json"
         sbom_content = b'{"bomFormat":"CycloneDX"}'

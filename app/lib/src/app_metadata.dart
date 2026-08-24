@@ -6,7 +6,7 @@
 /// mechanism, and pulling in a platform plugin purely to echo the pubspec
 /// version would add build/test surface for no functional gain. This constant
 /// is the single in-code source of truth and **must be kept in step with the
-/// `version:` field in `app/pubspec.yaml`** (currently `0.1.0+1`).
+/// `version:` field in `app/pubspec.yaml`** (exactly `X.Y.Z`, with no suffix).
 library;
 
 /// Human-facing application name.
@@ -17,9 +17,19 @@ const String kAppName = "Caller's Compendium";
 const String kAppTagline =
     'Your dances, your dialect — in the hall or on the road.';
 
-/// Marketing/display version. Mirror the `version:` in `app/pubspec.yaml`
-/// (the leading semver, without the `+build` suffix).
+/// Marketing/display version. Mirror the exact `version:` in `app/pubspec.yaml`.
 const String kAppVersion = '0.1.0';
+
+/// Release identity the strict updater compares with manifest versions.
+///
+/// Release builds inject the tag-derived SemVer through
+/// `CALLERS_COMPENDIUM_RELEASE_VERSION`, so a beta build identifies itself as
+/// `X.Y.Z-beta` while the marketing version remains the bare `X.Y.Z` required
+/// by `app/pubspec.yaml`. Development and non-release builds use [kAppVersion].
+const String kUpdaterVersion = String.fromEnvironment(
+  'CALLERS_COMPENDIUM_RELEASE_VERSION',
+  defaultValue: kAppVersion,
+);
 
 /// The project's canonical source repository. Surfaced in the About section to
 /// satisfy the AGPL-3.0 obligation to offer the corresponding source, and used

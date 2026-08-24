@@ -90,8 +90,9 @@ by `tools/release/gen_release_notes.py` — see
 
 Deferred this wave: Linux/Windows **arm64**.
 **iOS** now archives + signs an **App Store `.ipa`** and uploads it to
-**TestFlight** in the release pipeline (automatic signing via an App Store Connect
-API key — see [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api)
+**TestFlight** in the release pipeline (manual export signing using an App Store
+Connect API key, Apple Distribution certificate, and provisioning profiles — see
+[iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api)
 below). iOS is **store-delivered** (ADR-002), so it is *not* a GitHub Release
 asset / `SHA256SUMS` / channel-manifest entry.
 **Android** now builds a **signed universal APK** in the release pipeline (a real
@@ -129,12 +130,12 @@ and produces no Android artifact.
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
    the accumulated `## [Unreleased]` items into the versioned section **before**
    tagging. The release fails fast in the `meta` job if `Unreleased` still has
-   list items. For a stable (plain `x.y.z`) tag, it also requires the matching
+   list items. Every release, stable or beta, requires the matching shared
    versioned section.
 
    **If a section for this core version already exists, merge into it — do not
    create a second one.** Successive betas in a line all render the *same*
-   heading (`v0.1.0-beta.7` reads `## [0.1.0]`), so after the first promotion
+   heading (`v0.1.0-beta` reads `## [0.1.0]`), so after the first promotion
    that section is already present. Renaming the `## [Unreleased]` heading with
    `sed`/`perl` therefore produces **two** `## [0.1.0]` sections and corrupts the
    file. Move the items across, update the existing section's date, and leave a
@@ -150,24 +151,23 @@ and produces no Android artifact.
    because the notes render from the *first* section, so the orphaned one was
    invisible until someone went looking for the older release's entry.
 
-   Only a release whose core version is genuinely new (a minor or major bump)
-   adds a new heading.
+   Only a release whose core version is genuinely new adds a new heading. This
+   includes a patch bump such as `0.1.0` to `0.1.1`; the beta and stable tags
+   for that new core then share it.
 
    ```md
    ## [Unreleased]
 
    ## [0.2.0] - 2026-08-01
 
-   Flutter build: `0.2.0+5`.
-
    ### Added
    - …
    ```
 
    - The heading version must be the bare `x.y.z` (no `v`, no prerelease suffix)
-     — a prerelease tag like `v0.2.0-beta.1` still reads the `## [0.2.0]` section.
-   - Include the ``Flutter build: `x.y.z+N` `` line (the `+build` from
-     `app/pubspec.yaml`) so tags trace back to an entry.
+     — a bare beta tag like `v0.2.0-beta` still reads the `## [0.2.0]` section.
+   - Do not add a build-number line: the tag deterministically supplies store
+     build codes, and `app/pubspec.yaml` has no version suffix.
    - Leave a fresh, empty `## [Unreleased]` at the top for the next cycle.
    - **Include a Data / Migrations section whenever `kCompendiumSchemaVersion`
      or `contraTaxonomyVersion` has moved** since that section was last written.
@@ -180,9 +180,9 @@ and produces no Android artifact.
      it was when you last looked. Derive it:
 
      ```sh
-     git show v0.1.0-beta.6:packages/compendium_core/lib/src/storage/database.dart \
+     git show <previous-tag>:packages/compendium_core/lib/src/storage/database.dart \
        | grep -o 'kCompendiumSchemaVersion = [0-9]*'
-     git show v0.1.0-beta.6:packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
+     git show <previous-tag>:packages/compendium_core/lib/src/taxonomy/contra_taxonomy.dart \
        | grep -o 'contraTaxonomyVersion = [0-9]*'
      ```
 
@@ -205,32 +205,37 @@ and produces no Android artifact.
 
    ```sh
    python3 tools/release/gen_release_notes.py \
-     --version 0.1.0-beta.7 --tag v0.1.0-beta.7 --channel beta \
-     --changelog app/CHANGELOG.md --output /tmp/notes.md
+     --version 0.1.0-beta --tag v0.1.0-beta --channel beta \
+     --changelog app/CHANGELOG.md --output release-notes-preview.md
    ```
 
-   Read `/tmp/notes.md` and confirm it describes *this* release — the right
+   Read `release-notes-preview.md` and confirm it describes *this* release — the right
    version, the right migration range, the actual new work. `tools/ci/check_changelog_promoted.py`
    gates both conditions on tag push, but read the rendered notes anyway; the
    gate cannot judge whether the prose is true.
 
    > **`--version` takes the bare version; only `--tag` carries the `v`.** Both
    > tools resolve the CHANGELOG heading by splitting the version on `-`/`+` —
-   > they do **not** strip a leading `v`. Passing `--version v0.1.0-beta.7`
+   > they do **not** strip a leading `v`. Passing `--version v0.1.0-beta`
    > therefore looks for a `## [v0.1.0]` section, which cannot exist, and the
    > error names a heading one character off from the real one. It fails
    > plausibly rather than obviously, so check the prefix before believing the
    > message.
-2. Ensure `app/pubspec.yaml` `version:` (and the guarded `kAppVersion`) carry the
-   **core** `x.y.z` you intend to ship. The workflow **fails** if the tag's
-   `x.y.z` core doesn't match the pubspec semver.
-   - **Do not add a prerelease suffix to the pubspec version.** A beta ships with
-     the pubspec at its plain core (`0.1.0+1` for every `v0.1.0-beta.N`); the
-     channel comes from the tag, not the pubspec. The gate compares the **tag's
-     core** (prerelease stripped) against the **pubspec version with only
-     `+build` stripped** — the prerelease suffix is *kept* on the pubspec side.
-     So `0.1.0-beta.7+1` is compared as `0.1.0` vs `0.1.0-beta.7` and fails the
-     `meta` gate. Bump the pubspec only when the core version itself changes.
+2. Ensure `app/pubspec.yaml` `version:` and the guarded `kAppVersion` are both
+   exactly `X.Y.Z`: valid no-leading-zero components, with neither build metadata
+   nor a prerelease suffix. The workflow **fails** if the tag's `X.Y.Z` core does
+   not match that exact pubspec version.
+   - **Never put a suffix in pubspec.** Both `vX.Y.Z-beta` and `vX.Y.Z` build
+     `X.Y.Z`; the tag alone selects the channel. Every release-platform Flutter
+     build receives the tag-derived identity through
+     `CALLERS_COMPENDIUM_RELEASE_VERSION`, so the updater compares
+     `X.Y.Z-beta` for beta artifacts even though pubspec remains bare.
+   - The updater keeps strict SemVer ordering without a custom comparator:
+     `X.Y.Z-beta` is newer than older cores/betas but lower than `X.Y.Z`.
+   - A bare beta core must not have any older non-identical prerelease tag. The
+     release workflow rejects `v0.1.0-beta` if tags such as
+     `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
+     below them. Choose a newer `X.Y.Z` core instead.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
 3. **Land the promotion on `main` first, then tag `main`'s tip.** Steps 1–2 edit
    tracked files, so they go through a PR like any other change — the release is
@@ -248,8 +253,8 @@ and produces no Android artifact.
    is still full, so the `meta` gate fails on a CHANGELOG that looks correct in
    your working copy. If the tag is already pushed, delete and re-push it at the
    right commit before the draft is published.
-4. Tag and push (a plain `x.y.z` tag → **stable**; a prerelease tag like
-   `v0.2.0-beta.1` → **beta** channel + GitHub prerelease). **Name the commit
+4. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
+   `vX.Y.Z-beta`; beta creates a GitHub prerelease. **Name the commit
    explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
    which is the release branch if you never switched off it:
 
@@ -263,11 +268,11 @@ and produces no Android artifact.
    current Data / Migrations range), gates on the reusable checks, builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
-6. Review the draft under **Releases**: confirm the six binaries, `SHA256SUMS`,
-   and the channel manifest are present and named correctly, **and that the
-   notes body matches the CHANGELOG section**. For a prerelease, a
-   ``⚠️ No `## [x.y.z]` entry`` banner means you skipped step 1 — add the section
-   and re-push the tag, or edit the draft by hand, before publishing.
+6. Review the draft under **Releases**: confirm the desktop binaries and, when
+   Android signing was configured, the additional Android APK; then confirm `SHA256SUMS`,
+   both refreshed channel manifests (stable releases attach `stable.json` and
+   `beta.json`; betas attach `beta.json`) and their `.sig` files are present and
+   named correctly, **and that the notes body matches the CHANGELOG section**.
 7. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
    re-downloads every `CallersCompendium-*` binary and runs `gh attestation
    verify` for both the build provenance and the SBOM attestation. **Do not
@@ -281,7 +286,7 @@ and produces no Android artifact.
 
 > **Writing the notes:** what goes *into* the `## [x.y.z]` CHANGELOG section is
 > shaped by our release-notes guides — [First Beta](release-notes-first-beta.md)
-> (introduction-style, for `v0.1.0-beta.1`) and
+> (introduction-style, for `v0.1.0-beta`) and
 > [Recurring &amp; Stable](release-notes-recurring.md) (changelog-style, from the
 > second tag on).
 
@@ -289,26 +294,19 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
 (plain `python3`, no deps) from `app/CHANGELOG.md`:
 
 - It extracts the `## [x.y.z]` section matching the release version. A
-  prerelease tag (`v0.2.0-beta.1`) is matched on its **core** `0.2.0`, so the
+  bare beta tag (`v0.2.0-beta`) is matched on its **core** `0.2.0`, so the
   same section serves the beta and the eventual stable release.
-- For a **prerelease/beta** tag it prepends a clear **Beta / pre-release**
-  banner, so a `-beta`/`-rc` tag can never render misleading "stable" wording.
+- For a bare **beta** tag it prepends a clear **Beta / pre-release** banner.
 - It always appends the safety footer: the per-platform signing posture, a
   reminder to verify against `SHA256SUMS`, and a note that a maintainer
   publishes the draft after review. The macOS line is **honest about the actual
   signing outcome** — the publish job passes `--macos-signing configured` only
   when the Apple secrets are present (so macOS was Developer ID-signed &
   notarized); otherwise the footer reports all three desktops as **unsigned**.
-- If **no matching section exists**, behaviour is **channel-conditional**:
-  - **Stable** tag (plain `x.y.z`): the release **fails fast** in the cheap
-    `meta` job — *before* the build matrix — with a clear `::error::` telling you
-    to promote `## [Unreleased]` → `## [x.y.z]` first. Public releases therefore
-    can never ship without hand-written notes.
-  - **Beta/rc** prerelease tag: the release is **not** blocked. The draft is
-    still produced with a loud ``⚠️ No `## [x.y.z]` entry …`` banner in the body
-    and a `::warning::` in the log — a reviewer-visible nudge that keeps beta
-    iteration frictionless. Fix the CHANGELOG and re-push, or edit the draft,
-    before publishing.
+- If **no matching section exists**, either selected channel fails fast in the
+  cheap `meta` job — *before* the build matrix — with a clear `::error::`.
+  A beta establishes its shared `## [X.Y.Z]` section from `Unreleased`; fixes
+  before stable go into that same section.
 - On every tag, `## [Unreleased]` must contain no list items. When
   `kCompendiumSchemaVersion` changed since the previous release, the selected
   versioned section must also have a **Data / Migrations** schema range ending
@@ -410,20 +408,21 @@ https://ibanner56.github.io/CallersCompendium/stable.json
 https://ibanner56.github.io/CallersCompendium/beta.json
 ```
 
-On every real tagged release the `pages` job publishes the current channel's
-manifest to those URLs. It runs after `publish`, downloads the `channel-manifest`
-artifact (the exact `stable.json` / `beta.json` that `publish` generated), and
+On every real tagged release the `pages` job publishes the selected manifests
+to those URLs. It runs after `publish`, downloads the `channel-manifests`
+artifact (the exact signed `stable.json` / `beta.json` files that `publish`
+generated), and
 calls `tools/release/publish_pages_manifest.sh` to commit it to the persistent
 **`gh-pages`** branch at the site **root**. For a project Pages site the branch
 root maps 1:1 to the base URL (root `stable.json` → `…/CallersCompendium/stable.json`),
 so no subdirectory math is needed. A `.nojekyll` marker is kept so the JSON is
 served verbatim.
 
-**Cross-channel preservation.** A stable release publishes **only** `stable.json`
-and a beta/rc release publishes **only** `beta.json` — the tag decides the channel
-(`meta` job), and each publish overwrites just that one file. The script starts
-from the existing `gh-pages` content and rewrites a single file, so **a stable
-release never erases `beta.json`, and a beta release never erases `stable.json`**.
+**Channel routing.** A stable `vX.Y.Z` release refreshes **both** `stable.json`
+and `beta.json` with that stable tag/version, so beta opt-ins receive the stable
+release. A bare beta `vX.Y.Z-beta` refreshes **only** `beta.json`. The script
+starts from the existing `gh-pages` content and rewrites only selected files, so
+it preserves the site and all unselected channel files.
 This is why we use a persistent branch rather than `actions/deploy-pages` (the
 GitHub-Actions Pages flow replaces the whole site each deploy, which would clobber
 the other channel). Concurrent stable+beta releases are handled by a
@@ -441,17 +440,15 @@ The workflow is safe to ship **before** Pages is enabled — until then the fixe
 URLs 404 and the client treats that as a silent no-op (ADR-002 §5), so no user
 ever sees an error. To make the manifest live, a maintainer enables Pages once:
 
-1. Cut at least one release (or push a throwaway prerelease tag) so the `pages`
+1. Cut at least one release (or push a throwaway bare beta tag) so the `pages`
    job creates the `gh-pages` branch. (Pages cannot be pointed at a branch that
    does not exist yet.)
 2. In the repo: **Settings → Pages**.
 3. Under **Build and deployment → Source**, choose **Deploy from a branch**.
 4. Set **Branch** to `gh-pages` and the folder to **`/ (root)`**, then **Save**.
-5. After the first deploy, confirm the manifest for whichever channel you cut
-   in step 1 resolves — only that one file exists until the *other* channel
-   also ships at least once (a fresh repo has published only betas, so
-   `stable.json` will 404 until a stable release is cut; that's expected, not
-   an error).
+5. After the first deploy, confirm the selected manifest resolves. A first beta
+   leaves `stable.json` absent until the first stable release; a stable creates
+   or refreshes both files.
 
    > **Fetch it with `curl -fsSL`, and check the body — not the exit code.**
    > That host **301s** to the custom Pages domain, and `-f` only fails on
@@ -463,8 +460,8 @@ ever sees an error. To make the manifest live, a maintainer enables Pages once:
    > missing `-L`.
    >
    > ```sh
-   > curl -fsSL https://ibanner56.github.io/CallersCompendium/beta.json -o /tmp/manifest.json
-   > head -c 200 /tmp/manifest.json
+   > curl -fsSL https://ibanner56.github.io/CallersCompendium/beta.json -o manifest.json
+   > head -c 200 manifest.json
    > ```
    >
    > Expect JSON starting with `{` and, a couple of lines in, a
@@ -550,14 +547,13 @@ install). This is a fail-closed security gate (ADR-002 §6, OWASP A08).
 Client verification lives in `app/lib/src/update/update_signature.dart` and is
 fully unit-tested with in-test keypairs.
 
-### How CI signs it (non-breaking without the secret)
+### How CI signs it (required for publication)
 
-The `publish` job signs the manifest **only when** the `UPDATE_SIGNING_KEY`
-secret (the Ed25519 **private key** in PEM form) is present. A
-`Determine update-signing availability` gate reads the secret via `env:` and, if
-absent, **skips signing with a `::notice::`** — the release still succeeds, just
-without a `.sig` (the client then fails closed and offers no update). When the
-secret is present, the `Sign the channel manifest` step runs:
+The `publish` job requires `UPDATE_SIGNING_KEY` (the Ed25519 **private key** in
+PEM form). The `Determine update-signing availability` gate fails the release
+when it is absent; it never creates an unsigned draft or Pages publication.
+When present, `Sign refreshed manifests` signs every manifest selected by the
+release:
 
 ```sh
 openssl pkeyutl -sign -rawin \
@@ -704,8 +700,8 @@ gh workflow run release.yml
 ```
 
 > `workflow_dispatch` only works once `release.yml` is on the default branch.
-> To validate the workflow *before* it merges, push a throwaway prerelease tag
-> whose core matches the pubspec (e.g. `v0.1.0-rc.1`) — a tag push runs the
+> To validate the workflow *before* it merges, push a throwaway bare beta tag
+> whose core matches the pubspec (e.g. `v0.1.0-beta`) — a tag push runs the
 > workflow from the tagged commit and produces a **draft** (never public);
 > delete the draft release and the tag afterward.
 
@@ -832,6 +828,9 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > the maintainer downloads from the run and uploads to the Play Console (see
 > [store-submission/google-play.md](store-submission/google-play.md)).
 >
+> Both Android artifacts receive the tag-derived `versionCode` described below;
+> `app/pubspec.yaml` remains exactly the visible `X.Y.Z` release version.
+>
 > The signing **config** now **fails loudly** instead of falling back to debug
 > signing: when `app/android/key.properties` is absent (contributors, `flutter
 > build apk --release` without a keystore) any attempt to actually assemble the
@@ -846,6 +845,25 @@ the canonical Flutter `key.properties` pattern in `app/android/app/build.gradle.
 > Android release artifact", stages no APK, and still succeeds — so merging this
 > job never changes the current release output and never publishes a
 > debug-signed APK.
+
+### Deterministic Android `versionCode`
+
+Google Play receives a deterministic integer derived from the validated release
+tag, not a value maintained in `pubspec.yaml`. `tools/release/android_version_code.py`
+packs each bounded SemVer component in radix 1000:
+
+```
+core = ((major * 1000) + minor) * 1000 + patch
+versionCode = 1 + (core * 2) + channelBit
+```
+
+`channelBit` is `0` for `vX.Y.Z-beta` and `1` for `vX.Y.Z`, so beta is lower
+than stable for the same core. Every component must be in `0..999`; the maximum
+stable code is `2,000,000,000`, safely below Play's `2,100,000,000` limit. The
+release metadata job rejects an unsupported component instead of overflowing or
+colliding. It passes this code to both Android Flutter builds with
+`--build-number`; the checked-in Gradle configuration continues to consume
+Flutter's generated `versionCode`.
 
 ### Toolchain: build on JDK 21
 
@@ -966,53 +984,47 @@ it is uploaded only to App Store Connect (plus a `ios-ipa` workflow artifact for
 debugging).
 
 > **Status.** On a `v*` tag the `build` matrix's iOS leg (`macos-latest`), when
-> the App Store Connect API-key secrets are present, writes the API key to the
-> directories xcodebuild/altool auto-search, injects `DEVELOPMENT_TEAM` for
-> automatic signing, runs `flutter build ipa --release --export-options-plist …`
-> (which archives + exports a signed App Store `.ipa`), and then uploads it to
-> TestFlight with `xcrun altool --upload-app`. An `always()` step deletes the key
-> material and reverts the injected team.
+> its App Store Connect API key, Apple Distribution certificate, and both
+> provisioning-profile secret sets are present, builds an unsigned archive and
+> exports a manually signed App Store `.ipa`. It then uploads that `.ipa` to
+> TestFlight with `xcrun altool --upload-app`. An `always()` step removes key
+> material, profiles, the ephemeral keychain, and the injected team.
 >
 > **Gated exactly like macOS/Android:** the `Determine iOS signing availability`
 > step sets `signing=configured` **only** when `APPLE_API_KEY_P8`,
-> `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, **and** `APPLE_TEAM_ID` are all
-> present. Otherwise `signing=missing` and the whole leg is skipped (no failure),
-> so merging this never changes the current release output.
+> `APPLE_API_KEY_ID`, `APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`,
+> `APPLE_DISTRIBUTION_CERT_P12`, `APPLE_DISTRIBUTION_CERT_PASSWORD`,
+> `APPLE_DISTRIBUTION_PROFILE`, and `APPLE_SHAREEXT_DISTRIBUTION_PROFILE` are all
+> present. Otherwise `signing=missing` and the whole leg is skipped (no failure).
 
-### Automatic signing (no manual cert or profile)
+### Manual release signing
 
-Code signing is **automatic** (Xcode-managed) and driven by the **App Store
-Connect API key**: `flutter build ipa` passes `-allowProvisioningUpdates` to both
-the `xcodebuild` archive **and** the `-exportArchive` step, so xcodebuild
-**creates/downloads the iOS distribution certificate and the App Store
-provisioning profile in the cloud** at build time. There is **no manually-created
-distribution cert or provisioning profile** to manage, and none is committed. The
-API key must have the **App Manager** role — the Developer role can build/sign but
-**cannot upload to TestFlight**.
+The workflow builds an unsigned archive, then exports it with **manual signing**
+against a locally imported Apple Distribution certificate and App Store
+provisioning profiles for both the app and Share Extension. It never passes
+`-allowProvisioningUpdates`, preventing ephemeral runners from creating portal
+signing identities. The App Store Connect API key is used for TestFlight upload
+only and must have the **App Manager** role.
 
 The Apple bundle identifier is `org.callerscompendium.compendiumApp` (unified
 across platforms; `app/ios/Runner.xcodeproj`, `CODE_SIGN_STYLE = Automatic`). No
 entitlements/capabilities are declared and none are needed. The App Store Connect
 app record (SKU `CallersCompendiumApp`) already exists.
 
-The generated `ExportOptions.plist` uses `method = app-store` (accepted by every
-Xcode the runner is likely to ship; newer Xcode may print a non-fatal deprecation
-notice for the renamed `app-store-connect`), `signingStyle = automatic`, and
-`teamID = APPLE_TEAM_ID`. `DEVELOPMENT_TEAM` is not committed to the project; it is
-appended to `app/ios/Flutter/Release.xcconfig` at build time from the secret and
-reverted in the `always()` cleanup, keeping the checked-in project team-agnostic.
+The generated `ExportOptions.plist` uses `method = app-store`, `signingStyle =
+manual`, the team ID, and a profile UUID for each bundle ID. `DEVELOPMENT_TEAM`
+is not committed to the project; it is appended to
+`app/ios/Flutter/Release.xcconfig` at build time and reverted in the `always()`
+cleanup, keeping the checked-in project team-agnostic.
 
 ### Build-number uniqueness (TestFlight)
 
-TestFlight **rejects duplicate build numbers**. `app/pubspec.yaml` is `0.1.0+1`,
-so the leg computes `CFBundleVersion` as `GITHUB_RUN_NUMBER * 1000 +
-GITHUB_RUN_ATTEMPT` and passes it via `--build-number` on the CLI. The run number
-only ever increases, and folding in the run *attempt* keeps re-runs of the same
-tag unique too (a plain `GITHUB_RUN_NUMBER` would collide on a re-run and be
-rejected). This is done **without editing `pubspec.yaml`**, so the `meta` job's
-version gate (tag core version == pubspec semver `0.1.0`) is unaffected.
-`manageAppVersionAndBuildNumber` is set to `false` in `ExportOptions.plist` so
-this build number stays authoritative.
+TestFlight **rejects duplicate build numbers**. The iOS leg reuses the
+tag-derived bounded `versionCode` for `CFBundleVersion` and the Share Extension:
+the beta code is lower than stable for one core, while later SemVer cores are
+higher. The valid release grammar allows only those two tags, so no manually
+maintained pubspec suffix is needed. `manageAppVersionAndBuildNumber` is set to
+`false` in `ExportOptions.plist` so this derived code stays authoritative.
 
 ### Upload gated to real tags only
 
@@ -1060,13 +1072,10 @@ your Apple **Team ID**.
 
 ### Maintainer: GitHub Actions secrets (the last step to enable iOS)
 
-Add **all four** and the pipeline starts signing + uploading iOS to TestFlight on
-the next tag; omit any and the iOS leg stays a clean skip. Three are **shared with
-the macOS Developer ID leg** (`APPLE_API_KEY_P8`, `APPLE_API_KEY_ID`,
-`APPLE_API_ISSUER_ID`, `APPLE_TEAM_ID`) — but note the macOS leg uses those for
-**notarization** with a **Developer ID** cert, whereas iOS uses them for **App
-Store automatic signing + TestFlight upload**; the `APPLE_DEVELOPER_ID_CERT_P12` /
-`APPLE_CERT_PASSWORD` secrets are **macOS-only** and are **not** used by iOS.
+Add **all eight** and the pipeline starts signing + uploading iOS to TestFlight on
+the next tag; omit any and the iOS leg stays a clean skip. The API key and team ID
+are shared with the macOS Developer ID leg for notarization; the iOS distribution
+certificate and profiles are iOS-only.
 
 | Secret | Contents |
 |--------|----------|
@@ -1074,6 +1083,10 @@ Store automatic signing + TestFlight upload**; the `APPLE_DEVELOPER_ID_CERT_P12`
 | `APPLE_API_KEY_ID` | The API **Key ID** (e.g. `Z2DTAN9GXH`) |
 | `APPLE_API_ISSUER_ID` | The API key **Issuer ID** |
 | `APPLE_TEAM_ID` | Your Apple **Team ID** (e.g. `46U298TDGV`) — injected as `DEVELOPMENT_TEAM` + `teamID` |
+| `APPLE_DISTRIBUTION_CERT_P12` | Apple Distribution certificate and private key as base64 `.p12` |
+| `APPLE_DISTRIBUTION_CERT_PASSWORD` | Password for the Apple Distribution `.p12` |
+| `APPLE_DISTRIBUTION_PROFILE` | App Store provisioning profile for `org.callerscompendium.compendiumApp`, base64 `.mobileprovision` |
+| `APPLE_SHAREEXT_DISTRIBUTION_PROFILE` | App Store provisioning profile for the Share Extension, base64 `.mobileprovision` |
 
 The secrets are passed via step `env:` (never interpolated into a `run:` line) and
 are only available to the canonical repo's tag-triggered run — not to forks or PRs.
@@ -1096,9 +1109,10 @@ runners:
 - **Windows zip** — PowerShell `Compress-Archive`.
 - **Windows installer** — Inno Setup (`ISCC.exe`, preinstalled on the runner)
   driving `packaging/windows/CallersCompendium.iss`.
-- **iOS `.ipa`** — `flutter build ipa` (archive + `-exportArchive`) with an
-  `ExportOptions.plist` generated by `PlistBuddy`, then `xcrun altool` for the
-  TestFlight upload — see [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api).
+- **iOS `.ipa`** — `flutter build ios --no-codesign`, then an unsigned
+  `xcodebuild archive` followed by a manually signed `xcodebuild -exportArchive`
+  using an `ExportOptions.plist` generated by `PlistBuddy`; `xcrun altool` uploads
+  the result to TestFlight — see [iOS (TestFlight via App Store Connect API)](#ios-testflight-via-app-store-connect-api).
   Not staged into `dist/` (store-delivered, not a download).
 
 All GitHub Actions are pinned to full commit SHAs (repo convention).

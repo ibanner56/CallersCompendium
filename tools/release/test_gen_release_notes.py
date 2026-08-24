@@ -33,8 +33,6 @@ All notable changes to Caller's Compendium (the app) are documented here.
 
 ## [0.2.0] - 2026-08-01
 
-Flutter build: `0.2.0+3`.
-
 ### Added
 
 - A shiny new feature.
@@ -44,8 +42,6 @@ Flutter build: `0.2.0+3`.
 - A pesky bug.
 
 ## [0.1.0] - 2026-07-15
-
-Flutter build: `0.1.0+1`.
 
 ### Added
 
@@ -72,16 +68,15 @@ def _cases() -> None:
     )
     assert found is True
     assert "Initial app scaffold." in body
-    assert "Flutter build: `0.1.0+1`." in body
     # Must NOT bleed into the 0.2.0 section above it.
     assert "shiny new feature" not in body
     assert "A pesky bug" not in body
     # Must NOT include the Unreleased section.
     assert "not yet released" not in body
 
-    # 2. Core-suffix stripping: a prerelease version matches the [x.y.z] core.
+    # 2. The sole beta grammar matches the same core section.
     body, found = g.build_notes(
-        version="0.1.0-rc.3", tag="v0.1.0-rc.3", channel="beta",
+        version="0.1.0-beta", tag="v0.1.0-beta", channel="beta",
         changelog_text=CHANGELOG,
     )
     assert found is True
@@ -89,7 +84,7 @@ def _cases() -> None:
 
     # 3. Beta channel prepends a clear pre-release banner naming the tag.
     assert "Beta / pre-release" in body
-    assert "`v0.1.0-rc.3`" in body
+    assert "`v0.1.0-beta`" in body
 
     # 4. Stable channel has NO beta banner.
     body, found = g.build_notes(
@@ -103,7 +98,7 @@ def _cases() -> None:
     # 5. Footer is always present (both stable and beta). When macOS was signed,
     #    the footer states Windows/Linux unsigned + macOS Developer ID-signed.
     for ch, ver, tag in (("stable", "0.2.0", "v0.2.0"),
-                         ("beta", "0.1.0-rc.3", "v0.1.0-rc.3")):
+                         ("beta", "0.1.0-beta", "v0.1.0-beta")):
         body, _ = g.build_notes(
             version=ver, tag=tag, channel=ch, changelog_text=CHANGELOG,
             macos_signed=True,
@@ -127,33 +122,24 @@ def _cases() -> None:
         assert "`SHA256SUMS`" in body
         assert "maintainer publishes this draft after review" in body
 
-    # 6. Graceful fallback when no matching section exists.
-    body, found = g.build_notes(
-        version="9.9.9", tag="v9.9.9", channel="stable",
-        changelog_text=CHANGELOG,
-    )
-    assert found is False
-    assert "No `## [9.9.9]` entry" in body
-    # Footer still present so the safety wording never gets lost.
-    assert "**unsigned**" in body
-
-    # 7. Fallback for a prerelease still shows the beta banner + warning.
-    body, found = g.build_notes(
-        version="9.9.9-beta.1", tag="v9.9.9-beta.1", channel="beta",
-        changelog_text=CHANGELOG,
-    )
-    assert found is False
-    assert "Beta / pre-release" in body
-    assert "No `## [9.9.9]` entry" in body
+    # 6. Every selected release requires its shared core section.
+    for version, tag, channel in (
+        ("9.9.9", "v9.9.9", "stable"),
+        ("9.9.9-beta", "v9.9.9-beta", "beta"),
+    ):
+        ok, message = g.check_section(
+            version=version, tag=tag, channel=channel, changelog_text=CHANGELOG,
+        )
+        assert ok is False
+        assert "9.9.9" in message
 
     # 8. Heading without a trailing date is matched too.
     section = g.extract_section(CHANGELOG_NO_DATE, "0.1.0")
     assert section is not None
     assert "Initial app scaffold." in section
 
-    # 9. _core_version strips prerelease and build metadata.
-    assert g._core_version("0.1.0-rc.3") == "0.1.0"
-    assert g._core_version("0.1.0+1") == "0.1.0"
+    # 7. _core_version strips the selected beta suffix.
+    assert g._core_version("0.1.0-beta") == "0.1.0"
     assert g._core_version("1.2.3") == "1.2.3"
 
     # 10. A version that is a prefix of another must not partial-match.
@@ -162,35 +148,35 @@ def _cases() -> None:
 
     # --- check_section (the meta job's channel-conditional fail-fast guard) ---
 
-    # 11. Stable release WITH a matching section -> ok.
+    # 9. Stable release WITH a matching section -> ok.
     ok, msg = g.check_section(
-        version="0.2.0", channel="stable", changelog_text=CHANGELOG,
+        version="0.2.0", tag="v0.2.0", channel="stable", changelog_text=CHANGELOG,
     )
     assert ok is True, msg
 
-    # 12. Stable release with NO matching section -> NOT ok (fail fast in meta).
+    # 10. Stable release with NO matching section -> NOT ok.
     ok, msg = g.check_section(
-        version="9.9.9", channel="stable", changelog_text=CHANGELOG,
+        version="9.9.9", tag="v9.9.9", channel="stable", changelog_text=CHANGELOG,
     )
     assert ok is False
     assert "9.9.9" in msg and "Unreleased" in msg
 
-    # 13. Beta/rc prerelease with NO matching section -> ok (graceful fallback);
-    #     matched on the core, so the meta guard never blocks a prerelease.
+    # 11. Beta release with NO matching section is also rejected.
     ok, msg = g.check_section(
-        version="9.9.9-rc.1", channel="beta", changelog_text=CHANGELOG,
+        version="9.9.9-beta", tag="v9.9.9-beta", channel="beta",
+        changelog_text=CHANGELOG,
+    )
+    assert ok is False
+
+    # 12. Bare beta whose core has a section -> ok.
+    ok, msg = g.check_section(
+        version="0.1.0-beta", tag="v0.1.0-beta", channel="beta",
+        changelog_text=CHANGELOG,
     )
     assert ok is True, msg
 
-    # 14. Beta prerelease WHOSE core has a section -> ok.
-    ok, msg = g.check_section(
-        version="0.1.0-rc.3", channel="beta", changelog_text=CHANGELOG,
-    )
-    assert ok is True, msg
-
-    # 15. The tool's --check CLI exits non-zero for a stable-missing section
-    #     (proves the meta guard's actual invocation fails), and exits 0 for a
-    #     beta-missing section.
+    # 13. The tool's --check CLI exits non-zero for either selected channel when
+    #     the required shared section is absent.
     import io
     import contextlib
     from pathlib import Path
@@ -207,12 +193,12 @@ def _cases() -> None:
         assert rc_stable == 1
         assert "::error::" in err.getvalue()
         rc_beta = g.main(
-            ["--version", "9.9.9-rc.1", "--channel", "beta",
-             "--tag", "v9.9.9-rc.1", "--changelog", str(cl), "--check"]
+            ["--version", "9.9.9-beta", "--channel", "beta",
+             "--tag", "v9.9.9-beta", "--changelog", str(cl), "--check"]
         )
-        assert rc_beta == 0
+        assert rc_beta == 1
 
-        # 16. --macos-signing toggles the footer's macOS claim end-to-end via the
+        # 14. --macos-signing toggles the footer's macOS claim end-to-end via the
         #     CLI (default = unsigned; 'configured' = Developer ID-signed).
         out_default = Path(td) / "notes-default.md"
         rc = g.main(
@@ -233,6 +219,21 @@ def _cases() -> None:
         assert rc == 0
         signed_body = out_signed.read_text(encoding="utf-8")
         assert "**Developer ID-signed & notarized**" in signed_body
+
+    # 15. Reject a beta counter, rc, malformed tags, mismatched channel, and
+    # leading-zero core values rather than treating every hyphen as a beta.
+    for version, tag, channel in (
+        ("0.1.0-beta.1", "v0.1.0-beta.1", "beta"),
+        ("0.1.0-rc.1", "v0.1.0-rc.1", "beta"),
+        ("01.1.0", "v01.1.0", "stable"),
+        ("0.1.0", "v0.1.0-beta", "stable"),
+        ("0.1.0-beta", "v0.1.0-beta", "stable"),
+    ):
+        try:
+            g.validate_release(version=version, tag=tag, channel=channel)
+            raise AssertionError(f"accepted invalid release identity: {tag}")
+        except ValueError:
+            pass
 
 
 def main() -> int:

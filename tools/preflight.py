@@ -90,8 +90,11 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "app-version",
-        "kAppVersion matches app/pubspec.yaml",
-        (py("tools/ci/check_app_version.py"),),
+        "the app release-version format and kAppVersion match app/pubspec.yaml",
+        (
+            py("tools/ci/test_check_app_version.py"),
+            py("tools/ci/check_app_version.py"),
+        ),
     ),
     Step(
         "debug-print",
@@ -154,8 +157,10 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "release-tooling",
-        "SBOM / metadata / notes / Pages publish, incl. signature preservation",
+        "release identity / SBOM / metadata / notes / Pages publishing",
         (
+            py("tools/release/test_android_version_code.py"),
+            py("tools/release/test_check_beta_prerelease_history.py"),
             py("tools/release/test_gen_sbom.py"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),
