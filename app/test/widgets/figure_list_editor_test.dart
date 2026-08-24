@@ -779,7 +779,7 @@ void main() {
     expect(drafts.single.params['shoulder'], 'left');
   });
 
-  testWidgets('changing shoulder reroutes do si do and updates the preview', (
+  testWidgets('changing shoulder reroutes dosido and updates the preview', (
     tester,
   ) async {
     final drafts = <FigureDraft>[
@@ -804,12 +804,12 @@ void main() {
           .widget<TextField>(find.byKey(const ValueKey('figure-0-move-input')))
           .controller
           ?.text,
-      'see saw',
+      'seesaw',
     );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('figure-0-summary')),
-        matching: find.textContaining('see saw'),
+        matching: find.textContaining('seesaw'),
       ),
       findsOneWidget,
     );
@@ -822,12 +822,12 @@ void main() {
           .widget<TextField>(find.byKey(const ValueKey('figure-0-move-input')))
           .controller
           ?.text,
-      'do si do',
+      'dosido',
     );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('figure-0-summary')),
-        matching: find.textContaining('do si do'),
+        matching: find.textContaining('dosido'),
       ),
       findsOneWidget,
     );
@@ -901,12 +901,12 @@ void main() {
           )
           .controller
           ?.text,
-      'see saw',
+      'seesaw',
     );
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('figure-0-summary')),
-        matching: find.textContaining('see saw'),
+        matching: find.textContaining('seesaw'),
       ),
       findsOneWidget,
     );
