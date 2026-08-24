@@ -1,5 +1,7 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import '../data/venue_label.dart';
+
 /// Redacts a [Choreographer]'s private personal data for inclusion in a
 /// **shareable** export (any program/dance share path).
 ///
@@ -153,3 +155,18 @@ Map<String, Venue> venuesWithSanitizedContact(
     venueId: sanitizeVenueForShare(venue, include: include),
   };
 }
+
+/// Resolves a venue label after applying the share/export privacy boundary.
+///
+/// Unlike [resolveVenueLabelParts], this is safe for printed or shareable
+/// output: a linked venue's postal address is removed before its display label
+/// is computed, while an unlinked free-text venue remains unchanged.
+String? resolveSanitizedVenueLabelParts(
+  String? venueId,
+  String? venue,
+  Map<String, Venue> venuesById,
+) => resolveVenueLabelParts(
+  venueId,
+  venue,
+  venuesWithSanitizedContact(venuesById, venueId),
+);

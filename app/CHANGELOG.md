@@ -22,6 +22,9 @@ each release so store builds and tags can be traced back to an entry.
 - **Dialect wording templates** — the dialect editor now blocks malformed or
   oversized move wording templates instead of saving settings the renderer will
   ignore. (issue #1043)
+  
+- **Programming Matrix PDF privacy** — linked venue postal addresses are now
+  removed from the exported matrix header while the public venue name remains.
 
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
