@@ -12,6 +12,12 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Dialect move wording templates** — long-wave and promenade branches now
+  appear only after choosing those moves, while a single circle template keeps
+  the automatic **single file** prefix.
+
 ## [0.1.1] - 2026-08-24
 
 ### Changed

@@ -14,7 +14,6 @@ const int kMaxMoveWordingEntries = 256;
 const Map<String, Set<String>> kMoveWordingBranchKeys = {
   'form_a_long_wave': {'inOnly', 'outOnly', 'inAndOut', 'neither'},
   'promenade': {'ordinary', 'singleFile'},
-  'circle': {'ordinary', 'singleFile'},
 };
 
 /// A role display term: singular plus plural (plural derived with a basic
@@ -282,6 +281,21 @@ class Dialect {
     }
     final branchesJson = json['moveWordingBranches'];
     if (branchesJson is Map) {
+      final legacyCircle = branchesJson['circle'];
+      if (legacyCircle is Map && legacyCircle['ordinary'] is String) {
+        final sanitized = sanitizeImportedText(
+          legacyCircle['ordinary'] as String,
+          allowLineBreaks: false,
+        );
+        final hadCircleWording = moveWordings.containsKey('circle');
+        if (sanitized.trim().isNotEmpty &&
+            (hadCircleWording || wordingCount < kMaxMoveWordingEntries)) {
+          moveWordings['circle'] = sanitized.length <= kMaxMoveWordingLength
+              ? sanitized
+              : sanitized.substring(0, kMaxMoveWordingLength);
+          if (!hadCircleWording) wordingCount++;
+        }
+      }
       for (final moveEntry in branchesJson.entries) {
         if (wordingCount >= kMaxMoveWordingEntries) break;
         final moveId = moveEntry.key.toString();

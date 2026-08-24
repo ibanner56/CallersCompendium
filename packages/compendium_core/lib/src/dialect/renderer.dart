@@ -354,9 +354,12 @@ class FigureRenderer {
           slots: displayTemplate.slots,
           template: wording!,
         ));
+        final displayLine = def.id == 'circle' && params['singleFile'] == true
+            ? 'single file $line'
+            : line;
         return figure.assumedSubject
-            ? _spliceAssumedSubjectMarker(line)
-            : _stripSubjectMark(line);
+            ? _spliceAssumedSubjectMarker(displayLine)
+            : _stripSubjectMark(displayLine);
       }
       final displayBase = _displayBaseRenderers[def.id];
       if (displayBase != null) {
@@ -645,16 +648,11 @@ class FigureRenderer {
       'ordinary': {'who', 'move', 'turn', 'direction', 'destination'},
       'singleFile': {'prefix', 'move', 'turn', 'direction', 'destination'},
     },
-    'circle': {
-      'ordinary': {'move', 'turn', 'places'},
-      'singleFile': {'prefix', 'move', 'turn', 'places'},
-    },
   };
 
   static const Map<String, String> _moveWordingDefaultBranches = {
     'form_a_long_wave': 'inOnly',
     'promenade': 'ordinary',
-    'circle': 'ordinary',
   };
 
   String? _resolvedMoveWording(
@@ -706,7 +704,6 @@ class FigureRenderer {
         if (inFlag) return 'inOnly';
         return 'neither';
       case 'promenade':
-      case 'circle':
         return params['singleFile'] == true ? 'singleFile' : 'ordinary';
       default:
         return null;
@@ -768,7 +765,6 @@ class FigureRenderer {
           },
         );
       case 'promenade':
-      case 'circle':
         return Figure(
           move: moveId,
           params: {'singleFile': branch == 'singleFile'},

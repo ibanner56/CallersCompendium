@@ -63,14 +63,18 @@ It is never included in canonical figure text, search, or deduplication.
   saving it. Imported templates are sanitized, capped at 512 UTF-16 code units
   each, and limited to 256 entries per dialect.
 - `moveWordingBranches` stores fixed branch-specific templates for
-  `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`), `promenade`
-  (`ordinary`, `singleFile`), and `circle` (`ordinary`, `singleFile`). A branch
-  template is usable only when it is valid and contains every slot in that
-  branch's contract. Missing or incomplete branch entries, including imported
-  or programmatically constructed values, fail closed to the normal renderer.
-  Legacy `moveWordings` entries remain compatible only with their default branch;
-  they never cross into a different guarded branch. Branch templates are
-  display-only and share the 512-code-unit/256-entry limits.
+  `form_a_long_wave` (`inOnly`, `outOnly`, `inAndOut`, `neither`) and
+  `promenade` (`ordinary`, `singleFile`). The editor reveals these branches only
+  after the caller selects a wording template for that move. A branch template is
+  usable only when it is valid and contains every slot in that branch's contract.
+  Missing or incomplete branch entries, including imported or programmatically
+  constructed values, fail closed to the normal renderer. Legacy `moveWordings`
+  entries remain compatible only with their default branch; they never cross into
+  a different guarded branch. A circle uses one `moveWordings` template for both
+  forms; its single-file rendering supplies the fixed `single file` prefix.
+  Legacy circle branch data retains its ordinary template and discards the
+  single-file template. Branch templates are display-only and share the
+  512-code-unit/256-entry limits.
 - Shipped presets are **role-neutral only**: **Larks/Robins (default)** and
   Leads/Follows (plus Canonical). Gendered role terms are **not** baked in as
   presets — a user who wants them enters them through the custom role-terms
