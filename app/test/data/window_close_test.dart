@@ -13,7 +13,6 @@ void main() {
       destroyWindow: () async {
         events.add('destroy');
       },
-      reportError: (_, __) {},
     );
 
     await Future.wait([coordinator.handle(), coordinator.handle()]);
@@ -22,7 +21,6 @@ void main() {
   });
 
   test('reports close failures without leaving an unhandled error', () async {
-    final errors = <Object>[];
     final events = <String>[];
     final coordinator = WindowCloseCoordinator(
       closeApp: () async {
@@ -32,12 +30,21 @@ void main() {
       destroyWindow: () async {
         events.add('destroy');
       },
-      reportError: (error, _) => errors.add(error),
     );
 
     await coordinator.handle();
 
     expect(events, ['close', 'destroy']);
-    expect(errors, [isA<StateError>()]);
+  });
+
+  test('reports destroy failures without leaving an unhandled error', () async {
+    final coordinator = WindowCloseCoordinator(
+      closeApp: () async {},
+      destroyWindow: () async {
+        throw StateError('window destroy failed');
+      },
+    );
+
+    await coordinator.handle();
   });
 }

@@ -3,10 +3,11 @@ import 'dart:io' show Platform;
 import 'dart:ui' show Offset, Rect, Size;
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:window_manager/window_manager.dart';
 
+import '../diagnostics/error_log.dart';
 import 'window_frame.dart';
 
 /// Settings key under which the last-known desktop [WindowFrame] is persisted
@@ -25,15 +26,10 @@ bool get isDesktopWindowPlatform =>
 /// background database isolate. Destroying it first lets Flutter tear down the
 /// Dart isolate while sqlite3 native finalizers are still pending.
 class WindowCloseCoordinator {
-  WindowCloseCoordinator({
-    required this.closeApp,
-    required this.destroyWindow,
-    required this.reportError,
-  });
+  WindowCloseCoordinator({required this.closeApp, required this.destroyWindow});
 
   final Future<void> Function() closeApp;
   final Future<void> Function() destroyWindow;
-  final void Function(Object error, StackTrace stackTrace) reportError;
 
   Future<void>? _closeFuture;
 
@@ -42,17 +38,25 @@ class WindowCloseCoordinator {
   Future<void> handle() => _closeFuture ??= _closeAndDestroy();
 
   Future<void> _closeAndDestroy() async {
-    Object? closeError;
-    StackTrace? closeStackTrace;
     try {
       await closeApp();
     } catch (error, stackTrace) {
-      closeError = error;
-      closeStackTrace = stackTrace;
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'window_service._closeApp',
+      );
     } finally {
-      await destroyWindow();
+      try {
+        await destroyWindow();
+      } catch (error, stackTrace) {
+        logCaughtErrorTypeOnly(
+          error,
+          stackTrace,
+          source: 'window_service._destroyWindow',
+        );
+      }
     }
-    if (closeError != null) reportError(closeError!, closeStackTrace!);
   }
 }
 
@@ -75,9 +79,6 @@ class WindowService with WindowListener {
            : WindowCloseCoordinator(
                closeApp: onClose,
                destroyWindow: windowManager.destroy,
-               reportError: (error, stackTrace) {
-                 debugPrint('Application shutdown failed: $error\n$stackTrace');
-               },
              );
 
   final SettingsRepository _settings;
@@ -150,7 +151,24 @@ class WindowService with WindowListener {
   /// desktop.
   void dispose() {
     _debounce?.cancel();
-    if (isDesktopWindowPlatform) windowManager.removeListener(this);
+    if (isDesktopWindowPlatform) {
+      windowManager.removeListener(this);
+      if (_closeCoordinator != null) {
+        unawaited(_disablePreventClose());
+      }
+    }
+  }
+
+  Future<void> _disablePreventClose() async {
+    try {
+      await windowManager.setPreventClose(false);
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'window_service._disablePreventClose',
+      );
+    }
   }
 
   /// Finds the display the persisted frame belongs to (the one containing its
