@@ -90,8 +90,9 @@ already use for the release APK works as the **Play upload key**.
 - [ ] **[Gate]** Enrol in **Play App Signing** (the default): you upload an `.aab`
   signed with your **upload key**; Google manages the real **app signing key**.
   Register the existing upload keystore's certificate as the upload key.
-- [ ] **[Confirm]** `versionCode` increases on every upload (driven by
-  `flutter.versionCode`); Play rejects duplicate version codes.
+- [ ] **[Confirm]** `versionCode` is the deterministic code derived from the
+  release tag (bounded SemVer core plus a channel bit, beta below stable for one
+  core). It increases with each newer SemVer core; Play rejects duplicates.
 - [ ] **[Confirm]** `targetSdk` meets Play's current minimum target-API
   requirement for **new apps** (Play raises this yearly; check the current floor
   in Play Console when it flags the bundle). Bump `flutter.targetSdkVersion` if

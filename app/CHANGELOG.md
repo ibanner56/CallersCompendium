@@ -5,9 +5,10 @@ All notable changes to Caller's Compendium (the app) are documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-Version headings use the semantic `major.minor.patch` version. Flutter's build
-number — the `+build` segment of `version` in `app/pubspec.yaml` — is noted with
-each release so store builds and tags can be traced back to an entry.
+Version headings use the semantic `major.minor.patch` version. New releases use
+the exact `app/pubspec.yaml` version and select their channel from the tag:
+`vX.Y.Z-beta` for beta or `vX.Y.Z` for stable. Store build codes are derived
+from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 

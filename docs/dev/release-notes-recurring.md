@@ -1,17 +1,20 @@
 # Release Notes Guide — Recurring Beta & Stable Releases
 
 > _Repo integration: keep the running [`app/CHANGELOG.md`](../../app/CHANGELOG.md)
-> `## [Unreleased]` section current as PRs merge; at tag time rename it to the
-> version + date. The pipeline renders that section as the release body (see
+> `## [Unreleased]` section current as PRs merge. The first beta establishes its
+> shared version + date section by moving those items; the later stable release
+> merges its fixes into that same section rather than creating another heading.
+> The pipeline renders that section as the release body (see
 > [releasing.md → CHANGELOG-driven release notes](releasing.md#changelog-driven-release-notes)).
-> For beta/rc tags the **Beta / pre-release** banner is added automatically._
+> For bare `vX.Y.Z-beta` tags the **Beta / pre-release** banner is added automatically.
+> Every beta and stable uses the same required `## [X.Y.Z]` section._
 
 From the second tag onward, notes ARE a changelog: "what changed since the last
 release," curated for users. This applies to later betas and future stable
 releases alike (stable adds a couple of extra sections, noted below).
 
 ## Step 1 — Establish the range
-- Identify the previous release tag (e.g. v0.1.0-beta.1).
+- Identify the previous release tag (e.g. v0.1.0-beta).
 - Get the raw change set:
  git log --no-merges <prev-tag>..<new-commit> --pretty="%s"
  and the squash-merged PRs in that range (PR titles are usually the best
@@ -62,10 +65,12 @@ Rewrite each kept item from the user's POV. Example transform:
 
 ## Consistency rules (all recurring releases)
 - Keep a persistent CHANGELOG in "Keep a Changelog" style with an "Unreleased"
- section you append to as PRs merge — then releasing is just renaming
- "Unreleased" to the version + date. This avoids reconstructing everything from
- git at tag time.
-- Follow semver: beta = pre-release identifiers on 0.x; first stable = 1.0.0.
+ section you append to as PRs merge. The first tag for a core establishes its
+ `## [X.Y.Z]` section; when that shared beta/stable section already exists, move
+ Unreleased items into it instead of renaming the heading. This avoids both
+ reconstructing from git and duplicate headings at tag time.
+- Release grammar is fixed: beta is `vX.Y.Z-beta`, stable is `vX.Y.Z`; do not
+  use beta counters, RCs, or other prerelease identifiers.
 - Never claim a fix/feature you didn't verify on the tagged build.
 - Schema/data section is never omitted when the schema moved — data trust is the
  whole point of a local-first app.

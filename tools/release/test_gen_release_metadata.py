@@ -82,6 +82,45 @@ def _cases() -> None:
         assert base_manifest["channel"] == "stable"
         assert base_manifest["version"] == VERSION
 
+        # A stable release also refreshes beta opt-ins with the same release
+        # identity; a beta release produces only beta.json.
+        stable_manifests = g.build_channel_manifests(
+            version=VERSION, tag=TAG, channel="stable", repo=REPO,
+            dist=dist, pub_date=PUB_DATE,
+        )
+        assert set(stable_manifests) == {"stable", "beta"}
+        assert all(manifest["version"] == VERSION
+                   for manifest in stable_manifests.values())
+        assert all(manifest["releaseNotesUrl"].endswith(f"/{TAG}")
+                   for manifest in stable_manifests.values())
+        beta_manifests = g.build_channel_manifests(
+            version=VERSION, tag="v0.1.0-beta", channel="beta",
+            repo=REPO, dist=dist, pub_date=PUB_DATE,
+        )
+        assert set(beta_manifests) == {"beta"}
+
+        # Channel selection only changes the manifest's channel field. A stable
+        # release must hash the artifacts once, not once per refreshed channel.
+        original_build_metadata = g.build_metadata
+        metadata_builds: list[str] = []
+
+        def count_metadata_builds(**kwargs: object) -> tuple[str, dict]:
+            metadata_builds.append(str(kwargs["channel"]))
+            return original_build_metadata(**kwargs)
+
+        g.build_metadata = count_metadata_builds
+        try:
+            counted_manifests = g.build_channel_manifests(
+                version=VERSION, tag=TAG, channel="stable", repo=REPO,
+                dist=dist, pub_date=PUB_DATE,
+            )
+        finally:
+            g.build_metadata = original_build_metadata
+        assert metadata_builds == ["stable"]
+        assert set(counted_manifests) == {"stable", "beta"}
+        assert counted_manifests["stable"]["channel"] == "stable"
+        assert counted_manifests["beta"]["channel"] == "beta"
+
         # --- With an extra (SBOM) asset ---------------------------------
         sbom = dist / "sbom-0.1.0.cdx.json"
         sbom_content = b'{"bomFormat":"CycloneDX"}'

@@ -53,7 +53,8 @@ def _manifest(channel: str, version: str) -> str:
 
 def _publish(checkout: Path, worktree: Path, manifest_path: Path,
              channel: str, tag: str,
-             signature_path: Path | None = None) -> subprocess.CompletedProcess:
+             signature_path: Path | None = None,
+             *, signed: bool = True) -> subprocess.CompletedProcess:
     """Run the publisher from within ``checkout`` (a working clone of origin)."""
     env = dict(os.environ)
     env.update(
@@ -71,6 +72,9 @@ def _publish(checkout: Path, worktree: Path, manifest_path: Path,
         "--channel", channel,
         "--tag", tag,
     ]
+    if signature_path is None and signed:
+        signature_path = manifest_path.with_suffix(manifest_path.suffix + ".sig")
+        signature_path.write_text("c2lnbmF0dXJlLWJ5dGVz\n", encoding="utf-8")
     if signature_path is not None:
         args += ["--signature", str(signature_path)]
     return subprocess.run(
@@ -136,6 +140,7 @@ def _cases() -> None:
         r = _publish(checkout, tmp / "wt1", stable_v1, "stable", "v0.1.0")
         assert r.returncode == 0, f"stable publish failed:\n{r.stderr}\n{r.stdout}"
         assert _exists(origin, f"{REMOTE_BRANCH}:stable.json")
+        assert _exists(origin, f"{REMOTE_BRANCH}:stable.json.sig")
         assert _exists(origin, f"{REMOTE_BRANCH}:.nojekyll")
         assert not _exists(origin, f"{REMOTE_BRANCH}:beta.json")
         assert not _exists(origin, f"{REMOTE_BRANCH}:README.md"), \
@@ -145,8 +150,8 @@ def _cases() -> None:
 
         # 2. CROSS-CHANNEL PRESERVATION: publishing beta.json must NOT erase the
         #    existing stable.json.
-        beta_v1 = _write(man / "beta.json", _manifest("beta", "0.2.0-beta.1"))
-        r = _publish(checkout, tmp / "wt2", beta_v1, "beta", "v0.2.0-beta.1")
+        beta_v1 = _write(man / "beta.json", _manifest("beta", "0.2.0-beta"))
+        r = _publish(checkout, tmp / "wt2", beta_v1, "beta", "v0.2.0-beta")
         assert r.returncode == 0, f"beta publish failed:\n{r.stderr}\n{r.stdout}"
         assert _exists(origin, f"{REMOTE_BRANCH}:beta.json"), "beta.json missing"
         assert _exists(origin, f"{REMOTE_BRANCH}:stable.json"), \
@@ -155,7 +160,7 @@ def _cases() -> None:
         assert _exists(origin, f"{REMOTE_BRANCH}:.nojekyll"), \
             ".nojekyll was dropped on republish"
         assert json.loads(_show(origin, f"{REMOTE_BRANCH}:stable.json"))["version"] == "0.1.0"
-        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:beta.json"))["version"] == "0.2.0-beta.1"
+        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:beta.json"))["version"] == "0.2.0-beta"
         assert _commit_count(origin, REMOTE_BRANCH) == 2
 
         # 3. Reverse direction: a later STABLE release must NOT erase beta.json.
@@ -167,7 +172,7 @@ def _cases() -> None:
         assert _exists(origin, f"{REMOTE_BRANCH}:.nojekyll"), \
             ".nojekyll was dropped on a later republish"
         assert json.loads(_show(origin, f"{REMOTE_BRANCH}:stable.json"))["version"] == "0.3.0"
-        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:beta.json"))["version"] == "0.2.0-beta.1"
+        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:beta.json"))["version"] == "0.2.0-beta"
         assert _commit_count(origin, REMOTE_BRANCH) == 3
 
         # 4. Unchanged content is a NO-OP: re-publishing the identical stable.json
@@ -193,18 +198,24 @@ def _cases() -> None:
         # The signed publish must still preserve the other channel.
         assert _exists(origin, f"{REMOTE_BRANCH}:beta.json"), \
             "PRESERVATION FAILED: signed stable publish erased beta.json"
-        # beta had no signature published, so beta.json.sig must not exist.
-        assert not _exists(origin, f"{REMOTE_BRANCH}:beta.json.sig"), \
-            "beta.json.sig must not appear when no beta signature was published"
+        assert _exists(origin, f"{REMOTE_BRANCH}:beta.json.sig"), \
+            "beta.json.sig must be published with its manifest"
 
-        # 7. Publishing WITHOUT --signature must not disturb an existing .sig
-        #    (the manifest changes; the previously published sig is left as-is).
+        # 7. Publishing without a signature is forbidden: a changed manifest
+        # must never leave a stale detached signature beside it.
         stable_v4 = _write(man / "stable.json", _manifest("stable", "0.5.0"))
         r = _publish(checkout, tmp / "wt6", stable_v4, "stable", "v0.5.0")
-        assert r.returncode == 0, f"unsigned republish failed:\n{r.stderr}\n{r.stdout}"
-        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:stable.json"))["version"] == "0.5.0"
-        assert _exists(origin, f"{REMOTE_BRANCH}:stable.json.sig"), \
-            "an unsigned republish must not delete the existing signature"
+        assert r.returncode == 0, f"signed republish failed:\n{r.stderr}\n{r.stdout}"
+        previous_manifest = _show(origin, f"{REMOTE_BRANCH}:stable.json")
+        previous_signature = _show(origin, f"{REMOTE_BRANCH}:stable.json.sig")
+        unsigned = _publish(
+            checkout, tmp / "wt6-unsigned", stable_v4, "stable", "v0.5.0",
+            signed=False,
+        )
+        assert unsigned.returncode != 0
+        assert "signature" in unsigned.stderr.lower()
+        assert _show(origin, f"{REMOTE_BRANCH}:stable.json") == previous_manifest
+        assert _show(origin, f"{REMOTE_BRANCH}:stable.json.sig") == previous_signature
 
     # 8. Argument validation: bad channel and missing manifest fail loudly.
     with tempfile.TemporaryDirectory() as td:

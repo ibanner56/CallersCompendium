@@ -114,6 +114,10 @@ jobs:
         run: python3 tools/ci/test_check_version_history.py
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
+      - name: Test the app release-version guard
+        run: python3 tools/ci/test_check_app_version.py
+      - name: Test the Android release versionCode encoder
+        run: python3 tools/release/test_android_version_code.py
       - name: Test the Flutter-free core guard
         run: python3 tools/ci/test_check_core_flutter_free.py
       - name: Test the core coverage-floor guard
@@ -168,6 +172,7 @@ jobs:
 
       - name: Test release supply-chain tooling (SBOM / metadata / notes / pages publish)
         run: |
+          python3 tools/release/test_check_beta_prerelease_history.py
           python3 tools/release/test_gen_sbom.py
           python3 tools/release/test_gen_release_metadata.py
           python3 tools/release/test_gen_release_notes.py

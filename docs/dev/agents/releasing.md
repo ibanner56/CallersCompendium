@@ -7,8 +7,8 @@ step-by-step does not prevent on its own.
 - **Promoting `## [Unreleased]` into the version section is a manual step, and
   it is the release's highest-risk moment.** Contributors write under
   `## [Unreleased]`; nothing promotes it for them. The notes generator resolves
-  the section by SemVer *core*, so every prerelease in a line renders the same
-  heading — which means a section left over from the previous release is found,
+  the section by SemVer *core*, so the one permitted bare beta and its stable
+  release render the same heading — which means a section left over from the previous release is found,
   is valid, and renders happily under the new version's banner.
   [`tools/ci/check_changelog_promoted.py`](../../../tools/ci/check_changelog_promoted.py)
   gates the common case.
@@ -27,6 +27,10 @@ step-by-step does not prevent on its own.
   that the channel manifest *and* its detached signature are both live and that
   the signature verifies. A manifest without its signature makes the in-app
   updater fail closed and stop offering updates silently.
+- **Release identity is deliberately narrow.** Record beta status and `X.Y.Z`;
+  only `vX.Y.Z-beta` and `vX.Y.Z` are valid. A beta establishes the shared
+  section, and stable refreshes both signed update channels while beta refreshes
+  beta only.
 - **Guard concurrency mechanically, not by agreement.** Two agents able to tag
   is a real hazard, but deference between them fails silently the moment one
   stops existing. Compare the candidate commit against the newest release tag,

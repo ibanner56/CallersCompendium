@@ -124,8 +124,10 @@ def _publish_manifest(checkout: Path, worktree: Path, manifest: Path,
     )
     args = ["bash", str(MANIFEST_SCRIPT), "--manifest", str(manifest),
             "--channel", channel, "--tag", tag]
-    if signature is not None:
-        args += ["--signature", str(signature)]
+    if signature is None:
+        signature = manifest.with_suffix(manifest.suffix + ".sig")
+        signature.write_text("c2lnbmF0dXJlLWJ5dGVz\n", encoding="utf-8")
+    args += ["--signature", str(signature)]
     return subprocess.run(
         args, cwd=str(checkout), env=env, capture_output=True, text=True,
     )
@@ -194,8 +196,8 @@ def _cases() -> None:
         assert _commit_count(origin, REMOTE_BRANCH) == 1
 
         # 2. A manifest publish onto the SAME branch must keep the site intact.
-        man_beta = _manifest(tmp, "beta", "0.1.0-beta.2")
-        r = _publish_manifest(checkout, tmp / "wt2", man_beta, "beta", "v0.1.0-beta.2")
+        man_beta = _manifest(tmp, "beta", "0.1.0-beta")
+        r = _publish_manifest(checkout, tmp / "wt2", man_beta, "beta", "v0.1.0-beta")
         assert r.returncode == 0, f"manifest publish failed:\n{r.stderr}\n{r.stdout}"
         assert _exists(origin, f"{REMOTE_BRANCH}:beta.json")
         assert _exists(origin, f"{REMOTE_BRANCH}:index.html"), \
@@ -213,7 +215,7 @@ def _cases() -> None:
         assert r.returncode == 0, f"republish failed:\n{r.stderr}\n{r.stdout}"
         assert _exists(origin, f"{REMOTE_BRANCH}:beta.json"), \
             "PRESERVATION FAILED: site republish erased beta.json"
-        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:beta.json"))["version"] == "0.1.0-beta.2"
+        assert json.loads(_show(origin, f"{REMOTE_BRANCH}:beta.json"))["version"] == "0.1.0-beta"
         assert "v2" in _show(origin, f"{REMOTE_BRANCH}:index.html"), "page not updated"
         assert _exists(origin, f"{REMOTE_BRANCH}:assets/app.js"), "new asset missing"
         assert not _exists(origin, f"{REMOTE_BRANCH}:assets/logo.svg"), \
@@ -236,7 +238,7 @@ def _cases() -> None:
         #    signatures survive AND are non-empty (an empty/truncated signature is
         #    as useless to the client as a missing one).
         sig_body = "c2lnbmF0dXJlLWJ5dGVz"  # base64("signature-bytes")
-        for channel, version in (("beta", "0.1.0-beta.3"), ("stable", "0.1.0")):
+        for channel, version in (("beta", "0.1.0-beta"), ("stable", "0.1.0")):
             man_dir = tmp / f"signed-{channel}"
             man_dir.mkdir(parents=True, exist_ok=True)
             man = _manifest(man_dir, channel, version)
