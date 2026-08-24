@@ -1385,6 +1385,16 @@ class FigureRenderer {
       ].where((slot) => slot.isNotEmpty).join(' ');
       return _displayTemplate({
         'head': head,
+        // Keep these slots for persisted dialect wording templates. The default
+        // template uses `head` so a comma-prefixed forward clause is adjacent
+        // to the final rendered slot, but user templates still expand legacy
+        // placeholders independently.
+        'subject': swho,
+        'modifier': modifier,
+        'move': move,
+        'objects': objects,
+        'direction': renderedDirection,
+        'turn': turn,
         'forward': forwardClause,
         'facing': facingClause,
       }, '{head}{forward}{facing}');

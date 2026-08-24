@@ -538,6 +538,14 @@ void main() {
       },
     );
 
+    test('a custom gate wording preserves legacy display slots', () {
+      final dialect = Dialect(
+        name: 'Wording',
+        moveWordings: const {'gate': '{move} custom'},
+      );
+      expect(renderer.render(Figure(move: 'gate'), dialect), 'gate custom');
+    });
+
     test('convention-dependent 3/4 still shows no facing clause', () {
       final out = renderer.render(
         gate('partners', 'counterclockwise', 0.75, beats: 6),
