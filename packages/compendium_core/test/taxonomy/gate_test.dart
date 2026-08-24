@@ -513,6 +513,17 @@ void main() {
       );
     });
 
+    test('a subjectless mirror gate has no space before its forward comma', () {
+      final f = Figure(
+        move: 'gate',
+        params: {'direction': 'mirror', 'whom': 'neighbors'},
+      );
+      expect(
+        renderer.render(f, Dialect.canonical),
+        'mirror gate, neighbor forward',
+      );
+    });
+
     test('convention-dependent 3/4 still shows no facing clause', () {
       final out = renderer.render(
         gate('partners', 'counterclockwise', 0.75, beats: 6),

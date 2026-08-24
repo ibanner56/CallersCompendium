@@ -739,12 +739,15 @@ class FigureRenderer {
   String _subjectWho(Map<String, Object?> params, Dialect dialect) =>
       _subjectToken(params['who'], dialect);
 
-  /// [_subjectWho] for an arbitrary subject [value] — used by the merged `gate`
-  /// base line, whose grammatical subject is `who` (ContraDB) OR `pair` (The
-  /// Caller's Box) depending on which the source stated. The unspecified
-  /// sentinel is omitted like `null`; other non-null values are surfaced.
-  String _subjectToken(Object? value, Dialect dialect) {
-    if (_isUnspecified(value)) return '';
+  /// [_subjectWho] for an arbitrary subject [value]. The unspecified sentinel
+  /// is omitted only for consumers whose grammar treats it like `null`; other
+  /// non-null values are always surfaced.
+  String _subjectToken(
+    Object? value,
+    Dialect dialect, {
+    bool omitUnspecified = false,
+  }) {
+    if (omitUnspecified && _isUnspecified(value)) return '';
     final subject = _displaySubject(
       value,
       dialect,
@@ -1327,7 +1330,11 @@ class FigureRenderer {
       final whoRaw = params['who'];
       final pairRaw = params['pair'];
       final whoLeads = !_isUnspecified(whoRaw) && whoRaw != null;
-      final swho = r._subjectToken(whoLeads ? whoRaw : pairRaw, dialect);
+      final swho = r._subjectToken(
+        whoLeads ? whoRaw : pairRaw,
+        dialect,
+        omitUnspecified: true,
+      );
       final whomRaw = params['whom'];
       final hasWhom = !_isUnspecified(whomRaw) && whomRaw != null;
       // ContraDB's grammar puts the object straight after the move — but that
@@ -1371,7 +1378,7 @@ class FigureRenderer {
       final template =
           swho.isEmpty &&
               objects.isEmpty &&
-              direction.isEmpty &&
+              renderedDirection.isEmpty &&
               turn.isEmpty &&
               forwardClause.isNotEmpty
           ? '{subject} {modifier}{move}{objects}{direction}{turn}'

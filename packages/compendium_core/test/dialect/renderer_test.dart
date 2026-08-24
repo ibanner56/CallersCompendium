@@ -2139,6 +2139,16 @@ void main() {
           'mad robin',
         );
       });
+      test('mad_robin surfaces an explicit unspecified subject', () {
+        expect(
+          renderer.render(
+            // invalid-fixture: value is deliberately out of domain — unspecified is not a valid mad_robin subject
+            Figure(move: 'mad_robin', params: {'who': 'unspecified'}),
+            d,
+          ),
+          'mad robin, unspecified in front',
+        );
+      });
       test('revolving_door surfaces unknown who/whom/hand values', () {
         expect(
           renderer.render(
