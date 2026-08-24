@@ -62,11 +62,14 @@ A backup holds **everything** you've built, including:
 
 - Your whole collection of dances — figures, notes, tunes, links, and
   any [custom field](./glossary.md#custom-field) values you've filled in,
-  along with where each dance was imported from.
+  including fields marked **Include in sharing** off, along with where each
+  dance was imported from.
 - All your programs, with their [slots](./glossary.md#slot),
   [alternates](./glossary.md#alt), event details, and which dances
   you've marked as performed.
-- Your custom fields, tags, and choreographers.
+- Your custom fields, tags, and choreographers. A sharing opt-out keeps a custom
+  field out of files you send to other people; it does not remove the field from
+  your own backup.
 - Your custom [dialects](./dialects.md) and which one is active.
 - Your custom themes and which one is active.
 - Your settings and preferences.

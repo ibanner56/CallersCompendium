@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4477,8 +4478,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one:
-          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -5204,8 +5204,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -5743,8 +5742,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one:
-          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }
@@ -6022,7 +6020,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Die Werte dieses Feldes werden mit Ihrer Sammlung übertragen, wenn Sie sie exportieren oder teilen';
+      'Die Werte dieses Feldes werden beim Teilen mit Ihrer Sammlung übertragen; Sicherungen enthalten sie immer';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6030,7 +6028,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Die Inhalte aller von Ihnen erstellten benutzerdefinierten Felder werden beim Exportieren oder Teilen Ihrer Sammlung einbezogen. Um ein Feld privat zu halten, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen dieses Feldes.';
+      'Die Inhalte aller benutzerdefinierten Felder, die Sie erstellen, werden in Ihren Sicherungen eingeschlossen. Wenn Sie Ihre Sammlung teilen, deaktivieren Sie „Beim Teilen einschließen“ in den Einstellungen des Feldes, um es privat zu halten.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Verstanden';

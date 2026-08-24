@@ -22,7 +22,11 @@ each release so store builds and tags can be traced back to an entry.
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
-  
+
+- **Complete backups** — backups now preserve custom fields and their values even
+  when **Include in sharing** is turned off; that setting still keeps them out of
+  files you share with other people.
+
 ### Added
 
 - **Experimental settings** — a new section provides a home for features that

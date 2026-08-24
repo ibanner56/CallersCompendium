@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -4486,8 +4487,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Cet import contient $count éléments — plus que prévu pour un partage normal.',
-      one:
-          'Cet import contient 1 élément — plus que prévu pour un partage normal.',
+      one: 'Cet import contient 1 élément — plus que prévu pour un partage normal.',
     );
     return '$_temp0';
   }
@@ -5215,8 +5215,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
-      one:
-          '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+      one: '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
     );
     return '$_temp0';
   }
@@ -5754,8 +5753,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count paires de contraste inférieures au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
-      one:
-          '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
+      one: '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
     );
     return '$_temp0';
   }
@@ -6032,7 +6030,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsShareableSubtitle =>
-      'Les valeurs de ce champ accompagnent votre collection lorsque vous l’exportez ou la partagez';
+      'Les valeurs de ce champ accompagnent votre collection lorsque vous la partagez ; les sauvegardes les incluent toujours';
 
   @override
   String get customFieldsSharingNoticeTitle =>
@@ -6040,7 +6038,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get customFieldsSharingNoticeBody =>
-      'Le contenu de tout champ personnalisé que vous créez est inclus lorsque vous exportez ou partagez votre collection. Pour garder un champ privé, désactivez « Inclure lors du partage » dans les paramètres de ce champ.';
+      'Le contenu de tout champ personnalisé que vous créez est inclus dans vos sauvegardes. Lorsque vous partagez votre collection, désactivez « Inclure lors du partage » dans les paramètres du champ pour le garder privé.';
 
   @override
   String get customFieldsSharingNoticeOk => 'Compris';

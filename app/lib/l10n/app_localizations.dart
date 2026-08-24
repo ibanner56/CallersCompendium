@@ -9080,7 +9080,7 @@ abstract class AppLocalizations {
   /// Subtitle for the 'include in sharing' toggle on the custom field form.
   ///
   /// In en, this message translates to:
-  /// **'This field\'s values travel with your collection when you export or share it'**
+  /// **'This field\'s values travel with your collection when you share it; backups always include them'**
   String get customFieldsShareableSubtitle;
 
   /// Title of the one-time disclosure dialog shown when a user creates their first custom field, explaining that custom field values are included in exports and shares.
@@ -9092,7 +9092,7 @@ abstract class AppLocalizations {
   /// Body of the one-time disclosure dialog shown when a user creates their first custom field.
   ///
   /// In en, this message translates to:
-  /// **'The contents of any custom field you create are included when you export or share your collection. To keep a field private, turn off \"Include in sharing\" in that field\'s settings.'**
+  /// **'The contents of any custom field you create are included in your backups. When you share your collection, turn off \"Include in sharing\" in that field\'s settings to keep a field private.'**
   String get customFieldsSharingNoticeBody;
 
   /// Dismiss button for the one-time custom field sharing disclosure dialog.
