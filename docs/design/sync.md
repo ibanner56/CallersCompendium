@@ -2638,7 +2638,8 @@ dangerous one precisely because there is nothing to opt into.
 `sanitizeImportedText` does not catch it either: it has no surrogate branch, a
 lone surrogate survives unchanged, and `containsDisallowedText` returns false —
 all three measured. So a hostile or malformed import can already put one in the
-database today, where it will sit invisibly until sync gives it consequences.
+database today, where it will sit invisibly until sync gives it consequences —
+filed as [#1063](https://github.com/ibanner56/CallersCompendium/issues/1063).
 
 **This is entirely new code.** The archive codec emits keys in *insertion* order,
 not lexicographic, and there is no SHA-256 anywhere in `packages/`. "Reuse the

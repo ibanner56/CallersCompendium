@@ -413,7 +413,9 @@ is forbidden here for the same reason.
 `sanitizeImportedText` does not close this today. It has no surrogate branch, a
 lone surrogate survives it unchanged, and `containsDisallowedText` does not
 flag it — also measured. Such a value can therefore already be latent in
-imported data.
+imported data, which is filed separately as
+[#1063](https://github.com/ibanner56/CallersCompendium/issues/1063) because it
+is an import defect that sync makes expensive, not a sync defect.
 
 **Timestamp canonicalisation is mandatory on ingest.** A receiver MUST truncate
 every inbound timestamp to a tick boundary *before* storing it and before
