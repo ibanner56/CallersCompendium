@@ -19,6 +19,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Programming Matrix PDF privacy** — linked venue postal addresses are now
+  removed from the exported matrix header while the public venue name remains.
+
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
