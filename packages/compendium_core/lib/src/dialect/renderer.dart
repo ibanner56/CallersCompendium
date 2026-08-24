@@ -741,8 +741,10 @@ class FigureRenderer {
 
   /// [_subjectWho] for an arbitrary subject [value] — used by the merged `gate`
   /// base line, whose grammatical subject is `who` (ContraDB) OR `pair` (The
-  /// Caller's Box) depending on which the source stated.
+  /// Caller's Box) depending on which the source stated. The unspecified
+  /// sentinel is omitted like `null`; other non-null values are surfaced.
   String _subjectToken(Object? value, Dialect dialect) {
+    if (_isUnspecified(value)) return '';
     final subject = _displaySubject(
       value,
       dialect,
@@ -1364,20 +1366,28 @@ class FigureRenderer {
       final facingClause = (faceRaw is String && gateFacings.contains(faceRaw))
           ? ' to face ${_gateFacingPhrase(faceRaw)}'
           : '';
-      return _displayTemplate(
-        {
-          'subject': swho,
-          'modifier': modifier,
-          'move': move,
-          'objects': objects,
-          'direction': renderedDirection,
-          'turn': turn,
-          'forward': forwardClause,
-          'facing': facingClause,
-        },
-        '{subject} {modifier}{move} {objects} {direction} {turn}'
-        '{forward}{facing}',
-      );
+      // Avoid leaving the template's separator before a leading comma when a
+      // subjectless gate names only the forward-walking object.
+      final template =
+          swho.isEmpty &&
+              objects.isEmpty &&
+              direction.isEmpty &&
+              turn.isEmpty &&
+              forwardClause.isNotEmpty
+          ? '{subject} {modifier}{move}{objects}{direction}{turn}'
+                '{forward}{facing}'
+          : '{subject} {modifier}{move} {objects} {direction} {turn}'
+                '{forward}{facing}';
+      return _displayTemplate({
+        'subject': swho,
+        'modifier': modifier,
+        'move': move,
+        'objects': objects,
+        'direction': renderedDirection,
+        'turn': turn,
+        'forward': forwardClause,
+        'facing': facingClause,
+      }, template);
     },
     // The Caller's Box's standalone courtesy turn (taxonomy v23). Maintainer's
     // stated wording, verbatim:

@@ -19,6 +19,8 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Gate previews** no longer show the internal `unspecified` label when you
+  add a gate without filling in its subject.
 - **Database reset recovery** — resetting an unsupported database now reloads
   the app in-process with a fresh runtime instead of leaving the recovery dialog
   visible until the application is reopened.
