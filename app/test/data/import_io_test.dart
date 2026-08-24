@@ -820,6 +820,58 @@ void main() {
     });
   });
 
+  group('extractSharedDanceLink', () {
+    test('accepts supported Callers Box and ContraDB dance links', () {
+      final callersBox = extractSharedDanceLink(
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php'
+        '?id=10600&format=JSON',
+      );
+      expect(callersBox.source, SharedDanceSource.callersBox);
+      expect(callersBox.id, '10600');
+
+      final contraDb = extractSharedDanceLink(
+        'Money Musk\nhttps://contradb.com/dances/185/',
+      );
+      expect(contraDb.source, SharedDanceSource.contraDb);
+      expect(contraDb.id, '185');
+    });
+
+    test('rejects malformed, ambiguous, and unsupported shared links', () {
+      const rejectedPayloads = [
+        'http://contradb.com/dances/1',
+        'https://evil.example/dances/1',
+        'https://contradb.com/programs/1',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php',
+        'https://contradb.com/dances/1 https://evil.example/dances/2',
+      ];
+
+      for (final payload in rejectedPayloads) {
+        expect(
+          () => extractSharedDanceLink(payload),
+          throwsA(
+            isA<UrlFetchException>().having(
+              (error) => error.reason,
+              'reason',
+              UrlFetchFailureReason.unsupportedSharedLink,
+            ),
+          ),
+          reason: payload,
+        );
+      }
+    });
+
+    test('a rejection never echoes the shared payload', () {
+      const secret = 'https://evil.example/dances/1?token=SUPERSECRET';
+      try {
+        extractSharedDanceLink(secret);
+        fail('expected a UrlFetchException');
+      } on UrlFetchException catch (error) {
+        expect(error.toString(), isNot(contains('SUPERSECRET')));
+        expect(error.toString(), isNot(contains('evil.example')));
+      }
+    });
+  });
+
   group('defaultImportSources', () {
     test('returns the canonical [TitleList, CallersBox, ContraDB, GenericJson, '
         'CC .USR] list', () {

@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/window_service.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
+import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
@@ -229,6 +230,45 @@ void main() {
   );
 
   testWidgets(
+    'a shared single-dance URL opens the persistent preview without importing',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      for (final sharedUrl in const [
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10600',
+        'https://www.ibiblio.org/contradance/thecallersbox/dance.php?id=10600&format=JSON',
+        'https://contradb.com/dances/1',
+      ]) {
+        final appData = _openAppData();
+        await tester.pumpWidget(
+          CompendiumApp(
+            appData: appData,
+            windowService: _NoopWindowService(appData.repositories.settings),
+            incomingFileChannel: _FakeIncomingFileChannel(
+              initialSharedUrl: sharedUrl,
+            ),
+            incomingUrlFetcher: (url) async => url.contains('ibiblio.org')
+                ? _callersBoxDanceJson
+                : _contraDbDanceHtml,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byType(DanceDetailScreen),
+          findsOneWidget,
+          reason: sharedUrl,
+        );
+        expect(await appData.repositories.dances.listAll(), isEmpty);
+
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+      }
+    },
+  );
+
+  testWidgets(
     'issue #343: a malicious / non-ContraDB shared URL is rejected with a '
     'snackbar and never opens the import screen',
     (tester) async {
@@ -254,6 +294,38 @@ void main() {
       );
       expect(find.byType(ContraDbProgramImportScreen), findsNothing);
       expect(await appData.repositories.programs.listAll(), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'an unsupported shared dance link has a neutral rejection message',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1200, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final appData = _openAppData();
+
+      await tester.pumpWidget(
+        CompendiumApp(
+          appData: appData,
+          windowService: _NoopWindowService(appData.repositories.settings),
+          incomingFileChannel: _FakeIncomingFileChannel(
+            initialSharedUrl: 'https://contradb.com/dances/not-a-numeric-id',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('shared-url-import-error')),
+        findsOneWidget,
+      );
+      expect(
+        find.text("That link isn't supported for import."),
+        findsOneWidget,
+      );
+      expect(find.byType(ContraDbProgramImportScreen), findsNothing);
+      expect(find.byType(DanceDetailScreen), findsNothing);
     },
   );
 
@@ -303,5 +375,40 @@ const String _sharedProgramHtml = '''
 <div id="activity-1" class="activity-breakdown">
   <h2 class="activity-breakdown-dance-title"><a href="/dances/185">Courageous Soul</a></h2>
 </div>
+</body></html>
+''';
+
+const String _callersBoxDanceJson = '''
+{
+  "ID": "10600",
+  "Name": "Money Musk",
+  "Authors": ["Traditional"],
+  "InterpretedBy": [],
+  "Permission": "full",
+  "FormationBase": "Triple Minor - Proper",
+  "FormationDetail": "",
+  "Progression": "Single",
+  "PhraseStructure": "",
+  "CallingNotes": [],
+  "OtherNames": [],
+  "Music": [],
+  "Tunes": [],
+  "Appearances": [],
+  "phrases": [{"name": "A1", "figures": ["Actives balance and swing"]}]
+}
+''';
+
+const String _contraDbDanceHtml = '''
+<!DOCTYPE html><html><head><title>x</title></head>
+<body class="dances-show-body">
+<h1 class="dance-show-title">The Rendezvous</h1>
+<p class="dance-show-choreographer">by: <strong><a href="/choreographers/4">Adina Gordon</a></strong></p>
+<p class="dance-show-formation">formation: improper </p>
+<table class="table table-bordered table-condensed contra-table-nonfluid">
+  <tr class="a1b1 dance-show-long-figure">
+    <td>A1</td><td class=dance-show-beats>16</td>
+    <td><div class="show-figure">neighbors balance &amp; swing</div></td>
+  </tr>
+</table>
 </body></html>
 ''';

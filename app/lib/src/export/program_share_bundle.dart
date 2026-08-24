@@ -146,11 +146,11 @@ String buildProgramShareBundle(
 ///
 /// The `.ccshare` extension (issue #298, PR 2) makes Caller's Compendium a
 /// first-class handler for received share bundles: it maps to the app's own
-/// exported UTI (`org.callerscompendium.compendiumApp.share`, which conforms to
-/// `public.json`), so an AirDrop'd/"Open with…" file routes back into the app
-/// instead of being treated as a generic `.json`. The payload is still the
-/// canonical [CompendiumArchive] JSON, so the importer also keeps accepting
-/// plain `.json` for backward compatibility.
+/// exported UTI (`org.callerscompendium.compendiumApp.share`) so an
+/// AirDrop'd/"Open with…" file routes back into the app instead of being treated
+/// as a generic `.json`. The payload is still the canonical
+/// [CompendiumArchive] JSON, so the importer also keeps accepting plain `.json`
+/// for backward compatibility.
 const String programShareBundleExtension = 'ccshare';
 
 /// The plain-JSON extension for the same bundle payload (issue #853).
