@@ -516,6 +516,10 @@ class CompendiumRepositories {
             alreadyRebuilt: rebuiltThisCall,
             onProgress: onDerivedRebuildProgress,
           );
+      rebuiltThisCall = await _emitCompactDosidoSeesawCanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       // The last sweep's result is deliberately not assigned: nothing
       // follows it today. It still REPORTS, so that adding a sweep after it
       // is a one-line change rather than a change to the contract above.
@@ -876,6 +880,30 @@ class CompendiumRepositories {
     );
     // Reached only by running a rebuild (or having had one run earlier this
     // call), so a rebuild has always happened by this point.
+    return true;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v32 renamed the default
+  /// do-si-do and see-saw display names to their compact forms.
+  Future<bool> _emitCompactDosidoSeesawCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(compactDosidoSeesawCanonicalRebuildDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
+    await _writeSweepMarker(
+      compactDosidoSeesawCanonicalRebuildDoneKey,
+      '"done"',
+    );
     return true;
   }
 

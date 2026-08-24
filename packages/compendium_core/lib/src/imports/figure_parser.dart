@@ -1031,7 +1031,8 @@ _Match? _twoHandTurn(List<String> w) {
 
 _Match? _doSiDo(List<String> w) {
   final who = _takeDancer(w);
-  final seeSaw = _consumePhrase(w, ['see', 'saw']);
+  final seeSaw =
+      _consumePhrase(w, ['see', 'saw']) || _consumePhrase(w, ['seesaw']);
   final isDoSiDo =
       _consumePhrase(w, ['do', 'si', 'do']) ||
       _consumePhrase(w, ['do', 'sa', 'do']) ||

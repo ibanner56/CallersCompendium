@@ -14,7 +14,7 @@ void main() {
         move: 'allemande',
         params: {'hand': 'left', 'turn': 1.5},
       ),
-      'partners do si do once': Figure(
+      'partners dosido once': Figure(
         move: 'do_si_do',
         params: {'who': 'partners'},
       ),
@@ -46,10 +46,10 @@ void main() {
   });
 
   group('aliases render under their own name', () {
-    test('see saw, not do si do', () {
+    test('seesaw, not dosido', () {
       expect(
         renderer.renderCanonical(Figure(move: 'see_saw')),
-        'neighbors see saw once',
+        'neighbors seesaw once',
       );
     });
 
@@ -393,7 +393,7 @@ void main() {
           Figure(move: 'do_si_do', params: {'who': 'partners'}),
           larks,
         ),
-        'partner do si do once',
+        'partner dosido once',
       );
       expect(
         renderer.renderVerbose(
@@ -859,10 +859,7 @@ void main() {
 
   group('displayMoveName (editor move display)', () {
     test('plain taxonomy display name under canonical', () {
-      expect(
-        renderer.displayMoveName('do_si_do', Dialect.canonical),
-        'do si do',
-      );
+      expect(renderer.displayMoveName('do_si_do', Dialect.canonical), 'dosido');
       expect(renderer.displayMoveName('swing', Dialect.canonical), 'swing');
     });
 
@@ -870,7 +867,7 @@ void main() {
       final custom = Dialect(name: 'Custom', moves: const {'swing': 'buzz'});
       expect(renderer.displayMoveName('swing', custom), 'buzz');
       // Unmapped moves fall back to the taxonomy display name.
-      expect(renderer.displayMoveName('do_si_do', custom), 'do si do');
+      expect(renderer.displayMoveName('do_si_do', custom), 'dosido');
     });
 
     test('injects %S from the figure shoulder/hand param', () {

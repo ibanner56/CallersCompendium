@@ -41,7 +41,7 @@ searchKeywords: [allemande, almond]
   loaded per dance-form. Adding moves/params is additive; renames are
   migrations. Stored figures carry `schemaVersion` so old data always parses.
 - **Aliases** are entries that resolve to a canonical move with pinned params
-  (see saw → do si do{shoulder: left}; swat the flea → box the gnat{hand:
+  (seesaw → dosido{shoulder: left}; swat the flea → box the gnat{hand:
   left}). Search de-aliases automatically.
 - **`custom`** is a first-class move: `{text, beats}`; its text is
   dialect-processed and FTS-indexed. `contra corners` and `turn alone` embed an
@@ -80,7 +80,7 @@ Adopted from ContraDB, with renames noted:
 allemande · arch & dive · balance · balance the ring ·
 box circulate · box the gnat (alias: swat the flea) · butterfly whirl ·
 California twirl · chain (role-parameterized, not "ladies chain") · circle ·
-contra corners · cross trails · **custom** · do si do (alias: see saw) ·
+contra corners · cross trails · **custom** · dosido (alias: seesaw) ·
 dolphin hey · down the hall · up the hall · facing star · figure 8 ·
 form long wave / ocean wave / long waves · gate · give & take ·
 **shoulder round** (was gyre/gypsy; keyword-searchable under old names) ·
@@ -1567,6 +1567,14 @@ fails a PR that moves the constant without adding the matching entry.
     used together. Both are additive taxonomy moves with no schema migration.
     The existing hall + `turnCouple` fold remains the representation for
     turn-as-couples lines attached to a down/up-the-hall sequence.
+- v32 (#1056): changes the canonical display names of the do-si-do pair to
+  `dosido` and `seesaw`, matching the compact vocabulary used by CallersBox.
+  The permanent move IDs and alias pin are unchanged. Existing `do si do`,
+  `do-si-do`, `see saw`, and `see-saw` spellings remain accepted on import and
+  are normalized at the full-text query boundary. Because canonical figure
+  text and FTS rows use the display names, existing derived rows are rebuilt
+  once under `compactDosidoSeesawCanonicalRebuildDoneKey`; stored figure JSON
+  and the SQLite schema are unchanged.
 
 ## Open questions (to resolve during implementation, with user input)
 

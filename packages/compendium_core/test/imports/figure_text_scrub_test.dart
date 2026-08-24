@@ -22,6 +22,11 @@ void main() {
       expect(scrubFigureText('do si do'), 'do si do');
       expect(scrubFigureText('neighbors do si do'), 'neighbors do si do');
     });
+
+    test('rewrites "see-saw" to "see saw"', () {
+      expect(scrubFigureText('see-saw'), 'see saw');
+      expect(scrubFigureText('See-Saw neighbor'), 'see saw neighbor');
+    });
   });
 
   group('scrubFigureText canonicalizes gendered role terms', () {

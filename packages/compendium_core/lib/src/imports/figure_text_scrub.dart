@@ -20,6 +20,7 @@ import '../util/text_sanitizer.dart';
 ///    - the hyphenated `do-si-do` is rewritten to `do si do` (The Caller's Box
 ///      hyphenates it exclusively, but the figure parser tokenises on spaces
 ///      and only matches the space-separated `do si do` / `dosido` forms).
+///    - the hyphenated `see-saw` is rewritten to `see saw` for the same reason.
 /// 2. The text is routed through the core canonicalization chokepoint
 ///    [canonicalizeText] with [Dialect.canonical], whose always-on
 ///    substitutions map gendered role terms to canonical `role1`/`role2`
@@ -41,6 +42,7 @@ String scrubFigureText(String text) {
       .replaceAllMapped(_gypsiesTerm, (_) => 'shoulder rounds')
       .replaceAllMapped(_gypsyTerm, (_) => 'shoulder round')
       .replaceAllMapped(_doSiDoTerm, (_) => 'do si do')
+      .replaceAllMapped(_seeSawTerm, (_) => 'see saw')
       // Protect the move name "mad robin(s)" from role canonicalization: the
       // canonical dialect maps `robin(s)` → `role2(s)` (larks/robins), which
       // would otherwise mangle "mad robin" into "mad role2". Collapsing it to a
@@ -61,6 +63,7 @@ const String _madRobinsSentinel = 'madrobins';
 final RegExp _gypsyTerm = RegExp(r'\bgypsy\b', caseSensitive: false);
 final RegExp _gypsiesTerm = RegExp(r'\bgypsies\b', caseSensitive: false);
 final RegExp _doSiDoTerm = RegExp(r'\bdo-si-do\b', caseSensitive: false);
+final RegExp _seeSawTerm = RegExp(r'\bsee-saw\b', caseSensitive: false);
 final RegExp _madRobinsTerm = RegExp(r'\bmad robins\b', caseSensitive: false);
 final RegExp _madRobinTerm = RegExp(r'\bmad robin\b', caseSensitive: false);
 final RegExp _whitespace = RegExp(r'\s+');

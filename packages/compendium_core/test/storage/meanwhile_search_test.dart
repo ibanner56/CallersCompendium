@@ -81,9 +81,20 @@ void main() {
       beats: 8,
     );
     await dances.create(sampleDance(id: 'mw', figures: [container]));
+    await dances.create(
+      sampleDance(
+        id: 'see-saw',
+        figures: [Figure(move: 'see_saw')],
+      ),
+    );
 
     expect(await dances.searchText('petronella'), contains('mw'));
+    expect(await dances.searchText('dosido'), contains('mw'));
     expect(await dances.searchText('do si do'), contains('mw'));
+    expect(await dances.searchText('do-si-do'), contains('mw'));
+    expect(await dances.searchText('seesaw'), contains('see-saw'));
+    expect(await dances.searchText('see saw'), contains('see-saw'));
+    expect(await dances.searchText('see-saw'), contains('see-saw'));
   });
 
   test(

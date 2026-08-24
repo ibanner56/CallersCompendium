@@ -94,11 +94,11 @@ void main() {
       });
     });
 
-    test('contraTaxonomyVersion is 31', () {
+    test('contraTaxonomyVersion is 32', () {
       // Guard: fails when the version is bumped without updating this test.
       // Update this assertion (and add a new test group documenting the new
       // version's changes) when bumping contraTaxonomyVersion.
-      expect(contraTaxonomyVersion, 31);
+      expect(contraTaxonomyVersion, 32);
     });
 
     test(
