@@ -22,6 +22,10 @@ each release so store builds and tags can be traced back to an entry.
 - **Gate previews** no longer show the internal `unspecified` label when you
   add a gate without filling in its subject.
   
+- **Dialect wording templates** — the dialect editor now blocks malformed or
+  oversized move wording templates instead of saving settings the renderer will
+  ignore. (issue #1043)
+  
 - **Imported walkthroughs** — preserve dance walkthrough text when committing
   published collections and generic archive/JSON imports. (issue #1040)
   

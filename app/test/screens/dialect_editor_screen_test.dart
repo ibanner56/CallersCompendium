@@ -167,7 +167,12 @@ void main() {
         '{who',
       );
       await tester.pump();
-      expect(find.textContaining('incomplete'), findsOneWidget);
+      expect(
+        find.text(
+          'This template is invalid, so the normal wording will be used.',
+        ),
+        findsOneWidget,
+      );
 
       final restore = find.byKey(const ValueKey('dialect-wordings-restore'));
       await reveal(tester, restore);
@@ -530,6 +535,49 @@ void main() {
       find.byKey(const ValueKey('dialect-wording-confirm-dialog')),
       findsNothing,
     );
+  });
+
+  testWidgets('saving malformed wording templates keeps the editor open', (
+    tester,
+  ) async {
+    final invalidTemplates = [
+      '{who',
+      '{first-name}',
+      '[{who}',
+      '}',
+      List.filled(kMaxMoveWordingLength + 1, 'x').join(),
+    ];
+
+    for (final template in invalidTemplates) {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: DialectEditorScreen(
+            initial: Dialect(
+              name: 'Invalid wording',
+              moveWordings: {'swing': template},
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dialect-editor-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DialectEditorScreen), findsOneWidget);
+      expect(validationError(), findsOneWidget, reason: 'template: $template');
+      expect(
+        find.textContaining('Fix invalid move wording templates before saving'),
+        findsOneWidget,
+        reason: 'template: $template',
+      );
+      expect(
+        find.byKey(const ValueKey('dialect-wording-confirm-dialog')),
+        findsNothing,
+        reason: 'template: $template',
+      );
+    }
   });
 
   testWidgets('Save is still guarded: an invalid dialect is not returned', (

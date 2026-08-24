@@ -124,6 +124,14 @@ contains that move. For moves that come in left- and right-handed versions, you
 can include a placeholder so the app fills in "left" or "right" for you rather
 than making you write two versions.
 
+### Move wording templates
+
+For a complete sentence around a move, add a display template and use the slots
+shown in the editor, such as `{who}` and `{move}`. A template may leave out
+optional details, but the editor will ask you to confirm before saving one that
+omits required details. Templates with invalid syntax or more than 512 characters
+must be fixed before the dialect can be saved.
+
 ### Dancer wording
 
 Reword the way the app refers to *who* is dancing — for example the words for

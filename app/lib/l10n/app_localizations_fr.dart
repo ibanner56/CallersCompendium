@@ -6508,7 +6508,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get dialectEditorMoveWordingInvalid =>
-      'Ce modèle est incomplet ; la formulation normale sera donc utilisée.';
+      'Ce modèle est invalide ; la formulation normale sera donc utilisée.';
+
+  @override
+  String dialectEditorMoveWordingSaveError(String figures) {
+    return 'Corrigez les modèles de formulation de mouvements invalides avant d\'enregistrer : $figures';
+  }
 
   @override
   String dialectEditorMoveWordingUnknownSlots(String slots) {
