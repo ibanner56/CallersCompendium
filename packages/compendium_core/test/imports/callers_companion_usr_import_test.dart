@@ -489,6 +489,7 @@ void main() {
       expect(first.insertedProgramCount, 1);
       expect(first.updatedProgramCount, 0);
       final firstId = first.programs.single.id;
+      final stampBeforeReimport = await programExistenceStamp(firstId);
 
       // Re-import the identical archive with a *fresh* id minter — a naive
       // insert would mint a new program id and duplicate. Dedupe must reuse the
@@ -504,6 +505,11 @@ void main() {
       expect(second.insertedProgramCount, 0);
       expect(second.updatedProgramCount, 1);
       expect(second.programs.single.id, firstId, reason: 'same program reused');
+      expect(
+        await programExistenceStamp(firstId),
+        stampBeforeReimport,
+        reason: 'a live re-import is a content update, not an existence change',
+      );
 
       // Exactly one program in the DB, still carrying its provenance.
       final all = await programs.listAll();

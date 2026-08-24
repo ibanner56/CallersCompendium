@@ -434,7 +434,8 @@ void main() {
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
       final deleted = await repos.programs.getById('p1', includeDeleted: true);
       expect(deleted, isNotNull);
-      expect(deleted!.deletedAt, isNot(archivedDeletedAt));
+      expect(deleted!.deletedAt, isNotNull);
+      expect(deleted.deletedAt, isNot(archivedDeletedAt));
       expect(deleted.title, 'Deleted');
       expect(await _existenceStamp(db, 'p1'), greaterThan(before));
     });
@@ -479,7 +480,8 @@ void main() {
       expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
       final deleted = await repos.dances.getById('d1', includeDeleted: true);
       expect(deleted, isNotNull);
-      expect(deleted!.deletedAt, isNot(archivedDeletedAt));
+      expect(deleted!.deletedAt, isNotNull);
+      expect(deleted.deletedAt, isNot(archivedDeletedAt));
       expect(deleted.title, 'Deleted');
       final after = await db
           .customSelect(
@@ -490,6 +492,94 @@ void main() {
           .then((row) => row.read<int>('v'));
       expect(after, greaterThan(before));
     });
+
+    test(
+      'merge restores a live program snapshot when causal tombstoning fails',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final programs = _FailingSoftDeleteProgramRepository(db);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          programs: programs,
+        );
+        await programs.create(
+          Program(
+            id: 'p1',
+            title: 'Original',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          programs: [
+            Program(
+              id: 'p1',
+              title: 'Archive content',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 7, 1),
+              deletedAt: DateTime.utc(2026, 7, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+
+        expect(result.hasErrors, isTrue);
+        final restored = await programs.getById('p1', includeDeleted: true);
+        expect(restored, isNotNull);
+        expect(restored!.deletedAt, isNull);
+        expect(restored.title, 'Original');
+      },
+    );
+
+    test(
+      'merge restores a live dance snapshot when causal tombstoning fails',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final dances = _FailingSoftDeleteDanceRepository(db);
+        final repos = CompendiumRepositories(
+          db,
+          contraTaxonomy,
+          dances: dances,
+        );
+        await dances.create(
+          Dance(
+            id: 'd1',
+            title: 'Original',
+            createdAt: DateTime.utc(2026, 1, 1),
+            updatedAt: DateTime.utc(2026, 1, 1),
+          ),
+        );
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'd1',
+              title: 'Archive content',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 7, 1),
+              deletedAt: DateTime.utc(2026, 7, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+
+        expect(result.hasErrors, isTrue);
+        final restored = await dances.getById('d1', includeDeleted: true);
+        expect(restored, isNotNull);
+        expect(restored!.deletedAt, isNull);
+        expect(restored.title, 'Original');
+      },
+    );
 
     test(
       'replace aborts and preserves live data when an entity fails to write',
@@ -1004,4 +1094,21 @@ void main() {
       },
     );
   });
+}
+
+class _FailingSoftDeleteProgramRepository extends ProgramRepository {
+  _FailingSoftDeleteProgramRepository(super.db);
+
+  @override
+  Future<void> softDelete(String id, {required DateTime at}) =>
+      throw const FormatException('simulated causal tombstone failure');
+}
+
+class _FailingSoftDeleteDanceRepository extends DanceRepository {
+  _FailingSoftDeleteDanceRepository(CompendiumDatabase db)
+    : super(db, contraTaxonomy);
+
+  @override
+  Future<void> softDelete(String id, {required DateTime at}) =>
+      throw const FormatException('simulated causal tombstone failure');
 }

@@ -204,7 +204,7 @@ class ArchiveRestorer {
         final existingDeleted = await _repos.dances.isDeletedById(d.id);
         final wasTombstoned = existingDeleted == true && d.deletedAt == null;
         final wasLive = existingDeleted == false && d.deletedAt != null;
-        final existing = wasTombstoned
+        final existing = wasTombstoned || wasLive
             ? await _repos.dances.getById(d.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
@@ -225,9 +225,11 @@ class ArchiveRestorer {
             await _repos.dances.softDelete(d.id, at: causalAt);
           }
         } on Exception {
-          if (wasTombstoned) {
-            await _repos.dances.create(existing!);
-            await _repos.dances.softDelete(d.id, at: causalAt);
+          if (existing != null) {
+            await _repos.dances.create(existing);
+            if (wasTombstoned) {
+              await _repos.dances.softDelete(d.id, at: causalAt);
+            }
           }
           rethrow;
         }
@@ -253,7 +255,7 @@ class ArchiveRestorer {
         final existingDeleted = await _repos.programs.isDeletedById(p.id);
         final wasTombstoned = existingDeleted == true && p.deletedAt == null;
         final wasLive = existingDeleted == false && p.deletedAt != null;
-        final existing = wasTombstoned
+        final existing = wasTombstoned || wasLive
             ? await _repos.programs.getById(p.id, includeDeleted: true)
             : null;
         if (wasTombstoned) {
@@ -273,9 +275,11 @@ class ArchiveRestorer {
             await _repos.programs.softDelete(p.id, at: causalAt);
           }
         } on Exception {
-          if (wasTombstoned) {
-            await _repos.programs.create(existing!);
-            await _repos.programs.softDelete(p.id, at: causalAt);
+          if (existing != null) {
+            await _repos.programs.create(existing);
+            if (wasTombstoned) {
+              await _repos.programs.softDelete(p.id, at: causalAt);
+            }
           }
           rethrow;
         }
