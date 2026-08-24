@@ -265,7 +265,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
             '${_moveLabel(moveEntry.key)}: ${_branchLabel(branchEntry.key, l10n)}',
           );
           incomplete[label] = missing.isEmpty
-              ? 'invalid template'
+              ? l10n.dialectEditorMoveWordingInvalid
               : _renderer
                     .moveWordingSlotLabels(moveEntry.key, missing)
                     .join(', ');
