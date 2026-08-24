@@ -316,8 +316,9 @@ void main() {
     test('a failed discover clears stale records from a prior run', () async {
       final adapter = GenericJsonAdapter();
       final good = encodeArchive(_archive([_dance('keep', 'Keep')]));
-      final firstRecord = (await adapter.discover(ImportRequest(payload: good)))
-          .single;
+      final firstRecord = (await adapter.discover(
+        ImportRequest(payload: good),
+      )).single;
 
       await expectLater(
         adapter.discover(const ImportRequest(payload: 'not json {')),
@@ -442,44 +443,37 @@ void main() {
         },
       );
 
-      test(
-        'committing creates the choreographer row and points authorIds at it '
-        'with no FK failure',
-        () async {
-          final db = openTestDatabase();
-          addTearDown(db.close);
-          final dances = DanceRepository(db, contraTaxonomy);
-          final choreographers = ChoreographerRepository(db);
-          final pipeline = ImportPipeline(dances, choreographers);
+      test('committing creates the choreographer row and points authorIds at it '
+          'with no FK failure', () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final dances = DanceRepository(db, contraTaxonomy);
+        final choreographers = ChoreographerRepository(db);
+        final pipeline = ImportPipeline(dances, choreographers);
 
-          final json = encodeArchive(
-            _archive([
-              _dance('d1', 'Give and Take', authorIds: ['c1']),
-            ]),
-          );
-          final batch = await pipeline.plan(
-            GenericJsonAdapter(),
-            ImportRequest(payload: json),
-          );
-          final session = await pipeline.commit(
-            batch,
-            now: _now,
-            newId: sequentialIds('new'),
-          );
+        final json = encodeArchive(
+          _archive([
+            _dance('d1', 'Give and Take', authorIds: ['c1']),
+          ]),
+        );
+        final batch = await pipeline.plan(
+          GenericJsonAdapter(),
+          ImportRequest(payload: json),
+        );
+        final session = await pipeline.commit(
+          batch,
+          now: _now,
+          newId: sequentialIds('new'),
+        );
 
-          expect(session.committedCount, 1);
-          final imported = await dances.getById(
-            session.insertedDanceIds.single,
-          );
-          // authorIds now reference the RECEIVER's own row (not the sender's 'c1').
-          expect(imported!.authorIds, isNot(contains('c1')));
-          expect(imported.authorIds, hasLength(1));
-          final author = await choreographers.getById(
-            imported.authorIds.single,
-          );
-          expect(author!.name, 'Cary Ravitz');
-        },
-      );
+        expect(session.committedCount, 1);
+        final imported = await dances.getById(session.insertedDanceIds.single);
+        // authorIds now reference the RECEIVER's own row (not the sender's 'c1').
+        expect(imported!.authorIds, isNot(contains('c1')));
+        expect(imported.authorIds, hasLength(1));
+        final author = await choreographers.getById(imported.authorIds.single);
+        expect(author!.name, 'Cary Ravitz');
+      });
 
       test(
         'reuses a choreographer the receiver already has, matched by name',
