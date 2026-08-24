@@ -37,7 +37,7 @@ class CcUsrImportResult {
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
     List<String> restoredProgramIds = const [],
-    DateTime? programRestoreAt,
+    this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<ImportIssue> relatedDanceLinkIssues = const [],
   }) : programs = List.unmodifiable(programs),
@@ -45,7 +45,6 @@ class CcUsrImportResult {
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
        restoredProgramIds = List.unmodifiable(restoredProgramIds),
-       programRestoreAt = programRestoreAt,
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
        relatedDanceLinkIssues = List.unmodifiable(relatedDanceLinkIssues);
 

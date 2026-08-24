@@ -208,7 +208,7 @@ class CompendiumArchiveImportResult {
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
     List<String> restoredProgramIds = const [],
-    DateTime? programRestoreAt,
+    this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<String> restoredVenueIds = const [],
   }) : programs = List.unmodifiable(programs),
@@ -216,7 +216,6 @@ class CompendiumArchiveImportResult {
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
        restoredProgramIds = List.unmodifiable(restoredProgramIds),
-       programRestoreAt = programRestoreAt,
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
        restoredVenueIds = List.unmodifiable(restoredVenueIds);
 
