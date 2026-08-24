@@ -397,14 +397,16 @@ void main() {
       });
 
       test('mixer=true is emitted into the encoded JSON', () {
-        final json = jsonDecode(
-          encodeArchive(
-            CompendiumArchive(
-              exportedAt: DateTime.utc(2026),
-              dances: [mixerDance(mixer: true)],
-            ),
-          ),
-        ) as Map<String, Object?>;
+        final json =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(
+                      exportedAt: DateTime.utc(2026),
+                      dances: [mixerDance(mixer: true)],
+                    ),
+                  ),
+                )
+                as Map<String, Object?>;
         final dance = (json['dances'] as List)
             .cast<Map<String, Object?>>()
             .single;
@@ -415,14 +417,16 @@ void main() {
         // Tolerant additive decode: older archives predate the field, so the
         // key is simply absent and must default to false — this is why the
         // archive format needs no version bump.
-        final json = jsonDecode(
-          encodeArchive(
-            CompendiumArchive(
-              exportedAt: DateTime.utc(2026),
-              dances: [mixerDance(mixer: true)],
-            ),
-          ),
-        ) as Map<String, Object?>;
+        final json =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(
+                      exportedAt: DateTime.utc(2026),
+                      dances: [mixerDance(mixer: true)],
+                    ),
+                  ),
+                )
+                as Map<String, Object?>;
         final dance = (json['dances'] as List)
             .cast<Map<String, Object?>>()
             .single;
@@ -672,29 +676,32 @@ void main() {
       expect(result.archive.dances, hasLength(3));
     });
 
-    test('an unknown enum value skips its entity as a tracked drop, not an error', () {
-      final map =
-          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
-      final dances = (map['dances'] as List).cast<Map<String, Object?>>();
-      dances.firstWhere((d) => d['id'] == 'd2')['status'] = 'from_the_future';
+    test(
+      'an unknown enum value skips its entity as a tracked drop, not an error',
+      () {
+        final map =
+            jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+        final dances = (map['dances'] as List).cast<Map<String, Object?>>();
+        dances.firstWhere((d) => d['id'] == 'd2')['status'] = 'from_the_future';
 
-      final result = decodeArchive(jsonEncode(map));
-      // Forward-compat: an unrecognized enum value (written by a newer app
-      // version) degrades to a warning, never an error. This is what keeps a
-      // merely-newer backup from escalating to a fatal decode that would abort
-      // a replace restore and wipe the user's live collection (issue #430).
-      expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
-      expect(result.warnings, isNotEmpty);
-      expect(result.warnings.any((w) => w.contains('d2')), isTrue);
-      // The drop is ALSO tracked structurally so the replace gate can refuse
-      // an incomplete archive — it must not be lost among warnings.
-      expect(result.isIncomplete, isTrue);
-      expect(result.droppedEntities, hasLength(1));
-      expect(result.droppedEntities.single, contains('d2'));
-      // The offending entity is still dropped; the rest load.
-      expect(result.archive.dances, hasLength(2));
-      expect(result.archive.dances.map((d) => d.id), isNot(contains('d2')));
-    });
+        final result = decodeArchive(jsonEncode(map));
+        // Forward-compat: an unrecognized enum value (written by a newer app
+        // version) degrades to a warning, never an error. This is what keeps a
+        // merely-newer backup from escalating to a fatal decode that would abort
+        // a replace restore and wipe the user's live collection (issue #430).
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+        expect(result.warnings, isNotEmpty);
+        expect(result.warnings.any((w) => w.contains('d2')), isTrue);
+        // The drop is ALSO tracked structurally so the replace gate can refuse
+        // an incomplete archive — it must not be lost among warnings.
+        expect(result.isIncomplete, isTrue);
+        expect(result.droppedEntities, hasLength(1));
+        expect(result.droppedEntities.single, contains('d2'));
+        // The offending entity is still dropped; the rest load.
+        expect(result.archive.dances, hasLength(2));
+        expect(result.archive.dances.map((d) => d.id), isNot(contains('d2')));
+      },
+    );
 
     test('an unknown REQUIRED enum value also skips as a tracked drop', () {
       // `level` uses the strict `_enumByName` path (no fallback). A newer
@@ -854,9 +861,9 @@ void main() {
     });
 
     test('stamps a venue-bearing archive at the venue schema version', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       expect(map['schemaVersion'], archiveSchemaVersionVenues);
     });
 
@@ -917,9 +924,9 @@ void main() {
     });
 
     test('a legacy bundle with no venues array imports cleanly', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       // Simulate a bundle produced before the venue entity existed.
       map.remove('venues');
 
@@ -932,9 +939,9 @@ void main() {
     });
 
     test('a non-array venues field is reported and skipped', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       map['venues'] = {'not': 'an array'};
 
       final result = decodeArchive(jsonEncode(map));
@@ -946,9 +953,9 @@ void main() {
     });
 
     test('a venues entry that is not an object is skipped', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       (map['venues'] as List).add('i am not an object');
 
       final result = decodeArchive(jsonEncode(map));
@@ -961,9 +968,9 @@ void main() {
     test(
       'a venue with a blank name is skipped without aborting the import',
       () {
-        final map = jsonDecode(
-          encodeArchive(archiveWithVenues()),
-        ) as Map<String, Object?>;
+        final map =
+            jsonDecode(encodeArchive(archiveWithVenues()))
+                as Map<String, Object?>;
         final venues = (map['venues'] as List).cast<Map<String, Object?>>();
         venues.firstWhere((v) => v['id'] == 'v2')['name'] = '   ';
 
@@ -978,9 +985,9 @@ void main() {
     );
 
     test('a venue field of the wrong type is rejected per-entity', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final venues = (map['venues'] as List).cast<Map<String, Object?>>();
       // city must be a string; an attacker-supplied number is rejected.
       venues.firstWhere((v) => v['id'] == 'v1')['city'] = 42;
@@ -994,9 +1001,9 @@ void main() {
     });
 
     test('a missing required venue id is rejected per-entity', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final venues = (map['venues'] as List).cast<Map<String, Object?>>();
       venues.firstWhere((v) => v['id'] == 'v1').remove('id');
 
@@ -1007,9 +1014,9 @@ void main() {
     });
 
     test('unknown/extra venue keys are ignored', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final venues = (map['venues'] as List).cast<Map<String, Object?>>();
       venues.first['futureField'] = {'anything': true};
 
@@ -1023,9 +1030,9 @@ void main() {
     });
 
     test('a non-string program.venueId is rejected per-entity', () {
-      final map = jsonDecode(
-        encodeArchive(archiveWithVenues()),
-      ) as Map<String, Object?>;
+      final map =
+          jsonDecode(encodeArchive(archiveWithVenues()))
+              as Map<String, Object?>;
       final programs = (map['programs'] as List).cast<Map<String, Object?>>();
       programs.single['venueId'] = 7;
 
@@ -1105,8 +1112,9 @@ void main() {
       // d1 carries a multi-line walkthrough; Dance equality includes it, so the
       // whole-object round-trip below also guards it, but assert explicitly.
       final json = encodeArchive(_sampleArchive());
-      final decoded = decodeArchive(json).archive.dances
-          .firstWhere((d) => d.id == 'd1');
+      final decoded = decodeArchive(
+        json,
+      ).archive.dances.firstWhere((d) => d.id == 'd1');
       expect(
         decoded.walkthrough,
         'A1: neighbours balance and swing.\n'
@@ -1353,19 +1361,22 @@ void main() {
       },
     );
 
-    test('decoded archive from a non-shareable-field source has shareable=true', () {
-      // An archive that excluded a field has no entry for it. When the decoded
-      // archive is stored and re-exported, the stored fields all have
-      // shareable=true (the default). This verifies the decode path's implicit
-      // default.
-      final archive = archiveWithExclusion();
-      final encoded = encodeArchive(archive); // excludes f_private
-      final decoded = decodeArchive(encoded);
-      expect(decoded.hasErrors, isFalse);
-      // Only f_shared survived encoding, and decoded fields default to shareable.
-      expect(decoded.archive.customFields, hasLength(1));
-      expect(decoded.archive.customFields.single.id, 'f_shared');
-      expect(decoded.archive.customFields.single.shareable, isTrue);
-    });
+    test(
+      'decoded archive from a non-shareable-field source has shareable=true',
+      () {
+        // An archive that excluded a field has no entry for it. When the decoded
+        // archive is stored and re-exported, the stored fields all have
+        // shareable=true (the default). This verifies the decode path's implicit
+        // default.
+        final archive = archiveWithExclusion();
+        final encoded = encodeArchive(archive); // excludes f_private
+        final decoded = decodeArchive(encoded);
+        expect(decoded.hasErrors, isFalse);
+        // Only f_shared survived encoding, and decoded fields default to shareable.
+        expect(decoded.archive.customFields, hasLength(1));
+        expect(decoded.archive.customFields.single.id, 'f_shared');
+        expect(decoded.archive.customFields.single.shareable, isTrue);
+      },
+    );
   });
 }
