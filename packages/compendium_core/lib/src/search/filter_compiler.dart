@@ -52,10 +52,9 @@ class FilterCompiler {
   FilterCompiler([
     Dialect? dialect,
     SearchEnrichment? enrichment,
-    Taxonomy? taxonomy,
+    this.taxonomy,
   ]) : dialect = dialect ?? Dialect.canonical,
-       enrichment = enrichment ?? SearchEnrichment.empty,
-       taxonomy = taxonomy {
+       enrichment = enrichment ?? SearchEnrichment.empty {
     // Reverse the dialect's move substitutions (display → canonical id),
     // skipping templated (`%S`) substitutions which aren't reversible by a
     // plain word match. Conservative: unknown/unmapped moves pass through.
