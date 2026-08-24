@@ -28,8 +28,8 @@ def main() -> None:
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"
     )
-    assert text.count("needs.meta.outputs.is_release == 'true'") == 3, (
-        "publish, provenance verification, and Pages must share the release guard"
+    assert text.count("needs.meta.outputs.is_release == 'true'") == 4, (
+        "draft, mobile, provenance verification, and Pages must share the release guard"
     )
 
     ios_gate = _section(
@@ -48,22 +48,32 @@ def main() -> None:
     assert "Upload iOS build to TestFlight" not in ios_build
     assert "ios-testflight-status" in ios_build
 
-    publish = _section(
+    publish_draft = _section(
         text,
-        "  publish:\n",
+        "  publish_draft:\n",
+        "  publish_mobile:\n",
+    )
+    assert "runs-on: ubuntu-latest" in publish_draft
+    assert "environment: release-signing" not in publish_draft
+    assert "      - name: Create or update the DRAFT release" in publish_draft
+
+    publish_mobile = _section(
+        text,
+        "  publish_mobile:\n",
         "  # Close the supply-chain loop",
     )
-    assert "runs-on: macos-latest" in publish
-    assert "environment: release-signing" in publish
-    assert "name: ios-testflight-status" in publish
-    assert "      - name: Upload iOS build to TestFlight" in publish
-    assert "EVENT_NAME: ${{ github.event_name }}" in publish
-    assert '[[ "$REF" == refs/tags/v* ]]' in publish
+    assert "runs-on: macos-latest" in publish_mobile
+    assert "environment: release-signing" in publish_mobile
+    assert "needs.meta.outputs.recovery != 'true'" in publish_mobile
+    assert "name: ios-testflight-status" in publish_mobile
+    assert "      - name: Upload iOS build to TestFlight" in publish_mobile
+    assert "EVENT_NAME: ${{ github.event_name }}" in publish_mobile
+    assert '[[ "$REF" == refs/tags/v* ]]' in publish_mobile
 
     release_step = _section(
         text,
         "      - name: Create or update the DRAFT release",
-        "  # Close the supply-chain loop",
+        "  publish_mobile:\n",
     )
     assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' in release_step
     assert '--target "$TARGET_SHA"' in release_step

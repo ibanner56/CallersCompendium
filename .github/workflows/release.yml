@@ -1254,8 +1254,7 @@ jobs:
     needs: [meta, build, build_windows]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
-      github.event_name == 'push' &&
-      startsWith(github.ref, 'refs/tags/v')
+      needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write        # create the release + upload assets
@@ -1523,7 +1522,8 @@ jobs:
     needs: [meta, build]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
-      needs.meta.outputs.is_release == 'true'
+      needs.meta.outputs.is_release == 'true' &&
+      needs.meta.outputs.recovery != 'true'
     # TestFlight upload is irreversible. The protected environment provides the
     # same human approval gate that controls Windows Trusted Signing.
     runs-on: macos-latest
