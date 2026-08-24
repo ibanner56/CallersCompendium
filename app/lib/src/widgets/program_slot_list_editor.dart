@@ -787,7 +787,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   String? _minutesError;
   String? _noteError;
 
-  bool get _isDanceSlot => widget.slot.danceId != null;
+  bool get _isDanceSlot => _danceId != null;
+
+  bool get _isBreakNote =>
+      !_isDanceSlot &&
+      _note.text.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
 
   @override
   void dispose() {
@@ -802,19 +806,16 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     if (pick == null) return;
     final picked = await pick();
     if (picked == null || !mounted) return;
-    setState(() => _danceId = picked);
-    final l10n = AppLocalizations.of(context);
-    // Same fallback the visible row uses (below, in build) for a dance id
-    // that resolves to nothing — keeps the announcement and the on-screen
-    // title consistent if the picked dance becomes unavailable between the
-    // pick and this frame.
-    final title =
-        widget.danceTitle?.call(picked) ?? l10n.programsDeletedDanceFallback;
-    SemanticsService.sendAnnouncement(
-      View.of(context),
-      l10n.programsReplacedDanceAnnounce(title),
-      Directionality.maybeOf(context) ?? TextDirection.ltr,
-    );
+    final wasNoteSlot = _danceId == null;
+    setState(() {
+      _danceId = picked;
+      if (wasNoteSlot) {
+        // Replacing a free-text slot converts it into a dance slot. The note
+        // was the slot's old content, not a caller note for the dance.
+        _note.clear();
+        _noteError = null;
+      }
+    });
   }
 
   void _save() {
@@ -850,6 +851,16 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       plannedMinutes: minutes,
       performedAt: widget.slot.performedAt,
     );
+    if (_danceId != widget.slot.danceId && _danceId != null) {
+      final title =
+          widget.danceTitle?.call(_danceId!) ??
+          l10n.programsDeletedDanceFallback;
+      SemanticsService.sendAnnouncement(
+        View.of(context),
+        l10n.programsReplacedDanceAnnounce(title),
+        Directionality.maybeOf(context) ?? TextDirection.ltr,
+      );
+    }
     Navigator.of(context).pop(updated);
   }
 
@@ -884,7 +895,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               minLines: 1,
               maxLines: 4,
               onChanged: (_) {
-                if (_noteError != null) setState(() => _noteError = null);
+                if (!_isDanceSlot || _noteError != null) {
+                  setState(() => _noteError = null);
+                }
               },
               decoration: InputDecoration(
                 labelText: _isDanceSlot
@@ -897,6 +910,20 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
                 border: const OutlineInputBorder(),
               ),
             ),
+            if (!_isDanceSlot &&
+                !_isBreakNote &&
+                widget.onPickReplacementDance != null) ...[
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  key: const ValueKey('slot-edit-replace-dance'),
+                  onPressed: _pickReplacement,
+                  icon: const Icon(Icons.swap_horiz, size: 18),
+                  label: Text(l10n.programsReplaceDanceButton),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             TextField(
               key: const ValueKey('slot-edit-guest'),

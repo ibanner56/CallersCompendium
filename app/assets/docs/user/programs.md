@@ -112,7 +112,11 @@ picker.*
 - **The collection picker** — the same search tools you know from
   [Collection & search](./collection.md): the **Filters** panel, the
   **Advanced** figure builder, and the **By-Phrase** panel. Find a dance and add
-  it to the program.
+  it to the program. In the **Advanced** panel, turn on **Online search** to
+  search The Caller's Box or ContraDB; selecting a result imports it and adds it
+  immediately. An exact match selects the dance already in your collection
+  without prompting. When the import needs your choice between a likely match
+  and a separate record, a resolution dialog appears before the dance is added.
 
 ### Kinds of slots
 
@@ -124,7 +128,9 @@ A program is made of three kinds of slots:
   dance from this** on its **…** menu, which opens the dance editor pre-filled
   with that text as the title; saving links the slot to the new dance in one
   step, so a note left behind by an import that couldn't find a match doesn't
-  need a separate trip through the collection to fix.
+  need a separate trip through the collection to fix. A non-break note slot
+  also offers **Replace…**, which imports or selects a dance and swaps it into
+  that slot while clearing the old note and preserving its timing details.
 - **[Alts](./glossary.md#alt)** — an alternate dance you might call instead
   of the one above it. An alt appears indented under its primary and is marked
   with an icon and text (never color alone), so it is always clear which dance is
