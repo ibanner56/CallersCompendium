@@ -410,12 +410,21 @@ because the encoding step cannot signal the error. `utf8.decode(bytes,
 allowMalformed: true)` performs the same substitution on the receiving side and
 is forbidden here for the same reason.
 
-`sanitizeImportedText` does not close this today. It has no surrogate branch, a
-lone surrogate survives it unchanged, and `containsDisallowedText` does not
-flag it — also measured. Such a value can therefore already be latent in
-imported data, which is filed separately as
-[#1063](https://github.com/ibanner56/CallersCompendium/issues/1063) because it
-is an import defect that sync makes expensive, not a sync defect.
+`sanitizeImportedText` now closes the **import** path.
+[#1063](https://github.com/ibanner56/CallersCompendium/issues/1063), filed
+separately because it was an import defect that sync makes expensive rather
+than a sync defect, was fixed by #1065: a lone surrogate of either half is
+stripped and flagged, and a valid surrogate pair is preserved — measured.
+
+That does not discharge the rule above, for two reasons. The platform
+substitution is unchanged, so a canonicaliser that checks after encoding still
+sees repaired bytes and no error; the check must run on the string regardless of
+what any upstream sanitiser did. And rows imported **before** that fix may still
+hold a lone surrogate, which is the same shape as the never-normalised library
+in §4.1 — a write-path repair does not reach a row that is never written again.
+Those rows need no new rule: the send-side rejection above catches them when
+they are first serialised, which is the earliest moment sync can observe
+them.
 
 **Timestamp canonicalisation is mandatory on ingest.** A receiver MUST truncate
 every inbound timestamp to a tick boundary *before* storing it and before

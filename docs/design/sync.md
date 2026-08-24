@@ -2635,11 +2635,20 @@ The reviewer who raised this pointed at `utf8.decode(bytes, allowMalformed:
 true)` on the receiving side, which is real but opt-in. The encode side is the
 dangerous one precisely because there is nothing to opt into.
 
-`sanitizeImportedText` does not catch it either: it has no surrogate branch, a
-lone surrogate survives unchanged, and `containsDisallowedText` returns false —
-all three measured. So a hostile or malformed import can already put one in the
-database today, where it will sit invisibly until sync gives it consequences —
-filed as [#1063](https://github.com/ibanner56/CallersCompendium/issues/1063).
+`sanitizeImportedText` did not catch it either, so a malformed import could put
+one in the database where it sat invisibly until sync gave it consequences —
+filed as [#1063](https://github.com/ibanner56/CallersCompendium/issues/1063) and
+fixed by #1065, which strips and flags a lone surrogate of either half while
+leaving valid pairs alone.
+
+**The fix narrows this section without retiring it, and the reason is the same
+one §4.1 spends four paragraphs on.** #1065 is a write-path repair, so it does
+not reach a row imported before it — the identical population the NFC pass
+exists for. And it changes nothing about the platform: `utf8.encode` still
+substitutes silently, so a canonicaliser that checks after encoding is still
+wrong no matter how clean its inputs were. Deleting this section on the strength
+of "the sanitiser handles it now" would have removed a rule about the encoder
+because a different component was fixed.
 
 **This is entirely new code.** The archive codec emits keys in *insertion* order,
 not lexicographic, and there is no SHA-256 anywhere in `packages/`. "Reuse the
