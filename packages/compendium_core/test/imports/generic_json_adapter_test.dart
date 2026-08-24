@@ -54,9 +54,11 @@ CompendiumArchive _archive(List<Dance> dances) => CompendiumArchive(
 );
 
 Map<String, Object?> _danceContentJson(Dance dance) {
-  final root = jsonDecode(
-    encodeArchive(CompendiumArchive(exportedAt: _now, dances: [dance])),
-  ) as Map<String, Object?>;
+  final root =
+      jsonDecode(
+            encodeArchive(CompendiumArchive(exportedAt: _now, dances: [dance])),
+          )
+          as Map<String, Object?>;
   final content = Map<String, Object?>.from(
     (root['dances'] as List).single as Map,
   );
