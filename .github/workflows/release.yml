@@ -1405,6 +1405,13 @@ jobs:
       # A recovery run's workflow comes from main while its source comes from the
       # immutable tag. The stock predicate assumes those are the same ref, so
       # generate a split-dependency predicate instead of misattributing the source.
+      - name: Check out recovery provenance helper
+        if: needs.meta.outputs.recovery == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-tools
+
       - name: Generate recovery provenance predicate
         if: needs.meta.outputs.recovery == 'true'
         env:
@@ -1417,7 +1424,7 @@ jobs:
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
-          python3 tools/release/gen_recovery_provenance.py \
+          python3 workflow-tools/tools/release/gen_recovery_provenance.py \
             --repository "$REPOSITORY" \
             --server-url "$SERVER_URL" \
             --workflow-ref "$WORKFLOW_REF" \

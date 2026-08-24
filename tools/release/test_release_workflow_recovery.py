@@ -56,10 +56,13 @@ def main() -> None:
 
     provenance = _section(
         text,
-        "      - name: Generate recovery provenance predicate",
+        "      # A recovery run's workflow comes from main",
         "      # Attest the SBOM",
     )
-    assert "python3 tools/release/gen_recovery_provenance.py" in provenance
+    assert "      - name: Check out recovery provenance helper" in provenance
+    assert "path: workflow-tools" in provenance
+    assert "ref: ${{ github.sha }}" in provenance
+    assert "python3 workflow-tools/tools/release/gen_recovery_provenance.py" in provenance
     assert provenance.count("actions/attest-build-provenance@") == 2
     assert "needs.meta.outputs.recovery != 'true'" in provenance
     assert "needs.meta.outputs.recovery == 'true'" in provenance
