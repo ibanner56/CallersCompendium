@@ -19,6 +19,9 @@ each release so store builds and tags can be traced back to an entry.
 
 ### Fixed
 
+- **Figure alias editor previews** — changing a shoulder or hand parameter now
+  immediately updates the inverse-pair move name in the editor.
+
 - **Parameter-aware dialect move wording** — global wording now has separate,
   complete templates for parameter branches of long waves, promenades, and
   circles, preventing single-file and in/out choreography from being lost.

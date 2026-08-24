@@ -16,6 +16,7 @@ class _TestPicker extends StatefulWidget {
     this.compactWidthBreakpoint = 600,
     this.compactHeightBreakpoint = 480,
     this.autofocus = false,
+    this.initialText = '',
     this.focusNode,
     this.refocusAfterSelect = false,
   });
@@ -26,6 +27,7 @@ class _TestPicker extends StatefulWidget {
   final double compactWidthBreakpoint;
   final double compactHeightBreakpoint;
   final bool autofocus;
+  final String initialText;
   final FocusNode? focusNode;
 
   /// Mirrors `name_picker.dart`'s `_AddAutocomplete.onSelected`
@@ -79,6 +81,9 @@ class _TestPickerState extends State<_TestPicker> {
       textEditingController: widget.refocusAfterSelect ? _controller : null,
       compactWidthBreakpoint: widget.compactWidthBreakpoint,
       compactHeightBreakpoint: widget.compactHeightBreakpoint,
+      initialValue: widget.refocusAfterSelect
+          ? null
+          : TextEditingValue(text: widget.initialText),
       displayStringForOption: (o) => o,
       optionsBuilder: _optionsFor,
       onSelected: _handleSelected,
@@ -120,6 +125,7 @@ Future<void> _pump(
   double compactWidthBreakpoint = 600,
   double compactHeightBreakpoint = 480,
   bool autofocus = false,
+  String initialText = '',
   TextDirection textDirection = TextDirection.ltr,
   FocusNode? focusNode,
   bool refocusAfterSelect = false,
@@ -136,6 +142,7 @@ Future<void> _pump(
             compactWidthBreakpoint: compactWidthBreakpoint,
             compactHeightBreakpoint: compactHeightBreakpoint,
             autofocus: autofocus,
+            initialText: initialText,
             focusNode: focusNode,
             refocusAfterSelect: refocusAfterSelect,
           ),
@@ -188,6 +195,38 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(custom, 'a brand new figure');
+    });
+
+    testWidgets('updates an owned field when initial text changes', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        options: const ['swing'],
+        onSelected: (_) {},
+        initialText: 'do si do',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.text,
+        'do si do',
+      );
+
+      await _pump(
+        tester,
+        options: const ['swing'],
+        onSelected: (_) {},
+        initialText: 'see saw',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('test-input')))
+            .controller
+            ?.text,
+        'see saw',
+      );
     });
   });
 

@@ -640,7 +640,8 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
   `hand` (default `unspecified`), and two inverse pairs are declared
   (`box_the_gnat` ⇄ `swat_the_flea` on `hand`, `do_si_do` ⇄ `see_saw` on
   `shoulder`) so a figure whose effective param contradicts its alias pin is
-  re-routed at write time. Canonical keys change (`hand=unspecified` joins every
+  re-routed by the editor while authoring and re-checked at write time.
+  Canonical keys change (`hand=unspecified` joins every
   balance key); the derived rebuild rides the one-time
   `inversePairNormalisationDoneKey` pass, NOT the version bump — nothing reads
   `Taxonomy.version` at runtime.
@@ -1254,9 +1255,9 @@ fails a PR that moves the constant without adding the matching entry.
     canonical-key change ships with a stale FTS index, so the mechanism is
     named explicitly here rather than assumed.)
 
-    The inverse-pair re-routing changes only `figure.move` at write time
-    (import, editor save); canonical keys are unaffected because both
-    halves of a pair already resolve to the same `MoveDef` id.
+    The inverse-pair re-routing changes only `figure.move` in the editor and at
+    write time (import, editor save); canonical keys are unaffected because
+    both halves of a pair already resolve to the same `MoveDef` id.
 - v26 (#843): `star_promenade` LOSES its `hand` param, and `{hand}` leaves its
     `renderTemplate`. This is a param REMOVAL — the first in this taxonomy;
     v19's `allemande_orbit` retired a whole move, and v21 renamed one.

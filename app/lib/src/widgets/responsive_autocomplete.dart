@@ -191,6 +191,17 @@ class _ResponsiveAutocompleteState<T extends Object>
     _focusNode.addListener(_handleFocusChange);
   }
 
+  @override
+  void didUpdateWidget(covariant ResponsiveAutocomplete<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.textEditingController == null &&
+        oldWidget.initialValue?.text != widget.initialValue?.text) {
+      _controller.value = TextEditingValue(
+        text: widget.initialValue?.text ?? '',
+      );
+    }
+  }
+
   void _handleFocusChange() {
     if (!mounted || !_focusNode.hasFocus) return;
     if (_ignoreNextFocusGain) {
