@@ -170,10 +170,10 @@ class _PublishedCollectionCatalogState
     final archiveError = _archiveError != null && _archiveErrorEntry == entry;
     final statusFuture = widget.statusLoader == null
         ? null
-        : _statusByEntry.putIfAbsent(
-            (entry.id, entry.version),
-            () => widget.statusLoader!(entry.id, entry.version),
-          );
+        : _statusByEntry.putIfAbsent((
+            entry.id,
+            entry.version,
+          ), () => widget.statusLoader!(entry.id, entry.version));
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Padding(
