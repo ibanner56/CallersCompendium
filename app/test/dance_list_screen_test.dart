@@ -1152,6 +1152,15 @@ void main() {
 
   testWidgets('surfaces a search error without crashing', (tester) async {
     final repos = openTestRepositories(closeOnTearDown: false);
+    Future<void>? closing;
+    addTearDown(() async {
+      // The test deliberately closes the database before searching. If setup
+      // fails before that point, close it here; otherwise the in-flight close
+      // is already owned by the test body and must not be closed twice.
+      if (closing == null) {
+        await repos.db.close();
+      }
+    });
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
 
     await _pumpScreen(tester, repos);
@@ -1160,7 +1169,8 @@ void main() {
     // Simulate a backend failure at query time: close the database so the
     // next search throws. (User input can no longer trigger an FTS syntax
     // error now that queries are sanitized, so we fault the store directly.)
-    await repos.db.close();
+    closing = repos.db.close();
+    await closing;
     await _search(tester, 'chase');
 
     expect(

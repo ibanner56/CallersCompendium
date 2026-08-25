@@ -10,7 +10,6 @@ import 'package:compendium_app/src/widgets/figure_diff_view.dart';
 import 'package:compendium_app/src/utils/undo_snack_bar.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -169,8 +168,6 @@ Future<void> _pumpForEdit(
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('an oversized text import file is rejected with a friendly '

@@ -243,16 +243,18 @@ void main() {
       // unattributed error: a false green in the file whose whole purpose is
       // proving a stream terminates.
       //
-      // Seeded with an already-complete future rather than declared `late`,
-      // because the assignment below sits AFTER two `expect`s. A `late` here
-      // would mean any failure in those two lines threw
-      // `LateInitializationError` out of teardown, and that error REPLACES the
-      // one the test actually found — hiding the real reason in the same file
-      // whose subject is tests that mislead about why they passed.
-      Future<void> closing = Future<void>.value();
+      // Nullable because the assignment below sits AFTER two `expect`s. If
+      // either fails, teardown closes the database itself instead of throwing a
+      // `LateInitializationError` that would hide the real test failure.
+      Future<void>? closing;
       addTearDown(() async {
         parker.release();
-        await closing;
+        final closeFuture = closing;
+        if (closeFuture == null) {
+          await repos.db.close();
+        } else {
+          await closeFuture;
+        }
       });
       parker.arm();
 
