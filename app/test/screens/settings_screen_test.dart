@@ -942,10 +942,11 @@ void main() {
       );
     });
 
-    testWidgets('Experimental appears between Diagnostics and About', (
+    testWidgets('navigation preserves section order, content, and icon pairs', (
       tester,
     ) async {
-      await _pumpSettings(tester);
+      await _pumpSettings(tester, surfaceSize: const Size(500, 900));
+      final program = find.byKey(const ValueKey('settings-nav-program'));
       final diagnostics = find.byKey(
         const ValueKey('settings-nav-diagnostics'),
       );
@@ -954,6 +955,7 @@ void main() {
       );
       final about = find.byKey(const ValueKey('settings-nav-about'));
 
+      expect(program, findsOneWidget);
       expect(experimental, findsOneWidget);
       expect(
         tester.getTopLeft(diagnostics).dy,
@@ -965,11 +967,30 @@ void main() {
       );
       expect(
         find.descendant(
-          of: experimental,
-          matching: find.byIcon(Icons.science_outlined),
+          of: program,
+          matching: find.byIcon(Icons.event_note_outlined),
         ),
         findsOneWidget,
       );
+      expect(
+        find.descendant(
+          of: experimental,
+          matching: find.byIcon(Icons.psychology_outlined),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.binding.setSurfaceSize(const Size(1000, 2600));
+      await tester.pumpAndSettle();
+
+      await tester.tap(program);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: program, matching: find.byIcon(Icons.event_note)),
+        findsOneWidget,
+      );
+      expect(find.text('Venues'), findsOneWidget);
 
       await tester.tap(experimental);
       await tester.pumpAndSettle();
@@ -981,7 +1002,10 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.descendant(of: experimental, matching: find.byIcon(Icons.science)),
+        find.descendant(
+          of: experimental,
+          matching: find.byIcon(Icons.psychology),
+        ),
         findsOneWidget,
       );
     });
