@@ -36,6 +36,7 @@ on:
       - 'app/assets/docs/**'
       - 'site/**'
       - 'tools/ci/sync_user_docs.py'
+      - 'tools/ci/test_sync_user_docs.py'
       - 'tools/site/**'
       - '.github/workflows/docs-bundle-check.yml'
   pull_request:
@@ -44,6 +45,7 @@ on:
       - 'app/assets/docs/**'
       - 'site/**'
       - 'tools/ci/sync_user_docs.py'
+      - 'tools/ci/test_sync_user_docs.py'
       - 'tools/site/**'
       - '.github/workflows/docs-bundle-check.yml'
 
@@ -57,6 +59,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Test the in-app user-docs sync checker
+        run: python3 tools/ci/test_sync_user_docs.py
       - name: Guard in-app user-docs bundle single-source (docs/user == assets)
         run: python3 tools/ci/sync_user_docs.py --check
       # Full dry-run render of the hosted guides. This is the gate that catches

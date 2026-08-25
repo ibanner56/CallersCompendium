@@ -188,6 +188,8 @@ jobs:
       # docs-bundle-check.yml instead, because ci.yml (which calls this
       # workflow) has `paths-ignore: '**.md'` and so skips entirely on a
       # Markdown-only PR — exactly the PR most likely to break a guide.
+      - name: Test the in-app user-docs sync checker
+        run: python3 tools/ci/test_sync_user_docs.py
       - name: Test the hosted user-guide renderer (escaping / links / anchors)
         run: |
           python3 tools/site/test_markdown_to_html.py
