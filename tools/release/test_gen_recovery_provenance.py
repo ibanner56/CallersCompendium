@@ -47,6 +47,9 @@ def main() -> None:
             "repository": "https://github.com/ibanner56/CallersCompendium",
         }
     }
+    assert definition["internalParameters"] == {
+        "github": {"event_name": "workflow_dispatch"}
+    }
     assert definition["resolvedDependencies"] == [
         {
             "uri": (
