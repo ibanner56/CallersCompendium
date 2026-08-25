@@ -10,16 +10,15 @@ the exact `app/pubspec.yaml` version and select their channel from the tag:
 `vX.Y.Z-beta` for beta or `vX.Y.Z` for stable. Store build codes are derived
 from that tag, so new entries need no visible or manually maintained suffix.
 
-## Platforms & install
+### Platforms & install
 
 - **Android** — a signed universal `.apk`. Install it directly (sideload); you may
   need to allow "install unknown apps" for your browser or file manager. It is **not**
-  on the Play Store yet. (If you ran beta.1, see the reinstall note under Known
-  issues.)
+  on the Play Store yet. 
 - **iOS** — delivered through **TestFlight** to invited testers; by design there is
   no `.ipa` on this Releases page.
-- **macOS** (universal) — **signed with an Apple Developer ID and notarized**, so it
-  opens normally (you may see a single first-launch confirmation).
+- **macOS** (universal) — **signed with an Apple Developer ID and notarized**, you
+  may see a confirmation on first launch.
 - **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
   signing prompt:
   - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
@@ -27,28 +26,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
     Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
     preinstall; install it, or launch with
     `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
-- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing when
-  the release workflow's five `AZURE_*` repository variables and federated OIDC
-  configuration are present. Otherwise the unsigned fallback may show
-  **SmartScreen**; choose **More info → Run anyway** on the blue **Windows
-  protected your PC** prompt.
-
-## Feedback
-
-Please tell us what breaks or feels wrong:
-<https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version shown under **Settings › About**, and the steps you took. If you installed
-a beta from Releases, include its release tag too. For import problems, a small
-sanitized sample of the file you were importing helps enormously.
-
-## License
-
-Caller's Compendium is free software under the **AGPL-3.0**, with an
-[additional permission](https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE-EXCEPTION.md)
-that allows distribution through managed application marketplaces (Apple's App
-Store, Google Play, and comparable stores) under those stores' required terms —
-while the source stays fully AGPL-3.0 and every user keeps their rights to it. The
-source is always available at <https://github.com/ibanner56/CallersCompendium>.
+- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing but
+  may show a **SmartScreen** warning; choose **More info → Run anyway** on the
+  blue **Windows protected your PC** prompt.
 
 ## [Unreleased]
 
