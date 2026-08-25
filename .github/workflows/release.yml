@@ -10,9 +10,8 @@
 #   * Every job is guarded to the canonical repo on a tag ref (or a manual
 #     dispatch), so forks / PRs can never trigger a release or mint an elevated
 #     token.
-#   * `publish` runs only for a real tag push. A manual `workflow_dispatch` run
-#     therefore always builds + packages and uploads the results as workflow
-#     artifacts WITHOUT creating any release (a build-only dry run).
+#   * `publish` runs for a real tag push or an explicit existing-tag recovery.
+#     A manual `workflow_dispatch` with no recovery tag remains build-only.
 #
 # The Flutter version is derived from .fvmrc (single source of truth) via
 # subosito/flutter-action, exactly like ci.yml / _checks.yml.
@@ -21,10 +20,15 @@ name: Release
 on:
   push:
     tags: ['v*']
-  # Manual, build-only dry run: builds + packages on all three OSes and uploads
-  # the artifacts to the run, but never creates a release (the publish job is
-  # gated to tag pushes). To actually cut a release, push a `v*` tag.
-  workflow_dispatch: {}
+  # With no input this is a build-only dry run. An existing release tag may be
+  # supplied to recover a failed tag workflow without moving the tag; recovery
+  # skips iOS entirely so an already-uploaded TestFlight build is not duplicated.
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing vX.Y.Z or vX.Y.Z-beta tag to recover (blank = dry run)
+        required: false
+        type: string
 
 # Don't cancel an in-flight release (a half-uploaded draft is worse than a
 # queued run); serialize per ref instead.
@@ -60,6 +64,10 @@ jobs:
       android_version_code: ${{ steps.resolve.outputs.android_version_code }}
       prerelease: ${{ steps.resolve.outputs.prerelease }}
       pub_date: ${{ steps.resolve.outputs.pub_date }}
+      is_release: ${{ steps.resolve.outputs.is_release }}
+      recovery: ${{ steps.resolve.outputs.recovery }}
+      release_ref: ${{ steps.resolve.outputs.release_ref }}
+      source_sha: ${{ steps.resolve.outputs.source_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -67,27 +75,33 @@ jobs:
           fetch-tags: true
       - name: Resolve version/channel and reconcile with pubspec
         id: resolve
+        env:
+          RECOVERY_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
           # The only accepted release tags are vX.Y.Z and vX.Y.Z-beta. Both
           # require app/pubspec.yaml's exact X.Y.Z release version.
           core_re='(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)'
-          pubspec_line="$(grep -E '^version:' app/pubspec.yaml | head -n1)"
-          if [[ ! "$pubspec_line" =~ ^version:[[:space:]]*($core_re)[[:space:]]*$ ]]; then
-            echo "::error::app/pubspec.yaml version must be valid X.Y.Z with no build metadata or prerelease suffix"
-            exit 1
-          fi
-          pubspec_semver="${BASH_REMATCH[1]}"
+          is_release=false
+          recovery=false
+          release_ref="$GITHUB_SHA"
+          source_sha="$GITHUB_SHA"
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # No tag on a manual run; name artifacts after the built version.
-            version="$pubspec_semver"
-            tag="v$version"
-            channel="stable"
-            prerelease="false"
-            manifest_channels="stable beta"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ] && [ -z "$RECOVERY_TAG" ]; then
+            # No tag on an ordinary manual run: validate and package the current ref.
+            tag=""
           else
-            tag="$GITHUB_REF_NAME"
+            is_release=true
+            if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+              recovery=true
+              if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+                echo "::error::existing-tag recovery must be dispatched from main (got $GITHUB_REF)"
+                exit 1
+              fi
+              tag="$RECOVERY_TAG"
+            else
+              tag="$GITHUB_REF_NAME"
+            fi
             if [[ "$tag" =~ ^v($core_re)$ ]]; then
               version="${tag#v}"
               channel="stable"
@@ -102,6 +116,34 @@ jobs:
               echo "::error::invalid release tag '$tag'; expected vX.Y.Z or vX.Y.Z-beta with a valid no-leading-zero core"
               exit 1
             fi
+            release_ref="refs/tags/$tag"
+            if ! source_sha="$(git rev-parse --verify "${release_ref}^{commit}")"; then
+              echo "::error::release recovery tag '$tag' does not exist"
+              exit 1
+            fi
+            if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$source_sha" != "$GITHUB_SHA" ]; then
+              echo "::error::pushed tag commit ($source_sha) != workflow commit ($GITHUB_SHA)"
+              exit 1
+            fi
+          fi
+
+          # Recovery runs load this fixed workflow from main but build the immutable
+          # tagged source. A normal dispatch and tag push already resolve to their
+          # event commit, so this checkout is harmless for those modes.
+          git checkout --detach "$source_sha"
+
+          pubspec_line="$(grep -E '^version:' app/pubspec.yaml | head -n1)"
+          if [[ ! "$pubspec_line" =~ ^version:[[:space:]]*($core_re)[[:space:]]*$ ]]; then
+            echo "::error::app/pubspec.yaml version must be valid X.Y.Z with no build metadata or prerelease suffix"
+            exit 1
+          fi
+          pubspec_semver="${BASH_REMATCH[1]}"
+          if [ "$is_release" = "false" ]; then
+            version="$pubspec_semver"
+            tag="v$version"
+            channel="stable"
+            prerelease="false"
+            manifest_channels="stable beta"
           fi
 
           core="${version%-beta}"
@@ -125,14 +167,18 @@ jobs:
             echo "android_version_code=$android_version_code"
             echo "prerelease=$prerelease"
             echo "pub_date=$pub_date"
+            echo "is_release=$is_release"
+            echo "recovery=$recovery"
+            echo "release_ref=$release_ref"
+            echo "source_sha=$source_sha"
           } >> "$GITHUB_OUTPUT"
 
-          echo "Resolved: version=$version tag=$tag channel=$channel android_version_code=$android_version_code prerelease=$prerelease"
+          echo "Resolved: version=$version tag=$tag channel=$channel android_version_code=$android_version_code prerelease=$prerelease recovery=$recovery source_sha=$source_sha"
 
-      # Fail-fast CHANGELOG checks run only for tag pushes, so a build-only
-      # workflow_dispatch dry run is never blocked.
+      # Fail-fast CHANGELOG checks run for tag pushes and recoveries; a build-only
+      # workflow_dispatch dry run remains exempt.
       - name: Require current CHANGELOG release notes
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: steps.resolve.outputs.is_release == 'true'
         env:
           VERSION: ${{ steps.resolve.outputs.version }}
           TAG: ${{ steps.resolve.outputs.tag }}
@@ -214,6 +260,8 @@ jobs:
       ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.release_ref }}
 
       # Android signing gate. `secrets` context is NOT allowed in a step-level
       # `if:`, so read the keystore secret via `env:` here and export a plain
@@ -287,6 +335,7 @@ jobs:
         if: matrix.platform == 'ios'
         id: ios_signing
         env:
+          RECOVERY: ${{ needs.meta.outputs.recovery }}
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
@@ -297,8 +346,11 @@ jobs:
           APPLE_SHAREEXT_DISTRIBUTION_PROFILE: ${{ secrets.APPLE_SHAREEXT_DISTRIBUTION_PROFILE }}
         run: |
           set -euo pipefail
-          mkdir -p dist
-          if [ -n "${APPLE_API_KEY_P8:-}" ] \
+          mkdir -p dist ios-testflight-status
+          if [ "$RECOVERY" = "true" ]; then
+            signing=skipped-recovery
+            echo "::notice::Existing-tag recovery skips iOS signing, packaging, and TestFlight upload."
+          elif [ -n "${APPLE_API_KEY_P8:-}" ] \
             && [ -n "${APPLE_API_KEY_ID:-}" ] \
             && [ -n "${APPLE_API_ISSUER_ID:-}" ] \
             && [ -n "${APPLE_TEAM_ID:-}" ] \
@@ -306,12 +358,14 @@ jobs:
             && [ -n "${APPLE_DISTRIBUTION_CERT_PASSWORD:-}" ] \
             && [ -n "${APPLE_DISTRIBUTION_PROFILE:-}" ] \
             && [ -n "${APPLE_SHAREEXT_DISTRIBUTION_PROFILE:-}" ]; then
-            echo "signing=configured" >> "$GITHUB_OUTPUT"
-            echo "iOS App Store Connect API-key + distribution cert secrets configured; archiving + signing the .ipa (and uploading to TestFlight on a tag)."
+            signing=configured
+            echo "iOS App Store Connect API-key + distribution cert secrets configured; archiving + signing the .ipa."
           else
-            echo "signing=missing" >> "$GITHUB_OUTPUT"
+            signing=missing
             echo "::notice::iOS signing secrets not fully configured (need the App Store Connect API key, team id, distribution .p12 + password, the App Store provisioning profile, and the ShareExtension App Store provisioning profile); skipping the iOS/TestFlight leg."
           fi
+          echo "signing=$signing" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$signing" > ios-testflight-status/signing
 
       - name: Install Linux desktop dependencies
         if: matrix.platform == 'linux'
@@ -826,8 +880,8 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID"
 
-          # 3) Export the App Store .ipa to app/build/ios/ipa (the path the
-          #    TestFlight upload + artifact-upload steps below already glob).
+          # 3) Export the App Store .ipa to app/build/ios/ipa. The protected
+          #    publish job downloads its artifact before uploading to TestFlight.
           #    Manual signing: uses the LOCAL distribution identity + the
           #    pre-installed profiles from ExportOptions — NO cloud signing, NO
           #    -allowProvisioningUpdates (which would re-trigger the failing
@@ -840,45 +894,6 @@ jobs:
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist"
 
           ls -l build/ios/ipa
-
-      # Upload to TestFlight ONLY on a real tag push — a manual workflow_dispatch
-      # builds + signs the .ipa for validation but never uploads (so dry runs
-      # don't spam TestFlight), mirroring how the desktop publish is tag-gated.
-      - name: Upload iOS build to TestFlight
-        if: >-
-          matrix.platform == 'ios' &&
-          steps.ios_signing.outputs.signing == 'configured' &&
-          github.event_name == 'push' &&
-          startsWith(github.ref, 'refs/tags/v')
-        env:
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-        run: |
-          set -euo pipefail
-          # nullglob so an unmatched pattern expands to nothing (rather than the
-          # literal "*.ipa" string), giving a real empty-vs-found check.
-          shopt -s nullglob
-          ipas=(app/build/ios/ipa/*.ipa)
-          shopt -u nullglob
-          if [ "${#ipas[@]}" -eq 0 ]; then
-            echo "::error::no .ipa found under app/build/ios/ipa" >&2
-            exit 1
-          fi
-          if [ "${#ipas[@]}" -gt 1 ]; then
-            echo "::error::expected exactly one .ipa, found ${#ipas[@]}: ${ipas[*]}" >&2
-            exit 1
-          fi
-          ipa="${ipas[0]}"
-          echo "Uploading $ipa to App Store Connect (TestFlight, internal testers)."
-          # altool finds AuthKey_<KEYID>.p8 in the private_keys dirs written by
-          # the prepare step. --upload-app makes the build available to INTERNAL
-          # TestFlight testers automatically; it does NOT submit to Beta App
-          # Review or the public App Store.
-          xcrun altool --upload-app \
-            -f "$ipa" \
-            -t ios \
-            --apiKey "$APPLE_API_KEY_ID" \
-            --apiIssuer "$APPLE_API_ISSUER_ID"
 
       # Keep the signed .ipa as a workflow artifact for validation/debugging.
       # The name is OUTSIDE the `dist-*` namespace the publish job downloads
@@ -894,10 +909,21 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # Let the protected publish job distinguish a signed IPA from the intended
+      # no-op paths without exporting signing secrets or matrix-step outputs.
+      - name: Upload iOS TestFlight status
+        if: matrix.platform == 'ios'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-testflight-status
+          path: ios-testflight-status/signing
+          if-no-files-found: error
+          retention-days: 7
+
       # Always tear down the decoded API key material + revert the injected
-      # DEVELOPMENT_TEAM, even if the build/upload failed. A no-op on the skip
-      # path (nothing was written). The key id may be empty on that path, so the
-      # rm targets are guarded with a default.
+      # DEVELOPMENT_TEAM, even if the build failed. A no-op on the skip path
+      # (nothing was written). The key id may be empty on that path, so the rm
+      # targets are guarded with a default.
       - name: Clean up iOS signing material
         if: always() && matrix.platform == 'ios'
         env:
@@ -978,8 +1004,9 @@ jobs:
         working-directory: app
         # The code is derived from the resolved tag: radix-1000 SemVer core
         # packing plus a channel bit (beta < stable for one core).
-        run: flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
-          --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Android (signed APK)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -1002,8 +1029,9 @@ jobs:
       - name: Build Android App Bundle (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
-        run: flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
-          --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
 
       - name: Package Android (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -1060,6 +1088,8 @@ jobs:
     environment: release-signing
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.release_ref }}
 
       # Windows signing gate, mirroring the Android/macOS/iOS gates above. Read the
       # Azure configuration variables via `env:` here and export a plain step output
@@ -1217,15 +1247,14 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # Draft-release publish. ONLY this job gets write scopes, and it runs ONLY for
-  # a real tag push (never a dispatch dry-run).
-  publish:
+  # Draft-release publish. ONLY this job gets write scopes. It runs for a real
+  # tag push or an explicit existing-tag recovery, never a dispatch dry run.
+  publish_draft:
     name: Create draft release
     needs: [meta, build, build_windows]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
-      github.event_name == 'push' &&
-      startsWith(github.ref, 'refs/tags/v')
+      needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write        # create the release + upload assets
@@ -1233,6 +1262,8 @@ jobs:
       attestations: write    # store the provenance attestation
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.release_ref }}
 
       - name: Download all packaged artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -1350,10 +1381,52 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+      # A recovery run's workflow comes from main while its source comes from the
+      # immutable tag. The stock predicate assumes those are the same ref, so
+      # generate a split-dependency predicate instead of misattributing the source.
+      - name: Check out recovery provenance helper
+        if: needs.meta.outputs.recovery == 'true'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-tools
+
+      - name: Generate recovery provenance predicate
+        if: needs.meta.outputs.recovery == 'true'
+        env:
+          REPOSITORY: ${{ github.repository }}
+          SERVER_URL: ${{ github.server_url }}
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.sha }}
+          RELEASE_REF: ${{ needs.meta.outputs.release_ref }}
+          SOURCE_SHA: ${{ needs.meta.outputs.source_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          python3 workflow-tools/tools/release/gen_recovery_provenance.py \
+            --repository "$REPOSITORY" \
+            --server-url "$SERVER_URL" \
+            --workflow-ref "$WORKFLOW_REF" \
+            --workflow-sha "$WORKFLOW_SHA" \
+            --release-ref "$RELEASE_REF" \
+            --source-sha "$SOURCE_SHA" \
+            --run-id "$RUN_ID" \
+            --run-attempt "$RUN_ATTEMPT" \
+            --output recovery-provenance.json
+
       - name: Attest build provenance (keyless SLSA)
+        if: needs.meta.outputs.recovery != 'true'
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: 'dist/CallersCompendium-*'
+
+      - name: Attest recovery build provenance (keyless SLSA)
+        if: needs.meta.outputs.recovery == 'true'
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: 'dist/CallersCompendium-*'
+          predicate-type: https://slsa.dev/provenance/v1
+          predicate-path: recovery-provenance.json
 
       # Attest the SBOM (A10): binds the CycloneDX SBOM to the release binaries
       # with the same keyless (OIDC) signing as the build provenance, so users
@@ -1416,6 +1489,7 @@ jobs:
           CHANNEL: ${{ needs.meta.outputs.channel }}
           CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          TARGET_SHA: ${{ needs.meta.outputs.source_sha }}
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/sbom-${VERSION}.cdx.json")
@@ -1435,7 +1509,7 @@ jobs:
               "${pre_flag[@]}" \
               --title "$TAG" \
               --notes-file release-notes.md \
-              --target "$GITHUB_SHA"
+              --target "$TARGET_SHA"
           fi
 
           echo "Draft release ready: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
@@ -1452,15 +1526,13 @@ jobs:
   #
   # LEAST PRIVILEGE: read-only. `attestations: read` lets `gh attestation verify`
   # query the attestations API; NO id-token / write / contents:write. Same
-  # canonical-repo + tag-push guard as `publish`, so forks / PRs / manual dispatch
-  # never run it.
+  # canonical-repo + release guard as `publish`.
   verify:
     name: Verify artifact provenance
-    needs: [meta, publish]
+    needs: [meta, publish_draft]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
-      github.event_name == 'push' &&
-      startsWith(github.ref, 'refs/tags/v')
+      needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -1507,6 +1579,88 @@ jobs:
           done
           echo "All ${#artifacts[@]} artifact(s) passed provenance + SBOM verification."
 
+  # Publish mobile artifacts to their respective app stores. Handles publication
+  # to TestFlight/App Store Connect for iOS today and later will handle 
+  # publication to Google Play for Android once that onboarding is complete.
+  publish_mobile:
+    name: Publish mobile artifacts
+    needs: [meta, verify]
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      needs.meta.outputs.is_release == 'true' &&
+      needs.meta.outputs.recovery != 'true'
+    # TestFlight upload is irreversible. The protected environment provides the
+    # same human approval gate that controls Windows Trusted Signing.
+    runs-on: macos-latest
+    environment: release-signing
+    permissions:
+      contents: read
+    steps:
+      - name: Download iOS TestFlight status
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-testflight-status
+          path: ios-testflight-status
+
+      - name: Determine TestFlight upload availability
+        id: testflight
+        env:
+          RECOVERY: ${{ needs.meta.outputs.recovery }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          signing="$(<ios-testflight-status/signing)"
+          if [ "$RECOVERY" = "true" ]; then
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Existing-tag recovery does not upload to TestFlight."
+          elif [ "$EVENT_NAME" = "push" ] && [[ "$REF" == refs/tags/v* ]] \
+            && [ "$signing" = "configured" ]; then
+            echo "upload=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping TestFlight upload (event=$EVENT_NAME ref=$REF iOS signing=$signing)."
+          fi
+
+      - name: Download signed iOS .ipa
+        if: steps.testflight.outputs.upload == 'true'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ios-ipa
+          path: ios-ipa
+
+      - name: Upload iOS build to TestFlight
+        if: steps.testflight.outputs.upload == 'true'
+        env:
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          # `altool` discovers the API key by filename in either documented key
+          # directory. Reconstruct it only inside the approval-gated job.
+          key_id="${APPLE_API_KEY_ID:?missing App Store Connect API key id}"
+          key_file="$HOME/.appstoreconnect/private_keys/AuthKey_${key_id}.p8"
+          mkdir -p "$(dirname "$key_file")"
+          umask 077
+          printf '%s' "${APPLE_API_KEY_P8:?missing App Store Connect API key}" \
+            | base64 -D > "$key_file"
+          trap 'rm -f "$key_file"' EXIT
+
+          shopt -s nullglob
+          ipas=(ios-ipa/*.ipa)
+          shopt -u nullglob
+          if [ "${#ipas[@]}" -ne 1 ]; then
+            echo "::error::expected exactly one downloaded .ipa, found ${#ipas[@]}: ${ipas[*]:-none}" >&2
+            exit 1
+          fi
+          echo "Uploading ${ipas[0]} to App Store Connect (TestFlight, internal testers)."
+          xcrun altool --upload-app \
+            -f "${ipas[0]}" \
+            -t ios \
+            --apiKey "$key_id" \
+            --apiIssuer "${APPLE_API_ISSUER_ID:?missing App Store Connect API issuer id}"
+
   # Publish refreshed manifests (stable.json / beta.json) to the persistent
   # `gh-pages` branch so the client's fixed URL resolves (A11c / ADR-002 §1):
   #   https://ibanner56.github.io/CallersCompendium/<channel>.json
@@ -1519,17 +1673,15 @@ jobs:
   # site each deploy and would clobber the other channel.
   #
   # LEAST PRIVILEGE: contents:write ONLY (to push gh-pages) — no id-token /
-  # attestations. Same canonical-repo + tag-push guard as `publish`, so forks /
-  # PRs / manual dispatch can never publish the site. Enabling GitHub Pages is a
-  # one-time maintainer step (docs/dev/releasing.md); until then the client 404s
-  # gracefully, so shipping this before Pages is enabled is safe.
+  # attestations. Same canonical-repo + release guard as `publish`. Enabling
+  # GitHub Pages is a one-time maintainer step (docs/dev/releasing.md); until then
+  # the client 404s gracefully, so shipping this before Pages is enabled is safe.
   pages:
     name: Publish update manifest to Pages
-    needs: [meta, publish]
+    needs: [meta, publish_draft]
     if: >-
       github.repository == 'ibanner56/CallersCompendium' &&
-      github.event_name == 'push' &&
-      startsWith(github.ref, 'refs/tags/v')
+      needs.meta.outputs.is_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write        # push the manifest to the gh-pages branch
@@ -1537,6 +1689,8 @@ jobs:
       # Provides the git remote + push credentials (persist-credentials) the
       # publisher pushes gh-pages through; no new/third-party action is needed.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.meta.outputs.release_ref }}
 
       - name: Download signed manifests
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
