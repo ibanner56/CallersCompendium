@@ -1495,7 +1495,6 @@ jobs:
           CHANNEL: ${{ needs.meta.outputs.channel }}
           CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
-          TARGET_SHA: ${{ needs.meta.outputs.source_sha }}
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/sbom-${VERSION}.cdx.json")
@@ -1510,12 +1509,14 @@ jobs:
             echo "Release $TAG exists; refreshing assets (draft preserved)."
             gh release upload "$TAG" "${files[@]}" --clobber
           else
+            # The tag already exists in both release paths. Do not pass its
+            # historical SHA: GITHUB_TOKEN cannot authorize workflow changes
+            # when the release API compares that SHA with current main.
             gh release create "$TAG" "${files[@]}" \
               --draft \
               "${pre_flag[@]}" \
               --title "$TAG" \
-              --notes-file release-notes.md \
-              --target "$TARGET_SHA"
+              --notes-file release-notes.md
           fi
 
           echo "Draft release ready: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
