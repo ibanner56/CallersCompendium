@@ -6,7 +6,6 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/diagnostics/crash_log_store.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -133,7 +132,6 @@ Future<void> _pumpDiagnostics(
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late _InMemoryCrashLogStore store;

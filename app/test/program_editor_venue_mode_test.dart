@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -67,8 +66,6 @@ Future<ValueNotifier<bool>> _pumpEditor(
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('simple mode shows the free-text field, not the picker', (
     tester,
   ) async {

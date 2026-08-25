@@ -56,7 +56,6 @@ void main() {
 
   test('load seeds a new dance with a single initial undo entry', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -72,7 +71,6 @@ void main() {
     'an enum mutation pushes undo immediately and can be undone/redone',
     () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
 
@@ -97,7 +95,6 @@ void main() {
 
   test('a text edit is debounced into a single undo entry', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -123,7 +120,6 @@ void main() {
   group('initialTitle seed (issue #881 program-slot "create a dance")', () {
     test('seeds a new dance\'s title field', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
@@ -138,7 +134,6 @@ void main() {
 
     test('an empty seed leaves the title field empty', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = DanceEditorController(
         repositories: repos,
         danceId: null,
@@ -153,7 +148,6 @@ void main() {
 
     test('is ignored when editing an EXISTING dance', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       // ignore: unused_result
       await repos.dances.create(sampleDance(id: 'd1', title: 'Real Title'));
       final controller = DanceEditorController(
@@ -175,7 +169,6 @@ void main() {
       'a restored autosave draft overrides the seed (draft precedence)',
       () async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         // Stage a pending draft under the shared new-dance draft key, exactly
         // as a prior abandoned new-dance session would have left it.
@@ -218,7 +211,6 @@ void main() {
     'editing schedules a debounced autosave draft that clearDraft removes',
     () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
 
@@ -245,7 +237,6 @@ void main() {
   test('clearDraft awaits an in-flight autosave so it cannot resurrect the '
       'draft afterwards (issue #616)', () async {
     final delayed = openTestRepositoriesWithDelayedSettings();
-    addTearDown(delayed.repos.db.close);
     final controller = await newDanceController(delayed.repos);
     addTearDown(controller.dispose);
 
@@ -278,7 +269,6 @@ void main() {
   test('a late autosave scheduled before clearDraft cannot resurrect the draft '
       'once cleanup has started (issue #616)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -295,7 +285,6 @@ void main() {
   test('clearDraft awaits every queued autosave, not just the most recently '
       'scheduled one, when writes overlap (issue #616)', () async {
     final delayed = openTestRepositoriesWithDelayedSettings();
-    addTearDown(delayed.repos.db.close);
     final controller = await newDanceController(delayed.repos);
     addTearDown(controller.dispose);
 
@@ -338,7 +327,6 @@ void main() {
 
   test('buildDance assembles a new Dance from the trimmed draft', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -355,7 +343,6 @@ void main() {
 
   test('buildDance for an existing dance preserves id via copyWith', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
@@ -380,7 +367,6 @@ void main() {
 
   test('collectCustomFields ignores non-finite number input', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final def = CustomFieldDef(
       id: 'f-num',
       key: 'number',
@@ -405,7 +391,6 @@ void main() {
   test('buildDance stores typed prose VERBATIM, never canonicalized '
       '(issue #613)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
@@ -440,7 +425,6 @@ void main() {
   test('buildDance preserves proper nouns and ordinary English in prose '
       '(issue #613 regression)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: null,
@@ -471,7 +455,6 @@ void main() {
     'buildDance leaves non-role prose byte-for-byte as typed (#613)',
     () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await newDanceController(repos);
       addTearDown(controller.dispose);
 
@@ -490,7 +473,6 @@ void main() {
   test('load shows stored prose exactly as stored, with no dialect rewrite '
       '(#613)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
@@ -515,7 +497,6 @@ void main() {
 
   test('markSaved clears the dirty flag', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -529,7 +510,6 @@ void main() {
   test('load renders a canonical figure note into the active dialect, and '
       'buildDance canonicalizes it back (#715)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
@@ -564,7 +544,6 @@ void main() {
   test('buildDance canonicalizes a typed figure note before persistence '
       '(#715)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -582,7 +561,6 @@ void main() {
   test('a figure note typed as a legacy synonym canonicalizes to the correct '
       'role regardless of the active dialect (#715)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     // Active dialect is Leads/Follows (NOT Larks/Robins) while the user
     // types the legacy synonym "Robins" — canonicalizeText's built-in
     // legacy synonym map resolves it to role2s independent of which
@@ -609,7 +587,6 @@ void main() {
   test('a figure note round-trips canonical -> render -> canonicalize '
       'idempotently (#715)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
@@ -636,7 +613,6 @@ void main() {
     'non-role figure note prose survives load/save byte-identical (#715)',
     () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
@@ -662,7 +638,6 @@ void main() {
     'a meanwhile group side note renders and canonicalizes too (#715)',
     () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = DanceEditorController(
         repositories: repos,
         danceId: 'd1',
@@ -698,7 +673,6 @@ void main() {
   test('insertFreeTextFigures renders an imported canonical note into the '
       'active dialect (#715)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = await newDanceController(repos);
     addTearDown(controller.dispose);
 
@@ -717,7 +691,6 @@ void main() {
   test('duplicateFigure preserves the assumed-subject marker on the copy '
       '(#460)', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final controller = DanceEditorController(
       repositories: repos,
       danceId: 'd1',
@@ -765,7 +738,6 @@ void main() {
       'groupFigureWithNext merges two adjacent figures into one group draft',
       () async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
@@ -818,7 +790,6 @@ void main() {
       'collapseMeanwhileGroup replaces the group with its remaining side',
       () async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
@@ -859,7 +830,6 @@ void main() {
       'group, even if called directly without the menu guard (#679 review)',
       () async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final controller = DanceEditorController(
           repositories: repos,
           danceId: 'd1',
@@ -926,7 +896,6 @@ void main() {
 
     test('a recognised line appends one structured figure', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await emptyExistingController(repos);
       addTearDown(controller.dispose);
 
@@ -945,7 +914,6 @@ void main() {
 
     test('a `;`-compound appends one row per clause', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await emptyExistingController(repos);
       addTearDown(controller.dispose);
 
@@ -962,7 +930,6 @@ void main() {
     test('an unparsed line appends an importGap custom that survives '
         'assembly (reparse-eligible)', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await emptyExistingController(repos);
       addTearDown(controller.dispose);
 
@@ -980,7 +947,6 @@ void main() {
 
     test('an empty result is a no-op', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await emptyExistingController(repos);
       addTearDown(controller.dispose);
 
@@ -1018,7 +984,6 @@ void main() {
 
     test('appends, persists, and selects a new option', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await controllerWith(repos, choiceDef());
       addTearDown(controller.dispose);
 
@@ -1035,7 +1000,6 @@ void main() {
 
     test('rejects a case-sensitive duplicate without persisting', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await controllerWith(repos, choiceDef());
       addTearDown(controller.dispose);
 
@@ -1048,7 +1012,6 @@ void main() {
 
     test('rejects an empty / whitespace-only option', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await controllerWith(repos, choiceDef());
       addTearDown(controller.dispose);
 
@@ -1061,7 +1024,6 @@ void main() {
 
     test('soft-clamps an over-length option to the shared bound', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final controller = await controllerWith(repos, choiceDef());
       addTearDown(controller.dispose);
 

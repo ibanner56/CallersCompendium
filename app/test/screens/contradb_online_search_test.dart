@@ -8,7 +8,6 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/screens/collection_shell.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -115,7 +114,6 @@ Future<void> _search(WidgetTester tester, String query) async {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('the ContraDB source is selectable via the source selector', (

@@ -11,7 +11,6 @@ import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -67,8 +66,6 @@ Future<void> _pump(WidgetTester tester, UpdateController controller) async {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('shows nothing until a newer version is found', (tester) async {
     final repos = openTestRepositories();
     final body = ValueNotifier<String?>(null);

@@ -3,7 +3,6 @@ import 'package:compendium_app/src/data/plaintext_program_import.dart';
 import 'package:compendium_app/src/data/program_import_online_resolver.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -205,8 +204,6 @@ Dance _localDance({required String id, required List<Figure> figures}) => Dance(
 );
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   test('unique exact-title hit is imported and linked to the slot', () async {
     final repos = openTestRepositories();
     final service = _FakeOnlineService(

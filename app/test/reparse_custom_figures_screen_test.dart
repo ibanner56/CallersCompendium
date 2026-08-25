@@ -55,7 +55,6 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(
       _dance(id: 'a', title: 'Alpha', figures: [_importGap('hey for four')]),
     );
@@ -71,7 +70,6 @@ void main() {
 
   testWidgets('previews the dances that would be upgraded', (tester) async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(
       _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
     );
@@ -95,7 +93,6 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(
       _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
     );
@@ -123,7 +120,6 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(
       _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
     );
@@ -147,7 +143,6 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
     final theme = ValueNotifier<AppThemeSelection>(AppThemeSelection.system);
     final customThemes = CustomThemesController(repos.settings);
@@ -196,7 +191,6 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
 
     var attempt = 0;
     await tester.pumpWidget(
@@ -235,7 +229,6 @@ void main() {
     tester,
   ) async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(
       _dance(id: 'a', title: 'Alpha', figures: [_importGap('Neighbor swing')]),
     );

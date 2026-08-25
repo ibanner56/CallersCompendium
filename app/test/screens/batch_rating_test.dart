@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -88,8 +87,6 @@ Future<void> _setRating(WidgetTester tester, String optionKey) async {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('set-rating applies the chosen rating to every selected dance', (
     tester,
   ) async {

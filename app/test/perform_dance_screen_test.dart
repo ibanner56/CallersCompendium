@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -132,6 +133,8 @@ Future<void> _pumpDetail(
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   setUp(installFakeWakelock);
@@ -745,7 +748,6 @@ void main() {
           // while the user acts.
           final gate = Completer<void>();
           final db = openWidgetTestDatabase();
-          addTearDown(db.close);
           final repos = CompendiumRepositories(
             db,
             contraTaxonomy,

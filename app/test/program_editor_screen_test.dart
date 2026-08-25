@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -319,8 +318,6 @@ class _EditorHostState extends State<_EditorHost> {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('create requires a title', (tester) async {
     final repos = openTestRepositories();
     String? savedId;

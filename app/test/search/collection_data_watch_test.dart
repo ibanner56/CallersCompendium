@@ -60,16 +60,10 @@ void main() {
 
   final now = DateTime.utc(2026);
 
-  /// Opens in-memory repositories and closes them at teardown.
-  ///
-  /// Every test here opens a database; without the close they accumulate for
-  /// the life of the suite. `dontWarnAboutMultipleDatabases` is set above (the
-  /// tests deliberately open several), which silences the very warning that
-  /// would otherwise surface a leak — so the teardown has to be systematic
-  /// rather than remembered per test.
+  /// Opens in-memory repositories. The shared test helper registers the
+  /// database close at teardown.
   CompendiumRepositories openRepos() {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     return repos;
   }
 
@@ -236,7 +230,10 @@ void main() {
       // its skeleton, and that gap is unexplained rather than understood.
       final parker = _ParkFirstWatchQuery();
       final repos = CompendiumRepositories(
-        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(parker)),
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(parker),
+          closeOnTearDown: false,
+        ),
         contraTaxonomy,
       );
       // The close below cannot complete while the query is parked, so it is
@@ -298,10 +295,11 @@ void main() {
       // rather than anything about widgets.
       final parker = _ParkFirstWatchQuery();
       final repos = CompendiumRepositories(
-        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(parker)),
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(parker),
+        ),
         contraTaxonomy,
       );
-      addTearDown(repos.db.close);
       parker.arm();
 
       final first = Completer<CollectionData>();

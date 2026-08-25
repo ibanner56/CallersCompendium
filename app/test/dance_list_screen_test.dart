@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -132,11 +131,8 @@ Future<void> _addPhraseMove(
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
-    addTearDown(db.close);
     final dances = _CountingDances(db, contraTaxonomy);
     return (
       repos: CompendiumRepositories(db, contraTaxonomy, dances: dances),
@@ -1155,7 +1151,7 @@ void main() {
   });
 
   testWidgets('surfaces a search error without crashing', (tester) async {
-    final repos = openTestRepositories();
+    final repos = openTestRepositories(closeOnTearDown: false);
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
 
     await _pumpScreen(tester, repos);

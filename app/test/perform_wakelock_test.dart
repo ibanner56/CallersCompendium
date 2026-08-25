@@ -87,8 +87,9 @@ Future<void> _backgroundThenResume(WidgetTester tester) async {
 }
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeWakelockPlus wakelock;
   setUp(() => wakelock = installFakeWakelock());
