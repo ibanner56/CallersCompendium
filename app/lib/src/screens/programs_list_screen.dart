@@ -592,11 +592,11 @@ class _ProgramsListScreenState extends State<ProgramsListScreen> {
       itemBuilder: (context) => [
         PopupMenuItem(
           value: _ProgramsCompactAction.importPlaintext,
-          child: Text(l10n.importFromTitleList),
+          child: Text(l10n.importProgramFromTitleList),
         ),
         PopupMenuItem(
           value: _ProgramsCompactAction.importContraDb,
-          child: Text(l10n.importFromContraDb),
+          child: Text(l10n.importProgramFromContraDb),
         ),
         PopupMenuItem(
           value: _ProgramsCompactAction.recentlyDeleted,

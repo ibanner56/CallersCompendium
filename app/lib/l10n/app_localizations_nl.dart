@@ -3595,7 +3595,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importFromTitleList => 'Van titellijst';
 
   @override
+  String get importProgramFromTitleList => 'Importeren vanuit titellijst';
+
+  @override
   String get importFromContraDb => 'Van ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Importeren vanuit ContraDB';
 
   @override
   String get importProgramTitleLabel => 'Programmatitel';

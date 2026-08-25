@@ -26,7 +26,8 @@ prompt and a **New program** button until you make your first one.
 - **Import one** from the **Import program** menu (the import icon in the
   **Programs** toolbar), which offers two sources — **From title list** (paste a
   set list you already have) and **From ContraDB** (pull an event straight from
-  the online archive). Both are described below.
+  the online archive). On a narrow screen, those actions say **Import from title
+  list** and **Import from ContraDB**. Both are described below.
 - **Duplicate** a program to reuse last month's shape as a starting point.
 - **Delete** a program and it is only soft-deleted — an **Undo** option appears,
   and it moves to a **Recently Deleted** area you can restore from later, exactly
@@ -35,9 +36,10 @@ prompt and a **New program** button until you make your first one.
 ### Build from a list of titles
 
 Already have your set list written out somewhere — a text file, an email, a note
-on your phone? **Import from title list** lets you paste it in and turn it into a
-program in one go. Give the program a title, paste your dance titles **one per
-line**, and you get a live preview before anything is saved:
+on your phone? **From title list** (or **Import from title list** on a narrow
+screen) lets you paste it in and turn it into a program in one go. Give the
+program a title, paste your dance titles **one per line**, and you get a live
+preview before anything is saved:
 
 - **A line that matches a dance in your [collection](./glossary.md#collection)**
   (ignoring capitalisation) becomes a **dance slot** linked to that dance.
@@ -67,9 +69,10 @@ it can find is not the same as changing what it decides to import on its own.
 ### Import a program from ContraDB
 
 You can also build a program from an event on
-[ContraDB](./glossary.md#contradb). Choose **From ContraDB** in the **Import
-program** menu; the screen offers two ways to find the event, and both end in the
-same preview-before-you-keep flow:
+[ContraDB](./glossary.md#contradb). Choose **From ContraDB** (or **Import from
+ContraDB** on a narrow screen) in the **Import program** menu; the screen offers
+two ways to find the event, and both end in the same preview-before-you-keep
+flow:
 
 - **Paste URL** — paste a `contradb.com/programs/N` link (or just its number) and
   choose **Fetch program**.

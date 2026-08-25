@@ -3466,7 +3466,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFromTitleList => 'タイトルリストから';
 
   @override
+  String get importProgramFromTitleList => 'タイトルリストからインポート';
+
+  @override
   String get importFromContraDb => 'ContraDBから';
+
+  @override
+  String get importProgramFromContraDb => 'ContraDBからインポート';
 
   @override
   String get importProgramTitleLabel => 'プログラムタイトル';

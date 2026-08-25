@@ -29,6 +29,7 @@ import '../export/program_matrix_pdf.dart';
 import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/facet_labels.dart' show formationLabel;
+import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/safe_name.dart';
@@ -115,6 +116,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   late CompendiumRepositories _repos;
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
+  final _moreDetailsController = ExpansibleController();
   final _titleController = TextEditingController();
   final _venueController = TextEditingController();
   final _bandController = TextEditingController();
@@ -592,6 +594,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _replaceSubscription();
     _pickerCounts.dispose();
     _tabController.dispose();
+    _moreDetailsController.dispose();
     _titleController.dispose();
     _venueController.dispose();
     _bandController.dispose();
@@ -2376,9 +2379,44 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
+        _buildMoreDetails(l10n),
+      ],
+    );
+  }
+
+  Widget _buildMoreDetails(AppLocalizations l10n) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final sectionShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+      side: BorderSide(color: colorScheme.outlineVariant),
+    );
+    return ExpansionTile(
+      key: const ValueKey('program-more-details-tile'),
+      controller: _moreDetailsController,
+      leading: Icon(Icons.tune, color: colorScheme.primary),
+      title: Text(
+        l10n.danceEditorMoreDetailsTitle,
+        style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      ),
+      initiallyExpanded: false,
+      maintainState: true,
+      backgroundColor: colorScheme.surfaceContainerHighest,
+      collapsedBackgroundColor: colorScheme.surfaceContainerHighest,
+      shape: sectionShape,
+      collapsedShape: sectionShape,
+      tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      childrenPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.sm,
+        AppSpacing.xs,
+        AppSpacing.sm,
+        AppSpacing.sm,
+      ),
+      expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         _buildVenueField(l10n),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         TextFormField(
           key: const ValueKey('program-band'),
           controller: _bandController,
@@ -2390,7 +2428,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         TextFormField(
           key: const ValueKey('program-caller'),
           controller: _callerController,
@@ -2402,7 +2440,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         TextFormField(
           key: const ValueKey('program-dancer-level'),
           controller: _levelController,
@@ -2414,7 +2452,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         TextFormField(
           key: const ValueKey('program-notes'),
           controller: _notesController,
@@ -2427,7 +2465,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             border: const OutlineInputBorder(),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.md),
         DropdownButtonFormField<ProgramStatus>(
           key: const ValueKey('program-status'),
           initialValue: _status,
@@ -2461,7 +2499,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             }
           },
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
         SwitchListTile(
           key: const ValueKey('program-hide-alternates'),
           contentPadding: EdgeInsets.zero,

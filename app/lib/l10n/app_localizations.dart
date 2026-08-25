@@ -5732,11 +5732,23 @@ abstract class AppLocalizations {
   /// **'From title list'**
   String get importFromTitleList;
 
+  /// Compact import-program menu item: import a program from a pasted title list.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from title list'**
+  String get importProgramFromTitleList;
+
   /// Import-program menu item: import a program from ContraDB.
   ///
   /// In en, this message translates to:
   /// **'From ContraDB'**
   String get importFromContraDb;
+
+  /// Compact import-program menu item: import a program from ContraDB.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from ContraDB'**
+  String get importProgramFromContraDb;
 
   /// Label for the program-title text field in the import screens.
   ///
@@ -7292,7 +7304,7 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
-  /// Expansion tile title for less frequently used dance metadata fields.
+  /// Expansion tile title for less frequently used editor metadata fields.
   ///
   /// In en, this message translates to:
   /// **'More details'**

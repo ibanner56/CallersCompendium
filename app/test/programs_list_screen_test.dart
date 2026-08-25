@@ -6,6 +6,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
+import 'package:compendium_app/src/screens/app_shell_search_scope.dart';
+import 'package:compendium_app/src/screens/contradb_program_import_screen.dart';
+import 'package:compendium_app/src/screens/plaintext_program_import_screen.dart';
 import 'package:compendium_app/src/screens/programs_list_screen.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_app/src/widgets/program_list_tile.dart';
@@ -37,7 +40,11 @@ Program _program({
   updatedAt: updatedAt ?? _now,
 );
 
-Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
+Future<void> _pump(
+  WidgetTester tester,
+  CompendiumRepositories repos, {
+  bool compact = false,
+}) async {
   await tester.binding.setSurfaceSize(const Size(600, 1200));
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
@@ -45,8 +52,12 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
       localizationsDelegates: testLocalizationsDelegates,
       supportedLocales: testSupportedLocales,
 
-      builder: (context, child) =>
-          RepositoriesScope(repositories: repos, child: child!),
+      builder: (context, child) {
+        final scoped = RepositoriesScope(repositories: repos, child: child!);
+        return compact
+            ? AppShellSearchScope(openSearch: () async {}, child: scoped)
+            : scoped;
+      },
       home: const ProgramsListScreen(),
     ),
   );
@@ -60,6 +71,44 @@ List<String> _titlesInOrder(WidgetTester tester) => tester
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  testWidgets('compact import menu uses action labels and opens both sources', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos, compact: true);
+
+    await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+    await tester.pumpAndSettle();
+    expect(find.text('Import from title list'), findsOneWidget);
+    expect(find.text('Import from ContraDB'), findsOneWidget);
+    expect(find.text('From title list'), findsNothing);
+    expect(find.text('From ContraDB'), findsNothing);
+
+    await tester.tap(find.text('Import from title list'));
+    await tester.pumpAndSettle();
+    expect(find.byType(PlaintextProgramImportScreen), findsOneWidget);
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('programs-more-actions')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Import from ContraDB'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ContraDbProgramImportScreen), findsOneWidget);
+  });
+
+  testWidgets('wide import menu keeps source-only labels', (tester) async {
+    final repos = openTestRepositories();
+    await _pump(tester, repos);
+
+    await tester.tap(find.byKey(const ValueKey('programs-import')));
+    await tester.pumpAndSettle();
+    expect(find.text('From title list'), findsOneWidget);
+    expect(find.text('From ContraDB'), findsOneWidget);
+    expect(find.text('Import from title list'), findsNothing);
+    expect(find.text('Import from ContraDB'), findsNothing);
+  });
 
   testWidgets('empty state teaches and offers New program', (tester) async {
     final repos = openTestRepositories();

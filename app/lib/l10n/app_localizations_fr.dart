@@ -3624,7 +3624,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importFromTitleList => 'Depuis une liste de titres';
 
   @override
+  String get importProgramFromTitleList =>
+      'Importer depuis une liste de titres';
+
+  @override
   String get importFromContraDb => 'Depuis ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Importer depuis ContraDB';
 
   @override
   String get importProgramTitleLabel => 'Titre du programme';

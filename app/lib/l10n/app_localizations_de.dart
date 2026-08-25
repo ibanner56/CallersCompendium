@@ -3613,7 +3613,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importFromTitleList => 'Aus Titelliste';
 
   @override
+  String get importProgramFromTitleList => 'Aus Titelliste importieren';
+
+  @override
   String get importFromContraDb => 'Aus ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Aus ContraDB importieren';
 
   @override
   String get importProgramTitleLabel => 'Programmtitel';
