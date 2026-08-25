@@ -6432,6 +6432,14 @@
   "@publishedCollectionDetails": {
     "x-sourceSha256": "ebb910dba0722f7dd04d3ea953aceee41ba0238f0dd1bbfb3c03a93663f7fd67"
   },
+  "publishedCollectionPermission": "Lizenz: {license}\nBerechtigung: {grantor} erteilt {holder} die Berechtigung auf Grundlage von {basis}. Abgedeckte Felder: {fields}",
+  "@publishedCollectionPermission": {
+    "x-sourceSha256": "1c4ef5b148a542934dd2d630141a4209a08b606bcc7d69b6705bda04e41bafb2"
+  },
+  "publishedCollectionNoCoveredFields": "keine",
+  "@publishedCollectionNoCoveredFields": {
+    "x-sourceSha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
+  },
   "publishedCollectionSupersedes": "Ersetzt Version {version}",
   "@publishedCollectionSupersedes": {
     "x-sourceSha256": "284aeb42ae95b58f9aafc2bf463c0cfbd95a7e3a6707441badaf38a7e0e037e1"

@@ -190,6 +190,18 @@ class _PublishedCollectionCatalogState
                 entry.danceCount,
               ),
             ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              l10n.publishedCollectionPermission(
+                entry.license,
+                entry.permission.grantor,
+                entry.permission.holder,
+                entry.permission.basis,
+                entry.permission.fields.isEmpty
+                    ? l10n.publishedCollectionNoCoveredFields
+                    : entry.permission.fields.join(', '),
+              ),
+            ),
             if (statusFuture != null)
               FutureBuilder<PublishedCollectionStatus>(
                 future: statusFuture,

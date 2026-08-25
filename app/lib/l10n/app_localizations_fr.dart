@@ -6479,6 +6479,20 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'Licence : $license\nAutorisation : $grantor accorde à $holder l’autorisation sur la base de $basis. Champs couverts : $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'aucun';
+
+  @override
   String publishedCollectionSupersedes(String version) {
     return 'Remplace la version $version';
   }

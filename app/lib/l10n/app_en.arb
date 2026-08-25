@@ -8481,6 +8481,36 @@
       }
     }
   },
+  "publishedCollectionPermission": "License: {license}\nPermission: {grantor} grants {holder} permission under {basis}. Covered fields: {fields}",
+  "@publishedCollectionPermission": {
+    "description": "Catalog metadata showing the signed collection license and permission declaration before import.",
+    "placeholders": {
+      "license": {
+        "type": "String",
+        "example": "CC0-1.0"
+      },
+      "grantor": {
+        "type": "String",
+        "example": "Example Foundation"
+      },
+      "holder": {
+        "type": "String",
+        "example": "Caller's Compendium users"
+      },
+      "basis": {
+        "type": "String",
+        "example": "written permission"
+      },
+      "fields": {
+        "type": "String",
+        "example": "figures, titles"
+      }
+    }
+  },
+  "publishedCollectionNoCoveredFields": "none",
+  "@publishedCollectionNoCoveredFields": {
+    "description": "Value shown when a published collection permission declaration has no covered fields."
+  },
   "publishedCollectionSupersedes": "Supersedes version {version}",
   "@publishedCollectionSupersedes": {
     "description": "Catalog metadata showing that this collection version replaces an older version.",

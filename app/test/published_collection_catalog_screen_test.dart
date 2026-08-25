@@ -99,6 +99,12 @@ void main() {
       statusRequests,
       containsAll(<String>['foda-1-1/1.0.0', 'foda-1-1/2.0.0']),
     );
+    expect(find.textContaining('License: CC0-1.0'), findsNWidgets(2));
+    expect(
+      find.textContaining('Permission: Grantor grants Holder'),
+      findsNWidgets(2),
+    );
+    expect(find.textContaining('Covered fields: none'), findsNWidgets(2));
 
     await tester.tap(find.text('Import collection').first);
     await tester.pumpAndSettle();

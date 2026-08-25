@@ -9803,6 +9803,24 @@ abstract class AppLocalizations {
   /// **'{id} · {version} · {count} dances'**
   String publishedCollectionDetails(String id, String version, int count);
 
+  /// Catalog metadata showing the signed collection license and permission declaration before import.
+  ///
+  /// In en, this message translates to:
+  /// **'License: {license}\nPermission: {grantor} grants {holder} permission under {basis}. Covered fields: {fields}'**
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  );
+
+  /// Value shown when a published collection permission declaration has no covered fields.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get publishedCollectionNoCoveredFields;
+
   /// Catalog metadata showing that this collection version replaces an older version.
   ///
   /// In en, this message translates to:

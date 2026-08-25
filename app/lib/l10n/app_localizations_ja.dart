@@ -6164,6 +6164,20 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'ライセンス: $license\n許可: $grantor が $holder に $basis に基づく利用許可を付与。対象フィールド: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'なし';
+
+  @override
   String publishedCollectionSupersedes(String version) {
     return 'バージョン $version を置き換え';
   }
