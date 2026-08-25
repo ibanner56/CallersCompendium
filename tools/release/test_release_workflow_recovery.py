@@ -62,8 +62,8 @@ def main() -> None:
     assert "runs-on: ubuntu-latest" in publish_draft
     assert "environment: release-signing" not in publish_draft
     assert "      - name: Create or update the DRAFT release" in publish_draft
-    assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' in publish_draft
-    assert '--target "$TARGET_SHA"' in publish_draft
+    assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' not in publish_draft
+    assert '--target "$TARGET_SHA"' not in publish_draft
 
     publish_mobile = _job_section(text, "publish_mobile")
     assert "runs-on: macos-latest" in publish_mobile
