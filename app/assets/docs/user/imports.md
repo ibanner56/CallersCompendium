@@ -153,9 +153,9 @@ offers them for import, and the app records their source and version so you can
 see where the dances came from.
 
 1. Open **Collection** and choose **Import dances**.
-2. Under the source selector, choose a published collection to read its
-   description, license, and permissions. You can also browse the same catalog
-   from **Settings** → **General** → **Published collections**.
+2. Under the source selector, choose a published collection to review its
+   title, version, dance count, and availability. You can also browse the same
+   catalog from **Settings** → **General** → **Published collections**.
 3. Select **Import collection** and review what it contains.
 4. Confirm the import when you are ready. Nothing is added until you commit it,
    and the same review flow lets you skip items you do not want.

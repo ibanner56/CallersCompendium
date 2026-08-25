@@ -313,6 +313,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   bool get _isPublishedImport =>
       _publishedEntry != null || widget.publishedCollection != null;
 
+  bool get _isStandalonePublishedSeed => widget.publishedCollection != null;
+
   /// The shared-bundle archive represented by the current paste-field text.
   ///
   /// The immutable [widget.sharedBundle] is authoritative only while the text is
@@ -1783,7 +1785,6 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                         _showPublishedCatalog = true;
                         _publishedEntry = null;
                         _publishedArchiveBytes = null;
-                        _cachedPickedBundle = null;
                       });
                       return;
                     }
@@ -2948,8 +2949,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             const SizedBox(height: 16),
             OutlinedButton(
               key: const ValueKey('import-back-to-input'),
-              onPressed: () => setState(_resetToInput),
-              child: Text(l10n.importReviewTryAnother),
+              onPressed: _isStandalonePublishedSeed
+                  ? (widget.onClose ?? () => Navigator.of(context).pop())
+                  : () => setState(_resetToInput),
+              child: Text(
+                _isStandalonePublishedSeed
+                    ? l10n.commonBack
+                    : l10n.importReviewTryAnother,
+              ),
             ),
           ],
         ),

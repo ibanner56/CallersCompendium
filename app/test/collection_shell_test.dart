@@ -4,6 +4,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -29,11 +30,12 @@ Dance _dance({
   required String id,
   required String title,
   List<String> authorIds = const [],
+  List<String> tagIds = const [],
 }) => Dance(
   id: id,
   title: title,
   authorIds: authorIds,
-  tagIds: const [],
+  tagIds: tagIds,
   figures: const [],
   customFields: const [],
   hook: '',
@@ -566,6 +568,32 @@ void main() {
       );
     });
 
+    testWidgets('compacts tagged Collection actions without truncating title', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      expect(
+        await repos.tags.upsert(Tag(id: 'category', name: 'Category')),
+        'category',
+      );
+      await repos.dances.create(
+        _dance(id: 'tagged', title: 'Tagged Dance', tagIds: ['category']),
+      );
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('collection-more-actions')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('import-dances')), findsNothing);
+      final title = tester.renderObject<RenderParagraph>(
+        find.text('Collection'),
+      );
+      expect(title.didExceedMaxLines, isFalse);
+    });
+
     testWidgets('published source selection shows the inline catalog and hands '
         'a verified collection to review', (tester) async {
       final repos = openTestRepositories();
@@ -676,6 +704,23 @@ void main() {
       expect(find.byType(DanceListScreen), findsOneWidget);
       expect(find.byKey(const ValueKey('import-close')), findsOneWidget);
       expect(find.text('Select a dance'), findsNothing);
+    });
+
+    testWidgets('keeps embedded import mounted when resized narrow', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+
+      tester.view.physicalSize = const Size(800, 900);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ImportReviewScreen), findsOneWidget);
+      expect(find.byType(DanceListScreen), findsNothing);
     });
 
     testWidgets('wide: selecting a dance exits import mode and shows detail', (

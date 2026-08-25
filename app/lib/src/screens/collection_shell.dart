@@ -140,6 +140,7 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Element (and its State) to the new position instead, mirroring
   /// [_detailMessengerKey] above.
   final _listKey = GlobalKey();
+  final _importReviewKey = GlobalKey();
 
   /// The currently previewed online dance in the detail pane, plus its
   /// loading/error state. Meaningful only while [_detailMode] is
@@ -538,6 +539,12 @@ class _CollectionShellState extends State<CollectionShell> {
         // list likewise pushes its own preview route for online results (its
         // onSelectOnlineDance is left null), sharing the online service so the
         // same seam is used in tests.
+        if (_detailMode == _DetailMode.importReview) {
+          // Keep an active embedded import mounted across a breakpoint change.
+          // The review owns the commit/result handoff, so replacing it with the
+          // narrow list would strand an in-flight commit or its retry state.
+          return _buildDetailPane();
+        }
         return DanceListScreen(
           key: _listKey,
           onImport: _pushImportRoute,
@@ -638,8 +645,9 @@ class _CollectionShellState extends State<CollectionShell> {
         break;
       case _DetailMode.importReview:
         return ImportReviewScreen(
-          // Keyed so switching in/out of import mode fully resets the flow.
-          key: const ValueKey('collection-import'),
+          // GlobalKey preserves the review when a responsive layout moves it
+          // between the split detail pane and the narrow surface.
+          key: _importReviewKey,
           sources: _importSources,
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,

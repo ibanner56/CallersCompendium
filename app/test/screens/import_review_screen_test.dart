@@ -203,6 +203,54 @@ void main() {
     expect(find.text('That file is too large to import.'), findsOneWidget);
   });
 
+  testWidgets('standalone published seed cannot fall back to editable input', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final source = ImportSource(
+      kind: ImportSourceKind.publishedCollection,
+      adapterFactory: () => PublishedCollectionAdapter(
+        PublishedCollectionMetadata(
+          collectionId: 'published',
+          collectionVersion: '1.0.0',
+          archiveDigest: 'digest',
+          permission: '{}',
+          license: 'CC0',
+        ),
+      ),
+      preselected: true,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: RepositoriesScope(
+          repositories: repos,
+          child: ImportReviewScreen(
+            sources: [source],
+            publishedCollection: const PublishedCollectionSeed(
+              json: 'not an archive',
+              metadata: PublishedCollectionMetadata(
+                collectionId: 'published',
+                collectionVersion: '1.0.0',
+                archiveDigest: 'digest',
+                permission: '{}',
+                license: 'CC0',
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('import-message')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('import-back-to-input')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ImportReviewScreen), findsNothing);
+  });
+
   testWidgets('renders a new-dance row and commits it into the collection', (
     tester,
   ) async {
