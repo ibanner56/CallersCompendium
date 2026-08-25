@@ -12,9 +12,7 @@ import 'package:compendium_app/src/screens/published_collection_catalog_screen.d
 import 'support/l10n_harness.dart';
 
 void main() {
-  testWidgets('refreshes every version status after an import', (
-    tester,
-  ) async {
+  testWidgets('refreshes every version status after an import', (tester) async {
     final archiveBytes = utf8.encode('{}');
     final digest = sha256.convert(archiveBytes).toString();
     final manifest = jsonEncode({
