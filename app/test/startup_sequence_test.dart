@@ -81,7 +81,7 @@ class _FailOnceMigrationAppData extends AppData {
 }
 
 AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase());
+  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
   // The database is also closed by CompendiumApp.dispose(); sqlite3's close is
   // idempotent, so this teardown just guarantees cleanup even for the last test
   // in the file (whose widget tree is never unmounted).
@@ -194,7 +194,7 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(1200, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final db = openWidgetTestDatabase();
+      final db = openWidgetTestDatabase(closeOnTearDown: false);
       final appData = _FailOnceMigrationAppData(db);
       addTearDown(appData.close);
 

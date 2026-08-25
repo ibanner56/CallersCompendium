@@ -2526,7 +2526,6 @@ void main() {
       'coalesces',
       (tester) async {
         final db = openWidgetTestDatabase();
-        addTearDown(db.close);
         final counting = _CountingDanceRepository(db, contraTaxonomy);
         final repos = CompendiumRepositories(
           db,
@@ -2594,7 +2593,10 @@ void main() {
     ) async {
       final failer = _FailOneChoreographersSelect();
       final repos = CompendiumRepositories(
-        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
         contraTaxonomy,
       );
       addTearDown(repos.db.close);
@@ -2616,7 +2618,10 @@ void main() {
     ) async {
       final failer = _FailOneChoreographersSelect();
       final repos = CompendiumRepositories(
-        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
         contraTaxonomy,
       );
       addTearDown(repos.db.close);

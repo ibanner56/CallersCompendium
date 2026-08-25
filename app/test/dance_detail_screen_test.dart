@@ -1987,7 +1987,6 @@ void main() {
     // is the only way to reach didUpdateWidget: pushing a route or changing a
     // key creates a fresh State and never exercises it.
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Beta'));
 
@@ -2058,7 +2057,6 @@ void main() {
       addTearDown(resetCaughtErrorLogForTesting);
 
       final db = openWidgetTestDatabase();
-      addTearDown(db.close);
       final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
       final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
       await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
@@ -2085,7 +2083,6 @@ void main() {
       // A failed one-shot future stayed failed until something forced a
       // reload; the subscription survives its own error.
       final db = openWidgetTestDatabase();
-      addTearDown(db.close);
       final dances = _FailingDances(db, contraTaxonomy)..failNext = true;
       final repos = CompendiumRepositories(db, contraTaxonomy, dances: dances);
       await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));

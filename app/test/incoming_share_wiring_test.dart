@@ -97,7 +97,7 @@ String _validBundleJson() => encodeArchive(
 );
 
 AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase());
+  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
   addTearDown(appData.close);
   return appData;
 }
@@ -109,6 +109,7 @@ ArchiveByteReader _readerFor(String contents) =>
 
 void main() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   // Booting the full app keeps the User Guide's doc FutureBuilder alive; the
   // root bundle caches parsed results as SynchronousFutures which otherwise
   // stall pumpAndSettle. Clearing the cache before each test lets it settle

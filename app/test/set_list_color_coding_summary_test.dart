@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -152,8 +151,6 @@ Future<void> _seedProgramWithMixer(CompendiumRepositories repos) async {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets(
     'set-list rows carry the formation-family accent when colour-coding is on',
     (tester) async {

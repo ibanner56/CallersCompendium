@@ -33,8 +33,6 @@ import 'support/test_repositories.dart';
 /// alive at once, one of them mutating data the other renders — exactly the
 /// `IndexedStack`-kept-alive tab and the split pane the issue describes.
 void main() {
-  drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   final now = DateTime.utc(2026, 1, 1);
 
   Dance dance({required String id, required String title, DanceLevel? level}) =>
@@ -95,7 +93,6 @@ void main() {
   /// override is compile-checked and belongs to one caller.
   ({CompendiumRepositories repos, _CountingDances dances}) countingRepos() {
     final db = openWidgetTestDatabase();
-    addTearDown(db.close);
     final dances = _CountingDances(db, contraTaxonomy);
     return (
       repos: CompendiumRepositories(db, contraTaxonomy, dances: dances),
@@ -260,9 +257,8 @@ void main() {
       // and the naive response is to re-search on each one.
       final counter = _SearchCounter();
       final db = openWidgetTestDatabase(
-        NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory().interceptWith(counter),
       );
-      addTearDown(db.close);
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
       await pump(tester, repos, const DanceListScreen());
@@ -371,9 +367,8 @@ void main() {
       // widen: a number that only ever goes up stops testing anything.
       final counter = _SnapshotLoadCounter();
       final db = openWidgetTestDatabase(
-        NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory().interceptWith(counter),
       );
-      addTearDown(db.close);
       final repos = CompendiumRepositories(db, contraTaxonomy);
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
       await repos.programs.create(

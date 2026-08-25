@@ -150,6 +150,8 @@ String _fmt(int totalSeconds) {
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('perform resolves dances from fresh editor overrides', (
@@ -188,7 +190,6 @@ void main() {
 
     expect(find.text('Fresh Choreographer'), findsOneWidget);
   });
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   setUp(installFakeWakelock);
 

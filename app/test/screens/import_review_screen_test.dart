@@ -2091,7 +2091,6 @@ void main() {
       'lands directly on the review list and commits NOTHING until Import',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
@@ -2115,7 +2114,6 @@ void main() {
       'shows the transient undo snackbar (no result dialog)',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
@@ -2145,7 +2143,6 @@ void main() {
       '#880: after Try another edits share-target text, Import commits the edit',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         var planAttempts = 0;
         final editedArchive = CompendiumArchive(
           exportedAt: DateTime.utc(2026, 7, 15),
@@ -2209,7 +2206,6 @@ void main() {
       'at or below the cap shows no warning',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         // entityCount drives the banner directly (computed pre-render by the
         // intake service); pass it explicitly so the commit stays cheap.
@@ -2239,7 +2235,6 @@ void main() {
       tester,
     ) async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
 
       await pumpShared(
         tester,
@@ -2259,7 +2254,6 @@ void main() {
     testWidgets('the transient Undo removes EXACTLY the imported batch, leaving '
         'pre-existing rows untouched', (tester) async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       // A pre-existing dance the user already had — the undo must not touch it.
       await repos.dances.create(sharedDance('keeper', 'Keeper Jig'));
 
@@ -2290,7 +2284,6 @@ void main() {
       'the import is retained',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
@@ -2320,7 +2313,6 @@ void main() {
       'batch Import consent',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
@@ -2335,7 +2327,6 @@ void main() {
       'a program-only bundle (no dances) can still be imported with consent',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         // A valid bundle carrying a program of only free-text slots and no
         // dances — intake accepts it, and the pre-#432 path imported it, so the
@@ -2387,7 +2378,6 @@ void main() {
       'a program (share-target path)',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
 
@@ -2424,7 +2414,6 @@ void main() {
       'program — nothing to write',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         // Dance-only archive: no programs, so skipping the dance leaves nothing
         // to import.
@@ -2458,7 +2447,6 @@ void main() {
       'carries a program)',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         // Leave default choices — dance is set to Import.
         await pumpShared(tester, repos, bundleFor(danceProgramVenueArchive()));
@@ -2486,10 +2474,11 @@ void main() {
         // `committing` phase long enough to inspect the guarded Close button.
         final gate = _CommitGate();
         final repos = CompendiumRepositories(
-          openWidgetTestDatabase(NativeDatabase.memory().interceptWith(gate)),
+          openWidgetTestDatabase(
+            executor: NativeDatabase.memory().interceptWith(gate),
+          ),
           contraTaxonomy,
         );
-        addTearDown(repos.db.close);
         var closed = 0;
         await tester.binding.setSurfaceSize(const Size(1000, 1600));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -2649,7 +2638,6 @@ void main() {
       'the archive importer, shows the transient undo snackbar',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final archive = pickerArchive();
         final payload = encodeArchive(archive);
 
@@ -2693,7 +2681,6 @@ void main() {
       'the transient Undo after a picked .ccshare removes the dance AND program',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final payload = encodeArchive(pickerArchive());
 
         await pumpWithPicker(tester, repos, payload);
@@ -2718,7 +2705,6 @@ void main() {
       '(no regression on the pre-existing dance import)',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         // A plain dance-only archive — no programs, no _pickedBundle.
         final payload = encodeArchive(
           CompendiumArchive(
@@ -2775,7 +2761,6 @@ void main() {
         // _commit falls through to GenericJsonAdapter, and the program-count
         // assertion below fails (isEmpty instead of hasLength(1)).
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final archive = pickerArchive(); // has one dance + one program
         final payload = encodeArchive(archive);
 
@@ -2835,7 +2820,6 @@ void main() {
         // CompendiumArchiveImporter and writes the original program. Either
         // mutation causes the "programs isEmpty" assertion below to fail.
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final original = pickerArchive(); // has a program
         final originalPayload = encodeArchive(original);
 
@@ -2896,7 +2880,6 @@ void main() {
       'carries a program (_effectivePickedBundle path)',
       (tester) async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
         final payload = encodeArchive(pickerArchive());
 
         await pumpWithPicker(tester, repos, payload);
@@ -2935,7 +2918,6 @@ void main() {
     '#869: programs label is absent on a non-shared (manual-input) import',
     (tester) async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
 
       await _pump(
         tester,

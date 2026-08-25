@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -112,7 +111,6 @@ Future<void> _tapDone(WidgetTester tester) async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   setUp(installFakeWakelock);
 

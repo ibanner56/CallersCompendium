@@ -550,7 +550,6 @@ void main() {
 
     test('a received authored dance keeps its choreographer', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
 
       final program = _program(slots: [_slot(0, danceId: 'd1')]);
       final json = buildProgramShareBundle(
@@ -597,7 +596,6 @@ void main() {
 
     test('reuses a choreographer the receiver already has, by name', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       // The receiver already knows this author under a DIFFERENT id.
       // ignore: unused_result
       await repos.choreographers.upsert(
@@ -632,7 +630,6 @@ void main() {
       'a received dance with no authors imports fine, unattributed',
       () async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         final program = _program(slots: [_slot(0, danceId: 'd1')]);
         final json = buildProgramShareBundle(
@@ -654,7 +651,6 @@ void main() {
 
     test('a shared program keeps its venue link, contacts redacted', () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
 
       final program = _program(
         slots: [_slot(0, danceId: 'd1')],
@@ -701,7 +697,6 @@ void main() {
       'a shared program with a dangling venueId imports venue-less',
       () async {
         final repos = openTestRepositories();
-        addTearDown(repos.db.close);
 
         final program = _program(
           slots: [_slot(0, danceId: 'd1')],

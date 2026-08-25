@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -58,8 +57,6 @@ import 'support/test_repositories.dart';
 ///   That mutation is the reason the cache case is stated separately: it
 ///   survives a correct read set.
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   final now = DateTime.utc(2026, 1, 1);
 
   Program program({
@@ -278,7 +275,10 @@ void main() {
       // turns this red.
       final failer = _FailOneVenuesSelect();
       final repos = CompendiumRepositories(
-        openWidgetTestDatabase(NativeDatabase.memory().interceptWith(failer)),
+        openWidgetTestDatabase(
+          executor: NativeDatabase.memory().interceptWith(failer),
+          closeOnTearDown: false,
+        ),
         contraTaxonomy,
       );
       addTearDown(repos.db.close);
@@ -394,7 +394,6 @@ void main() {
       required bool danceFirst,
     }) async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       await repos.dances.create(
         Dance(
           id: 'd1',
@@ -488,7 +487,6 @@ void main() {
       required Future<void> Function(CompendiumRepositories repos) write,
     }) async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       await repos.dances.create(
         Dance(id: 'd1', title: 'Alpha', createdAt: now, updatedAt: now),
       );

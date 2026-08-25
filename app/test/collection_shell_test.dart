@@ -147,8 +147,6 @@ String _archivePayload(List<Dance> dances) => encodeArchive(
 // ── narrow layout ─────────────────────────────────────────────────────────────
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   group('narrow layout (< 900 px)', () {
     testWidgets('renders DanceListScreen (no split pane)', (tester) async {
       final repos = openTestRepositories();

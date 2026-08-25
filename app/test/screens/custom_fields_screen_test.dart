@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -97,8 +96,6 @@ Future<void> _fillAndSave(
 // ---------------------------------------------------------------------------
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   group('CustomFieldsScreen', () {
     testWidgets('shows empty state when no fields defined', (tester) async {
       final repos = openTestRepositories();

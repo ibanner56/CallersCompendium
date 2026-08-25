@@ -3,7 +3,6 @@ import 'package:compendium_app/src/data/plaintext_program_import.dart';
 import 'package:compendium_app/src/data/program_ambiguous_review.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -100,8 +99,6 @@ OnlineSearchResultRow _row(
 );
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   test('a line with no online candidates contributes nothing', () async {
     final repos = openTestRepositories();
     final lines = [

@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -94,7 +93,6 @@ Future<ValueNotifier<bool>> _pumpProgram(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   testWidgets('Program pane renders all four relocated subsections', (
     tester,
