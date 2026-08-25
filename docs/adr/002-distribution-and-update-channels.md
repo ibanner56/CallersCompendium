@@ -154,11 +154,13 @@ When a newer version is found on **macOS/Windows/Linux**, the banner and
 Settings ▸ Updates additionally offer a **"Download & install"** action that:
 
 1. **Downloads** the manifest-selected `UpdateArtifact` (via the same injected
-   `http.Client` seam as the check) to a **temp file**, with progress reporting
-   and user **cancel**.
+   `http.Client` seam as the check), with progress reporting and user
+   **cancel**. macOS first presents a native Save As panel and writes directly
+   to the user-selected path, preserving user-consented download provenance;
+   Windows and Linux use a private temp file.
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
-   **mandatory** integrity gate. A mismatch **fails loudly**: the temp file is
-   deleted and a clear error is surfaced (never a silent no-op).
+   **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
+   artifact is deleted and a clear error is surfaced (never a silent no-op).
 3. **Hands the verified file off to the OS** so the user completes the install
    themselves — macOS opens the `.dmg`, Windows launches the installer `.exe`,
    Linux marks the `.AppImage` executable / reveals it. It **never replaces the

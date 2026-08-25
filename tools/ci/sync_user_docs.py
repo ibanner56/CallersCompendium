@@ -48,6 +48,11 @@ BUNDLE_DIR = REPO_ROOT / "app" / "assets" / "docs"
 # Contributor-only authoring conventions doc — deliberately not user-facing.
 EXCLUDED_GUIDES = {"style-guide.md"}
 
+# Finder can create this metadata file while the checker walks the local bundle.
+# It is not documentation and is excluded by app/.gitignore, so it must not make
+# a byte-for-byte content check nondeterministic on macOS.
+_IGNORED_BUNDLE_FILENAMES = {".DS_Store"}
+
 
 def _fail(msg: str, code: int = 2) -> None:
     # ``::error::`` renders as an annotation in the GitHub Actions UI.
@@ -93,7 +98,11 @@ def build_bundle(dest_root: Path) -> dict[str, Path]:
 def _relative_files(root: Path) -> set[str]:
     if not root.is_dir():
         return set()
-    return {p.relative_to(root).as_posix() for p in root.rglob("*") if p.is_file()}
+    return {
+        p.relative_to(root).as_posix()
+        for p in root.rglob("*")
+        if p.is_file() and p.name not in _IGNORED_BUNDLE_FILENAMES
+    }
 
 
 def _check() -> int:
