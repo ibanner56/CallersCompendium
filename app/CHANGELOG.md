@@ -10,6 +10,46 @@ the exact `app/pubspec.yaml` version and select their channel from the tag:
 `vX.Y.Z-beta` for beta or `vX.Y.Z` for stable. Store build codes are derived
 from that tag, so new entries need no visible or manually maintained suffix.
 
+## Platforms & install
+
+- **Android** — a signed universal `.apk`. Install it directly (sideload); you may
+  need to allow "install unknown apps" for your browser or file manager. It is **not**
+  on the Play Store yet. (If you ran beta.1, see the reinstall note under Known
+  issues.)
+- **iOS** — delivered through **TestFlight** to invited testers; by design there is
+  no `.ipa` on this Releases page.
+- **macOS** (universal) — **signed with an Apple Developer ID and notarized**, so it
+  opens normally (you may see a single first-launch confirmation).
+- **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
+  signing prompt:
+  - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
+    needs the **FUSE 2** runtime (`libfuse.so.2`) — package `libfuse2` on
+    Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
+    preinstall; install it, or launch with
+    `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
+- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing when
+  the release workflow's five `AZURE_*` repository variables and federated OIDC
+  configuration are present. Otherwise the unsigned fallback may show
+  **SmartScreen**; choose **More info → Run anyway** on the blue **Windows
+  protected your PC** prompt.
+
+## Feedback
+
+Please tell us what breaks or feels wrong:
+<https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
+version shown under **Settings › About**, and the steps you took. If you installed
+a beta from Releases, include its release tag too. For import problems, a small
+sanitized sample of the file you were importing helps enormously.
+
+## License
+
+Caller's Compendium is free software under the **AGPL-3.0**, with an
+[additional permission](https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE-EXCEPTION.md)
+that allows distribution through managed application marketplaces (Apple's App
+Store, Google Play, and comparable stores) under those stores' required terms —
+while the source stays fully AGPL-3.0 and every user keeps their rights to it. The
+source is always available at <https://github.com/ibanner56/CallersCompendium>.
+
 ## [Unreleased]
 
 ### Fixed
@@ -241,96 +281,17 @@ install notes follow.
   standalone turn figures. This is a documentary marker: it is not read at
   runtime and does not itself rewrite the database.
 
-### Known issues
+### Compacting beta.N changelogs
 
-- **Coming from beta.1? A one-time Android reinstall is still required.** beta.2
-  unified the Android application identifier with Apple
-  (`org.callerscompendium.compendiumApp`), so a beta.1 sideload cannot upgrade in
-  place. **Export a backup (Settings ▸ General ▸ Export a backup), uninstall the old
-  app, install this build, then restore.**
-- **Have an older `.ccbackup` file?** The encrypted-backup format from beta.4 can no
-  longer be opened. Restore it with the beta.4 build and export a fresh `.json` backup.
-- **Check your gates.** Since beta.6, gates no longer invent an ending facing the
-  source never stated. If you recorded gates before beta.6, some may still be
-  showing a facing that was wrong — worth a look.
-- **In-app update checks remain opt-in.** Automatic checks and the beta channel are off
-  by default and enabled in Settings; when on, updates are signature-verified. Either
-  way, you can always watch the GitHub Releases page for new betas.
-- **Linux desktop builds are still unsigned.** Windows release artifacts are signed
-  via Azure Trusted Signing when the release workflow's five `AZURE_*` repository
-  variables and federated OIDC configuration are present; otherwise the unsigned
-  fallback may show a SmartScreen warning (see Platforms & install).
-### What you can do today
-
-- **Build your Collection.** Create, edit, and tag dances, organize them your way, and
-  soft-delete/restore anything (with a 30-day Recently Deleted safety net). Group the
-  list by category to hot-swap dances of a given "vibe" mid-evening.
-- **Plan Programs.** Assemble a set with event date, a reusable venue, ordered slots,
-  and alternates; track program status; duplicate a program to reuse a good set.
-- **Perform.** Open a program — or a single dance — in a large-print, auto-sizing
-  Perform view built for reading across a dim hall, mark dances as you call them, and
-  tap out the tempo on a built-in visual metronome.
-- **Author the way you teach.** Build figures with the structured editor, or turn on
-  free-text entry to type them (with your own shorthands); record a step-by-step
-  **Walkthrough** for each dance and let your **snippet library** pre-fill it from
-  wording you have used before.
-- **Import your existing library.** Bring dances in from a JSON backup, The Caller's
-  Box, ContraDB, and Caller's Companion (`.USR`) — with the choreography, your
-  venues, related-dance links and call-button shorthands coming across too; import
-  **programs** from Caller's Companion (`.USR`) and from **ContraDB** as well. Every
-  import is reviewable and undoable with one tap, and near-duplicates are flagged
-  before they land.
-- **Share between devices.** Send a program and its dances to another device, or open
-  one that was shared with you.
-- **Search the way you talk.** Dialect-aware search and filtering understands the
-  terminology you use, whichever tradition you call in.
-- **Keep your data yours.** Export a full backup to a single human-readable JSON file
-  (with a built-in integrity check) and restore it on another machine — no account, no
-  cloud, no telemetry.
-
-### Platforms & install
-
-- **Android** — a signed universal `.apk`. Install it directly (sideload); you may
-  need to allow "install unknown apps" for your browser or file manager. It is **not**
-  on the Play Store yet. (If you ran beta.1, see the reinstall note under Known
-  issues.)
-- **iOS** — delivered through **TestFlight** to invited testers; by design there is
-  no `.ipa` on this Releases page.
-- **macOS** (universal) — **signed with an Apple Developer ID and notarized**, so it
-  opens normally (you may see a single first-launch confirmation).
-- **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
-  signing prompt:
-  - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
-    needs the **FUSE 2** runtime (`libfuse.so.2`) — package `libfuse2` on
-    Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
-    preinstall; install it, or launch with
-    `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
-- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing when
-  the release workflow's five `AZURE_*` repository variables and federated OIDC
-  configuration are present. Otherwise the unsigned fallback may show
-  **SmartScreen**; choose **More info → Run anyway** on the blue **Windows
-  protected your PC** prompt.
-
-### Your data & safety
-
-Everything lives locally on your device. There is no telemetry and nothing is sent
-anywhere. Imports are previewed before they commit and are undoable, so trying a new
-source is safe. Before a large import — or any upgrade — you can export a backup from
-**Settings ▸ General ▸ Export a backup** for extra peace of mind.
-
-### Feedback
-
-Please tell us what breaks or feels wrong:
-<https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version shown under **Settings › About**, and the steps you took. If you installed
-a beta from Releases, include its release tag too. For import problems, a small
-sanitized sample of the file you were importing helps enormously.
-
-### License
-
-Caller's Compendium is free software under the **AGPL-3.0**, with an
-[additional permission](https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE-EXCEPTION.md)
-that allows distribution through managed application marketplaces (Apple's App
-Store, Google Play, and comparable stores) under those stores' required terms —
-while the source stays fully AGPL-3.0 and every user keeps their rights to it. The
-source is always available at <https://github.com/ibanner56/CallersCompendium>.
+Previous releases under the 0.1.0-beta.N tagging scheme made in-place edits to
+this changelog. The changelogs for each checkpoint can be found in the published
+changelog for each previous beta tag:
+- [v0.1.0-beta.8 (2026-08-14::7f5ca12)](https://github.com/ibanner56/CallersCompendium/blob/7f5ca1214766757eabc2f2f2d2c9cb9698af3215/app/CHANGELOG.md)
+- [v0.1.0-beta.7 (2026-08-12::0e2d664)](https://github.com/ibanner56/CallersCompendium/blob/0e2d664c7dbd2ffcdcfff8c8587b35ccd68f7d63/app/CHANGELOG.md)
+- [v0.1.0-beta.6 (2026-08-01::3d6a476)](https://github.com/ibanner56/CallersCompendium/blob/3d6a476bbf5f82511980ed017fe2ac6e3cc5278d/app/CHANGELOG.md)
+- [v0.1.0-beta.5 (2026-07-29::8e3ca47)](https://github.com/ibanner56/CallersCompendium/blob/8e3ca4758aef24975f5ad11bd2b7150b95eabcc6/app/CHANGELOG.md)
+- [v0.1.0-beta.4 (2026-07-22::208c54b)](https://github.com/ibanner56/CallersCompendium/blob/208c54b76791a8f4bd2f83d54c57dfa5928cd248/app/CHANGELOG.md)
+- [v0.1.0-beta.3 (2026-07-20::a23dd01)](https://github.com/ibanner56/CallersCompendium/blob/ee25bdf359884d1278f018cc896fec6e781bcc1c/app/CHANGELOG.md)
+- [v0.1.0-beta.2 (2026-07-19::dcda0c9)](https://github.com/ibanner56/CallersCompendium/blob/dcda0c935d8d7a097ba31e2f6b9c6155bae684ee/app/CHANGELOG.md)
+- [v0.1.0-beta.1 (2026-07-17::276e14a)](https://github.com/ibanner56/CallersCompendium/blob/d2871a031e6998f685dfb65cf862aacacfc6082e/app/CHANGELOG.md)
+- [000 CHANGELOG (2026-07-15::fe4376b)](https://github.com/ibanner56/CallersCompendium/blob/fe4376b7fb57ff926ac490cf74def6b178aeb89f/app/CHANGELOG.md)
