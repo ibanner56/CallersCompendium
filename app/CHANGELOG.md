@@ -12,9 +12,12 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Platforms & install
 
-- **Android** — a signed universal `.apk`. Install it directly (sideload); you may
-  need to allow "install unknown apps" for your browser or file manager. It is **not**
-  on the Play Store yet. 
+- **Android** — a signed universal `.apk` for direct install (sideload); you may
+  need to allow "install unknown apps" for your browser or file manager. The app
+  is also in a **Google Play closed test**, which installs and updates through the
+  Play Store — ask about joining if you'd prefer that. The Play build and the
+  `.apk` are signed with **different keys**, so you can't upgrade between them in
+  place; pick one and stick with it (back up before switching).
 - **iOS** — delivered through **TestFlight** to invited testers; by design there is
   no `.ipa` on this Releases page.
 - **macOS** (universal) — **signed with an Apple Developer ID and notarized**, you

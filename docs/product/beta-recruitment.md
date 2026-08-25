@@ -17,7 +17,11 @@ axes that stress the app differently:
 
 - **Experience** — from newer callers to veterans with big repertoires.
 - **Platforms** — Linux, macOS, Windows, Android, and iOS/iPadOS, so installs and
-  Perform mode get exercised everywhere.
+  Perform mode get exercised everywhere. **Android testers who'll join the Google
+  Play closed test are a current priority** — Google requires a real round of
+  closed testers before we can move Android toward a wider release, so a handful
+  of callers who install from Play (rather than sideloading the `.apk`) directly
+  unblocks that path.
 - **Calling context** — regular series callers, weekend/festival callers, and folks
   who call occasionally, since they build programs and use Perform mode differently.
 - **Data situation** — some coming fresh, some migrating from **Caller's Companion**
@@ -107,8 +111,14 @@ Fill in the bracketed bits. Keep links intact. Trim to fit each venue's norms.
 >
 > What I'm asking: use it for your own dances — ideally call at least one real gig
 > with it — and tell me how it went. All feedback is voluntary and goes through
-> GitHub. Downloadable builds are ready for Linux, macOS, Windows, and Android
-> (iPhone/iPad go out through TestFlight); I'll happily walk you through install.
+> GitHub. Downloadable builds are ready for Linux, macOS, Windows, and Android,
+> and mobile testers can go through the stores instead: iPhone/iPad via TestFlight,
+> and **Android via a Google Play closed test** (I just need the Google-account
+> email on your device to add you — or you can sideload the Android app directly
+> if you'd rather). Right now I especially need a few Android testers willing to
+> join that Play closed test, since Google asks for a real round of them before we
+> can open the app up more widely. I'll happily walk you through install either
+> way.
 >
 > Interested? Start here: https://github.com/ibanner56/CallersCompendium/blob/main/docs/beta/beta-guide.md
 > and say hello in Discussions: https://github.com/ibanner56/CallersCompendium/discussions

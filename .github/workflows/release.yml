@@ -1450,13 +1450,14 @@ jobs:
       # bare beta tag, and appends the signing/verify/maintainer footer. The
       # meta job rejects a missing section before any build begins.
       #
-      # The footer's macOS line must match what actually happened in the build
-      # matrix. macOS signing is gated on the six Apple secrets (same gate as the
-      # build job's `Determine macOS signing availability` step); if any is
-      # signing-configured-but-failing, the build job's verify gate fails the
-      # whole run so we never reach publish. So presence of all six secrets here
-      # is an accurate proxy for "macOS was Developer ID-signed + notarized",
-      # which we pass as `--macos-signing` so the notes never over-claim.
+      # The footer's Windows and macOS lines must match what actually happened in
+      # the build matrix. macOS signing is gated on the six Apple secrets and
+      # Windows signing on the five AZURE_* repository variables (same gates as
+      # the build jobs' "Determine … signing availability" steps); if a leg is
+      # signing-configured-but-failing, that build job's verify gate fails the
+      # whole run so we never reach publish. So presence of a leg's credentials
+      # here is an accurate proxy for "that leg was signed", which we pass as
+      # `--macos-signing` / `--windows-signing` so the notes never over-claim.
       - name: Generate release notes from CHANGELOG
         env:
           VERSION: ${{ needs.meta.outputs.version }}
@@ -1468,6 +1469,11 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERT_PROFILE_NAME: ${{ vars.AZURE_CERT_PROFILE_NAME }}
         run: |
           set -euo pipefail
           macos_signing=missing
@@ -1479,11 +1485,20 @@ jobs:
             && [ -n "${APPLE_API_ISSUER_ID:-}" ]; then
             macos_signing=configured
           fi
+          windows_signing=missing
+          if [ -n "${AZURE_CLIENT_ID:-}" ] \
+            && [ -n "${AZURE_TENANT_ID:-}" ] \
+            && [ -n "${AZURE_SUBSCRIPTION_ID:-}" ] \
+            && [ -n "${AZURE_SIGNING_ACCOUNT_NAME:-}" ] \
+            && [ -n "${AZURE_CERT_PROFILE_NAME:-}" ]; then
+            windows_signing=configured
+          fi
           python3 tools/release/gen_release_notes.py \
             --version "$VERSION" \
             --tag "$TAG" \
             --channel "$CHANNEL" \
             --macos-signing "$macos_signing" \
+            --windows-signing "$windows_signing" \
             --changelog app/CHANGELOG.md \
             --output release-notes.md
 
