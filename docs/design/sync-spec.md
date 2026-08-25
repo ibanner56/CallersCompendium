@@ -453,10 +453,19 @@ snake_case `table.column` form the classification registry already uses
 form the in-scope column set is defined over — but the point is the shared
 source rather than the choice: §3.3 requires a generated mapping *"proven by
 test rather than hand-maintained"* for the same class of mismatch between
-registry and codec spellings, and the same standard applies here. Note that this
-is not a convergence concern: the table is `deviceScoped` and never transmitted,
-so the damage is confined to a single install, which is why nothing downstream
-would ever surface it.
+registry and codec spellings, and the same standard applies here. That source
+has to be built, because nothing importable exists today: the registry's
+identifiers are inline string literals used directly as map keys
+(`'choreographers.name': _choreography`), not exported constants, and the
+carve-out lives at a separate call site in each of the three in-scope
+repositories. The concrete requirement is therefore named rather than left to
+inference — the identifiers MUST be declared once, as constants or generated
+symbols, and imported at all four sites. Two hand-typed literals reconciled
+after the fact by a test would catch drift once someone thought to write that
+test, which is not the same as making the two spellings the same object. Note
+that this is not a convergence concern: the table is `deviceScoped` and never
+transmitted, so the damage is confined to a single install, which is why
+nothing downstream would ever surface it.
 
 **Retry MUST apply the same grouping test as the initial pass, re-derived from
 live state.** A recorded row MUST be written only when both conditions hold: no
@@ -509,7 +518,7 @@ asserting the work is done. That is not a hypothetical — §7.2 treats a new
 reproduces exactly the failure the one-time pass exists to close, since
 normalising on write never reaches a row that is never written again. **The
 completion marker MUST therefore record the set of columns the scan covered,
-and the pass MUST re-run whenever the live in-scope set is not a subset of that
+and the pass MUST re-run whenever the live in-scope set differs from that
 recorded set.** The obligation is stated over the *comparison*, not over a
 migration, because only one of the two triggers involves a migration at all:
 adding a column does, but reclassifying one is an edit to a plain map entry in
@@ -521,7 +530,44 @@ un-normalised behind a standing marker, which is the failure this paragraph
 exists to close. Comparing the recorded set against the live one at open
 catches both triggers with one mechanism and needs no migration to remember
 anything. Re-running is a no-op for every already-normalised row, so the cost
-falls on the change that widened the set rather than on ordinary opens.
+falls on the change that altered the set rather than on ordinary opens.
+
+**The comparison MUST be inequality, not containment**, which is worth stating
+because containment is the tempting form and is subtly directional. A pure
+removal shrinks the live set, so it is contained in the recorded one and would
+trip nothing; the recorded set therefore never contracts and becomes a
+high-water mark. A column reclassified *out* of `shareable` and later back *in*
+would then still be contained, and the re-run would stay silent — while during
+the interval the column was out of scope, the write-path rule did not apply to
+it, so its rows could accrue NFD through ordinary edits, unrecorded, because the
+carve-out records only writes it cannot normalise and an out-of-scope column is
+not normalised at all. On re-entry those rows are in scope, un-normalised and
+unrecorded, which is precisely the completeness invariant above. Inequality
+closes it at the price of one harmless no-op scan after a removal, which
+refreshes the recorded set so that a later re-entry is seen. Contracting the
+recorded set without rescanning would save that scan, and is rejected: it is a
+second bookkeeping path that must itself be crash-safe, added to avoid a scan
+that happens at most once per reclassification.
+
+**The live in-scope set MUST be derived, not enumerated by hand.** It is
+defined as `shareable` string columns that are not record identity, and that
+predicate cannot be read off the classification registry alone:
+`DataClassification` carries `term`, `subject`, `egress` and `note`
+(`data_classification.dart:185`–`:205`) and no column type, so *string* is a
+fact about the schema rather than about the registry. The set MUST therefore be
+computed by reflecting over the schema's column types intersected with
+`fieldClassifications`, and that derivation MUST be backed by a ratchet in the
+same family as the existing coverage test. That test already walks
+`db.allTables` and each table's `$columns` to build exactly the snake_case
+`table.column` keys this rule needs, and Drift's columns are typed, so a string
+column is identifiable rather than assumed; the two tables it has to read
+untyped through `pragma_table_info` are the derived full-text indexes, which
+are rebuilt rather than scanned and are not in scope here. The alternative is
+the hand-maintained list §3.3 forbids elsewhere, and here it does something
+worse than drift: a newly `shareable` column missing from a stale hand-list
+never enters the live set, so the comparison never differs, and the safety net
+this paragraph exists to provide is disabled by the way its own input is
+computed.
 
 Recording a column set turns the marker from a presence latch into a settings
 value carrying structured content, which is mechanically ordinary — sweep
@@ -630,13 +676,14 @@ only failure response, the pass is total: no row raises, so an interrupted pass
 cannot repeat a failure on every launch. Re-running it over already-normalised
 rows is a no-op.
 
-**The pass MUST commit in three steps, and MUST NOT write its completion marker
-until the derived rebuild has succeeded.** The steps are: (1) the row rewrites,
-the `normalisation_skips` upserts and a durable *rebuild owed* flag, all in one
-transaction; (2) the derived rebuild, **outside** that transaction; (3) the
-completion marker, only once the rebuild returns, clearing the flag with it. A
-pass that wrote nothing skips steps 2 and 3's clearing and writes only the
-marker.
+**Every pass that rewrites a row MUST commit in three steps, and MUST NOT write
+its completion marker until the derived rebuild has succeeded.** The steps are:
+(1) the row rewrites, the `normalisation_skips` upserts and a durable *rebuild
+owed* flag, all in one transaction; (2) the derived rebuild, **outside** that
+transaction; (3) for the one-time pass, its completion marker, only once the
+rebuild returns, clearing the flag with it. A pass that wrote nothing sets no
+flag and performs no rebuild; the one-time pass still writes its marker,
+carrying the column set that run covered.
 
 Bundling the marker into the mutation transaction instead — the shape of a sweep
 that has no rebuild — is unsafe here, and unsafe permanently rather than until
@@ -649,16 +696,42 @@ Running the rebuild *inside* the transaction is the other way to close the gap
 and is rejected: it puts a full recomputation of derived data over the whole
 library inside a write-locked transaction.
 
-The durable flag is what makes the gap survivable, and it is the mechanism the
-codebase already uses for precisely this shape.
-`_backfillChainHandIfNeeded` in `repositories.dart` commits its rewrites with
-`derivedRebuildRequiredKey` (`:991`) in one transaction, calls
-`runDerivedRebuild` outside it (`:1006`), deletes the flag once that returns,
-and writes its own done-marker last (`:1021`); an unconditional check at the top
-of the migration path re-runs an owed rebuild on the next open (`:471`–`:477`).
-A crash anywhere in the middle is therefore repaired, including the case where a
-re-run's own rescan finds nothing left to rewrite. This pass MUST follow that
-three-step shape rather than the two-step shape used by sweeps with no derived
+**The durable flag MUST be `derivedRebuildRequiredKey`** — the key already
+declared at `database.dart:105` — and MUST NOT be a flag private to this pass.
+This is the load-bearing half of the rule, because the repair does not come from
+the sweep that sets the flag. It comes from an unconditional, pass-independent
+check at the top of the migration path (`repositories.dart:467`–`:491`) that
+runs *before any sweep*, rebuilds whenever the key is set (`:475`), and clears
+it. A private flag reproduces the shape while leaving the mechanism behind, and
+it reopens the exact gap this rule exists to close: a pass that checks and
+clears its own flag resumes after a crash, rescans, finds nothing left to
+rewrite, never fires its own rebuild, and leaves the flag and the stale index
+standing forever. `_backfillChainHandIfNeeded` states this in its own comment
+(`:939`–`:941`) — the owed rebuild is performed *"regardless of what this
+sweep's own rescan finds"*, and it is performed by the next open's generic
+check, not by the sweep. An implementation that introduces a different key
+instead MUST first generalise that pre-check to cover it, since a key nothing
+reads is not a safety net.
+
+**The obligation attaches to any pass that writes, including retry — not to the
+one-time pass's lifecycle.** Retry rewrites rows; that is its entire purpose,
+and the rebuild rule below already contemplates it, excusing only a retry pass
+in which every recorded row is still blocked. But retry never writes the
+completion marker, because the marker already exists, so an obligation phrased
+around step 3 would leave retry uncovered — with the same permanent
+consequence: retry repairs a row, the process dies before the rebuild, and on
+the next open retry rescans, finds nothing left to write, and is then forbidden
+from rebuilding. Retry is also the path that runs forever rather than once, so
+it is the likelier of the two to be interrupted in the field. The reference
+implementation makes exactly this choice, keying the flag off `rewroteAny`
+(`:985`) rather than off a pass lifecycle, and its comment names this case: the
+flag *"forces the owed rebuild on the next open, even though a retry's own
+rescan would find nothing left to rewrite"* (`:986`–`:990`).
+
+That shape is `_backfillChainHandIfNeeded`'s: rewrites committed with the flag
+(`:991`) in one transaction, `runDerivedRebuild` outside it (`:1006`), the flag
+deleted once that returns, the done-marker last (`:1021`). It is deliberately
+not the two-step shape used by sweeps with no derived
 data to rebuild (`_repairPurgeCorruptionIfNeeded`, `:557`, `:569`), which is
 where the simpler "marker in the same transaction" reading comes from. There is
 no single sweep convention in that file to appeal to — markers are written
@@ -1888,36 +1961,50 @@ marker inside the mutation transaction — the marker asserts the scan is done,
 later passes write nothing so the rebuild is forbidden, and the indexes hold
 pre-normalisation text permanently; omit the durable rebuild-owed flag — the
 re-run's own rescan finds nothing left to rewrite and concludes no rebuild is
-owed). **Both writers of `normalisation_skips` spell `(table, column)`
-identically** (mutation: have the write-path carve-out use the Dart accessor
-name while the pass uses the registry's snake_case form — entries for the same
-column never group, condition (a) stops correlating them, and no error is
-raised anywhere). **A tag and a choreographer with the same name are both
-normalised** (mutation: group by target value alone rather than by `(table,
-column, target)` — both are skipped forever, and retry cannot repair it because
-a cross-table collision never stops colliding). **A restore re-runs the pass**
-— restore a library containing an un-normalised row after the pass has
-completed, and assert it is NFC (mutation: keep the completion marker across
-restore — the row is never scanned and stays un-normalised for the life of the
-install; mutation: revalidate the recorded entries instead of clearing the
-marker — the restored row is in no entry, so nothing discovers it).
-**`normalisation_skips` survives an epoch reset and a detach** (mutation: clear
-it with the baseline, as `id_aliases` and `review_queue` do — every owed repair
-is dropped on the next `409` while the marker still asserts the scan
-completed). **A live row whose only colliding partner is a tombstone is also
-skipped, and is normalised on a later run once that tombstone is purged**
-(mutations: ignore soft-deleted rows when grouping — the write then fails
-against an index that does not filter `deleted_at`; treat a skip as final — the
-live row is blocked forever by a record the user cannot see or list). **An
-ordinary edit to a blocked row succeeds** (mutation: apply the write-path
-normalisation rule unconditionally — the user's edit is rejected to satisfy an
-internal invariant). **`settings.key` is not rewritten by the pass** (mutation:
-include every `shareable` string column without excluding record identity — the
-settings record is renamed rather than repaired). **Re-running the pass changes
-nothing** (mutation: make any step non-idempotent — a pass interrupted after
-its last write then repeats it). **A row whose text changed is still found by
-search afterwards** (mutation: skip the derived rebuild — the index keeps the
-pre-normalisation text and matches nothing).
+owed; use a flag private to the pass rather than `derivedRebuildRequiredKey` —
+nothing else reads it, so the generic pre-check never performs the owed
+rebuild). **A crash between a *retry* write and its rebuild leaves search
+matching that row** (mutation: set the rebuild-owed flag only on the one-time
+pass — retry writes the repaired row, dies before the rebuild, and its next
+rescan finds nothing to write and is forbidden from rebuilding).
+**Reclassifying a column out of `shareable` and back in re-runs the pass**
+(mutation: test the live set for containment in the recorded set rather than
+inequality — the removal contracts nothing, so the re-entry is contained and
+silent, and rows that accrued NFD while out of scope are never scanned and
+never recorded). **A newly `shareable` column enters the live in-scope set
+without anyone editing a list** (mutation: hand-enumerate the string columns —
+a column added to the registry but not the list never enters the live set, the
+comparison never differs, and the widening trigger is disabled at its input).
+**Both writers of `normalisation_skips` spell `(table, column)` identically**
+(mutation: have the write-path carve-out use the Dart accessor name while the
+pass uses the registry's snake_case form — entries for the same column never
+group, condition (a) stops correlating them, and no error is raised anywhere).
+**A tag and a choreographer with the same name are both normalised** (mutation:
+group by target value alone rather than by `(table, column, target)` — both are
+skipped forever, and retry cannot repair it because a cross-table collision
+never stops colliding). **A restore re-runs the pass** — restore a library
+containing an un-normalised row after the pass has completed, and assert it is
+NFC (mutation: keep the completion marker across restore — the row is never
+scanned and stays un-normalised for the life of the install; mutation:
+revalidate the recorded entries instead of clearing the marker — the restored
+row is in no entry, so nothing discovers it). **`normalisation_skips` survives
+an epoch reset and a detach** (mutation: clear it with the baseline, as
+`id_aliases` and `review_queue` do — every owed repair is dropped on the next
+`409` while the marker still asserts the scan completed). **A live row whose
+only colliding partner is a tombstone is also skipped, and is normalised on a
+later run once that tombstone is purged** (mutations: ignore soft-deleted rows
+when grouping — the write then fails against an index that does not filter
+`deleted_at`; treat a skip as final — the live row is blocked forever by a
+record the user cannot see or list). **An ordinary edit to a blocked row
+succeeds** (mutation: apply the write-path normalisation rule unconditionally —
+the user's edit is rejected to satisfy an internal invariant). **`settings.key`
+is not rewritten by the pass** (mutation: include every `shareable` string
+column without excluding record identity — the settings record is renamed
+rather than repaired). **Re-running the pass changes nothing** (mutation: make
+any step non-idempotent — a pass interrupted after its last write then repeats
+it). **A row whose text changed is still found by search afterwards**
+(mutation: skip the derived rebuild — the index keeps the pre-normalisation
+text and matches nothing).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`

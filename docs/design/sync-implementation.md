@@ -217,12 +217,22 @@ and program content — which is precisely what the editor-draft keys held until
   record_id)`** with recording as an upsert; its restore-clears rule; and its
   second writer on the ordinary-edit carve-out. The completion marker MUST
   **record the set of columns the scan covered**, with the pass re-running
-  whenever the live in-scope set is not a subset of it — a comparison at open,
-  **not** a migration hook, since reclassifying a column runs no migration. The
-  pass MUST commit in **three steps** — rewrites, skips and a durable *rebuild
-  owed* flag in one transaction; the rebuild outside it; the completion marker
-  only after the rebuild succeeds — and both writers of `normalisation_skips`
-  MUST take their `(table, column)` spelling from **one generated source**; and
+  whenever the live in-scope set **differs** from it — a comparison at open,
+  **not** a migration hook, since reclassifying a column runs no migration, and
+  inequality rather than containment, so a reclassify-out does not make the
+  recorded set a high-water mark. That live set MUST be **derived by reflecting
+  over the schema's column types intersected with `fieldClassifications`** and
+  backed by its own ratchet, since `DataClassification` carries no column type
+  and a hand-list would disable the comparison at its input. **Every pass that
+  rewrites a row** — the one-time pass *and retry* — MUST commit in **three
+  steps**: rewrites, skips and the durable rebuild-owed flag in one
+  transaction; the rebuild outside it; the completion marker, for the one-time
+  pass only, after the rebuild succeeds. That flag MUST be the existing
+  `derivedRebuildRequiredKey`, since the repair is performed by the generic
+  pre-check that reads it and not by the sweep. Both writers of
+  `normalisation_skips` MUST take their `(table, column)` spelling from
+  **constants declared once and imported at all four sites**, which must be
+  created — the registry's identifiers are inline map keys today; and
   a **structural** ratchet asserting that write paths route through the choke
   point.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
@@ -241,9 +251,12 @@ and program content — which is precisely what the editor-draft keys held until
   retired while one whose row was soft-deleted is not — proved through the
   unfiltered lookup, with the filtered accessor shown to retire both — a row
   recorded twice across an interrupted pass is still repairable, a
-  *reclassified* column re-runs the pass with no migration involved, a crash
-  between the commit and the derived rebuild still leaves search matching the
-  repaired rows, both writers spell `(table, column)` identically, a restore
+  *reclassified* column re-runs the pass with no migration involved, a column
+  reclassified out and back in re-runs it too, a newly `shareable` column
+  enters the live set with no list edited, a crash between the commit and the
+  derived rebuild still leaves search matching the repaired rows **on the retry
+  path as well as the one-time pass**, both writers spell `(table, column)`
+  identically, a restore
   re-runs the pass, `normalisation_skips` survives an epoch reset and
   a detach, an ordinary edit to a blocked row succeeds, `settings.key` is
   untouched, a second run of the pass changes nothing, a row whose text the pass
@@ -379,9 +392,21 @@ marker would assert the scan is done, every later pass writes nothing, and "a
 pass that wrote nothing MUST NOT rebuild" then forbids the repair — leaving
 full-text and substring search silently not matching the rows the pass just
 fixed. `repositories.dart` already does exactly this (`:991`, `:1006`, `:1021`,
-with the owed-rebuild check at `:471`–`:477`); the two-step sweeps in the same
+with the owed-rebuild check at `:467`–`:491`); the two-step sweeps in the same
 file (`:557`, `:569`) are the ones with no derived data to rebuild, and copying
 those here is the mistake.
+
+Two details of that shape are easy to drop and carry the whole guarantee. The
+flag must be **the existing `derivedRebuildRequiredKey`**, not one private to
+this unit, because the repair is not performed by the sweep that sets it — it is
+performed by an unconditional check at the top of the migration path that runs
+before any sweep, and a private flag nobody else reads is inert. And the
+obligation is on **any pass that writes a row, retry included**, not on the
+one-time pass: retry never writes the completion marker, so a rule shaped around
+step 3 would skip it, while retry is the path that runs forever and is therefore
+the likelier one to be interrupted. The reference implementation keys the flag
+off `rewroteAny` (`:985`) rather than off a lifecycle for exactly this reason,
+and says so at `:986`–`:990`.
 
 *Compare column sets at open; do not hang the re-run off a migration.* The
 marker records which columns the scan covered, and the pass re-runs when the
@@ -389,7 +414,15 @@ live in-scope set is not a subset of it. A migration hook looks equivalent and
 is not: reclassifying a column to `shareable` is an edit to a map entry in
 `field_registry.dart`, with no schema change, no version bump and no migration
 step, so a migration-gated guard is vacuously satisfied for one of the two
-triggers it exists to catch.
+triggers it exists to catch. Compare with **inequality**, not containment: a
+removal shrinks the live set, containment would pass it silently, and the
+recorded set would become a high-water mark that never notices the same column
+coming back — after an interval in which its rows accrued NFD unnormalised and
+unrecorded. And derive the live set by reflecting over the schema's column types
+intersected with `fieldClassifications`: `DataClassification` has no column-type
+field, so "string" is a schema fact, and hand-enumerating it means a newly
+`shareable` column never enters the live set and the comparison never fires —
+disabling this safety net through its own input.
 
 *Generate the `(table, column)` spelling; do not write it twice.* The pass and
 the write-path carve-out are separate writers, and retry correlates their
@@ -397,7 +430,11 @@ entries by grouping on those two strings. Two spellings of the same column —
 the registry's `'choreographers.name'` against a Dart accessor name — never
 group, so condition (a) stops correlating and collision detection degrades with
 nothing raised. §3.3 already demands a generated, test-proven mapping for the
-identical registry-versus-code mismatch.
+identical registry-versus-code mismatch. Note that the source does not exist
+yet: the registry's identifiers are inline string literals used as map keys, and
+the carve-out has a call site in each of the three repositories, so this unit
+declares the constants once and imports them at all four sites rather than
+typing two literals and reconciling them afterwards.
 
 *`normalisation_skips` does not clear with the baseline.* Its neighbours
 `id_aliases` and `review_queue` do, and copying them is the expected mistake: a

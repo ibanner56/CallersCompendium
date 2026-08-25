@@ -2882,31 +2882,80 @@ never told to pass. Worth checking in both directions: the usual drift is a test
 that has gone slack, but a test that has stayed strict while the prose narrowed
 is the same defect wearing different clothes.
 
-**The general lesson, which is now nine rounds old: the newest machinery
-carries the round's defects.** W18 was created in round 32 to fix an ownership
-gap, and in round 33 it was where both blocking findings lived — including a
-fresh ownership gap, since its own ratchet was gated by no conformance bucket.
-Round 34 then found that the *property* written in round 33 to close that
-round's blocking finding was itself false, and false in a way round 33's own
-new proof obligation was structurally unable to detect. Round 35 then found
-both of its defects in the retry machinery round 34 had added to close *its*
-blocking finding — unclassified new state, and a retry test that raises. Round
-36 found its headline defect in the *replacement test* round 35 installed to
-fix that raise, which broke the grouping guarantee it was protecting. Round 37
-found the retirement rule round 36 added to be unbuildable from any accessor
-that exists, in a way whose natural implementation destroys the repairs it was
-written to protect. Round 38 found two more in the same machinery: a rule that
-cited a sweep convention while dropping the step that makes it crash-safe, and
-a widening rule whose actionable half could not fire for one of the two
-triggers it named. Eight consecutive rounds have found the round's defects in
-the previous round's repair, which is no longer a coincidence and is better
-read as a property of how repairs get written: under the belief that the hard
-thinking has just been done. Round 30's instance was the spec paraphrasing an
-algorithm; round 31's was the same thing twice more; round 32's was the plan
-getting less scrutiny than the spec. Scaffolding built to close a gap is
-written last, reviewed least, and inherits none of the scrutiny that produced
-it — and a *justification* written to close a gap is the least reviewed
-artefact of all, because it reads as the premise rather than as the new work.
+**Round 39: a convention's safety is often not local to the code that
+demonstrates it, and citing that code does not import it.** Round 38 fixed a
+rule that had cited a sweep convention while omitting its durable rebuild-owed
+flag. Round 39 found that the repair had reproduced the flag while omitting what
+makes the flag work: the rebuild is not performed by the sweep that sets the
+flag, but by an unconditional, pass-independent check at the top of the
+migration path that runs *before any sweep*, reads that one specific key, and
+clears it. A "durable rebuild owed flag" read as a private flag the pass owns
+and clears is inert — after a crash the resumed pass rescans, finds nothing left
+to rewrite, and never fires the rebuild. The lesson generalises past this
+instance: **when a rule points at working code, trace where the guarantee is
+actually enforced**, because the mechanism is frequently one layer out from the
+example, and the example is what gets copied.
+
+**Scope an obligation by the action that causes the hazard, not by the actor you
+were thinking about.** The three-step commit rule was written for the one-time
+pass and phrased around its completion marker — but retry also writes rows, and
+retry never writes that marker, so the rule silently excluded the path that runs
+forever rather than once. The hazard is created by *writing a row before the
+rebuild*, and that is what the obligation should have named. The cited
+implementation had already made this choice, keying its flag off "did this
+rewrite anything" rather than off a pass lifecycle; the spec imported the shape
+and re-narrowed the scope the source had deliberately made general. **Ask which
+paths reach the hazardous state, then check the rule names all of them.**
+
+**A containment test is directional, and the direction it ignores can come
+back.** The widening comparison was stated as "re-run when the live column set
+is not a subset of the recorded one", which is correct for every addition and
+correct for a removal — but it means the recorded set never contracts, so it
+becomes a high-water mark, and a column reclassified out and later back in is
+still contained and never re-runs. Meanwhile the interval out of scope is
+exactly when its rows can accrue un-normalised text unrecorded. Inequality costs
+one no-op scan on a rare event and has no direction to ignore. **When a
+predicate compares two evolving sets, walk all four directions rather than the
+one that motivated it.**
+
+**A derived input can disable the mechanism built on top of it.** The re-run
+trigger depends on computing "the live in-scope set", and the obvious
+implementation — hand-listing the `shareable` string columns — cannot be read
+off the registry, because the classification carries no column type. A stale
+hand-list means a newly `shareable` column never enters the live set, the
+comparison never differs, and the safety net added to catch exactly that change
+is silently disabled through its own input. **A rule that consumes a computed
+set is only as strong as the derivation of that set**, so the derivation belongs
+in the rule.
+
+**The general lesson, which is now ten rounds old: the newest machinery carries
+the round's defects.** W18 was created in round 32 to fix an ownership gap, and
+in round 33 it was where both blocking findings lived — including a fresh
+ownership gap, since its own ratchet was gated by no conformance bucket. Round
+34 then found that the *property* written in round 33 to close that round's
+blocking finding was itself false, and false in a way round 33's own new proof
+obligation was structurally unable to detect. Round 35 then found both of its
+defects in the retry machinery round 34 had added to close *its* blocking
+finding — unclassified new state, and a retry test that raises. Round 36 found
+its headline defect in the *replacement test* round 35 installed to fix that
+raise, which broke the grouping guarantee it was protecting. Round 37 found the
+retirement rule round 36 added to be unbuildable from any accessor that exists,
+in a way whose natural implementation destroys the repairs it was written to
+protect. Round 38 found two more in the same machinery: a rule that cited a
+sweep convention while dropping the step that makes it crash-safe, and a
+widening rule whose actionable half could not fire for one of the two triggers
+it named. Round 39 then found round 38's own repair incomplete in the same
+direction — it reproduced the durable flag but not the generic pre-check that
+reads it, and scoped the rule to the one-time pass when retry writes rows too.
+Nine consecutive rounds have found the round's defects in the previous round's
+repair, which is no longer a coincidence and is better read as a property of
+how repairs get written: under the belief that the hard thinking has just been
+done. Round 30's instance was the spec paraphrasing an algorithm; round 31's
+was the same thing twice more; round 32's was the plan getting less scrutiny
+than the spec. Scaffolding built to close a gap is written last, reviewed
+least, and inherits none of the scrutiny that produced it — and a
+*justification* written to close a gap is the least reviewed artefact of all,
+because it reads as the premise rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
@@ -4856,6 +4905,20 @@ must say this plainly rather than implying sync is opaque to us.
   a pass that wrote nothing must not rebuild; or omit the durable rebuild-owed
   flag, and the re-run's own rescan finds nothing left to rewrite and concludes
   no rebuild is owed.
+- **A crash between a *retry* write and its rebuild leaves search matching that
+  row** — mutation-proved by setting the rebuild-owed flag only on the one-time
+  pass: retry repairs a row, dies before the rebuild, and its next rescan finds
+  nothing left to write and is forbidden from rebuilding.
+- **The rebuild-owed flag is the key the generic pre-check reads** —
+  mutation-proved by using a flag private to the pass, which nothing else
+  consults, so the owed rebuild is never performed by anyone.
+- **A column reclassified out of `shareable` and back in re-runs the pass** —
+  mutation-proved by testing containment rather than inequality: the removal
+  contracts nothing, the re-entry is contained, and rows that accrued NFD while
+  out of scope are never scanned.
+- **A newly `shareable` column enters the live in-scope set with no list
+  edited** — mutation-proved by hand-enumerating the string columns, which
+  disables the widening comparison at its input rather than at its logic.
 - **A reclassified column re-runs the pass, with no migration involved** —
   mutation-proved by gating the re-run on a migration hook, which never fires,
   because changing a field's egress class is an edit to a map entry rather than
