@@ -541,6 +541,16 @@ loop rather than in the delete paths — a polymorphic `record_id` spanning thre
 tables cannot carry `ON DELETE CASCADE`, and a self-healing consumer beats an
 obligation on every delete path anyone adds later. A *soft*-deleted row is not
 retired: its tombstone still occupies the key, so the repair is still owed.
+Telling those two apart needs a read that ignores `deleted_at`, which does not
+exist in any of the three repositories today — every `getById` there filters,
+so both states return `null` and the natural implementation retires both. That
+lookup is new work, and it is called out in the plan because the rule reads as
+though it were free.
+
+The table carries a primary key on `(table, column, record_id)` and recording is
+an upsert, because a duplicate entry would make a row block itself: the retry
+test asks whether any *other* recorded row derives the same target, and a twin
+answers yes forever.
 
 **`pending_deletions` survives an epoch reset, deliberately.** Scoping it to the
 epoch as well would be wrong in a way that silently discards user intent. Fresh
@@ -2785,7 +2795,50 @@ present and future delete path.
 W18, which serves §4.1. The matrix was not wrong when written; it was made wrong
 by an addition somewhere else, and nothing links the two.
 
-**The general lesson, which is now seven rounds old: the newest machinery
+**Round 37: a rule is not implementable because it is stated precisely — it is
+implementable when the operation it names exists.** §4.1 said to retire an
+entry whose row no longer exists and, four lines later, never to retire one
+whose row is soft-deleted. Both sentences are right; together they require a
+read that ignores `deleted_at`, and no such read exists in any of the three
+in-scope repositories — every `getById` there filters, and none takes an
+`includeDeleted`. Both states come back `null`, so the *natural* implementation
+retires exactly the entries the second rule forbids and drops owed repairs
+silently. `DanceRepository` does take `includeDeleted`, which makes the pattern
+look uniform when it is not. **When a rule turns on a distinction, name the
+query that draws it and say whether it exists** — a correct rule resting on an
+absent accessor fails in whichever direction the nearest available accessor
+happens to point.
+
+**Ask what a duplicate row does before deciding a key is bookkeeping.** Nothing
+said recording a skip was an upsert, and every other table in the storage
+inventory states columns without keys too — so the omission was consistent, and
+consistently harmless everywhere else. Here a second entry for the same row
+satisfies the retry test's "another recorded row deriving this target" against
+its own twin, so the row blocks itself forever for a collision that does not
+exist. **The question is never whether a table needs a key in general, but what
+its own consumers do when a row appears twice.**
+
+**An enumeration offered as a completeness proof needs the same scrutiny as the
+rule it justifies.** The two-condition retry test rests on "every un-normalised
+in-scope row is recorded", supported by three sources with restore called *"the
+one event that introduces rows no pass has judged"*. It isn't: widening the set
+of `shareable` columns brings unjudged rows into scope while the completion
+marker asserts the scan is finished — and the server-readiness rule already
+treats adding a `shareable` field as an anticipated, recurring event, so the
+design planned for the trigger without connecting it to the claim. A
+justification written to close a gap is the least-reviewed artefact in the
+document, because it reads as the premise rather than as new work.
+
+**Say which condition carries which guarantee.** The review's systematic pass
+established something the document had not claimed for itself: raise-safety
+rests on the live-occupancy condition *alone*, independent of the completeness
+argument, while the grouping condition is what prevents divergence. That is a
+stronger foundation, and it means a flaw in the completeness enumeration cannot
+cause a crash — only a missed repair. **A two-part test whose parts protect
+different properties should say so**, or every future reviewer re-derives it and
+every future editor risks weakening the half that was load-bearing.
+
+**The general lesson, which is now eight rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -2795,16 +2848,18 @@ new proof obligation was structurally unable to detect. Round 35 then found
 both of its defects in the retry machinery round 34 had added to close *its*
 blocking finding — unclassified new state, and a retry test that raises. Round
 36 found its headline defect in the *replacement test* round 35 installed to
-fix that raise, which broke the grouping guarantee it was protecting. Six
-consecutive rounds have found the round's defects in the previous round's
-repair, which is no longer a coincidence and is better read as a property of
-how repairs get written: under the belief that the hard thinking has just been
-done. Round 30's instance was the spec paraphrasing an algorithm; round 31's
-was the same thing twice more; round 32's was the plan getting less scrutiny
-than the spec. Scaffolding built to close a gap is written last, reviewed
-least, and inherits none of the scrutiny that produced it — and a
-*justification* written to close a gap is the least reviewed artefact of all,
-because it reads as the premise rather than as the new work.
+fix that raise, which broke the grouping guarantee it was protecting. Round 37
+found the retirement rule round 36 added to be unbuildable from any accessor
+that exists, in a way whose natural implementation destroys the repairs it was
+written to protect. Seven consecutive rounds have found the round's defects in
+the previous round's repair, which is no longer a coincidence and is better
+read as a property of how repairs get written: under the belief that the hard
+thinking has just been done. Round 30's instance was the spec paraphrasing an
+algorithm; round 31's was the same thing twice more; round 32's was the plan
+getting less scrutiny than the spec. Scaffolding built to close a gap is
+written last, reviewed least, and inherits none of the scrutiny that produced
+it — and a *justification* written to close a gap is the least reviewed
+artefact of all, because it reads as the premise rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
@@ -4747,6 +4802,18 @@ must say this plainly rather than implying sync is opaque to us.
   unspecified iteration order; test recorded-row grouping alone and a pair whose
   survivor was later renamed reads as a singleton, so the retry writes it into a
   third row that took the target in the meantime.
+- **The retirement check reads through a lookup unfiltered by `deleted_at`** —
+  mutation-proved by using the existing `getById` in any of the three
+  repositories, which filters, so a tombstoned row is indistinguishable from a
+  deleted one and an owed repair is dropped with no error raised anywhere.
+- **A row recorded twice across an interrupted pass is still repairable** —
+  mutation-proved by inserting rather than upserting: the duplicate satisfies
+  the retry test against its own twin and the row is blocked forever for a
+  collision that never existed.
+- **Widening the set of `shareable` columns re-runs the pass** —
+  mutation-proved by reclassifying a column and leaving the completion marker
+  standing, after which its rows are never judged, never recorded, and repaired
+  only if a user happens to rewrite each one by hand.
 - **An entry whose row was hard-deleted is retired; one whose row was
   soft-deleted is not** — mutation-proved by retiring on soft delete, which
   drops a repair that is still owed because the tombstone still occupies the

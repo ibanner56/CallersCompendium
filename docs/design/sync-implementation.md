@@ -210,13 +210,20 @@ and program content — which is precisely what the editor-draft keys held until
   anything**; the `normalisation_skips` table (§3.2) with its **retry on each
   open judged by both halves of the grouping test** — recorded-row grouping by
   `(table, column, target)` *and* live occupancy — its **retirement of entries
-  whose row was hard-deleted**, its restore-clears rule, and its second writer
-  on the ordinary-edit carve-out; and a **structural** ratchet
+  whose row was hard-deleted**, which requires a **new lookup unfiltered by
+  `deleted_at`** in all three in-scope repositories, since every existing
+  `getById` there filters and would make a tombstone indistinguishable from a
+  deleted row; a **primary key on `(table, column, record_id)`** with recording
+  as an upsert; its restore-clears rule; and its second writer on the
+  ordinary-edit carve-out. The completion marker MUST be **qualified by the set
+  of columns the scan covered**, so a migration widening that set re-runs the
+  pass; and a **structural** ratchet
   asserting that write paths route through the choke point.
-- **Unblocks** nothing directly, but it **gates C1**: the *Wire format* bucket's
-  locally-created-NFD vector, pre-existing-row vector, collision, idempotence
-  and derived-rebuild clauses are all its, as is the write-path clause in
-  *Write-path invariants*.
+- **Unblocks** W9's restore half (which must clear the state this unit owns),
+  and otherwise nothing directly, but it **gates C1**: the *Wire format*
+  bucket's locally-created-NFD vector, pre-existing-row vector, collision,
+  idempotence and derived-rebuild clauses are all its, as is the write-path
+  clause in *Write-path invariants*.
 - **Done when** those clauses are green: a locally-created NFD title uploads as
   NFC, a row written before the normalising build is NFC after upgrade, the
   backfill is proved not to move any of the three stamps, a colliding local pair
@@ -225,7 +232,10 @@ and program content — which is precisely what the editor-draft keys held until
   mutually-colliding pair survives re-open **still whole** rather than having
   one member written along iteration order, a retry does not raise against a row
   created after the skip was recorded, an entry whose row was hard-deleted is
-  retired while one whose row was soft-deleted is not, a restore re-runs the
+  retired while one whose row was soft-deleted is not — proved through the
+  unfiltered lookup, with the filtered accessor shown to retire both — a row
+  recorded twice across an interrupted pass is still repairable, a migration
+  that widens the in-scope column set re-runs the pass, a restore re-runs the
   pass, `normalisation_skips` survives an epoch reset and
   a detach, an ordinary edit to a blocked row succeeds, `settings.key` is
   untouched, a second run of the pass changes nothing, a row whose text the pass
@@ -332,6 +342,26 @@ the retirement in retry makes it self-healing rather than an obligation on every
 present and future delete path. Do **not** retire on soft delete: a tombstone
 still occupies the key, so the repair is still owed and still blocked.
 
+*Write the unfiltered lookup first — it does not exist, and the accessor you
+will reach for is wrong.* Telling a tombstone from a hard-deleted row needs a
+read that ignores `deleted_at`, and all three in-scope repositories filter:
+`choreographer_repository.dart:67`, `tag_repository.dart:82` and
+`custom_field_repository.dart:74` each `where` on `deletedAt.isNull()`, and none
+takes an `includeDeleted` parameter. Both states come back `null`, so the
+natural implementation retires the entries the spec forbids retiring and drops
+owed repairs with no error anywhere. `DanceRepository.getById` *does* take
+`includeDeleted` (`dance_repository.dart:685`), which makes the pattern look
+uniform when it is not. The same lookup serves retry's value read, since a
+recorded row may legitimately be a tombstone. Three outcomes, not two: live,
+tombstoned, absent.
+
+*Make recording an upsert and give the table a primary key on
+`(table, column, record_id)`.* The pass writes skips and marker in one
+transaction, so an interruption re-runs it from the start rather than resuming;
+without a key that re-run inserts a second entry for the same row, and a
+duplicate is self-blocking — condition (a) sees "another recorded row deriving
+this target" and the row is blocked forever against its own twin.
+
 *`normalisation_skips` does not clear with the baseline.* Its neighbours
 `id_aliases` and `review_queue` do, and copying them is the expected mistake: a
 `UNIQUE` collision between two Unicode forms is a fact about this library, not
@@ -363,7 +393,7 @@ pre-normalisation text and search silently stops matching. Call
 `_normaliseInversePairMoveIdsIfNeeded`, which gates its rebuild on
 `!alreadyRebuilt || rewroteAny` rather than calling it unconditionally, and a
 second call site in the same file gates on a rewrite count alone; follow the
-rewrite-gated shape. A retry pass in which every recorded group still collides
+rewrite-gated shape. A retry pass in which every recorded row is still blocked
 writes nothing and must not rebuild. `runDerivedRebuild()` rebuilds derived
 tables only, so it touches none of the three stamps and composes with the rule
 above.
@@ -633,7 +663,10 @@ and it merges records **silently**.
 #### W9 · Quarantine, repair and restore
 
 - **Serves** §6.9, §6.11.
-- **Inherits** W4, W6.
+- **Inherits** W4, W6, and — for the restore half only — W18, whose completion
+  marker and `normalisation_skips` table restore must clear. No scheduling
+  hazard, since W18 gates C1 and this unit is after it, but the edge is real:
+  build restore before W18 exists and the clearing rule has nothing to clear.
 - **Produces** clock-skew quarantine on the `localNow + 24h` bound; the repair
   classifier, which compares body hashes and therefore depends on I2 holding;
   and restore, which **drops the baseline to force a fresh attach**, clearing
@@ -909,10 +942,12 @@ plan, and a section appearing twice or not at all is a defect in this document.
 Several sections name two units, and the pairing is not sloppiness. §3.1 and
 §6.5 split into one unit that *builds* the behaviour and one that *keeps it
 true* — see W17 for why those are different jobs. §4.1 and §6.10 split into the
-unit that defines the rule (W1) and the unit that makes it hold across the app's
-existing write paths and stored rows (W18). §3.2 splits into the storage (W4)
-and the surface that reviews it (W14). In each case the second unit is the one
-that is easy to forget, because the first one is where the interesting code is.
+unit that defines the rule (W1) and the unit that makes it hold across the
+app's existing write paths and stored rows (W18). §3.2 splits into the storage
+(W4), the surface that reviews it (W14), and the one table whose storage and
+lifecycle belong to the unit that uses it (`normalisation_skips`, W18). In each
+case the second unit is the one that is easy to forget, because the first one
+is where the interesting code is.
 
 | Spec | Unit | Spec | Unit |
 | --- | --- | --- | --- |

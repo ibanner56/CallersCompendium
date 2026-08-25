@@ -179,6 +179,13 @@ in it is ever re-transmitted. Storing the target value would make part of the
 row `shareable` for no gain, since §4.1 requires retry to re-derive the target
 from the live column anyway.
 
+Its primary key is `(table, column, record_id)`, for the reason §4.1 gives: a
+duplicate entry would make a row block itself. Growth is bounded by the number
+of rows the pass could not repair, which is bounded in turn by the number of
+`UNIQUE` collisions the user's own library contains — normally zero, and each
+entry is one row address rather than content. It shrinks as repairs land, so
+unlike `published_records` it needs no monotonic-growth argument.
+
 **It is the only entry here that is not store state at all**, and an
 implementer who copies the nearest visible precedent will get it wrong in a way
 that loses data repairs silently. `id_aliases` and `review_queue` record
@@ -421,6 +428,19 @@ recorded rows on each subsequent open, clearing an entry once its row is
 written. Re-attempting is bounded by the number of recorded rows rather than by
 the size of the library, so it is not a repeated full scan.
 
+**Recording MUST be idempotent, and `normalisation_skips` MUST carry a primary
+key on `(table, column, record_id)`.** The pass writes its skips and its
+completion marker in one transaction, on the convention `repositories.dart`
+already uses for one-time sweeps, so an interrupted pass re-runs from the start
+rather than resuming; recording MUST therefore be an upsert. A duplicate entry
+is uniquely harmful for this table, because condition (a) of the retry test asks
+whether any *other recorded row* derives the same target: a second entry for a
+row is, read literally, another recorded row deriving that row's target, so the
+row blocks itself permanently for a collision that does not exist, and a
+duplicate can never stop colliding with its own twin. The other tables in §3.2
+also state columns without keys, but none of them turns a duplicate into a
+self-blocking condition.
+
 **Retry MUST apply the same grouping test as the initial pass, re-derived from
 live state.** A recorded row MUST be written only when both conditions hold: no
 *other recorded row* in the same `(table, column)` currently derives the same
@@ -458,10 +478,29 @@ The two conditions together are equivalent to the initial pass's pre-pass
 snapshot, and the reason is worth stating because it is what makes a test over
 the recorded set sufficient: **every un-normalised in-scope row is recorded.**
 The initial pass records every row it skips, the write-path carve-out below
-records any later write it cannot normalise, and a restore — the one event that
-introduces rows no pass has judged — clears the marker and the table and re-runs
-the full scan (§6.11). An in-scope row that is *not* recorded therefore already
-holds its own target, which is exactly what the occupancy condition observes.
+records any later write it cannot normalise, and the two events that introduce
+rows no pass has judged both re-run the full scan. An in-scope row that is *not*
+recorded therefore already holds its own target, which is exactly what the
+occupancy condition observes.
+
+The first such event is a restore, which clears the marker and the table
+(§6.11). The second is **a change to the in-scope column set itself**: a column
+reclassified to `shareable`, or a new `shareable` column added, brings rows into
+scope that the completed scan never judged, while the marker goes on asserting
+the work is done. That is not a hypothetical — §7.2 treats a new `shareable`
+field as an anticipated, recurring event — and left unhandled it reproduces
+exactly the failure the one-time pass exists to close, since normalising on
+write never reaches a row that is never written again. **The completion marker
+MUST therefore be qualified by the set of columns the scan covered, and a
+migration that widens that set MUST clear the marker so the pass runs again.**
+Re-running is a no-op for every already-normalised row, so the cost falls on the
+migration that widened the set rather than on ordinary opens.
+
+Raise-safety does not rest on this argument. A retry write can only raise if
+some row already holds the target, and condition (b) observes that occupant
+whether or not it is recorded. Completeness is what condition (a) needs, and
+condition (a) is what prevents divergence; the two conditions fail
+independently, which is why both are stated.
 
 Retry is what keeps every blocking condition resolvable, and it is the reason
 this specification does not need a special case for tombstones. A blocked row
@@ -496,6 +535,27 @@ NOT count as a write for the index-rebuild rule below.
 continues to occupy its natural key, exactly as the grouping rule above states;
 retiring its entry would drop a repair that is still owed and still blocked.
 Only the disappearance of the row itself retires an entry.
+
+**Both the existence check and retry's value read MUST use a lookup that does
+not filter `deleted_at`, and no such lookup exists today.** This is a new query,
+not an existing accessor, and the distinction is the difference between the two
+rules above working and one of them silently destroying repairs. All three
+in-scope repositories expose a `getById` that filters on `deleted_at`
+(`choreographer_repository.dart:67`, `tag_repository.dart:82`,
+`custom_field_repository.dart:74`), and none takes an `includeDeleted`
+parameter. Such a lookup returns `null` for a tombstone *and* for a hard-deleted
+row, so an implementer reaching for the obvious accessor retires exactly the
+entries the rule above forbids retiring — the quiet loss this section is written
+to prevent, reached by writing the natural implementation rather than a careless
+one. The same lookup is what retry reads the current stored value from, and a
+recorded row may legitimately be a tombstone, since grouping deliberately
+includes soft-deleted rows.
+
+The trap is sharpened by an inconsistency in the codebase rather than by
+anything in this design: `DanceRepository.getById` *does* take
+`includeDeleted` (`dance_repository.dart:685`), so the pattern looks uniform
+from the one place it is implemented and is not. Implementations MUST therefore
+distinguish three outcomes, not two: a live row, a tombstoned row, and no row.
 
 **A later ordinary write to a row whose target is occupied MUST NOT fail.**
 §4.1's write-path rule requires every write to normalise, which would re-attempt
@@ -1731,22 +1791,30 @@ iteration order, so two devices can normalise opposite members; test
 recorded-row grouping alone — record a skipped pair, create a third row already
 holding the target in NFC, rename one member, then re-open: the survivor is a
 singleton by grouping and the retry raises against the third row, breaking
-totality at retry time). **An entry whose row is hard-deleted is retired**
-(mutations: retire on soft delete too — a tombstone still occupies the key, so
-an owed and still-blocked repair is dropped; retire on neither — retry has no
+totality at retry time). **An entry whose row is hard-deleted is retired, and
+one whose row is soft-deleted is not** (mutations: read existence through an
+accessor that filters `deleted_at`, as all three in-scope repositories'
+`getById` do — a tombstone is then indistinguishable from a deleted row, so an
+owed and still-blocked repair is dropped; retire on neither — retry has no
 stored value to re-derive from, and the entry accumulates forever behind an
-ordinary import undo). **A tag and a choreographer with the same name are both
-normalised** (mutation: group by target value alone rather than by `(table,
-column, target)` — both are skipped forever, and retry cannot repair it because
-a cross-table collision never stops colliding). **A restore re-runs the pass**
-— restore a library containing an un-normalised row after the pass has
-completed, and assert it is NFC (mutation: keep the completion marker across
-restore — the row is never scanned and stays un-normalised for the life of the
-install; mutation: revalidate the recorded entries instead of clearing the
-marker — the restored row is in no entry, so nothing discovers it).
-**`normalisation_skips` survives an epoch reset and a detach** (mutation: clear
-it with the baseline, as `id_aliases` and `review_queue` do — every owed repair
-is dropped on the next `409` while the marker still asserts the scan
+ordinary import undo). **Recording the same row twice leaves it repairable**
+(mutation: insert rather than upsert, then interrupt and re-run the pass — the
+duplicate satisfies condition (a) against its own twin and the row blocks
+itself forever). **Widening the in-scope column set re-runs the pass**
+(mutation: reclassify a column to `shareable` and leave the completion marker
+standing — its rows are never judged, never recorded, and are repaired only if
+a user happens to rewrite each one). **A tag and a choreographer with the same
+name are both normalised** (mutation: group by target value alone rather than
+by `(table, column, target)` — both are skipped forever, and retry cannot
+repair it because a cross-table collision never stops colliding). **A restore
+re-runs the pass** — restore a library containing an un-normalised row after
+the pass has completed, and assert it is NFC (mutation: keep the completion
+marker across restore — the row is never scanned and stays un-normalised for
+the life of the install; mutation: revalidate the recorded entries instead of
+clearing the marker — the restored row is in no entry, so nothing discovers
+it). **`normalisation_skips` survives an epoch reset and a detach** (mutation:
+clear it with the baseline, as `id_aliases` and `review_queue` do — every owed
+repair is dropped on the next `409` while the marker still asserts the scan
 completed). **A live row whose only colliding partner is a tombstone is also
 skipped, and is normalised on a later run once that tombstone is purged**
 (mutations: ignore soft-deleted rows when grouping — the write then fails
