@@ -355,7 +355,9 @@ class FigureRenderer {
           template: wording!,
         ));
         final displayLine = def.id == 'circle' && params['singleFile'] == true
-            ? 'single file $line'
+            ? (line.trimLeft().startsWith('single file ')
+                ? line
+                : 'single file $line')
             : line;
         return figure.assumedSubject
             ? _spliceAssumedSubjectMarker(displayLine)
