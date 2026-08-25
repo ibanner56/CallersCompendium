@@ -100,6 +100,13 @@ class CollectionImportEventRepository {
     if (requested.isEmpty) return counts;
 
     final versions = requested.map((pair) => pair.$2).toSet();
+    final collectionPrefixes = <String>{
+      for (final pair in requested) '${pair.$1}/',
+    };
+    final prefixFilters = <Expression<bool>>[
+      for (final prefix in collectionPrefixes)
+        _db.provenance.externalId.substr(1, prefix.length).equals(prefix),
+    ];
     final rows =
         await (_db.selectOnly(_db.provenance)
               ..addColumns([
@@ -110,7 +117,8 @@ class CollectionImportEventRepository {
                 _db.provenance.source.equals(
                       ProvenanceSource.publishedCollection.name,
                     ) &
-                    _db.provenance.sourceVersion.isIn(versions),
+                    _db.provenance.sourceVersion.isIn(versions) &
+                    prefixFilters.reduce((a, b) => a | b),
               ))
             .get();
 
