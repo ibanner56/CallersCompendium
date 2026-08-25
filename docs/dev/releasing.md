@@ -300,10 +300,13 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
 - For a bare **beta** tag it prepends a clear **Beta / pre-release** banner.
 - It always appends the safety footer: the per-platform signing posture, a
   reminder to verify against `SHA256SUMS`, and a note that a maintainer
-  publishes the draft after review. The macOS line is **honest about the actual
-  signing outcome** — `publish_draft` passes `--macos-signing configured` only
-  when the Apple secrets are present (so macOS was Developer ID-signed &
-  notarized); otherwise the footer reports all three desktops as **unsigned**.
+  publishes the draft after review. The Windows and macOS lines are **each
+  honest about the actual signing outcome** — the publish job passes
+  `--macos-signing configured` only when the Apple secrets are present (so macOS
+  was Developer ID-signed & notarized) and `--windows-signing configured` only
+  when the five `AZURE_*` repository variables are present (so Windows was signed
+  via Azure Trusted Signing); anything unsigned (Linux always, plus either
+  conditional leg whose credentials are absent) is reported as **unsigned**.
 - If **no matching section exists**, either selected channel fails fast in the
   cheap `meta` job — *before* the build matrix — with a clear `::error::`.
   A beta establishes its shared `## [X.Y.Z]` section from `Unreleased`; fixes
