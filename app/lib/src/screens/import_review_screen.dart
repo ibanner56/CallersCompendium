@@ -461,16 +461,16 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   ) async {
     final events = await (_publishedImportEvents ??= _repos.collectionImports
         .listAll());
+    final heldCounts = await (_publishedHeldCounts ??= _repos.collectionImports
+        .heldCounts(
+          events.map((event) => (event.collectionId, event.version)),
+        ));
     final matching = events
         .where((event) => event.collectionId == collectionId)
         .map((event) => event.version)
         .toList();
-    final held = await _repos.collectionImports.heldCount(
-      collectionId,
-      version: version,
-    );
     return PublishedCollectionStatus(
-      heldCount: held,
+      heldCount: heldCounts[(collectionId, version)] ?? 0,
       importedVersion: matching.isEmpty
           ? null
           : matching.reduce(
@@ -480,6 +480,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Future<List<CollectionImportEvent>>? _publishedImportEvents;
+  Future<Map<(String, String), int>>? _publishedHeldCounts;
 
   Future<void> _selectPublishedCollection(
     PublishedCollectionEntry entry,
@@ -920,6 +921,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         (source) => source.preselected,
         orElse: () => widget.sources.first,
       );
+      _sourceManuallySelected = false;
       _cachedPickedBundle = null;
       _pasteController.clear();
     }
@@ -1260,6 +1262,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           rethrow;
         }
         _publishedImportEvents = null;
+        _publishedHeldCounts = null;
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
         await _showResult(
