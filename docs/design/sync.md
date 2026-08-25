@@ -2838,7 +2838,51 @@ cause a crash — only a missed repair. **A two-part test whose parts protect
 different properties should say so**, or every future reviewer re-derives it and
 every future editor risks weakening the half that was load-bearing.
 
-**The general lesson, which is now eight rounds old: the newest machinery
+**Round 38: citing a codebase convention is not the same as reproducing the part
+that makes it safe.** The pass was told to write its skips and its completion
+marker in one transaction, "on the convention `repositories.dart` already uses
+for one-time sweeps". That convention exists, but it has two shapes, and the one
+that applies to a sweep needing a derived rebuild has **three** steps rather
+than two: the rewrites commit alongside a durable *rebuild owed* flag, the
+rebuild runs outside the transaction, and the done-marker is written only after
+it succeeds. Taking the two-step shape leaves a crash window in which the marker
+says the scan finished while the search indexes still hold pre-normalisation
+text — permanently, because later passes write nothing and the design forbids
+rebuilding when nothing was written. **When a rule leans on an existing pattern,
+name the steps, not the pattern**, and check whether the pattern has variants
+that differ in exactly the property being relied on.
+
+**An obligation should be stated over the condition, not over the event you
+expect to cause it.** The rule said a *migration* widening the in-scope column
+set must clear the completion marker — but one of the two triggers the same
+paragraph names, reclassifying a column to `shareable`, is an edit to a plain
+map entry with no schema change, no version bump and no migration at all. The
+emphatic half of the rule was therefore inert for half the cases it was written
+for, and an implementer building exactly what it said would satisfy it
+vacuously. Restating it as a comparison — re-run whenever the live in-scope set
+is not a subset of the recorded one — catches both triggers with one mechanism.
+**A rule keyed to a mechanism silently excludes every path that reaches the same
+state by another route.**
+
+**Two writers of one table need a pinned spelling, not just a pinned shape.**
+The primary key's *columns* were specified exactly; the *strings* that go in
+them were not, and the table has two independent writers whose entries retry
+correlates by grouping on those strings. Two reasonable conventions exist in
+this codebase and it reaches for both. A mismatch produces no error, no
+exception and no failing test — collision detection simply stops correlating.
+**Where two producers must agree on a value, generate it from one source**, the
+standard the design already sets elsewhere for the identical
+registry-versus-code mismatch.
+
+**The conformance vector and the normative prose can drift apart, and the vector
+is sometimes the stricter of the two.** The §9 mutation for the widening rule
+tested the reclassification case, which the prose's migration-gated obligation
+would not have caught — so a conforming implementation could fail a test it was
+never told to pass. Worth checking in both directions: the usual drift is a test
+that has gone slack, but a test that has stayed strict while the prose narrowed
+is the same defect wearing different clothes.
+
+**The general lesson, which is now nine rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -2851,7 +2895,10 @@ blocking finding — unclassified new state, and a retry test that raises. Round
 fix that raise, which broke the grouping guarantee it was protecting. Round 37
 found the retirement rule round 36 added to be unbuildable from any accessor
 that exists, in a way whose natural implementation destroys the repairs it was
-written to protect. Seven consecutive rounds have found the round's defects in
+written to protect. Round 38 found two more in the same machinery: a rule that
+cited a sweep convention while dropping the step that makes it crash-safe, and
+a widening rule whose actionable half could not fire for one of the two
+triggers it named. Eight consecutive rounds have found the round's defects in
 the previous round's repair, which is no longer a coincidence and is better
 read as a property of how repairs get written: under the belief that the hard
 thinking has just been done. Round 30's instance was the spec paraphrasing an
@@ -4802,6 +4849,22 @@ must say this plainly rather than implying sync is opaque to us.
   unspecified iteration order; test recorded-row grouping alone and a pair whose
   survivor was later renamed reads as a singleton, so the retry writes it into a
   third row that took the target in the meantime.
+- **A crash between the pass's commit and its derived rebuild still leaves
+  search matching the repaired rows** — mutation-proved twice: write the
+  completion marker inside the mutation transaction, and the indexes hold
+  pre-normalisation text forever, because every later pass writes nothing and
+  a pass that wrote nothing must not rebuild; or omit the durable rebuild-owed
+  flag, and the re-run's own rescan finds nothing left to rewrite and concludes
+  no rebuild is owed.
+- **A reclassified column re-runs the pass, with no migration involved** —
+  mutation-proved by gating the re-run on a migration hook, which never fires,
+  because changing a field's egress class is an edit to a map entry rather than
+  a schema change.
+- **Both writers of `normalisation_skips` spell `(table, column)` identically**
+  — mutation-proved by giving the write-path carve-out the Dart accessor name
+  while the pass uses the registry's snake_case form: entries for one column
+  never group, the retry test stops correlating them, and nothing anywhere
+  raises.
 - **The retirement check reads through a lookup unfiltered by `deleted_at`** —
   mutation-proved by using the existing `getById` in any of the three
   repositories, which filters, so a tombstoned row is indistinguishable from a

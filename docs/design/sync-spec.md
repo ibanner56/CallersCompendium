@@ -429,10 +429,9 @@ written. Re-attempting is bounded by the number of recorded rows rather than by
 the size of the library, so it is not a repeated full scan.
 
 **Recording MUST be idempotent, and `normalisation_skips` MUST carry a primary
-key on `(table, column, record_id)`.** The pass writes its skips and its
-completion marker in one transaction, on the convention `repositories.dart`
-already uses for one-time sweeps, so an interrupted pass re-runs from the start
-rather than resuming; recording MUST therefore be an upsert. A duplicate entry
+key on `(table, column, record_id)`.** The pass commits its row rewrites and its
+skips together, and an interrupted pass re-runs from the start rather than
+resuming, so recording MUST be an upsert. A duplicate entry
 is uniquely harmful for this table, because condition (a) of the retry test asks
 whether any *other recorded row* derives the same target: a second entry for a
 row is, read literally, another recorded row deriving that row's target, so the
@@ -440,6 +439,24 @@ row blocks itself permanently for a collision that does not exist, and a
 duplicate can never stop colliding with its own twin. The other tables in §3.2
 also state columns without keys, but none of them turns a duplicate into a
 self-blocking condition.
+
+**The spelling of `table` and `column` MUST be pinned, and MUST come from a
+single generated source shared by both writers.** The table has two independent
+writers — the one-time pass and the write-path carve-out below — and retry's
+condition (a) correlates their entries by grouping on `(table, column)`. If the
+two writers spell the same column differently, their entries never group,
+condition (a) silently stops correlating them, and collision detection degrades
+with no error raised and nothing to notice: the failure is invisible unless
+someone compares spellings across two call sites. The values MUST be the
+snake_case `table.column` form the classification registry already uses
+(`'choreographers.name'`), not the Dart-side accessor names, since that is the
+form the in-scope column set is defined over — but the point is the shared
+source rather than the choice: §3.3 requires a generated mapping *"proven by
+test rather than hand-maintained"* for the same class of mismatch between
+registry and codec spellings, and the same standard applies here. Note that this
+is not a convergence concern: the table is `deviceScoped` and never transmitted,
+so the damage is confined to a single install, which is why nothing downstream
+would ever surface it.
 
 **Retry MUST apply the same grouping test as the initial pass, re-derived from
 live state.** A recorded row MUST be written only when both conditions hold: no
@@ -485,16 +502,37 @@ occupancy condition observes.
 
 The first such event is a restore, which clears the marker and the table
 (§6.11). The second is **a change to the in-scope column set itself**: a column
-reclassified to `shareable`, or a new `shareable` column added, brings rows into
-scope that the completed scan never judged, while the marker goes on asserting
-the work is done. That is not a hypothetical — §7.2 treats a new `shareable`
-field as an anticipated, recurring event — and left unhandled it reproduces
-exactly the failure the one-time pass exists to close, since normalising on
-write never reaches a row that is never written again. **The completion marker
-MUST therefore be qualified by the set of columns the scan covered, and a
-migration that widens that set MUST clear the marker so the pass runs again.**
-Re-running is a no-op for every already-normalised row, so the cost falls on the
-migration that widened the set rather than on ordinary opens.
+reclassified to `shareable`, or a new `shareable` column added, brings rows
+into scope that the completed scan never judged, while the marker goes on
+asserting the work is done. That is not a hypothetical — §7.2 treats a new
+`shareable` field as an anticipated, recurring event — and left unhandled it
+reproduces exactly the failure the one-time pass exists to close, since
+normalising on write never reaches a row that is never written again. **The
+completion marker MUST therefore record the set of columns the scan covered,
+and the pass MUST re-run whenever the live in-scope set is not a subset of that
+recorded set.** The obligation is stated over the *comparison*, not over a
+migration, because only one of the two triggers involves a migration at all:
+adding a column does, but reclassifying one is an edit to a plain map entry in
+`field_registry.dart` — changing `egress` there touches no schema, bumps no
+schema version, and runs no migration step. An implementation that satisfies
+this rule by clearing a boolean marker from a migration hook would therefore
+satisfy it *vacuously* for reclassification, leaving the newly in-scope rows
+un-normalised behind a standing marker, which is the failure this paragraph
+exists to close. Comparing the recorded set against the live one at open
+catches both triggers with one mechanism and needs no migration to remember
+anything. Re-running is a no-op for every already-normalised row, so the cost
+falls on the change that widened the set rather than on ordinary opens.
+
+Recording a column set turns the marker from a presence latch into a settings
+value carrying structured content, which is mechanically ordinary — sweep
+markers already store JSON — but worth one note on classification. Sweep markers
+sit outside the settings classification ratchet: it matches declarations named
+`k…Key`, and every marker is named `…DoneKey` or `…RequiredKey`, so none is
+captured. That is pre-existing and deliberate rather than something this design
+introduces, and §3.3's fail-closed rule contains it — an unclassified key is
+treated as `deviceLocal` and never serialised. The content here is a list of
+schema identifiers, which carries no user data in any case. The marker is
+install state, not store state, and is not part of §3.2's inventory.
 
 Raise-safety does not rest on this argument. A retry write can only raise if
 some row already holds the target, and condition (b) observes that occupant
@@ -591,6 +629,43 @@ and not a formality.
 only failure response, the pass is total: no row raises, so an interrupted pass
 cannot repeat a failure on every launch. Re-running it over already-normalised
 rows is a no-op.
+
+**The pass MUST commit in three steps, and MUST NOT write its completion marker
+until the derived rebuild has succeeded.** The steps are: (1) the row rewrites,
+the `normalisation_skips` upserts and a durable *rebuild owed* flag, all in one
+transaction; (2) the derived rebuild, **outside** that transaction; (3) the
+completion marker, only once the rebuild returns, clearing the flag with it. A
+pass that wrote nothing skips steps 2 and 3's clearing and writes only the
+marker.
+
+Bundling the marker into the mutation transaction instead — the shape of a sweep
+that has no rebuild — is unsafe here, and unsafe permanently rather than until
+the next open. A crash between the commit and the rebuild would leave the marker
+asserting the scan is done while the full-text and substring indexes still hold
+pre-normalisation text; the pass never runs again, and every later retry pass
+writes nothing, so the rule below forbids the rebuild that would repair them.
+Search would silently stop matching exactly the rows the pass had just fixed.
+Running the rebuild *inside* the transaction is the other way to close the gap
+and is rejected: it puts a full recomputation of derived data over the whole
+library inside a write-locked transaction.
+
+The durable flag is what makes the gap survivable, and it is the mechanism the
+codebase already uses for precisely this shape.
+`_backfillChainHandIfNeeded` in `repositories.dart` commits its rewrites with
+`derivedRebuildRequiredKey` (`:991`) in one transaction, calls
+`runDerivedRebuild` outside it (`:1006`), deletes the flag once that returns,
+and writes its own done-marker last (`:1021`); an unconditional check at the top
+of the migration path re-runs an owed rebuild on the next open (`:471`–`:477`).
+A crash anywhere in the middle is therefore repaired, including the case where a
+re-run's own rescan finds nothing left to rewrite. This pass MUST follow that
+three-step shape rather than the two-step shape used by sweeps with no derived
+data to rebuild (`_repairPurgeCorruptionIfNeeded`, `:557`, `:569`), which is
+where the simpler "marker in the same transaction" reading comes from. There is
+no single sweep convention in that file to appeal to — markers are written
+inside the mutation transaction in some sweeps and only after success in others
+— so this specification states the shape it requires rather than citing "the
+convention". What every shape does share, and what this pass also requires, is
+that an interrupted sweep re-runs from the start rather than resuming.
 
 **The pass MUST rebuild derived indexes if it wrote anything.** Full-text and
 substring indexes over `shareable` text are maintained by the repository layer
@@ -1756,65 +1831,79 @@ disagree, this section is what conformance is measured against.
 **Wire format.** Canonical-JSON goldens (two devices, byte-identical);
 integer/float form; absent-versus-null; recursive key order. RFC 8785
 conformance vectors. A fractional `shareable` value round-trips to identical
-bytes on two independent encoders (mutation: emit `double.toString()` instead of
-the shortest round-tripping form). The same title in NFC and NFD hashes
+bytes on two independent encoders (mutation: emit `double.toString()` instead
+of the shortest round-tripping form). The same title in NFC and NFD hashes
 identically after ingest (mutation: skip normalisation, and watch two devices
 hold one record as a permanent `changed`/`changed`). **A title created locally
-in NFD and never synced serialises as NFC on its first upload** (mutation: scope
-normalisation to inbound values only — the device then uploads NFD forever from
-its own unchanged storage, and no test exercising both forms *through* the sync
-path can catch it). A record requiring NaN or ±Infinity is rejected rather than
-coerced, and so is a `shareable` string carrying an unpaired UTF-16 surrogate
-(mutation: substitute `U+FFFD`, which converges only while every implementation
-picks the same repair). **The surrogate rejection is asserted on the string,
-before encoding** (mutation: check after `utf8.encode` — the platform has
-already substituted by then, no error is raised, and two devices agree on the
-hash of the repaired bytes while holding different strings). **A row written
-before the normalising build is NFC after upgrade** (mutation: normalise only
-on write — a library that is never edited again is never repaired, and §6.2
-step 4 uploads it verbatim), **and the pass leaves `updated_at` unchanged**
-(mutation: bump it — every normalised row is then handed to whichever device
-upgraded last). **A pass over a local pair whose names normalise to the same
-`UNIQUE` value leaves both rows untouched, reports the pair, and completes**
-(mutations: merge them — two devices resolving the pair differently then
-diverge, and the pass no longer qualifies for I1's exception; abort the pass —
-the row throws on every launch and the device never normalises anything;
-**detect the collision by catching the `UNIQUE` violation instead of grouping
-before writing** — the first row of the pair writes successfully because
-nothing holds the target yet, so exactly one member is normalised and which one
-depends on row order). **A retry applies both halves of the grouping test —
-recorded-row grouping and live occupancy — and a mutually-colliding recorded
-pair survives re-open unchanged** (mutations: test live occupancy alone —
-neither member occupies the target, so whichever the client reaches first is
-written and the pair the initial pass left whole is split along an unspecified
-iteration order, so two devices can normalise opposite members; test
-recorded-row grouping alone — record a skipped pair, create a third row already
-holding the target in NFC, rename one member, then re-open: the survivor is a
-singleton by grouping and the retry raises against the third row, breaking
-totality at retry time). **An entry whose row is hard-deleted is retired, and
-one whose row is soft-deleted is not** (mutations: read existence through an
-accessor that filters `deleted_at`, as all three in-scope repositories'
-`getById` do — a tombstone is then indistinguishable from a deleted row, so an
-owed and still-blocked repair is dropped; retire on neither — retry has no
-stored value to re-derive from, and the entry accumulates forever behind an
-ordinary import undo). **Recording the same row twice leaves it repairable**
-(mutation: insert rather than upsert, then interrupt and re-run the pass — the
-duplicate satisfies condition (a) against its own twin and the row blocks
-itself forever). **Widening the in-scope column set re-runs the pass**
-(mutation: reclassify a column to `shareable` and leave the completion marker
-standing — its rows are never judged, never recorded, and are repaired only if
-a user happens to rewrite each one). **A tag and a choreographer with the same
-name are both normalised** (mutation: group by target value alone rather than
-by `(table, column, target)` — both are skipped forever, and retry cannot
-repair it because a cross-table collision never stops colliding). **A restore
-re-runs the pass** — restore a library containing an un-normalised row after
-the pass has completed, and assert it is NFC (mutation: keep the completion
-marker across restore — the row is never scanned and stays un-normalised for
-the life of the install; mutation: revalidate the recorded entries instead of
-clearing the marker — the restored row is in no entry, so nothing discovers
-it). **`normalisation_skips` survives an epoch reset and a detach** (mutation:
-clear it with the baseline, as `id_aliases` and `review_queue` do — every owed
-repair is dropped on the next `409` while the marker still asserts the scan
+in NFD and never synced serialises as NFC on its first upload** (mutation:
+scope normalisation to inbound values only — the device then uploads NFD
+forever from its own unchanged storage, and no test exercising both forms
+*through* the sync path can catch it). A record requiring NaN or ±Infinity is
+rejected rather than coerced, and so is a `shareable` string carrying an
+unpaired UTF-16 surrogate (mutation: substitute `U+FFFD`, which converges only
+while every implementation picks the same repair). **The surrogate rejection is
+asserted on the string, before encoding** (mutation: check after `utf8.encode`
+— the platform has already substituted by then, no error is raised, and two
+devices agree on the hash of the repaired bytes while holding different
+strings). **A row written before the normalising build is NFC after upgrade**
+(mutation: normalise only on write — a library that is never edited again is
+never repaired, and §6.2 step 4 uploads it verbatim), **and the pass leaves
+`updated_at` unchanged** (mutation: bump it — every normalised row is then
+handed to whichever device upgraded last). **A pass over a local pair whose
+names normalise to the same `UNIQUE` value leaves both rows untouched, reports
+the pair, and completes** (mutations: merge them — two devices resolving the
+pair differently then diverge, and the pass no longer qualifies for I1's
+exception; abort the pass — the row throws on every launch and the device never
+normalises anything; **detect the collision by catching the `UNIQUE` violation
+instead of grouping before writing** — the first row of the pair writes
+successfully because nothing holds the target yet, so exactly one member is
+normalised and which one depends on row order). **A retry applies both halves
+of the grouping test — recorded-row grouping and live occupancy — and a
+mutually-colliding recorded pair survives re-open unchanged** (mutations: test
+live occupancy alone — neither member occupies the target, so whichever the
+client reaches first is written and the pair the initial pass left whole is
+split along an unspecified iteration order, so two devices can normalise
+opposite members; test recorded-row grouping alone — record a skipped pair,
+create a third row already holding the target in NFC, rename one member, then
+re-open: the survivor is a singleton by grouping and the retry raises against
+the third row, breaking totality at retry time). **An entry whose row is
+hard-deleted is retired, and one whose row is soft-deleted is not** (mutations:
+read existence through an accessor that filters `deleted_at`, as all three
+in-scope repositories' `getById` do — a tombstone is then indistinguishable
+from a deleted row, so an owed and still-blocked repair is dropped; retire on
+neither — retry has no stored value to re-derive from, and the entry
+accumulates forever behind an ordinary import undo). **Recording the same row
+twice leaves it repairable** (mutation: insert rather than upsert, then
+interrupt and re-run the pass — the duplicate satisfies condition (a) against
+its own twin and the row blocks itself forever). **Widening the in-scope column
+set re-runs the pass** (mutations: reclassify a column to `shareable` and leave
+the completion marker standing — its rows are never judged, never recorded, and
+are repaired only if a user happens to rewrite each one; gate the re-run on a
+migration rather than on comparing the recorded column set against the live one
+— a reclassification runs no migration, so the guard never fires for the
+trigger it was written for). **A crash between the pass's commit and its
+derived rebuild still leaves search matching the repaired rows** — interrupt
+after the transaction commits and re-open (mutations: write the completion
+marker inside the mutation transaction — the marker asserts the scan is done,
+later passes write nothing so the rebuild is forbidden, and the indexes hold
+pre-normalisation text permanently; omit the durable rebuild-owed flag — the
+re-run's own rescan finds nothing left to rewrite and concludes no rebuild is
+owed). **Both writers of `normalisation_skips` spell `(table, column)`
+identically** (mutation: have the write-path carve-out use the Dart accessor
+name while the pass uses the registry's snake_case form — entries for the same
+column never group, condition (a) stops correlating them, and no error is
+raised anywhere). **A tag and a choreographer with the same name are both
+normalised** (mutation: group by target value alone rather than by `(table,
+column, target)` — both are skipped forever, and retry cannot repair it because
+a cross-table collision never stops colliding). **A restore re-runs the pass**
+— restore a library containing an un-normalised row after the pass has
+completed, and assert it is NFC (mutation: keep the completion marker across
+restore — the row is never scanned and stays un-normalised for the life of the
+install; mutation: revalidate the recorded entries instead of clearing the
+marker — the restored row is in no entry, so nothing discovers it).
+**`normalisation_skips` survives an epoch reset and a detach** (mutation: clear
+it with the baseline, as `id_aliases` and `review_queue` do — every owed repair
+is dropped on the next `409` while the marker still asserts the scan
 completed). **A live row whose only colliding partner is a tombstone is also
 skipped, and is normalised on a later run once that tombstone is purged**
 (mutations: ignore soft-deleted rows when grouping — the write then fails

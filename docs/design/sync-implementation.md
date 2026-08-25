@@ -204,21 +204,27 @@ and program content — which is precisely what the editor-draft keys held until
   kind already funnels through rather than per-writer; a **one-time backfill
   migration** over existing rows that leaves `updated_at`, `existence_at` and
   `deleted_at` untouched, excludes record-identity columns (`settings.key`),
-  detects collisions by **grouping on `(table, column, target)` before writing**
-  rather than by catching the `UNIQUE` violation, **skips and reports** whole
-  colliding groups without aborting, and **rebuilds derived indexes if it wrote
-  anything**; the `normalisation_skips` table (§3.2) with its **retry on each
-  open judged by both halves of the grouping test** — recorded-row grouping by
-  `(table, column, target)` *and* live occupancy — its **retirement of entries
-  whose row was hard-deleted**, which requires a **new lookup unfiltered by
-  `deleted_at`** in all three in-scope repositories, since every existing
-  `getById` there filters and would make a tombstone indistinguishable from a
-  deleted row; a **primary key on `(table, column, record_id)`** with recording
-  as an upsert; its restore-clears rule; and its second writer on the
-  ordinary-edit carve-out. The completion marker MUST be **qualified by the set
-  of columns the scan covered**, so a migration widening that set re-runs the
-  pass; and a **structural** ratchet
-  asserting that write paths route through the choke point.
+  detects collisions by **grouping on `(table, column, target)` before
+  writing** rather than by catching the `UNIQUE` violation, **skips and
+  reports** whole colliding groups without aborting, and **rebuilds derived
+  indexes if it wrote anything**; the `normalisation_skips` table (§3.2) with
+  its **retry on each open judged by both halves of the grouping test** —
+  recorded-row grouping by `(table, column, target)` *and* live occupancy — its
+  **retirement of entries whose row was hard-deleted**, which requires a **new
+  lookup unfiltered by `deleted_at`** in all three in-scope repositories, since
+  every existing `getById` there filters and would make a tombstone
+  indistinguishable from a deleted row; a **primary key on `(table, column,
+  record_id)`** with recording as an upsert; its restore-clears rule; and its
+  second writer on the ordinary-edit carve-out. The completion marker MUST
+  **record the set of columns the scan covered**, with the pass re-running
+  whenever the live in-scope set is not a subset of it — a comparison at open,
+  **not** a migration hook, since reclassifying a column runs no migration. The
+  pass MUST commit in **three steps** — rewrites, skips and a durable *rebuild
+  owed* flag in one transaction; the rebuild outside it; the completion marker
+  only after the rebuild succeeds — and both writers of `normalisation_skips`
+  MUST take their `(table, column)` spelling from **one generated source**; and
+  a **structural** ratchet asserting that write paths route through the choke
+  point.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
   and otherwise nothing directly, but it **gates C1**: the *Wire format*
   bucket's locally-created-NFD vector, pre-existing-row vector, collision,
@@ -234,9 +240,11 @@ and program content — which is precisely what the editor-draft keys held until
   created after the skip was recorded, an entry whose row was hard-deleted is
   retired while one whose row was soft-deleted is not — proved through the
   unfiltered lookup, with the filtered accessor shown to retire both — a row
-  recorded twice across an interrupted pass is still repairable, a migration
-  that widens the in-scope column set re-runs the pass, a restore re-runs the
-  pass, `normalisation_skips` survives an epoch reset and
+  recorded twice across an interrupted pass is still repairable, a
+  *reclassified* column re-runs the pass with no migration involved, a crash
+  between the commit and the derived rebuild still leaves search matching the
+  repaired rows, both writers spell `(table, column)` identically, a restore
+  re-runs the pass, `normalisation_skips` survives an epoch reset and
   a detach, an ordinary edit to a blocked row succeeds, `settings.key` is
   untouched, a second run of the pass changes nothing, a row whose text the pass
   changed is still found by search, and the write-path ratchet catches a
@@ -361,6 +369,35 @@ transaction, so an interruption re-runs it from the start rather than resuming;
 without a key that re-run inserts a second entry for the same row, and a
 duplicate is self-blocking — condition (a) sees "another recorded row deriving
 this target" and the row is blocked forever against its own twin.
+
+*Commit in three steps, and copy `_backfillChainHandIfNeeded` rather than the
+simpler sweeps.* Rewrites, skips and a durable rebuild-owed flag go in one
+transaction; `runDerivedRebuild` runs outside it; the completion marker is
+written only after that returns, clearing the flag with it. The shape matters
+because a crash in the gap is otherwise permanent rather than transient: the
+marker would assert the scan is done, every later pass writes nothing, and "a
+pass that wrote nothing MUST NOT rebuild" then forbids the repair — leaving
+full-text and substring search silently not matching the rows the pass just
+fixed. `repositories.dart` already does exactly this (`:991`, `:1006`, `:1021`,
+with the owed-rebuild check at `:471`–`:477`); the two-step sweeps in the same
+file (`:557`, `:569`) are the ones with no derived data to rebuild, and copying
+those here is the mistake.
+
+*Compare column sets at open; do not hang the re-run off a migration.* The
+marker records which columns the scan covered, and the pass re-runs when the
+live in-scope set is not a subset of it. A migration hook looks equivalent and
+is not: reclassifying a column to `shareable` is an edit to a map entry in
+`field_registry.dart`, with no schema change, no version bump and no migration
+step, so a migration-gated guard is vacuously satisfied for one of the two
+triggers it exists to catch.
+
+*Generate the `(table, column)` spelling; do not write it twice.* The pass and
+the write-path carve-out are separate writers, and retry correlates their
+entries by grouping on those two strings. Two spellings of the same column —
+the registry's `'choreographers.name'` against a Dart accessor name — never
+group, so condition (a) stops correlating and collision detection degrades with
+nothing raised. §3.3 already demands a generated, test-proven mapping for the
+identical registry-versus-code mismatch.
 
 *`normalisation_skips` does not clear with the baseline.* Its neighbours
 `id_aliases` and `review_queue` do, and copying them is the expected mistake: a
