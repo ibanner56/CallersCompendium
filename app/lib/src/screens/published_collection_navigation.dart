@@ -22,11 +22,7 @@ Future<void> pushPublishedCollectionCatalog(BuildContext context) async {
         statusLoader: (collectionId, version) async {
           final events = await eventsFuture;
           final matching = events
-              .where(
-                (event) =>
-                    event.collectionId == collectionId &&
-                    event.version == version,
-              )
+              .where((event) => event.collectionId == collectionId)
               .map((event) => event.version)
               .toList();
           final held = await repositories.collectionImports.heldCount(

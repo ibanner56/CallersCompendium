@@ -141,6 +141,8 @@ class _CollectionShellState extends State<CollectionShell> {
   /// [_detailMessengerKey] above.
   final _listKey = GlobalKey();
   final _importReviewKey = GlobalKey();
+  final _customFieldsKey = GlobalKey();
+  final _recentlyDeletedKey = GlobalKey();
 
   /// The currently previewed online dance in the detail pane, plus its
   /// loading/error state. Meaningful only while [_detailMode] is
@@ -661,9 +663,15 @@ class _CollectionShellState extends State<CollectionShell> {
           },
         );
       case _DetailMode.customFields:
-        return CustomFieldsScreen(onClose: _onDetailModeClose);
+        return CustomFieldsScreen(
+          key: _customFieldsKey,
+          onClose: _onDetailModeClose,
+        );
       case _DetailMode.recentlyDeleted:
-        return RecentlyDeletedScreen.dances(onClose: _onDetailModeClose);
+        return RecentlyDeletedScreen.dances(
+          key: _recentlyDeletedKey,
+          onClose: _onDetailModeClose,
+        );
       case _DetailMode.none:
         break;
     }

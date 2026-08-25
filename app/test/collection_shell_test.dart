@@ -368,10 +368,17 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
       await tester.pumpAndSettle();
+      final customFieldsClose = tester.element(
+        find.byKey(const ValueKey('custom-fields-close')),
+      );
       tester.view.physicalSize = const Size(800, 900);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('custom-fields-close')), findsOneWidget);
       expect(find.byType(DanceListScreen), findsNothing);
+      expect(
+        tester.element(find.byKey(const ValueKey('custom-fields-close'))),
+        same(customFieldsClose),
+      );
 
       tester.view.physicalSize = const Size(1400, 900);
       await tester.pumpAndSettle();
@@ -380,6 +387,9 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('recently-deleted')));
       await tester.pumpAndSettle();
+      final recentlyDeletedClose = tester.element(
+        find.byKey(const ValueKey('recently-deleted-close')),
+      );
       tester.view.physicalSize = const Size(800, 900);
       await tester.pumpAndSettle();
       expect(
@@ -387,6 +397,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(DanceListScreen), findsNothing);
+      expect(
+        tester.element(find.byKey(const ValueKey('recently-deleted-close'))),
+        same(recentlyDeletedClose),
+      );
     });
 
     testWidgets('selecting a dance dismisses a Collection detail mode', (
@@ -670,6 +684,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Sample published collection'), findsOneWidget);
+      expect(find.byKey(const ValueKey('import-continue')), findsNothing);
 
       await tester.tap(find.text('Import collection'));
       await tester.pumpAndSettle();

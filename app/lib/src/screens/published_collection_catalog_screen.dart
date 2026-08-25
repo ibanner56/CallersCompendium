@@ -106,7 +106,7 @@ class _PublishedCollectionCatalogState
       if (!mounted) return;
       await widget.onImport(entry, bytes);
       if (mounted) {
-        _statusByEntry.remove((entry.id, entry.version));
+        _statusByEntry.removeWhere((key, _) => key.$1 == entry.id);
       }
     } on PublishedCollectionFetchException catch (error) {
       // diagnostics: silent — this expected typed failure is shown inline.
@@ -250,7 +250,9 @@ class _PublishedCollectionCatalogState
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: FilledButton.icon(
-                onPressed: unsupported || loading ? null : () => _import(entry),
+                onPressed: unsupported || _loadingEntry != null
+                    ? null
+                    : () => _import(entry),
                 icon: loading
                     ? const SizedBox.square(
                         dimension: 18,

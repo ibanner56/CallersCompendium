@@ -462,10 +462,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final events = await (_publishedImportEvents ??= _repos.collectionImports
         .listAll());
     final matching = events
-        .where(
-          (event) =>
-              event.collectionId == collectionId && event.version == version,
-        )
+        .where((event) => event.collectionId == collectionId)
         .map((event) => event.version)
         .toList();
     final held = await _repos.collectionImports.heldCount(
@@ -2071,13 +2068,15 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
             ),
           ),
         ],
-        const SizedBox(height: 16),
-        FilledButton.icon(
-          key: const ValueKey('import-continue'),
-          onPressed: (hasContent && !busy) ? _plan : null,
-          icon: const Icon(Icons.playlist_add_check),
-          label: Text(l10n.importReviewReviewButton),
-        ),
+        if (!_showPublishedCatalog) ...[
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            key: const ValueKey('import-continue'),
+            onPressed: (hasContent && !busy) ? _plan : null,
+            icon: const Icon(Icons.playlist_add_check),
+            label: Text(l10n.importReviewReviewButton),
+          ),
+        ],
       ],
     );
   }

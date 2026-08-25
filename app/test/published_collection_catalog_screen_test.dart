@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
@@ -11,7 +12,7 @@ import 'package:compendium_app/src/screens/published_collection_catalog_screen.d
 import 'support/l10n_harness.dart';
 
 void main() {
-  testWidgets('caches collection status while the entry rebuilds', (
+  testWidgets('refreshes every version status after an import', (
     tester,
   ) async {
     final archiveBytes = utf8.encode('{}');
@@ -108,6 +109,76 @@ void main() {
 
     await tester.tap(find.text('Import collection').first);
     await tester.pumpAndSettle();
-    expect(statusLoads, 3);
+    expect(statusLoads, 4);
+  });
+
+  testWidgets('disables every import while an archive is loading', (
+    tester,
+  ) async {
+    final archiveBytes = utf8.encode('{}');
+    final digest = sha256.convert(archiveBytes).toString();
+    final manifest = jsonEncode({
+      'manifestSchema': {'major': 1, 'minor': 0},
+      'minReaderVersion': '0.0.1',
+      'collections': [
+        for (final version in ['1.0.0', '2.0.0'])
+          {
+            'id': 'foda-1-1',
+            'version': version,
+            'title': 'FODA $version',
+            'archiveUrl':
+                'https://analect.callerscompendium.com/collections/$version.json',
+            'archiveBytes': archiveBytes.length,
+            'sha256': digest,
+            'danceCount': 0,
+            'license': 'CC0-1.0',
+            'permission': {
+              'grantor': 'Grantor',
+              'holder': 'Holder',
+              'basis': 'Basis',
+              'license': 'CC0-1.0',
+              'fields': <String>[],
+            },
+            'requiredCapabilities': <String>[],
+          },
+      ],
+    });
+    final archiveFetch = Completer<List<int>>();
+    final service = PublishedCollectionService(
+      bytesFetcher: (uri, _) async {
+        if (uri.toString() == kPublishedCollectionManifestUrl) {
+          return utf8.encode(manifest);
+        }
+        if (uri.toString() == kPublishedCollectionSignatureUrl) {
+          return utf8.encode('signature');
+        }
+        return archiveFetch.future;
+      },
+      signatureVerifier: (_, _) async => true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: PublishedCollectionCatalogScreen(
+          service: service,
+          onImport: (_, _) async {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Import collection').first);
+    await tester.pump();
+
+    final buttons = tester.widgetList<FilledButton>(
+      find.widgetWithText(FilledButton, 'Import collection'),
+    );
+    expect(buttons, hasLength(2));
+    expect(buttons.every((button) => button.onPressed == null), isTrue);
+
+    archiveFetch.complete(archiveBytes);
+    await tester.pumpAndSettle();
   });
 }
