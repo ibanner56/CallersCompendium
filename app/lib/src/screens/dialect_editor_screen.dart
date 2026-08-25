@@ -101,14 +101,14 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       }
     }
     _branchWordingCtrls.clear();
-    for (final moveId in ['form_a_long_wave', 'promenade', 'circle']) {
+    for (final moveId in d.moveWordingBranches.keys) {
       final branches = <String, TextEditingController>{};
       for (final branch in _renderer.moveWordingBranchIds(moveId)) {
         branches[branch] = TextEditingController(
           text: d.moveWordingBranches[moveId]?[branch] ?? '',
         );
       }
-      _branchWordingCtrls[moveId] = branches;
+      if (branches.isNotEmpty) _branchWordingCtrls[moveId] = branches;
     }
     for (final c in _dancerCtrls.values) {
       c.dispose();
@@ -402,9 +402,19 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
 
   void _addMoveWording(String moveId) {
     setState(() {
-      _wordingCtrls[moveId] = TextEditingController(
-        text: _renderer.moveWordingTemplate(moveId) ?? '',
-      );
+      final branches = _renderer.moveWordingBranchIds(moveId);
+      if (branches.isEmpty) {
+        _wordingCtrls[moveId] = TextEditingController(
+          text: _renderer.moveWordingTemplate(moveId) ?? '',
+        );
+      } else {
+        _branchWordingCtrls[moveId] = {
+          for (final branch in branches)
+            branch: TextEditingController(
+              text: _renderer.moveWordingBranchTemplate(moveId, branch) ?? '',
+            ),
+        };
+      }
       _working = _assemble();
       _issues = _working.validate();
       _invalidMoveWordings = _invalidMoveWordingLabels(_working);
@@ -416,6 +426,16 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
     _onEdited();
   }
 
+  void _removeBranchMoveWording(String moveId) {
+    final controllers = _branchWordingCtrls.remove(moveId);
+    if (controllers != null) {
+      for (final controller in controllers.values) {
+        controller.dispose();
+      }
+    }
+    _onEdited();
+  }
+
   void _restoreMoveWordings() {
     setState(() {
       for (final c in _wordingCtrls.values) {
@@ -424,9 +444,10 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
       _wordingCtrls.clear();
       for (final branches in _branchWordingCtrls.values) {
         for (final c in branches.values) {
-          c.clear();
+          c.dispose();
         }
       }
+      _branchWordingCtrls.clear();
       _working = _assemble();
       _issues = _working.validate();
       _invalidMoveWordings = _invalidMoveWordingLabels(_working);
@@ -599,6 +620,7 @@ class _DialectEditorScreenState extends State<DialectEditorScreen> {
         onEdited: _onEdited,
         onAdd: _addMoveWording,
         onRemove: _removeMoveWording,
+        onRemoveBranch: _removeBranchMoveWording,
         onRestoreDefaults: _confirmRestoreMoveWordings,
       ),
     ),
@@ -894,6 +916,7 @@ class _MoveWordingsEditor extends StatelessWidget {
     required this.onEdited,
     required this.onAdd,
     required this.onRemove,
+    required this.onRemoveBranch,
     required this.onRestoreDefaults,
   });
 
@@ -903,6 +926,7 @@ class _MoveWordingsEditor extends StatelessWidget {
   final VoidCallback onEdited;
   final ValueChanged<String> onAdd;
   final ValueChanged<String> onRemove;
+  final ValueChanged<String> onRemoveBranch;
   final VoidCallback onRestoreDefaults;
 
   static final FigureRenderer _renderer = FigureRenderer(contraTaxonomy);
@@ -914,8 +938,10 @@ class _MoveWordingsEditor extends StatelessWidget {
     final available =
         [
           for (final move in contraTaxonomy.moves.values)
-            if (move.id != customMoveId && !controllers.containsKey(move.id))
-              if (_renderer.moveWordingBranchIds(move.id).isEmpty) move.id,
+            if (move.id != customMoveId &&
+                !controllers.containsKey(move.id) &&
+                !branchControllers.containsKey(move.id))
+              move.id,
         ]..sort(
           (a, b) => _moveLabel(
             a,
@@ -1083,9 +1109,26 @@ class _MoveWordingsEditor extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 16, bottom: 4),
-          child: Text(
-            l10n.dialectEditorMoveWordingsConditionalLabel(_moveLabel(moveId)),
-            style: Theme.of(context).textTheme.bodyMedium,
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  l10n.dialectEditorMoveWordingsConditionalLabel(
+                    _moveLabel(moveId),
+                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+              IconButton(
+                key: ValueKey('dialect-wording-delete-$moveId'),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                tooltip: l10n.commonRemove,
+                onPressed: () => onRemoveBranch(moveId),
+              ),
+            ],
           ),
         ),
         for (final entry in controllers.entries)
