@@ -1,17 +1,27 @@
 #!/usr/bin/env python3
 """Guard the existing-tag recovery path in the release workflow."""
 
+import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "release.yml"
+JOB_HEADING = re.compile(r"^  [a-z][a-z0-9_]*:\n", re.MULTILINE)
 
 
 def _section(text: str, start: str, end: str) -> str:
     start_index = text.index(start)
     end_index = text.index(end, start_index)
     return text[start_index:end_index]
+
+
+def _job_section(text: str, job: str) -> str:
+    match = re.search(rf"^  {re.escape(job)}:\n", text, re.MULTILINE)
+    if match is None:
+        raise AssertionError(f"missing {job} job")
+    next_job = JOB_HEADING.search(text, match.end())
+    return text[match.start() : next_job.start() if next_job else len(text)]
 
 
 def main() -> None:
@@ -48,35 +58,25 @@ def main() -> None:
     assert "Upload iOS build to TestFlight" not in ios_build
     assert "ios-testflight-status" in ios_build
 
-    publish_draft = _section(
-        text,
-        "  publish_draft:\n",
-        "  publish_mobile:\n",
-    )
+    publish_draft = _job_section(text, "publish_draft")
     assert "runs-on: ubuntu-latest" in publish_draft
     assert "environment: release-signing" not in publish_draft
     assert "      - name: Create or update the DRAFT release" in publish_draft
+    assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' in publish_draft
+    assert '--target "$TARGET_SHA"' in publish_draft
 
-    publish_mobile = _section(
-        text,
-        "  publish_mobile:\n",
-        "  # Close the supply-chain loop",
-    )
+    publish_mobile = _job_section(text, "publish_mobile")
     assert "runs-on: macos-latest" in publish_mobile
     assert "environment: release-signing" in publish_mobile
+    needs_match = re.search(r"^\s*needs:\s*\[([^\]]+)\]\s*$", publish_mobile, re.MULTILINE)
+    assert needs_match is not None and {"meta", "verify"}.issubset(
+        {item.strip() for item in needs_match.group(1).split(",")}
+    )
     assert "needs.meta.outputs.recovery != 'true'" in publish_mobile
     assert "name: ios-testflight-status" in publish_mobile
     assert "      - name: Upload iOS build to TestFlight" in publish_mobile
     assert "EVENT_NAME: ${{ github.event_name }}" in publish_mobile
     assert '[[ "$REF" == refs/tags/v* ]]' in publish_mobile
-
-    release_step = _section(
-        text,
-        "      - name: Create or update the DRAFT release",
-        "  publish_mobile:\n",
-    )
-    assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' in release_step
-    assert '--target "$TARGET_SHA"' in release_step
 
     provenance = _section(
         text,
