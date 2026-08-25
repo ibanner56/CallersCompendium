@@ -227,7 +227,7 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
             ? null
             : IconButton(
                 key: const ValueKey('recently-deleted-close'),
-                tooltip: l10n.importReviewClose,
+                tooltip: l10n.commonClose,
                 icon: const Icon(Icons.close),
                 onPressed: widget.onClose,
               ),

@@ -93,6 +93,21 @@ class PublishedCollectionService {
       );
     }
     final bytes = await _fetch(entry.archiveUrl, entry.archiveBytes);
+    verifyArchiveBytes(entry, bytes);
+    return bytes;
+  }
+
+  /// Re-checks already-fetched archive bytes against the signed catalog entry.
+  ///
+  /// Published imports keep the verified bytes while the review screen is open;
+  /// callers must use this before planning or committing rather than trusting
+  /// editable text or stale metadata.
+  void verifyArchiveBytes(PublishedCollectionEntry entry, List<int> bytes) {
+    if (!entry.isSupported) {
+      throw const PublishedCollectionFetchException(
+        PublishedCollectionFetchFailure.unsupported,
+      );
+    }
     if (bytes.length != entry.archiveBytes) {
       throw const PublishedCollectionFetchException(
         PublishedCollectionFetchFailure.byteCountMismatch,
@@ -112,7 +127,6 @@ class PublishedCollectionService {
         PublishedCollectionFetchFailure.malformed,
       );
     }
-    return bytes;
   }
 
   Future<List<int>> _fetch(Uri uri, int maxBytes) async {

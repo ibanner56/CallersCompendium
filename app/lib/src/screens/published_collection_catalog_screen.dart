@@ -88,7 +88,7 @@ class _PublishedCollectionCatalogState
   PublishedCollectionEntry? _archiveErrorEntry;
 
   Future<void> _import(PublishedCollectionEntry entry) async {
-    if (!entry.isSupported) return;
+    if (!entry.isSupported || _loadingEntry != null) return;
     setState(() {
       _loadingEntry = entry;
       _archiveError = null;

@@ -152,11 +152,13 @@ class _CollectionShellState extends State<CollectionShell> {
   /// Guards the direct-import commit so a rapid double-tap (or re-tap) of the
   /// preview Import button cannot commit the same plan twice.
   bool _importing = false;
+  bool _importCommitInFlight = false;
   String? _reimportTargetId;
   DateTime? _reimportTargetUpdatedAt;
   DanceDetailData? _reimportPreview;
 
   void _onSelectDance(String danceId) {
+    if (_importCommitInFlight) return;
     setState(() {
       _selectedDanceId = danceId;
       // A fresh local selection exits import mode and clears any online preview.
@@ -203,6 +205,7 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   void _onCustomFields() {
+    if (_importCommitInFlight) return;
     setState(() {
       _detailMode = _DetailMode.customFields;
       _clearOnlinePreview();
@@ -210,6 +213,7 @@ class _CollectionShellState extends State<CollectionShell> {
   }
 
   void _onRecentlyDeleted() {
+    if (_importCommitInFlight) return;
     setState(() {
       _detailMode = _DetailMode.recentlyDeleted;
       _clearOnlinePreview();
@@ -641,6 +645,9 @@ class _CollectionShellState extends State<CollectionShell> {
           fetcher: widget.urlFetcher,
           publishedCollectionService: _publishedCollectionService,
           onClose: _onImportClose,
+          onCommitStateChanged: (active) {
+            _importCommitInFlight = active;
+          },
         );
       case _DetailMode.customFields:
         return CustomFieldsScreen(onClose: _onDetailModeClose);

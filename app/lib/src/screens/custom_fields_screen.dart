@@ -258,7 +258,7 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
             ? null
             : IconButton(
                 key: const ValueKey('custom-fields-close'),
-                tooltip: l10n.importReviewClose,
+                tooltip: l10n.commonClose,
                 icon: const Icon(Icons.close),
                 onPressed: widget.onClose,
               ),

@@ -197,6 +197,8 @@ void main() {
         enrichedVenues: false,
       );
       final hint = find.byKey(const ValueKey('program-venue-linked-hint'));
+      await tester.tap(find.byKey(const ValueKey('program-more-details-tile')));
+      await tester.pumpAndSettle();
       expect(hint, findsOneWidget);
       expect(
         find.descendant(of: hint, matching: find.textContaining('Grange Hall')),

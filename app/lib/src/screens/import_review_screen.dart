@@ -107,6 +107,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.sharedBundle,
     this.publishedCollection,
     this.publishedCollectionService,
+    this.onCommitStateChanged,
     this.programAmbiguousImport,
     this.onProgramCommitted,
   }) : assert(sources.length > 0, 'at least one import source is required'),
@@ -167,6 +168,10 @@ class ImportReviewScreen extends StatefulWidget {
   /// offers a transient Undo snackbar. When null the screen behaves exactly as
   /// the manual import flows do.
   final SharedBundleImport? sharedBundle;
+
+  /// Notifies an embedding shell while a commit is running so it cannot replace
+  /// this screen before the result/undo handoff completes.
+  final ValueChanged<bool>? onCommitStateChanged;
 
   /// A verified signed collection whose archive should open directly in review.
   final PublishedCollectionSeed? publishedCollection;
@@ -245,6 +250,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   );
 
   bool _showPublishedCatalog = false;
+  PublishedCollectionEntry? _publishedEntry;
+  Uint8List? _publishedArchiveBytes;
 
   List<ImportSource> get _sourcePickerSources => [
     ...widget.sources,
@@ -303,6 +310,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// cannot diverge from each other.
   SharedBundleImport? get _effectivePickedBundle => _cachedPickedBundle;
 
+  bool get _isPublishedImport =>
+      _publishedEntry != null || widget.publishedCollection != null;
+
   /// The shared-bundle archive represented by the current paste-field text.
   ///
   /// The immutable [widget.sharedBundle] is authoritative only while the text is
@@ -311,6 +321,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// the listener-maintained live decode instead of silently committing the
   /// original shared bundle (issue #880).
   SharedBundleImport? get _effectiveSharedBundle {
+    if (_isPublishedImport) return null;
     final sharedBundle = widget.sharedBundle;
     if (sharedBundle != null && _pasteController.text == sharedBundle.json) {
       return sharedBundle;
@@ -445,7 +456,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<PublishedCollectionStatus> _publishedCollectionStatus(
     String collectionId,
   ) async {
-    final events = await _repos.collectionImports.listAll();
+    final events = await (_publishedImportEvents ??= _repos.collectionImports
+        .listAll());
     final matching = events
         .where((event) => event.collectionId == collectionId)
         .map((event) => event.version)
@@ -461,10 +473,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
+  Future<List<CollectionImportEvent>>? _publishedImportEvents;
+
   Future<void> _selectPublishedCollection(
     PublishedCollectionEntry entry,
     List<int> archiveBytes,
   ) async {
+    final service = widget.publishedCollectionService;
+    if (service == null) {
+      throw StateError(
+        'Published collection service is required for catalog imports',
+      );
+    }
+    service.verifyArchiveBytes(entry, archiveBytes);
     final metadata = PublishedCollectionMetadata(
       collectionId: entry.id,
       collectionVersion: entry.version,
@@ -482,14 +503,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       preselected: true,
     );
     setState(() {
+      _showPublishedCatalog = false;
+      _publishedEntry = entry;
+      _publishedArchiveBytes = Uint8List.fromList(archiveBytes);
       _selected = source;
       _sourceManuallySelected = true;
       _payloadBytes = null;
       _sourceUri = null;
       _fetchError = null;
       _titleListError = null;
-      _lastDecodedText = seed.json;
+      _cachedPickedBundle = null;
       _pasteController.text = seed.json;
+      _lastDecodedText = seed.json;
+      _cachedPickedBundle = null;
     });
     await _plan();
   }
@@ -661,7 +687,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   }
 
   Future<void> _plan() async {
-    final payload = _pasteController.text;
+    final publishedEntry = _publishedEntry;
+    final publishedBytes = _publishedArchiveBytes;
+    if (publishedEntry != null && publishedBytes != null) {
+      widget.publishedCollectionService!.verifyArchiveBytes(
+        publishedEntry,
+        publishedBytes,
+      );
+    }
+    final payload = publishedBytes == null
+        ? _pasteController.text
+        : utf8.decode(publishedBytes);
     final bytes = _payloadBytes;
     if (_isByteSource) {
       if (bytes == null) return;
@@ -871,6 +907,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   ///
   /// Caller is responsible for being inside a [setState].
   void _resetToInput() {
+    if (_isPublishedImport && widget.publishedCollectionService != null) {
+      _showPublishedCatalog = true;
+      _publishedEntry = null;
+      _publishedArchiveBytes = null;
+      _selected = widget.sources.firstWhere(
+        (source) => source.preselected,
+        orElse: () => widget.sources.first,
+      );
+      _cachedPickedBundle = null;
+      _pasteController.clear();
+    }
     _phase = _Phase.input;
     _batch = null;
     _titleList = null;
@@ -1067,6 +1114,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (planned == null) return;
     final (plan, resolution) = planned;
 
+    widget.onCommitStateChanged?.call(true);
     setState(() => _phase = _Phase.committing);
     // Edit is a single-dance affordance, so it always uses the adapter-agnostic
     // dance commit path — even for the Caller's Companion `.USR` byte source,
@@ -1119,21 +1167,32 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
+    } finally {
+      widget.onCommitStateChanged?.call(false);
     }
   }
 
   Future<void> _commit() async {
     final (commitBatch, resolutions, skipped, actedRowIndices) =
         _buildCommitBatch();
+    widget.onCommitStateChanged?.call(true);
     setState(() => _phase = _Phase.committing);
     final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
     // Commit/undo routing is gated on the concrete adapter type — NOT on
     // `_isByteSource` — so only Caller's Companion `.USR` persists/undoes
     // programs. A hypothetical future dance-only byte source would fall through
     // to the shared dance path and never touch programs.
-    final adapter = _selected.adapterFactory();
     final sharedBundle = _effectiveSharedBundle;
     try {
+      final publishedEntry = _publishedEntry;
+      final publishedBytes = _publishedArchiveBytes;
+      if (publishedEntry != null && publishedBytes != null) {
+        widget.publishedCollectionService!.verifyArchiveBytes(
+          publishedEntry,
+          publishedBytes,
+        );
+      }
+      final adapter = _selected.adapterFactory();
       if (sharedBundle != null) {
         // Share target (issue #432): commit dances + programs + venues through
         // the archive importer, then offer a transient Undo that reverts exactly
@@ -1195,6 +1254,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           await pipeline.undo(result.session);
           rethrow;
         }
+        _publishedImportEvents = null;
         if (!mounted) return;
         setState(() => _phase = _Phase.review);
         await _showResult(
@@ -1233,6 +1293,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           content: Text(AppLocalizations.of(context).importReviewImportError),
         ),
       );
+    } finally {
+      widget.onCommitStateChanged?.call(false);
     }
   }
 
@@ -1686,9 +1748,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Widget _buildInput(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final hasContent = _isByteSource
-        ? _payloadBytes != null
-        : _pasteController.text.trim().isNotEmpty;
+    final hasContent =
+        !_showPublishedCatalog &&
+        (_isByteSource
+            ? _payloadBytes != null
+            : _pasteController.text.trim().isNotEmpty);
     // While a file pick or URL fetch is in flight, lock every input so a
     // late-completing pick/fetch can't overwrite the payload or clobber
     // `_sourceUri` under the user, and so planning can't start on stale input.
@@ -1700,7 +1764,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (_sourcePickerSources.length > 1) ...[
+        if (_sourcePickerSources.length > 1 && !_isPublishedImport) ...[
           Text(
             l10n.importReviewSourceLabel,
             style: Theme.of(context).textTheme.titleMedium,
@@ -1715,11 +1779,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 : (source) {
                     if (source == null) return;
                     if (source == _publishedCatalogSource) {
-                      setState(() => _showPublishedCatalog = true);
+                      setState(() {
+                        _showPublishedCatalog = true;
+                        _publishedEntry = null;
+                        _publishedArchiveBytes = null;
+                        _cachedPickedBundle = null;
+                      });
                       return;
                     }
                     setState(() {
                       _showPublishedCatalog = false;
+                      _publishedEntry = null;
+                      _publishedArchiveBytes = null;
                       _selected = source;
                       // A deliberate pick disables URL auto-detection so it is
                       // never silently reverted as the user edits the URL.
@@ -1764,7 +1835,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           ),
           const SizedBox(height: 16),
         ],
-        if (_isByteSource) ...[
+        if (_showPublishedCatalog) ...[
+          const SizedBox.shrink(),
+        ] else if (_isPublishedImport) ...[
+          Text(
+            l10n.importReviewDancesFromSource(
+              importSourceLabel(l10n, _selected.kind),
+            ),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(l10n.importReviewGenericSubtitle),
+        ] else if (_isByteSource) ...[
           Text(
             l10n.importReviewFromSource(
               importSourceLabel(l10n, _selected.kind),
