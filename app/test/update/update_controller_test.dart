@@ -8,7 +8,6 @@ import 'package:compendium_app/src/update/semver.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:compendium_app/src/update/update_service.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -34,8 +33,6 @@ const _stableManifest = '''
 ''';
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   test(
     'a channel switch during an in-flight check discards the stale result',
     () async {

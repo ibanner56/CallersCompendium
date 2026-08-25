@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -27,8 +26,6 @@ Future<void> _pump(WidgetTester tester, CompendiumRepositories repos) async {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('browses and searches venues by name', (tester) async {
     final repos = openTestRepositories();
     await repos.venues.upsert(Venue(id: 'v1', name: 'Grange Hall'));

@@ -10,7 +10,6 @@ import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:compendium_app/src/update/update_service.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 
@@ -48,8 +47,6 @@ class _HandoffCall {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   late Directory tempDir;
 
   setUp(() {

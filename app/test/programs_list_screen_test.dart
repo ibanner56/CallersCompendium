@@ -1,6 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart'
-    show UpdateKind, Variable, driftRuntimeOptions;
+import 'package:drift/drift.dart' show UpdateKind, Variable;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -59,8 +58,6 @@ List<String> _titlesInOrder(WidgetTester tester) => tester
     .toList();
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('empty state teaches and offers New program', (tester) async {
     final repos = openTestRepositories();
     await _pump(tester, repos);

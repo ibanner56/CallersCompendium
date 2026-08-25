@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -79,8 +78,6 @@ Future<void> _toggle(WidgetTester tester, String danceId) async {
 Set<String> _tagIdsOf(Dance dance) => dance.tagIds.toSet();
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('enters selection mode and tracks the selected count', (
     tester,
   ) async {

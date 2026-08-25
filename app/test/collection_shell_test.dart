@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -96,8 +95,6 @@ String _archivePayload(List<Dance> dances) => encodeArchive(
 // ── narrow layout ─────────────────────────────────────────────────────────────
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   group('narrow layout (< 900 px)', () {
     testWidgets('renders DanceListScreen (no split pane)', (tester) async {
       final repos = openTestRepositories();

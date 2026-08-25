@@ -35,8 +35,6 @@ import 'support/test_repositories.dart';
 /// would be issue #340's over-firing — the mirror failure of the staleness this
 /// fixes — so the no-op case is pinned to zero extra loads.
 void main() {
-  drift.driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   final now = DateTime.utc(2026, 1, 1);
 
   /// Counts `CollectionData.load` runs. `custom_field_defs` is read by that
@@ -52,7 +50,10 @@ void main() {
 
   setUp(() async {
     counter.count = 0;
-    db = openWidgetTestDatabase(NativeDatabase.memory().interceptWith(counter));
+    db = openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(counter),
+      closeOnTearDown: false,
+    );
     repos = CompendiumRepositories(db, contraTaxonomy);
     trackAll = ValueNotifier<bool>(false);
     await repos.dances.create(

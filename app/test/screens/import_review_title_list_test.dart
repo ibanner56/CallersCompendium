@@ -6,7 +6,6 @@ import 'package:compendium_app/src/data/title_list_import.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -234,8 +233,6 @@ class _CountingRepositories extends CompendiumRepositories {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   group('pasted title list input (issue #823)', () {
     testWidgets('shows a title paste box and none of the file/URL '
         'affordances', (tester) async {

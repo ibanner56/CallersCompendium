@@ -10,7 +10,6 @@ void main() {
     're-import preserves collection metadata and replaces choreography',
     () async {
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       final original = Dance(
         id: 'saved',
         title: 'My edited title',
@@ -62,7 +61,6 @@ void main() {
 
   test('re-import reports a target deleted while previewing', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final incoming = Dance(
       id: 'remote',
       title: 'Remote',
@@ -82,7 +80,6 @@ void main() {
 
   test('re-import reports a target changed while previewing', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final original = Dance(
       id: 'saved',
       title: 'Saved',
@@ -115,7 +112,6 @@ void main() {
 
   test('JSON planning requires exactly one planned dance', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     Dance dance(String id) => Dance(
       id: id,
       title: 'Dance $id',
@@ -148,7 +144,6 @@ void main() {
 
   test('JSON planning rejects archives containing programs', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     final dance = Dance(
       id: 'dance',
       title: 'Dance',

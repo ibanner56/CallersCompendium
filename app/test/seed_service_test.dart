@@ -2,14 +2,12 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_app/src/data/seed_service.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'support/test_repositories.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   // The checked-in seed asset, read straight from disk for the behavior tests
   // so they exercise real archive JSON without depending on the asset bundle.
@@ -26,7 +24,6 @@ void main() {
   setUp(() {
     repos = openTestRepositories();
   });
-  tearDown(() => repos.db.close());
 
   Future<List<({String id, String title})>> allDances() =>
       repos.dances.listIdsAndTitles(includeDeleted: true);

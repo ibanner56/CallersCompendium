@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -22,7 +21,7 @@ class _NoopWindowService extends WindowService {
 }
 
 AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase());
+  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
   addTearDown(appData.close);
   return appData;
 }
@@ -31,8 +30,6 @@ Locale? _appLocale(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).locale;
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   // The shell keeps the User Guide alive, so its doc FutureBuilder builds
   // offstage on startup; the root-bundle cache turns repeat loads into
   // SynchronousFutures that stall pumpAndSettle. Clearing it each test makes the

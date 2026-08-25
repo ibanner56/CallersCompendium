@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -140,8 +139,6 @@ _pumpSettings(
 // ---------------------------------------------------------------------------
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('SettingsScreen — General & Program settings (G.2)', () {
