@@ -35,6 +35,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-08-25
+
 ### Changed
 
 - **Collection import** — browse signed Published collections from the Import
