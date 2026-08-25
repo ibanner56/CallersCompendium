@@ -2898,7 +2898,6 @@ void main() {
           'form_a_long_wave':
               '{subject} dance in to a long wave in the center{balance}',
           'promenade': '{who} {move} {direction} {destination}',
-          'circle': '{move} {turn} {places}',
         },
       );
 
@@ -2916,6 +2915,13 @@ void main() {
         ),
         'single file promenade across',
       );
+    });
+
+    test('circle global wording retains its automatic single-file prefix', () {
+      final dialect = Dialect.larksRobins.copyWith(
+        moveWordings: const {'circle': '{move} around {turn} {places}'},
+      );
+
       expect(
         renderer.render(
           Figure(
@@ -2924,7 +2930,7 @@ void main() {
           ),
           dialect,
         ),
-        'single file circle left 4 places',
+        'single file circle around left 4 places',
       );
     });
 
@@ -2940,10 +2946,6 @@ void main() {
           'promenade': {
             'ordinary': '{who} {move} {turn} {direction} {destination}',
             'singleFile': '{prefix} {move} {turn} {direction} {destination}',
-          },
-          'circle': {
-            'ordinary': '{move} {turn} {places}',
-            'singleFile': '{prefix} {move} {turn} {places}',
           },
         },
       );
@@ -2983,16 +2985,6 @@ void main() {
         ),
         'single file promenade across',
       );
-      expect(
-        renderer.render(
-          Figure(
-            move: 'circle',
-            params: {'singleFile': true, 'turn': 'left', 'places': 4},
-          ),
-          dialect,
-        ),
-        'single file circle left 4 places',
-      );
     });
 
     test('incomplete guarded branches fail closed at render time', () {
@@ -3000,7 +2992,6 @@ void main() {
         moveWordingBranches: const {
           'form_a_long_wave': {'outOnly': '{subject} IN'},
           'promenade': {'singleFile': '{move} {direction} {destination}'},
-          'circle': {'singleFile': '{move} {turn} {places}'},
         },
       );
 
@@ -3017,16 +3008,6 @@ void main() {
           incomplete,
         ),
         'single file promenade across',
-      );
-      expect(
-        renderer.render(
-          Figure(
-            move: 'circle',
-            params: {'singleFile': true, 'turn': 'left', 'places': 4},
-          ),
-          incomplete,
-        ),
-        'single file circle left 4 places',
       );
     });
 

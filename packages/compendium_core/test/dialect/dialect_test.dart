@@ -285,6 +285,38 @@ void main() {
       });
     });
 
+    test('fromJson normalizes circle branches to one shared wording', () {
+      final d = Dialect.fromJson({
+        'name': 'Normalized',
+        'moveWordingBranches': {
+          'circle': {
+            'ordinary': '{move} around {turn} {places}',
+            'singleFile': '{prefix} discarded {move} {turn} {places}',
+          },
+        },
+      });
+
+      expect(d.moveWordings['circle'], '{move} around {turn} {places}');
+      expect(d.moveWordingBranches.containsKey('circle'), isFalse);
+    });
+
+    test('fromJson normalizes a circle branch over a full wording map', () {
+      final wordings = <String, Object?>{
+        'circle': 'old circle wording',
+        for (var i = 1; i < kMaxMoveWordingEntries; i++) 'move$i': 'wording $i',
+      };
+      final d = Dialect.fromJson({
+        'name': 'Normalized',
+        'moveWordings': wordings,
+        'moveWordingBranches': {
+          'circle': {'ordinary': '{move} around {turn} {places}'},
+        },
+      });
+
+      expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
+      expect(d.moveWordings['circle'], '{move} around {turn} {places}');
+    });
+
     test('fromJson combines legacy and branch entry limits', () {
       final legacy = <String, Object?>{};
       for (var i = 0; i < kMaxMoveWordingEntries; i++) {
@@ -294,7 +326,7 @@ void main() {
         'name': 'Bounded',
         'moveWordings': legacy,
         'moveWordingBranches': {
-          'circle': {'ordinary': 'ordinary'},
+          'promenade': {'ordinary': 'ordinary'},
         },
       });
       expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
@@ -336,14 +368,16 @@ void main() {
         Dialect(
           name: 'x',
           moveWordingBranches: const {
-            'circle': {'ordinary': '{move} {turn} {places}'},
+            'promenade': {
+              'ordinary': '{who} {move} {turn} {direction} {destination}',
+            },
           },
         ),
         isNot(
           Dialect(
             name: 'x',
             moveWordingBranches: const {
-              'circle': {'ordinary': '{move} {places}'},
+              'promenade': {'ordinary': '{who} {move} {turn} {direction}'},
             },
           ),
         ),

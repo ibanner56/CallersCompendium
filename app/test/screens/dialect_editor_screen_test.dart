@@ -468,6 +468,81 @@ void main() {
     expect(previewText(tester), contains('twirl'));
   });
 
+  testWidgets('conditional wording groups are opt-in', (tester) async {
+    tester.view.physicalSize = const Size(1200, 4000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(initial: Dialect.canonical),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('dialect-wordings-toggle')));
+    await tester.pumpAndSettle();
+
+    final menu = tester.widget<DropdownButton<String>>(
+      find.byKey(const ValueKey('dialect-add-move-wording')),
+    );
+    expect(
+      menu.items!.map((item) => item.value),
+      containsAll(['form_a_long_wave', 'promenade', 'circle']),
+    );
+    expect(
+      find.byKey(const ValueKey('dialect-wording-form_a_long_wave-inOnly')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('dialect-wording-promenade-ordinary')),
+      findsNothing,
+    );
+
+    menu.onChanged!(
+      menu.items!
+          .map((item) => item.value)
+          .firstWhere((value) => value == 'form_a_long_wave'),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-wording-form_a_long_wave-inOnly')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('dialect-wording-promenade-ordinary')),
+      findsNothing,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey('dialect-wording-delete-form_a_long_wave')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-wording-form_a_long_wave-inOnly')),
+      findsNothing,
+    );
+
+    final updatedMenu = tester.widget<DropdownButton<String>>(
+      find.byKey(const ValueKey('dialect-add-move-wording')),
+    );
+    updatedMenu.onChanged!(
+      updatedMenu.items!
+          .map((item) => item.value)
+          .firstWhere((value) => value == 'circle'),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('dialect-wording-circle')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('dialect-wording-circle-ordinary')),
+      findsNothing,
+    );
+  });
+
   testWidgets('omitting only move shows an optional-slot notice', (
     tester,
   ) async {
