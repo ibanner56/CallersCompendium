@@ -132,12 +132,14 @@ available slots, but the editor will ask you to confirm before saving one.
 Templates with invalid syntax or more than 512 characters must be fixed before
 the dialect can be saved.
 
-Some moves have parameter-dependent choreography. The editor provides separate
-templates for each supported branch of a long wave, promenade, or circle, and
-shows the exact slots that branch can use. Complete every listed slot: an
-incomplete conditional template is ignored and the normal wording is shown, so a
-single-file prefix or a dancer's in/out instruction can never disappear. Older
-single-template wordings remain available for their ordinary/default branch only;
+Some moves have parameter-dependent choreography. When you choose a long-wave
+or promenade wording template, the editor provides separate templates for its
+supported branches and shows the exact slots each can use. Complete every listed
+slot: an incomplete conditional template is ignored and the normal wording is
+shown, so a single-file prefix or a dancer's in/out instruction can never
+disappear. A circle uses one template for both forms; the app always adds
+**single file** when that option is selected. Older single-template long-wave
+and promenade wordings remain available for their ordinary/default branch only;
 they are not reused for a different parameter branch.
 
 ### Dancer wording

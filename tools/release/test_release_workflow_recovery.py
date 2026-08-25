@@ -62,8 +62,8 @@ def main() -> None:
     assert "runs-on: ubuntu-latest" in publish_draft
     assert "environment: release-signing" not in publish_draft
     assert "      - name: Create or update the DRAFT release" in publish_draft
-    assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' in publish_draft
-    assert '--target "$TARGET_SHA"' in publish_draft
+    assert 'TARGET_SHA: ${{ needs.meta.outputs.source_sha }}' not in publish_draft
+    assert '--target "$TARGET_SHA"' not in publish_draft
 
     publish_mobile = _job_section(text, "publish_mobile")
     assert "runs-on: macos-latest" in publish_mobile
@@ -87,6 +87,12 @@ def main() -> None:
     assert "path: workflow-tools" in provenance
     assert "ref: ${{ github.sha }}" in provenance
     assert "python3 workflow-tools/tools/release/gen_recovery_provenance.py" in provenance
+    assert "REPOSITORY_ID: ${{ github.repository_id }}" in provenance
+    assert "REPOSITORY_OWNER_ID: ${{ github.repository_owner_id }}" in provenance
+    assert "RUNNER_ENVIRONMENT: ${{ runner.environment }}" in provenance
+    assert '--repository-id "$REPOSITORY_ID"' in provenance
+    assert '--repository-owner-id "$REPOSITORY_OWNER_ID"' in provenance
+    assert '--runner-environment "$RUNNER_ENVIRONMENT"' in provenance
     assert provenance.count("actions/attest-build-provenance@") == 2
     assert "needs.meta.outputs.recovery != 'true'" in provenance
     assert "needs.meta.outputs.recovery == 'true'" in provenance

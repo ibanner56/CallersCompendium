@@ -28,12 +28,7 @@ BackupDocument _sampleDoc() => BackupDocument(
   customDialects: [
     Dialect(
       name: 'My Dialect',
-      moveWordingBranches: const {
-        'circle': {
-          'ordinary': '{move} {turn} {places}',
-          'singleFile': '{prefix} {move} {turn} {places}',
-        },
-      },
+      moveWordings: const {'circle': '{move} {turn} {places}'},
     ),
   ],
   activeDialectRef: 'My Dialect',
@@ -71,8 +66,8 @@ void main() {
     expect(decoded.core.dances.map((d) => d.id), ['d1', 'd2']);
     expect(decoded.customDialects.single.name, 'My Dialect');
     expect(
-      decoded.customDialects.single.moveWordingBranches,
-      _sampleDoc().customDialects.single.moveWordingBranches,
+      decoded.customDialects.single.moveWordings,
+      _sampleDoc().customDialects.single.moveWordings,
     );
     expect(decoded.activeDialectRef, 'My Dialect');
     expect(decoded.customThemes.single.id, 'custom-1');
