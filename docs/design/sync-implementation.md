@@ -203,9 +203,14 @@ and program content — which is precisely what the editor-draft keys held until
   `shareable` string, implemented at the **repository write choke point** each
   kind already funnels through rather than per-writer; a **one-time backfill
   migration** over existing rows that leaves `updated_at`, `existence_at` and
-  `deleted_at` untouched, **skips and reports `UNIQUE` collisions without
-  aborting**, and **rebuilds derived indexes** when it completes; and a
-  **structural** ratchet asserting that write paths normalise.
+  `deleted_at` untouched, excludes record-identity columns (`settings.key`),
+  detects collisions by **grouping on `(table, column, target)` before writing**
+  rather than by catching the `UNIQUE` violation, **skips and reports** whole
+  colliding groups without aborting, and **rebuilds derived indexes if it wrote
+  anything**; the `normalisation_skips` table (§3.2) with its **retry on each
+  open judged against the live column**, its restore-clears rule, and its
+  second writer on the ordinary-edit carve-out; and a **structural** ratchet
+  asserting that write paths route through the choke point.
 - **Unblocks** nothing directly, but it **gates C1**: the *Wire format* bucket's
   locally-created-NFD vector, pre-existing-row vector, collision, idempotence
   and derived-rebuild clauses are all its, as is the write-path clause in
@@ -213,10 +218,15 @@ and program content — which is precisely what the editor-draft keys held until
 - **Done when** those clauses are green: a locally-created NFD title uploads as
   NFC, a row written before the normalising build is NFC after upgrade, the
   backfill is proved not to move any of the three stamps, a colliding local pair
-  leaves both rows untouched and is reported while the pass completes, a second
-  run of the pass changes nothing, a row whose text the pass changed is still
-  found by search, and the write-path ratchet catches a **newly added** writer
-  that skips normalisation rather than a writer removed from a list.
+  leaves both rows untouched and is reported while the pass completes, a tag and
+  a choreographer sharing a name are both normalised, a retry judged against the
+  live column does not raise against a row created after the skip was recorded,
+  a restore re-runs the pass, `normalisation_skips` survives an epoch reset and
+  a detach, an ordinary edit to a blocked row succeeds, `settings.key` is
+  untouched, a second run of the pass changes nothing, a row whose text the pass
+  changed is still found by search, and the write-path ratchet catches a
+  **newly added** writer that bypasses the choke point rather than a writer
+  removed from a list.
 
 **This unit exists because the round-31 fix to §4.1 corrected the rule without
 assigning the work it created.** Correcting a rule and leaving its
@@ -272,14 +282,42 @@ similar names are one entity, and a user making that judgement differently on
 two devices produces exactly the divergence I1 orders — which would disqualify
 the pass from the exemption it depends on.
 
-*Skips are recorded and retried; they are not final.* Persist the skipped groups
-and re-attempt them on each subsequent open. This is the whole of the tombstone
-answer: a blocked group unblocks when a member is renamed or deleted, when a
-blocking tombstone is purged, or when reconciliation renames one side, and the
-next open finishes the job. Without retry a live row can be left un-normalised
-forever by a tombstone the user cannot see or list. Note also that a later
-ordinary edit to a member of a skipped group must **not** fail — store the value
-un-normalised and re-record the skip.
+*Group on `(table, column, target)`, never on the target alone.* The in-scope
+rows span three tables with three independent `UNIQUE` indexes, so a tag and a
+choreographer named `José` do not collide. Grouping on the value alone skips
+both of them **permanently**, because unlike a genuine collision a cross-table
+one never stops colliding and retry can never clear it.
+
+*Skips are recorded and retried; they are not final.* This adds a table —
+`normalisation_skips (table, column, record_id)` — which is classified in §3.2
+and must be created with its classification in the same PR, or the coverage
+ratchet fails. Re-attempt the recorded rows on each open. This is the whole of
+the tombstone answer: a blocked row unblocks when the row occupying its target
+is renamed or deleted, when a blocking tombstone is purged, or when
+reconciliation renames one side, and the next open finishes the job. Without
+retry a live row can be left un-normalised forever by a tombstone the user
+cannot see or list. A later ordinary edit to a blocked row must **not** fail —
+store the value un-normalised and record the skip; that carve-out is the
+table's second writer.
+
+*Judge the retry against the live column, not against what was recorded.*
+Recompute the target from the row's current value and check the live `UNIQUE`
+column for an occupant other than the row itself. Judging by the recorded
+group's membership raises: if `A` and `C` are skipped together and an unrelated
+`D` later takes that value in NFC — which succeeds, since `A` and `C` still hold
+un-normalised bytes — then renaming `C` leaves the group with one member, and a
+membership-based retry writes `A` straight into `D`. This is why an entry stores
+only the row's address; the target and the group are snapshots, and acting on
+either reintroduces at retry time the raise the initial pass is forbidden.
+
+*`normalisation_skips` does not clear with the baseline.* Its neighbours
+`id_aliases` and `review_queue` do, and copying them is the expected mistake: a
+`UNIQUE` collision between two Unicode forms is a fact about this library, not
+about a store, so it survives an epoch reset and a detach. Clearing it on a
+`409` drops every owed repair while the completion marker still says the scan
+finished. Restore is the one event that clears it — along with the marker,
+because a restore brings in rows the scan never saw and no per-entry
+revalidation can discover them.
 
 *The pass must be total, not all-or-nothing.* The existing one-time sweeps in
 `repositories.dart` write their completion marker only after the whole pass

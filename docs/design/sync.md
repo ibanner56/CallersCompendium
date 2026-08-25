@@ -510,14 +510,26 @@ it:
 | Pending deletions — retained tombstone bytes (`tombstone_blob`) | `pending_deletions` | `shareable` |
 | Deferred review items (`kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at`) | `review_queue` | `deviceScoped` |
 | Records this device has published (`kind`, `record_id`) | `published_records` | `deviceScoped` |
+| Rows the normalisation pass could not repair (`table`, `column`, `record_id`) | `normalisation_skips` | `deviceScoped` |
 
-**Three of the four are scoped to the store identity**, and `id_aliases` and
+**Three of these are scoped to the store identity**, and `id_aliases` and
 `review_queue` are additionally scoped to the epoch and cleared with the
 baseline. Each records a conclusion drawn *about a particular store* — that two
 ids were merged, that a pair needs adjudicating — and neither conclusion survives
-a different store or a re-seeded one. `published_records` is the exception, for
+a different store or a re-seeded one. `published_records` is one exception, for
 reasons given below: it records an event rather than a conclusion, and events do
 not stop having happened when the store changes.
+
+`normalisation_skips` is the other, and it is the odder of the two because it is
+not store state in any sense. It records that two rows in **this library** hold
+values that collapse onto the same `UNIQUE` string — a fact that is true before
+the device ever attaches, stays true while it is attached, and is still true
+after it detaches. Nothing about a store makes it true or false, so neither an
+epoch reset nor a detach may clear it. The trap is that its nearest visible
+neighbours do clear, and an implementer reaching for the obvious precedent
+drops owed repairs on every `409` while the completion marker goes on asserting
+the scan is finished. Restore is the one event that clears it, because a restore
+brings in rows the scan never saw.
 
 **`pending_deletions` survives an epoch reset, deliberately.** Scoping it to the
 epoch as well would be wrong in a way that silently discards user intent. Fresh
@@ -2615,7 +2627,7 @@ delete is an `UPDATE` and none of the three `UNIQUE` indexes filters on
 `deleted_at`. Compose those and a **live** row is blocked forever by a **dead**
 one the user cannot see, cannot list and cannot act on. I had reached for a
 special case for tombstones. The better fix was one rule that dissolves both:
-record the skipped groups and retry them on each open. Then every blocking
+record each skipped row and retry it on each open. Then every blocking
 condition — a rename, a delete, a purge, a reconciliation — resolves itself at
 the next launch with no rule naming any of them. Two findings, one root, and the
 narrower fix would have left the other half live.
@@ -2669,13 +2681,73 @@ characterised a function it named. **A named function in a normative sentence is
 a claim about code, and it is checkable in one `grep`** — which is exactly why
 leaving it unchecked is expensive.
 
-**The general lesson, which is now five rounds old: the newest machinery carries
+**A fix that mandates new persisted state must classify it in the same breath.**
+The retry that answered the tombstone problem quietly introduced a table — and
+it appeared in neither the spec's storage inventory nor this document's, under
+each inventory's own rule that everything persisted is classified in the PR that
+adds it. This document had *already catalogued itself* doing this exact thing:
+"introduced as behaviour with no storage; so was `id_aliases`; so was the
+pending tombstone." The rule was written, the instances were listed, and the
+next instance still walked past it one page later. **A rule about a class of
+mistake does not fire on the mistake; only a mechanism does** — which is the
+argument the coverage ratchet already rests on, applied to a design document
+that has no ratchet of its own.
+
+**The lifecycle question is the one that actually loses data, and the obvious
+precedent is wrong.** `normalisation_skips` is the first thing this design
+persists that is not store state in any sense. A `UNIQUE` collision between two
+Unicode forms is a fact about *this library* — true before the device attaches,
+while it is attached, and after it detaches. Its nearest visible neighbours,
+`id_aliases` and `review_queue`, clear with the baseline, so an implementer
+reaching for the obvious precedent drops every owed repair on the next `409`
+while the completion marker goes on asserting the scan is finished. Silent, and
+invisible in support. **New state inherits a lifecycle by proximity unless the
+design states one**, so the statement is the whole of the work.
+
+**Two findings dissolved into one design move, again.** The retry's "no longer
+collides" test was under-specified, and the reading that comes naturally —
+judge the recorded group — raises: a row created *after* the skip was recorded
+can take the target value legitimately, and a later rename then leaves a
+one-member group that "no longer collides" straight into it. Re-deriving from
+the **live column** fixes that, and it also makes the recorded target value and
+group membership unnecessary, which collapses the entry to `(table, column,
+record_id)`. That in turn answers the classification question the same round
+raised: the table stores no name, only the address of a row, so nothing in it is
+`shareable` and nothing is ever re-transmitted. **Storing a snapshot of a
+condition invites acting on the snapshot**; storing an address forces the
+re-derivation that was correct anyway.
+
+**Scoping a rule to "the target value" forgot which table the value lives in.**
+Three `UNIQUE` indexes on three tables, and grouping by target alone treats a
+tag and a choreographer sharing a name as a collision — skipping both
+*permanently*, because a cross-table collision never stops colliding and the
+retry can never clear it. The bug is worse than the one it emerges from: the
+real collisions it was written for do resolve.
+
+**A mutation description can be invalidated by a carve-out added elsewhere in
+the same round.** §9's write-path ratchet was mutation-proved by "add a writer
+that skips normalisation — the row is stored NFD and is uploaded verbatim". The
+ordinary-edit carve-out made that outcome *legitimate*, so a test written to the
+description could no longer distinguish the bug from sanctioned behaviour. The
+ratchet was fine — it asserts **routing** through the choke point, not stored
+bytes — but the mutation had to be restated in the same terms. **When a
+conformance clause is expressed as an outcome and the spec later sanctions that
+outcome, the clause rots silently**, because nothing links the carve-out to the
+test that assumed it impossible.
+
+**The general lesson, which is now six rounds old: the newest machinery carries
 the round's defects.** W18 was created in round 32 to fix an ownership gap, and
 in round 33 it was where both blocking findings lived — including a fresh
 ownership gap, since its own ratchet was gated by no conformance bucket. Round
 34 then found that the *property* written in round 33 to close that round's
 blocking finding was itself false, and false in a way round 33's own new proof
-obligation was structurally unable to detect. Round 30's instance was the spec
+obligation was structurally unable to detect. Round 35 then found both of its
+defects in the retry machinery round 34 had added to close *its* blocking
+finding — unclassified new state, and a retry test that raises. Five
+consecutive rounds have found the round's defects in the previous round's
+repair, which is no longer a coincidence and is better read as a property of
+how repairs get written: under the belief that the hard thinking has just been
+done. Round 30's instance was the spec
 paraphrasing an algorithm; round 31's was the same thing twice more; round 32's
 was the plan getting less scrutiny than the spec. Scaffolding built to close a
 gap is written last, reviewed least, and inherits none of the scrutiny that
@@ -4599,9 +4671,27 @@ must say this plainly rather than implying sync is opaque to us.
   against an index that does not filter `deleted_at`; and by treating the skip
   as final, which leaves a live row blocked forever by a record the user cannot
   see, list or act on.
-- **Editing a member of a skipped group succeeds** — mutation-proved by applying
-  the write-path normalisation rule unconditionally, which rejects the user's
-  edit to satisfy an internal invariant.
+- **Editing a blocked row succeeds** — mutation-proved by applying the write-path
+  normalisation rule unconditionally, which rejects the user's edit to satisfy
+  an internal invariant.
+- **A retry is judged against the live column, not the recorded group** — record
+  a skipped pair, create a third row holding the target in NFC, rename one
+  member, re-open. Mutation-proved by judging membership: the group is down to
+  one, the retry writes, and it raises against the third row — reintroducing at
+  retry time the failure the initial pass forbids.
+- **A tag and a choreographer sharing a name are both normalised** —
+  mutation-proved by grouping on the target value alone rather than `(table,
+  column, target)`. Worse than the collision it emerges from: a cross-table
+  collision never stops colliding, so retry can never repair it.
+- **A restore re-runs the pass** — restore a library holding an un-normalised
+  row after the pass completed. Mutation-proved twice: keep the marker across
+  restore, and the row is never scanned; or revalidate the recorded entries
+  instead of clearing the marker, and nothing discovers a row that is in no
+  entry.
+- **`normalisation_skips` survives an epoch reset and a detach** —
+  mutation-proved by clearing it with the baseline as `id_aliases` and
+  `review_queue` do, which drops every owed repair on the next `409` while the
+  marker still asserts the scan completed.
 - **The pass does not rewrite `settings.key`** — mutation-proved by taking
   "every `shareable` string column" literally: the settings record is renamed
   rather than repaired. Inert today, since settings keys are ASCII constants,

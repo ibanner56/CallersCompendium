@@ -160,14 +160,41 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
 | `review_queue` | `kind`, `record_id`, `counterpart_id`, `reason`, `candidate_blob`, `candidate_hash`, `queued_at` | `deviceScoped` |
 | `published_records` | `kind`, `record_id` | `deviceScoped` |
+| `normalisation_skips` | `table`, `column`, `record_id` | `deviceScoped` |
 
 `tombstone_blob` is `shareable` because it is record content that is
 re-transmitted, not device bookkeeping.
 
-**Lifecycle.** All are scoped to the store identity except `published_records`,
-which is treated separately below. `id_aliases` and `review_queue` clear with
-the baseline. `pending_deletions` MUST survive an epoch reset and MUST clear on
-detach; after a restore its rows MUST be revalidated against the restored data.
+**Lifecycle.** All are scoped to the store identity except `published_records`
+and `normalisation_skips`, which are treated separately below. `id_aliases` and
+`review_queue` clear with the baseline. `pending_deletions` MUST survive an
+epoch reset and MUST clear on detach; after a restore its rows MUST be
+revalidated against the restored data.
+
+`normalisation_skips` records `(table, column, record_id)` for every row §4.1's
+pass left un-normalised because its target value is occupied. It is
+`deviceScoped` as bookkeeping rather than as content: it stores no name, only
+the address of a row, and unlike `pending_deletions`' `tombstone_blob` nothing
+in it is ever re-transmitted. Storing the target value would make part of the
+row `shareable` for no gain, since §4.1 requires retry to re-derive the target
+from the live column anyway.
+
+**It is the only entry here that is not store state at all**, and an
+implementer who copies the nearest visible precedent will get it wrong in a way
+that loses data repairs silently. `id_aliases` and `review_queue` record
+conclusions drawn *about a particular store*, so clearing them with the baseline
+is right. A local `UNIQUE` collision between two Unicode forms is a property of
+**this device's library**: it is equally true before the device ever attaches,
+while it is attached, and after it detaches, and no epoch reset makes it false.
+So `normalisation_skips` MUST NOT be cleared on an epoch reset and MUST NOT be
+cleared on detach — clearing it on a `409` would silently drop owed repairs and
+leave rows un-normalised for the life of the install, with the completion marker
+still asserting the work was done.
+
+Restore is the one event that does clear it, and §4.1 gives the reason: a
+restore introduces rows the pass never scanned, which entry-by-entry
+revalidation cannot discover. Both the marker and this table clear together so
+the pass runs again.
 
 `published_records` is required only of clients taking §3.1's forfeiture route.
 It is **not** store-scoped bookkeeping and does **not** share
@@ -355,6 +382,15 @@ write.** The pass MUST first compute the target value for every in-scope row,
 group the rows by that target, and only then write. Any group with more than one
 member MUST be skipped whole, leaving **every** member in its stored form.
 
+**The grouping key is `(table, column, target)`, not the target alone.** The
+in-scope rows span three tables with three independent `UNIQUE` indexes —
+`choreographers.name`, `tags.name` and `custom_field_defs.key` — and a tag and a
+choreographer bearing the same name do not collide at the database level.
+Grouping by target alone would treat them as colliding and skip both
+permanently: unlike a real collision, a cross-table one never stops colliding,
+so the retry below can never repair it. Two conforming implementations would
+then diverge on ordinary input.
+
 Detecting collisions by catching the `UNIQUE` violation instead is
 order-dependent and produces the wrong outcome. If two rows are stored in
 different decompositions that normalise to the same target, the first is written
@@ -378,37 +414,68 @@ depends on — a *user* resolving the same pair differently on two devices is
 exactly the divergence I1 orders.
 
 **A skip MUST be recorded and retried, not treated as final.** The pass MUST
-persist the identity of every skipped group and MUST re-attempt those groups on
-each subsequent open, writing any group that no longer collides. Re-attempting
-is bounded by the number of recorded groups rather than by the size of the
-library, so it is not a repeated full scan.
+record every skipped row in `normalisation_skips` (§3.2) and MUST re-attempt the
+recorded rows on each subsequent open, clearing an entry once its row is
+written. Re-attempting is bounded by the number of recorded rows rather than by
+the size of the library, so it is not a repeated full scan.
+
+**Retry MUST re-derive collision status from the live column, not from what was
+recorded.** For each recorded row the client MUST recompute the target from the
+row's current stored value and test the live `UNIQUE` column for an occupant
+other than that row itself, writing only when there is none. This is why an
+entry stores only `(table, column, record_id)` and neither the target value nor
+the membership of the group it was skipped with: both are snapshots of a moment,
+and acting on either can raise.
+
+The failure that forbids is not hypothetical. Suppose rows `A` and `C` are
+skipped together, both stored NFD and both normalising to the same target. A
+later, unrelated row `D` is then created carrying that target already in NFC:
+that write succeeds, because `A` and `C` still hold their own un-normalised
+bytes and nothing yet occupies the value. The user then renames `C`. Judged by
+the recorded group, the group is down to one member and "no longer collides", so
+retry writes `A` — and raises against `D`. Judged against the live column, `A`'s
+target is plainly occupied and `A` stays skipped. The stale-membership reading
+reintroduces at retry time precisely the raise this section forbids for the
+initial pass, and contradicts the totality claim below.
 
 Retry is what keeps every blocking condition resolvable, and it is the reason
-this specification does not need a special case for tombstones. A blocked group
-unblocks when the user renames or deletes a member, when a blocking tombstone is
-purged, or when reconciliation renames one side — and in each case the next open
-completes the repair with no further rule. Without retry, a live row could be
-left permanently un-normalised by a tombstone the user cannot see, cannot list
-and cannot act on, which is strictly worse than the live-pair case and would be
-invisible in support.
+this specification does not need a special case for tombstones. A blocked row
+unblocks when the user renames or deletes the row occupying its target, when a
+blocking tombstone is purged, or when reconciliation renames one side — and in
+each case the next open completes the repair with no further rule. Without
+retry, a live row could be left permanently un-normalised by a tombstone the
+user cannot see, cannot list and cannot act on, which is strictly worse than the
+live-pair case and would be invisible in support.
 
-**A later ordinary write to a member of a skipped group MUST NOT fail.** §4.1's
-write-path rule requires every write to normalise, which would re-attempt the
-same colliding value. The write MUST instead store the value un-normalised and
-record the group as skipped. A user's edit is never rejected to satisfy a
-normalisation rule.
+**A later ordinary write to a row whose target is occupied MUST NOT fail.**
+§4.1's write-path rule requires every write to normalise, which would re-attempt
+the colliding value. The write MUST instead store the value un-normalised and
+record the row in `normalisation_skips`. A user's edit is never rejected to
+satisfy a normalisation rule.
+
+**An archive restore MUST clear both the completion marker and
+`normalisation_skips`, so that the pass runs again over the restored library.**
+The marker asserts that a scan completed over *a* library, and a restore writes
+rows the scan never saw — a restored row can be un-normalised while the marker
+declares the work done, and a recorded entry can name a row the restore replaced
+or removed. Revalidating entry by entry would be the cheaper repair but not a
+correct one, because it cannot discover never-scanned rows. The cost is one
+additional scan on an operation that is rare and already rewrites the library.
 
 Skipping is not free, and the cost is worth stating. A skipped row stays in its
 stored form, so it keeps whatever behaviour it has today, including exclusion
-from §6.10's dedupe. If one device holds a colliding group and a peer holds only
-one of its members, the peer normalises its copy while this device does not, and
-the shared record id then presents as `changed`/`changed` with equal
-`updatedAt`. Per §6.3 that state does **not** resolve: neither side wins,
-neither body is applied, and it is reported on that pass and on every subsequent
-pass until a human edits one side. That is a standing, visible, non-convergent
-state over a pair the user already has reason to look at — which this
-specification prefers to a silent merge, but which is a real cost and not a
-formality.
+from §6.10's dedupe. If one device holds a colliding pair and a peer holds only
+one of its members, the peer normalises its copy while this device does not.
+Because the pass never touches `updated_at`, the shared record id then presents
+to the skipping device as `same`/`changed` with **equal** `updatedAt` — its own
+copy is unchanged against its baseline; the peer's has changed. Per §6.3 that
+row's `>` is strict, so the difference is left un-downloaded rather than guessed
+at, and MUST be reported on that pass and on every subsequent pass until a human
+edits one side. The peer meanwhile sees an ordinary `changed`/`same` and
+uploads, so the report is raised by the skipping device; it is a standing,
+visible, non-convergent state over a pair the user already has reason to look
+at, which this specification prefers to a silent merge, but which is a real cost
+and not a formality.
 
 **The pass MUST be idempotent and safe to interrupt.** Because skipping is the
 only failure response, the pass is total: no row raises, so an interrupted pass
@@ -1586,20 +1653,37 @@ the row throws on every launch and the device never normalises anything;
 **detect the collision by catching the `UNIQUE` violation instead of grouping
 before writing** — the first row of the pair writes successfully because nothing
 holds the target yet, so exactly one member is normalised and which one depends
-on row order). **A live row whose only colliding partner is a tombstone is also
-skipped, and is normalised on a later run once that tombstone is purged**
-(mutations: ignore soft-deleted rows when grouping — the write then fails
-against an index that does not filter `deleted_at`; treat a skip as final — the
-live row is blocked forever by a record the user cannot see or list). **An
-ordinary edit to a member of a skipped group succeeds** (mutation: apply the
-write-path normalisation rule unconditionally — the user's edit is rejected to
-satisfy an internal invariant). **`settings.key` is not rewritten by the pass**
-(mutation: include every `shareable` string column without excluding record
-identity — the settings record is renamed rather than repaired). **Re-running
-the pass changes nothing** (mutation: make any step non-idempotent — a pass
-interrupted after its last write then repeats it). **A row whose text changed is
-still found by search afterwards** (mutation: skip the derived rebuild — the
-index keeps the pre-normalisation text and matches nothing).
+on row order). **A retry is judged against the live column, not the recorded
+group** — record a skipped pair, create a third row that already holds the
+target in NFC, rename one member of the pair, then re-open (mutation: judge "no
+longer collides" by the recorded group's membership — the group is down to one
+member, the retry writes, and it raises against the third row, breaking the
+totality guarantee at retry time). **A tag and a choreographer with the same
+name are both normalised** (mutation: group by target value alone rather than
+by `(table, column, target)` — both are skipped forever, and retry cannot
+repair it because a cross-table collision never stops colliding). **A restore
+re-runs the pass** — restore a library containing an un-normalised row after the
+pass has completed, and assert it is NFC (mutation: keep the completion marker
+across restore — the row is never scanned and stays un-normalised for the life
+of the install; mutation: revalidate the recorded entries instead of clearing
+the marker — the restored row is in no entry, so nothing discovers it).
+**`normalisation_skips` survives an epoch reset and a detach** (mutation: clear
+it with the baseline, as `id_aliases` and `review_queue` do — every owed repair
+is dropped on the next `409` while the marker still asserts the scan completed).
+**A live row whose only colliding partner is a tombstone is also skipped, and is
+normalised on a later run once that tombstone is purged** (mutations: ignore
+soft-deleted rows when grouping — the write then fails against an index that
+does not filter `deleted_at`; treat a skip as final — the live row is blocked
+forever by a record the user cannot see or list). **An ordinary edit to a
+blocked row succeeds** (mutation: apply the write-path normalisation rule
+unconditionally — the user's edit is rejected to satisfy an internal invariant).
+**`settings.key` is not rewritten by the pass** (mutation: include every
+`shareable` string column without excluding record identity — the settings
+record is renamed rather than repaired). **Re-running the pass changes nothing**
+(mutation: make any step non-idempotent — a pass interrupted after its last
+write then repeats it). **A row whose text changed is still found by search
+afterwards** (mutation: skip the derived rebuild — the index keeps the
+pre-normalisation text and matches nothing).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -1664,11 +1748,20 @@ cover repository write paths; a migration-path operation is in scope only
 through this proof, never through an exemption list.
 
 Separately, and gating the normalisation pass rather than I1: **every write path
-that populates a `shareable` string column normalises it**, asserted
-structurally over the write paths themselves rather than over a list of
-importers (mutation: add a writer that skips normalisation — the row is stored
-NFD, is never repaired because the one-time pass has already run, and is
-uploaded verbatim for the life of the install).
+that populates a `shareable` string column routes through the normalising choke
+point**, asserted structurally over the write paths themselves rather than over
+a list of importers (mutation: add a writer that bypasses the choke point — the
+row is stored NFD, and because nothing recorded it in `normalisation_skips` it
+is never retried and is uploaded verbatim for the life of the install).
+
+The ratchet is stated over **routing**, not over stored bytes, and that
+distinction is now load-bearing rather than stylistic. §4.1's carve-out means a
+legitimately routed write can also leave a row stored NFD, so a test asserting
+"every `shareable` string in the database is NFC" would fail against sanctioned
+behaviour, and a test written to the outcome could not tell a bypassing writer
+from a recorded skip. What separates them is that the sanctioned path passed
+through the choke point and left a `normalisation_skips` entry behind; the bug
+did neither.
 
 **Classification.** `deviceLocal` never serialised — property test over the
 registry, and it MUST NOT be allowed to become vacuous. Inbound apply preserves
