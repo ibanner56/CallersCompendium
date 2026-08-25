@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -88,6 +89,18 @@ Future<void> _pumpBuilder(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+/// Opens the collapsed Tier 2 metadata drawer when a test needs its fields.
+/// Repeated calls are safe, which keeps tests focused on their actual action.
+Future<void> _expandMoreDetails(WidgetTester tester) async {
+  final tile = tester.widget<ExpansionTile>(
+    find.byKey(const ValueKey('program-more-details-tile')),
+  );
+  if (!tile.controller!.isExpanded) {
+    await tester.tap(find.text('More details'));
+    await tester.pumpAndSettle();
+  }
 }
 
 class _ProgramOnlineService implements OnlineSearchService {
@@ -318,6 +331,63 @@ class _EditorHostState extends State<_EditorHost> {
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
+  testWidgets('Tier 2 event details start collapsed', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpBuilder(tester, repos);
+
+    expect(
+      find.byKey(const ValueKey('program-more-details-tile')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('program-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('pick-event-date')), findsOneWidget);
+    expect(
+      tester
+          .widget<ExpansionTile>(
+            find.byKey(const ValueKey('program-more-details-tile')),
+          )
+          .controller!
+          .isExpanded,
+      isFalse,
+    );
+
+    await _expandMoreDetails(tester);
+
+    expect(
+      tester
+          .widget<ExpansionTile>(
+            find.byKey(const ValueKey('program-more-details-tile')),
+          )
+          .controller!
+          .isExpanded,
+      isTrue,
+    );
+    expect(find.byKey(const ValueKey('program-venue')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-band')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-caller')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-dancer-level')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-notes')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-status')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('program-hide-alternates')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('More details'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<ExpansionTile>(
+            find.byKey(const ValueKey('program-more-details-tile')),
+          )
+          .controller!
+          .isExpanded,
+      isFalse,
+    );
+  });
+
   testWidgets('create requires a title', (tester) async {
     final repos = openTestRepositories();
     String? savedId;
@@ -352,6 +422,7 @@ void main() {
       find.byKey(const ValueKey('program-title')),
       'Barn Dance',
     );
+    await _expandMoreDetails(tester);
     await tester.enterText(
       find.byKey(const ValueKey('program-venue')),
       'The Grange',
@@ -426,6 +497,7 @@ void main() {
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
     await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
 
+    await _expandMoreDetails(tester);
     final toggle = find.byKey(const ValueKey('program-hide-alternates'));
     await tester.ensureVisible(toggle);
     await tester.pumpAndSettle();
@@ -439,6 +511,50 @@ void main() {
 
     final updated = await repos.programs.getById('p1');
     expect(updated!.hideAlternates, isTrue);
+  });
+
+  testWidgets('expanded Tier 2 metadata persists on save', (tester) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    await _pump(tester, repos, programId: 'p1', onSaved: (_) {});
+
+    await _expandMoreDetails(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('program-venue')),
+      'Grange Hall',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('program-band')),
+      'The Fiddleheads',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('program-caller')),
+      'Alex Caller',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('program-dancer-level')),
+      'All welcome',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('program-notes')),
+      'Doors at seven.',
+    );
+    await tester.tap(find.byKey(const ValueKey('program-status')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Finalized').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('program-hide-alternates')));
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.venue, 'Grange Hall');
+    expect(saved.band, 'The Fiddleheads');
+    expect(saved.caller, 'Alex Caller');
+    expect(saved.dancerLevel, 'All welcome');
+    expect(saved.notes, 'Doors at seven.');
+    expect(saved.status, ProgramStatus.finalized);
+    expect(saved.hideAlternates, isTrue);
   });
 
   testWidgets('clearing venue and event date persists as null', (tester) async {
@@ -457,6 +573,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('clear-event-date')));
     await tester.pumpAndSettle();
     // Clear venue text.
+    await _expandMoreDetails(tester);
     await tester.enterText(find.byKey(const ValueKey('program-venue')), '');
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
@@ -755,6 +872,7 @@ void main() {
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
     await _pumpBuilder(tester, repos, programId: 'p1');
 
+    await _expandMoreDetails(tester);
     await tester.enterText(
       find.byKey(const ValueKey('program-band')),
       'The Fiddleheads',
@@ -1646,6 +1764,7 @@ void main() {
     await repos.settings.set(kDefaultProgramBandKey, 'The Syncopators');
 
     await _pump(tester, repos);
+    await _expandMoreDetails(tester);
 
     expect(
       tester
@@ -1679,6 +1798,7 @@ void main() {
     );
 
     await _pumpBuilder(tester, repos, programId: 'p1');
+    await _expandMoreDetails(tester);
 
     expect(
       tester
@@ -1702,6 +1822,7 @@ void main() {
     final repos = openTestRepositories();
 
     await _pump(tester, repos);
+    await _expandMoreDetails(tester);
 
     expect(
       tester

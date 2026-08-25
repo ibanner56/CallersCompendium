@@ -3595,7 +3595,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get importFromTitleList => 'Van titellijst';
 
   @override
+  String get importProgramFromTitleList => 'Importeren vanuit titellijst';
+
+  @override
   String get importFromContraDb => 'Van ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Importeren vanuit ContraDB';
 
   @override
   String get importProgramTitleLabel => 'Programmatitel';
@@ -6423,6 +6429,20 @@ class AppLocalizationsNl extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · $count dansen';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'Licentie: $license\nToestemming: $grantor verleent $holder toestemming op basis van $basis. Gedekte velden: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'geen';
 
   @override
   String publishedCollectionSupersedes(String version) {

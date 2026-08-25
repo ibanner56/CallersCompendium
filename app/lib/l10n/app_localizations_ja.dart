@@ -3466,7 +3466,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFromTitleList => 'タイトルリストから';
 
   @override
+  String get importProgramFromTitleList => 'タイトルリストからインポート';
+
+  @override
   String get importFromContraDb => 'ContraDBから';
+
+  @override
+  String get importProgramFromContraDb => 'ContraDBからインポート';
 
   @override
   String get importProgramTitleLabel => 'プログラムタイトル';
@@ -6156,6 +6162,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · ダンス $count件';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'ライセンス: $license\n許可: $grantor が $holder に $basis に基づく利用許可を付与。対象フィールド: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'なし';
 
   @override
   String publishedCollectionSupersedes(String version) {

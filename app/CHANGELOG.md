@@ -32,6 +32,19 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Changed
+
+- **Collection import** — browse signed Published collections from the Import
+  dances source picker, and open custom fields or recently deleted dances in
+  the desktop detail pane.
+
+- **Program editor** — keep Event date visible while grouping the remaining
+  event metadata under **More details**; mobile import actions now state what
+  each source imports.
+
+- **Navigation icons** — align Program, Experimental, and Collection actions
+  with their destinations.
+  
 ### Fixed
 
 - **macOS in-app updates** — choosing **Download & install** now opens a Save

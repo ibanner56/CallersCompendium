@@ -5,13 +5,15 @@ import 'package:test/test.dart';
 
 import '../storage/test_database.dart';
 
-Dance _dance(String id, {String walkthrough = ''}) => Dance(
-  id: id,
-  title: 'Dance $id',
-  walkthrough: walkthrough,
-  createdAt: DateTime.utc(2026, 1, 1),
-  updatedAt: DateTime.utc(2026, 1, 1),
-);
+Dance _dance(String id, {String walkthrough = '', Provenance? provenance}) =>
+    Dance(
+      id: id,
+      title: 'Dance $id',
+      walkthrough: walkthrough,
+      provenance: provenance,
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    );
 
 String _payload({List<Dance>? dances}) => encodeArchive(
   CompendiumArchive(
@@ -24,6 +26,14 @@ Map<String, Object?> _root() =>
     Map<String, Object?>.from(jsonDecode(_payload()) as Map);
 
 String _json(Map<String, Object?> root) => jsonEncode(root);
+
+class _PublishedProvenanceSelectCounter extends QueryCounter {
+  @override
+  bool matches(String statement) {
+    final normalized = statement.toLowerCase();
+    return normalized.startsWith('select') && normalized.contains('provenance');
+  }
+}
 
 void main() {
   final metadata = PublishedCollectionMetadata(
@@ -135,9 +145,11 @@ void main() {
     late DanceRepository dances;
     late CollectionImportEventRepository events;
     late PublishedCollectionImporter importer;
+    late _PublishedProvenanceSelectCounter provenanceSelects;
 
     setUp(() {
-      db = openTestDatabase();
+      provenanceSelects = _PublishedProvenanceSelectCounter();
+      db = openCountingTestDatabase(provenanceSelects);
       dances = DanceRepository(db, contraTaxonomy);
       events = CollectionImportEventRepository(db);
       importer = PublishedCollectionImporter(
@@ -219,5 +231,46 @@ void main() {
         expect(await events.heldCount('book'), 0);
       },
     );
+
+    test('batches held counts by exact collection version', () async {
+      final importedAt = DateTime.utc(2026, 8, 20);
+      await dances.create(
+        _dance(
+          'local-v1',
+          provenance: Provenance(
+            source: ProvenanceSource.publishedCollection,
+            externalId: 'book/d1',
+            sourceVersion: 'v1',
+            importedAt: importedAt,
+            permission: 'author-granted',
+            license: 'CC-BY-NC-4.0',
+          ),
+        ),
+      );
+      await dances.create(
+        _dance(
+          'local-v2',
+          provenance: Provenance(
+            source: ProvenanceSource.publishedCollection,
+            externalId: 'book/d2',
+            sourceVersion: 'v2',
+            importedAt: importedAt,
+            permission: 'author-granted',
+            license: 'CC-BY-NC-4.0',
+          ),
+        ),
+      );
+      provenanceSelects.reset();
+
+      expect(
+        await events.heldCounts([
+          ('book', 'v1'),
+          ('book', 'v2'),
+          ('other', 'v1'),
+        ]),
+        {('book', 'v1'): 1, ('book', 'v2'): 1, ('other', 'v1'): 0},
+      );
+      expect(provenanceSelects.count, 1);
+    });
   });
 }

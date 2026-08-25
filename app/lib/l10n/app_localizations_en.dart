@@ -3564,7 +3564,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get importFromTitleList => 'From title list';
 
   @override
+  String get importProgramFromTitleList => 'Import from title list';
+
+  @override
   String get importFromContraDb => 'From ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Import from ContraDB';
 
   @override
   String get importProgramTitleLabel => 'Program title';
@@ -6361,6 +6367,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · $count dances';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'License: $license\nPermission: $grantor grants $holder permission under $basis. Covered fields: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'none';
 
   @override
   String publishedCollectionSupersedes(String version) {

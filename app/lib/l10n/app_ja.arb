@@ -3728,9 +3728,17 @@
   "@importFromTitleList": {
     "x-sourceSha256": "1ec4fcef1c4528751b3ee2d164edd592f4e653daae698d2416a4c2d467d5ed5d"
   },
+  "importProgramFromTitleList": "タイトルリストからインポート",
+  "@importProgramFromTitleList": {
+    "x-sourceSha256": "91e600cec80dafa0b7abe6d76f7f26fbb22a0055d9134ce3e5fb9206cf476a71"
+  },
   "importFromContraDb": "ContraDBから",
   "@importFromContraDb": {
     "x-sourceSha256": "018a17c622f1a3f36e955c5f04449880e83544ea0af90604245b7f1f6d7bc712"
+  },
+  "importProgramFromContraDb": "ContraDBからインポート",
+  "@importProgramFromContraDb": {
+    "x-sourceSha256": "42454b76236b6fd95b7014ec5214cbf84d59dfd03d61283b6d8b5205db17fc91"
   },
   "importProgramTitleLabel": "プログラムタイトル",
   "@importProgramTitleLabel": {
@@ -6423,6 +6431,14 @@
   "publishedCollectionDetails": "{id} · {version} · ダンス {count}件",
   "@publishedCollectionDetails": {
     "x-sourceSha256": "ebb910dba0722f7dd04d3ea953aceee41ba0238f0dd1bbfb3c03a93663f7fd67"
+  },
+  "publishedCollectionPermission": "ライセンス: {license}\n許可: {grantor} が {holder} に {basis} に基づく利用許可を付与。対象フィールド: {fields}",
+  "@publishedCollectionPermission": {
+    "x-sourceSha256": "1c4ef5b148a542934dd2d630141a4209a08b606bcc7d69b6705bda04e41bafb2"
+  },
+  "publishedCollectionNoCoveredFields": "なし",
+  "@publishedCollectionNoCoveredFields": {
+    "x-sourceSha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
   },
   "publishedCollectionSupersedes": "バージョン {version} を置き換え",
   "@publishedCollectionSupersedes": {

@@ -5732,11 +5732,23 @@ abstract class AppLocalizations {
   /// **'From title list'**
   String get importFromTitleList;
 
+  /// Compact import-program menu item: import a program from a pasted title list.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from title list'**
+  String get importProgramFromTitleList;
+
   /// Import-program menu item: import a program from ContraDB.
   ///
   /// In en, this message translates to:
   /// **'From ContraDB'**
   String get importFromContraDb;
+
+  /// Compact import-program menu item: import a program from ContraDB.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from ContraDB'**
+  String get importProgramFromContraDb;
 
   /// Label for the program-title text field in the import screens.
   ///
@@ -7292,7 +7304,7 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
-  /// Expansion tile title for less frequently used dance metadata fields.
+  /// Expansion tile title for less frequently used editor metadata fields.
   ///
   /// In en, this message translates to:
   /// **'More details'**
@@ -9790,6 +9802,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{id} · {version} · {count} dances'**
   String publishedCollectionDetails(String id, String version, int count);
+
+  /// Catalog metadata showing the signed collection license and permission declaration before import.
+  ///
+  /// In en, this message translates to:
+  /// **'License: {license}\nPermission: {grantor} grants {holder} permission under {basis}. Covered fields: {fields}'**
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  );
+
+  /// Value shown when a published collection permission declaration has no covered fields.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get publishedCollectionNoCoveredFields;
 
   /// Catalog metadata showing that this collection version replaces an older version.
   ///

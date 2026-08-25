@@ -85,6 +85,57 @@ class CollectionImportEventRepository {
         .getSingle();
   }
 
+  /// Counts held published dances for multiple exact collection/version pairs
+  /// with one provenance query.
+  ///
+  /// Manifest collection identifiers exclude `/`, so the collection portion of
+  /// the persisted `collectionId/danceId` external id is unambiguous.
+  Future<Map<(String, String), int>> heldCounts(
+    Iterable<(String collectionId, String version)> collectionVersions,
+  ) async {
+    final requested = collectionVersions.toSet();
+    final counts = <(String, String), int>{
+      for (final pair in requested) pair: 0,
+    };
+    if (requested.isEmpty) return counts;
+
+    final versions = requested.map((pair) => pair.$2).toSet();
+    final collectionPrefixes = <String>{
+      for (final pair in requested) '${pair.$1}/',
+    };
+    final prefixFilters = <Expression<bool>>[
+      for (final prefix in collectionPrefixes)
+        _db.provenance.externalId.substr(1, prefix.length).equals(prefix),
+    ];
+    final rows =
+        await (_db.selectOnly(_db.provenance)
+              ..addColumns([
+                _db.provenance.externalId,
+                _db.provenance.sourceVersion,
+              ])
+              ..where(
+                _db.provenance.source.equals(
+                      ProvenanceSource.publishedCollection.name,
+                    ) &
+                    _db.provenance.sourceVersion.isIn(versions) &
+                    prefixFilters.reduce((a, b) => a | b),
+              ))
+            .get();
+
+    for (final row in rows) {
+      final externalId = row.read(_db.provenance.externalId);
+      final version = row.read(_db.provenance.sourceVersion);
+      if (externalId == null || version == null) continue;
+      final slash = externalId.indexOf('/');
+      if (slash <= 0) continue;
+      final pair = (externalId.substring(0, slash), version);
+      if (counts.containsKey(pair)) {
+        counts[pair] = counts[pair]! + 1;
+      }
+    }
+    return counts;
+  }
+
   CollectionImportEvent _toModel(CollectionImportEventRow row) =>
       CollectionImportEvent(
         collectionId: row.collectionId,

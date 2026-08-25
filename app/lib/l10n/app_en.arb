@@ -4780,9 +4780,17 @@
   "@importFromTitleList": {
     "description": "Import-program menu item: import a program from a pasted title list."
   },
+  "importProgramFromTitleList": "Import from title list",
+  "@importProgramFromTitleList": {
+    "description": "Compact import-program menu item: import a program from a pasted title list."
+  },
   "importFromContraDb": "From ContraDB",
   "@importFromContraDb": {
     "description": "Import-program menu item: import a program from ContraDB."
+  },
+  "importProgramFromContraDb": "Import from ContraDB",
+  "@importProgramFromContraDb": {
+    "description": "Compact import-program menu item: import a program from ContraDB."
   },
   "importProgramTitleLabel": "Program title",
   "@importProgramTitleLabel": {
@@ -6200,7 +6208,7 @@
   },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle": {
-    "description": "Expansion tile title for less frequently used dance metadata fields."
+    "description": "Expansion tile title for less frequently used editor metadata fields."
   },
   "danceEditorStatusLabel": "Status",
   "@danceEditorStatusLabel": {
@@ -8472,6 +8480,36 @@
         "example": "50"
       }
     }
+  },
+  "publishedCollectionPermission": "License: {license}\nPermission: {grantor} grants {holder} permission under {basis}. Covered fields: {fields}",
+  "@publishedCollectionPermission": {
+    "description": "Catalog metadata showing the signed collection license and permission declaration before import.",
+    "placeholders": {
+      "license": {
+        "type": "String",
+        "example": "CC0-1.0"
+      },
+      "grantor": {
+        "type": "String",
+        "example": "Example Foundation"
+      },
+      "holder": {
+        "type": "String",
+        "example": "Caller's Compendium users"
+      },
+      "basis": {
+        "type": "String",
+        "example": "written permission"
+      },
+      "fields": {
+        "type": "String",
+        "example": "figures, titles"
+      }
+    }
+  },
+  "publishedCollectionNoCoveredFields": "none",
+  "@publishedCollectionNoCoveredFields": {
+    "description": "Value shown when a published collection permission declaration has no covered fields."
   },
   "publishedCollectionSupersedes": "Supersedes version {version}",
   "@publishedCollectionSupersedes": {

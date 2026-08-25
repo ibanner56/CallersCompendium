@@ -65,6 +65,17 @@ Future<ValueNotifier<bool>> _pumpEditor(
   return mode;
 }
 
+/// Opens the program editor's Tier 2 metadata drawer if it is still collapsed.
+Future<void> _expandMoreDetails(WidgetTester tester) async {
+  final tile = tester.widget<ExpansionTile>(
+    find.byKey(const ValueKey('program-more-details-tile')),
+  );
+  if (!tile.controller!.isExpanded) {
+    await tester.tap(find.text('More details'));
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   testWidgets('simple mode shows the free-text field, not the picker', (
     tester,
@@ -72,6 +83,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.programs.create(_program(venue: 'Old Hall'));
     await _pumpEditor(tester, repos, enriched: false, programId: 'p1');
+    await _expandMoreDetails(tester);
 
     expect(find.byKey(const ValueKey('program-venue')), findsOneWidget);
     expect(find.byKey(const ValueKey('program-venue-picker')), findsNothing);
@@ -83,6 +95,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.programs.create(_program(venue: 'Old Hall'));
     await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+    await _expandMoreDetails(tester);
 
     expect(find.byKey(const ValueKey('program-venue-picker')), findsOneWidget);
     expect(find.byKey(const ValueKey('program-venue')), findsNothing);
@@ -91,6 +104,47 @@ void main() {
       find.byKey(const ValueKey('program-venue-legacy-text')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('all Tier 2 controls work with either venue mode', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(venue: 'Old Hall'));
+    final mode = await _pumpEditor(
+      tester,
+      repos,
+      enriched: false,
+      programId: 'p1',
+    );
+
+    await _expandMoreDetails(tester);
+    expect(find.byKey(const ValueKey('program-venue')), findsOneWidget);
+    for (final key in const [
+      'program-band',
+      'program-caller',
+      'program-dancer-level',
+      'program-notes',
+      'program-status',
+      'program-hide-alternates',
+    ]) {
+      expect(find.byKey(ValueKey(key)), findsOneWidget);
+    }
+
+    mode.value = true;
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('program-venue')), findsNothing);
+    expect(find.byKey(const ValueKey('program-venue-picker')), findsOneWidget);
+    for (final key in const [
+      'program-band',
+      'program-caller',
+      'program-dancer-level',
+      'program-notes',
+      'program-status',
+      'program-hide-alternates',
+    ]) {
+      expect(find.byKey(ValueKey(key)), findsOneWidget);
+    }
   });
 
   testWidgets(
@@ -108,6 +162,7 @@ void main() {
         programId: 'p1',
         onSaved: (id) => savedId = id,
       );
+      await _expandMoreDetails(tester);
 
       // Simple mode: free-text field prefilled.
       expect(
@@ -151,6 +206,7 @@ void main() {
       await repos.programs.create(_program(id: 'p1', title: 'Barn Dance'));
 
       await _pumpEditor(tester, repos, enriched: true, programId: 'p1');
+      await _expandMoreDetails(tester);
 
       // Link a saved venue via the enriched-mode picker.
       await tester.enterText(
@@ -181,6 +237,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('program-draft-restore')));
       await tester.pumpAndSettle();
+      await _expandMoreDetails(tester);
 
       // The restored editor shows the linked venue selected — the venue link
       // survived the interruption.
@@ -199,6 +256,7 @@ void main() {
     await repos.programs.create(_program(venue: 'Old Hall', venueId: 'v1'));
 
     await _pumpEditor(tester, repos, enriched: false, programId: 'p1');
+    await _expandMoreDetails(tester);
     // Simple mode surfaces the linked venue read-only, non-destructively.
     expect(
       find.byKey(const ValueKey('program-venue-linked-hint')),
@@ -231,6 +289,7 @@ void main() {
       programId: 'p2',
       onSaved: (id) => savedId = id,
     );
+    await _expandMoreDetails(tester);
 
     await tester.enterText(
       find.byKey(const ValueKey('venue-picker-input')),
@@ -271,6 +330,7 @@ void main() {
       );
 
       await _pumpEditor(tester, repos, enriched: true, programId: 'p3');
+      await _expandMoreDetails(tester);
 
       await tester.enterText(
         find.byKey(const ValueKey('venue-picker-input')),

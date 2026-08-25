@@ -3624,7 +3624,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get importFromTitleList => 'Depuis une liste de titres';
 
   @override
+  String get importProgramFromTitleList =>
+      'Importer depuis une liste de titres';
+
+  @override
   String get importFromContraDb => 'Depuis ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Importer depuis ContraDB';
 
   @override
   String get importProgramTitleLabel => 'Titre du programme';
@@ -6470,6 +6477,20 @@ class AppLocalizationsFr extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · $count danses';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'Licence : $license\nAutorisation : $grantor accorde à $holder l’autorisation sur la base de $basis. Champs couverts : $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'aucun';
 
   @override
   String publishedCollectionSupersedes(String version) {
