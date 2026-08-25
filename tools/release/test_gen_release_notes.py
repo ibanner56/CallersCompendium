@@ -97,7 +97,7 @@ def _cases() -> None:
 
     # 5. Footer is always present (both stable and beta). With macOS signed and
     #    Windows unsigned (default), the footer names Windows+Linux unsigned and
-    #    macOS Developer ID-signed, and does NOT claim Azure Trusted Signing.
+    #    macOS Developer ID-signed, but does NOT claim Windows is Azure-signed.
     for ch, ver, tag in (("stable", "0.2.0", "v0.2.0"),
                          ("beta", "0.1.0-beta", "v0.1.0-beta")):
         body, _ = g.build_notes(
