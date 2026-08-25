@@ -41,6 +41,7 @@ def main() -> None:
     definition = predicate["buildDefinition"]
     assert isinstance(definition, dict)
     assert definition["externalParameters"] == {
+        "inputs": {"release_tag": "v0.1.1-beta"},
         "workflow": {
             "path": ".github/workflows/release.yml",
             "ref": "refs/heads/main",

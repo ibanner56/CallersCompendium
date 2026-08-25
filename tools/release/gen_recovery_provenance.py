@@ -63,6 +63,7 @@ def build_predicate(
         "buildDefinition": {
             "buildType": "https://actions.github.io/buildtypes/workflow/v1",
             "externalParameters": {
+                "inputs": {"release_tag": release_ref.removeprefix("refs/tags/")},
                 "workflow": {
                     "ref": workflow_git_ref,
                     "repository": repository_url,
