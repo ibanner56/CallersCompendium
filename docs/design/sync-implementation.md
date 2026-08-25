@@ -208,8 +208,10 @@ and program content — which is precisely what the editor-draft keys held until
   rather than by catching the `UNIQUE` violation, **skips and reports** whole
   colliding groups without aborting, and **rebuilds derived indexes if it wrote
   anything**; the `normalisation_skips` table (§3.2) with its **retry on each
-  open judged against the live column**, its restore-clears rule, and its
-  second writer on the ordinary-edit carve-out; and a **structural** ratchet
+  open judged by both halves of the grouping test** — recorded-row grouping by
+  `(table, column, target)` *and* live occupancy — its **retirement of entries
+  whose row was hard-deleted**, its restore-clears rule, and its second writer
+  on the ordinary-edit carve-out; and a **structural** ratchet
   asserting that write paths route through the choke point.
 - **Unblocks** nothing directly, but it **gates C1**: the *Wire format* bucket's
   locally-created-NFD vector, pre-existing-row vector, collision, idempotence
@@ -219,9 +221,12 @@ and program content — which is precisely what the editor-draft keys held until
   NFC, a row written before the normalising build is NFC after upgrade, the
   backfill is proved not to move any of the three stamps, a colliding local pair
   leaves both rows untouched and is reported while the pass completes, a tag and
-  a choreographer sharing a name are both normalised, a retry judged against the
-  live column does not raise against a row created after the skip was recorded,
-  a restore re-runs the pass, `normalisation_skips` survives an epoch reset and
+  a choreographer sharing a name are both normalised, a recorded
+  mutually-colliding pair survives re-open **still whole** rather than having
+  one member written along iteration order, a retry does not raise against a row
+  created after the skip was recorded, an entry whose row was hard-deleted is
+  retired while one whose row was soft-deleted is not, a restore re-runs the
+  pass, `normalisation_skips` survives an epoch reset and
   a detach, an ordinary edit to a blocked row succeeds, `settings.key` is
   untouched, a second run of the pass changes nothing, a row whose text the pass
   changed is still found by search, and the write-path ratchet catches a
@@ -300,15 +305,32 @@ cannot see or list. A later ordinary edit to a blocked row must **not** fail —
 store the value un-normalised and record the skip; that carve-out is the
 table's second writer.
 
-*Judge the retry against the live column, not against what was recorded.*
-Recompute the target from the row's current value and check the live `UNIQUE`
-column for an occupant other than the row itself. Judging by the recorded
-group's membership raises: if `A` and `C` are skipped together and an unrelated
-`D` later takes that value in NFC — which succeeds, since `A` and `C` still hold
-un-normalised bytes — then renaming `C` leaves the group with one member, and a
-membership-based retry writes `A` straight into `D`. This is why an entry stores
-only the row's address; the target and the group are snapshots, and acting on
-either reintroduces at retry time the raise the initial pass is forbidden.
+*Retry runs the same grouping test as the initial pass, re-derived from live
+state — both halves of it.* Write a recorded row only when no other recorded row
+in the same `(table, column)` currently derives the same target **and** the live
+`UNIQUE` column holds no occupant other than the row itself. Implementing either
+half alone is a defect, and they fail in opposite directions.
+
+Live occupancy alone splits a mutually-colliding pair: if `A` and `C` are
+recorded together, both NFD and both deriving `T`, then neither occupies `T`, so
+whichever row the retry loop reaches first is written and the second is then
+blocked by it. The pair the initial pass deliberately left whole comes apart
+along an iteration order nothing specifies, and two devices can normalise
+opposite members. Recorded grouping alone raises: if an unrelated `D` later
+takes `T` in NFC — which succeeds, since `A` and `C` still hold un-normalised
+bytes — then renaming `C` leaves `A` a singleton by grouping, and the retry
+writes `A` straight into `D`. This is why an entry stores only the row's
+address: the target and the group are both snapshots, and each must be
+re-derived on every attempt.
+
+*Retire an entry whose row was hard-deleted — in the retry loop, not in the
+delete paths.* `ImportPipeline.undo` already hard-deletes choreographers
+(`delete(id, permanent: true)`), so an entry can outlive its row, at which point
+it can never be written, never clears, and gives retry nothing to recompute
+from. The table is polymorphic, so `ON DELETE CASCADE` is unavailable; putting
+the retirement in retry makes it self-healing rather than an obligation on every
+present and future delete path. Do **not** retire on soft delete: a tombstone
+still occupies the key, so the repair is still owed and still blocked.
 
 *`normalisation_skips` does not clear with the baseline.* Its neighbours
 `id_aliases` and `review_queue` do, and copying them is the expected mistake: a
@@ -377,6 +399,11 @@ import dedupe path, and nothing yet normalises a value that gets **stored**.
   including the three that differ: `pending_deletions` survives an epoch reset,
   clears on detach, and is revalidated against restored data after a restore;
   `published_records` clears on *nothing*; the rest clear with the baseline.
+  `normalisation_skips` is **not** W4's — it is created and lifecycle-tested by
+  W18, which is why "the rest clear with the baseline" is true here. Read
+  without that carve-out the sentence is exactly the mistake §3.2's lifecycle
+  paragraph warns against, so do not extend this unit to the new table by
+  analogy.
 
 `published_records` is the one to get right, because its whole purpose is to
 resist the intuitive rule. It records that bytes physically left this device,
@@ -611,11 +638,19 @@ and it merges records **silently**.
   classifier, which compares body hashes and therefore depends on I2 holding;
   and restore, which **drops the baseline to force a fresh attach**, clearing
   `id_aliases` and `review_queue` with it while `pending_deletions` survives and
-  is revalidated.
+  is revalidated. Restore MUST additionally clear the §4.1 normalisation
+  completion marker and `normalisation_skips` (§6.11). Neither rides on the
+  baseline — the marker is not sync state at all, and `normalisation_skips`
+  deliberately survives baseline drops — so an implementer clearing "what goes
+  with the baseline" clears neither, and the pass never re-runs over restored
+  rows. The rule is over the **event**, not the mode: `RestoreMode.merge` writes
+  unjudged rows exactly as `replace` does.
 - **Unblocks** nothing.
 - **Done when** the §9 *Quarantine and repair* bucket is green, and so is the
   restore half of *Attach and restore* — a restore converges rather than
-  diverging.
+  diverging — and a restore is proved to re-run the normalisation pass: a
+  restored un-normalised row is NFC afterwards, with the mutation that keeps the
+  completion marker across restore shown to leave it un-normalised.
 
 ### Phase 4 — server hardening and operations
 
@@ -882,7 +917,7 @@ that is easy to forget, because the first one is where the interesting code is.
 | Spec | Unit | Spec | Unit |
 | --- | --- | --- | --- |
 | §3.1 | W0 + W17 | §6.4 | W6 |
-| §3.2 | W4 + W14 | §6.5 | W6 + W17 |
+| §3.2 | W4 + W14 + W18 | §6.5 | W6 + W17 |
 | §3.3 | W2 | §6.6 | W7 |
 | §4.1 | W1 + W18 | §6.7 | W6 |
 | §4.2 | W1 | §6.8 | W7 |

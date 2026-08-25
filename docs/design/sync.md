@@ -528,8 +528,19 @@ after it detaches. Nothing about a store makes it true or false, so neither an
 epoch reset nor a detach may clear it. The trap is that its nearest visible
 neighbours do clear, and an implementer reaching for the obvious precedent
 drops owed repairs on every `409` while the completion marker goes on asserting
-the scan is finished. Restore is the one event that clears it, because a restore
-brings in rows the scan never saw.
+the scan is finished. Restore is the one event that clears it wholesale,
+because a restore brings in rows the scan never saw — and that holds for a
+merge-mode restore as much as a full replace, since both write rows the pass has
+not judged.
+
+Individual entries retire on one further event: the row they name being
+**hard-deleted**, which an ordinary import undo already does. An entry that
+outlives its row can never be written, so it would never clear, and retry would
+have no stored value to re-derive from. That retirement belongs in the retry
+loop rather than in the delete paths — a polymorphic `record_id` spanning three
+tables cannot carry `ON DELETE CASCADE`, and a self-healing consumer beats an
+obligation on every delete path anyone adds later. A *soft*-deleted row is not
+retired: its tombstone still occupies the key, so the repair is still owed.
 
 **`pending_deletions` survives an epoch reset, deliberately.** Scoping it to the
 epoch as well would be wrong in a way that silently discards user intent. Fresh
@@ -2735,24 +2746,65 @@ conformance clause is expressed as an outcome and the spec later sanctions that
 outcome, the clause rots silently**, because nothing links the carve-out to the
 test that assumed it impossible.
 
-**The general lesson, which is now six rounds old: the newest machinery carries
-the round's defects.** W18 was created in round 32 to fix an ownership gap, and
-in round 33 it was where both blocking findings lived — including a fresh
-ownership gap, since its own ratchet was gated by no conformance bucket. Round
-34 then found that the *property* written in round 33 to close that round's
-blocking finding was itself false, and false in a way round 33's own new proof
-obligation was structurally unable to detect. Round 35 then found both of its
-defects in the retry machinery round 34 had added to close *its* blocking
-finding — unclassified new state, and a retry test that raises. Five
+**Round 36: a rule restricted to a subset must be shown equivalent over that
+subset, not merely cheaper.** The round-35 fix replaced retry's stale-membership
+test with a live-column test, which was right about the case it was written for
+and wrong in the opposite direction. A mutually-colliding pair occupies nothing
+— each member still holds its own un-normalised bytes — so a live-occupancy test
+sees a free target for whichever member it reaches first, writes it, and blocks
+the other. The pass's whole purpose is that such a pair is left whole, and retry
+undid it along an iteration order nothing specified. The fix is both halves: the
+grouping test *and* the occupancy test. **When a rule is re-expressed over a
+narrower input set, the question is not whether the new test is sound but
+whether it agrees with the original on every member of that set** — and here the
+answer depended on an invariant (every un-normalised row is recorded) that was
+true but unstated, which is why nothing flagged the gap.
+
+**A guarantee stated in one section is not implemented by the section that owns
+the event.** §4.1 said a restore clears the marker and `normalisation_skips`;
+§6.11, the normative restore procedure, and W9, the unit that builds restore,
+both said only that the baseline drops. An implementer builds restore from
+§6.11 and W9. This is the same shape as round 35's inventory gap and round 32's
+ownership gap, and it is the most repeated defect in this review series:
+**the place a rule is written is rarely the place it will be read.** Every
+cross-cutting rule needs a second home in the section that owns the trigger.
+
+**"Cleared when it succeeds" is not a lifecycle — it omits the row going away.**
+`normalisation_skips` entries cleared on being written, and on a wholesale
+restore, and by nothing else; a hard delete left an entry naming a row that
+could never be written and never cleared. The path was already shipped
+(`ImportPipeline.undo`), and the obvious remedy was structurally unavailable,
+because a polymorphic `record_id` spanning three tables cannot carry
+`ON DELETE CASCADE`. **State what retires a record, not just what satisfies
+it**, and prefer putting the retirement where it is self-healing — in the
+consumer that already visits every entry — over spreading it across every
+present and future delete path.
+
+**A coverage matrix drifts when a section gains an obligation owned elsewhere.**
+§3.2's row named W4 + W14, but the new table's lifecycle is built and tested by
+W18, which serves §4.1. The matrix was not wrong when written; it was made wrong
+by an addition somewhere else, and nothing links the two.
+
+**The general lesson, which is now seven rounds old: the newest machinery
+carries the round's defects.** W18 was created in round 32 to fix an ownership
+gap, and in round 33 it was where both blocking findings lived — including a
+fresh ownership gap, since its own ratchet was gated by no conformance bucket.
+Round 34 then found that the *property* written in round 33 to close that
+round's blocking finding was itself false, and false in a way round 33's own
+new proof obligation was structurally unable to detect. Round 35 then found
+both of its defects in the retry machinery round 34 had added to close *its*
+blocking finding — unclassified new state, and a retry test that raises. Round
+36 found its headline defect in the *replacement test* round 35 installed to
+fix that raise, which broke the grouping guarantee it was protecting. Six
 consecutive rounds have found the round's defects in the previous round's
 repair, which is no longer a coincidence and is better read as a property of
 how repairs get written: under the belief that the hard thinking has just been
-done. Round 30's instance was the spec
-paraphrasing an algorithm; round 31's was the same thing twice more; round 32's
-was the plan getting less scrutiny than the spec. Scaffolding built to close a
-gap is written last, reviewed least, and inherits none of the scrutiny that
-produced it — and a *justification* written to close a gap is the least reviewed
-artefact of all, because it reads as the premise rather than as the new work.
+done. Round 30's instance was the spec paraphrasing an algorithm; round 31's
+was the same thing twice more; round 32's was the plan getting less scrutiny
+than the spec. Scaffolding built to close a gap is written last, reviewed
+least, and inherits none of the scrutiny that produced it — and a
+*justification* written to close a gap is the least reviewed artefact of all,
+because it reads as the premise rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
@@ -4688,6 +4740,18 @@ must say this plainly rather than implying sync is opaque to us.
   restore, and the row is never scanned; or revalidate the recorded entries
   instead of clearing the marker, and nothing discovers a row that is in no
   entry.
+- **A recorded mutually-colliding pair survives re-open still whole** —
+  mutation-proved in both directions, because the two halves of the retry test
+  fail oppositely: test live occupancy alone and neither member occupies the
+  target, so the first row reached is written and the pair is split along an
+  unspecified iteration order; test recorded-row grouping alone and a pair whose
+  survivor was later renamed reads as a singleton, so the retry writes it into a
+  third row that took the target in the meantime.
+- **An entry whose row was hard-deleted is retired; one whose row was
+  soft-deleted is not** — mutation-proved by retiring on soft delete, which
+  drops a repair that is still owed because the tombstone still occupies the
+  key, and by retiring on neither, which leaves entries accumulating behind an
+  ordinary import undo with nothing for retry to recompute from.
 - **`normalisation_skips` survives an epoch reset and a detach** —
   mutation-proved by clearing it with the baseline as `id_aliases` and
   `review_queue` do, which drops every owed repair on the next `409` while the
