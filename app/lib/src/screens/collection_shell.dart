@@ -346,6 +346,7 @@ class _CollectionShellState extends State<CollectionShell> {
   /// pane. Guarded by a sequence number so a slow fetch can't overwrite a newer
   /// selection.
   Future<void> _onSelectOnlineDance(OnlineSearchResultRow result) async {
+    if (_importCommitInFlight) return;
     final repos = RepositoriesScope.of(context);
     final l10n = AppLocalizations.of(context);
     final seq = ++_onlineSeq;
@@ -539,10 +540,11 @@ class _CollectionShellState extends State<CollectionShell> {
         // list likewise pushes its own preview route for online results (its
         // onSelectOnlineDance is left null), sharing the online service so the
         // same seam is used in tests.
-        if (_detailMode == _DetailMode.importReview) {
-          // Keep an active embedded import mounted across a breakpoint change.
-          // The review owns the commit/result handoff, so replacing it with the
-          // narrow list would strand an in-flight commit or its retry state.
+        if (_detailMode != _DetailMode.none &&
+            _detailMode != _DetailMode.onlinePreview) {
+          // Keep an active detail mode mounted across a breakpoint change.
+          // Embedded screens own their transient state, so replacing one with
+          // the narrow list would discard its current context.
           return _buildDetailPane();
         }
         return DanceListScreen(

@@ -358,6 +358,37 @@ void main() {
       );
     });
 
+    testWidgets('custom fields and dance trash survive narrow resize', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
+      await tester.pumpAndSettle();
+      tester.view.physicalSize = const Size(800, 900);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('custom-fields-close')), findsOneWidget);
+      expect(find.byType(DanceListScreen), findsNothing);
+
+      tester.view.physicalSize = const Size(1400, 900);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('custom-fields-close')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('recently-deleted')));
+      await tester.pumpAndSettle();
+      tester.view.physicalSize = const Size(800, 900);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('recently-deleted-close')),
+        findsOneWidget,
+      );
+      expect(find.byType(DanceListScreen), findsNothing);
+    });
+
     testWidgets('selecting a dance dismisses a Collection detail mode', (
       tester,
     ) async {
