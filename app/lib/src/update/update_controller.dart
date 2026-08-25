@@ -20,6 +20,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../app_metadata.dart';
 import '../diagnostics/error_log.dart';
+import 'artifact_destination.dart';
 import 'artifact_downloader.dart';
 import 'artifact_handoff.dart';
 import 'artifact_verifier.dart';
@@ -90,6 +91,7 @@ class UpdateController extends ChangeNotifier {
     ArtifactDownloader? downloader,
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
+    ArtifactDestinationPicker? macosDestinationPicker,
     Future<Directory> Function()? temporaryDirectoryProvider,
   }) : _service = service ?? UpdateService(),
        currentVersion =
@@ -101,6 +103,8 @@ class UpdateController extends ChangeNotifier {
        _downloader = downloader ?? downloadArtifact,
        _verifier = verifier ?? verifyArtifactSha256,
        _handoff = handoff ?? handoffArtifactToOs,
+       _macosDestinationPicker =
+           macosDestinationPicker ?? pickMacosArtifactDestination,
        _temporaryDirectoryProvider =
            temporaryDirectoryProvider ?? getTemporaryDirectory;
 
@@ -112,6 +116,7 @@ class UpdateController extends ChangeNotifier {
   final ArtifactDownloader _downloader;
   final ArtifactVerifier _verifier;
   final ArtifactHandoff _handoff;
+  final ArtifactDestinationPicker _macosDestinationPicker;
   final Future<Directory> Function() _temporaryDirectoryProvider;
 
   /// The running release identity (parsed from [kUpdaterVersion]) that manifest
@@ -225,29 +230,46 @@ class UpdateController extends ChangeNotifier {
     _downloadStatus = AssistedDownloadStatus.downloading;
     notifyListeners();
 
-    final Directory dir;
     Directory? downloadDir;
+    late final File destination;
+    var usesTemporaryDirectory = false;
     try {
-      dir = await _temporaryDirectoryProvider();
-      // A fresh, randomly-named subdirectory per attempt (issue #626): the
-      // artifact is written under an unpredictable path so a local attacker
-      // cannot pre-plant a symlink at a guessable location to redirect the
-      // write (CWE-59/377). The downloader's own `create(exclusive: true)`
-      // guard is defense-in-depth on top of this.
-      downloadDir = await dir.createTemp('cc_update_');
+      if (_platform == UpdatePlatform.macos) {
+        // A sandboxed macOS app must obtain this path through a user-initiated
+        // Save As panel. Writing first into the app container gives the image a
+        // hard quarantine flag ("created without user consent"), which prevents
+        // Gatekeeper from launching the installed application.
+        final selected = await _macosDestinationPicker(artifact);
+        if (selected == null) {
+          _cancelDownloadState(null);
+          return;
+        }
+        destination = selected;
+      } else {
+        final dir = await _temporaryDirectoryProvider();
+        // A fresh, randomly-named subdirectory per attempt (issue #626): the
+        // artifact is written under an unpredictable path so a local attacker
+        // cannot pre-plant a symlink at a guessable location to redirect the
+        // write (CWE-59/377). The downloader's own `create(exclusive: true)`
+        // guard is defense-in-depth on top of this.
+        downloadDir = await dir.createTemp('cc_update_');
+        usesTemporaryDirectory = true;
+        destination = File(
+          '${downloadDir.path}/${downloadFileName(artifact.url)}',
+        );
+      }
     } on Object catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
         source: 'update_controller.startAssistedDownload.prepareDir',
       );
-      if (downloadDir != null) await _deleteDirQuietly(downloadDir);
-      _failDownload('Could not prepare a place to download the update.');
+      if (usesTemporaryDirectory && downloadDir != null) {
+        await _deleteDirQuietly(downloadDir);
+      }
+      _failDownload('Could not choose a place to download the update.');
       return;
     }
-    final destination = File(
-      '${downloadDir.path}/${downloadFileName(artifact.url)}',
-    );
 
     File? downloaded;
     try {
@@ -260,12 +282,12 @@ class UpdateController extends ChangeNotifier {
 
       if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
         _cancelDownloadState(outcome.file);
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
         _failDownload(_downloadFailureMessage(outcome.kind));
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
       final file = outcome.file!;
@@ -278,12 +300,12 @@ class UpdateController extends ChangeNotifier {
       final verified = await _verifier(file, artifact.sha256);
       if (token.isCancelled) {
         _cancelDownloadState(file);
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
       if (!verified) {
         await _deleteQuietly(file);
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         _failDownload(
           'The downloaded update failed its security (sha256) check and was '
           'deleted. Try again, or use "View release" to download it manually.',
@@ -296,7 +318,11 @@ class UpdateController extends ChangeNotifier {
 
       final handoff = await _handoff(file, _platform);
       if (handoff == HandoffResult.failed) {
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) {
+          await _deleteDirQuietly(downloadDir!);
+        } else {
+          await _deleteQuietly(file);
+        }
         _failDownload(
           'The update was downloaded and verified, but could not be opened '
           'automatically. Use "View release" to finish installing.',
@@ -319,7 +345,7 @@ class UpdateController extends ChangeNotifier {
         source: 'update_controller.startAssistedDownload.install',
       );
       await _deleteQuietly(downloaded ?? destination);
-      await _deleteDirQuietly(downloadDir);
+      if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
       _failDownload(
         'Something went wrong while installing the update. Try again, or use '
         '"View release" to download it manually.',

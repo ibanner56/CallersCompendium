@@ -149,6 +149,7 @@ STEPS: tuple[Step, ...] = (
         "user-docs",
         "docs/user is the single source of the in-app bundle, and guides render",
         (
+            py("tools/ci/test_sync_user_docs.py"),
             py("tools/ci/sync_user_docs.py", "--check"),
             py("tools/site/test_markdown_to_html.py"),
             py("tools/site/test_render_user_docs.py"),

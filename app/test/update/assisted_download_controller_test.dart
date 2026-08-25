@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/update/artifact_downloader.dart';
+import 'package:compendium_app/src/update/artifact_destination.dart';
 import 'package:compendium_app/src/update/artifact_handoff.dart';
 import 'package:compendium_app/src/update/artifact_verifier.dart';
 import 'package:compendium_app/src/update/semver.dart';
+import 'package:compendium_app/src/update/update_config.dart';
 import 'package:compendium_app/src/update/update_controller.dart';
 import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:compendium_app/src/update/update_service.dart';
@@ -65,6 +67,7 @@ void main() {
     ArtifactDownloader? downloader,
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
+    ArtifactDestinationPicker? macosDestinationPicker,
     UpdatePlatform platform = UpdatePlatform.macos,
     UpdateArch arch = UpdateArch.universal,
   }) {
@@ -93,6 +96,10 @@ void main() {
           },
       verifier: verifier ?? (file, expected) async => true,
       handoff: handoff ?? (file, platform) async => HandoffResult.launched,
+      macosDestinationPicker:
+          macosDestinationPicker ??
+          (artifact) async =>
+              File('${tempDir.path}/macos-${downloadFileName(artifact.url)}'),
       temporaryDirectoryProvider: () async => tempDir,
     );
   }
@@ -230,6 +237,69 @@ void main() {
     expect(c.handoffResult, HandoffResult.launched);
   });
 
+  test('macOS writes directly to the user-selected destination', () async {
+    final repos = openTestRepositories();
+    final chosen = File('${tempDir.path}/Downloads/chosen-update.dmg');
+    File? downloaded;
+    final c = controller(
+      repos,
+      manifestBody: _manifest(),
+      macosDestinationPicker: (artifact) async => chosen,
+      downloader:
+          (
+            artifact, {
+            required destination,
+            client,
+            onProgress,
+            cancelToken,
+          }) async {
+            downloaded = destination;
+            await destination.parent.create(recursive: true);
+            await destination.writeAsString('artifact-bytes');
+            return DownloadOutcome.success(destination);
+          },
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
+
+    await c.startAssistedDownload();
+
+    expect(c.downloadStatus, AssistedDownloadStatus.completed);
+    expect(downloaded, chosen);
+    expect(await chosen.exists(), isTrue);
+  });
+
+  test('cancelling the macOS Save As panel writes nothing', () async {
+    final repos = openTestRepositories();
+    var downloaderCalled = false;
+    final c = controller(
+      repos,
+      manifestBody: _manifest(),
+      macosDestinationPicker: (artifact) async => null,
+      downloader:
+          (
+            artifact, {
+            required destination,
+            client,
+            onProgress,
+            cancelToken,
+          }) async {
+            downloaderCalled = true;
+            return DownloadOutcome.success(destination);
+          },
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
+
+    await c.startAssistedDownload();
+
+    expect(c.downloadStatus, AssistedDownloadStatus.cancelled);
+    expect(downloaderCalled, isFalse);
+    expect(tempDir.listSync(), isEmpty);
+  });
+
   test(
     'a failed handoff surfaces an error and cleans up the temp download dir',
     () async {
@@ -237,7 +307,9 @@ void main() {
       File? captured;
       final c = controller(
         repos,
-        manifestBody: _manifest(),
+        manifestBody: _manifest(platform: 'linux', arch: 'x64'),
+        platform: UpdatePlatform.linux,
+        arch: UpdateArch.x64,
         downloader:
             (
               artifact, {
@@ -268,6 +340,37 @@ void main() {
       expect(tempDir.listSync(), isEmpty);
     },
   );
+
+  test('a failed macOS handoff deletes the selected disk image', () async {
+    final repos = openTestRepositories();
+    final chosen = File('${tempDir.path}/Downloads/chosen-update.dmg');
+    final c = controller(
+      repos,
+      manifestBody: _manifest(),
+      macosDestinationPicker: (artifact) async => chosen,
+      downloader:
+          (
+            artifact, {
+            required destination,
+            client,
+            onProgress,
+            cancelToken,
+          }) async {
+            await destination.parent.create(recursive: true);
+            await destination.writeAsString('artifact-bytes');
+            return DownloadOutcome.success(destination);
+          },
+      handoff: (file, platform) async => HandoffResult.failed,
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
+
+    await c.startAssistedDownload();
+
+    expect(c.downloadStatus, AssistedDownloadStatus.failed);
+    expect(await chosen.exists(), isFalse);
+  });
 
   test('cancel during download aborts to cancelled', () async {
     final repos = openTestRepositories();

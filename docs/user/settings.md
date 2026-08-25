@@ -346,9 +346,11 @@ can read what's new before deciding.
 
 On **desktop**, once an update is found you can **Download & install update**: the
 app downloads it, verifies it hasn't been tampered with, then hands it to your
-system's installer to finish — it never replaces itself in place. On phones and
-tablets, the banner's link takes you to the release to download it the usual way
-for your platform.
+system's installer to finish — it never replaces itself in place. On **macOS**,
+you first choose where to save the disk image; this is the normal macOS download
+confirmation and lets the installed app open normally. On phones and tablets,
+the banner's link takes you to the release to download it the usual way for your
+platform.
 
 Your privacy is built in: an update check downloads a small version file over a
 secure connection and nothing else. No information about you, your device, or how

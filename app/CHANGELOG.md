@@ -34,6 +34,10 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Fixed
 
+- **macOS in-app updates** — choosing **Download & install** now opens a Save
+  As dialog before downloading the disk image, so macOS records user-approved
+  download provenance and can launch the installed notarized app.
+
 - **Dialect move wording templates** — long-wave and promenade branches now
   appear only after choosing those moves, while a single circle template keeps
   the automatic **single file** prefix.
