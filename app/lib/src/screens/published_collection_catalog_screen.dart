@@ -34,7 +34,10 @@ class PublishedCollectionCatalogScreen extends StatelessWidget {
   });
 
   final PublishedCollectionService? service;
-  final Future<PublishedCollectionStatus> Function(String collectionId)?
+  final Future<PublishedCollectionStatus> Function(
+    String collectionId,
+    String version,
+  )?
   statusLoader;
   final PublishedCollectionImportCallback onImport;
 
@@ -67,7 +70,10 @@ class PublishedCollectionCatalog extends StatefulWidget {
   });
 
   final PublishedCollectionService? service;
-  final Future<PublishedCollectionStatus> Function(String collectionId)?
+  final Future<PublishedCollectionStatus> Function(
+    String collectionId,
+    String version,
+  )?
   statusLoader;
   final PublishedCollectionImportCallback onImport;
 
@@ -82,7 +88,8 @@ class _PublishedCollectionCatalogState
       widget.service ?? PublishedCollectionService();
   late final Future<PublishedCollectionManifest> _catalog = _service
       .fetchCatalog();
-  final _statusByCollectionId = <String, Future<PublishedCollectionStatus>>{};
+  final _statusByEntry =
+      <(String, String), Future<PublishedCollectionStatus>>{};
   PublishedCollectionEntry? _loadingEntry;
   PublishedCollectionFetchFailure? _archiveError;
   PublishedCollectionEntry? _archiveErrorEntry;
@@ -99,7 +106,7 @@ class _PublishedCollectionCatalogState
       if (!mounted) return;
       await widget.onImport(entry, bytes);
       if (mounted) {
-        _statusByCollectionId.remove(entry.id);
+        _statusByEntry.remove((entry.id, entry.version));
       }
     } on PublishedCollectionFetchException catch (error) {
       // diagnostics: silent — this expected typed failure is shown inline.
@@ -163,9 +170,9 @@ class _PublishedCollectionCatalogState
     final archiveError = _archiveError != null && _archiveErrorEntry == entry;
     final statusFuture = widget.statusLoader == null
         ? null
-        : _statusByCollectionId.putIfAbsent(
-            entry.id,
-            () => widget.statusLoader!(entry.id),
+        : _statusByEntry.putIfAbsent(
+            (entry.id, entry.version),
+            () => widget.statusLoader!(entry.id, entry.version),
           );
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),

@@ -19,14 +19,19 @@ Future<void> pushPublishedCollectionCatalog(BuildContext context) async {
   await navigator.push<void>(
     MaterialPageRoute<void>(
       builder: (_) => PublishedCollectionCatalogScreen(
-        statusLoader: (collectionId) async {
+        statusLoader: (collectionId, version) async {
           final events = await eventsFuture;
           final matching = events
-              .where((event) => event.collectionId == collectionId)
+              .where(
+                (event) =>
+                    event.collectionId == collectionId &&
+                    event.version == version,
+              )
               .map((event) => event.version)
               .toList();
           final held = await repositories.collectionImports.heldCount(
             collectionId,
+            version: version,
           );
           return PublishedCollectionStatus(
             heldCount: held,

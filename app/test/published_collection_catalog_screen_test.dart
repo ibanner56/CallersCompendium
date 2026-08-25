@@ -39,6 +39,25 @@ void main() {
           },
           'requiredCapabilities': <String>[],
         },
+        {
+          'id': 'foda-1-1',
+          'version': '2.0.0',
+          'title': 'FODA updated',
+          'archiveUrl':
+              'https://analect.callerscompendium.com/collections/foda.json',
+          'archiveBytes': archiveBytes.length,
+          'sha256': digest,
+          'danceCount': 0,
+          'license': 'CC0-1.0',
+          'permission': {
+            'grantor': 'Grantor',
+            'holder': 'Holder',
+            'basis': 'Basis',
+            'license': 'CC0-1.0',
+            'fields': <String>[],
+          },
+          'requiredCapabilities': <String>[],
+        },
       ],
     });
     final service = PublishedCollectionService(
@@ -54,6 +73,7 @@ void main() {
       signatureVerifier: (_, _) async => true,
     );
     var statusLoads = 0;
+    final statusRequests = <String>[];
 
     await tester.pumpWidget(
       MaterialApp(
@@ -61,8 +81,9 @@ void main() {
         supportedLocales: testSupportedLocales,
         home: PublishedCollectionCatalogScreen(
           service: service,
-          statusLoader: (_) async {
+          statusLoader: (collectionId, version) async {
             statusLoads++;
+            statusRequests.add('$collectionId/$version');
             return const PublishedCollectionStatus(
               heldCount: 0,
               importedVersion: null,
@@ -73,10 +94,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(statusLoads, 1);
-
-    await tester.tap(find.text('Import collection'));
-    await tester.pumpAndSettle();
     expect(statusLoads, 2);
+    expect(
+      statusRequests,
+      containsAll(<String>['foda-1-1/1.0.0', 'foda-1-1/2.0.0']),
+    );
+
+    await tester.tap(find.text('Import collection').first);
+    await tester.pumpAndSettle();
+    expect(statusLoads, 3);
   });
 }

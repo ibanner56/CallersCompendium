@@ -457,14 +457,21 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   Future<PublishedCollectionStatus> _publishedCollectionStatus(
     String collectionId,
+    String version,
   ) async {
     final events = await (_publishedImportEvents ??= _repos.collectionImports
         .listAll());
     final matching = events
-        .where((event) => event.collectionId == collectionId)
+        .where(
+          (event) =>
+              event.collectionId == collectionId && event.version == version,
+        )
         .map((event) => event.version)
         .toList();
-    final held = await _repos.collectionImports.heldCount(collectionId);
+    final held = await _repos.collectionImports.heldCount(
+      collectionId,
+      version: version,
+    );
     return PublishedCollectionStatus(
       heldCount: held,
       importedVersion: matching.isEmpty
@@ -515,9 +522,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _fetchError = null;
       _titleListError = null;
       _cachedPickedBundle = null;
-      _pasteController.text = seed.json;
       _lastDecodedText = seed.json;
-      _cachedPickedBundle = null;
+      _pasteController.text = seed.json;
     });
     await _plan();
   }
