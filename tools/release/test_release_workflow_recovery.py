@@ -68,7 +68,10 @@ def main() -> None:
     publish_mobile = _job_section(text, "publish_mobile")
     assert "runs-on: macos-latest" in publish_mobile
     assert "environment: release-signing" in publish_mobile
-    assert "needs: [meta, verify]" in publish_mobile
+    needs_match = re.search(r"^\s*needs:\s*\[([^\]]+)\]\s*$", publish_mobile, re.MULTILINE)
+    assert needs_match is not None and {"meta", "verify"}.issubset(
+        {item.strip() for item in needs_match.group(1).split(",")}
+    )
     assert "needs.meta.outputs.recovery != 'true'" in publish_mobile
     assert "name: ios-testflight-status" in publish_mobile
     assert "      - name: Upload iOS build to TestFlight" in publish_mobile
