@@ -573,6 +573,7 @@ class _CollectionShellState extends State<CollectionShell> {
               onImport: _onImport,
               onCustomFields: _onCustomFields,
               onRecentlyDeleted: _onRecentlyDeleted,
+              compactActions: true,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,
               callersBoxOnline: _callersBox,

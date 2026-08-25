@@ -93,6 +93,7 @@ class DanceListScreen extends StatefulWidget {
     this.onImport,
     this.onCustomFields,
     this.onRecentlyDeleted,
+    this.compactActions = false,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -123,6 +124,9 @@ class DanceListScreen extends StatefulWidget {
 
   /// Lets a split-pane owner show recently deleted dances in its detail pane.
   final VoidCallback? onRecentlyDeleted;
+
+  /// Moves app-bar actions into the overflow menu for a constrained parent.
+  final bool compactActions;
 
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
@@ -1789,7 +1793,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final l10n = AppLocalizations.of(context);
     final openSearch = AppShellSearchScope.of(context)?.openSearch;
     final compactActions =
-        openSearch != null || (_data?.tags.isNotEmpty ?? false);
+        openSearch != null ||
+        (widget.compactActions && (_data?.tags.isNotEmpty ?? false));
     return AppBar(
       title: Text(l10n.collectionScreenTitle),
       actions: [
@@ -1937,7 +1942,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         const PopupMenuDivider(),
         PopupMenuItem<Object>(
           enabled: false,
-          child: Text(l10n.collectionSortByTooltip('')),
+          child: Text(
+            l10n.collectionSortByTooltip(collectionSortLabel(l10n, _sort)),
+          ),
         ),
         for (final option in _availableSorts)
           PopupMenuItem<Object>(
