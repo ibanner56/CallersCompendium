@@ -72,7 +72,6 @@ def build_predicate(
             "internalParameters": {
                 "github": {
                     "event_name": "workflow_dispatch",
-                    "release_recovery": True,
                 }
             },
             "resolvedDependencies": [
