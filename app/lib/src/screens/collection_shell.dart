@@ -13,12 +13,14 @@ import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/brand_mark.dart';
+import '../published_collections/published_collection_service.dart';
 import 'dance_detail_screen.dart';
 import 'dance_list_screen.dart';
 import 'dance_reimport_flow.dart';
+import 'custom_fields_screen.dart';
 import 'import_review_screen.dart';
 import 'online_import_variation_dialog.dart';
-import 'published_collection_navigation.dart';
+import 'recently_deleted_screen.dart';
 
 /// Responsive collection shell (`docs/design/ux.md` — list/detail split pane
 /// for desktop/tablet; `docs/ROADMAP.md` deferred follow-up
@@ -47,6 +49,7 @@ class CollectionShell extends StatefulWidget {
     this.importPicker,
     this.urlFetcher,
     this.importSources,
+    this.publishedCollectionService,
     this.callersBoxOnline,
     this.contraDbOnline,
   });
@@ -63,6 +66,9 @@ class CollectionShell extends StatefulWidget {
   /// [defaultImportSources]. Exists so widget tests can inject a trimmed or
   /// fake source list without real file-picking / network.
   final List<ImportSource>? importSources;
+
+  /// Test seam for the signed catalog shown inside Collection import.
+  final PublishedCollectionService? publishedCollectionService;
 
   /// The Caller's Box online service, shared by the list pane and the
   /// detail-pane preview. Injected in tests with a seam-backed instance;
@@ -108,6 +114,8 @@ class _CollectionShellState extends State<CollectionShell> {
       widget.callersBoxOnline ?? CallersBoxOnline();
   late final ContraDbOnline _contraDb =
       widget.contraDbOnline ?? ContraDbOnline();
+  late final PublishedCollectionService _publishedCollectionService =
+      widget.publishedCollectionService ?? PublishedCollectionService();
 
   /// Resolves the online service for a given [source], so a tapped result / its
   /// preview is loaded and imported through the source it came from.
@@ -188,13 +196,28 @@ class _CollectionShellState extends State<CollectionShell> {
           sources: _importSources,
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,
+          publishedCollectionService: _publishedCollectionService,
         ),
       ),
     );
   }
 
-  void _pushPublishedCollectionCatalog() {
-    pushPublishedCollectionCatalog(context);
+  void _onCustomFields() {
+    setState(() {
+      _detailMode = _DetailMode.customFields;
+      _clearOnlinePreview();
+    });
+  }
+
+  void _onRecentlyDeleted() {
+    setState(() {
+      _detailMode = _DetailMode.recentlyDeleted;
+      _clearOnlinePreview();
+    });
+  }
+
+  void _onDetailModeClose() {
+    setState(() => _detailMode = _DetailMode.none);
   }
 
   /// Resets the online-preview sub-state. Call when leaving the online preview.
@@ -514,7 +537,6 @@ class _CollectionShellState extends State<CollectionShell> {
         return DanceListScreen(
           key: _listKey,
           onImport: _pushImportRoute,
-          onPublishedCollections: _pushPublishedCollectionCatalog,
           callersBoxOnline: _callersBox,
           contraDbOnline: _contraDb,
         );
@@ -538,7 +560,8 @@ class _CollectionShellState extends State<CollectionShell> {
               onNewDance: _onNewDance,
               selectedDanceId: _selectedDanceId,
               onImport: _onImport,
-              onPublishedCollections: _pushPublishedCollectionCatalog,
+              onCustomFields: _onCustomFields,
+              onRecentlyDeleted: _onRecentlyDeleted,
               onSelectOnlineDance: _onSelectOnlineDance,
               selectedOnlineId: _onlinePreview?.result.id,
               callersBoxOnline: _callersBox,
@@ -616,8 +639,13 @@ class _CollectionShellState extends State<CollectionShell> {
           sources: _importSources,
           picker: widget.importPicker,
           fetcher: widget.urlFetcher,
+          publishedCollectionService: _publishedCollectionService,
           onClose: _onImportClose,
         );
+      case _DetailMode.customFields:
+        return CustomFieldsScreen(onClose: _onDetailModeClose);
+      case _DetailMode.recentlyDeleted:
+        return RecentlyDeletedScreen.dances(onClose: _onDetailModeClose);
       case _DetailMode.none:
         break;
     }
@@ -644,7 +672,13 @@ class _CollectionShellState extends State<CollectionShell> {
 
 /// The mutually-exclusive non-dance views the wide-layout detail pane can show.
 /// [none] means the pane shows the selected dance (or the empty placeholder).
-enum _DetailMode { none, importReview, onlinePreview }
+enum _DetailMode {
+  none,
+  importReview,
+  onlinePreview,
+  customFields,
+  recentlyDeleted,
+}
 
 /// Placeholder shown in the detail pane before the user selects a dance.
 class _EmptyDetailPane extends StatelessWidget {

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +21,9 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/figure_diff_view.dart';
 import 'dance_editor_screen.dart';
 import 'import_shorthand_seed_screen.dart';
+import 'published_collection_catalog_screen.dart';
+import '../published_collections/published_collection_manifest.dart';
+import '../published_collections/published_collection_service.dart';
 
 /// Soft threshold (issue #432) on the number of entities in a **shared** bundle
 /// (dances + choreographers + programs + venues, via
@@ -101,6 +106,7 @@ class ImportReviewScreen extends StatefulWidget {
     this.onClose,
     this.sharedBundle,
     this.publishedCollection,
+    this.publishedCollectionService,
     this.programAmbiguousImport,
     this.onProgramCommitted,
   }) : assert(sources.length > 0, 'at least one import source is required'),
@@ -165,6 +171,11 @@ class ImportReviewScreen extends StatefulWidget {
   /// A verified signed collection whose archive should open directly in review.
   final PublishedCollectionSeed? publishedCollection;
 
+  /// When supplied, adds a signed published-collection choice to the source
+  /// selector without adding it to [sources], so it cannot become the default
+  /// manual import source.
+  final PublishedCollectionService? publishedCollectionService;
+
   /// Program-import lines online resolution could not confidently resolve
   /// (issue #943), pre-previewed non-committingly. When non-null the screen
   /// seeds these as review rows — one per candidate, grouped under their
@@ -212,6 +223,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   late final CompendiumRepositories _repos;
   bool _started = false;
 
+  /// A picker-only sentinel. It is never planned: selecting it reveals the
+  /// verified catalog, whose entry selection supplies real metadata and a source.
+  static final ImportSource _publishedCatalogSource = ImportSource(
+    kind: ImportSourceKind.publishedCollection,
+    adapterFactory: () =>
+        throw UnsupportedError('catalog option cannot import'),
+  );
+
   /// The currently selected import source. Defaults to the source that marks
   /// itself [ImportSource.preselected], falling back to the first — order and
   /// default selection are deliberately separate (issue #823), so the dropdown
@@ -224,6 +243,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     (s) => s.preselected,
     orElse: () => widget.sources.first,
   );
+
+  bool _showPublishedCatalog = false;
+
+  List<ImportSource> get _sourcePickerSources => [
+    ...widget.sources,
+    if (widget.publishedCollectionService != null) _publishedCatalogSource,
+  ];
 
   @override
   void initState() {
@@ -415,6 +441,58 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Map<int, FigureDiffResult> _confidentDiffs = const {};
 
   Object? _planError;
+
+  Future<PublishedCollectionStatus> _publishedCollectionStatus(
+    String collectionId,
+  ) async {
+    final events = await _repos.collectionImports.listAll();
+    final matching = events
+        .where((event) => event.collectionId == collectionId)
+        .map((event) => event.version)
+        .toList();
+    final held = await _repos.collectionImports.heldCount(collectionId);
+    return PublishedCollectionStatus(
+      heldCount: held,
+      importedVersion: matching.isEmpty
+          ? null
+          : matching.reduce(
+              (a, b) => comparePublishedCollectionVersions(a, b) >= 0 ? a : b,
+            ),
+    );
+  }
+
+  Future<void> _selectPublishedCollection(
+    PublishedCollectionEntry entry,
+    List<int> archiveBytes,
+  ) async {
+    final metadata = PublishedCollectionMetadata(
+      collectionId: entry.id,
+      collectionVersion: entry.version,
+      archiveDigest: entry.sha256,
+      permission: entry.permission.declaration,
+      license: entry.license,
+    );
+    final seed = PublishedCollectionSeed(
+      json: utf8.decode(archiveBytes),
+      metadata: metadata,
+    );
+    final source = ImportSource(
+      kind: ImportSourceKind.publishedCollection,
+      adapterFactory: () => PublishedCollectionAdapter(seed.metadata),
+      preselected: true,
+    );
+    setState(() {
+      _selected = source;
+      _sourceManuallySelected = true;
+      _payloadBytes = null;
+      _sourceUri = null;
+      _fetchError = null;
+      _titleListError = null;
+      _lastDecodedText = seed.json;
+      _pasteController.text = seed.json;
+    });
+    await _plan();
+  }
 
   @override
   void didChangeDependencies() {
@@ -1622,7 +1700,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (widget.sources.length > 1) ...[
+        if (_sourcePickerSources.length > 1) ...[
           Text(
             l10n.importReviewSourceLabel,
             style: Theme.of(context).textTheme.titleMedium,
@@ -1631,12 +1709,17 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           DropdownButton<ImportSource>(
             key: const ValueKey('import-source-select'),
             isExpanded: true,
-            value: _selected,
+            value: _showPublishedCatalog ? _publishedCatalogSource : _selected,
             onChanged: busy
                 ? null
                 : (source) {
                     if (source == null) return;
+                    if (source == _publishedCatalogSource) {
+                      setState(() => _showPublishedCatalog = true);
+                      return;
+                    }
                     setState(() {
+                      _showPublishedCatalog = false;
                       _selected = source;
                       // A deliberate pick disables URL auto-detection so it is
                       // never silently reverted as the user edits the URL.
@@ -1659,12 +1742,25 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                     });
                   },
             items: [
-              for (final source in widget.sources)
+              for (final source in _sourcePickerSources)
                 DropdownMenuItem<ImportSource>(
                   value: source,
-                  child: Text(importSourceLabel(l10n, source.kind)),
+                  child: Text(
+                    source == _publishedCatalogSource
+                        ? l10n.publishedCollectionsTitle
+                        : importSourceLabel(l10n, source.kind),
+                  ),
                 ),
             ],
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (_showPublishedCatalog) ...[
+          PublishedCollectionCatalog(
+            key: const ValueKey('inline-published-collection-catalog'),
+            service: widget.publishedCollectionService,
+            statusLoader: _publishedCollectionStatus,
+            onImport: _selectPublishedCollection,
           ),
           const SizedBox(height: 16),
         ],

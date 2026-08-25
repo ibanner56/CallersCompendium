@@ -35,7 +35,10 @@ String customFieldTypeLabel(AppLocalizations l10n, CustomFieldType type) =>
 /// - For choice fields: adding choices is always fine; removing a choice that
 ///   is currently in use on any dance is blocked with a clear message.
 class CustomFieldsScreen extends StatefulWidget {
-  const CustomFieldsScreen({super.key});
+  const CustomFieldsScreen({super.key, this.onClose});
+
+  /// Dismisses an embedded detail-pane instance rather than popping a route.
+  final VoidCallback? onClose;
 
   @override
   State<CustomFieldsScreen> createState() => _CustomFieldsScreenState();
@@ -249,7 +252,17 @@ class _CustomFieldsScreenState extends State<CustomFieldsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.customFieldsTitle)),
+      appBar: AppBar(
+        title: Text(l10n.customFieldsTitle),
+        leading: widget.onClose == null
+            ? null
+            : IconButton(
+                key: const ValueKey('custom-fields-close'),
+                tooltip: l10n.importReviewClose,
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+              ),
+      ),
       body: _buildBody(),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('add-field'),

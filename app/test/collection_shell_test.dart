@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,6 +14,8 @@ import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/dance_editor_screen.dart';
 import 'package:compendium_app/src/screens/dance_list_screen.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
+import 'package:compendium_app/src/published_collections/published_collection_service.dart';
+import 'package:compendium_app/src/published_collections/published_collection_config.dart';
 import 'package:compendium_app/src/search/collection_query.dart'
     show CollectionSort;
 import 'package:compendium_app/src/widgets/brand_mark.dart';
@@ -35,6 +40,48 @@ Dance _dance({
   createdAt: DateTime.utc(2026, 1, 1),
   updatedAt: DateTime.utc(2026, 1, 1),
 );
+
+PublishedCollectionService _publishedCatalogService(String archiveJson) {
+  final archiveBytes = utf8.encode(archiveJson);
+  final digest = sha256.convert(archiveBytes).toString();
+  final manifest = jsonEncode({
+    'manifestSchema': {'major': 1, 'minor': 0},
+    'minReaderVersion': '0.0.1',
+    'collections': [
+      {
+        'id': 'sample-1',
+        'version': '1.0.0',
+        'title': 'Sample published collection',
+        'archiveUrl':
+            'https://analect.callerscompendium.com/collections/sample.json',
+        'archiveBytes': archiveBytes.length,
+        'sha256': digest,
+        'danceCount': 1,
+        'license': 'CC0-1.0',
+        'permission': {
+          'grantor': 'Grantor',
+          'holder': 'Holder',
+          'basis': 'Basis',
+          'license': 'CC0-1.0',
+          'fields': <String>[],
+        },
+        'requiredCapabilities': <String>[],
+      },
+    ],
+  });
+  return PublishedCollectionService(
+    bytesFetcher: (uri, _) async {
+      if (uri.toString() == kPublishedCollectionManifestUrl) {
+        return utf8.encode(manifest);
+      }
+      if (uri.toString() == kPublishedCollectionSignatureUrl) {
+        return utf8.encode('signature');
+      }
+      return archiveBytes;
+    },
+    signatureVerifier: (_, _) async => true,
+  );
+}
 
 /// Picks the generic Caller's Compendium JSON source in the embedded import
 /// pane. Needed because #823 changed the default selection to The Caller's Box:
@@ -61,6 +108,7 @@ Future<void> _pumpShell(
   ImportPicker? importPicker,
   UrlFetcher? urlFetcher,
   List<ImportSource>? importSources,
+  PublishedCollectionService? publishedCollectionService,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1.0;
@@ -82,6 +130,7 @@ Future<void> _pumpShell(
         importPicker: importPicker,
         urlFetcher: urlFetcher,
         importSources: importSources,
+        publishedCollectionService: publishedCollectionService,
       ),
     ),
   );
@@ -150,11 +199,41 @@ void main() {
       expect(find.text('Delete Narrow'), findsNothing);
       expect(find.text('Stay Narrow'), findsOneWidget);
     });
+
+    testWidgets('custom fields and dance trash remain full-screen routes', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(600, 900));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceListScreen), findsNothing);
+      expect(find.text('Custom fields'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('recently-deleted')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceListScreen), findsNothing);
+      expect(find.text('Recently Deleted'), findsOneWidget);
+    });
   });
 
   // ── wide layout ─────────────────────────────────────────────────────────────
 
   group('wide layout (≥ 900 px)', () {
+    testWidgets('400px list pane title does not overflow', (tester) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(900, 900));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('shows list pane and empty-state detail pane side-by-side', (
       tester,
     ) async {
@@ -252,6 +331,50 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('custom fields and dance trash render in the detail pane', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceListScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('custom-fields-close')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('custom-fields-close')));
+      await tester.pumpAndSettle();
+      expect(find.text('Select a dance'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('recently-deleted')));
+      await tester.pumpAndSettle();
+      expect(find.byType(DanceListScreen), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('recently-deleted-close')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('selecting a dance dismisses a Collection detail mode', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Dismiss Detail Mode'));
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('manage-custom-fields')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Dismiss Detail Mode'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DanceDetailScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('custom-fields-close')), findsNothing);
     });
 
     testWidgets(
@@ -402,6 +525,111 @@ void main() {
   // ── import button + flow ─────────────────────────────────────────────────────
 
   group('import', () {
+    testWidgets('Collection has no separate published collections action', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('published-collections')), findsNothing);
+    });
+
+    testWidgets('uses the requested Collection action icons', (tester) async {
+      final repos = openTestRepositories();
+
+      await _pumpShell(tester, repos, size: const Size(1400, 900));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<Icon>(
+              find.descendant(
+                of: find.byKey(const ValueKey('import-dances')),
+                matching: find.byType(Icon),
+              ),
+            )
+            .icon,
+        Icons.file_download_outlined,
+      );
+      expect(
+        tester
+            .widget<Icon>(
+              find.descendant(
+                of: find.byKey(const ValueKey('manage-custom-fields')),
+                matching: find.byType(Icon),
+              ),
+            )
+            .icon,
+        Icons.note_add_outlined,
+      );
+    });
+
+    testWidgets('published source selection shows the inline catalog and hands '
+        'a verified collection to review', (tester) async {
+      final repos = openTestRepositories();
+      final archive = _archivePayload([
+        _dance(id: 'published-dance', title: 'Published Dance'),
+      ]);
+
+      await _pumpShell(
+        tester,
+        repos,
+        size: const Size(1400, 900),
+        publishedCollectionService: _publishedCatalogService(archive),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('import-dances')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('inline-published-collection-catalog')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Published collections').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('inline-published-collection-catalog')),
+        findsOneWidget,
+      );
+
+      await _selectGenericJsonSource(tester);
+      expect(
+        find.byKey(const ValueKey('inline-published-collection-catalog')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('import-source-select')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Published collections').last);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('inline-published-collection-catalog')),
+        findsOneWidget,
+      );
+      expect(find.text('Sample published collection'), findsOneWidget);
+
+      await tester.tap(find.text('Import collection'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('import-commit-button')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+      await tester.pumpAndSettle();
+
+      final events = await repos.collectionImports.listAll();
+      expect(events, hasLength(1));
+      expect(events.single.collectionId, 'sample-1');
+    });
+
     testWidgets('button renders in the app bar, left of batch-select', (
       tester,
     ) async {

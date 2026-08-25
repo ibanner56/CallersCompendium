@@ -21,8 +21,11 @@ class PublishedCollectionStatus {
   final String? importedVersion;
 }
 
-/// The user-initiated catalog for signed, immutable dance collections.
-class PublishedCollectionCatalogScreen extends StatefulWidget {
+/// Full-screen route for the signed, immutable dance-collection catalog.
+///
+/// Settings keeps this route while Collection embeds [PublishedCollectionCatalog]
+/// below its import-source selector.
+class PublishedCollectionCatalogScreen extends StatelessWidget {
   const PublishedCollectionCatalogScreen({
     super.key,
     this.service,
@@ -36,12 +39,45 @@ class PublishedCollectionCatalogScreen extends StatefulWidget {
   final PublishedCollectionImportCallback onImport;
 
   @override
-  State<PublishedCollectionCatalogScreen> createState() =>
-      _PublishedCollectionCatalogScreenState();
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.publishedCollectionsTitle)),
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        children: [
+          PublishedCollectionCatalog(
+            service: service,
+            statusLoader: statusLoader,
+            onImport: onImport,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _PublishedCollectionCatalogScreenState
-    extends State<PublishedCollectionCatalogScreen> {
+/// Signed catalog content usable from either a full-screen route or an importer.
+class PublishedCollectionCatalog extends StatefulWidget {
+  const PublishedCollectionCatalog({
+    super.key,
+    this.service,
+    this.statusLoader,
+    required this.onImport,
+  });
+
+  final PublishedCollectionService? service;
+  final Future<PublishedCollectionStatus> Function(String collectionId)?
+  statusLoader;
+  final PublishedCollectionImportCallback onImport;
+
+  @override
+  State<PublishedCollectionCatalog> createState() =>
+      _PublishedCollectionCatalogState();
+}
+
+class _PublishedCollectionCatalogState
+    extends State<PublishedCollectionCatalog> {
   late final PublishedCollectionService _service =
       widget.service ?? PublishedCollectionService();
   late final Future<PublishedCollectionManifest> _catalog = _service
@@ -80,45 +116,43 @@ class _PublishedCollectionCatalogScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.publishedCollectionsTitle)),
-      body: FutureBuilder<PublishedCollectionManifest>(
-        future: _catalog,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return Center(
+    return FutureBuilder<PublishedCollectionManifest>(
+      future: _catalog,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Center(
               child: Semantics(
                 label: l10n.publishedCollectionsLoading,
                 child: const CircularProgressIndicator(),
               ),
-            );
-          }
-          final error = snapshot.error;
-          if (error != null || !snapshot.hasData) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Text(
-                  l10n.publishedCollectionsUnavailable,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-          final entries = snapshot.data!.collections;
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              Text(
-                l10n.publishedCollectionsDescription,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              for (final entry in entries) _buildEntry(context, entry),
-            ],
+            ),
           );
-        },
-      ),
+        }
+        final error = snapshot.error;
+        if (error != null || !snapshot.hasData) {
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              l10n.publishedCollectionsUnavailable,
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+        final entries = snapshot.data!.collections;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.publishedCollectionsDescription,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            for (final entry in entries) _buildEntry(context, entry),
+          ],
+        );
+      },
     );
   }
 

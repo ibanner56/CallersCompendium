@@ -91,7 +91,8 @@ class DanceListScreen extends StatefulWidget {
     this.onNewDance,
     this.selectedDanceId,
     this.onImport,
-    this.onPublishedCollections,
+    this.onCustomFields,
+    this.onRecentlyDeleted,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -117,8 +118,11 @@ class DanceListScreen extends StatefulWidget {
   /// list itself stays layout-agnostic (mirrors [onSelectDance]).
   final VoidCallback? onImport;
 
-  /// Opens the signed published-collection catalog.
-  final VoidCallback? onPublishedCollections;
+  /// Lets a split-pane owner show custom fields in its detail pane.
+  final VoidCallback? onCustomFields;
+
+  /// Lets a split-pane owner show recently deleted dances in its detail pane.
+  final VoidCallback? onRecentlyDeleted;
 
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
@@ -146,7 +150,6 @@ enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
 
 enum _CollectionCompactAction {
   importDances,
-  publishedCollections,
   batchSelect,
   manageCustomFields,
   recentlyDeleted,
@@ -1793,15 +1796,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
               IconButton(
                 key: const ValueKey('import-dances'),
                 tooltip: l10n.importDances,
-                icon: const Icon(Icons.download_outlined),
+                icon: const Icon(Icons.file_download_outlined),
                 onPressed: widget.onImport,
-              ),
-            if (widget.onPublishedCollections != null)
-              IconButton(
-                key: const ValueKey('published-collections'),
-                tooltip: l10n.publishedCollectionsTitle,
-                icon: const Icon(Icons.library_books_outlined),
-                onPressed: widget.onPublishedCollections,
               ),
             IconButton(
               key: const ValueKey('batch-select'),
@@ -1812,7 +1808,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             IconButton(
               key: const ValueKey('manage-custom-fields'),
               tooltip: l10n.collectionManageCustomFieldsTooltip,
-              icon: const Icon(Icons.list_alt_outlined),
+              icon: const Icon(Icons.note_add_outlined),
               onPressed: _openCustomFields,
             ),
             IconButton(
@@ -1881,8 +1877,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
         switch (action) {
           case _CollectionCompactAction.importDances:
             widget.onImport?.call();
-          case _CollectionCompactAction.publishedCollections:
-            widget.onPublishedCollections?.call();
           case _CollectionCompactAction.batchSelect:
             if (_results.isNotEmpty) _enterSelectionMode();
           case _CollectionCompactAction.manageCustomFields:
@@ -1896,11 +1890,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
           PopupMenuItem(
             value: _CollectionCompactAction.importDances,
             child: Text(l10n.importDances),
-          ),
-        if (widget.onPublishedCollections != null)
-          PopupMenuItem(
-            value: _CollectionCompactAction.publishedCollections,
-            child: Text(l10n.publishedCollectionsTitle),
           ),
         PopupMenuItem(
           enabled: _results.isNotEmpty,
@@ -2058,6 +2047,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openCustomFields() async {
+    final onCustomFields = widget.onCustomFields;
+    if (onCustomFields != null) {
+      onCustomFields();
+      return;
+    }
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const CustomFieldsScreen()));
@@ -2066,6 +2060,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openRecentlyDeleted() async {
+    final onRecentlyDeleted = widget.onRecentlyDeleted;
+    if (onRecentlyDeleted != null) {
+      onRecentlyDeleted();
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => RecentlyDeletedScreen.dances()),
     );
