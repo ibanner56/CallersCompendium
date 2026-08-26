@@ -548,7 +548,7 @@ that owns those ports permanently has no such window. It also means the service
 runs unprivileged, never restarts for a renewal, and needs no certificate paths
 in its configuration.
 
-**Four requirements on whatever proxy is used.** These are conformance
+**Five requirements on whatever proxy is used.** These are conformance
 requirements, not deployment taste, and each has a concrete failure mode:
 
 - **`Authorization` must reach the backend unmodified.** The sync ID is a
@@ -568,7 +568,18 @@ requirements, not deployment taste, and each has a concrete failure mode:
   request line and status, not headers, so this holds by default; the risk is
   someone adding `%{Authorization}i` (or nginx's `$http_authorization`) to a
   debug format and writing live credentials to disk. The vhost should carry a
-  comment saying so, because the omission is invisible.
+  comment saying so, because the omission is invisible. - **`/v1` must not be
+  served over plaintext.** A request to `:80` is redirected to the `https`
+  origin or refused, never proxied, and the `https` origin sends
+  `Strict-Transport-Security`. This one needs stating precisely *because* of
+  the decision above: terminating at a proxy that permanently owns `:80` for
+  ACME is what makes renewal reliable, and it is also what puts a live listener
+  on the plaintext port. A `ProxyPass` written outside a vhost, or pasted into
+  both, exposes the API on both and nothing in either response says so. The
+  client already refuses a plaintext endpoint (spec §8), but the things that
+  reach a public port are not all conforming clients, and the sync ID is a
+  bearer credential on every request with no rotation and no revocation — so
+  one plaintext call is a complete and permanent disclosure.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound
@@ -576,11 +587,17 @@ source port while the service is stopped and block it from rebinding —
 intermittent, self-clearing, and painful to diagnose. Reserve it
 (`net.ipv4.ip_local_reserved_ports`) or choose a port below the range.
 
-**Self-hosters are not held to the Apache specifics**, only to the four
-requirements above. The client waives TLS for `localhost`/`127.0.0.1` (spec §8)
-precisely so a self-hoster can run without a certificate; a non-default port is
-permitted on a configured endpoint, though the redirect rules only follow
-default-port hops, which is harmless for an API that never redirects.
+**Self-hosters are not held to the Apache specifics**, only to the five
+requirements above — and the fifth is one this project can only guarantee for
+the deployment it runs. A self-hoster who serves plaintext cannot be detected
+from the client: an `https` endpoint whose proxy *also* answers on `:80` is
+indistinguishable from one that does not. What protects that user is the
+client's own refusal to use a plaintext endpoint or follow a plaintext hop,
+which is why the guarantee is stated on both sides rather than either. The
+client waives TLS for `localhost`/`127.0.0.1` (spec §8) precisely so a
+self-hoster can run without a certificate; a non-default port is permitted on a
+configured endpoint, though the redirect rules only follow default-port hops,
+which is harmless for an API that never redirects.
 
 ## Rationale
 

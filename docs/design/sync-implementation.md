@@ -559,8 +559,12 @@ deletion silently reverts".
 - **Done when** the ID bound cases pass (one code point over rejected, at the
   bound accepted), a client/server `id_key` agreement test passes under
   differing whitespace and Unicode form, **and a `302` to a foreign https host
-  is refused with no credentialed request issued** (§9 *Client isolate and
-  robustness*).
+  is refused with no credentialed request issued**, as are a server presenting
+  an untrusted certificate and a `localhost`-prefixed public host such as
+  `localhost.example.com` (§9 *Client isolate and robustness*). Certificate
+  verification MUST have no disable switch, and the loopback exemption MUST be
+  an exact host match — both are rules about who is on the other end of the
+  connection, which the scheme string does not constrain.
 
 The strength floor is enforced here and **only** here. A server that re-runs it
 and is marginally stricter locks a user out of their own store, because the ID
@@ -825,18 +829,28 @@ the wire.
 
 - **Serves** §7.5; the operational half of §7.4; §10.
 - **Inherits** W10, W12.
-- **Produces** the container and deployment documentation; the **four proxy
+- **Produces** the container and deployment documentation; the **five proxy
   conformance requirements**, each of which some common proxy violates by
-  default; alerting; retention proof; the break-glass authorisation process; and
+  default — including that the public listener never serves `/v1` over
+  plaintext and that the `https` origin sends `Strict-Transport-Security`;
+  alerting; retention proof; the break-glass authorisation process; and
   lost-ID support.
 - **Unblocks** nothing — but **C7 cannot pass without it**.
 - **Done when** a from-scratch self-host reaches a working sync using only the
-  published documentation.
+  published documentation, **and a plaintext request to `/v1` against the
+  running deployment is redirected or refused rather than proxied**.
 
-Requirements (3) and (4) — no proxy-side decompression, and the sync ID never
-written to a log — are invisible in behaviour, which is why they are stated
-rather than left to deployment taste. They cannot be caught by testing that the
-thing works.
+Requirements (3), (4) and (5) — no proxy-side decompression, the sync ID never
+written to a log, and no plaintext `/v1` — are invisible in behaviour, which is
+why they are stated rather than left to deployment taste. They cannot be caught
+by testing that the thing works.
+
+(5) is also the only transport rule with no client-side counterpart, so it is
+checked against the running configuration rather than in a unit test: no test of
+the server process can observe which port a proxy accepted a request on. It
+matters most for this deployment precisely because of the decision that makes
+renewal reliable — the proxy owns `:80` permanently for ACME, so the plaintext
+port always has a live listener on it.
 
 ## 5. Order of execution
 
