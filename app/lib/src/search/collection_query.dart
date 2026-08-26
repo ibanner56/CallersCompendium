@@ -251,14 +251,15 @@ DanceFilter buildCollectionFilter({
   if (facets.mixer != null) {
     branches.add(MixerFilter(facets.mixer!));
   }
-  addOr([
-    for (final called in facets.callStatuses)
+  if (facets.callStatuses.length == 1) {
+    addOr([
       CalledFilter(
-        called: called,
+        called: facets.callStatuses.single,
         callerFilter: callerFilter,
         performedOnly: performedOnly,
       ),
-  ]);
+    ]);
+  }
   if (facets.minRating != null) {
     branches.add(RatingFilter(facets.minRating!));
   }

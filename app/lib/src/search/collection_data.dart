@@ -192,12 +192,7 @@ class CollectionData {
   }) => repos
       .watchCollectionSources(includeVenues: watchVenues)
       .transform(CoalesceTrailing<void>(coalesce))
-      .asyncMap(
-        (_) => load(
-          repos,
-          callerFilter: normalizeCallingHistoryCaller(callerFilter),
-        ),
-      );
+      .asyncMap((_) => load(repos, callerFilter: callerFilter));
 
   static Future<CollectionData> load(
     CompendiumRepositories repos, {
