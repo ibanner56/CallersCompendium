@@ -612,8 +612,9 @@ certificate on a routable name, obtainable over the DNS-01 challenge for a name
 resolving to a private address; a private CA is not an alternative, because the
 client ships no trust-anchor affordance and `dart:io` trusts a built-in root
 list rather than the OS store on two of the five platforms. That cost against
-hard constraint 4 is accepted, with certificate pinning recorded in spec §10 as
-the way to remove it later. A non-default port is permitted on a
+hard constraint 4 was put to the maintainer and accepted, with certificate
+pinning recorded in spec §10 as the way to remove it later.
+A non-default port is permitted on a
 configured endpoint, though the redirect rules only follow default-port hops,
 which is harmless for an API that never redirects.
 

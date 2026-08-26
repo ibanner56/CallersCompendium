@@ -2443,5 +2443,6 @@ The following are recorded as known and are not specified here:
   general trust anchor and does not reopen the hole §5 closes — would remove
   that cost. It is not specified here because it needs a rotation story and a
   change-of-fingerprint UX that this design has not worked through, and because
-  the DNS-01 path exists today. Recorded so the trade is a decision rather than
-  an omission.
+  the DNS-01 path exists today. The maintainer reviewed this trade and accepted
+  it on those terms, keeping pinning available as the way to remove the cost
+  later; it is deferred rather than rejected.
