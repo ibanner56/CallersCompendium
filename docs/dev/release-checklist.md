@@ -79,7 +79,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  (which exports the App Store `.ipa` with manual signing and runs
  `xcrun altool --upload-app` when the App Store Connect API key, Apple
  Distribution certificate, and both provisioning-profile secret sets are
- configured), confirm the `release-signing` protected environment was approved
+ configured), confirm the `release-publication` protected environment was approved
  and the
  `Prepare iOS signing` → `Build signed iOS .ipa` → `Upload iOS build to
  TestFlight` steps succeeded on **that tag's** release run — **not** a
