@@ -409,8 +409,7 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   - **Windows Trusted Signing configuration** — gates SmartScreen-clean
     installers and WinSparkle-signed updates; the workflow is wired but remains
     unsigned when its repository variables are absent.
-  - **Android keystore custody policy — RESOLVED.** The repository owner
-    maintains encrypted backups of the direct-APK signing key; Google retains the
+  - **Android keystore custody policy — RESOLVED.** Policy: the repository owner is accountable for maintaining encrypted backups of the direct-APK signing key; Google retains the
     distinct Play app-signing key. The channel-specific recovery and rotation
     policy is in the
     [release runbook](../dev/releasing.md#android-signing-key-custody-backup-and-rotation).
