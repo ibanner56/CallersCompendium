@@ -11,7 +11,9 @@ void main() {
     final compactPlist = plist.replaceAll(RegExp(r'\s+'), '');
     expect(
       compactPlist,
-      contains('<key>CFBundleDisplayName</key><string>$_applicationName</string>'),
+      contains(
+        '<key>CFBundleDisplayName</key><string>$_applicationName</string>',
+      ),
     );
     expect(
       File('macos/Runner/Configs/AppInfo.xcconfig').readAsStringSync(),
@@ -22,8 +24,9 @@ void main() {
       contains('path = "$_bundleName.app"'),
     );
     expect(
-      File('macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme')
-          .readAsStringSync(),
+      File(
+        'macos/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme',
+      ).readAsStringSync(),
       contains('BuildableName = "$_bundleName.app"'),
     );
     expect(
