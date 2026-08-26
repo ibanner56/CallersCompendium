@@ -122,14 +122,27 @@ void main() {
 
     test('selected parent moves absorb trailing fall back as a note', () {
       const cases = {
-        'Women allemande left 1; fall back': 'allemande',
-        'Women give and take neighbor; fall back': 'give_and_take',
-        'Star left 1; fall back [to place]': 'star',
+        'Women allemande left 1; fall back': (
+          move: 'allemande',
+          note: 'fall back',
+        ),
+        'Women give and take neighbor; fall back': (
+          move: 'give_and_take',
+          note: 'fall back',
+        ),
+        'Star left 1; fall back [to place]': (
+          move: 'star',
+          note: 'fall back [to place]',
+        ),
+        'Star right 1; fall back (to place)': (
+          move: 'star',
+          note: 'fall back (to place)',
+        ),
       };
       for (final entry in cases.entries) {
         final only = _one(entry.key, beats: 6);
-        expect(only.move, entry.value, reason: entry.key);
-        expect(only.note, 'fall back', reason: entry.key);
+        expect(only.move, entry.value.move, reason: entry.key);
+        expect(only.note, entry.value.note, reason: entry.key);
         expect(only.beats, 6, reason: entry.key);
       }
     });

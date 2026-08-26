@@ -450,7 +450,8 @@ const Set<String> _exactClauseNotes = {
 };
 
 /// Consumes CallersBox's exact two-clause `<parent>; fall back [annotation]`
-/// idiom. Other qualifier wording remains custom.
+/// idiom, preserving the accepted scrubbed clause as the parent's note. Other
+/// qualifier wording remains custom.
 Figure? _fallBackNoteCompound(
   List<String> clauses, {
   required int beats,
@@ -461,7 +462,8 @@ Figure? _fallBackNoteCompound(
 }) {
   if (clauses.length != 2) return null;
   final scrubFn = scrub ?? scrubFigureText;
-  if (!_trailingFallBack.hasMatch(scrubFn(clauses[1]).trim())) return null;
+  final fallBackNote = scrubFn(clauses[1]).trim();
+  if (!_trailingFallBack.hasMatch(fallBackNote)) return null;
   final parent = parseFigureLine(
     clauses.first,
     beats: beats,
@@ -475,7 +477,7 @@ Figure? _fallBackNoteCompound(
       !_fallBackNoteParents.contains(parent.move)) {
     return null;
   }
-  return parent.copyWith(note: combineFigureNotes(parent.note, 'fall back'));
+  return parent.copyWith(note: combineFigureNotes(parent.note, fallBackNote));
 }
 
 const Set<String> _fallBackNoteParents = {'allemande', 'give_and_take', 'star'};
@@ -511,10 +513,10 @@ final RegExp _turnAroundClause = RegExp(
   caseSensitive: false,
 );
 
-/// Folds TCB's complementary `<who> walk forward; form long wave || <other who>
-/// fall back` pair into the existing long-wave move. Every other simultaneity
-/// remains a generic [Figure.meanwhile], preserving its sides and shared-beat
-/// contract.
+/// Folds TCB's complementary `<who>` walk forward; form long wave ||
+/// `<other who>` fall back pair into the existing long-wave move. Every other
+/// simultaneity remains a generic [Figure.meanwhile], preserving its sides and
+/// shared-beat contract.
 Figure? fallBackLongWaveFromDoublePipe(
   String rawText, {
   required int beats,

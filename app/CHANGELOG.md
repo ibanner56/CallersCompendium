@@ -51,9 +51,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
   subject is already explicit or the move has no subject slot. Non-duple and
   unrecognised dancer descriptions remain custom figures rather than being
   silently dropped.
-  
+
 - **Caller's Box imports** — selected fall-back and formation clauses now import
-  as existing figures instead of making the whole source line custom. 
+  as existing figures instead of making the whole source line custom.
 
 ## [0.1.2] - 2026-08-25
 
