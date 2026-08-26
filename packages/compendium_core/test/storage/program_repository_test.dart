@@ -1781,5 +1781,111 @@ void main() {
         );
       },
     );
+
+    test(
+      'CalledFilter search uses caller, performed, and deleted-program scope',
+      () async {
+        for (final id in ['d1', 'd2', 'd3', 'd4', 'd5']) {
+          await makeDance(id);
+        }
+        await repo.create(
+          sampleProgram(
+            id: 'p-d1',
+            caller: 'Alice',
+            slots: [
+              ProgramSlot(
+                id: 's-d1',
+                position: 0,
+                danceId: 'd1',
+                performedAt: DateTime.utc(2026, 3, 1),
+              ),
+            ],
+          ),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p-d2',
+            caller: 'Alice',
+            slots: [ProgramSlot(id: 's-d2', position: 0, danceId: 'd2')],
+          ),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p-d3-deleted',
+            caller: 'Alice',
+            deletedAt: DateTime.utc(2026, 4, 1),
+            slots: [
+              ProgramSlot(
+                id: 's-d3',
+                position: 0,
+                danceId: 'd3',
+                performedAt: DateTime.utc(2026, 3, 1),
+              ),
+            ],
+          ),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p-d4-blank',
+            caller: '',
+            slots: [
+              ProgramSlot(
+                id: 's-d4-1',
+                position: 0,
+                danceId: 'd4',
+                performedAt: DateTime.utc(2026, 3, 1),
+              ),
+              ProgramSlot(
+                id: 's-d4-2',
+                position: 1,
+                danceId: 'd4',
+                performedAt: DateTime.utc(2026, 3, 2),
+              ),
+            ],
+          ),
+        );
+        await repo.create(
+          sampleProgram(
+            id: 'p-d5-bob',
+            caller: 'Bob',
+            slots: [
+              ProgramSlot(
+                id: 's-d5',
+                position: 0,
+                danceId: 'd5',
+                performedAt: DateTime.utc(2026, 3, 1),
+              ),
+            ],
+          ),
+        );
+
+        expect(
+          await dances.search(
+            const CalledFilter(
+              called: true,
+              callerFilter: ' alice ',
+              performedOnly: true,
+            ),
+          ),
+          unorderedEquals(['d1', 'd4']),
+        );
+        expect(
+          await dances.search(
+            const CalledFilter(
+              called: false,
+              callerFilter: 'Alice',
+              performedOnly: true,
+            ),
+          ),
+          unorderedEquals(['d2', 'd3', 'd5']),
+        );
+        expect(
+          await dances.search(
+            const CalledFilter(called: true, callerFilter: 'Bob'),
+          ),
+          unorderedEquals(['d4', 'd5']),
+        );
+      },
+    );
   });
 }

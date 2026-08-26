@@ -1769,6 +1769,15 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionFacetStatus => 'Status';
 
   @override
+  String get collectionFacetCallStatus => 'Opkaldshistorik';
+
+  @override
+  String get collectionFacetCalled => 'Kaldt';
+
+  @override
+  String get collectionFacetNotCalled => 'Ikke kaldt';
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override

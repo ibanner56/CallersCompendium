@@ -19,6 +19,7 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
+import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -199,6 +200,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// data is scoped to that caller's programs, so a change re-runs [_boot].
   bool _trackHistoryForAllCallers = false;
 
+  /// Whether calling-history filters use performed slots only.
+  bool _requirePerformedForHistory = false;
+
   static const Duration _debounce = Duration(milliseconds: 250);
 
   final _ftsController = TextEditingController();
@@ -370,6 +374,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final trackAllCallersChanged =
         _started && newTrackAllCallers != _trackHistoryForAllCallers;
     _trackHistoryForAllCallers = newTrackAllCallers;
+    final newRequirePerformed = RequirePerformedForHistoryScope.of(context);
+    final requirePerformedChanged =
+        _started && newRequirePerformed != _requirePerformedForHistory;
+    _requirePerformedForHistory = newRequirePerformed;
 
     if (!_started) {
       _started = true;
@@ -379,6 +387,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
+    } else if (requirePerformedChanged && !_onlineEnabled && _data != null) {
+      _runSearch();
     } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
       _runSearch();
     }
@@ -564,6 +574,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         previous == null ||
         !mapEquals(previous.dancesById, data.dancesById) ||
         !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
+        (_facets.callStatuses.isNotEmpty &&
+            (!mapEquals(previous.callCounts, data.callCounts) ||
+                previous.callerFilter != data.callerFilter)) ||
         // The author sort orders by choreographer NAME (`_sortByAuthor`), not
         // by the ids stored on the dance — so a rename reorders the results
         // while every dance row is byte-identical. Without this the labels
@@ -736,6 +749,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         scope: _ftsScope,
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -2398,6 +2413,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           hasMixedLevel: data.hasMixedLevel,
           hasMixer: data.hasMixer,
           hasRating: data.hasRating,
+          hasCallingHistory: data.callCounts.values.any(
+            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+          ),
           authors: data.authors,
           tags: data.tags,
           citedSources: data.citedSources,
@@ -2868,6 +2886,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.formations.length +
         _facets.progressions.length +
         _facets.statuses.length +
+        _facets.callStatuses.length +
         _facets.authorIds.length +
         _facets.tagIds.length +
         _facets.sourceIds.length +

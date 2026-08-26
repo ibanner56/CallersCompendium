@@ -1782,6 +1782,15 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionFacetStatus => 'Status';
 
   @override
+  String get collectionFacetCallStatus => 'Belgeschiedenis';
+
+  @override
+  String get collectionFacetCalled => 'Gebeld';
+
+  @override
+  String get collectionFacetNotCalled => 'Niet gebeld';
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override

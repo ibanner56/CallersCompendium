@@ -94,7 +94,20 @@ class FigureMatch {
     this.params = const {},
     this.note,
     this.assumedSubject = false,
-  });
+  }) : forceCustom = false;
+
+  /// Explicitly stops a source front-end from treating a line as structured.
+  ///
+  /// A dialect can recognize an unmodelled source shape before its
+  /// recognition-only normalizer removes the evidence. Returning this result
+  /// preserves the normal scrubbed custom fallback rather than structuring a
+  /// lossy interpretation of the line.
+  const FigureMatch.customFallback()
+    : moveId = '',
+      params = const {},
+      note = null,
+      assumedSubject = false,
+      forceCustom = true;
 
   final String moveId;
   final Map<String, Object?> params;
@@ -106,6 +119,8 @@ class FigureMatch {
   /// Whether the subject in [params] was DEFAULTED (not stated by the source);
   /// propagated to [Figure.assumedSubject] (#460).
   final bool assumedSubject;
+
+  final bool forceCustom;
 }
 
 /// The source-specific seam feeding the canonical single-line recognizer. Each
@@ -241,7 +256,7 @@ Figure? parseFigureLine(
     // degrades to custom like everything else (parse-never-fails).
     if (frontEnd.declineToCustom?.call(scrubbed) ?? false) return fallback();
     final match = _recognize(scrubbed, frontEnd);
-    if (match == null) return fallback();
+    if (match == null || match.forceCustom) return fallback();
 
     final params = <String, Object?>{
       ...match.params,
@@ -271,6 +286,7 @@ class _Match {
     this.params = const {},
     this.note,
     this.assumedSubject = false,
+    this.forceCustom = false,
   ]);
   final String moveId;
   final Map<String, Object?> params;
@@ -284,6 +300,8 @@ class _Match {
   /// caller propagates this to [Figure.assumedSubject] so the defaulted subject
   /// renders as a non-authoritative assumption, never as fabricated fact (#460).
   final bool assumedSubject;
+
+  final bool forceCustom;
 }
 
 /// Resolves [text] to EXACTLY ONE canonical dancer-set token, or `null` when it
@@ -353,7 +371,13 @@ _Match? _recognize(String scrubbed, FigureFrontEnd frontEnd) {
   for (final pre in frontEnd.preRecognizers) {
     final m = pre(scrubbed);
     if (m != null) {
-      return _Match(m.moveId, m.params, m.note, m.assumedSubject);
+      return _Match(
+        m.moveId,
+        m.params,
+        m.note,
+        m.assumedSubject,
+        m.forceCustom,
+      );
     }
   }
 

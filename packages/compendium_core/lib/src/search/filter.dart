@@ -198,6 +198,26 @@ class MixerFilter extends DanceFilter {
   final bool mixer;
 }
 
+/// Dances with at least one matching program slot, or with no matching slot,
+/// under the supplied calling-history scope.
+///
+/// [callerFilter] follows the calling-history convention: null or blank means
+/// all callers; a configured caller includes matching host callers and
+/// programs whose host caller is null or blank. [performedOnly] restricts the
+/// matching slots to those with a non-null performed timestamp.
+@immutable
+class CalledFilter extends DanceFilter {
+  const CalledFilter({
+    required this.called,
+    this.callerFilter,
+    this.performedOnly = false,
+  });
+
+  final bool called;
+  final String? callerFilter;
+  final bool performedOnly;
+}
+
 /// Dances whose curatorial rating is **at least** [minimum] (`rating >= N`) on
 /// the closed `1..5` scale.
 ///

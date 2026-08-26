@@ -2978,6 +2978,24 @@ abstract class AppLocalizations {
   /// **'Status'**
   String get collectionFacetStatus;
 
+  /// Filter section heading for the called/not-called facet.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling history'**
+  String get collectionFacetCallStatus;
+
+  /// Filter chip selecting dances called in the active history scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Called'**
+  String get collectionFacetCalled;
+
+  /// Filter chip selecting dances not called in the active history scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called'**
+  String get collectionFacetNotCalled;
+
   /// Filter section heading for the difficulty level facet.
   ///
   /// In en, this message translates to:

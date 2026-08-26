@@ -10,6 +10,7 @@ import '../data/contradb_online.dart';
 import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
+import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
@@ -164,6 +165,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
 
   late CompendiumRepositories _repos;
   bool _started = false;
+  bool _requirePerformedForHistory = false;
 
   List<DanceListEntry> _results = const [];
   bool _searching = false;
@@ -174,11 +176,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final newRequirePerformed = RequirePerformedForHistoryScope.of(context);
+    final requirePerformedChanged =
+        _started && newRequirePerformed != _requirePerformedForHistory;
+    _requirePerformedForHistory = newRequirePerformed;
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
+      _runSearch();
+    } else if (requirePerformedChanged && !_onlineEnabled) {
       _runSearch();
     }
   }
@@ -302,6 +310,8 @@ class _CollectionPickerState extends State<CollectionPicker> {
         defs: data.customFieldDefs,
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -678,6 +688,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         _facets.formations.length +
         _facets.progressions.length +
         _facets.statuses.length +
+        _facets.callStatuses.length +
         _facets.authorIds.length +
         _facets.tagIds.length +
         _facets.sourceIds.length +
@@ -773,6 +784,9 @@ class _CollectionPickerState extends State<CollectionPicker> {
           hasMixedLevel: data.hasMixedLevel,
           hasMixer: data.hasMixer,
           hasRating: data.hasRating,
+          hasCallingHistory: data.callCounts.values.any(
+            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+          ),
           authors: data.authors,
           tags: data.tags,
           citedSources: data.citedSources,

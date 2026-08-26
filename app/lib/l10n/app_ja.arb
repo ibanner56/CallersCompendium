@@ -1912,6 +1912,18 @@
   "@collectionFacetStatus": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
   },
+  "collectionFacetCallStatus": "コール履歴",
+  "@collectionFacetCallStatus": {
+    "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
+  },
+  "collectionFacetCalled": "コール済み",
+  "@collectionFacetCalled": {
+    "x-sourceSha256": "3bb8faf30715b01cb7e0fb7cdd033bcbf5912a57f46289bb2090d470b6f3c610"
+  },
+  "collectionFacetNotCalled": "未コール",
+  "@collectionFacetNotCalled": {
+    "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
+  },
   "collectionFacetLevel": "レベル",
   "@collectionFacetLevel": {
     "x-sourceSha256": "1709305c9fa966d14f56f0da3c3614bbc10adcf53d72f90341bb96d24afcfca3"

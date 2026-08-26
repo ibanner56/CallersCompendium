@@ -77,6 +77,8 @@ export 'src/privacy/settings_registry.dart';
 export 'src/search/search_sort.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
+export 'src/storage/calling_history_scope.dart'
+    show normalizeCallingHistoryCaller;
 export 'src/search/filter_compiler.dart';
 export 'src/search/fts_query.dart';
 export 'src/search/search_enrichment.dart';
