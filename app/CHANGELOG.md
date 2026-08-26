@@ -53,8 +53,7 @@ from that tag, so new entries need no visible or manually maintained suffix.
   silently dropped.
   
 - **Caller's Box imports** — selected fall-back and formation clauses now import
-  as existing figures instead of making the whole source line custom. (issue
-  #774)
+  as existing figures instead of making the whole source line custom. 
 
 ## [0.1.2] - 2026-08-25
 
