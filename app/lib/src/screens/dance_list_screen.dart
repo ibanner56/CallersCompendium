@@ -749,6 +749,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         scope: _ftsScope,
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
