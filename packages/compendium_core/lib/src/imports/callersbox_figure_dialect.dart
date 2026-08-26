@@ -511,9 +511,10 @@ final RegExp _turnAroundClause = RegExp(
   caseSensitive: false,
 );
 
-/// Folds TCB's complementary `walk forward; form long wave || fall back` pair
-/// into the existing long-wave move. Every other simultaneity remains a generic
-/// [Figure.meanwhile], preserving its sides and shared-beat contract.
+/// Folds TCB's complementary `<who> walk forward; form long wave || <other who>
+/// fall back` pair into the existing long-wave move. Every other simultaneity
+/// remains a generic [Figure.meanwhile], preserving its sides and shared-beat
+/// contract.
 Figure? fallBackLongWaveFromDoublePipe(
   String rawText, {
   required int beats,
