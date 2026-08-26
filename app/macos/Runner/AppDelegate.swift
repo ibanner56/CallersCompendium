@@ -96,9 +96,8 @@ class AppDelegate: FlutterAppDelegate {
     completion: @escaping (Result<Void, Error>) -> Void
   ) {
     guard
-      let window = NSApp.windows.first(where: { $0 is MainFlutterWindow })
-        as? MainFlutterWindow,
-      let flutterViewController = window.flutterViewController
+      let flutterViewController =
+        (mainFlutterWindow as? MainFlutterWindow)?.flutterViewController
     else {
       NSLog(
         "Application termination cancelled because the Flutter window is unavailable."
