@@ -64,7 +64,7 @@ import 'figure_text_scrub.dart';
 /// the parenthetical handlers because it must combine a square bracket with an
 /// adjacent `(…)` annotation on the same figure. It reuses their synthesis and
 /// prose rules, so neither can claim the line first and silently lose its bracket.
-/// `_sideRunAnnotation` remains last deliberately so the general `;`-run consume
+/// `_decodeSideRunAnnotation` remains last deliberately so the general `;`-run consume
 /// claims whatever the bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
@@ -82,7 +82,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _rightLeftThroughAnnotation,
     // Single-file circle recognition (taxonomy v27, issue #840): "Single file
     // promenade clockwise/counterclockwise" maps to `circle` with `turn:
-    // left/right` and `singleFile: true`. Listed before `_sideRunAnnotation`
+    // left/right` and `singleFile: true`. Listed before `_decodeSideRunAnnotation`
     // so the general `;`-run consume sees a structured result rather than raw
     // text when this fires. Listed after `_promenadeAnnotation` — the anchor
     // overlaps (`promenade`), but this fires on the FULL phrase including
@@ -101,7 +101,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _proseAnnotation,
     // LAST, deliberately: the general `;`-run consume (#843) claims whatever
     // the bespoke decoders above left behind, so none of them loses a line.
-    _sideRunAnnotation,
+    _decodeSideRunAnnotation,
   ],
   recognitionNormalize: _tcbRecognitionNormalize,
   declineToCustom: _declineSingleFileCircle,
@@ -1727,10 +1727,15 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     return null;
   }
 
-  final match = recognizeSharedFigureLine(
-    scrubbed,
-    recognitionNormalize: _stripAnnotations,
-  );
+  // A code-like `()` side run remains structured data even when the line also
+  // carries a bracket note. Reuse its complete decoder rather than claiming the
+  // line first and discarding the side/hand it would have supplied.
+  final match =
+      _decodeSideRunAnnotation(scrubbed) ??
+      recognizeSharedFigureLine(
+        scrubbed,
+        recognitionNormalize: _stripAnnotations,
+      );
   if (match == null) return null;
 
   final def = contraTaxonomy.resolve(match.moveId);
@@ -1915,7 +1920,7 @@ bool _isSquareRoleSetDescriptor(String body) =>
 /// the lines it already claims. Bounding is [_boundedPassListCells]'s, shared
 /// with every other pass-list path (OWASP: imported text is untrusted, and the
 /// cap runs before the split allocates).
-FigureMatch? _sideRunAnnotation(String scrubbed) {
+FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final lower = scrubbed.toLowerCase();
   final open = lower.indexOf('(');
   if (open == -1) return null;
@@ -2028,7 +2033,7 @@ class _SideCell {
 ///
 /// **More than one is treated as "no slot", and the consequence is a SILENT
 /// fall-through — not a loud failure and not a custom figure.** Returning null
-/// here makes [_sideRunAnnotation] decline, so the line is handed to the shared
+/// here makes [_decodeSideRunAnnotation] decline, so the line is handed to the shared
 /// recognizer and still structures; it simply keeps the taxonomy's default for
 /// the side instead of the value the run stated. Nothing is logged, nothing
 /// throws, and no test fails.
@@ -2258,7 +2263,7 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   build, so the line goes to the custom fallback. `Hey 1/2 (P6R;P7L)` is
 ///   custom.
 /// - **The run only ADDS params** — [_squareThroughPassList] (#799) and the
-///   general [_sideRunAnnotation] (#843). The line still structures through the
+///   general [_decodeSideRunAnnotation] (#843). The line still structures through the
 ///   shared recognizer; it simply keeps the taxonomy's defaults instead of the
 ///   values the run states. `Square through 2 (C1R;C2L)` stays a
 ///   `square_through`, and `Pass through along (OR)` stays a `pass_through`.

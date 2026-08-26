@@ -60,6 +60,15 @@ void main() {
       );
     });
 
+    test('a bracket note does not suppress side-run decoding', () {
+      final figure = _single('Pass through along [with women] (NR)', beats: 8);
+
+      expect(figure.isCustom, isFalse);
+      expect(figure.move, 'pass_through');
+      expect(figure.params['shoulder'], 'right');
+      expect(figure.note, 'with role2s');
+    });
+
     test('square and parenthetical annotations combine on one figure', () {
       final figure = _single('Men do si do [All four] (in center)', beats: 8);
 
