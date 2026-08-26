@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 const _applicationName = "Caller's Compendium";
-const _bundleName = 'Caller’s Compendium';
+const _bundleName = 'Caller\u2019s Compendium';
 
 void main() {
   test('macOS bundle and release packaging use the display name', () {
