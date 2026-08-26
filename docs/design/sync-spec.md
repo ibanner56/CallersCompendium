@@ -996,20 +996,33 @@ are all outside it. This specification does not widen the hole to save a
 self-hoster the trouble.
 
 **The consequence, stated rather than left to be discovered: a self-hosted sync
-needs a publicly-trusted certificate on a routable name.** Sync involves at
-least two devices, so the server is by definition not `localhost` as seen from
-the second one; the exemption covers same-machine testing and never a
-functioning deployment. **A private CA is a real path on desktop and not one on
-Android**, and the rule above does not change that either way: it forbids an
-in-app `SecurityContext` or `badCertificateCallback`, which is trust the *app*
-extends, and says nothing about trust the *operating system* extends.
-`dart:io`'s `HttpClient` honours the OS trust store on Windows, macOS and Linux
-— on Windows it enumerates the `CURRENT_USER` and `LOCAL_MACHINE` stores, so no
-administrator rights are even needed — and on Linux it reads the standard
-bundle locations, falling back to a compiled-in list only when none exist. A
-self-hoster who installs a private root into the OS store on those platforms
-will find the shipping client accepts their server, with no in-app affordance
-and nothing for this specification to prohibit.
+needs a certificate the client will accept, which in practice means a
+publicly-trusted one on a routable name whenever a phone is in the sync set.**
+Sync involves at least two devices, so the server is by definition not
+`localhost` as seen from the second one; the exemption covers same-machine
+testing and never a functioning deployment. **A private CA is a real path on
+desktop and not one on Android**, and the rule above does not change that
+either way: it forbids an in-app `SecurityContext` or `badCertificateCallback`,
+which is trust the *app* extends, and says nothing about trust the *operating
+system* extends. `dart:io`'s `HttpClient` honours the OS trust store on
+Windows, macOS and Linux — on Windows it enumerates the `CURRENT_USER` and
+`LOCAL_MACHINE` stores, so nothing about the platform gates this behind
+administrator rights — and on Linux it reads the standard bundle locations,
+falling back to a compiled-in list only when none exist. A self-hoster who
+installs a private root into the OS store on those platforms will find the
+shipping client accepts their server, with no in-app affordance and nothing for
+this specification to prohibit.
+
+That path is **available rather than recommended**, and the reason belongs next
+to it rather than in a support thread later. A private root in a machine's trust
+store lets whoever holds its key forge *any* TLS connection that machine makes —
+banking, email, updates — not merely this app's. That is a strictly larger
+exposure than the in-app trust-anchor affordance the rule above refuses, which
+would have compromised this app alone; refusing the smaller risk on principle
+and presenting the larger one neutrally would be incoherent. It is also more
+work than it looks: on macOS the import must be followed by an explicit *Always
+Trust* step, and the private key has to be generated and then kept somewhere it
+cannot leak, by the same person who wanted to avoid registering a domain name.
 
 What that path does not do is cross platforms. On Android, `dart:io` loads
 `/system/etc/security/cacerts` and only that, so a user-installed CA is not
@@ -1021,16 +1034,16 @@ sync set of two desktops has a working private-CA path today, and any set
 containing a phone does not.
 
 The **recommended cross-platform path** is therefore a name under a domain the
-self-hoster controls, with a certificate issued over the DNS-01 challenge, which
-proves control through a TXT record, requires no inbound reachability, and may
-be issued for a name that resolves to a private address. One caveat is worth
-stating because it bites exactly this audience: issuance and *resolution* are
-separate steps, and DNS-rebinding protection — on by default in dnsmasq,
-Pi-hole, AdGuard Home and many consumer routers — refuses to return an RFC 1918
-address for a public name. The self-hoster gets a valid certificate and the
-second device then cannot resolve the name at all, a failure with no visible
-connection to the instructions they followed. The resolver must be configured to
-permit it, by a rebinding allow-list entry or split-horizon DNS.
+self-hoster controls, with a certificate issued over the DNS-01 challenge,
+which proves control through a TXT record, requires no inbound reachability,
+and may be issued for a name that resolves to a private address. One caveat is
+worth stating because it bites exactly this audience: issuance and *resolution*
+are separate steps, and DNS-rebinding protection, which some resolvers and
+consumer routers enable, refuses to return an RFC 1918 address for a public
+name. The self-hoster gets a valid certificate and the second device then
+cannot resolve the name at all, a failure with no visible connection to the
+instructions they followed. The resolver must be configured to permit it, by a
+rebinding allow-list entry or split-horizon DNS.
 
 That is the accepted cost of refusing to ship a trust-anchor escape hatch, and
 §10 records the alternative that was left open.
@@ -1971,18 +1984,27 @@ by the time the listener can respond at all.** The credential is on the wire in
 the request; no status code recalls it. What refusal prevents is a *working*
 plaintext sync — every subsequent request, on every subsequent run — and that is
 the whole of the justification. This is also why `/v1` MUST be refused rather
-than redirected, and the two are not interchangeable here. A redirect to the
-`https` origin is a same-host scheme upgrade, and both `dart:io`'s `HttpClient`
-— whose `followRedirects` defaults to `true`, so an older build of this app
-follows it — and `curl -L` retain the `Authorization` header across it, because
-the host does not change. (Bare `curl` prints the `Location` and stops; it
-belongs on the list of things that *reach* the plaintext port, not the list of
-things that follow the redirect.) A caller that does follow leaks the bearer in
-cleartext, succeeds over TLS, and repeats on every run with no symptom that
-anything went wrong. Refusal surfaces
-an error to whoever is holding it, which is the only thing that stops the
-recurrence. A redirect remains the right answer for other paths, which carry no
-credential.
+than redirected, and the two are not interchangeable here — but not because the
+redirect itself carries the credential onward. Scheme is part of an origin, so
+an `http`→`https` redirect is a *cross-origin* hop, and both clients named above
+strip `Authorization` across it: `dart:io`'s `HttpClient` copies no sensitive
+header unless scheme, host and port all match (`_isSameOrigin`, consulted from
+`shouldCopyHeaderOnRedirect` in `sdk/lib/_http/http_impl.dart`), and `curl`
+extended its same-host check to cover port and protocol in 7.83.0, the fix for
+CVE-2022-27776. Both facts are stated from those primary sources; earlier drafts
+of this paragraph asserted the opposite of each, on secondary ones.
+
+The reason a redirect is unacceptable is that **whether it is harmless depends
+on a client policy the operator cannot see.** A client that strips gets a `401`
+on the retry and fails visibly. A client that retains — anything predating
+those two changes, and anything bespoke — gets a sync that *works*, over a
+redirect, which is the outcome this requirement exists to deny: nothing then
+surfaces the misconfiguration, so it is never corrected, and every subsequent
+run repeats the plaintext request that discloses the bearer in full. Refusal
+produces the same visible failure for every client whatever its header policy,
+and that uniformity is the point. A deployment MUST NOT have to reason about
+which clients will reach it in order to be safe. A redirect remains the right
+answer for other paths, which carry no credential.
 
 `Strict-Transport-Security` is listed as a SHOULD, and separately from the
 refusal, because it protects a different population than the one above: HSTS is
@@ -2473,12 +2495,14 @@ The following are recorded as known and are not specified here:
   operational prerequisites of shipping, not of implementation.
 - A privacy-policy amendment is a blocking prerequisite of shipping.
 - **Pinning a self-hosted server's certificate on first use.** Self-hosting
-  requires a publicly-trusted certificate on a routable name (§5), which is a
-  real cost against the ADR's hard constraint 4. A sanctioned pin-on-first-use —
-  the user records one specific server certificate fingerprint, which is not a
-  general trust anchor and does not reopen the hole §5 closes — would remove
-  that cost. It is not specified here because it needs a rotation story and a
-  change-of-fingerprint UX that this design has not worked through, and because
-  the DNS-01 path exists today. The maintainer reviewed this trade and accepted
-  it on those terms, keeping pinning available as the way to remove the cost
-  later; it is deferred rather than rejected.
+  requires a publicly-trusted certificate on a routable name whenever the sync
+  set contains a phone (§5), which is most of them, and that is a real cost
+  against the ADR's hard constraint 4. Two desktops can use a private CA in the
+  OS trust store instead, at the blast radius §5 sets out. A sanctioned
+  pin-on-first-use — the user records one specific server certificate
+  fingerprint, which is not a general trust anchor and does not reopen the hole
+  §5 closes — would remove that cost. It is not specified here because it needs
+  a rotation story and a change-of-fingerprint UX that this design has not
+  worked through, and because the DNS-01 path exists today. The maintainer
+  reviewed this trade and accepted it on those terms, keeping pinning available
+  as the way to remove the cost later; it is deferred rather than rejected.

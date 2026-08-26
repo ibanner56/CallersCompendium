@@ -3089,7 +3089,58 @@ still said "redirected or refused". Nothing broke, because a loosened gate is
 indistinguishable from a satisfied one. Tightening a rule means grepping for
 the old permission, not just editing the sentence that granted it.
 
-**The general lesson, which is now fourteen rounds old: the newest machinery
+**A fact asserted by a reviewer enters the document with less scrutiny than one
+the author wrote, because the author has no reason to re-derive it.** Round 43
+corrected a claim the author had taken from stale official documentation. Two
+of round 44's five findings were claims the *reviewer* supplied in that same
+report — that `curl -L` retains `Authorization` across an `http`→`https`
+redirect, and that DNS-rebinding protection is on by default in a named list of
+products — neither checked against a primary source, both written straight into
+the normative text on the strength of having been reported as verified. The
+first was not merely wrong but was the exact behaviour curl classified as a
+vulnerability and fixed in 7.83.0 (CVE-2022-27776), with an advisory page that
+had been available the entire time. The lesson is symmetrical to round 43's and
+needs stating separately, because the mitigation is different: the author's own
+claims get re-read on every pass, and a reviewer's arrive pre-endorsed.
+Anything a review asserts as verified must carry its primary source or be
+marked unverified, and an unsourced fact should be treated as a question rather
+than a finding.
+
+**Correcting one half of a false conjunction can leave the other half standing
+and now load-bearing.** The retention claim named two clients. The review found
+`curl` wrong and proposed resting the argument on `dart:io` alone — which would
+have replaced a claim that was half false with one that was wholly false and no
+longer had a second clause to draw attention to it. `dart:io` strips sensitive
+headers unless scheme, host *and* port all match (`_isSameOrigin`, consulted
+from `shouldCopyHeaderOnRedirect` in `sdk/lib/_http/http_impl.dart`), so a
+scheme upgrade is cross-origin and the header is dropped there too. Checking
+only the half that was challenged is how a correction becomes the next defect.
+Check the survivor precisely because it was not challenged.
+
+**The requirement was right for a reason better than the one given, and finding
+that out made it stronger.** Both stated justifications for refusing rather
+than redirecting were false, and the rule survived unchanged, because the real
+argument never depended on them: whether a redirect is harmless depends on the
+redirected client's header policy, which the operator cannot see, and a client
+that retains gets a *working* plaintext-then-TLS sync in which nothing ever
+surfaces the misconfiguration. Refusal produces the same visible failure for
+every client. A justification that rests on how one named client behaves today
+expires; one that rests on the operator not having to know expires never. When
+a justification is found false, the question is not what to substitute for it
+but why the rule felt right anyway.
+
+**Refusing a smaller risk on principle while presenting a larger one neutrally
+is not neutrality.** The specification forbids an in-app trust-anchor
+affordance, which would compromise this app, and in the next breath described
+installing a private root into the operating system's trust store — which lets
+its keyholder forge every TLS connection that machine makes — as a real path,
+noting approvingly that it needs no administrator rights. The asymmetry was
+visible in the same section, where the smaller DNS-01 risk beside it carried an
+explicit caveat. The section is also the source for user-facing self-hosting
+documentation, so the omission would have propagated to the people least
+equipped to supply it themselves.
+
+**The general lesson, which is now fifteen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3111,27 +3162,31 @@ that reads it, and scoped the rule to the one-time pass when retry writes rows
 too. Round 40 then found round 39's re-scoping applied to the flag's set but
 not its clear, and its derivation rule mechanising two of the three criteria in
 the scope sentence directly above it. Round 41 then found round 40's own remedy
-for that rebuild cost self-defeating in both halves: it removed the work but not
-the bookkeeping, so taking the permission deferred the identical rebuild to app
-open, and it demanded a derivation from an artifact that does not carry the
+for that rebuild cost self-defeating in both halves: it removed the work but
+not the bookkeeping, so taking the permission deferred the identical rebuild to
+app open, and it demanded a derivation from an artifact that does not carry the
 fact. Round 42 then found five defects in the transport section written
 *beside* round 41's repair — the repair itself being the strongest work in the
 document — of which two were true rules carrying false justifications and two
-were rules stated in prose with no mechanism that could enforce them.
-Round 43 then found that round 42's own correction rested on a false mechanism
-taken from stale official documentation — inverting it, though the conclusion
+were rules stated in prose with no mechanism that could enforce them. Round 43
+then found that round 42's own correction rested on a false mechanism taken
+from stale official documentation — inverting it, though the conclusion
 survived — and that the certificate rule it reassigned had been moved in prose
 but in neither the owning unit's gate nor the ownership matrix built to prevent
-exactly that. Thirteen consecutive rounds have found the
-round's defects in the previous round's repair, which is no longer a
-coincidence and is better read as a property of how repairs get written: under
-the belief that the hard thinking has just been done. Round 30's instance was
-the spec paraphrasing an algorithm; round 31's was the same thing twice more;
-round 32's was the plan getting less scrutiny than the spec. Scaffolding built
-to close a gap is written last, reviewed least, and inherits none of the
-scrutiny that produced it — and a *justification* written to close a gap is the
-least reviewed artefact of all, because it reads as the premise rather than as
-the new work.
+exactly that. Round 44 then found that two of round 43's corrections had
+themselves been written from secondary sources supplied by the review, one of
+them describing as current behaviour the exact thing curl had classified as a
+vulnerability and fixed four years earlier — and that the rule they justified
+was correct for a reason neither of them had stated. Fourteen consecutive
+rounds have found the round's defects in the previous round's repair, which is
+no longer a coincidence and is better read as a property of how repairs get
+written: under the belief that the hard thinking has just been done. Round 30's
+instance was the spec paraphrasing an algorithm; round 31's was the same thing
+twice more; round 32's was the plan getting less scrutiny than the spec.
+Scaffolding built to close a gap is written last, reviewed least, and inherits
+none of the scrutiny that produced it — and a *justification* written to close
+a gap is the least reviewed artefact of all, because it reads as the premise
+rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly

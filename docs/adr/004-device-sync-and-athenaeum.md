@@ -604,8 +604,8 @@ from the client: an `https` endpoint whose proxy *also* answers on `:80` is
 indistinguishable from one that does not. What protects that user is the
 client's own refusal to use a plaintext endpoint or follow a plaintext hop,
 which is why the guarantee is stated on both sides rather than either. The
-client waives TLS for `localhost`/`127.0.0.1` (spec §8), which lets a
-self-hoster test on one machine without a certificate — it does not extend to a
+client waives TLS for `localhost`/`127.0.0.1` (spec §8), which lets a self-
+hoster test on one machine without a certificate — it does not extend to a
 working self-hosted sync, since a second device does not see the first as
 `localhost`. Self-hosting real sync therefore needs a certificate the client
 will accept. The recommended cross-platform route is a name the self-hoster
@@ -616,10 +616,13 @@ genuine alternative on Windows, macOS and Linux — `dart:io` honours the
 platform store there, and the in-app trust-anchor ban does not reach trust the
 operating system extends — but it does not work on Android, where only
 `/system/etc/security/cacerts` is read, and needs a hand-trusted configuration
-profile on iOS. So the cost falls on sync sets containing a phone, which is
-most of them. That cost against hard constraint 4 was put to the maintainer
-and accepted, with certificate pinning recorded in spec §10 as the way to
-remove it later.
+profile on iOS. It is also available rather than recommended even where it
+works: a private root lets whoever holds its key forge any TLS connection that
+machine makes, not just this app's, which is a larger exposure than the in-app
+affordance spec §5 refuses. So the cost falls on sync sets containing a phone,
+which is most of them. That cost against hard constraint 4 was put to the
+maintainer and accepted, with certificate pinning recorded in spec §10 as the
+way to remove it later.
 A non-default port is permitted on a
 configured endpoint, though the redirect rules only follow default-port hops,
 which is harmless for an API that never redirects.
