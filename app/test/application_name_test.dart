@@ -8,7 +8,7 @@ const _bundleName = 'Caller\u2019s Compendium';
 void main() {
   test('macOS bundle and release packaging use the display name', () {
     final plist = File('macos/Runner/Info.plist').readAsStringSync();
-    final compactPlist = plist.replaceAll(RegExp(r'\s+'), '');
+    final compactPlist = plist.replaceAll(RegExp(r'>\s+<'), '><');
     expect(
       compactPlist,
       contains(
