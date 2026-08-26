@@ -1982,29 +1982,31 @@ anything on the path, permanently and unrecoverably.
 **What refusal buys is not the first disclosure, which is already unrecoverable
 by the time the listener can respond at all.** The credential is on the wire in
 the request; no status code recalls it. What refusal prevents is a *working*
-plaintext sync — every subsequent request, on every subsequent run — and that is
-the whole of the justification. This is also why `/v1` MUST be refused rather
-than redirected, and the two are not interchangeable here — but not because the
-redirect itself carries the credential onward. Scheme is part of an origin, so
-an `http`→`https` redirect is a *cross-origin* hop, and both clients named above
-strip `Authorization` across it: `dart:io`'s `HttpClient` copies no sensitive
-header unless scheme, host and port all match (`_isSameOrigin`, consulted from
-`shouldCopyHeaderOnRedirect` in `sdk/lib/_http/http_impl.dart`), and `curl`
-extended its same-host check to cover port and protocol in 7.83.0, the fix for
-CVE-2022-27776. Both facts are stated from those primary sources; earlier drafts
-of this paragraph asserted the opposite of each, on secondary ones.
+plaintext sync — every subsequent request, on every subsequent run — and that
+is the whole of the justification. This is also why `/v1` MUST be refused
+rather than redirected, and the two are not interchangeable here — but not
+because the redirect itself carries the credential onward. Scheme is part of an
+origin, so an `http`→`https` redirect is a *cross-origin* hop, and both clients
+named below strip `Authorization` across it: `dart:io`'s `HttpClient` copies no
+sensitive header unless scheme, host and port all match (`_isSameOrigin`,
+consulted from `shouldCopyHeaderOnRedirect` in `sdk/lib/_http/http_impl.dart`),
+and `curl` extended its same-host check to cover port and protocol in 7.83.0,
+the fix for CVE-2022-27776. Both facts are stated from those primary sources;
+earlier drafts of this paragraph asserted the opposite of each, on secondary
+ones.
 
 The reason a redirect is unacceptable is that **whether it is harmless depends
 on a client policy the operator cannot see.** A client that strips gets a `401`
-on the retry and fails visibly. A client that retains — anything predating
-those two changes, and anything bespoke — gets a sync that *works*, over a
-redirect, which is the outcome this requirement exists to deny: nothing then
-surfaces the misconfiguration, so it is never corrected, and every subsequent
-run repeats the plaintext request that discloses the bearer in full. Refusal
-produces the same visible failure for every client whatever its header policy,
-and that uniformity is the point. A deployment MUST NOT have to reason about
-which clients will reach it in order to be safe. A redirect remains the right
-answer for other paths, which carry no credential.
+on the retry and fails visibly. A client that retains — bespoke tooling and
+non-app callers, since both fixes shipped in early 2022 and no build of this
+app carrying sync predates them — gets a sync that *works*, over a redirect,
+which is the outcome this requirement exists to deny: nothing then surfaces the
+misconfiguration, so it is never corrected, and every subsequent run repeats
+the plaintext request that discloses the bearer in full. Refusal produces the
+same visible failure for every client whatever its header policy, and that
+uniformity is the point. A deployment MUST NOT have to reason about which
+clients will reach it in order to be safe. A redirect remains the right answer
+for other paths, which carry no credential.
 
 `Strict-Transport-Security` is listed as a SHOULD, and separately from the
 refusal, because it protects a different population than the one above: HSTS is
@@ -2425,11 +2427,14 @@ exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
 and never redirected** (mutation: place the `ProxyPass` outside a vhost, or in
 both the `:80` and `:443` vhosts — the API answers identically on each, and the
 bearer credential is disclosed on every plaintext call. Second mutation: answer
-`301` to the `https` origin instead of refusing — a same-host scheme upgrade is
-followed by default with the `Authorization` header retained, so the caller
-leaks the credential, then succeeds, and repeats silently on every run. This is
-a deployment test against the running configuration, since no unit test of the
-server process can observe which port a proxy accepted the request on).
+`301` to the `https` origin instead of refusing — the credential is already
+disclosed by the plaintext request itself, and what the redirect adds is that
+any client which follows it gets a sync that *works*, so nothing ever surfaces
+the misconfiguration and every run repeats the disclosure. Whether a given
+client retains `Authorization` across the hop is not the operator's to know
+(§7.5); refusal fails visibly for all of them. This is a deployment test
+against the running configuration, since no unit test of the server process can
+observe which port a proxy accepted the request on).
 
 **Client isolate and robustness.** Allow-list bijection over real
 `encodeArchive`-shaped output, never a hand-written key string. Hostile peer

@@ -3140,7 +3140,41 @@ explicit caveat. The section is also the source for user-facing self-hosting
 documentation, so the omission would have propagated to the people least
 equipped to supply it themselves.
 
-**The general lesson, which is now fifteen rounds old: the newest machinery
+**A correction reaches the sentence that was quoted, and stops there.** Round
+44 retracted the claim that an `http`→`https` redirect carries `Authorization`
+onward, having verified from primary sources that both named clients strip it.
+The same commit left the retracted claim standing verbatim in two other places:
+the §9 conformance rationale — in the same file, four hundred lines from its
+own retraction, and the text an implementer reads to learn *why* the mutation
+must fail, so it taught the retracted model to exactly the audience that would
+encode it — and the ADR's requirement list, in a file that pass did edit.
+Neither had been quoted in the review. The habit that would have caught it was
+written into this document in that same commit.
+
+**A lesson written down has no failure signal.** Fifteen rounds have produced a
+long list of habits, and the ones that have actually held are the mechanised
+ones: the ownership matrix, the conformance buckets, the source-scanning
+ratchets. They hold because forgetting them fails loudly. A retrospective entry
+fails silently, which is the same argument `sync-implementation.md` makes for
+W17 existing at all. So the standing conclusion of this document is not that
+the next reader should remember these entries — it is that any rule worth
+keeping should be moved into something that breaks when it is violated, and an
+entry here is a placeholder for having not yet done that. The practical
+corollary, cheap enough to be worth stating on its own: when a claim is
+retracted, grep the retracted *wording* across every document before the commit
+lands, not the sentence that prompted it.
+
+**A supporting clause that is inert becomes the thing a later reader tests the
+rule against.** The rewritten redirect rationale described the clients that
+retain as "anything predating those two changes, and anything bespoke". Applied
+to this app the first half is empty by construction — both fixes shipped in
+early 2022 and no build carrying sync can predate them — so a future reader
+checking "does anything reaching us predate Dart 2.16?" would find nothing and
+could reasonably conclude the requirement was obsolete. The rule never rested
+on that population; it rests on the operator not being able to see any client's
+policy. The clause was narrowed to say which callers are actually meant.
+
+**The general lesson, which is now sixteen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3177,7 +3211,11 @@ exactly that. Round 44 then found that two of round 43's corrections had
 themselves been written from secondary sources supplied by the review, one of
 them describing as current behaviour the exact thing curl had classified as a
 vulnerability and fixed four years earlier — and that the rule they justified
-was correct for a reason neither of them had stated. Fourteen consecutive
+was correct for a reason neither of them had stated. Round 45 then found that
+round 44's retraction had reached the sentence it was shown and neither of the
+two places that said the same thing unprompted — one of them four hundred lines
+from the retraction, in the same file — and that the habit prescribing the grep
+which would have caught it was added by that same commit. Fifteen consecutive
 rounds have found the round's defects in the previous round's repair, which is
 no longer a coincidence and is better read as a property of how repairs get
 written: under the belief that the hard thinking has just been done. Round 30's

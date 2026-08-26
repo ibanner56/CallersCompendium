@@ -576,9 +576,11 @@ requirements, not deployment taste, and each has a concrete failure mode:
   comment saying so, because the omission is invisible.
 
 - **`/v1` must not be served over plaintext.** A plaintext request to `/v1`
-  is refused outright — not redirected, since a same-host scheme upgrade is
-  followed by default with the credential attached, leaking it and then
-  silently succeeding. The `https` origin also sends
+  is refused outright — not redirected. The credential is disclosed by
+  the plaintext request itself; what a redirect adds is that a client which
+  follows it syncs successfully, so the misconfiguration never surfaces and
+  every run repeats the disclosure. Refusal fails visibly for every client,
+  whatever its header policy. The `https` origin also sends
   `Strict-Transport-Security`, which is browser-only defence in depth: this
   app has no web target, so no client it ships honours it. This one needs stating precisely
   *because* of the decision above: terminating at a proxy that permanently
@@ -604,8 +606,8 @@ from the client: an `https` endpoint whose proxy *also* answers on `:80` is
 indistinguishable from one that does not. What protects that user is the
 client's own refusal to use a plaintext endpoint or follow a plaintext hop,
 which is why the guarantee is stated on both sides rather than either. The
-client waives TLS for `localhost`/`127.0.0.1` (spec §8), which lets a self-
-hoster test on one machine without a certificate — it does not extend to a
+client waives TLS for `localhost`/`127.0.0.1` (spec §8), which lets a
+self-hoster test on one machine without a certificate — it does not extend to a
 working self-hosted sync, since a second device does not see the first as
 `localhost`. Self-hosting real sync therefore needs a certificate the client
 will accept. The recommended cross-platform route is a name the self-hoster
