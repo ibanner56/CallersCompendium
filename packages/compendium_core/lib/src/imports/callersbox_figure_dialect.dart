@@ -60,15 +60,12 @@ import 'figure_text_scrub.dart';
 ///    declines it because the full "single file promenade …" phrase does
 ///    not resolve to `promenade`.  Listed specific-first.
 ///
-/// **The last three entries are order-dependent.** `_perRoleChoreoAnnotation`
-/// and `_proseAnnotation` have no move anchor; either can claim any structured
-/// line that carries the right annotation shape.  `_perRoleChoreoAnnotation`
-/// MUST precede `_proseAnnotation`: it synthesises per-role bodies like
-/// `W roll R, M side-step L` into canonical role tokens; if `_proseAnnotation`
-/// claimed them first they would be frozen verbatim as gendered shorthand
-/// (`scrubFigureText` does not map bare `W`/`M`).  `_sideRunAnnotation` is
-/// kept last deliberately so the general `;`-run consume claims whatever the
-/// bespoke decoders left behind.
+/// **The final entries are order-dependent.** `_bracketAnnotation` runs before
+/// the parenthetical handlers because it must combine a square bracket with an
+/// adjacent `(…)` annotation on the same figure. It reuses their synthesis and
+/// prose rules, so neither can claim the line first and silently lose its bracket.
+/// `_sideRunAnnotation` remains last deliberately so the general `;`-run consume
+/// claims whatever the bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
@@ -97,6 +94,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // Per-role choreography annotations (#744): synthesise before the general
     // prose pass so `W roll R, M side-step L` becomes canonical role tokens
     // rather than verbatim gendered shorthand.
+    _bracketAnnotation,
     _perRoleChoreoAnnotation,
     // General prose annotations (#744): shape-gated verbatim preserve for any
     // structured figure with lowercase-containing annotations.
@@ -1702,6 +1700,128 @@ FigureMatch? _proseAnnotation(String scrubbed) {
 /// is all-uppercase / code-like.
 bool _annotationBodyHasLowercase(String body) =>
     body.codeUnits.any((c) => c >= 97 && c <= 122); // 'a'..'z'
+
+// --- Square-bracket annotation classifier (#744) ----------------------------
+
+/// Classifies Caller's Box `[…]` annotations without letting the recognition
+/// normalizer silently erase them.
+///
+/// A leading bracket is a potential dancer context. A strictly resolved dancer
+/// fills `who` only if the resolved move declares that slot and the grammar left
+/// it empty. Explicit grammar wins: `[All four] Men do si do` retains `role1s`
+/// and records `All four` as a note. A leading non-duple or unrecognised dancer
+/// phrase instead takes the ordinary custom fallback, because stripping it would
+/// assert a subject the source did not state.
+///
+/// Clause-final brackets are commentary. In particular `with <dancer>` and
+/// `around <dancer>` use [resolveDancerSetPhrase] to emit the canonical token in
+/// the note. The classifier also processes adjacent parentheticals with the same
+/// synthesis and prose gates as [_perRoleChoreoAnnotation]/[_proseAnnotation],
+/// retaining source order without broadening either handler's no-bracket path.
+FigureMatch? _bracketAnnotation(String scrubbed) {
+  final annotations = _typedAnnotations(scrubbed);
+  if (!annotations.any((annotation) => annotation.isSquare)) return null;
+
+  final match = recognizeSharedFigureLine(
+    scrubbed,
+    recognitionNormalize: _stripAnnotations,
+  );
+  if (match == null) return null;
+
+  final def = contraTaxonomy.resolve(match.moveId);
+  if (def == null) return null;
+
+  final notes = <String>[];
+  final extraParams = <String, Object?>{};
+
+  for (final annotation in annotations) {
+    final body = annotation.body;
+    if (!annotation.isSquare) {
+      final synthesized = _synthesizePerRoleChoreo(body);
+      if (synthesized != null) {
+        notes.add(synthesized);
+      } else if (_annotationBodyHasLowercase(body) &&
+          !_looksLikePerRoleBody(body)) {
+        notes.add(body);
+      }
+      continue;
+    }
+
+    final isLeading = scrubbed.substring(0, annotation.start).trim().isEmpty;
+    final who = resolveDancerSetPhrase(body);
+    if (isLeading &&
+        who != null &&
+        def.params.containsKey('who') &&
+        !match.params.containsKey('who') &&
+        !extraParams.containsKey('who')) {
+      extraParams['who'] = who;
+      continue;
+    }
+
+    if (isLeading && who == null && match.assumedSubject) {
+      // The bracket supplies an unmodelled (often non-duple) subject while the
+      // grammar would otherwise default one. Preserve fidelity by staying custom.
+      return const FigureMatch.customFallback();
+    }
+
+    notes.add(_canonicalSquareBracketNote(body));
+  }
+
+  if (notes.isEmpty && extraParams.isEmpty) {
+    // A square bracket with only code-like parentheses belongs to a later
+    // specialist or the normal recognition path; do not claim it here.
+    return null;
+  }
+  return _withAnnotationNote(
+    match,
+    _joinAnnotations(notes),
+    extraParams: extraParams,
+  );
+}
+
+/// A source-order annotation body with the bracket kind needed by the shared
+/// square-bracket classifier.
+class _TypedAnnotation {
+  const _TypedAnnotation({
+    required this.body,
+    required this.start,
+    required this.isSquare,
+  });
+
+  final String body;
+  final int start;
+  final bool isSquare;
+}
+
+/// Bounded `()`/`[]` extraction in source order for [_bracketAnnotation].
+///
+/// Mirrors [_annotations]' import-input limits while retaining bracket kind and
+/// location so leading dancer context and clause-final commentary stay distinct.
+List<_TypedAnnotation> _typedAnnotations(String scrubbed) {
+  final out = <_TypedAnnotation>[];
+  for (final m in _annotationRe.allMatches(scrubbed)) {
+    if (out.length >= _maxAnnotations) break;
+    final isSquare = m.group(2) != null;
+    final body = (m.group(1) ?? m.group(2) ?? '').trim();
+    if (body.isEmpty || _numericOnly.hasMatch(body)) continue;
+    out.add(_TypedAnnotation(body: body, start: m.start, isSquare: isSquare));
+  }
+  return out;
+}
+
+/// Canonicalizes the dancer phrase in a clause-final `with`/`around` bracket
+/// when production's strict resolver can account for the whole phrase.
+String _canonicalSquareBracketNote(String body) {
+  final m = _squareBracketRelationRe.firstMatch(body.trim());
+  if (m == null) return body;
+  final who = resolveDancerSetPhrase(m.group(2)!);
+  return who == null ? body : '${m.group(1)!.toLowerCase()} $who';
+}
+
+final RegExp _squareBracketRelationRe = RegExp(
+  r'^(with|around)\s+(.+)$',
+  caseSensitive: false,
+);
 
 // --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
 
