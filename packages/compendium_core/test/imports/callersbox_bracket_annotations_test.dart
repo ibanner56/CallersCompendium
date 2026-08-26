@@ -18,6 +18,15 @@ void main() {
       expect(figure.note, isNull);
     });
 
+    test('a resolved bracket never overwrites an explicit grammar subject', () {
+      final figure = _single('Men do si do [women]', beats: 8);
+
+      expect(figure.isCustom, isFalse);
+      expect(figure.move, 'do_si_do');
+      expect(figure.params['who'], 'role1s');
+      expect(figure.note, 'role2s');
+    });
+
     test(
       'an explicit grammar subject wins over a bracketed dancer description',
       () {
