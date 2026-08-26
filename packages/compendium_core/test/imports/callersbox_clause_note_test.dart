@@ -105,6 +105,35 @@ void main() {
       }
     });
 
+    test('selected formation labels become trailing notes', () {
+      const cases = {
+        'Partner swing; form line of four': 'form line of four',
+        'Partner swing; form diamond': 'form diamond',
+        'Partner swing; form wave of two': 'form wave of two',
+        'Partner swing; form two-faced line': 'form two-faced line',
+        'Partner swing; merge into column': 'merge into column',
+      };
+      for (final entry in cases.entries) {
+        final only = _one(entry.key);
+        expect(only.move, 'swing', reason: entry.key);
+        expect(only.note, entry.value, reason: entry.key);
+      }
+    });
+
+    test('selected parent moves absorb trailing fall back as a note', () {
+      const cases = {
+        'Women allemande left 1; fall back': 'allemande',
+        'Women give and take neighbor; fall back': 'give_and_take',
+        'Star left 1; fall back [to place]': 'star',
+      };
+      for (final entry in cases.entries) {
+        final only = _one(entry.key, beats: 6);
+        expect(only.move, entry.value, reason: entry.key);
+        expect(only.note, 'fall back', reason: entry.key);
+        expect(only.beats, 6, reason: entry.key);
+      }
+    });
+
     test('the stored note is independent of the SOURCE casing', () {
       for (final source in [
         'women turn around',
@@ -225,10 +254,13 @@ void main() {
   group('note fallback — the allowlist is closed', () {
     test('an ineligible clause still collapses the whole line', () {
       for (final line in [
-        'Partner swing; fall back', // 81 occurrences, no model
+        'Partner swing; fall back', // Not an approved parent move.
+        'Star left 1; fall back with N2',
+        'Star left 1; fall back to place',
+        'Fall back; Star left 1',
+        'Star left 1; face up; fall back',
         'Partner swing; bend the line', // 59
-        'Partner swing; form wave of two', // a wave size we do not model
-        'Partner swing; form two-faced line',
+        'Partner swing; form ring of four',
         'Partner swing; cross over',
       ]) {
         _staysWholeCustom(line);
@@ -469,6 +501,27 @@ void main() {
       expect(figures.single.subFigures.first.isCustom, isTrue);
     });
 
+    test('a complementary long-wave fall-back pair forms one wave', () {
+      final only = _one(
+        'Women walk forward; form long wave in center || Men fall back',
+        beats: 4,
+      );
+      expect(only.isMeanwhile, isFalse);
+      expect(only.move, 'form_a_long_wave');
+      expect(only.params['who'], 'role2s');
+      expect(only.params['out'], isTrue);
+      expect(only.beats, 4);
+    });
+
+    test('a non-complementary long-wave fall-back pair stays meanwhile', () {
+      final only = _one(
+        'Women walk forward; form long wave in center || Women fall back',
+        beats: 4,
+      );
+      expect(only.isMeanwhile, isTrue);
+      expect(only.subFigures.any((figure) => figure.isCustom), isTrue);
+    });
+
     test('an all-structuring compound is untouched', () {
       final figures = _lines('Circle left 3/4; form wave of four');
       expect(figures.map((f) => f.move).toList(), [
@@ -490,6 +543,32 @@ void main() {
   });
 
   group('adapter — end to end', () {
+    test('a Double slice maps to the existing diagonal-return slice', () {
+      final figures = _importFigures([
+        '(8) Double slice left:',
+        '     (4) On left diagonal, go forward to S1',
+        '     (4) On other diagonal, fall back to S2',
+      ]);
+      expect(figures, hasLength(1));
+      final only = figures.single;
+      expect(only.move, 'slice');
+      expect(only.params['slice'], 'left');
+      expect(only.params['return'], 'diagonal');
+      expect(only.beats, 8);
+      expect(only.note, contains('fall back to S2'));
+    });
+
+    test('a near-miss Double slice stays a custom atomic parent', () {
+      final figures = _importFigures([
+        '(8) Double slice left:',
+        '     (4) On left diagonal, go forward to S1',
+        '     (4) On other diagonal, fall back from S2',
+      ]);
+      expect(figures, hasLength(1));
+      expect(figures.single.isCustom, isTrue);
+      expect(figures.single.params['text'], 'Double slice left');
+    });
+
     test('a cross-line fold PRESERVES the consumed figure\'s clause note', () {
       // `Balance the ring; face up` now structures to `balance_the_ring` + a
       // note, is still a balance LINE, and folds into the following swing. The
