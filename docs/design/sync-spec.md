@@ -1998,15 +1998,16 @@ ones.
 The reason a redirect is unacceptable is that **whether it is harmless depends
 on a client policy the operator cannot see.** A client that strips gets a `401`
 on the retry and fails visibly. A client that retains — bespoke tooling and
-non-app callers, since both fixes shipped in early 2022 and no build of this
-app carrying sync predates them — gets a sync that *works*, over a redirect,
-which is the outcome this requirement exists to deny: nothing then surfaces the
-misconfiguration, so it is never corrected, and every subsequent run repeats
-the plaintext request that discloses the bearer in full. Refusal produces the
-same visible failure for every client whatever its header policy, and that
-uniformity is the point. A deployment MUST NOT have to reason about which
-clients will reach it in order to be safe. A redirect remains the right answer
-for other paths, which carry no credential.
+non-app callers, since those fixes shipped in Dart 2.16 on 2022-02-03 and curl
+7.83.0 on 2022-04-27, and no build of this app carrying sync predates either —
+gets a sync that *works*, over a redirect, which is the outcome this
+requirement exists to deny: nothing then surfaces the misconfiguration, so it
+is never corrected, and every subsequent run repeats the plaintext request that
+discloses the bearer in full. Refusal produces the same visible failure for
+every client whatever its header policy, and that uniformity is the point. A
+deployment MUST NOT have to reason about which clients will reach it in order
+to be safe. A redirect remains the right answer for other paths, which carry no
+credential.
 
 `Strict-Transport-Security` is listed as a SHOULD, and separately from the
 refusal, because it protects a different population than the one above: HSTS is
@@ -2428,11 +2429,13 @@ and never redirected** (mutation: place the `ProxyPass` outside a vhost, or in
 both the `:80` and `:443` vhosts — the API answers identically on each, and the
 bearer credential is disclosed on every plaintext call. Second mutation: answer
 `301` to the `https` origin instead of refusing — the credential is already
-disclosed by the plaintext request itself, and what the redirect adds is that
-any client which follows it gets a sync that *works*, so nothing ever surfaces
-the misconfiguration and every run repeats the disclosure. Whether a given
-client retains `Authorization` across the hop is not the operator's to know
-(§7.5); refusal fails visibly for all of them. This is a deployment test
+disclosed by the plaintext request itself, and what the redirect adds is that a
+client which follows it *and retains* `Authorization` across the hop gets a sync
+that **works**, so nothing ever surfaces the misconfiguration and every run
+repeats the disclosure. A client that strips instead follows the redirect and
+gets a `401`, which fails visibly — but which of the two reaches a given
+deployment is not the operator's to know (§7.5), and refusal is the only answer
+that fails visibly for both. This is a deployment test
 against the running configuration, since no unit test of the server process can
 observe which port a proxy accepted the request on).
 

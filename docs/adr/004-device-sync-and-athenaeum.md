@@ -575,23 +575,24 @@ requirements, not deployment taste, and each has a concrete failure mode:
   debug format and writing live credentials to disk. The vhost should carry a
   comment saying so, because the omission is invisible.
 
-- **`/v1` must not be served over plaintext.** A plaintext request to `/v1`
-  is refused outright — not redirected. The credential is disclosed by
-  the plaintext request itself; what a redirect adds is that a client which
-  follows it syncs successfully, so the misconfiguration never surfaces and
-  every run repeats the disclosure. Refusal fails visibly for every client,
-  whatever its header policy. The `https` origin also sends
-  `Strict-Transport-Security`, which is browser-only defence in depth: this
-  app has no web target, so no client it ships honours it. This one needs stating precisely
-  *because* of the decision above: terminating at a proxy that permanently
-  owns `:80` for ACME is what makes renewal reliable, and it is also what
-  puts a live listener on the plaintext port. A `ProxyPass` written outside a
-  vhost, or pasted into both, exposes the API on both and nothing in either
-  response says so. The client already refuses a plaintext endpoint (spec
-  §8), but the things that reach a public port are not all conforming
-  clients, and the sync ID is a bearer credential on every request with no
-  rotation and no revocation — so one plaintext call is a complete and
-  permanent disclosure.
+- **`/v1` must not be served over plaintext.** A plaintext request to `/v1` is
+  refused outright — not redirected. The credential is disclosed by the
+  plaintext request itself; what a redirect adds is that a client which
+  follows it *and retains* the credential across the hop syncs successfully,
+  so the misconfiguration never surfaces and every run repeats the disclosure.
+  One that strips gets a `401` instead, and which of the two reaches a
+  deployment is not something its operator can see. Refusal fails visibly for
+  both. The `https` origin also sends `Strict-Transport-Security`, which is
+  browser-only defence in depth: this app has no web target, so no client it
+  ships honours it. This one needs stating precisely *because* of the decision
+  above: terminating at a proxy that permanently owns `:80` for ACME is what
+  makes renewal reliable, and it is also what puts a live listener on the
+  plaintext port. A `ProxyPass` written outside a vhost, or pasted into both,
+  exposes the API on both and nothing in either response says so. The client
+  already refuses a plaintext endpoint (spec §8), but the things that reach a
+  public port are not all conforming clients, and the sync ID is a bearer
+  credential on every request with no rotation and no revocation — so one
+  plaintext call is a complete and permanent disclosure.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound

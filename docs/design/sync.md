@@ -2308,12 +2308,12 @@ locally, and does not republish it**; it applies the deletion once its last
 citation goes away.
 
 The "keeps it live and republishes it" formulation an earlier draft used is
-wrong, and wrong in a way that silently reverses user intent. Republishing bumps
-`updatedAt` under *Content changes must move the discriminator*, so the still-
-citing device would out-rank the deleting device's tombstone; the deleting device
-downloads its own deletion back, and since the user has already deleted the
-entity once, nothing re-tombstones it. The entity would be live everywhere,
-permanently, with no signal that the deletion had been undone.
+wrong, and wrong in a way that silently reverses user intent. Republishing
+bumps `updatedAt` under *Content changes must move the discriminator*, so the
+still-citing device would out-rank the deleting device's tombstone; the
+deleting device downloads its own deletion back, and since the user has already
+deleted the entity once, nothing re-tombstones it. The entity would be live
+everywhere, permanently, with no signal that the deletion had been undone.
 
 Holding the tombstone pending instead means the deletion is never out-ranked and
 never republished. The two devices are legitimately divergent — one still needs
@@ -3152,17 +3152,24 @@ Neither had been quoted in the review. The habit that would have caught it was
 written into this document in that same commit.
 
 **A lesson written down has no failure signal.** Fifteen rounds have produced a
-long list of habits, and the ones that have actually held are the mechanised
-ones: the ownership matrix, the conformance buckets, the source-scanning
-ratchets. They hold because forgetting them fails loudly. A retrospective entry
-fails silently, which is the same argument `sync-implementation.md` makes for
-W17 existing at all. So the standing conclusion of this document is not that
-the next reader should remember these entries — it is that any rule worth
-keeping should be moved into something that breaks when it is violated, and an
-entry here is a placeholder for having not yet done that. The practical
-corollary, cheap enough to be worth stating on its own: when a claim is
-retracted, grep the retracted *wording* across every document before the commit
-lands, not the sentence that prompted it.
+long list of habits, and the only ones that have held without being remembered
+are the **source-scanning ratchets** — CI tests that go red when the thing they
+guard reappears. The ownership matrix and the conformance buckets are the
+intermediate case, and it would be self-flattering to list them as mechanisms:
+they are prose tables, better than a habit because a reviewer can *check* them,
+but just as silent when nobody does. This document records both failing exactly
+that way — round 33, where W18's own ratchet was gated by no conformance
+bucket, and round 43, where the matrix row omitted W17 so the unit could have
+closed green with its source scan never written. Each was caught by a reader,
+not by anything breaking. A retrospective entry is a rung below even that,
+which is the same argument `sync-implementation.md` makes for W17 existing at
+all. So the standing conclusion of this document is not that the next reader
+should remember these entries — it is that any rule worth keeping should be
+moved into something that breaks when it is violated, and an entry here is a
+placeholder for having not yet done that. The practical corollary, cheap enough
+to be worth stating on its own: when a claim is retracted, grep the retracted
+*wording* across every document before the commit lands, not the sentence that
+prompted it.
 
 **A supporting clause that is inert becomes the thing a later reader tests the
 rule against.** The rewritten redirect rationale described the clients that
@@ -3174,7 +3181,41 @@ could reasonably conclude the requirement was obsolete. The rule never rested
 on that population; it rests on the operator not being able to see any client's
 policy. The clause was narrowed to say which callers are actually meant.
 
-**The general lesson, which is now sixteen rounds old: the newest machinery
+**A retraction can overshoot into the opposite falsehood, and the replacement
+gets less scrutiny than the thing it replaced.** Three rounds were spent
+removing the claim that an `http`→`https` redirect carries `Authorization`
+onward. The sentence written in its place said that *any* client which follows
+the redirect gets a working sync — which is false for exactly the two clients
+the preceding paragraphs establish do strip, since stripping is not declining
+to follow. The pendulum had swung from "the redirect leaks the credential" to
+"the redirect always works", both wrong, both attached to a rule that was
+correct throughout. A correction inherits the confidence of the analysis that
+produced it, and is the sentence least likely to be re-read.
+
+**The §9 justification slot has now carried a false justification for three
+consecutive rounds, and the localisation is the signal.** That paragraph
+explains *why* a mutation must fail, so it is the text an implementer converts
+into a test — a wrong model there propagates into the suite rather than staying
+in prose. It attracts errors because it is written last, reads as explanation
+rather than as a claim, and asserts things about third-party behaviour that no
+gate checks. The cheap discipline, smaller than the grep the previous round
+adopted: **when a justification is rewritten, read it beside the passage it
+cites, in both directions.** Both of this round's defects were adjacent-
+paragraph contradictions — one sentence conceding that the outcome depends on
+the client's header policy, directly beneath a sentence asserting it does not.
+
+**An entry arguing for mechanisation listed, as its examples of mechanisms, two
+artefacts this document records failing silently.** The claim that the
+ownership matrix and the conformance buckets "hold because forgetting them
+fails loudly" is refuted twice in these pages: round 33, where a unit's own
+ratchet was gated by no bucket, and round 43, where the matrix row omitted the
+unit that carried the clause. Both were caught by a reader. Only the CI
+ratchets fail loudly; the matrix and the buckets are the intermediate case —
+checkable, and therefore better than a habit, but silent when nobody checks.
+Writing an entry about rigour is not an exemption from it, and the examples in
+an argument are the part nobody verifies.
+
+**The general lesson, which is now seventeen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3215,16 +3256,18 @@ was correct for a reason neither of them had stated. Round 45 then found that
 round 44's retraction had reached the sentence it was shown and neither of the
 two places that said the same thing unprompted — one of them four hundred lines
 from the retraction, in the same file — and that the habit prescribing the grep
-which would have caught it was added by that same commit. Fifteen consecutive
-rounds have found the round's defects in the previous round's repair, which is
-no longer a coincidence and is better read as a property of how repairs get
-written: under the belief that the hard thinking has just been done. Round 30's
-instance was the spec paraphrasing an algorithm; round 31's was the same thing
-twice more; round 32's was the plan getting less scrutiny than the spec.
-Scaffolding built to close a gap is written last, reviewed least, and inherits
-none of the scrutiny that produced it — and a *justification* written to close
-a gap is the least reviewed artefact of all, because it reads as the premise
-rather than as the new work.
+which would have caught it was added by that same commit. Round 46 then found
+that the sentence written to replace the retracted claim was false in the
+opposite direction, in the same slot of the same section, for the third round
+running. Sixteen consecutive rounds have found the round's defects in the
+previous round's repair, which is no longer a coincidence and is better read as
+a property of how repairs get written: under the belief that the hard thinking
+has just been done. Round 30's instance was the spec paraphrasing an algorithm;
+round 31's was the same thing twice more; round 32's was the plan getting less
+scrutiny than the spec. Scaffolding built to close a gap is written last,
+reviewed least, and inherits none of the scrutiny that produced it — and a
+*justification* written to close a gap is the least reviewed artefact of all,
+because it reads as the premise rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
