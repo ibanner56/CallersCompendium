@@ -2243,6 +2243,18 @@
   "@collectionFacetStatus": {
     "description": "Filter section heading for the dance status facet."
   },
+  "collectionFacetCallStatus": "Calling history",
+  "@collectionFacetCallStatus": {
+    "description": "Filter section heading for the called/not-called facet."
+  },
+  "collectionFacetCalled": "Called",
+  "@collectionFacetCalled": {
+    "description": "Filter chip selecting dances called in the active history scope."
+  },
+  "collectionFacetNotCalled": "Not called",
+  "@collectionFacetNotCalled": {
+    "description": "Filter chip selecting dances not called in the active history scope."
+  },
   "collectionFacetLevel": "Level",
   "@collectionFacetLevel": {
     "description": "Filter section heading for the difficulty level facet."

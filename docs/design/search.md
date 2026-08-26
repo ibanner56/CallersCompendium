@@ -57,6 +57,8 @@ sealed DanceFilter
   LevelFilter(DanceLevel level, [LevelOp op = eq])  // ordered scale; see LevelOp below
   MixedLevelFilter(bool mixed)               // → dances.mixed_level
   MixerFilter(bool mixer)                    // → dances.mixer (issue #732)
+  CalledFilter(bool called, {String? callerFilter, bool performedOnly = false})
+                                               // → scoped calling-history EXISTS
   RatingFilter(int minimum)                  // minimum-star floor, 1..5
   TagFilter(String tagId)
   CustomFieldFilter(CustomFieldDef def, CustomFieldOp op, Object? value)
@@ -141,7 +143,13 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `LevelFilter(l, lte/gte)` | `level IS NOT NULL AND (CASE level … END) ≤/≥ ?` (ordinal comparison over the `DanceLevel` scale; see `FilterCompiler._level`) |
 | `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
 | `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
+| `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`; an optional caller scope includes matching, NULL, and blank host callers, and `performedOnly` adds `performed_at IS NOT NULL` |
+| `CalledFilter(false, scope)` | `NOT (EXISTS …)` with the same caller, performed, and non-deleted-program scope |
 | `RatingFilter(n)` | `rating >= ?` (unrated dances excluded — NULL is not on the scale) |
+
+The Collection and Programs picker expose the calling-history facet only when
+the active caller/performed scope has at least one qualifying call. An entirely
+uncalled collection therefore has no redundant Called / Not called controls.
 
 Enum leaves compare against the stored `EnumNameConverter` string (`.name`), so
 `FormFilter(DanceForm.contra)` binds `'contra'`. The `IN (SELECT …)` subqueries stay

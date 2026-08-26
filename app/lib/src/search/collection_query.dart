@@ -63,6 +63,10 @@ class FacetSelections {
   /// null / show-mixers-only; "show non-mixers" is not offered).
   bool? mixer;
 
+  /// Called-status selections: `true` = called, `false` = not called.
+  /// Selections are OR-ed within this facet, so selecting both is unrestricted.
+  final Set<bool> callStatuses = {};
+
   /// Minimum-rating facet: `null` = unselected, otherwise a floor on the closed
   /// `1..5` scale that emits a [RatingFilter] (`rating >= minRating`; unrated
   /// dances are excluded). Single-valued (a floor, not a multi-select set).
@@ -104,6 +108,7 @@ class FacetSelections {
       levels.isEmpty &&
       mixedLevel == null &&
       mixer == null &&
+      callStatuses.isEmpty &&
       minRating == null &&
       authorIds.isEmpty &&
       tagIds.isEmpty &&
@@ -121,6 +126,7 @@ class FacetSelections {
     levels.clear();
     mixedLevel = null;
     mixer = null;
+    callStatuses.clear();
     minRating = null;
     authorIds.clear();
     tagIds.clear();
@@ -219,6 +225,8 @@ DanceFilter buildCollectionFilter({
   FullTextScope scope = FullTextScope.omni,
   ByPhraseSelections? byPhrase,
   BuilderGroup? advancedRoot,
+  String? callerFilter,
+  bool performedOnly = false,
 }) {
   final branches = <DanceFilter>[];
 
@@ -242,6 +250,15 @@ DanceFilter buildCollectionFilter({
   }
   if (facets.mixer != null) {
     branches.add(MixerFilter(facets.mixer!));
+  }
+  if (facets.callStatuses.length == 1) {
+    addOr([
+      CalledFilter(
+        called: facets.callStatuses.single,
+        callerFilter: callerFilter,
+        performedOnly: performedOnly,
+      ),
+    ]);
   }
   if (facets.minRating != null) {
     branches.add(RatingFilter(facets.minRating!));

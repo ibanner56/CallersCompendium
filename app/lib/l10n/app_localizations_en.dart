@@ -1759,6 +1759,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionFacetStatus => 'Status';
 
   @override
+  String get collectionFacetCallStatus => 'Calling history';
+
+  @override
+  String get collectionFacetCalled => 'Called';
+
+  @override
+  String get collectionFacetNotCalled => 'Not called';
+
+  @override
   String get collectionFacetLevel => 'Level';
 
   @override

@@ -59,6 +59,44 @@ void main() {
   });
 
   group('metadata leaves', () {
+    test('CalledFilter scopes caller and performed slots', () {
+      const filter = CalledFilter(
+        called: true,
+        callerFilter: '  Alice ',
+        performedOnly: true,
+      );
+      expect(
+        pred(filter),
+        'EXISTS (SELECT 1 FROM program_slots ps '
+        'JOIN programs p ON p.id = ps.program_id '
+        'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL '
+        'AND ps.performed_at IS NOT NULL '
+        'AND (p.caller IS NULL OR TRIM(p.caller) = \'\' '
+        'OR LOWER(TRIM(p.caller)) = LOWER(TRIM(?))))',
+      );
+      expect(compiler.compile(filter).binds, ['Alice']);
+    });
+
+    test('CalledFilter negates the same existence predicate', () {
+      const filter = CalledFilter(called: false);
+      expect(
+        pred(filter),
+        'NOT (EXISTS (SELECT 1 FROM program_slots ps '
+        'JOIN programs p ON p.id = ps.program_id '
+        'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL))',
+      );
+      expect(compiler.compile(filter).binds, isEmpty);
+    });
+
+    test('CalledFilter preserves pre-order bind order in a boolean tree', () {
+      final filter = AndFilter([
+        const FormFilter(DanceForm.contra),
+        const CalledFilter(called: true, callerFilter: 'Alice'),
+        const StatusFilter(DanceStatus.active),
+      ]);
+      expect(compiler.compile(filter).binds, ['contra', 'Alice', 'active']);
+    });
+
     test('FullText', () {
       final c = compiler.compile(const FullTextFilter('swing'));
       expect(

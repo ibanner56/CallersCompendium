@@ -35,6 +35,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Changed
+
+- **Collection and Programs picker** — filter dances by whether they have been
+  called in the active caller and performed-history scope.
+  
 ### Fixed
 
 - **macOS app name** — Finder and release bundles now use a branded name instead

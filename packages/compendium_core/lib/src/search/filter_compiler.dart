@@ -6,6 +6,7 @@ import 'filter.dart';
 import 'fts_query.dart';
 import 'search_enrichment.dart';
 import 'search_sort.dart';
+import '../storage/calling_history_scope.dart';
 
 /// A compiled search: one parameterized SQL statement plus its ordered bind
 /// list. Binds are emitted in pre-order, left-to-right, so bind index always
@@ -227,6 +228,25 @@ class FilterCompiler {
       case MixerFilter(:final mixer):
         binds.add(mixer ? 1 : 0);
         return 'mixer = ?';
+      case CalledFilter(
+        :final called,
+        :final callerFilter,
+        :final performedOnly,
+      ):
+        final caller = normalizeCallingHistoryCaller(callerFilter);
+        if (caller != null) binds.add(caller);
+        final performed = performedOnly
+            ? ' AND ps.performed_at IS NOT NULL'
+            : '';
+        final callerClause = caller == null
+            ? ''
+            : ' ${callingHistoryCallerClause(caller, callerColumn: 'p.caller').trimRight()}';
+        final exists =
+            'EXISTS (SELECT 1 FROM program_slots ps '
+            'JOIN programs p ON p.id = ps.program_id '
+            'WHERE ps.dance_id = dances.id AND p.deleted_at IS NULL'
+            '$performed$callerClause)';
+        return called ? exists : 'NOT ($exists)';
       case RatingFilter(:final minimum):
         // Defensive: construction already asserts this, but never trust the
         // tree at compile time (asserts are stripped in release) — throw

@@ -8,6 +8,7 @@ import '../../model/provenance.dart' as model;
 import '../database.dart';
 import '../existence.dart';
 import '../utc_datetime.dart';
+import '../calling_history_scope.dart';
 import 'venue_repository.dart';
 
 /// One entry in a dance's calling history: a program that includes the dance
@@ -201,10 +202,8 @@ class ProgramRepository {
   /// when [callerFilter] is `null` or blank — i.e. "track all callers", the
   /// historical behavior (issue #583). Empty/whitespace is treated as absent,
   /// matching how the default-caller setting itself treats empty as unset.
-  static String? _normalizedCallerFilter(String? callerFilter) {
-    final trimmed = callerFilter?.trim();
-    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
-  }
+  static String? _normalizedCallerFilter(String? callerFilter) =>
+      normalizeCallingHistoryCaller(callerFilter);
 
   /// SQL fragment restricting a derived history query to programs whose HOST
   /// caller matches [caller] (already normalized by [_normalizedCallerFilter]),
@@ -217,10 +216,8 @@ class ProgramRepository {
   /// treated as the user's own and are included alongside explicitly matching
   /// programs (#850 supersedes the original #583 exclusion of unattributed
   /// programs).
-  static String _callerClause(String? caller) => caller == null
-      ? ''
-      : 'AND (programs.caller IS NULL OR TRIM(programs.caller) = \'\' '
-            'OR LOWER(TRIM(programs.caller)) = LOWER(TRIM(?))) ';
+  static String _callerClause(String? caller) =>
+      callingHistoryCallerClause(caller, callerColumn: 'programs.caller');
 
   /// The bound variables for [_callerClause]: a single [Variable] when a filter
   /// is active, otherwise empty.
