@@ -23,6 +23,7 @@ class FacetPanel extends StatelessWidget {
     required this.hasMixedLevel,
     required this.hasMixer,
     required this.hasRating,
+    this.hasCallingHistory = false,
     required this.authors,
     required this.tags,
     required this.citedSources,
@@ -48,6 +49,9 @@ class FacetPanel extends StatelessWidget {
   /// Whether any dance carries a star rating; hides the minimum-rating section
   /// for an all-unrated collection.
   final bool hasRating;
+
+  /// Whether any dance has a positive call count in the active history scope.
+  final bool hasCallingHistory;
 
   final List<Choreographer> authors;
   final List<Tag> tags;
@@ -244,6 +248,33 @@ class FacetPanel extends StatelessWidget {
                   onChanged();
                 },
               ),
+          ],
+        ),
+      );
+    }
+
+    if (hasCallingHistory) {
+      sections.add(
+        _FacetSection(
+          key: const ValueKey('facet-row-call-status'),
+          label: l10n.collectionFacetCallStatus,
+          sectionId: 'call-status',
+          activeCount: facets.callStatuses.length,
+          chips: [
+            _chip(
+              key: 'call-status-called',
+              label: l10n.collectionFacetCalled,
+              icon: Icons.history,
+              selected: facets.callStatuses.contains(true),
+              onSelected: (s) => toggle(facets.callStatuses, true, s),
+            ),
+            _chip(
+              key: 'call-status-not-called',
+              label: l10n.collectionFacetNotCalled,
+              icon: Icons.history_toggle_off,
+              selected: facets.callStatuses.contains(false),
+              onSelected: (s) => toggle(facets.callStatuses, false, s),
+            ),
           ],
         ),
       );

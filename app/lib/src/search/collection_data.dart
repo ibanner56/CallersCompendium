@@ -28,6 +28,7 @@ class CollectionData {
     required this.numberFields,
     required this.lastCalled,
     required this.callCounts,
+    this.callerFilter,
     required this.authors,
     required this.tags,
     required this.citedSources,
@@ -62,6 +63,11 @@ class CollectionData {
   final List<CustomFieldDef> textFields;
   final List<CustomFieldDef> numberFields;
   final Map<String, DateTime> lastCalled;
+
+  /// The normalized caller scope used to load [callCounts] and [lastCalled].
+  /// This is transient query context, not persisted user data, and lets shared
+  /// picker searches use the same calling-history scope as their snapshot.
+  final String? callerFilter;
 
   /// Per-dance calling tallies (all vs. performed) for the whole collection,
   /// loaded once so [DanceListTile] can render its "called ×N" chip honoring
@@ -186,12 +192,18 @@ class CollectionData {
   }) => repos
       .watchCollectionSources(includeVenues: watchVenues)
       .transform(CoalesceTrailing<void>(coalesce))
-      .asyncMap((_) => load(repos, callerFilter: callerFilter));
+      .asyncMap(
+        (_) => load(
+          repos,
+          callerFilter: normalizeCallingHistoryCaller(callerFilter),
+        ),
+      );
 
   static Future<CollectionData> load(
     CompendiumRepositories repos, {
     String? callerFilter,
   }) async {
+    final normalizedCallerFilter = normalizeCallingHistoryCaller(callerFilter);
     final dances = await repos.dances.listAll();
     final choreographers = await repos.choreographers.listAll();
     final tags = await repos.tags.listAll();
@@ -200,7 +212,7 @@ class CollectionData {
     // One read for both: they come from the same query, so asking separately
     // would run it twice and could straddle a write (issue #768).
     final programCounts = await repos.programs.programDerivedCounts(
-      callerFilter: callerFilter,
+      callerFilter: normalizedCallerFilter,
     );
     final lastCalled = programCounts.lastCalled;
     final callCounts = programCounts.callCounts;
@@ -273,6 +285,7 @@ class CollectionData {
           .toList(),
       lastCalled: lastCalled,
       callCounts: callCounts,
+      callerFilter: normalizedCallerFilter,
       authors: authors,
       tags: tagList,
       citedSources: citedSources,
@@ -315,6 +328,7 @@ class CollectionData {
     numberFields: numberFields,
     lastCalled: lastCalled,
     callCounts: callCounts,
+    callerFilter: callerFilter,
     authors: authors,
     tags: tags,
     citedSources: citedSources,

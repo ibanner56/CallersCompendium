@@ -1708,6 +1708,15 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionFacetStatus => 'ステータス';
 
   @override
+  String get collectionFacetCallStatus => 'コール履歴';
+
+  @override
+  String get collectionFacetCalled => 'コール済み';
+
+  @override
+  String get collectionFacetNotCalled => '未コール';
+
+  @override
   String get collectionFacetLevel => 'レベル';
 
   @override

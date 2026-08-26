@@ -127,6 +127,36 @@ void main() {
       expect(tags.map((t) => t.tagId).toSet(), {'t1', 't2'});
     });
 
+    test('called-status selections OR within the facet', () {
+      final facets = FacetSelections()..callStatuses.add(true);
+      final f = buildCollectionFilter(
+        ftsText: '',
+        facets: facets,
+        defs: defs,
+        callerFilter: '  Alice ',
+        performedOnly: true,
+      );
+      expect(f, isA<CalledFilter>());
+      final called = f as CalledFilter;
+      expect(called.called, isTrue);
+      expect(called.callerFilter, '  Alice ');
+      expect(called.performedOnly, isTrue);
+
+      facets.callStatuses.add(false);
+      final both = buildCollectionFilter(
+        ftsText: '',
+        facets: facets,
+        defs: defs,
+        callerFilter: 'Alice',
+        performedOnly: true,
+      );
+      expect(both, isA<OrFilter>());
+      expect(
+        (both as OrFilter).children.whereType<CalledFilter>(),
+        hasLength(2),
+      );
+    });
+
     test('a single source facet yields an identity SourceIdFilter leaf', () {
       final facets = FacetSelections()..sourceIds.add('s1');
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);

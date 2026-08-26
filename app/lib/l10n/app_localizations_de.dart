@@ -1794,6 +1794,15 @@ class AppLocalizationsDe extends AppLocalizations {
   String get collectionFacetStatus => 'Status';
 
   @override
+  String get collectionFacetCallStatus => 'Anrufverlauf';
+
+  @override
+  String get collectionFacetCalled => 'Aufgerufen';
+
+  @override
+  String get collectionFacetNotCalled => 'Nicht aufgerufen';
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override

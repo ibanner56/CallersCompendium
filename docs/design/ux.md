@@ -31,11 +31,14 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   list/detail split-pane breakpoint (e.g. a tablet rotation), which used to
   discard the list's state.
 - Search bar = unified FTS; **filter panel** for structured search: formation,
-  progression, author, tags, custom fields, and figure queries ("contains
+  progression, author, tags, calling history (Called / Not called), custom
+  fields, and figure queries ("contains
   petronella in B1", "chain **then** swing") built with a friendly query
   builder (ContraDB ez-query lesson: common cases one-tap, advanced tree
   behind "advanced").
 - Search input is dialect-canonicalized; result counts announced politely to AT.
+  The calling-history facet follows the active caller and performed-only scope;
+  it is omitted when that scope has no qualifying calls.
 - Actions: new dance, import, duplicate, batch tag.
 
 ### 2. Dance detail / card
@@ -75,7 +78,8 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   none), or the last-used sort if that mode is selected. Survives crossing the
   list/detail split-pane breakpoint, same as Collection above.
 - Builder: two-pane — program (ordered slots) | collection picker with the
-  same filter panel as Collection.
+  same filter panel as Collection, including caller-scoped Called / Not called
+  history filtering.
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT
   flag** renders as an indented alternate under its primary (color + icon +
   text, never color alone). A free-text slot's overflow menu offers **create a

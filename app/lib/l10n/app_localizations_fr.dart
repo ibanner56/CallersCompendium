@@ -1799,6 +1799,15 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionFacetStatus => 'Statut';
 
   @override
+  String get collectionFacetCallStatus => 'Historique des appels';
+
+  @override
+  String get collectionFacetCalled => 'Appelées';
+
+  @override
+  String get collectionFacetNotCalled => 'Non appelées';
+
+  @override
   String get collectionFacetLevel => 'Niveau';
 
   @override
