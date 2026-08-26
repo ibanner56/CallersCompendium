@@ -41,9 +41,16 @@ from that tag, so new entries need no visible or manually maintained suffix.
   called in the active caller and performed-history scope.
   
 ### Fixed
-
+  
 - **macOS app name** — Finder and release bundles now use a branded name instead
   of the internal `compendium_app` build name.
+  
+- **Caller's Box bracket annotations now preserve stated dancer context.**
+  Supported square-bracket dancer sets populate an otherwise unstated figure
+  subject; supported context is retained as a dialect-aware note when the
+  subject is already explicit or the move has no subject slot. Non-duple and
+  unrecognised dancer descriptions remain custom figures rather than being
+  silently dropped.
 
 ## [0.1.2] - 2026-08-25
 

@@ -60,15 +60,12 @@ import 'figure_text_scrub.dart';
 ///    declines it because the full "single file promenade …" phrase does
 ///    not resolve to `promenade`.  Listed specific-first.
 ///
-/// **The last three entries are order-dependent.** `_perRoleChoreoAnnotation`
-/// and `_proseAnnotation` have no move anchor; either can claim any structured
-/// line that carries the right annotation shape.  `_perRoleChoreoAnnotation`
-/// MUST precede `_proseAnnotation`: it synthesises per-role bodies like
-/// `W roll R, M side-step L` into canonical role tokens; if `_proseAnnotation`
-/// claimed them first they would be frozen verbatim as gendered shorthand
-/// (`scrubFigureText` does not map bare `W`/`M`).  `_sideRunAnnotation` is
-/// kept last deliberately so the general `;`-run consume claims whatever the
-/// bespoke decoders left behind.
+/// **The final entries are order-dependent.** `_bracketAnnotation` runs before
+/// the parenthetical handlers because it must combine a square bracket with an
+/// adjacent `(…)` annotation on the same figure. It reuses their synthesis and
+/// prose rules, so neither can claim the line first and silently lose its bracket.
+/// `_decodeSideRunAnnotation` remains last deliberately so the general `;`-run consume
+/// claims whatever the bespoke decoders left behind.
 final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
   preRecognizers: [
     _hey,
@@ -85,7 +82,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _rightLeftThroughAnnotation,
     // Single-file circle recognition (taxonomy v27, issue #840): "Single file
     // promenade clockwise/counterclockwise" maps to `circle` with `turn:
-    // left/right` and `singleFile: true`. Listed before `_sideRunAnnotation`
+    // left/right` and `singleFile: true`. Listed before `_decodeSideRunAnnotation`
     // so the general `;`-run consume sees a structured result rather than raw
     // text when this fires. Listed after `_promenadeAnnotation` — the anchor
     // overlaps (`promenade`), but this fires on the FULL phrase including
@@ -97,13 +94,14 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     // Per-role choreography annotations (#744): synthesise before the general
     // prose pass so `W roll R, M side-step L` becomes canonical role tokens
     // rather than verbatim gendered shorthand.
+    _bracketAnnotation,
     _perRoleChoreoAnnotation,
     // General prose annotations (#744): shape-gated verbatim preserve for any
     // structured figure with lowercase-containing annotations.
     _proseAnnotation,
     // LAST, deliberately: the general `;`-run consume (#843) claims whatever
     // the bespoke decoders above left behind, so none of them loses a line.
-    _sideRunAnnotation,
+    _decodeSideRunAnnotation,
   ],
   recognitionNormalize: _tcbRecognitionNormalize,
   declineToCustom: _declineSingleFileCircle,
@@ -1703,6 +1701,146 @@ FigureMatch? _proseAnnotation(String scrubbed) {
 bool _annotationBodyHasLowercase(String body) =>
     body.codeUnits.any((c) => c >= 97 && c <= 122); // 'a'..'z'
 
+// --- Square-bracket annotation classifier (#744) ----------------------------
+
+/// Classifies Caller's Box `[…]` annotations without letting the recognition
+/// normalizer silently erase them.
+///
+/// A leading bracket is a potential dancer context. A strictly resolved dancer
+/// fills `who` only if the resolved move declares that slot and the grammar left
+/// it empty. Explicit grammar wins: `[All four] Men do si do` retains `role1s`
+/// and records `All four` as a note. A leading non-duple or unrecognised dancer
+/// phrase instead takes the ordinary custom fallback, because stripping it would
+/// assert a subject the source did not state.
+///
+/// Clause-final brackets are commentary. In particular `with <dancer>` and
+/// `around <dancer>` use [resolveDancerSetPhrase] to emit the canonical token in
+/// the note. The classifier also processes adjacent parentheticals with the same
+/// synthesis and prose gates as [_perRoleChoreoAnnotation]/[_proseAnnotation],
+/// retaining source order without broadening either handler's no-bracket path.
+FigureMatch? _bracketAnnotation(String scrubbed) {
+  final annotations = _typedAnnotations(scrubbed);
+  if (!annotations.any(
+    (annotation) =>
+        annotation.isSquare && !_isSquareRoleSetDescriptor(annotation.body),
+  )) {
+    return null;
+  }
+
+  // A code-like `()` side run remains structured data even when the line also
+  // carries a bracket note. Reuse its complete decoder rather than claiming the
+  // line first and discarding the side/hand it would have supplied.
+  final match =
+      _decodeSideRunAnnotation(scrubbed) ??
+      recognizeSharedFigureLine(
+        scrubbed,
+        recognitionNormalize: _stripAnnotations,
+      );
+  if (match == null) return null;
+
+  final def = contraTaxonomy.resolve(match.moveId);
+  if (def == null) return null;
+
+  final notes = <String>[];
+  final extraParams = <String, Object?>{};
+
+  for (final annotation in annotations) {
+    final body = annotation.body;
+    if (!annotation.isSquare) {
+      final synthesized = _synthesizePerRoleChoreo(body);
+      if (synthesized != null) {
+        notes.add(synthesized);
+      } else if (_annotationBodyHasLowercase(body) &&
+          !_looksLikePerRoleBody(body)) {
+        notes.add(body);
+      }
+      continue;
+    }
+    if (_isSquareRoleSetDescriptor(body)) continue;
+
+    final isLeading = scrubbed.substring(0, annotation.start).trim().isEmpty;
+    final who = resolveDancerSetPhrase(body);
+    if (isLeading &&
+        who != null &&
+        def.params.containsKey('who') &&
+        !match.params.containsKey('who') &&
+        !extraParams.containsKey('who')) {
+      extraParams['who'] = who;
+      continue;
+    }
+
+    if (isLeading && who == null && match.assumedSubject) {
+      // The bracket supplies an unmodelled (often non-duple) subject while the
+      // grammar would otherwise default one. Preserve fidelity by staying custom.
+      return const FigureMatch.customFallback();
+    }
+
+    notes.add(_canonicalSquareBracketNote(body));
+  }
+
+  if (notes.isEmpty && extraParams.isEmpty) {
+    // A square bracket with only code-like parentheses belongs to a later
+    // specialist or the normal recognition path; do not claim it here.
+    return null;
+  }
+  return _withAnnotationNote(
+    match,
+    _joinAnnotations(notes),
+    extraParams: extraParams,
+  );
+}
+
+/// A source-order annotation body with the bracket kind needed by the shared
+/// square-bracket classifier.
+class _TypedAnnotation {
+  const _TypedAnnotation({
+    required this.body,
+    required this.start,
+    required this.isSquare,
+  });
+
+  final String body;
+  final int start;
+  final bool isSquare;
+}
+
+/// Bounded `()`/`[]` extraction in source order for [_bracketAnnotation].
+///
+/// Mirrors [_annotations]' import-input limits while retaining bracket kind and
+/// location so leading dancer context and clause-final commentary stay distinct.
+List<_TypedAnnotation> _typedAnnotations(String scrubbed) {
+  final out = <_TypedAnnotation>[];
+  for (final m in _annotationRe.allMatches(scrubbed)) {
+    if (out.length >= _maxAnnotations) break;
+    final isSquare = m.group(2) != null;
+    final body = (m.group(1) ?? m.group(2) ?? '').trim();
+    if (body.isEmpty || _numericOnly.hasMatch(body)) continue;
+    out.add(_TypedAnnotation(body: body, start: m.start, isSquare: isSquare));
+  }
+  return out;
+}
+
+/// Canonicalizes the dancer phrase in a clause-final `with`/`around` bracket
+/// when production's strict resolver can account for the whole phrase.
+String _canonicalSquareBracketNote(String body) {
+  final m = _squareBracketRelationRe.firstMatch(body.trim());
+  if (m == null) return body;
+  final who = resolveDancerSetPhrase(m.group(2)!);
+  return who == null ? body : '${m.group(1)!.toLowerCase()} $who';
+}
+
+final RegExp _squareBracketRelationRe = RegExp(
+  r'^(with|around)\s+(.+)$',
+  caseSensitive: false,
+);
+
+/// TCB's `[Heads (ones+fours)]` form is a role-set descriptor, not a bracket
+/// annotation for display. It has historically structured without surfacing its
+/// nested parenthetical, and the parenthetical extractor similarly masks square
+/// spans before scanning them.
+bool _isSquareRoleSetDescriptor(String body) =>
+    body.contains('(') || body.contains(')');
+
 // --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
 
 /// Consumes TCB's `;`-run shorthand — `(ML)`, `(NR;PL)`, `(WR;PL;MR;N2L~)` —
@@ -1782,7 +1920,7 @@ bool _annotationBodyHasLowercase(String body) =>
 /// the lines it already claims. Bounding is [_boundedPassListCells]'s, shared
 /// with every other pass-list path (OWASP: imported text is untrusted, and the
 /// cap runs before the split allocates).
-FigureMatch? _sideRunAnnotation(String scrubbed) {
+FigureMatch? _decodeSideRunAnnotation(String scrubbed) {
   final lower = scrubbed.toLowerCase();
   final open = lower.indexOf('(');
   if (open == -1) return null;
@@ -1895,7 +2033,7 @@ class _SideCell {
 ///
 /// **More than one is treated as "no slot", and the consequence is a SILENT
 /// fall-through — not a loud failure and not a custom figure.** Returning null
-/// here makes [_sideRunAnnotation] decline, so the line is handed to the shared
+/// here makes [_decodeSideRunAnnotation] decline, so the line is handed to the shared
 /// recognizer and still structures; it simply keeps the taxonomy's default for
 /// the side instead of the value the run stated. Nothing is logged, nothing
 /// throws, and no test fails.
@@ -2125,7 +2263,7 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 ///   build, so the line goes to the custom fallback. `Hey 1/2 (P6R;P7L)` is
 ///   custom.
 /// - **The run only ADDS params** — [_squareThroughPassList] (#799) and the
-///   general [_sideRunAnnotation] (#843). The line still structures through the
+///   general [_decodeSideRunAnnotation] (#843). The line still structures through the
 ///   shared recognizer; it simply keeps the taxonomy's defaults instead of the
 ///   values the run states. `Square through 2 (C1R;C2L)` stays a
 ///   `square_through`, and `Pass through along (OR)` stays a `pass_through`.
