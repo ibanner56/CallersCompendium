@@ -1614,7 +1614,7 @@ jobs:
     # TestFlight upload is irreversible. The protected environment provides the
     # same human approval gate that controls Windows Trusted Signing.
     runs-on: macos-latest
-    environment: release-signing
+    environment: release-publication
     permissions:
       contents: read
     steps:
