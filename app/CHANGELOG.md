@@ -35,6 +35,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Fixed
+
+- **macOS app name** — Finder and release bundles now use a branded name instead
+  of the internal `compendium_app` build name.
+
 ## [0.1.2] - 2026-08-25
 
 ### Changed
