@@ -188,6 +188,15 @@ Figure? _attemptLine(
   required Taxonomy? taxonomy,
 }) {
   if (identical(frontEnd, tcbFigureFrontEnd)) {
+    final fallBackLongWave = fallBackLongWaveFromDoublePipe(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: null,
+      frontEnd: frontEnd,
+    );
+    if (fallBackLongWave != null) return fallBackLongWave;
     final meanwhile = meanwhileFromDoublePipe(
       rawText,
       beats: beats,

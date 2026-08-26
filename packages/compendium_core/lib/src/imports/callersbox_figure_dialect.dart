@@ -115,7 +115,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 /// can route every line through this without changing single-line behaviour.
 ///
 /// Fidelity guards (per the CallersBox dialect rulings):
-/// - **All-or-nothing, with a bounded NOTE FALLBACK.** Every clause must
+/// - **All-or-nothing, with bounded named exceptions and a NOTE FALLBACK.** Every clause must
 ///   independently structure to a taxonomy move. When one does not, the line is
 ///   normally kept as a single custom figure carrying the original text — never
 ///   partially structured, because structuring the surviving moves alone would
@@ -126,8 +126,10 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 ///   `Circle left 3/4; face up` yields `circle` plus the note `face up` instead
 ///   of one custom figure. Nothing is lost and no move is fabricated — the same
 ///   trade #729 made for annotations. Every clause outside the allowlist still
-///   collapses the whole line (`…; fall back`, `…; bend the line`,
-///   `…; cast down to place`, every `form <formation>` label). The note is the
+///   collapses the whole line (`…; bend the line`, `…; cast down to place`, and
+///   every unapproved `form <formation>` label). Exact approved formation labels
+///   use the note fallback, and `fall back` is consumed only after an approved
+///   parent move. The note is the
 ///   SCRUBBED clause, so it is canonical (`; women turn around` is stored as
 ///   `role2s turn around`) and the renderer re-expresses it in the reader's
 ///   dialect (#715/#717) — never a raw gendered term.
@@ -193,6 +195,15 @@ List<Figure> parseFigureLines(
   // `||` run or an over-separated hostile line — see
   // `meanwhileFromDoublePipe` for the guards.
   if (hasTopLevelSeparator(rawText, '||')) {
+    final fallBackLongWave = fallBackLongWaveFromDoublePipe(
+      rawText,
+      beats: beats,
+      progression: progression,
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+    if (fallBackLongWave != null) return [fallBackLongWave];
     final meanwhile = meanwhileFromDoublePipe(
       rawText,
       beats: beats,
@@ -225,6 +236,15 @@ List<Figure> parseFigureLines(
   // line: `A;` structures via the normal edge-`;` strip, while a genuinely
   // malformed `A;;B` reaches no recognizer and stays honestly custom.
   if (clauses.any((c) => c.isEmpty)) return wholeAsList();
+  final fallBackNote = _fallBackNoteCompound(
+    clauses,
+    beats: beats,
+    progression: progression,
+    taxonomy: taxonomy,
+    scrub: scrub,
+    frontEnd: frontEnd,
+  );
+  if (fallBackNote != null) return [fallBackNote];
 
   final parsed = <Figure>[];
   final scrubFn = scrub ?? scrubFigureText;
@@ -416,8 +436,56 @@ bool _noteEligibleClause(String scrubbed) {
   final normalized = scrubbed.toLowerCase();
   if (_facingClause.hasMatch(normalized)) return true;
   if (_turnAroundClause.hasMatch(normalized)) return true;
-  return normalized == 'finish proper' || normalized == 'return to place';
+  return _exactClauseNotes.contains(normalized);
 }
+
+const Set<String> _exactClauseNotes = {
+  'finish proper',
+  'return to place',
+  'form line of four',
+  'form diamond',
+  'form wave of two',
+  'form two-faced line',
+  'merge into column',
+};
+
+/// Consumes CallersBox's exact two-clause `<parent>; fall back [annotation]`
+/// idiom, preserving the accepted scrubbed clause as the parent's note. Other
+/// qualifier wording remains custom.
+Figure? _fallBackNoteCompound(
+  List<String> clauses, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+  required String Function(String)? scrub,
+  required FigureFrontEnd frontEnd,
+}) {
+  if (clauses.length != 2) return null;
+  final scrubFn = scrub ?? scrubFigureText;
+  final fallBackNote = scrubFn(clauses[1]).trim();
+  if (!_trailingFallBack.hasMatch(fallBackNote)) return null;
+  final parent = parseFigureLine(
+    clauses.first,
+    beats: beats,
+    progression: progression,
+    taxonomy: taxonomy,
+    scrub: scrub,
+    frontEnd: frontEnd,
+  );
+  if (parent == null ||
+      parent.isCustom ||
+      !_fallBackNoteParents.contains(parent.move)) {
+    return null;
+  }
+  return parent.copyWith(note: combineFigureNotes(parent.note, fallBackNote));
+}
+
+const Set<String> _fallBackNoteParents = {'allemande', 'give_and_take', 'star'};
+
+final RegExp _trailingFallBack = RegExp(
+  r'^fall\s+back(?:\s*(?:\([^)]*\)|\[[^\]]*\]))?\s*$',
+  caseSensitive: false,
+);
 
 /// Length bound on a single note-eligible `;` clause. Matches the per-run bound
 /// `_annotationRe` puts on an annotation, the other free-text fragment this
@@ -444,6 +512,70 @@ final RegExp _turnAroundClause = RegExp(
   r'^role[12]s turn around\b',
   caseSensitive: false,
 );
+
+/// Folds TCB's complementary `<who>` walk forward; form long wave ||
+/// `<other who>` fall back pair into the existing long-wave move. Every other
+/// simultaneity remains a generic [Figure.meanwhile], preserving its sides and
+/// shared-beat contract.
+Figure? fallBackLongWaveFromDoublePipe(
+  String rawText, {
+  required int beats,
+  required bool progression,
+  required Taxonomy? taxonomy,
+  required String Function(String)? scrub,
+  required FigureFrontEnd frontEnd,
+}) {
+  final sides = _splitTopLevel(rawText, '||');
+  if (sides.length != 2 || sides.any((side) => side.isEmpty)) return null;
+  final scrubFn = scrub ?? scrubFigureText;
+  for (var incomingIndex = 0; incomingIndex < sides.length; incomingIndex++) {
+    final incoming = parseFigureLines(
+      sides[incomingIndex],
+      taxonomy: taxonomy,
+      scrub: scrub,
+      frontEnd: frontEnd,
+    );
+    if (incoming.length != 1 ||
+        incoming.single.isCustom ||
+        incoming.single.move != _walkForwardAbsorbingMove) {
+      continue;
+    }
+    final fallingBack = _bareFallBackWho(
+      scrubFn(sides[1 - incomingIndex]).trim(),
+    );
+    final incomingWho = incoming.single.params['who'];
+    if (fallingBack == null ||
+        incomingWho is! String ||
+        !_areComplementaryRoles(incomingWho, fallingBack)) {
+      continue;
+    }
+    final safeBeats = beats < 0 ? 0 : beats;
+    return incoming.single.copyWith(
+      params: {
+        ...incoming.single.params,
+        'out': true,
+        if (safeBeats > 0) 'beats': safeBeats,
+      },
+      progression: progression,
+    );
+  }
+  return null;
+}
+
+String? _bareFallBackWho(String scrubbedClause) {
+  final match = _bareFallBackWithWho.firstMatch(scrubbedClause);
+  if (match == null) return null;
+  return resolveDancerSetPhrase(match.group(1)!.trim());
+}
+
+final RegExp _bareFallBackWithWho = RegExp(
+  r'^(.{1,40}?)\s+fall\s+back[\s.,;:!]*$',
+  caseSensitive: false,
+);
+
+bool _areComplementaryRoles(String first, String second) =>
+    (first == 'role1s' && second == 'role2s') ||
+    (first == 'role2s' && second == 'role1s');
 
 /// Fans a top-level `||` (simultaneity) line out into a [Figure.meanwhile]
 /// container (#591, part of the #572 epic): one side per `||`-clause, each

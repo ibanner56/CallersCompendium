@@ -192,6 +192,25 @@ void main() {
       expect(f!.isCustom, isFalse);
       expect(f.move, 'hey');
     });
+
+    test(
+      'a TCB long-wave fall-back pair upgrades through the singular path',
+      () {
+        final f = parseFigureLineFanOut(
+          'Women walk forward; form long wave in center || Men fall back',
+          beats: 4,
+          progression: true,
+        );
+        expect(f, isNotNull);
+        expect(f!.isCustom, isFalse);
+        expect(f.isMeanwhile, isFalse);
+        expect(f.move, 'form_a_long_wave');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['out'], isTrue);
+        expect(f.params['beats'], 4);
+        expect(f.progression, isTrue);
+      },
+    );
   });
 
   group('parseFigureLineFanOut — ContraDB precedence (real enriched front-end)', () {
