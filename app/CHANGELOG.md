@@ -37,6 +37,10 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Fixed
 
+- **Caller's Box imports** — selected fall-back and formation clauses now import
+  as existing figures instead of making the whole source line custom. (issue
+  #774)
+
 - **macOS app name** — Finder and release bundles now use a branded name instead
   of the internal `compendium_app` build name.
 
