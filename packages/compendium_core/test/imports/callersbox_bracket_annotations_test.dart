@@ -19,7 +19,7 @@ void main() {
     });
 
     test('a resolved bracket never overwrites an explicit grammar subject', () {
-      final figure = _single('Men do si do [women]', beats: 8);
+      final figure = _single('[women] Men do si do', beats: 8);
 
       expect(figure.isCustom, isFalse);
       expect(figure.move, 'do_si_do');
