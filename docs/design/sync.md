@@ -3002,7 +3002,49 @@ appends both, and a third would be an ordinary code edit touching no schema.
 Watching the wrong artifact is worse than watching none, because the check
 reports success.
 
-**The general lesson, which is now twelve rounds old: the newest machinery
+**A rule can be right while the sentence justifying it is false, and the false
+sentence is what gets audited.** Two of round 42's findings were this. Refusing
+plaintext at the listener was said to turn a disclosure into a failed
+connection — but the credential is on the wire before the listener can respond
+at all, so nothing recalls the first one; what refusal actually buys is that
+there is no *second*. And `Strict-Transport-Security` was grouped with rules
+"chosen because some common proxy violates the default", as though it protected
+the callers the paragraph had just enumerated. HSTS is a browser mechanism,
+this app has no web target, and `curl` ignores it without an explicit flag — so
+it reaches none of them. Both rules survived the correction; both
+justifications had to go. A false rationale is worse than a missing one,
+because it is the thing a later reader checks the rule against, and it will
+retire the rule when it fails.
+
+**Naming two wrong implementations and testing one leaves the other
+recommended.** The loopback exemption ruled out both a substring test and a
+loopback-*range* test, and only the substring case got a conformance vector.
+The two are not variants of one mistake: a range test rejects
+`localhost.example.com` correctly, and admits `[::1]` and `127.0.0.2` — so it
+passes the test that exists and fails the property. Enumerating hazards in
+prose creates an obligation per hazard, not one for the set.
+
+**An absence is not a behaviour, and cannot be owned by the unit that builds
+the behaviour.** "The client verifies certificates" is testable and finishes.
+"No affordance to skip verification exists anywhere in the client, ever" is
+maintained against every future PR — the same distinction that created the
+standing-invariant unit for the soft-delete join rule. A behavioural test is
+satisfied by a debug flag that defaults to off, which is the exact shape the
+rule was written to prevent, so the rule needed a source scan and a permanent
+owner rather than a build-time assertion.
+
+**Tightening one path can invalidate a promise resting on it that lives
+elsewhere.** Forbidding a user-supplied trust anchor removed the last route by
+which a self-hoster could use a certificate the client would accept — while two
+documents went on saying the loopback waiver means a self-hoster "needs no
+certificate". That was never true for sync, which is at least two devices and
+therefore never `localhost` from the second, and the rationale document one
+directory over had the accurate version all along ("which self-hosters need
+*for testing*"). When a fix narrows what is possible, the claims to re-check
+are not the ones near the edit; they are the ones that promised the thing just
+removed.
+
+**The general lesson, which is now thirteen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3027,7 +3069,11 @@ the scope sentence directly above it. Round 41 then found round 40's own remedy
 for that rebuild cost self-defeating in both halves: it removed the work but not
 the bookkeeping, so taking the permission deferred the identical rebuild to app
 open, and it demanded a derivation from an artifact that does not carry the
-fact. Eleven consecutive rounds have found the
+fact. Round 42 then found five defects in the transport section written
+*beside* round 41's repair — the repair itself being the strongest work in the
+document — of which two were true rules carrying false justifications and two
+were rules stated in prose with no mechanism that could enforce them.
+Twelve consecutive rounds have found the
 round's defects in the previous round's repair, which is no longer a
 coincidence and is better read as a property of how repairs get written: under
 the belief that the hard thinking has just been done. Round 30's instance was

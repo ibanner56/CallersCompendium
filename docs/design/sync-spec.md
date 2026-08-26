@@ -833,6 +833,11 @@ An implementation that takes the permission MUST instead **declare the mapping
 once and check it behaviourally**: seed a distinct marker in every column of the
 live in-scope set, run the rebuild, read the indexed rows back, and assert that
 the markers reaching indexed columns are exactly those the declaration predicts.
+**Every seeded row MUST be reachable from a dance the rebuild covers** — the
+tag applied to a dance, the choreographer credited on one. The rebuild is
+dance-scoped, so an unreferenced row contributes nothing to any index whatever
+the mapping says, and the negative half of the assertion would hold vacuously
+for exactly the columns the skip depends on.
 `dance_fts` is an ordinary `fts5` table whose columns are selectable, and tests
 already read from it directly (`migration_test.dart:234`). The assertion MUST be
 total over the in-scope set, so that a column entering that set fails the test
@@ -987,9 +992,25 @@ else: not a prefix, not a suffix, not a substring. `localhost.example.com` is a
 public host that a `startsWith` or `contains` test admits, and it is registrable
 by anyone. Nor is the exemption "the loopback range" — `[::1]`, `127.0.0.2`,
 and the encodings `2130706433` and `0x7f000001` that many URL parsers accept
-are all outside it. A self-hoster on any of those uses `https` or edits the two
-literals in a build they control; this specification does not widen the hole to
-save them the trouble.
+are all outside it. This specification does not widen the hole to save a
+self-hoster the trouble.
+
+**The consequence, stated rather than left to be discovered: a self-hosted sync
+needs a publicly-trusted certificate on a routable name.** Sync involves at
+least two devices, so the server is by definition not `localhost` as seen from
+the second one; the exemption covers same-machine testing and never a
+functioning deployment. Nor is a private CA an alternative, and not merely
+because the rule above forbids the `SecurityContext` that would install one:
+`dart:io`'s `HttpClient` trusts a **built-in Mozilla root list** on Windows and
+Linux rather than the OS store, so a certificate the operating system trusts is
+still rejected there, and Android has not trusted user-installed CAs for app
+traffic since API 24. "Edit the two literals in a build you control" is not
+available either — not on iOS. What is available is a real path and a
+well-trodden one: a name under a domain the self-hoster controls, with a
+certificate issued over the DNS-01 challenge, which requires no inbound
+reachability and works for a name resolving to a private address. That is the
+accepted cost of refusing to ship a trust-anchor escape hatch, and §10 records
+the alternative that was left open.
 
 **A client MUST verify the server's certificate chain and hostname, and MUST NOT
 provide any way to disable that.** This is stated because the rest of this
@@ -1892,8 +1913,8 @@ behaviour of at least one common proxy violates it.
 | 1 | The `Authorization` request header MUST reach the server unmodified. | It carries the sync ID (§5.1). A proxy that consumes it makes every request `401`. Apache needs `CGIPassAuth On` if the server is ever fronted by CGI/FPM. |
 | 2 | Request bodies MUST be permitted to at least the manifest limit in §5.4 (16 MB). | Defaults are wrong in opposite directions: nginx's `client_max_body_size` is 1 MB and rejects valid manifests; Apache's `LimitRequestBody` is unlimited and enforces nothing. Set it explicitly. |
 | 3 | The proxy MUST NOT decompress request bodies. | §4 puts the decompression limit on the receiver, enforced streaming-abort style. Inflating at the proxy moves a security control to a component that does not implement it. |
-| 5 | The public listener MUST NOT serve `/v1` over plaintext HTTP. A request to the plaintext port MUST be answered with a redirect to the `https` origin or refused outright, never proxied; and the `https` origin MUST send `Strict-Transport-Security` with a `max-age` of at least six months. | A vhost that owns `:80` for ACME HTTP-01 (which the reference deployment does — see ADR-004) will serve whatever its configuration reaches, and a `ProxyPass` written outside a vhost, or copied into both, silently exposes the API on both ports. Nothing in the response distinguishes the two. |
 | 4 | The sync ID MUST NOT be written to any log. | Common log formats omit headers, so this holds by default and is lost the moment someone adds `%{Authorization}i` or `$http_authorization` to a debug format. §5.1 keeps the ID out of URLs for the same reason. |
+| 5 | The public listener MUST NOT serve `/v1` over plaintext HTTP. A plaintext request to `/v1` MUST be **refused**, never proxied and never redirected; other paths MAY redirect. The `https` origin SHOULD send `Strict-Transport-Security` with a `max-age` of at least six months, as browser-only defence in depth. | A vhost that owns `:80` for ACME HTTP-01 (which the reference deployment does — see ADR-004) will serve whatever its configuration reaches, and a `ProxyPass` written outside a vhost, or copied into both, silently exposes the API on both ports. Nothing in the response distinguishes the two. |
 
 A server behind a proxy that violates (1) or (2) is **not conforming**: it will
 reject valid requests. Violations of (3), (4) or (5) are not visible in
@@ -1911,8 +1932,31 @@ proportionate to its likelihood. The sync ID is a bearer credential sent on
 every request, and §8 records that it is simultaneously the store address and
 the entire read, write and `DELETE` capability, with no accounts, no rotation
 and no revocation — so a single plaintext request discloses it in full to
-anything on the path, permanently and unrecoverably. Refusing at the listener
-turns that from a disclosure into a failed connection.
+anything on the path, permanently and unrecoverably.
+
+**What refusal buys is not the first disclosure, which is already unrecoverable
+by the time the listener can respond at all.** The credential is on the wire in
+the request; no status code recalls it. What refusal prevents is a *working*
+plaintext sync — every subsequent request, on every subsequent run — and that is
+the whole of the justification. This is also why `/v1` MUST be refused rather
+than redirected, and the two are not interchangeable here. A redirect to the
+`https` origin is a same-host scheme upgrade, which the very clients this
+requirement is aimed at follow by default and with the `Authorization` header
+retained; the caller then leaks the bearer in cleartext, succeeds over TLS, and
+repeats on every run with no symptom that anything went wrong. Refusal surfaces
+an error to whoever is holding it, which is the only thing that stops the
+recurrence. A redirect remains the right answer for other paths, which carry no
+credential.
+
+`Strict-Transport-Security` is listed as a SHOULD, and separately from the
+refusal, because it protects a different population than the one above: HSTS is
+a browser mechanism, and this app has no web target. `package:http` resolves to
+`dart:io`'s `HttpClient` on all five supported platforms, which maintains no
+HSTS store and performs no `http`→`https` upgrade, and `curl` honours HSTS only
+when given an explicit `--hsts` file. So of the non-conforming callers
+enumerated above, the header reaches none of them; it is worth sending for the
+human who pastes the origin into a browser, and it MUST NOT be counted as part
+of the guarantee that the other four requirements provide.
 
 This binds the deployment this project operates. It cannot bind a self-hoster
 who reconfigures their own proxy, and no client-side rule can detect that they
@@ -1922,7 +1966,8 @@ from the client. What protects a user of a third-party server is therefore §8's
 client-side refusal, not this requirement, which is why both exist.
 
 Beyond these, deployment is unconstrained. `localhost`/`127.0.0.1` waives TLS
-(§8) so a self-hoster needs no certificate, and a non-default port is permitted
+(§8), which a self-hoster needs for **testing on one machine** and which does
+not extend to a working self-hosted sync, and a non-default port is permitted
 on a user-configured endpoint — though redirects are followed only to the
 default port, so a server behind a non-default port MUST NOT rely on
 redirects.
@@ -2318,35 +2363,46 @@ which no status-code test can catch). A manifest `GET` returns a quoted strong
 `304`. A `Content-Type` carrying `; charset=utf-8` is accepted. `DELETE
 /v1/store` removes grace-window blobs immediately (mutation: apply the 24-hour
 exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
-**A plaintext request to `/v1` on the public listener is redirected or refused
-and never proxied, and the `https` origin sends `Strict-Transport-Security`**
-(mutation: place the `ProxyPass` outside a vhost, or in both the `:80` and
-`:443` vhosts — the API answers identically on each, and the bearer credential
-is disclosed on every plaintext call; this is a deployment test against the
-running configuration, since no unit test of the server process can observe
-which port a proxy accepted the request on).
+**A plaintext request to `/v1` on the public listener is refused, never proxied
+and never redirected** (mutation: place the `ProxyPass` outside a vhost, or in
+both the `:80` and `:443` vhosts — the API answers identically on each, and the
+bearer credential is disclosed on every plaintext call. Second mutation: answer
+`301` to the `https` origin instead of refusing — a same-host scheme upgrade is
+followed by default with the `Authorization` header retained, so the caller
+leaks the credential, then succeeds, and repeats silently on every run. This is
+a deployment test against the running configuration, since no unit test of the
+server process can observe which port a proxy accepted the request on).
 
 **Client isolate and robustness.** Allow-list bijection over real
 `encodeArchive`-shaped output, never a hand-written key string. Hostile peer
-blob: a malformed date rejects one record without aborting the batch or escaping
-the isolate. Interrupted sync is a no-op. **A server presenting an untrusted,
-expired or wrong-host certificate is refused, and no request carrying
-`Authorization` is issued to it** (mutation: install a
+blob: a malformed date rejects one record without aborting the batch or
+escaping the isolate. Interrupted sync is a no-op. **A server presenting an
+untrusted, expired or wrong-host certificate is refused, and no request
+carrying `Authorization` is issued to it** (mutation: install a
 `badCertificateCallback` returning `true` — the endpoint is still `https`, the
 per-hop table still passes in full, and the sync ID is readable by anyone able
 to present a certificate; a test asserting only on the URL scheme cannot fail
-here). **A `localhost`-prefixed public host is refused** (mutation: test the
-loopback exemption with `startsWith` or `contains` rather than an exact host
-match — `http://localhost.example.com/v1` is then accepted as exempt and the
-sync ID goes out in plaintext to a registrable domain). **A `302` to a foreign
-https host is refused, and no request carrying `Authorization` is issued to
-it** (mutation:
+here). **No certificate-validation escape hatch exists in the client source at
+all** (mutation: add a `badCertificateCallback` behind a debug flag defaulting
+to off — the behavioural vector above still passes, because the test build
+takes the default; only a source scan sees it. This is why the property is
+owned by a standing ratchet and not by the unit that builds the client). **A
+`localhost`-prefixed public host is refused** (mutation: test the loopback
+exemption with `startsWith` or `contains` rather than an exact host match —
+`http://localhost.example.com/v1` is then accepted as exempt and the sync ID
+goes out in plaintext to a registrable domain). **`http://[::1]` and
+`http://127.0.0.2` are refused** (mutation: implement the exemption as a
+loopback-*range* test, such as `InternetAddress.tryParse(host)?.isLoopback` —
+this is a distinct implementation from the one above and neither test catches
+the other, since a range test rejects `localhost.example.com` correctly while
+admitting every address §5 excludes). **A `302` to a foreign https host is
+refused, and no request carrying `Authorization` is issued to it** (mutation:
 validate only scheme, userinfo and port — every cosmetic check still passes and
 the sync ID, which is the whole credential, leaves for an attacker-controlled
-origin on the first hop). These are client-side and are grouped
-here rather than under **Server** because the server never parses record content
-beyond §7.2's key check — a server suite written from a list that included them
-would be testing rules its implementation is forbidden to have.
+origin on the first hop). These are client-side and are grouped here rather
+than under **Server** because the server never parses record content beyond
+§7.2's key check — a server suite written from a list that included them would
+be testing rules its implementation is forbidden to have.
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob
@@ -2380,3 +2436,12 @@ The following are recorded as known and are not specified here:
 - Alerting, retention proof, break-glass authorisation and lost-ID support are
   operational prerequisites of shipping, not of implementation.
 - A privacy-policy amendment is a blocking prerequisite of shipping.
+- **Pinning a self-hosted server's certificate on first use.** Self-hosting
+  requires a publicly-trusted certificate on a routable name (§5), which is a
+  real cost against the ADR's hard constraint 4. A sanctioned pin-on-first-use —
+  the user records one specific server certificate fingerprint, which is not a
+  general trust anchor and does not reopen the hole §5 closes — would remove
+  that cost. It is not specified here because it needs a rotation story and a
+  change-of-fingerprint UX that this design has not worked through, and because
+  the DNS-01 path exists today. Recorded so the trade is a decision rather than
+  an omission.

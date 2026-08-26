@@ -552,34 +552,44 @@ in its configuration.
 requirements, not deployment taste, and each has a concrete failure mode:
 
 - **`Authorization` must reach the backend unmodified.** The sync ID is a
-  bearer credential in that header (spec §5.1). A proxy that consumes or strips
-  it makes every request `401` with no obvious cause. Apache's `mod_proxy_http`
-  forwards it; the hazard is adding an auth directive to that vhost later, or
-  fronting the service with CGI/FPM, which needs `CGIPassAuth On`. - **Request
-  bodies must be allowed to at least 16 MB.** Manifests reach that size (spec
-  §5.4). Defaults differ in *opposite* directions and both are wrong here:
-  nginx's `client_max_body_size` is 1 MB and would reject valid manifests,
-  while Apache's `LimitRequestBody` is unlimited and would enforce nothing. Set
-  it explicitly either way. - **The proxy must not decompress request bodies.**
-  The decompression-bomb limit — 10× compressed, 32 MB cap, enforced
-  streaming-abort style — lives on the receiver by design. Inflating at the
-  proxy moves a security control to a component that does not implement it. -
-  **The credential must never be logged.** Common log formats record the
+  bearer credential in that header (spec §5.1). A proxy that consumes or
+  strips it makes every request `401` with no obvious cause. Apache's
+  `mod_proxy_http` forwards it; the hazard is adding an auth directive to
+  that vhost later, or fronting the service with CGI/FPM, which needs
+  `CGIPassAuth On`.
+
+- **Request bodies must be allowed to at least 16 MB.** Manifests reach that
+  size (spec §5.4). Defaults differ in *opposite* directions and both are
+  wrong here: nginx's `client_max_body_size` is 1 MB and would reject valid
+  manifests, while Apache's `LimitRequestBody` is unlimited and would enforce
+  nothing. Set it explicitly either way.
+
+- **The proxy must not decompress request bodies.** The decompression-bomb
+  limit — 10× compressed, 32 MB cap, enforced streaming-abort style — lives
+  on the receiver by design. Inflating at the proxy moves a security control
+  to a component that does not implement it.
+
+- **The credential must never be logged.** Common log formats record the
   request line and status, not headers, so this holds by default; the risk is
   someone adding `%{Authorization}i` (or nginx's `$http_authorization`) to a
   debug format and writing live credentials to disk. The vhost should carry a
-  comment saying so, because the omission is invisible. - **`/v1` must not be
-  served over plaintext.** A request to `:80` is redirected to the `https`
-  origin or refused, never proxied, and the `https` origin sends
-  `Strict-Transport-Security`. This one needs stating precisely *because* of
-  the decision above: terminating at a proxy that permanently owns `:80` for
-  ACME is what makes renewal reliable, and it is also what puts a live listener
-  on the plaintext port. A `ProxyPass` written outside a vhost, or pasted into
-  both, exposes the API on both and nothing in either response says so. The
-  client already refuses a plaintext endpoint (spec §8), but the things that
-  reach a public port are not all conforming clients, and the sync ID is a
-  bearer credential on every request with no rotation and no revocation — so
-  one plaintext call is a complete and permanent disclosure.
+  comment saying so, because the omission is invisible.
+
+- **`/v1` must not be served over plaintext.** A plaintext request to `/v1`
+  is refused outright — not redirected, since a same-host scheme upgrade is
+  followed by default with the credential attached, leaking it and then
+  silently succeeding. The `https` origin also sends
+  `Strict-Transport-Security`, which is browser-only defence in depth: this
+  app has no web target, so no client it ships honours it. This one needs stating precisely
+  *because* of the decision above: terminating at a proxy that permanently
+  owns `:80` for ACME is what makes renewal reliable, and it is also what
+  puts a live listener on the plaintext port. A `ProxyPass` written outside a
+  vhost, or pasted into both, exposes the API on both and nothing in either
+  response says so. The client already refuses a plaintext endpoint (spec
+  §8), but the things that reach a public port are not all conforming
+  clients, and the sync ID is a bearer credential on every request with no
+  rotation and no revocation — so one plaintext call is a complete and
+  permanent disclosure.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound
@@ -594,8 +604,16 @@ from the client: an `https` endpoint whose proxy *also* answers on `:80` is
 indistinguishable from one that does not. What protects that user is the
 client's own refusal to use a plaintext endpoint or follow a plaintext hop,
 which is why the guarantee is stated on both sides rather than either. The
-client waives TLS for `localhost`/`127.0.0.1` (spec §8) precisely so a
-self-hoster can run without a certificate; a non-default port is permitted on a
+client waives TLS for `localhost`/`127.0.0.1` (spec §8), which lets a
+self-hoster test on one machine without a certificate — it does not extend to a
+working self-hosted sync, since a second device does not see the first as
+`localhost`. Self-hosting real sync therefore needs a publicly-trusted
+certificate on a routable name, obtainable over the DNS-01 challenge for a name
+resolving to a private address; a private CA is not an alternative, because the
+client ships no trust-anchor affordance and `dart:io` trusts a built-in root
+list rather than the OS store on two of the five platforms. That cost against
+hard constraint 4 is accepted, with certificate pinning recorded in spec §10 as
+the way to remove it later. A non-default port is permitted on a
 configured endpoint, though the redirect rules only follow default-port hops,
 which is harmless for an API that never redirects.
 

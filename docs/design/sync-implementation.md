@@ -568,11 +568,17 @@ deletion silently reverts".
   bound accepted), a client/server `id_key` agreement test passes under
   differing whitespace and Unicode form, **and a `302` to a foreign https host
   is refused with no credentialed request issued**, as are a server presenting
-  an untrusted certificate and a `localhost`-prefixed public host such as
-  `localhost.example.com` (§9 *Client isolate and robustness*). Certificate
+  an untrusted certificate, a `localhost`-prefixed public host such as
+  `localhost.example.com`, **and the loopback addresses `http://[::1]` and
+  `http://127.0.0.2`** (§9 *Client isolate and robustness*). Those last two are
+  separate cases on purpose: a prefix test and a loopback-*range* test are
+  different wrong implementations, and each passes the other's test. Certificate
   verification MUST have no disable switch, and the loopback exemption MUST be
   an exact host match — both are rules about who is on the other end of the
-  connection, which the scheme string does not constrain.
+  connection, which the scheme string does not constrain. The *standing* half of
+  the certificate rule — that no escape hatch is ever added — belongs to W17,
+  not here; this unit owns only the behaviour, which a debug flag defaulting to
+  off would satisfy.
 
 The strength floor is enforced here and **only** here. A server that re-runs it
 and is marginally stricter locks a user out of their own store, because the ID
@@ -644,13 +650,19 @@ otherwise.
 
 #### W17 · Standing-invariant ratchets
 
-- **Serves** the enforcement of §3.1's join rule and §6.5's **I1**/**I2** — the
-  two properties that are not behaviours of any one unit.
+- **Serves** the enforcement of §3.1's join rule, §6.5's **I1**/**I2**, and §5's
+  ban on any certificate-validation escape hatch — the properties that are not
+  behaviours of any one unit.
 - **Inherits** W0 (the soft-delete columns exist). Independent of everything
   else, and can start the moment the ADR is accepted.
 - **Produces** a CI ratchet enumerating every read that joins through to a
   soft-deletable parent and asserting the `deleted_at IS NULL` filter; a ratchet
-  for I1/I2 over write paths. **The fix for #1016 is inherited, not owed** —
+  for I1/I2 over write paths; and a source scan asserting that no
+  certificate-validation escape hatch exists anywhere in the client —
+  `badCertificateCallback`, `SecurityContext` construction,
+  `setTrustedCertificates` and equivalents — over the same roots and with the
+  same comment-stripping as `app/test/data/settings_classification_test.dart`
+  (`:64`–`:73`, `:85`–`:102`). **The fix for #1016 is inherited, not owed** —
   #1018 closed the instance on `main`, leaving W17 the class.
 - **Unblocks** nothing, in the sense that no unit must wait for it — but its
   I1/I2 ratchet **constrains** W6 and every write path built after it, and it
@@ -661,7 +673,10 @@ otherwise.
   `deleted_at` predicate from one existing read and watching CI go red, the
   second by a write that changes a record's serialised content through a
   join-hydrated field without advancing `updatedAt`. Neither is proved by
-  adding a test beside the current code and observing it pass.
+  adding a test beside the current code and observing it pass. The certificate
+  scan is proved by adding a `badCertificateCallback` behind a debug flag
+  defaulting to off and watching CI go red — the arrangement W5's behavioural
+  test passes.
 
 Both ratchets MUST be **structural** — a scan that flags any new read joining
 through a soft-deletable parent, and any new write path that can change
@@ -672,15 +687,23 @@ which fails the same way and is harder to notice. #1016 arrived as a *new* read,
 which is exactly the case a list does not cover.
 
 **This unit exists because "exactly one owning unit" is the wrong tool for a
-standing property.** It is the right tool for a behaviour: a behaviour is built,
-tested and finished, and the unit closes with it. §3.1's join rule and I1/I2 are
-not built — they are *maintained*, against every future PR, for as long as the
-app has these columns. Assigning them to W0 and W6 means they are unowned the
-moment those units close, which is not hypothetical: the join rule decayed
-exactly that way. #1016 is an ordinary feature PR (#986) breaking a sync
-invariant months after v25 landed, found by review rather than by CI. That is
-the steady state for the duration of this programme, and prose in a spec has no
-failure signal.
+standing property.** It is the right tool for a behaviour: a behaviour is
+built, tested and finished, and the unit closes with it. §3.1's join rule and
+I1/I2 are not built — they are *maintained*, against every future PR, for as
+long as the app has these columns. The certificate rule is the same kind of
+thing said a different way: "no affordance exists anywhere in the client" is
+not a behaviour that can be finished. The threat it names is a *future*
+addition — a `badCertificateCallback` added to work against a self-signed
+server during development, which then ships — and W5's behavioural test cannot
+see it, because a debug flag defaulting to off refuses the untrusted
+certificate in the test and accepts it in the build that has the flag on. W5
+closes early, and from then on the rule would be unowned. Both are kept: one
+checks the behaviour, the other checks that the affordance was never written.
+Assigning them to W0 and W6 means they are unowned the moment those units
+close, which is not hypothetical: the join rule decayed exactly that way. #1016
+is an ordinary feature PR (#986) breaking a sync invariant months after v25
+landed, found by review rather than by CI. That is the steady state for the
+duration of this programme, and prose in a spec has no failure signal.
 
 Nothing about this unit is sync-specific enough to wait for sync. It should be
 among the first things built, because every unit after it is a chance to decay
