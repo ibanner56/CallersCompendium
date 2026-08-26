@@ -1073,7 +1073,7 @@ debugging).
 > its App Store Connect API key, Apple Distribution certificate, and both
 > provisioning-profile secret sets are present, builds an unsigned archive and
 > exports a manually signed App Store `.ipa`. The protected `publish_mobile` job,
-> which requires `release-signing` environment approval, then uploads that
+> which requires `release-publication` environment approval, then uploads that
 > artifact to TestFlight with `xcrun altool --upload-app`. An `always()` step
 > removes the build runner's key material, profiles, ephemeral keychain, and
 > injected team.
@@ -1120,7 +1120,7 @@ The `.ipa` is **built + signed on both** a tag push **and** an ordinary,
 input-free `workflow_dispatch` (so the sign path can be validated), but the
 `xcrun altool --upload-app` step runs in the `publish_mobile` job **only** for a real
 tag push (`github.event_name == 'push'` on a `refs/tags/v*` ref), after the
-`release-signing` protected environment is approved. A `workflow_dispatch` dry
+`release-publication` protected environment is approved. A `workflow_dispatch` dry
 run therefore never uploads to TestFlight. An existing-tag recovery skips the
 entire iOS leg so it cannot duplicate an upload that succeeded before another
 platform failed. The upload makes the build available to **internal** TestFlight
