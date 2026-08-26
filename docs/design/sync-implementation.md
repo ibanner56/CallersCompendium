@@ -221,13 +221,23 @@ and program content — which is precisely what the editor-draft keys held until
   **not** a migration hook, since reclassifying a column runs no migration, and
   inequality rather than containment, so a reclassify-out does not make the
   recorded set a high-water mark. That live set MUST be **derived by reflecting
-  over the schema's column types intersected with `fieldClassifications`** and
-  backed by its own ratchet, since `DataClassification` carries no column type
-  and a hand-list would disable the comparison at its input. **Every pass that
+  over the schema's column types intersected with `fieldClassifications`, with
+  identity columns excluded via `Table.primaryKey`** and backed by its own
+  ratchet, since `DataClassification` carries no column type and a hand-list
+  would disable the comparison at its input. All **three** scope criteria are
+  mechanised, identity included: `_key` is classified `shareable`, so a literal
+  string ∩ `shareable` set pulls in every id column and renames `settings.key`
+  rather than repairing it, and the existing coverage test — which compares only
+  `table.column` names — cannot catch that. **Every pass that
   rewrites a row** — the one-time pass *and retry* — MUST commit in **three
   steps**: rewrites, skips and the durable rebuild-owed flag in one
-  transaction; the rebuild outside it; the completion marker, for the one-time
-  pass only, after the rebuild succeeds. That flag MUST be the existing
+  transaction; the rebuild outside it, **followed by clearing the flag**; the
+  completion marker last, for the one-time pass only. The clear belongs to the
+  rebuild step and not to the marker, since retry writes no marker and would
+  otherwise leave a rebuild owed that it had already performed. A rebuild MAY
+  be skipped only where a test shows no rewritten column feeds a derived index
+  — `tags.name` and `custom_field_defs.key` feed neither FTS table — and MUST
+  happen otherwise. That flag MUST be the existing
   `derivedRebuildRequiredKey`, since the repair is performed by the generic
   pre-check that reads it and not by the sweep. Both writers of
   `normalisation_skips` MUST take their `(table, column)` spelling from
@@ -242,27 +252,27 @@ and program content — which is precisely what the editor-draft keys held until
   clause in *Write-path invariants*.
 - **Done when** those clauses are green: a locally-created NFD title uploads as
   NFC, a row written before the normalising build is NFC after upgrade, the
-  backfill is proved not to move any of the three stamps, a colliding local pair
-  leaves both rows untouched and is reported while the pass completes, a tag and
-  a choreographer sharing a name are both normalised, a recorded
+  backfill is proved not to move any of the three stamps, a colliding local
+  pair leaves both rows untouched and is reported while the pass completes, a
+  tag and a choreographer sharing a name are both normalised, a recorded
   mutually-colliding pair survives re-open **still whole** rather than having
-  one member written along iteration order, a retry does not raise against a row
-  created after the skip was recorded, an entry whose row was hard-deleted is
-  retired while one whose row was soft-deleted is not — proved through the
+  one member written along iteration order, a retry does not raise against a
+  row created after the skip was recorded, an entry whose row was hard-deleted
+  is retired while one whose row was soft-deleted is not — proved through the
   unfiltered lookup, with the filtered accessor shown to retire both — a row
   recorded twice across an interrupted pass is still repairable, a
   *reclassified* column re-runs the pass with no migration involved, a column
   reclassified out and back in re-runs it too, a newly `shareable` column
   enters the live set with no list edited, a crash between the commit and the
   derived rebuild still leaves search matching the repaired rows **on the retry
-  path as well as the one-time pass**, both writers spell `(table, column)`
-  identically, a restore
-  re-runs the pass, `normalisation_skips` survives an epoch reset and
-  a detach, an ordinary edit to a blocked row succeeds, `settings.key` is
-  untouched, a second run of the pass changes nothing, a row whose text the pass
-  changed is still found by search, and the write-path ratchet catches a
-  **newly added** writer that bypasses the choke point rather than a writer
-  removed from a list.
+  path as well as the one-time pass**, no primary key enters the live in-scope
+  set, a retry that rebuilds leaves no rebuild owed, both writers spell
+  `(table, column)` identically, a restore re-runs the pass,
+  `normalisation_skips` survives an epoch reset and a detach, an ordinary edit
+  to a blocked row succeeds, `settings.key` is untouched, a second run of the
+  pass changes nothing, a row whose text the pass changed is still found by
+  search, and the write-path ratchet catches a **newly added** writer that
+  bypasses the choke point rather than a writer removed from a list.
 
 **This unit exists because the round-31 fix to §4.1 corrected the rule without
 assigning the work it created.** Correcting a rule and leaving its
@@ -406,7 +416,10 @@ one-time pass: retry never writes the completion marker, so a rule shaped around
 step 3 would skip it, while retry is the path that runs forever and is therefore
 the likelier one to be interrupted. The reference implementation keys the flag
 off `rewroteAny` (`:985`) rather than off a lifecycle for exactly this reason,
-and says so at `:986`–`:990`.
+and says so at `:986`–`:990`. The same applies to the *clear*: it goes with the
+rebuild (`:1011`–`:1016`), not with the marker, or retry rebuilds and then
+leaves the flag standing for the next open to honour with a second
+whole-library recomputation.
 
 *Compare column sets at open; do not hang the re-run off a migration.* The
 marker records which columns the scan covered, and the pass re-runs when the
@@ -422,7 +435,15 @@ unrecorded. And derive the live set by reflecting over the schema's column types
 intersected with `fieldClassifications`: `DataClassification` has no column-type
 field, so "string" is a schema fact, and hand-enumerating it means a newly
 `shareable` column never enters the live set and the comparison never fires —
-disabling this safety net through its own input.
+disabling this safety net through its own input. Exclude identity by reflection
+as well, through `Table.primaryKey`: the scope is *string, `shareable`, and not
+identity*, and mechanising two of the three is worse than mechanising none,
+because `_key` is itself classified `shareable`. A literal string ∩ `shareable`
+set therefore contains every id column in the schema, and normalising
+`settings.key` renames records rather than repairing them. Budget a ratchet that
+asserts the derived set, not one shaped like the coverage test: that test
+compares `table.column` names for presence and staleness and would pass
+unchanged with every primary key leaked into the scan.
 
 *Generate the `(table, column)` spelling; do not write it twice.* The pass and
 the write-path carve-out are separate writers, and retry correlates their
@@ -435,6 +456,16 @@ yet: the registry's identifiers are inline string literals used as map keys, and
 the carve-out has a call site in each of the three repositories, so this unit
 declares the constants once and imports them at all four sites rather than
 typing two literals and reconciling them afterwards.
+
+*Expect the rebuild to be blunter than the repair.* `runDerivedRebuild` is the
+only rebuild routine there is, and it clears and repopulates the dance FTS and
+figure tables for the whole library. Its indexed columns reach `choreographers`
+through resolved author names, but neither `tags.name` nor `custom_field_defs`
+keys appear in either FTS schema — so a tag-only repair, the likeliest kind,
+pays a full recomputation for indexes that did not change. The spec permits
+skipping the rebuild where a test proves no rewritten column feeds an index, and
+requires it otherwise; if that permission is taken, derive the column-to-index
+mapping rather than hard-coding today's FTS column list.
 
 *`normalisation_skips` does not clear with the baseline.* Its neighbours
 `id_aliases` and `review_queue` do, and copying them is the expected mistake: a

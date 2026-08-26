@@ -2928,34 +2928,76 @@ is silently disabled through its own input. **A rule that consumes a computed
 set is only as strong as the derivation of that set**, so the derivation belongs
 in the rule.
 
-**The general lesson, which is now ten rounds old: the newest machinery carries
-the round's defects.** W18 was created in round 32 to fix an ownership gap, and
-in round 33 it was where both blocking findings lived — including a fresh
-ownership gap, since its own ratchet was gated by no conformance bucket. Round
-34 then found that the *property* written in round 33 to close that round's
-blocking finding was itself false, and false in a way round 33's own new proof
-obligation was structurally unable to detect. Round 35 then found both of its
-defects in the retry machinery round 34 had added to close *its* blocking
-finding — unclassified new state, and a retry test that raises. Round 36 found
-its headline defect in the *replacement test* round 35 installed to fix that
-raise, which broke the grouping guarantee it was protecting. Round 37 found the
-retirement rule round 36 added to be unbuildable from any accessor that exists,
-in a way whose natural implementation destroys the repairs it was written to
-protect. Round 38 found two more in the same machinery: a rule that cited a
-sweep convention while dropping the step that makes it crash-safe, and a
-widening rule whose actionable half could not fire for one of the two triggers
-it named. Round 39 then found round 38's own repair incomplete in the same
-direction — it reproduced the durable flag but not the generic pre-check that
-reads it, and scoped the rule to the one-time pass when retry writes rows too.
-Nine consecutive rounds have found the round's defects in the previous round's
-repair, which is no longer a coincidence and is better read as a property of
-how repairs get written: under the belief that the hard thinking has just been
-done. Round 30's instance was the spec paraphrasing an algorithm; round 31's
-was the same thing twice more; round 32's was the plan getting less scrutiny
-than the spec. Scaffolding built to close a gap is written last, reviewed
-least, and inherits none of the scrutiny that produced it — and a
-*justification* written to close a gap is the least reviewed artefact of all,
-because it reads as the premise rather than as the new work.
+**Round 40: when a rule is re-scoped, re-scope every step of the operation, not
+the one the finding named.** Round 39 correctly moved the rebuild-owed flag from
+"the one-time pass" to "any pass that rewrites a row" — and left the *clearing*
+of that flag bundled into step 3, the completion marker, which retry never
+writes. So retry would set the flag, rebuild, and leave it set for the next open
+to honour with a second whole-library recomputation. The set moved and the clear
+did not. An operation described as a sequence of steps has a scope per step, and
+a finding that names one step will get one step fixed unless the others are
+re-read against the new scope.
+
+**Mechanising two of three criteria can be worse than mechanising none.** The
+scope of the normalisation pass is *`shareable` string columns that are not
+record identity*, and the derivation rule automated `shareable` and `string`
+while leaving *not identity* in prose. That is not a partial improvement, it is
+an inversion: `_key` — the opaque surrogate identifier — is classified
+`shareable`, so a literal string ∩ `shareable` set contains every primary key in
+the schema, and `settings.key` is both `shareable` and its record's identity. An
+implementer following the mechanised rule would normalise identity columns,
+renaming records rather than repairing them. **When automating a predicate, list
+its conjuncts and check each one made the trip**, because the automated part
+reads as authoritative and the leftover prose reads as commentary.
+
+**A ratchet that resembles an existing one is not thereby the right ratchet.**
+The rule pointed at the classification coverage test as the family to imitate.
+That test compares `table.column` names for presence and staleness; it inspects
+neither column type nor primary-key membership, so it would pass unchanged if
+the derivation leaked every id column into the scan. Naming a family is a
+convenient shorthand that quietly transfers credibility. **Say what the test
+must assert, not which test it should look like.**
+
+**A repair's cost can be dominated by machinery it does not control.** The only
+rebuild routine in the codebase is a whole-library clear-and-repopulate of the
+dance indexes, and two of the three tables this pass exists to repair — tags and
+custom-field keys — feed neither index. The likeliest repair therefore pays the
+largest cost for indexes whose content did not change. The design now permits
+skipping the rebuild under proof rather than requiring the skip, because the two
+errors are not symmetric: a redundant rebuild is slow, while a missing one is
+the permanent silent staleness three rounds have gone into closing.
+
+**The general lesson, which is now eleven rounds old: the newest machinery
+carries the round's defects.** W18 was created in round 32 to fix an ownership
+gap, and in round 33 it was where both blocking findings lived — including a
+fresh ownership gap, since its own ratchet was gated by no conformance bucket.
+Round 34 then found that the *property* written in round 33 to close that
+round's blocking finding was itself false, and false in a way round 33's own
+new proof obligation was structurally unable to detect. Round 35 then found
+both of its defects in the retry machinery round 34 had added to close *its*
+blocking finding — unclassified new state, and a retry test that raises. Round
+36 found its headline defect in the *replacement test* round 35 installed to
+fix that raise, which broke the grouping guarantee it was protecting. Round 37
+found the retirement rule round 36 added to be unbuildable from any accessor
+that exists, in a way whose natural implementation destroys the repairs it was
+written to protect. Round 38 found two more in the same machinery: a rule that
+cited a sweep convention while dropping the step that makes it crash-safe, and
+a widening rule whose actionable half could not fire for one of the two
+triggers it named. Round 39 then found round 38's own repair incomplete in the
+same direction — it reproduced the durable flag but not the generic pre-check
+that reads it, and scoped the rule to the one-time pass when retry writes rows
+too. Round 40 then found round 39's re-scoping applied to the flag's set but
+not its clear, and its derivation rule mechanising two of the three criteria in
+the scope sentence directly above it. Ten consecutive rounds have found the
+round's defects in the previous round's repair, which is no longer a
+coincidence and is better read as a property of how repairs get written: under
+the belief that the hard thinking has just been done. Round 30's instance was
+the spec paraphrasing an algorithm; round 31's was the same thing twice more;
+round 32's was the plan getting less scrutiny than the spec. Scaffolding built
+to close a gap is written last, reviewed least, and inherits none of the
+scrutiny that produced it — and a *justification* written to close a gap is the
+least reviewed artefact of all, because it reads as the premise rather than as
+the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
@@ -4905,6 +4947,14 @@ must say this plainly rather than implying sync is opaque to us.
   a pass that wrote nothing must not rebuild; or omit the durable rebuild-owed
   flag, and the re-run's own rescan finds nothing left to rewrite and concludes
   no rebuild is owed.
+- **No primary key enters the live in-scope set** — mutation-proved by deriving
+  it as string ∩ `shareable` with no identity exclusion: `_key` is `shareable`,
+  so every id column joins the scan and `settings.key` is renamed rather than
+  repaired. The vector must assert the derived set, because a ratchet shaped
+  like the classification coverage test passes this mutation unchanged.
+- **A retry that rebuilds leaves no rebuild owed** — mutation-proved by clearing
+  the flag alongside the completion marker, which retry never writes, so the
+  next open performs a second whole-library rebuild nobody owed.
 - **A crash between a *retry* write and its rebuild leaves search matching that
   row** — mutation-proved by setting the rebuild-owed flag only on the one-time
   pass: retry repairs a row, dies before the rebuild, and its next rescan finds
