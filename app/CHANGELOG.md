@@ -36,7 +36,10 @@ from that tag, so new entries need no visible or manually maintained suffix.
 ## [Unreleased]
 
 ### Fixed
-
+  
+- **macOS app name** — Finder and release bundles now use a branded name instead
+  of the internal `compendium_app` build name.
+  
 - **Caller's Box bracket annotations now preserve stated dancer context.**
   Supported square-bracket dancer sets populate an otherwise unstated figure
   subject; supported context is retained as a dialect-aware note when the
