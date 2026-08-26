@@ -35,6 +35,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Fixed
+
+- **macOS shutdown** — quitting from the Dock, menu, or Command-Q now waits for
+  the local database to close before macOS tears down the app.
+
 ## [0.1.3] - 2026-08-26
 
 ### Changed
