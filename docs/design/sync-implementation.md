@@ -669,21 +669,24 @@ otherwise.
   gates **C0's honesty** (see below). A constraint is not a dependency: W6 can
   start without W17, it just cannot be trusted to have held I1/I2 without it.
 - **Done when** the §9 *Soft-delete join coverage* **and** *Write-path
-  invariants* buckets are both green — the first proved by dropping the
-  `deleted_at` predicate from one existing read and watching CI go red, the
-  second by a write that changes a record's serialised content through a
-  join-hydrated field without advancing `updatedAt`. Neither is proved by
-  adding a test beside the current code and observing it pass. The certificate
-  scan is proved by adding a `badCertificateCallback` behind a debug flag
-  defaulting to off and watching CI go red — the arrangement W5's behavioural
-  test passes.
+  invariants* buckets are both green, **and** the *Client isolate and
+  robustness* clause *"No certificate-validation escape hatch exists in the
+  client source at all"* is green — this unit carries that one clause of that
+  bucket and no other, per the clause-splitting rule below. The first is proved
+  by dropping the `deleted_at` predicate from one existing read and watching CI
+  go red, the second by a write that changes a record's serialised content
+  through a join-hydrated field without advancing `updatedAt`, and the third by
+  adding a `badCertificateCallback` behind a debug flag defaulting to off and
+  watching CI go red — the arrangement W5's behavioural test passes. None is
+  proved by adding a test beside the current code and observing it pass.
 
-Both ratchets MUST be **structural** — a scan that flags any new read joining
-through a soft-deletable parent, and any new write path that can change
-serialised content — rather than a maintained enumeration of the ones known
-today. An enumeration relocates the forgetting instead of removing it: it turns
-"someone forgot the filter" into "someone forgot to add their read to the list",
-which fails the same way and is harder to notice. #1016 arrived as a *new* read,
+All three ratchets MUST be **structural** — a scan that flags any new read
+joining through a soft-deletable parent, any new write path that can change
+serialised content, and any certificate-validation escape hatch anywhere in the
+client — rather than a maintained enumeration of the ones known today. An
+enumeration relocates the forgetting instead of removing it: it turns "someone
+forgot the filter" into "someone forgot to add their read to the list", which
+fails the same way and is harder to notice. #1016 arrived as a *new* read,
 which is exactly the case a list does not cover.
 
 **This unit exists because "exactly one owning unit" is the wrong tool for a
@@ -863,13 +866,14 @@ the wire.
 - **Produces** the container and deployment documentation; the **five proxy
   conformance requirements**, each of which some common proxy violates by
   default — including that the public listener never serves `/v1` over
-  plaintext and that the `https` origin sends `Strict-Transport-Security`;
-  alerting; retention proof; the break-glass authorisation process; and
-  lost-ID support.
+  plaintext; the `https` origin's `Strict-Transport-Security` header, which is
+  browser-only defence in depth and explicitly **not** part of the guarantee
+  (spec §7.5), since no client this app ships honours it; alerting; retention
+  proof; the break-glass authorisation process; and lost-ID support.
 - **Unblocks** nothing — but **C7 cannot pass without it**.
 - **Done when** a from-scratch self-host reaches a working sync using only the
   published documentation, **and a plaintext request to `/v1` against the
-  running deployment is redirected or refused rather than proxied**.
+  running deployment is refused — never redirected, never proxied**.
 
 Requirements (3), (4) and (5) — no proxy-side decompression, the sync ID never
 written to a log, and no plaintext `/v1` — are invisible in behaviour, which is
@@ -1137,7 +1141,7 @@ buckets. Ownership is now explicit:
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
 | Server | W12 |
-| Client isolate and robustness | W6 (isolate) + W5 (redirect) + W10 (store lifecycle) |
+| Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) |
 
 A bucket split across units is split by clause, not left jointly owned: each
 unit's **Done when** names the clauses it carries. §10 (deferred) is owned by

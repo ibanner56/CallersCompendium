@@ -999,18 +999,50 @@ self-hoster the trouble.
 needs a publicly-trusted certificate on a routable name.** Sync involves at
 least two devices, so the server is by definition not `localhost` as seen from
 the second one; the exemption covers same-machine testing and never a
-functioning deployment. Nor is a private CA an alternative, and not merely
-because the rule above forbids the `SecurityContext` that would install one:
-`dart:io`'s `HttpClient` trusts a **built-in Mozilla root list** on Windows and
-Linux rather than the OS store, so a certificate the operating system trusts is
-still rejected there, and Android has not trusted user-installed CAs for app
-traffic since API 24. "Edit the two literals in a build you control" is not
-available either — not on iOS. What is available is a real path and a
-well-trodden one: a name under a domain the self-hoster controls, with a
-certificate issued over the DNS-01 challenge, which requires no inbound
-reachability and works for a name resolving to a private address. That is the
-accepted cost of refusing to ship a trust-anchor escape hatch, and §10 records
-the alternative that was left open.
+functioning deployment. **A private CA is a real path on desktop and not one on
+Android**, and the rule above does not change that either way: it forbids an
+in-app `SecurityContext` or `badCertificateCallback`, which is trust the *app*
+extends, and says nothing about trust the *operating system* extends.
+`dart:io`'s `HttpClient` honours the OS trust store on Windows, macOS and Linux
+— on Windows it enumerates the `CURRENT_USER` and `LOCAL_MACHINE` stores, so no
+administrator rights are even needed — and on Linux it reads the standard
+bundle locations, falling back to a compiled-in list only when none exist. A
+self-hoster who installs a private root into the OS store on those platforms
+will find the shipping client accepts their server, with no in-app affordance
+and nothing for this specification to prohibit.
+
+What that path does not do is cross platforms. On Android, `dart:io` loads
+`/system/etc/security/cacerts` and only that, so a user-installed CA is not
+trusted for app traffic — the same conclusion the API-24 change reaches, by a
+stricter route. On iOS it requires a configuration profile with trust enabled
+by hand. Editing the two literals in a build you control is likewise not
+practical on iOS, where a free-provisioned build needs re-signing weekly. So a
+sync set of two desktops has a working private-CA path today, and any set
+containing a phone does not.
+
+The **recommended cross-platform path** is therefore a name under a domain the
+self-hoster controls, with a certificate issued over the DNS-01 challenge, which
+proves control through a TXT record, requires no inbound reachability, and may
+be issued for a name that resolves to a private address. One caveat is worth
+stating because it bites exactly this audience: issuance and *resolution* are
+separate steps, and DNS-rebinding protection — on by default in dnsmasq,
+Pi-hole, AdGuard Home and many consumer routers — refuses to return an RFC 1918
+address for a public name. The self-hoster gets a valid certificate and the
+second device then cannot resolve the name at all, a failure with no visible
+connection to the instructions they followed. The resolver must be configured to
+permit it, by a rebinding allow-list entry or split-horizon DNS.
+
+That is the accepted cost of refusing to ship a trust-anchor escape hatch, and
+§10 records the alternative that was left open.
+
+**A note for whoever reads this next.** Dart's published API documentation for
+`SecurityContext.defaultContext` states the opposite of the paragraph above —
+that Windows and Linux use a Mozilla list — and it is **stale**: the behaviour
+changed in Dart 2.14 (`dart-lang/sdk#46370`) and the page was never updated. An
+earlier draft of this section asserted the documented behaviour, which is the
+reasonable thing to do and was wrong. The claims here were verified against
+`runtime/bin/security_context_{win,linux,macos}.cc`. Do not "correct" them back
+against the documentation.
 
 **A client MUST verify the server's certificate chain and hostname, and MUST NOT
 provide any way to disable that.** This is stated because the rest of this
@@ -1940,10 +1972,14 @@ the request; no status code recalls it. What refusal prevents is a *working*
 plaintext sync — every subsequent request, on every subsequent run — and that is
 the whole of the justification. This is also why `/v1` MUST be refused rather
 than redirected, and the two are not interchangeable here. A redirect to the
-`https` origin is a same-host scheme upgrade, which the very clients this
-requirement is aimed at follow by default and with the `Authorization` header
-retained; the caller then leaks the bearer in cleartext, succeeds over TLS, and
-repeats on every run with no symptom that anything went wrong. Refusal surfaces
+`https` origin is a same-host scheme upgrade, and both `dart:io`'s `HttpClient`
+— whose `followRedirects` defaults to `true`, so an older build of this app
+follows it — and `curl -L` retain the `Authorization` header across it, because
+the host does not change. (Bare `curl` prints the `Location` and stops; it
+belongs on the list of things that *reach* the plaintext port, not the list of
+things that follow the redirect.) A caller that does follow leaks the bearer in
+cleartext, succeeds over TLS, and repeats on every run with no symptom that
+anything went wrong. Refusal surfaces
 an error to whoever is holding it, which is the only thing that stops the
 recurrence. A redirect remains the right answer for other paths, which carry no
 credential.

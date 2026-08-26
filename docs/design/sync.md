@@ -3044,7 +3044,52 @@ directory over had the accurate version all along ("which self-hosters need
 are not the ones near the edit; they are the ones that promised the thing just
 removed.
 
-**The general lesson, which is now thirteen rounds old: the newest machinery
+**Where a justification rests on someone else's behaviour, the source is the
+check — and official documentation is not the source.** Round 42 asserted that
+`dart:io` trusts a compiled-in Mozilla root list on Windows and Linux rather
+than the OS store, which would mean a private CA fails even when the operating
+system trusts it. That is what Dart's published API documentation for
+`SecurityContext.defaultContext` says, and it has been wrong since Dart 2.14.
+The SDK source says the opposite: Windows enumerates the `CURRENT_USER` and
+`LOCAL_MACHINE` stores and installs an *empty* store if that fails, with no
+compiled-in fallback at all; Linux probes the standard bundle locations and
+reaches the compiled-in list only if none exist. The claim was not careless —
+it was the documented behaviour, arrived at by ordinary diligence — and it was
+still false. Reading the documentation tells you what a maintainer once
+intended; reading the source tells you what will happen.
+
+**Getting the mechanism backwards inverted the conclusion that rested on it.**
+The clause existed to show that even OS-level trust fails, which is what forced
+the DNS-01 recommendation. Because the opposite is true, a self-hoster on two
+desktops can install a private root into the OS store and the shipping client
+accepts it — and the in-app trust-anchor ban cannot reach that, because it
+governs trust the *app* extends and this is trust the *operating system*
+extends. The recommendation survived, but for a different reason than the one
+given: Android reads only the system cacerts directory, so any sync set
+containing a phone still needs a publicly-trusted name. A conclusion that
+survives its false premise is the dangerous kind, because nothing fails when
+the premise is corrected — and the next reader audits the premise.
+
+**Moving ownership in prose does not move it in the mechanism that decides when
+work is done.** The certificate rule was reassigned from the unit that builds
+the client to the standing-invariant unit, in that unit's *Serves* and
+*Produces* lines. Its *Done when* still named two buckets, neither containing
+the new clause, and the ownership matrix still routed that bucket to three
+other units. So the unit could be marked complete with both named buckets green
+and the scan never written. The matrix exists *precisely* to prevent unowned
+clauses — its own preamble cites this same bucket as the historical instance —
+which is the point: a mechanism that has caught a defect once does not maintain
+itself, and a fix landed in normative text has to be walked into every gate
+that decides whether the work happened.
+
+**When a rule is tightened, the gates that accepted the old rule do not fail —
+they silently keep passing.** The spec moved from "redirected or refused" to
+"refused", and the deployment gate that is the *only* check of that requirement
+still said "redirected or refused". Nothing broke, because a loosened gate is
+indistinguishable from a satisfied one. Tightening a rule means grepping for
+the old permission, not just editing the sentence that granted it.
+
+**The general lesson, which is now fourteen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3073,7 +3118,11 @@ fact. Round 42 then found five defects in the transport section written
 *beside* round 41's repair — the repair itself being the strongest work in the
 document — of which two were true rules carrying false justifications and two
 were rules stated in prose with no mechanism that could enforce them.
-Twelve consecutive rounds have found the
+Round 43 then found that round 42's own correction rested on a false mechanism
+taken from stale official documentation — inverting it, though the conclusion
+survived — and that the certificate rule it reassigned had been moved in prose
+but in neither the owning unit's gate nor the ownership matrix built to prevent
+exactly that. Thirteen consecutive rounds have found the
 round's defects in the previous round's repair, which is no longer a
 coincidence and is better read as a property of how repairs get written: under
 the belief that the hard thinking has just been done. Round 30's instance was
