@@ -7,9 +7,11 @@ const _bundleName = 'Caller’s Compendium';
 
 void main() {
   test('macOS bundle and release packaging use the display name', () {
+    final plist = File('macos/Runner/Info.plist').readAsStringSync();
+    final compactPlist = plist.replaceAll(RegExp(r'\s+'), '');
     expect(
-      File('macos/Runner/Info.plist').readAsStringSync(),
-      contains('<key>CFBundleDisplayName</key>\n\t<string>$_applicationName</string>'),
+      compactPlist,
+      contains('<key>CFBundleDisplayName</key><string>$_applicationName</string>'),
     );
     expect(
       File('macos/Runner/Configs/AppInfo.xcconfig').readAsStringSync(),
