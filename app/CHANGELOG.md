@@ -35,6 +35,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-08-26
+
 ### Changed
 
 - **Collection and Programs picker** — filter dances by whether they have been
