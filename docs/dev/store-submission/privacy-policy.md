@@ -15,21 +15,28 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** July 22, 2026
+**Effective date:** August 26, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
-what data the app does and does not handle. The short version: **the app collects
-nothing about you, has no accounts, and stores your data only on your own
-device.**
+what data the app does and does not handle. The short version: **the current
+release has no accounts or tracking and keeps your content on your device.** We
+have submitted an App Store privacy disclosure for a planned, optional Device
+Sync; this policy explains its status below.
 
 ### 1. Data we collect
 
-**None.** We do not collect, store, transmit, sell, or share any personal
-information. The app has:
+**The current release does not collect your content.** Device Sync is planned but
+is not available in the current release. The App Store disclosure anticipates
+that feature: if it is released and you choose to enable it, the app will
+transfer selected **Other User Content** to a configured sync service for app
+functionality. That content will not be linked to your identity.
+
+We do not collect account or identity information, sell information, or use
+content for advertising or tracking. The app has:
 
 - **No user accounts and no sign-in.**
-- **No analytics, tracking, or telemetry.** The app never "phones home."
+- **No analytics, tracking, or telemetry.**
 - **No advertising and no advertising identifiers.**
 - **No third-party tracking SDKs.**
 
@@ -37,8 +44,12 @@ information. The app has:
 
 Everything you create in the app — your dance collection, programs, custom fields,
 dialects, themes, and settings — is stored **locally on your device**. It is under
-your control. We have no servers that receive or hold your content, and there is
-no cloud sync.
+your control. The current release has no cloud sync.
+
+If Device Sync becomes available and you choose to enable it, selected content
+will also be stored by the sync service you configure so it can be synchronized.
+We will update this policy with the feature's implemented data handling before it
+ships.
 
 You can export a complete backup to a single file (a plain, human-readable JSON
 file carrying a built-in SHA-256 integrity checksum that catches accidental
@@ -48,9 +59,12 @@ are created and kept by you; we never receive them.
 
 ### 3. Network connections the app makes
 
-The app works fully offline. It contacts the internet only in these cases, and
-only for the purpose described — never to send us information about you:
+The current release works fully offline. When it contacts the internet, it does
+so only in the cases and for the purposes described below:
 
+- **Published collections you choose to browse or import.** The app fetches the
+  catalog and archives of developer-published dance collections so you can review
+  and import them locally. It does not upload your collection to obtain them.
 - **Imports you initiate.** When you choose to import dances or programs from an
   online source — such as The Caller's Box, ContraDB, or a link/ID you provide —
   the app requests that content directly from that third-party service so it can
@@ -62,11 +76,13 @@ only for the purpose described — never to send us information about you:
   **off by default** and only runs if you turn it on in Settings. It downloads
   version information only; it does not send us any information about you or your
   data.
+- **Device Sync (planned).** The current release does not provide Device Sync. If
+  it is released, it will contact the configured sync service only after you opt
+  in, to synchronize selected content for app functionality.
 
-As with any internet request, the third-party service you contact (or the host of
-the update file) can see your device's IP address and standard request
-information, as is technically necessary to deliver a response. We do not receive
-or log that information.
+As with any internet request, a service the app contacts can see your device's IP
+address and standard request information, as is technically necessary to deliver
+a response. We do not use that information to identify or track you.
 
 ### 4. Permissions
 
@@ -84,8 +100,8 @@ app.
 
 ### 6. Children's privacy
 
-The app is a utility for dance callers and is not directed to children. Because it
-collects no personal information from anyone, it collects none from children.
+The app is a utility for dance callers and is not directed to children. We do not
+knowingly collect personal information from children.
 
 ### 7. Your control over your data
 

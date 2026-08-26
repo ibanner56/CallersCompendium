@@ -23,44 +23,44 @@ already true, verify it. **[One-time]** = account/setup step you do once.
 
 ## 0. Accounts & identity — [mostly One-time, Confirm]
 
-- [ ] **[Confirm]** You can sign in to <https://appstoreconnect.apple.com> with the
+- [x] **[Confirm]** You can sign in to <https://appstoreconnect.apple.com> with the
   Apple ID that owns the membership, and the **Apple Developer Program** is
   active (not expired — it renews yearly at $99).
-- [ ] **[Confirm]** Your role is **Account Holder**, **Admin**, or **App Manager**.
+- [x] **[Confirm]** Your role is **Account Holder**, **Admin**, or **App Manager**.
   Only these roles can enable TestFlight public links and submit for review.
-- [ ] **[Confirm]** The **App Store Connect API key** used by CI has the **App
+- [x] **[Confirm]** The **App Store Connect API key** used by CI has the **App
   Manager** role (Developer role can build/sign but cannot upload). This is the
   `APPLE_API_KEY_*` secret set already used by the release pipeline.
-- [ ] **[One-time]** Under **Business** in App Store Connect, confirm the
+- [x] **[One-time]** Under **Business** in App Store Connect, confirm the
   **Agreements** are all "Active." The **Free Apps** (Paid Apps not needed) legal
   agreement must be accepted or *nothing* can go to external testing or the store.
   A first-time account often has this pending — check it early.
 
 ## 1. The app record & bundle — [Confirm]
 
-- [ ] **[Confirm]** App record exists in ASC: name **Caller's Compendium**, bundle
+- [x] **[Confirm]** App record exists in ASC: name **Caller's Compendium**, bundle
   id `org.callerscompendium.compendiumApp`, SKU `CallersCompendiumApp`.
-- [ ] **[Confirm]** Bundle id in the record matches `app/ios/Runner.xcodeproj`
+- [x] **[Confirm]** Bundle id in the record matches `app/ios/Runner.xcodeproj`
   (`PRODUCT_BUNDLE_IDENTIFIER`) and the manifest — all `org.callerscompendium.compendiumApp`.
-- [ ] **[Confirm]** Primary language set (English). You can add localized listings
+- [x] **[Confirm]** Primary language set (English). You can add localized listings
   later once the base-language set ships.
-- [ ] **[Confirm]** Platform availability includes **iPhone and iPad** (we support
+- [x] **[Confirm]** Platform availability includes **iPhone and iPad** (we support
   both — the `UISupportedInterfaceOrientations~ipad` keys and iPad screenshots
   matter here).
 
 ## 2. Build upload & signing — [Confirm]
 
-- [ ] **[Confirm]** A build has landed in **ASC → TestFlight → iOS builds**.
+- [x] **[Confirm]** A build has landed in **ASC → TestFlight → iOS builds**.
   CI uploads it via `xcrun altool --upload-app` on a real `v*` tag (a
   `workflow_dispatch` builds+signs but does **not** upload). Cut a bare beta tag
   such as `vX.Y.Z-beta`
   and confirm the build appears and finishes **processing**.
-- [ ] **[Confirm]** CI manually signs the export with the configured Apple
+- [x] **[Confirm]** CI manually signs the export with the configured Apple
   Distribution certificate and app/Share Extension provisioning profiles.
-- [ ] **[Confirm]** CI's tag-derived `CFBundleVersion` is unique. It uses the
+- [x] **[Confirm]** CI's tag-derived `CFBundleVersion` is unique. It uses the
   bounded SemVer core plus a channel bit (beta below stable for the same core);
   TestFlight rejects duplicates.
-- [ ] **[Gate]** **Export compliance.** `Info.plist` sets
+- [x] **[Gate]** **Export compliance.** `Info.plist` sets
   `ITSAppUsesNonExemptEncryption = false`, so ASC skips the per-build
   "Missing Compliance" prompt. This is the honest answer: the app uses only
   exempt cryptography (Ed25519 update signatures + SHA-256 backup integrity
@@ -76,22 +76,24 @@ need all of this for the eventual public release. Fill these in ASC → your app
 **App Information** and the version's **App Store** tab. All text is drafted in
 [`listing-copy.md`](listing-copy.md).
 
-- [ ] **[Gate]** **App name** (30 chars max): "Caller's Compendium".
-- [ ] **[Gate]** **Subtitle** (30 chars max): see draft.
-- [ ] **[Gate]** **Privacy Policy URL** — required. Publish
+- [x] **[Gate]** **App name** (30 chars max): "Caller's Compendium".
+- [x] **[Gate]** **Subtitle** (30 chars max): see draft.
+- [x] **[Gate]** **Privacy Policy URL** — required. Publish
   [`privacy-policy.md`](privacy-policy.md) first and paste its URL.
-- [ ] **[Gate]** **Category** — Primary: **Productivity**; Secondary: **Reference**.
-- [ ] **[Gate]** **Promotional text** + **Description** + **Keywords** — from draft.
-- [ ] **[Gate]** **Support URL** and **Marketing URL** — from the app-facts table.
-- [ ] **[Gate]** **Copyright** — "© 2026 Isaac Banner".
+- [x] **[Gate]** **Category** — Primary: **Productivity**; Secondary: **Reference**.
+- [x] **[Gate]** **Promotional text** + **Description** + **Keywords** — from draft.
+- [x] **[Gate]** **Support URL** and **Marketing URL** — from the app-facts table.
+- [x] **[Gate]** **Copyright** — "© 2026 Isaac Banner".
 - [ ] **[Gate]** **Screenshots** at the required device sizes (see below). Missing
   screenshots block both external testing metadata and App Review.
-- [ ] **[Gate]** **App Privacy** ("nutrition label") completed as **Data Not
-  Collected** — answers in [`listing-copy.md`](listing-copy.md#app-privacy-apple).
-  This must be filled before you can distribute externally.
-- [ ] **[Gate]** **Age rating** questionnaire completed → expected **4+**. Answers
+- [x] **[Gate]** **App Privacy** ("nutrition label") completed as **Data Not
+  Linked to You → User Content → Other User Content → Used for App
+  Functionality** — answers in
+  [`listing-copy.md`](listing-copy.md#app-privacy-apple). This disclosure
+  anticipates the planned opt-in Device Sync; the current release has no sync.
+- [x] **[Gate]** **Age rating** questionnaire completed → expected **4+**. Answers
   in [`listing-copy.md`](listing-copy.md#age--content-rating).
-- [ ] **[Confirm]** **Sign-in not required** to review the app (there is no login).
+- [x] **[Confirm]** **Sign-in not required** to review the app (there is no login).
   Note this in the review notes so a reviewer isn't blocked.
 
 ### Screenshot sizes (Apple, current)
@@ -111,13 +113,13 @@ You must upload at least one screenshot set for **each device family you ship**:
 Internal testing (≤100 teammates, instant) is already live. "Open beta" is
 **external testing**, which adds Beta App Review and unlocks a **public link**.
 
-- [ ] **[Gate]** In **ASC → TestFlight → Test Information**, fill the **beta app
+- [x] **[Gate]** In **ASC → TestFlight → Test Information**, fill the **beta app
   description**, **feedback email** (compendium@contra.dance), **marketing URL**, and
   **privacy policy URL**. This is required before any external testing.
-- [ ] **[Gate]** Provide **Beta App Review information**: what to test, how to
+- [x] **[Gate]** Provide **Beta App Review information**: what to test, how to
   reach every feature without an account, and demo steps. Reuse the review notes
   in [`listing-copy.md`](listing-copy.md#reviewer-notes-both-stores).
-- [ ] Create an **External Testers** group: TestFlight → Groups → **+**. Name it
+- [x] Create an **External Testers** group: TestFlight → Groups → **+**. Name it
   e.g. "Public Beta – Callers".
 - [ ] Assign the processed **build** to that group.
 - [ ] **[Gate]** Submit the build for **Beta App Review** (happens automatically
@@ -138,16 +140,16 @@ Internal testing (≤100 teammates, instant) is already live. "Open beta" is
 
 ### Common Beta App Review rejections to pre-empt
 
-- [ ] **Broken/placeholder content** — make sure the seeded "Baby Rose" dance and
+- [x] **Broken/placeholder content** — make sure the seeded "Baby Rose" dance and
   all tabs work on a clean install.
 - [ ] **Reviewer can't reach a feature** — spell out that everything is offline and
   login-free; give steps to trigger an import (paste a ContraDB link) so the one
   network feature is demonstrable.
-- [ ] **Privacy string / permission mismatch** — we request no runtime permissions
+- [x] **Privacy string / permission mismatch** — we request no runtime permissions
   (no camera/mic/location/contacts), so there should be **no `NS*UsageDescription`
   prompts**. Confirm none are triggered; if a plugin adds one, add the matching
   `Info.plist` purpose string or the build is rejected.
-- [ ] **Support URL / privacy URL must resolve** — dead links are an easy reject.
+- [x] **Support URL / privacy URL must resolve** — dead links are an easy reject.
 
 ## 5. Path to the public App Store (after beta) — [later]
 
@@ -171,7 +173,7 @@ Open beta does not require full App Review; the public store does. When ready:
 - [ ] Keep builds fresh (90-day TestFlight expiry).
 - [ ] Keep the privacy policy URL and support URL alive.
 - [ ] When you bump the app version, re-check the App Privacy answers still hold
-  (they will, as long as we collect nothing).
+  and continue to describe the features actually available in that build.
 
 ---
 

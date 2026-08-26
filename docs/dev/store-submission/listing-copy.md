@@ -16,9 +16,9 @@ does and does **not** do (no data collection, no accounts) so it survives review
 | Field | Store | Limit | Draft |
 |-------|-------|-------|-------|
 | App name | Both | 30 | `Caller's Compendium` |
-| Subtitle | Apple | 30 | `The caller's notebook` *(alt: `Organize & call your dances`)* |
+| Subtitle | Apple | 30 | `Organize & call contra dances` |
 | Short description | Play | 80 | `A local-first organizer for contra callers—catalog, program, and perform.` |
-| Promotional text | Apple | 170 | `Catalog your dances, build set lists, and call from a large-print stage view—free, fully offline, and completely private. Your collection never leaves your device.` |
+| Promotional text | Apple | 170 | `An open-source dance organizer for Contra, ECD, and Squares callers. Catalog your dances, build set lists, and call from a large-print stage view—completely free.` |
 
 `Caller's Compendium` = 19 chars. `The caller's notebook` = 21. The short
 description above is 73 chars. Verify counts in the console before saving.
@@ -83,6 +83,8 @@ IMPORTS
 YOUR DATA STAYS YOURS
 - Local-first: your collection lives on your device and the app works fully
   offline. No account, no cloud, no telemetry, nothing collected automatically.
+- Device sync is disabled by default, opt-in only, keyed to an anonymous sync store
+  that users can share across devices or to other callers using the app.
 - Export a full backup to a single human-readable file (with a built-in
   integrity checksum) and restore it anywhere.
 
@@ -198,12 +200,18 @@ Caller's Compendium is an offline organizer/reference for contra dance callers.
   launch; the app seeds one sample dance ("The Baby Rose") so the collection is
   never empty.
 - No special device permissions are requested (no camera, microphone, location,
-  contacts, or photos). The only permission is INTERNET, used solely for
-  user-initiated imports and an opt-in (off by default) update check.
-- To exercise the one network feature: open Import and paste a ContraDB program
+  contacts, or photos). The only permission is INTERNET, used for user-initiated
+  imports, browsing or importing published collections, an opt-in (off by
+  default) update check, and Device Sync when the user enables it.
+- To exercise an import network feature: open Import and paste a ContraDB program
   URL (e.g. https://contradb.com/programs/1) or a Caller's Box dance id, then
   review and commit. Nothing is uploaded — imports only fetch.
-- No data is collected or transmitted to us; the app has no telemetry.
+- Device Sync is disabled by default. When a user enables it, the app transfers
+  configured application settings, choreography, and programming content to an 
+  anonymous sync store so the user can share it across devices or with other 
+  callers using the app. This data is used only for app functionality, is not 
+  linked to the user's identity, and does not require an account.
+- The app has no analytics, advertising, or tracking telemetry.
 - Free and open source (AGPL-3.0): https://github.com/ibanner56/CallersCompendium
 ```
 
