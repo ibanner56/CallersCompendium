@@ -177,7 +177,7 @@ flowchart LR
 - [ ] **[Gate]** Recruit **≥12 testers** (real Google accounts, real devices) —
   e.g. from the beta guide, Discussions, and the caller community. Add them via an
   email list or a Google Group.
-  - Currently status: **6 testers** recruited, still seeking others to join the android beta.
+  - Current status: **6 testers** recruited, still seeking others to join the Android beta.
 - [ ] **[Gate]** All 12+ must **opt in and keep the app installed for 14
   continuous days**. If the count drops below 12, replace testers promptly — the
   clock is unforgiving.
