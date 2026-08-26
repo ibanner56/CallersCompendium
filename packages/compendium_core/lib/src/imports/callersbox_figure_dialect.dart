@@ -1720,7 +1720,12 @@ bool _annotationBodyHasLowercase(String body) =>
 /// retaining source order without broadening either handler's no-bracket path.
 FigureMatch? _bracketAnnotation(String scrubbed) {
   final annotations = _typedAnnotations(scrubbed);
-  if (!annotations.any((annotation) => annotation.isSquare)) return null;
+  if (!annotations.any(
+    (annotation) =>
+        annotation.isSquare && !_isSquareRoleSetDescriptor(annotation.body),
+  )) {
+    return null;
+  }
 
   final match = recognizeSharedFigureLine(
     scrubbed,
@@ -1746,6 +1751,7 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
       }
       continue;
     }
+    if (_isSquareRoleSetDescriptor(body)) continue;
 
     final isLeading = scrubbed.substring(0, annotation.start).trim().isEmpty;
     final who = resolveDancerSetPhrase(body);
@@ -1822,6 +1828,13 @@ final RegExp _squareBracketRelationRe = RegExp(
   r'^(with|around)\s+(.+)$',
   caseSensitive: false,
 );
+
+/// TCB's `[Heads (ones+fours)]` form is a role-set descriptor, not a bracket
+/// annotation for display. It has historically structured without surfacing its
+/// nested parenthetical, and the parenthetical extractor similarly masks square
+/// spans before scanning them.
+bool _isSquareRoleSetDescriptor(String body) =>
+    body.contains('(') || body.contains(')');
 
 // --- `;`-run handedness / dancer consume (#843 Parts B and C) ----------------
 

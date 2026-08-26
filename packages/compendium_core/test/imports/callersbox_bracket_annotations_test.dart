@@ -84,6 +84,17 @@ void main() {
       },
     );
 
+    test('a nested role-set descriptor does not become a note', () {
+      final figure = _single(
+        '[Heads (ones+fours)] Pass through across (NR)',
+        beats: 8,
+      );
+
+      expect(figure.isCustom, isFalse);
+      expect(figure.move, 'pass_through');
+      expect(figure.note, isNull);
+    });
+
     test('a non-duple compound dancer phrase stays custom', () {
       final figure = _single('[Ones and twos] do si do', beats: 8);
 
