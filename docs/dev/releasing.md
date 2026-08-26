@@ -929,9 +929,10 @@ keytool -genkey -v -keystore callerscompendium-upload.jks \
   -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
 
-Keep this `.jks` and its passwords secret and backed up **outside** the repo —
-losing the upload key means users can no longer receive in-place updates of an
-APK signed with it.
+Keep this `.jks` and its passwords secret and backed up **outside** the repo.
+It currently also directly signs the sideload APK, so losing it means users can
+no longer receive in-place updates of that APK. The full custody, recovery, and
+rotation policy is below.
 
 #### No JDK? Generate the keystore with OpenSSL instead
 
@@ -989,6 +990,65 @@ are never uploaded as artifacts (only the APK is staged). The secrets are passed
 via step `env:` (never interpolated into a `run:` line) so they can't leak into
 logs, and they are only available to the canonical repo's tag-triggered run — not
 to forks or PRs.
+
+### Android signing-key custody, backup, and rotation
+
+The setup steps above explain how to build the artifacts. This policy governs
+the long-lived signing material and the two Android distribution channels:
+
+| Channel | Signing identity | Update and recovery policy |
+|---------|------------------|----------------------------|
+| **Google Play** | The `.aab` is signed with this keystore as Play's **upload key**. Under standard Play App Signing, Google holds the distinct app-signing key installed on devices. | Play updates stay in place. If this upload key is lost or compromised, use the Play Console upload-key-reset process, then replace the CI upload-key secrets. Play users retain their app identity. |
+| **GitHub Releases** | The universal `.apk` is signed directly with this same keystore. It is the sideload channel's app identity. | Updates stay in place only while this key is retained. If it is lost, compromised, or deliberately replaced, affected users must export data, uninstall, install the new APK, and restore data. |
+
+The Play app-signing key is intentionally distinct from the direct-APK signing
+key. Moving a user between channels is therefore the supported
+**backup → uninstall → install → restore** procedure in the
+[installation guide](../user/installation.md#install-on-android), not an
+in-place update.
+
+#### Custody and backup
+
+- The repository owner is accountable for this keystore and the four
+  `ANDROID_*` secrets. The private credential inventory, not this repository,
+  records the current custodian, recovery contacts, encrypted backup locations,
+  certificate fingerprint, and last recovery-verification date.
+- Keep the original keystore and its passwords in at least two separately
+  protected, encrypted backups outside GitHub and outside the repository.
+  Keep the keystore and its passwords separate where the storage system permits
+  it. GitHub Actions holds only the four release secrets needed to reconstruct
+  the key during a tag run.
+- Never put a keystore, password, decoded `key.properties`, backup location, or
+  recovery contact in source control, an issue, a release artifact, or build
+  logs. Restrict repository-secret administration to the accountable custodian.
+- At least annually, and after changing a backup or secret, restore a backup in
+  a private environment and compare its signing-certificate fingerprint with
+  the private credential inventory before relying on it. Do not publish an
+  artifact as part of that verification.
+
+#### Loss, compromise, and rotation
+
+- There is **no time-based rotation** for the direct-APK signing key. It is an
+  installed app identity, not a credential that can be swapped transparently.
+  Do not replace it merely to satisfy a routine rotation schedule.
+- If the keystore is unavailable but not exposed, restore a verified backup
+  immediately. If no usable backup exists, Play can reset its upload key and
+  continue serving Play users, but sideload users need the documented
+  backup/uninstall/install/restore migration.
+- If the keystore or any password may be exposed, restrict access and replace
+  the GitHub secrets immediately. Treat direct APK updates from that identity as
+  compromised: stop relying on in-place sideload updates and publish the user
+  migration procedure with the replacement APK. Request a Play upload-key reset
+  separately so future `.aab` uploads use new credentials; this does not change
+  the Play app-signing identity on users' devices.
+- Today the same keystore signs both the `.aab` upload and the direct APK.
+  Therefore a Play-upload-key reset cannot be treated as an isolated rotation
+  in this release pipeline: first add and validate separate AAB and APK signing
+  configuration, so the new Play upload key does not replace the direct APK's
+  signing identity.
+- Google retains the Play app-signing key. A change to that key is an
+  exceptional Play Console operation, not an ordinary release rotation; assess
+  Google's then-current migration rules before requesting it.
 
 ### Sideload install note (for release notes / users)
 
