@@ -90,13 +90,9 @@ already use for the release APK works as the **Play upload key**.
 - [x] **[Gate]** Enrol in **Play App Signing** (the default): you upload an `.aab`
   signed with your **upload key**; Google manages the real **app signing key**.
   Register the existing upload keystore's certificate as the upload key.
-- **Long-term channel policy.** Standard Play App Signing deliberately gives the
-  Play build a different installed signing identity from the GitHub Releases
-  APK. Play is the managed-update route; the direct APK remains an independent
-  route. A user moving between them must back up, uninstall, install the other
-  route, and restore — it is not an in-place upgrade. The existing keystore
-  currently signs both the Play upload and the direct APK; its custody and the
-  constraint on independently rotating the Play upload key are in
+- [x] **[Policy]** **Long-term channel policy.** We intentionally treat the Play build (standard Play App Signing, with a Google-held app-signing key) and the GitHub Releases APK (direct-signed with our keystore) as separate identities.
+  Switching requires **backup → uninstall → install → restore** — it is not an in-place upgrade.
+  The existing keystore currently signs both the Play upload and the direct APK; its custody and the constraint on independently rotating the Play upload key are in
   [`../releasing.md`](../releasing.md#android-signing-key-custody-backup-and-rotation).
 - [x] **[Confirm]** `versionCode` is the deterministic code derived from the
   release tag (bounded SemVer core plus a channel bit, beta below stable for one
