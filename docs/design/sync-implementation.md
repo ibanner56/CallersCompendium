@@ -227,23 +227,25 @@ and program content — which is precisely what the editor-draft keys held until
   would disable the comparison at its input. All **three** scope criteria are
   mechanised, identity included: `_key` is classified `shareable`, so a literal
   string ∩ `shareable` set pulls in every id column and renames `settings.key`
-  rather than repairing it, and the existing coverage test — which compares only
-  `table.column` names — cannot catch that. **Every pass that
-  rewrites a row** — the one-time pass *and retry* — MUST commit in **three
-  steps**: rewrites, skips and the durable rebuild-owed flag in one
-  transaction; the rebuild outside it, **followed by clearing the flag**; the
-  completion marker last, for the one-time pass only. The clear belongs to the
-  rebuild step and not to the marker, since retry writes no marker and would
-  otherwise leave a rebuild owed that it had already performed. A rebuild MAY
-  be skipped only where a test shows no rewritten column feeds a derived index
-  — `tags.name` and `custom_field_defs.key` feed neither FTS table — and MUST
-  happen otherwise. That flag MUST be the existing
-  `derivedRebuildRequiredKey`, since the repair is performed by the generic
-  pre-check that reads it and not by the sweep. Both writers of
-  `normalisation_skips` MUST take their `(table, column)` spelling from
-  **constants declared once and imported at all four sites**, which must be
-  created — the registry's identifiers are inline map keys today; and
-  a **structural** ratchet asserting that write paths route through the choke
+  rather than repairing it, and the existing coverage test — which compares
+  only `table.column` names — cannot catch that. **Every pass that rewrites a
+  row** — the one-time pass *and retry* — MUST commit in **three steps**:
+  rewrites, skips and the durable rebuild-owed flag in one transaction; the
+  rebuild outside it, **followed by clearing the flag**; the completion marker
+  last, for the one-time pass only. The clear belongs to the rebuild step and
+  not to the marker, since retry writes no marker and would otherwise leave a
+  rebuild owed that it had already performed. The flag's set and its clear MUST
+  share one condition. A pass MAY narrow that condition — setting **no flag and
+  running no rebuild** — only where a test shows no rewritten column feeds a
+  derived index (`tags.name` and `custom_field_defs.key` feed neither FTS
+  table), and MUST do both otherwise; skipping the rebuild while still setting
+  the flag defers the same whole-library rebuild to the next app open. That
+  flag MUST be the existing `derivedRebuildRequiredKey`, since the repair is
+  performed by the generic pre-check that reads it and not by the sweep. Both
+  writers of `normalisation_skips` MUST take their `(table, column)` spelling
+  from **constants declared once and imported at all four sites**, which must
+  be created — the registry's identifiers are inline map keys today; and a
+  **structural** ratchet asserting that write paths route through the choke
   point.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
   and otherwise nothing directly, but it **gates C1**: the *Wire format*
@@ -395,8 +397,10 @@ this target" and the row is blocked forever against its own twin.
 
 *Commit in three steps, and copy `_backfillChainHandIfNeeded` rather than the
 simpler sweeps.* Rewrites, skips and a durable rebuild-owed flag go in one
-transaction; `runDerivedRebuild` runs outside it; the completion marker is
-written only after that returns, clearing the flag with it. The shape matters
+transaction; `runDerivedRebuild` runs outside it, and the flag is cleared once
+that returns; the completion marker is written last, for the one-time pass
+only. The clear belongs with the rebuild and not with the marker, because retry
+writes no marker. The shape matters
 because a crash in the gap is otherwise permanent rather than transient: the
 marker would assert the scan is done, every later pass writes nothing, and "a
 pass that wrote nothing MUST NOT rebuild" then forbids the repair — leaving
@@ -463,9 +467,13 @@ figure tables for the whole library. Its indexed columns reach `choreographers`
 through resolved author names, but neither `tags.name` nor `custom_field_defs`
 keys appear in either FTS schema — so a tag-only repair, the likeliest kind,
 pays a full recomputation for indexes that did not change. The spec permits
-skipping the rebuild where a test proves no rewritten column feeds an index, and
-requires it otherwise; if that permission is taken, derive the column-to-index
-mapping rather than hard-coding today's FTS column list.
+skipping the flag and the rebuild together where a test proves no rewritten
+column feeds an index, and requires both otherwise. If that permission is taken,
+do not try to reflect the mapping out of the schema — no schema records that
+`authors` comes from `choreographers.name`, and the indexed row is assembled by
+hand across joins. Declare the mapping once and check it by observing a rebuild:
+seed a marker per in-scope column and assert which markers reach indexed
+columns. The drift that matters needs no schema change at all.
 
 *`normalisation_skips` does not clear with the baseline.* Its neighbours
 `id_aliases` and `review_queue` do, and copying them is the expected mistake: a

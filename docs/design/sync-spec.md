@@ -704,6 +704,14 @@ for the one-time pass only, its completion marker, written last. A pass that
 wrote nothing sets no flag and performs no rebuild; the one-time pass still
 writes its marker, carrying the column set that run covered.
 
+**The flag's set and its clear MUST share one condition.** Step 1 writes the
+flag exactly when step 2 will rebuild, never on a broader trigger, because the
+flag asserts *a rebuild is owed*: a path that sets it with no rebuild to follow
+leaves nothing to clear it, and the next open's generic pre-check acts on it.
+The default condition is "the pass rewrote something". The permission below
+narrows that condition, and narrows **both** halves of it together — narrowing
+one alone inverts the optimisation rather than partly achieving it.
+
 **Clearing the flag belongs to step 2, not to the marker**, because retry has no
 step 3 and would otherwise leave the flag standing after a rebuild it already
 performed. The next open's generic pre-check would then see an owed rebuild that
@@ -792,17 +800,52 @@ custom-field keys — plausible, since small controlled vocabularies are where
 these collisions are likeliest — pays a full recomputation over the whole dance
 collection for indexes whose content did not change.
 
-An implementation **MAY** skip the rebuild when it can demonstrate by test that
-no column it rewrote feeds any derived index, and MUST rebuild otherwise. This
-is stated as a permission rather than an obligation deliberately: rebuilding
-unnecessarily is slow, whereas *not* rebuilding when it was needed is the
-permanent, silent staleness this section has been closing, so the two errors are
-not symmetric and the default must fall on the safe side. The permission is
-worth stating at all because the flag is set on any rewrite, so without it the
-common tag-only repair carries the largest cost in the design. An implementation
-that takes it MUST derive the column-to-index mapping rather than assert it,
-since the mapping above is a fact about today's FTS schema and adding a column
-to that schema must not silently invalidate a skip.
+An implementation **MAY** narrow the step-1 condition — setting no flag and
+running no rebuild — when it can demonstrate by test that no column it rewrote
+feeds any derived index; it MUST do both otherwise. That is one decision with
+two consequences, taken once in step 1, and not two independent choices.
+Skipping only the rebuild is strictly worse than declining the permission: the
+flag is committed, the clear is bound to a rebuild that no longer happens, so
+the flag survives and the next open's generic pre-check performs the
+whole-library rebuild anyway — the same work, deferred to app open, with the
+targeting lost. Narrowing only the set is wrong in the other direction, leaving
+a rebuild running with nothing durable recording that it was owed.
+
+It is a permission and not an obligation deliberately: rebuilding unnecessarily
+is slow, whereas *not* rebuilding when it was needed is the permanent, silent
+staleness this section has been closing, so the two errors are not symmetric and
+the default must fall on the safe side. An implementation that never builds the
+mapping below is fully conforming and simply pays the rebuild — the conservative
+reading, that every rewrite feeds an index, is always available and always
+correct. The permission is worth stating at all because the common tag-only
+repair otherwise carries the largest cost in the design.
+
+**That mapping is not reflectable, and MUST NOT be reached by reflection.**
+Nothing in the schema records that `authors` comes from `choreographers.name`.
+The FTS tables are raw `fts5(...)` strings carrying column names and no
+provenance, and the indexed row is a positional Dart list assembled by hand
+(`:514`–`:523`) across joins and many-to-one relations: `authors` resolves
+through `dance.authorIds`, and `sources` concatenates *two* columns of
+`published_sources` (`:581`–`:582`). Reflection recovers the FTS column names,
+which is the half a skip does not depend on.
+
+An implementation that takes the permission MUST instead **declare the mapping
+once and check it behaviourally**: seed a distinct marker in every column of the
+live in-scope set, run the rebuild, read the indexed rows back, and assert that
+the markers reaching indexed columns are exactly those the declaration predicts.
+`dance_fts` is an ordinary `fts5` table whose columns are selectable, and tests
+already read from it directly (`migration_test.dart:234`). The assertion MUST be
+total over the in-scope set, so that a column entering that set fails the test
+until it is declared as feeding an index or not.
+
+Observing the assembly is the point, because the drift that would silently
+invalidate a skip need not touch the schema at all: `sources` reaches two
+columns only because a loop in `_resolveSourceTexts` appends both, and a third
+would be the same edit — invisible to any rule watching `CREATE VIRTUAL TABLE`.
+This is the same bargain as the rest of this section, and the opposite trade
+from the identity exclusion above: where a fact *is* schema-shaped it MUST be
+reflected, and where it is not, it MUST be declared and tested rather than
+asserted in prose or inferred from a schema that does not carry it.
 
 Two number values that JSON cannot represent MUST be handled rather than
 emitted: a `shareable` float column can hold NaN or ±Infinity — `SQLite` REAL
@@ -2084,7 +2127,14 @@ rather than repaired; a ratchet checking only classification coverage passes
 this mutation unchanged, so the vector must assert the derived set itself). **A
 retry that rebuilds does not leave a rebuild owed** (mutation: clear the flag
 only alongside the completion marker — retry never writes one, so the next open
-performs a second whole-library rebuild it did not owe). **Both writers of
+performs a second whole-library rebuild it did not owe). **A pass that skips the
+rebuild sets no flag** (mutation: take the permission on its rebuild only, still
+committing the flag in step 1 — nothing clears it, and the next open performs
+the whole-library rebuild the skip was taken to avoid). **The column-to-index
+mapping is checked against the rebuild's behaviour, not the FTS schema**
+(mutation: join one more column into an existing indexed value without altering
+`CREATE VIRTUAL TABLE` — a schema-derived mapping is unchanged, and a skip
+covering that column becomes silently wrong). **Both writers of
 `normalisation_skips` spell `(table, column)` identically** (mutation: have the
 write-path carve-out use the Dart accessor name while the pass uses the
 registry's snake_case form — entries for the same column never group, condition

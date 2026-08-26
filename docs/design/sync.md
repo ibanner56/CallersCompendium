@@ -2967,7 +2967,42 @@ skipping the rebuild under proof rather than requiring the skip, because the two
 errors are not symmetric: a redundant rebuild is slow, while a missing one is
 the permanent silent staleness three rounds have gone into closing.
 
-**The general lesson, which is now eleven rounds old: the newest machinery
+**An optimisation must remove the bookkeeping along with the work.** Round 40's
+skip permission removed the rebuild and left the durable *rebuild owed* flag
+being set on any rewrite, with the clear bound to a rebuild that no longer
+happened. Taking the permission was therefore strictly worse than declining it:
+the flag survived, so the next app open performed the whole-library rebuild
+anyway — the same work, deferred to startup, with the targeting lost. The
+reference implementation does not have this problem because its flag is written
+under the same condition that triggers the rebuild; the permission split the two
+apart without re-joining them. Where a mechanism has a set and a clear, they are
+one condition wearing two hats, and narrowing one alone does not partly achieve
+the optimisation — it inverts it.
+
+**"Derive it rather than assert it" is an instruction only if the thing is
+derivable.** The same paragraph required an implementation to derive the mapping
+from source columns to search-index columns rather than hard-code it, by analogy
+with the rules just above it, which derive column types and record identity by
+reflection over the schema. But nothing in the schema records that the index's
+`authors` column comes from `choreographers.name`: the index is declared as a
+raw `fts5(...)` string carrying names and no provenance, and its rows are a
+positional list assembled by hand across joins. Reflection recovers the column
+*names*, which is exactly the half a skip does not depend on. An implementer
+facing that rule can only hard-code a map and call it derived, or leave the
+permission unused.
+
+The repair is to say which kind of fact each one is. Where a fact is
+schema-shaped — a column's type, a table's primary key — reflect it. Where it
+lives in imperative code, declare it once and check it by **observing the
+behaviour**: seed a distinct marker in every in-scope column, run the rebuild,
+and see which markers land in indexed columns. Observation also catches the
+drift a schema-watching rule structurally cannot, which is the likeliest drift
+here — the index's `sources` value reaches two columns only because a loop
+appends both, and a third would be an ordinary code edit touching no schema.
+Watching the wrong artifact is worse than watching none, because the check
+reports success.
+
+**The general lesson, which is now twelve rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -2988,7 +3023,11 @@ same direction — it reproduced the durable flag but not the generic pre-check
 that reads it, and scoped the rule to the one-time pass when retry writes rows
 too. Round 40 then found round 39's re-scoping applied to the flag's set but
 not its clear, and its derivation rule mechanising two of the three criteria in
-the scope sentence directly above it. Ten consecutive rounds have found the
+the scope sentence directly above it. Round 41 then found round 40's own remedy
+for that rebuild cost self-defeating in both halves: it removed the work but not
+the bookkeeping, so taking the permission deferred the identical rebuild to app
+open, and it demanded a derivation from an artifact that does not carry the
+fact. Eleven consecutive rounds have found the
 round's defects in the previous round's repair, which is no longer a
 coincidence and is better read as a property of how repairs get written: under
 the belief that the hard thinking has just been done. Round 30's instance was
