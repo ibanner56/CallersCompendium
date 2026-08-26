@@ -462,11 +462,11 @@ jobs:
         if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'missing'
         run: |
           set -euo pipefail
-          app_path="app/build/macos/Build/Products/Release/compendium_app.app"
+          app_path="app/build/macos/Build/Products/Release/Caller’s Compendium.app"
           mkdir -p dist
 
           # Informational: confirm the produced binary is a universal (fat) Mach-O.
-          lipo -info "$app_path/Contents/MacOS/compendium_app" || true
+          lipo -info "$app_path/Contents/MacOS/Caller’s Compendium" || true
 
           # Portable zip (ditto preserves macOS bundle metadata / symlinks).
           ditto -c -k --keepParent "$app_path" \
@@ -499,14 +499,14 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          app_path="app/build/macos/Build/Products/Release/compendium_app.app"
+          app_path="app/build/macos/Build/Products/Release/Caller’s Compendium.app"
           entitlements="app/macos/Runner/Release.entitlements"
           dmg="dist/CallersCompendium-${VERSION}-macos-universal.dmg"
           zip="dist/CallersCompendium-${VERSION}-macos-universal.zip"
           mkdir -p dist
 
           # Informational: confirm the produced binary is a universal (fat) Mach-O.
-          lipo -info "$app_path/Contents/MacOS/compendium_app" || true
+          lipo -info "$app_path/Contents/MacOS/Caller’s Compendium" || true
 
           # ---- 1. Ephemeral, dedicated signing keychain ---------------------
           # A throwaway keychain (random password, fixed path so the always()
