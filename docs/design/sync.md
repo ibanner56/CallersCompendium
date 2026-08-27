@@ -4278,17 +4278,23 @@ registry as the client, so the allow-list is generated from one definition.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
-  blobs/<aa>/<bb>/<hash>
+  blobs/<id_key>/<aa>/<bb>/<hash>
 ```
 
-Blobs are fanned out two levels to keep directory sizes sane.
+Blobs are fanned out two levels to keep directory sizes sane. The `<id_key>`
+segment is not decoration: without it two stores holding a byte-identical blob
+resolve to one file, which is cross-store deduplication physically even though
+`blob_refs` is keyed per store — and it makes store-scoped GC impossible to
+implement correctly, since collecting on the first store's reference destroys
+another store's bytes. The spec states the consequence; this is why the segment
+exists.
 
 **Every path that turns a caller-supplied hash into a filesystem path validates
 it against `^[0-9a-f]{64}$` first.** An earlier draft argued traversal-safety
 from the hash being "verified" — but verification happens on `PUT`, where the
 body is hashed. Everywhere else the hash is attacker-controlled path input
-fanned into `blobs/<aa>/<bb>/<hash>` with nothing checking it. The guard
-belongs on every path, not on the one that happens to compute a hash.
+fanned into `blobs/<id_key>/<aa>/<bb>/<hash>` with nothing checking it. The
+guard belongs on every path, not on the one that happens to compute a hash.
 
 **Stating that as a list of methods got it wrong twice**, which is the argument
 for stating it as a property. The draft said "on `GET` and `DELETE` as well as

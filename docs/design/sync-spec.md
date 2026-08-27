@@ -1818,7 +1818,7 @@ automatic sync does not run and a manual attempt routes to the setting.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
-  blobs/<aa>/<bb>/<hash>
+  blobs/<id_key>/<aa>/<bb>/<hash>
 ```
 
 Every path that turns a **caller-supplied** hash into a filesystem path MUST
@@ -1848,8 +1848,19 @@ CREATE TABLE blob_refs (
 );
 ```
 
-Blobs MUST be namespaced per store. Cross-store deduplication is a privacy leak
-and MUST NOT be implemented.
+Blobs MUST be namespaced per store, on disk as well as in `blob_refs`.
+Cross-store deduplication is a privacy leak and MUST NOT be implemented. The
+`<id_key>` segment in the layout above is what makes that true physically:
+without it, two stores holding a byte-identical blob — trivially common for a
+shared program, a tag name, or the same distributed dance — resolve to one file,
+which *is* cross-store deduplication however the database is keyed. GC and
+`DELETE /v1/store` (§7.3) MUST operate strictly within one store's own subtree,
+and with a shared file they cannot: collecting when the first store's reference
+goes destroys bytes another store still references, and collecting only when no
+store references the hash is the forbidden deduplication and leaves a wiped
+store's content on disk, against the promise §7.3 makes for `DELETE`. The cost
+of namespacing is one copy per store of a blob that would otherwise be shared,
+which the 250 MB per-store cap already bounds.
 
 The server MUST NOT merge, lock, or interpret record content beyond §7.2.
 
@@ -1960,6 +1971,23 @@ breaks a promise the user was given explicitly. §5.3 tells the client that
 so — the grace rule above is scoped to the manifest `PUT` and the sweep, and a
 server reading it as universal would leave a wiped store's contents on disk for
 a day while reporting success.
+
+**Ordinary logs are in scope for both retention promises.** The server, and any
+proxy in front of it, MUST NOT log blob bodies, manifest bodies, or decoded
+record content, at any level, including debug. Error paths — `400`, `422`, and
+any handler that reports a rejected body — MUST log the `id_key` and the blob
+hash only, never the offending body. Any diagnostic log that can contain
+store-derived data MUST carry a stated bounded retention, and that retention
+MUST be disclosed alongside §7.4's.
+
+This is stated because logs sit outside every mechanism the rest of this section
+builds. They are not in `blob_refs`, so the sweep never reaps them; they are not
+under the store, so `DELETE /v1/store` does not remove them. A single debug
+statement or a proxy configured to capture bodies therefore defeats both
+"nothing we host survives 30 days of disuse" and "a wipe removes everything
+under the sync ID" — silently, with the server passing every other conformance
+test in §9. An operator cannot infer the rule from the promises, because the
+promises are stated over the store and the log is not part of it.
 
 ### 7.4 Break-glass access log
 
@@ -2470,20 +2498,27 @@ which no status-code test can catch). A manifest `GET` returns a quoted strong
 `304`. A `Content-Type` carrying `; charset=utf-8` is accepted. `DELETE
 /v1/store` removes grace-window blobs immediately (mutation: apply the 24-hour
 exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
-**A plaintext request to `/v1` on the public listener is refused, never proxied
-and never redirected** (mutation: place the `ProxyPass` outside a vhost, or in
-both the `:80` and `:443` vhosts — the API answers identically on each, and the
-bearer credential is disclosed on every plaintext call. Second mutation: answer
-`301` to the `https` origin instead of refusing — the credential is already
-disclosed by the plaintext request itself, and what the redirect adds is that a
-client which follows it *and retains* `Authorization` across the hop gets a sync
-that **works**, so nothing ever surfaces the misconfiguration and every run
-repeats the disclosure. A client that strips instead follows the redirect and
-gets a `401`, which fails visibly — but which of the two reaches a given
-deployment is not the operator's to know (§7.5), and refusal is the only answer
-that fails visibly for both. This is a deployment test
-against the running configuration, since no unit test of the server process can
-observe which port a proxy accepted the request on).
+Two stores upload a byte-identical blob and one is wiped; the survivor can still
+`GET` it (mutation: drop the `<id_key>` segment from the blob path — every other
+server test passes, because the damage is only observable from the second
+store). No log written on any path — including a `400` and a `422` over a
+malformed body, and a debug level — contains a blob body, a manifest body or
+decoded record content (mutation: log the offending body in the `422` handler,
+which survives both the sweep and `DELETE /v1/store`). **A plaintext request to
+`/v1` on the public listener is refused, never proxied and never redirected**
+(mutation: place the `ProxyPass` outside a vhost, or in both the `:80` and
+`:443` vhosts — the API answers identically on each, and the bearer credential
+is disclosed on every plaintext call. Second mutation: answer `301` to the
+`https` origin instead of refusing — the credential is already disclosed by the
+plaintext request itself, and what the redirect adds is that a client which
+follows it *and retains* `Authorization` across the hop gets a sync that
+**works**, so nothing ever surfaces the misconfiguration and every run repeats
+the disclosure. A client that strips instead follows the redirect and gets a
+`401`, which fails visibly — but which of the two reaches a given deployment is
+not the operator's to know (§7.5), and refusal is the only answer that fails
+visibly for both. This is a deployment test against the running configuration,
+since no unit test of the server process can observe which port a proxy accepted
+the request on).
 
 **Client isolate and robustness.** Allow-list bijection over real
 `encodeArchive`-shaped output, never a hand-written key string. Hostile peer
