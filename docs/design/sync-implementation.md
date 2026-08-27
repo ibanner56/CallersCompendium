@@ -204,47 +204,52 @@ and program content — which is precisely what the editor-draft keys held until
   kind already funnels through rather than per-writer; a **one-time backfill
   migration** over existing rows that leaves `updated_at`, `existence_at` and
   `deleted_at` untouched, excludes record-identity columns (`settings.key`),
-  detects collisions by **grouping on `(table, column, target)` before
-  writing** rather than by catching the `UNIQUE` violation, **skips and
-  reports** whole colliding groups without aborting, and **rebuilds derived
-  indexes if it wrote anything**; the `normalisation_skips` table (§3.2) with
-  its **retry on each open judged by both halves of the grouping test** —
-  recorded-row grouping by `(table, column, target)` *and* live occupancy — its
-  **retirement of entries whose row was hard-deleted**, which requires a **new
-  lookup unfiltered by `deleted_at`** in all three in-scope repositories, since
-  every existing `getById` there filters and would make a tombstone
-  indistinguishable from a deleted row; a **primary key on `(table, column,
-  record_id)`** with recording as an upsert; its restore-clears rule; and its
-  second writer on the ordinary-edit carve-out. The completion marker MUST
-  **record the set of columns the scan covered**, with the pass re-running
-  whenever the live in-scope set **differs** from it — a comparison at open,
-  **not** a migration hook, since reclassifying a column runs no migration, and
-  inequality rather than containment, so a reclassify-out does not make the
-  recorded set a high-water mark. That live set MUST be **derived by reflecting
-  over the schema's column types intersected with `fieldClassifications`, with
-  identity columns excluded via `Table.primaryKey`** and backed by its own
-  ratchet, since `DataClassification` carries no column type and a hand-list
-  would disable the comparison at its input. All **three** scope criteria are
-  mechanised, identity included: `_key` is classified `shareable`, so a literal
-  string ∩ `shareable` set pulls in every id column and renames `settings.key`
-  rather than repairing it, and the existing coverage test — which compares
-  only `table.column` names — cannot catch that. **Every pass that rewrites a
-  row** — the one-time pass *and retry* — MUST commit in **three steps**:
-  rewrites, skips and the durable rebuild-owed flag in one transaction; the
-  rebuild outside it, **followed by clearing the flag**; the completion marker
-  last, for the one-time pass only. The clear belongs to the rebuild step and
-  not to the marker, since retry writes no marker and would otherwise leave a
-  rebuild owed that it had already performed. The flag's set and its clear MUST
-  share one condition. A pass MAY narrow that condition — setting **no flag and
-  running no rebuild** — only where a test shows no rewritten column feeds a
-  derived index (`tags.name` and `custom_field_defs.key` feed neither FTS
-  table), and MUST do both otherwise; skipping the rebuild while still setting
-  the flag defers the same whole-library rebuild to the next app open. That
-  flag MUST be the existing `derivedRebuildRequiredKey`, since the repair is
-  performed by the generic pre-check that reads it and not by the sweep. Both
-  writers of `normalisation_skips` MUST take their `(table, column)` spelling
-  from **constants declared once and imported at all four sites**, which must
-  be created — the registry's identifiers are inline map keys today; and a
+  detects collisions by **grouping on `(table, column, target)` before writing**
+  rather than by catching the `UNIQUE` violation, **skips and reports** whole
+  colliding groups without aborting, and **rebuilds derived indexes if it wrote
+  anything**; the `normalisation_skips` table (§3.2) with its **retry on each
+  open judged by both halves of the grouping test** — recorded-row grouping by
+  `(table, column, target)` *and* live occupancy — its **retirement of entries
+  whose row was hard-deleted**, which requires a **new lookup unfiltered by
+  `deleted_at`** in all three in-scope repositories, since every existing
+  `getById` there filters and would make a tombstone indistinguishable from a
+  deleted row; a **primary key on `(table, column, record_id)`** with recording
+  as an upsert; its restore-clears rule; and its second writer on the
+  ordinary-edit carve-out. The completion marker MUST **record the set of
+  columns the scan covered**, with the pass re-running whenever the live
+  in-scope set **differs** from it — a comparison at open, **not** a migration
+  hook, since reclassifying a column runs no migration, and inequality rather
+  than containment, so a reclassify-out does not make the recorded set a
+  high-water mark. That live set MUST be **derived by reflecting over the
+  schema's column types intersected with `fieldClassifications`, with identity
+  columns excluded via `Table.primaryKey`** and backed by its own ratchet,
+  **plus the decoded values of every `shareable` settings key, walked
+  recursively** — `settings.value_json` is `deviceLocal` at the column level, so
+  a reflection over column classifications alone silently omits every settings
+  value the allow-list does let travel, and the omission is invisible to a
+  column-level coverage test because the column is correctly classified, since
+  `DataClassification` carries no column type and a hand-list would disable the
+  comparison at its input. All **three** scope criteria are mechanised, identity
+  included: `_key` is classified `shareable`, so a literal string ∩ `shareable`
+  set pulls in every id column and renames `settings.key` rather than repairing
+  it, and the existing coverage test — which compares only `table.column` names
+  — cannot catch that. **Every pass that rewrites a row** — the one-time pass
+  *and retry* — MUST commit in **three steps**: rewrites, skips and the durable
+  rebuild-owed flag in one transaction; the rebuild outside it, **followed by
+  clearing the flag**; the completion marker last, for the one-time pass only.
+  The clear belongs to the rebuild step and not to the marker, since retry
+  writes no marker and would otherwise leave a rebuild owed that it had already
+  performed. The flag's set and its clear MUST share one condition. A pass MAY
+  narrow that condition — setting **no flag and running no rebuild** — only
+  where a test shows no rewritten column feeds a derived index (`tags.name` and
+  `custom_field_defs.key` feed neither FTS table), and MUST do both otherwise;
+  skipping the rebuild while still setting the flag defers the same
+  whole-library rebuild to the next app open. That flag MUST be the existing
+  `derivedRebuildRequiredKey`, since the repair is performed by the generic
+  pre-check that reads it and not by the sweep. Both writers of
+  `normalisation_skips` MUST take their `(table, column)` spelling from
+  **constants declared once and imported at all four sites**, which must be
+  created — the registry's identifiers are inline map keys today; and a
   **structural** ratchet asserting that write paths route through the choke
   point.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
@@ -427,8 +432,8 @@ whole-library recomputation.
 
 *Compare column sets at open; do not hang the re-run off a migration.* The
 marker records which columns the scan covered, and the pass re-runs when the
-live in-scope set is not a subset of it. A migration hook looks equivalent and
-is not: reclassifying a column to `shareable` is an edit to a map entry in
+live in-scope set **differs** from it. A migration hook looks equivalent and is
+not: reclassifying a column to `shareable` is an edit to a map entry in
 `field_registry.dart`, with no schema change, no version bump and no migration
 step, so a migration-gated guard is vacuously satisfied for one of the two
 triggers it exists to catch. Compare with **inequality**, not containment: a
@@ -818,11 +823,12 @@ content conflict for W6's table rather than a reconciliation for this unit.
 - **Serves** §6.2, §6.10.
 - **Inherits** W5, W6, W4, and **W14** (dedupe has nowhere to defer to without
   a review surface).
-- **Produces** the union — **no deletion occurs during a fresh attach**; dedupe
-  on `normalizeTitle` plus `_choreographyEquals`, with tombstones excluded from
-  candidacy entirely; `program_slots.dance_id` rewiring to the survivor; epoch
-  and baseline persistence; and the after-the-fact count ("merged 412
-  duplicates"), which is the mitigation rather than a prompt.
+- **Produces** the union — **absence never deletes at attach, but an explicit
+  tombstone with the greater `existenceAt` is applied** (§6.2 step 5, §6.4);
+  dedupe on `normalizeTitle` plus `_choreographyEquals`, with tombstones
+  excluded from candidacy entirely; `program_slots.dance_id` rewiring to the
+  survivor; epoch and baseline persistence; and the after-the-fact count
+  ("merged 412 duplicates"), which is the mitigation rather than a prompt.
 - **Unblocks** nothing.
 - **Done when** the §9 *Dedupe* bucket is green, and so is the attach half of
   *Attach and restore* — epoch mismatch produces a fresh attach and never a
@@ -1083,10 +1089,10 @@ cannot fail is not a checkpoint.
 | --- | --- | --- |
 | **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. But §3.1 carries a §9 bucket — *Soft-delete join coverage* — that nothing enforces. The one known violation (#1016) was fixed by #1018; the *rule* still decays silently, since a new unfiltered read compiles and passes. C0 is green on the migration and not on the invariant; **W17 is what closes it**. |
 | **C1** | W1, W2, W3, W18 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, a locally-created never-synced NFD title, and a row normalised by W18's backfill; the surrogate rejection fires before encoding; allow-list bijection green over real codec output, and non-vacuous. *Parallel work begins here.* |
-| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: blob and manifest survive `PUT`/`GET` byte-identically; `413`, `415` and `422` paths exercised; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
+| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: blob and manifest survive `PUT`/`GET` byte-identically; `413` and `415` paths exercised — **not `422`, which is the allow-list rejection and belongs to W11 at C5**, since W10 inherits W2 only *via* W11 and cannot reject a key it has no mapping for; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
 | **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
 | **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact. |
-| **C5** | W11, W12 | **Server hardened.** §9 *Server* green; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
+| **C5** | W11, W12 | **Server hardened.** §9 *Server* green; **`422` exercised over a blob carrying a non-`shareable` key, and an unknown `v` accepted**; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
 | **C6** | W9, W13, **and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed** if any real user's content moves (S7). |
 | **C7** | W15, W16 | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
 

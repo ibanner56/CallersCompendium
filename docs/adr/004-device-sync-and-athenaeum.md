@@ -53,23 +53,24 @@ not merely about the code.
 
 - **Import undo left an adopted record resurrected.** Importing an author name
   that a tombstone still held revived that row; undo correctly declined to
-  hard-delete it (the row predates the import and the user may still restore
-  it) and nothing put it back. Worse, the revival had stamped `existence_at`
-  *strictly past* the user's deletion — the value existence is ordered by — so
-  a rolled-back import would have published a **durable resurrection outranking
+  hard-delete it (the row predates the import and the user may still restore it)
+  and nothing put it back. Worse, the revival had stamped `existence_at`
+  *strictly past* the user's deletion — the value existence is ordered by — so a
+  rolled-back import would have published a **durable resurrection outranking
   that deletion on every peer** once a client exists. Fixed in [#903] by
   tracking revived ids separately from created ones and re-tombstoning them on
   undo, with a fresh causal stamp that outranks the revival. This is the
   causal-stamping rule working exactly as intended, on a path nothing in this
   ADR anticipated: the resurrection would have been *correct* under the merge
-  rules and wrong for the user. - **Soft-deleting settings made editor autosave
-  drafts accumulate without bound.** Drafts are cleared on every save and every
-  discard, and their value is the whole draft blob; tombstoning them left ~352
-  KB after 200 edit cycles, invisible to `all()` and to backup export with no
-  sweep to reclaim it. Fixed by a `permanent` flag on removal. The rule adopted
-  — *a tombstone is only worth its storage when there is somebody to inform* —
-  is the general form, and it applies to any future device-scoped scratch value
-  this design adds.
+  rules and wrong for the user.
+
+- **Soft-deleting settings made editor autosave drafts accumulate without
+  bound.** Drafts are cleared on every save and every discard, and their value
+  is the whole draft blob; tombstoning them left ~352 KB after 200 edit cycles,
+  invisible to `all()` and to backup export with no sweep to reclaim it. Fixed
+  by a `permanent` flag on removal. The rule adopted — *a tombstone is only
+  worth its storage when there is somebody to inform* — is the general form, and
+  it applies to any future device-scoped scratch value this design adds.
 
 [#898]: https://github.com/ibanner56/CallersCompendium/issues/898
 [#901]: https://github.com/ibanner56/CallersCompendium/pull/901
@@ -799,25 +800,29 @@ makes self-hosting materially harder, which constraint 4 forbids.
   conflict rule cannot reach it. The sync migration adds `updated_at`, stamping existing
   rows at migration time.
 
-  **Sequencing is deliberate: the migration lands before any other sync
-  work**, on its own.
-  Its real scope, stated honestly after an earlier draft understated it: `settings`
-  gains `updated_at` **and `deleted_at`**, and the five kinds that lack them —
-  choreographers, tags, published sources, custom-field defs, venues — gain both,
-  with their repositories converted from hard delete to soft. All eight syncable
-  kinds additionally gain `existence_at` for the provenance gate, which brings
-  `dances` and `programs` into the migration for that one column. That is eight
-  tables and twenty columns, plus six `_db.delete(` call sites, not one column. It
-  remains the programme's only schema change, and isolating it still leaves the
-  rest as feature work with no migration risk; it is defensible on its own terms, so
-  nothing is wasted if the programme stalls; and — the real reason — it defuses
-  the one-time ordering wart. Because each device stamps at *its own* migration
-  time, the device that upgrades last would otherwise win every settings conflict
-  on first sync. That only holds while the stamps still encode migration order.
-  Shipping it early means users spend the intervening releases changing settings
-  for real, and every real change overwrites a migration stamp with a meaningful
-  one. The gap between releases is what fixes it, so earlier is strictly
-  better.
+  **Sequencing is deliberate: the migration lands before any other sync work**,
+  on its own. Its real scope, stated honestly after an earlier draft understated
+  it: `settings` gains `updated_at` **and `deleted_at`**, and the five kinds
+  that lack them — choreographers, tags, published sources, custom-field defs,
+  venues — gain both, with their repositories converted from hard delete to
+  soft. All eight syncable kinds additionally gain `existence_at` for the
+  provenance gate, which brings `dances` and `programs` into the migration for
+  that one column. That is eight tables and twenty columns, plus six
+  `_db.delete(` call sites, not one column. It remains the only change to the
+  schema of tables that have **already shipped**, which is the property that
+  makes isolating it worthwhile — the rest of the programme adds §3.2's six
+  sync-local tables, which are new and empty at creation, and W18 rewrites
+  values in existing rows without altering their schema. Those are real work and
+  W18 is a genuine data migration, but neither carries the risk this one does,
+  of altering a table users already have rows in; it is defensible on its own
+  terms, so nothing is wasted if the programme stalls; and — the real reason —
+  it defuses the one-time ordering wart. Because each device stamps at *its own*
+  migration time, the device that upgrades last would otherwise win every
+  settings conflict on first sync. That only holds while the stamps still encode
+  migration order. Shipping it early means users spend the intervening releases
+  changing settings for real, and every real change overwrites a migration stamp
+  with a meaningful one. The gap between releases is what fixes it, so earlier
+  is strictly better.
 
   **It is also not a mechanical conversion**, which an earlier draft implied by
   naming `DanceRepository` as the pattern to copy. Dances are the *parent* in

@@ -327,6 +327,21 @@ conforming client MUST normalise a `shareable` string column to NFC on **every**
 path that can populate it — local edits, every import adapter, and inbound sync
 alike — and MUST NOT skip it on the assumption that a sender normalised.
 
+**This obligation follows the value, not the column.** `settings.value_json` is
+classified `deviceLocal` at the column level so that no blanket sync of the
+settings table can happen by accident, and which *keys* travel is decided per
+key by the allow-list in §3.3. A column-level reading therefore puts every
+settings value out of scope, including the values of keys that do travel — and
+those values are JSON that can carry user-authored strings at any depth, such as
+a custom dialect or theme name. A conforming client MUST normalise **every
+string inside the decoded value of a `shareable` settings key, recursively**, on
+the same write paths and by the same rule. Object keys inside that value are
+normalised with it; they are part of the serialised string set §4.1 requires to
+be NFC. Omitting this leaves two devices holding the same preference in
+different Unicode forms, which is precisely the never-converging
+`changed`/`changed` conflict this section exists to prevent, and it is easy to
+omit because the column that holds it is not `shareable`.
+
 Satisfying that by normalising in each writer is possible and inadvisable. It is
 an enumeration, and enumerations fail by omission: the next import adapter is
 correct only if its author remembers. Normalise instead at the single repository
@@ -1251,17 +1266,26 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    `409`. Detach MUST forget the sync ID entirely.
 4. Upload every local record; download every remote record. Inbound rejection
    (§6.9) applies here as in steady state.
-5. **Union**, then dedupe (§6.10). No deletion occurs during a fresh attach.
-   Where two peers advertise the same id with different content, the higher
-   `updatedAt` wins; existence disagreements resolve per §6.4. Where the two
-   `updatedAt` values are **equal** and the bodies differ, §6.3's tie treatment
-   applies here too: neither body wins, the local one is left in place, and the
-   divergence MUST be reported. Step 6 then persists that local body's hash as
-   the baseline, so the record presents as `same`/`changed` on every later pass
-   and carries §6.3's reporting duty from then on. What a fresh attach MUST NOT
-   do is apply one body over the other silently. The two devices do not converge
-   either way — that is why this sits in §10 — so the report is the whole of the
-   requirement, and suppressing it is the whole of the harm.
+5. **Union**, then dedupe (§6.10). **Absence never deletes during a fresh
+   attach**: a record present on one side and simply missing from the other MUST
+   be kept, because an attach has no baseline and so cannot tell "never seen"
+   from "deleted". An **explicit tombstone is not absence** — it is evidence,
+   and existence disagreements resolve per §6.4 here exactly as in steady state,
+   so a tombstone with the greater `existenceAt` MUST be applied and that
+   application is a deletion. Earlier drafts said "no deletion occurs during a
+   fresh attach", which contradicted §6.4's "on any path" and would license an
+   implementation that discards valid tombstones on every attach — resurrecting,
+   on the device that attached, every record any peer had deleted. Where two
+   peers advertise the same id with different content, the higher `updatedAt`
+   wins. Where the two `updatedAt` values are **equal** and the bodies differ,
+   §6.3's tie treatment applies here too: neither body wins, the local one is
+   left in place, and the divergence MUST be reported. Step 6 then persists that
+   local body's hash as the baseline, so the record presents as `same`/`changed`
+   on every later pass and carries §6.3's reporting duty from then on. What a
+   fresh attach MUST NOT do is apply one body over the other silently. The two
+   devices do not converge either way — that is why this sits in §10 — so the
+   report is the whole of the requirement, and suppressing it is the whole of
+   the harm.
 6. Persist the epoch and the resulting manifest as the new baseline. Quarantine
    and repair run **after** this, never during the union.
 
@@ -1810,6 +1834,17 @@ untouched and MUST retry on the next trigger.
 Triggers: app start, a debounced interval after a change, and a manual "Sync
 now" (a delta pass). *Sync only on WiFi* defaults to on; on a metered connection
 automatic sync does not run and a manual attempt routes to the setting.
+
+**At most one sync pass MUST be in flight per installation.** A trigger that
+fires while a pass is running MUST be coalesced into at most one queued
+follow-up pass, never started concurrently. This is a client obligation because
+§7 gives the server no compare-and-swap: `PUT /v1/manifests/{self}` is
+last-write-wins by arrival, so two overlapping passes can complete out of order
+and the older one then republishes stale hashes over the newer manifest *and*
+overwrites the newer baseline at §6.3 step 9 — leaving this device advertising
+content it no longer holds, with a baseline that says the peers already agree.
+The triggers above make this reachable without adversarial timing: a debounced
+pass and a user's "Sync now" are the ordinary case.
 
 ## 7. Server conformance
 
@@ -2363,16 +2398,21 @@ leaves the two devices permanently disagreeing while both look correct in a
 single-device test).
 
 **Existence.** A bystander does not resurrect a tombstone (mutation: drop the
-existence rule from the `same`/`changed` row). A live record never out-ranks an
-applied tombstone. Only a deliberate edit resurrects. A sync-initiated write
-never cancels a tombstone. `existenceAt` crosses a device boundary. A later sync
-write does not erase a revival (mutation: carry the signal as a boolean). **The
-existence winner's body is not persisted on the strength of its having won
-existence** — three peers where the greatest `existenceAt` and the greatest
-`updatedAt` come from *different* peers; assert the persisted body is the
-`updatedAt` winner's (mutation: adopt the existence winner's body, which §6.4
-notes is the ordinary case rather than the exotic one once there are three or
-more peers, and so silently discards the newer edit).
+existence rule from the `same`/`changed` row). A **fresh attach** applies a
+peer's tombstone whose `existenceAt` exceeds the local live record's, and keeps
+a record the peer merely lacks (mutation: implement §6.2 step 5 as "no deletion
+occurs during a fresh attach", the wording this specification used to carry —
+every steady-state existence test still passes, and the only symptom is that
+attaching a device resurrects everything its peers deleted). A live record never
+out-ranks an applied tombstone. Only a deliberate edit resurrects. A
+sync-initiated write never cancels a tombstone. `existenceAt` crosses a device
+boundary. A later sync write does not erase a revival (mutation: carry the
+signal as a boolean). **The existence winner's body is not persisted on the
+strength of its having won existence** — three peers where the greatest
+`existenceAt` and the greatest `updatedAt` come from *different* peers; assert
+the persisted body is the `updatedAt` winner's (mutation: adopt the existence
+winner's body, which §6.4 notes is the ordinary case rather than the exotic one
+once there are three or more peers, and so silently discards the newer edit).
 
 **Soft-delete join coverage.** §3.1's rule that every read joining through to a
 soft-deletable parent filters `parent.deleted_at IS NULL` MUST be enforced by a
@@ -2386,17 +2426,23 @@ error. #1018 fixed that read; nothing yet stops the next one. Under sync that
 program publishes while its venue publishes as deleted. The mutation the test
 must catch is dropping the `deleted_at` predicate from any one such read.
 
-**Write-path invariants.** §6.5's **I1** and **I2** MUST be enforced by a test
-over write paths, not left as prose, for the same reason and with the same
-decay mode as the join rule above: a new write path that violates either
-compiles and passes. I1's test must catch a write that changes a record's
-serialised content through a **join-hydrated** field without touching the
-record's own row and without advancing `updatedAt` — the direct single-row case
-is the one every implementer already gets right. I2's test must catch a
-metadata-only re-stamp that advances `updatedAt` while `body` and the existence
-state are unchanged, which is invisible to §6.9's repair classifier. The
-enforcement MUST be structural over write paths rather than a maintained list
-of known ones; a list relocates the omission it is meant to catch.
+**Write-path invariants.** A `shareable` settings key whose value contains an
+NFD string anywhere in its decoded JSON, at any depth, is stored NFC by every
+write path (mutation: scope the normalisation pass to columns classified
+`shareable`, which excludes `settings.value_json` because that column is
+`deviceLocal` — every column-level test still passes, and the divergence appears
+only between two devices whose users typed the same custom dialect name on
+different platforms). §6.5's **I1** and **I2** MUST be enforced by a test over
+write paths, not left as prose, for the same reason and with the same decay mode
+as the join rule above: a new write path that violates either compiles and
+passes. I1's test must catch a write that changes a record's serialised content
+through a **join-hydrated** field without touching the record's own row and
+without advancing `updatedAt` — the direct single-row case is the one every
+implementer already gets right. I2's test must catch a metadata-only re-stamp
+that advances `updatedAt` while `body` and the existence state are unchanged,
+which is invisible to §6.9's repair classifier. The enforcement MUST be
+structural over write paths rather than a maintained list of known ones; a list
+relocates the omission it is meant to catch.
 
 I1's test MUST also pin the **exception** in §6.5, not just the rule, and it
 MUST cover both of the exception's conditions **for each operation the exception
@@ -2560,36 +2606,41 @@ but which of the two reaches a given deployment is not the operator's to know
 deployment test against the running configuration, since no unit test of the
 server process can observe which port a proxy accepted the request on).
 
-**Client isolate and robustness.** Hostile peer
-blob: a malformed date rejects one record without aborting the batch or escaping
-the isolate. Interrupted sync is a no-op. **An app with no sync ID configured
-makes no sync-related network call of any kind**, asserted over a full app
-lifecycle including every §6.12 trigger — launch, the debounced post-change
-interval, and a manual "Sync now" (mutation: have the client `GET /v1/store` to
-discover whether a store exists before checking whether one is configured —
-every functional test still passes, because a configured app behaves
-identically, and the only symptom is that an app the user never opted in with is
-talking to Athenaeum). **A `Content-Encoding: gzip` body inflating past §5.4's
-limits aborts mid-stream**, asserted by feeding a body that expands beyond 10×
-or 32 MB and observing that the abort happens before the full inflation is
-allocated (mutation: inflate to completion and then compare the size — the limit
-is still enforced and the cap still reported, so every size-rejection test
-passes, while the memory the cap exists to bound has already been committed.
-This applies identically to the client and the server, since §4 puts the limit
-on the receiver). **A server presenting an untrusted, expired or wrong-host
-certificate is refused, and no request carrying `Authorization` is issued to
-it** (mutation: install a `badCertificateCallback` returning `true` — the
-endpoint is still `https`, the per-hop table still passes in full, and the sync
-ID is readable by anyone able to present a certificate; a test asserting only on
-the URL scheme cannot fail here). **No certificate-validation escape hatch
-exists in the client source at all** (mutation: add a `badCertificateCallback`
-behind a debug flag defaulting to off — the behavioural vector above still
-passes, because the test build takes the default; only a source scan sees it.
-This is why the property is owned by a standing ratchet and not by the unit that
-builds the client). **A `localhost`-prefixed public host is refused** (mutation:
-test the loopback exemption with `startsWith` or `contains` rather than an exact
-host match — `http://localhost.example.com/v1` is then accepted as exempt and
-the sync ID goes out in plaintext to a registrable domain). **`http://[::1]` and
+**Client isolate and robustness.** Hostile peer blob: a malformed date rejects
+one record without aborting the batch or escaping the isolate. Interrupted sync
+is a no-op. **At most one pass is in flight**: a trigger firing mid-pass is
+coalesced into at most one queued follow-up, asserted by holding a pass open and
+firing every §6.12 trigger at it (mutation: start the second pass concurrently
+and let the slower, older one finish last — assert the published manifest and
+the stored baseline are the newer pass's, since the server has no
+compare-and-swap to catch it). **An app with no sync ID configured makes no
+sync-related network call of any kind**, asserted over a full app lifecycle
+including every §6.12 trigger — launch, the debounced post-change interval, and
+a manual "Sync now" (mutation: have the client `GET /v1/store` to discover
+whether a store exists before checking whether one is configured — every
+functional test still passes, because a configured app behaves identically, and
+the only symptom is that an app the user never opted in with is talking to
+Athenaeum). **A `Content-Encoding: gzip` body inflating past §5.4's limits
+aborts mid-stream**, asserted by feeding a body that expands beyond 10× or 32 MB
+and observing that the abort happens before the full inflation is allocated
+(mutation: inflate to completion and then compare the size — the limit is still
+enforced and the cap still reported, so every size-rejection test passes, while
+the memory the cap exists to bound has already been committed. This applies
+identically to the client and the server, since §4 puts the limit on the
+receiver). **A server presenting an untrusted, expired or wrong-host certificate
+is refused, and no request carrying `Authorization` is issued to it** (mutation:
+install a `badCertificateCallback` returning `true` — the endpoint is still
+`https`, the per-hop table still passes in full, and the sync ID is readable by
+anyone able to present a certificate; a test asserting only on the URL scheme
+cannot fail here). **No certificate-validation escape hatch exists in the client
+source at all** (mutation: add a `badCertificateCallback` behind a debug flag
+defaulting to off — the behavioural vector above still passes, because the test
+build takes the default; only a source scan sees it. This is why the property is
+owned by a standing ratchet and not by the unit that builds the client). **A
+`localhost`-prefixed public host is refused** (mutation: test the loopback
+exemption with `startsWith` or `contains` rather than an exact host match —
+`http://localhost.example.com/v1` is then accepted as exempt and the sync ID
+goes out in plaintext to a registrable domain). **`http://[::1]` and
 `http://127.0.0.2` are refused** (mutation: implement the exemption as a
 loopback-*range* test, such as `InternetAddress.tryParse(host)?.isLoopback` —
 this is a distinct implementation from the one above and neither test catches
