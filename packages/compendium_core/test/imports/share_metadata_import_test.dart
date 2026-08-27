@@ -156,6 +156,77 @@ void main() {
     },
   );
 
+  test('downstream program failure compensates dances and metadata', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final choreographers = ChoreographerRepository(db);
+    final programs = _FailingProgramCreateRepository(db);
+    final venues = VenueRepository(db);
+    final tags = TagRepository(db);
+    final sources = PublishedSourceRepository(db);
+    final fields = CustomFieldDefRepository(db);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, choreographers),
+      programs,
+      venues,
+      tags: tags,
+      sources: sources,
+      customFields: fields,
+    );
+    final archive = CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'd1',
+          title: 'Shared dance',
+          tagIds: const ['t1'],
+          sourceCitations: [SourceCitation(sourceId: 's1')],
+          customFields: [CustomFieldValue(fieldId: 'f1', value: 'yes')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      programs: [
+        Program(
+          id: 'p1',
+          title: 'Shared program',
+          slots: [ProgramSlot(id: 'slot1', position: 0, danceId: 'd1')],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      tags: [Tag(id: 't1', name: 'shared')],
+      publishedSources: [PublishedSource(id: 's1', title: 'Shared source')],
+      customFields: [
+        CustomFieldDef(
+          id: 'f1',
+          key: 'teach',
+          label: 'Needs teaching',
+          type: CustomFieldType.text,
+        ),
+      ],
+    );
+    var nextId = 0;
+
+    await expectLater(
+      importer.import(
+        encodeArchive(archive),
+        archive,
+        now: _now,
+        newId: () => 'receiver-${++nextId}',
+      ),
+      throwsA(isA<StateError>()),
+    );
+
+    expect(await programs.listAll(), isEmpty);
+    expect(await dances.listAll(), isEmpty);
+    expect(await choreographers.listAll(), isEmpty);
+    expect(await tags.listAll(), isEmpty);
+    expect(await sources.listAll(), isEmpty);
+    expect(await fields.listAll(), isEmpty);
+  });
+
   test('rejects dangling metadata references before creating rows', () async {
     final db = openTestDatabase();
     addTearDown(db.close);
@@ -187,4 +258,12 @@ void main() {
     );
     expect(await tags.listAll(), isEmpty);
   });
+}
+
+class _FailingProgramCreateRepository extends ProgramRepository {
+  _FailingProgramCreateRepository(super.db);
+
+  @override
+  Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) =>
+      Future.error(StateError('simulated downstream program persist failure'));
 }

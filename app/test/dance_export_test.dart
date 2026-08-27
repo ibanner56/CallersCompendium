@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -159,15 +161,89 @@ void main() {
       );
     });
 
-    testWidgets('offers share, copy, and PDF actions', (tester) async {
+    testWidgets('offers share, copy, PDF, and file actions', (tester) async {
       await _pumpMenu(tester, _dance());
 
       await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
       await tester.pumpAndSettle();
 
       expect(find.text('Share dance (text)'), findsOneWidget);
+      expect(find.text('Share dance file'), findsOneWidget);
       expect(find.text('Copy dance'), findsOneWidget);
+      expect(find.text('Export dance as JSON'), findsOneWidget);
       expect(find.text('Export / print PDF'), findsOneWidget);
+    });
+
+    testWidgets('file actions stage and share the canonical payload', (
+      tester,
+    ) async {
+      final staged = <String, String>{};
+      final shared = <ShareParams>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance(title: 'A dance / with unsafe:name'),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  bundleFileWriter: (json, fileName) async {
+                    staged[fileName] = json;
+                    return XFile('/tmp/$fileName');
+                  },
+                  shareInvoker: (params) async => shared.add(params),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final menu = find.byKey(const ValueKey('dance-export-menu'));
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share dance file'));
+      await tester.pumpAndSettle();
+      await tester.tap(menu);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export dance as JSON'));
+      await tester.pumpAndSettle();
+
+      expect(
+        staged.keys,
+        containsAll(<String>[
+          'A_dance___with_unsafe_name.ccshare',
+          'A_dance___with_unsafe_name.json',
+        ]),
+      );
+      final ccSharePayload = jsonDecode(
+        staged['A_dance___with_unsafe_name.ccshare']!,
+      ) as Map<String, dynamic>;
+      final jsonPayload = jsonDecode(
+        staged['A_dance___with_unsafe_name.json']!,
+      ) as Map<String, dynamic>;
+      ccSharePayload.remove('exportedAt');
+      jsonPayload.remove('exportedAt');
+      expect(ccSharePayload, jsonPayload);
+      expect(shared, hasLength(2));
+      expect(shared[0].files!.single.path, endsWith('.ccshare'));
+      expect(shared[1].files!.single.path, endsWith('.json'));
+      expect(
+        shared[0].fileNameOverrides,
+        ['A_dance___with_unsafe_name.ccshare'],
+      );
+      expect(
+        shared[1].fileNameOverrides,
+        ['A_dance___with_unsafe_name.json'],
+      );
+      expect(shared[0].sharePositionOrigin, isNotNull);
+      expect(shared[1].sharePositionOrigin, isNotNull);
     });
 
     testWidgets('Copy dance puts the rendered card on the clipboard', (
