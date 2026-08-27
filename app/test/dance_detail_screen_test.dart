@@ -291,6 +291,41 @@ void main() {
       },
     );
 
+    testWidgets(
+      'reports a missing referenced tag from the compact file export',
+      (tester) async {
+        final baseRepos = openTestRepositories();
+        await baseRepos.dances.create(_dance(id: 'd1'));
+        final repos = CompendiumRepositories(
+          baseRepos.db,
+          contraTaxonomy,
+          dances: _DanglingDances(
+            baseRepos.db,
+            contraTaxonomy,
+            _dance(id: 'd1', tagIds: const ['missing-tag']),
+          ),
+        );
+        final library = await buildLibrary(repos);
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          surfaceSize: const Size(360, 800),
+          dialectLibrary: library,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('overflow-share-dance-bundle')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text("Couldn't share this dance"), findsOneWidget);
+      },
+    );
+
     testWidgets('overflow Export actions are reachable and Copy works', (
       tester,
     ) async {
@@ -2144,5 +2179,19 @@ class _FailingDances extends DanceRepository {
       return Future.error(StateError('injected record read failure'));
     }
     return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
+}
+
+/// Returns a dance with a dangling metadata reference so the compact export
+/// handler's user-facing error path is exercised without violating database FKs.
+class _DanglingDances extends DanceRepository {
+  _DanglingDances(super.db, super.taxonomy, this.danglingDance);
+
+  final Dance danglingDance;
+
+  @override
+  Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
+    if (id == danglingDance.id) return danglingDance;
+    return super.getById(id, includeDeleted: includeDeleted);
   }
 }

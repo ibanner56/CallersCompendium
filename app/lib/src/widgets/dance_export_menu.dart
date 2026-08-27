@@ -206,7 +206,7 @@ class DanceExportMenu extends StatelessWidget {
   ) async {
     try {
       await action();
-    } on Exception catch (e, st) {
+    } on Object catch (e, st) {
       logCaughtError(e, st, source: 'dance_export_menu._guard');
       if (kDebugMode) {
         debugPrint('$failureMessage: $e\n$st');

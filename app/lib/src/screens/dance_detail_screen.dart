@@ -767,7 +767,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           subject: detail.dance.title,
         ),
       );
-    } on Exception catch (e, stackTrace) {
+    } on Object catch (e, stackTrace) {
       logCaughtError(
         e,
         stackTrace,

@@ -345,6 +345,19 @@ void main() {
       expect(find.text("Couldn't share this dance"), findsOneWidget);
     });
 
+    testWidgets('surfaces a SnackBar when a referenced tag is missing', (
+      tester,
+    ) async {
+      await _pumpMenu(tester, _dance().copyWith(tagIds: const ['missing-tag']));
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share dance file'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this dance"), findsOneWidget);
+    });
+
     testWidgets('share receives a non-null sharePositionOrigin', (
       tester,
     ) async {
