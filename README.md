@@ -25,11 +25,16 @@ Squares) callers — on desktop, tablet, and phone.
 > first-launch security prompt? The
 > [Installation guide](docs/user/installation.md) walks you through it. **iPhone
 > and iPad** builds are delivered through **TestFlight** to invited testers rather
-> than the Releases page. **Android APKs are signed** and the **macOS build is
-> signed and notarized**. Linux desktop artifacts are unsigned; Windows artifacts
-> are signed via Azure Trusted Signing when the release workflow's five `AZURE_*`
-> repository variables and federated OIDC configuration are present, with an
-> unsigned fallback that may show a SmartScreen prompt. See
+> than the Releases page, and **Android** is now in a **Google Play closed test**
+> — the smoothest way onto a phone, and joining helps us prove out that pipeline
+> (see the [installation guide](docs/user/installation.md#install-on-android));
+> the signed **`.apk`** on the Releases page still works for anyone who prefers to
+> sideload. **Android APKs are signed** (with a different key than the Play build,
+> so pick one route and stay with it) and the **macOS build is signed and
+> notarized**. Linux desktop artifacts are unsigned; Windows artifacts are signed
+> via Azure Trusted Signing when the release workflow's five `AZURE_*` repository
+> variables and federated OIDC configuration are present, with an unsigned
+> fallback that may show a SmartScreen prompt. See
 > [docs/ROADMAP.md](docs/ROADMAP.md) for the detailed, item-by-item status.
 
 ## What it does

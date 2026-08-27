@@ -16,6 +16,7 @@ import 'package:compendium_app/src/data/soft_delete_retention.dart'
 import 'package:compendium_app/src/data/window_service.dart'
     show kWindowFrameKey;
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart' show Brightness;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -53,6 +54,8 @@ Future<void> _seed(CompendiumRepositories repos) async {
 }
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(

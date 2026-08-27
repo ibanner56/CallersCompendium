@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -95,8 +94,6 @@ List<String> _titles(WidgetTester tester) => tester
     .toList();
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   // Seeds one dance with a canonical role2s figure param (so FTS stores
   // 'role2s') and one decoy that never should match a role-term query.
   Future<CompendiumRepositories> seed() async {

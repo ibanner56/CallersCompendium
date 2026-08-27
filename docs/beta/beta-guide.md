@@ -45,15 +45,18 @@ These parts of the app are built and ready for you to lean on:
 Being honest about the state of things saves everyone time:
 
 - **Signing and first-run steps vary by platform.** The **macOS** build is signed
-  with an Apple Developer ID and notarized, so it opens normally. The **Android**
-  APK is signed, but because it isn't on the Play Store you'll still grant a
-  one-time **"install unknown apps"** permission to sideload it. **Windows**
-  artifacts are signed via Azure Trusted Signing when the release workflow's five
-  `AZURE_*` repository variables and federated OIDC configuration are present;
-  otherwise the unsigned fallback may show a **SmartScreen** caution the first
-  time you run it. **Linux** artifacts are unsigned, but Linux has no signing
-  prompt — you just mark the AppImage as runnable. [How to install](#how-to-install)
-  walks through each platform.
+  with an Apple Developer ID and notarized, so it opens normally. **Android** now
+  has two routes: the app is in a **Google Play closed test** (installs and
+  updates like any Play app — see [How to join](#how-to-join)), or you can
+  sideload the signed **APK**, which needs a one-time **"install unknown apps"**
+  permission. The two are signed with different keys, so you can't upgrade between
+  them in place — [pick one route and stick with it](../user/installation.md#install-on-android).
+  **Windows** artifacts are signed via Azure Trusted Signing when the release
+  workflow's five `AZURE_*` repository variables and federated OIDC configuration
+  are present; otherwise the unsigned fallback may show a **SmartScreen** caution
+  the first time you run it. **Linux** artifacts are unsigned, but Linux has no
+  signing prompt — you just mark the AppImage as runnable.
+  [How to install](#how-to-install) walks through each platform.
 - **You may hit bugs.** That is the point — when you do, tell us (see
   [How to give feedback](#how-to-give-feedback)).
 
@@ -84,13 +87,16 @@ in more depth.
    kinds of things we are hoping you will try.
 2. Fill out the **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
    form to tell us which platforms you call on. A free GitHub account is all you
-   need. **Heads-up: the signup issue is public**, so keep personal contact details
-   out of it — if you want an iPhone/iPad **TestFlight** invite, email the Apple ID
-   address it should go to privately to
-   [compendium@contra.dance](mailto:compendium@contra.dance) rather than posting it in the issue.
-   You can also just say hello in
+   need. **Heads-up: the signup issue is public.** The form asks for one contact
+   detail per mobile platform you pick: an **Apple ID email** if you want an
+   iPhone/iPad **TestFlight** invite, and the **Google-account email** on your
+   device if you want into the **Android Google Play closed test**. Those are the
+   only personal details to include — please leave everything else out. Prefer
+   not to post an email publicly? Email it to
+   [compendium@contra.dance](mailto:compendium@contra.dance) instead, or just say
+   hello in
    [GitHub Discussions](https://github.com/ibanner56/CallersCompendium/discussions)
-   if you would rather start with a conversation.
+   if you'd rather start with a conversation.
 3. Install the app (below) and start using it for your real dances.
 
 You can step back at any time, and you never have to share anything you would
@@ -104,9 +110,13 @@ Packaged beta builds are ready on the
 opening the app on Linux, macOS, Windows, and Android — including the first-time
 security warning you may see on an **unsigned Windows fallback** (Linux artifacts
 are unsigned but generally have no signing prompt; macOS is signed and notarized,
-so it opens normally). The
-**iPhone/iPad** build is delivered through **TestFlight** to invited testers —
-ask in the beta channels if you'd like in.
+so it opens normally). On **Android** you can either join the **Google Play closed
+test** (it installs and updates like any Play app — helping us prove out that
+pipeline is one of the most useful things a tester can do right now) or sideload
+the signed **APK** directly; the
+[Android section](../user/installation.md#install-on-android) explains both and
+why you should stick with one. The **iPhone/iPad** build is delivered through
+**TestFlight** to invited testers — ask in the beta channels if you'd like in.
 
 Prefer to run from source, or want to help with the code? The
 [Getting started section of CONTRIBUTING.md](../../CONTRIBUTING.md#getting-started)

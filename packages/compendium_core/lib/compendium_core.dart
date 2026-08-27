@@ -52,6 +52,7 @@ export 'src/imports/program_slot_note.dart';
 export 'src/imports/raw_record.dart';
 export 'src/imports/reparse_custom_figures.dart';
 export 'src/imports/shorthand_mappings.dart';
+export 'src/imports/share_metadata_import.dart';
 export 'src/imports/source_adapter.dart';
 export 'src/imports/structured_draft.dart';
 export 'src/imports/venue_dedupe.dart';
@@ -77,6 +78,8 @@ export 'src/privacy/settings_registry.dart';
 export 'src/search/search_sort.dart';
 export 'src/search/title_sort_key.dart';
 export 'src/search/filter.dart';
+export 'src/storage/calling_history_scope.dart'
+    show normalizeCallingHistoryCaller;
 export 'src/search/filter_compiler.dart';
 export 'src/search/fts_query.dart';
 export 'src/search/search_enrichment.dart';

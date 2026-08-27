@@ -31,7 +31,6 @@ void main() {
   late CompendiumRepositories repos;
 
   setUp(() => repos = openTestRepositories());
-  tearDown(() => repos.db.close());
 
   testWidgets('lists every tag, colourless ones included', (tester) async {
     // ignore: unused_result

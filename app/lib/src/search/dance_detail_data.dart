@@ -29,6 +29,9 @@ class DanceDetailData {
     required this.authorNames,
     required this.tagNames,
     this.tags = const [],
+    this.choreographersById = const {},
+    this.tagsById = const {},
+    this.customFieldsById = const {},
     required this.customFields,
     required this.relatedDanceTitles,
     required this.sourcesById,
@@ -47,6 +50,9 @@ class DanceDetailData {
   /// constructors (an un-imported dance has no tags to filter the local
   /// collection by).
   final List<({String id, String name, int? color})> tags;
+  final Map<String, Choreographer> choreographersById;
+  final Map<String, Tag> tagsById;
+  final Map<String, CustomFieldDef> customFieldsById;
   final List<CustomFieldDisplay> customFields;
 
   /// Maps targetDanceId → title for relatedDance links whose target exists.
@@ -244,6 +250,9 @@ class DanceDetailData {
           if (tagsById[id] != null)
             (id: id, name: tagsById[id]!.name, color: tagsById[id]!.color),
       ],
+      choreographersById: {for (final c in choreographers) c.id: c},
+      tagsById: tagsById,
+      customFieldsById: defsById,
       customFields: [
         for (final value in dance.customFields)
           if (defsById[value.fieldId] case final def?)

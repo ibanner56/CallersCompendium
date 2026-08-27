@@ -19,6 +19,7 @@ Future<void> _pump(
   bool hasMixedLevel = false,
   bool hasMixer = false,
   bool hasRating = false,
+  bool hasCallingHistory = false,
   // Only set when a test needs to exercise ResponsiveAutocomplete's narrow
   // layout; existing (unset) tests keep relying on the default test window
   // (800x600), which is already comfortably above the compact width/height
@@ -47,6 +48,7 @@ Future<void> _pump(
               hasMixedLevel: hasMixedLevel,
               hasMixer: hasMixer,
               hasRating: hasRating,
+              hasCallingHistory: hasCallingHistory,
               authors: authors,
               tags: const [],
               citedSources: citedSources,
@@ -145,6 +147,41 @@ void main() {
     await _pump(tester, FacetSelections(), onChanged: () {});
     expect(find.text('Level'), findsNothing);
     expect(find.byKey(const ValueKey('mixed-level-yes')), findsNothing);
+  });
+
+  testWidgets('calling-history chips toggle called status selections', (
+    tester,
+  ) async {
+    final facets = FacetSelections();
+    var changes = 0;
+    await _pump(
+      tester,
+      facets,
+      hasCallingHistory: true,
+      onChanged: () => changes++,
+    );
+
+    expect(find.text('Calling history'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('call-status-called')));
+    await tester.pump();
+    expect(facets.callStatuses, {true});
+
+    await tester.tap(find.byKey(const ValueKey('call-status-not-called')));
+    await tester.pump();
+    expect(facets.callStatuses, {true, false});
+    expect(changes, 2);
+
+    await tester.tap(find.byKey(const ValueKey('call-status-called')));
+    await tester.pump();
+    expect(facets.callStatuses, {false});
+  });
+
+  testWidgets('calling-history section is hidden without qualifying calls', (
+    tester,
+  ) async {
+    await _pump(tester, FacetSelections(), onChanged: () {});
+    expect(find.text('Calling history'), findsNothing);
+    expect(find.byKey(const ValueKey('call-status-called')), findsNothing);
   });
 
   testWidgets('minimum-rating chip sets and clears the floor', (tester) async {

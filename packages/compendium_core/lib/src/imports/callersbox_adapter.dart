@@ -378,6 +378,12 @@ class CallersBoxAdapter implements SourceAdapter {
     // Confidence guard: at least one child, summing EXACTLY to the parent.
     if (childTexts.isEmpty || childBeatsSum != parentBeats) return null;
 
+    final doubleSlice = _doubleSlice(
+      parentText,
+      childTexts,
+      childBeats,
+      parentBeats,
+    );
     // The parent is a single atomic figure carrying the parent's beats. A
     // recognised parent structures (revolving_door, …); anything else — or a
     // parent that would itself split on `;` — stays ONE custom figure. Never
@@ -388,39 +394,43 @@ class CallersBoxAdapter implements SourceAdapter {
     // only the top-level-`;` case builds its own custom figure and must scrub
     // the raw text itself. Guard the extreme empty-after-scrub case so
     // `customFigure` is never handed empty text (parse-never-fails: decline).
-    final parsed = parseFigureLine(
-      parentText,
-      beats: parentBeats,
-      frontEnd: tcbFigureFrontEnd,
-    );
     final Figure base;
-    if (parsed != null &&
-        !parsed.isCustom &&
-        !hasTopLevelSeparator(parentText, ';')) {
-      base = parsed; // known parent → structured taxonomy move (scrubbed)
-    } else if (parsed != null && parsed.isCustom) {
-      // Unknown parent: prefer TCB's OWN decomposition when every child
-      // independently structures (#295) — the shorthand is expressible as moves
-      // the taxonomy already has, so emitting the children beats keeping a
-      // custom figure whose definition is stranded in a note.
-      final children = _structuredCompoundChildren(childTexts, childBeats);
-      if (children != null) {
-        return _Compound(_withParentShorthandNote(children, parsed), i);
-      }
-      base = parsed; // unknown parent → already-scrubbed custom fallback
+    if (doubleSlice != null) {
+      base = doubleSlice;
     } else {
-      // A structured parent carrying a top-level `;` (would fan into clauses):
-      // keep it whole as one scrubbed custom figure instead of splitting.
-      final scrubbed = scrubFigureText(parentText);
-      if (scrubbed.isEmpty) {
-        if (parsed == null) return null;
-        base = parsed;
+      final parsed = parseFigureLine(
+        parentText,
+        beats: parentBeats,
+        frontEnd: tcbFigureFrontEnd,
+      );
+      if (parsed != null &&
+          !parsed.isCustom &&
+          !hasTopLevelSeparator(parentText, ';')) {
+        base = parsed; // known parent → structured taxonomy move (scrubbed)
+      } else if (parsed != null && parsed.isCustom) {
+        // Unknown parent: prefer TCB's OWN decomposition when every child
+        // independently structures (#295) — the shorthand is expressible as moves
+        // the taxonomy already has, so emitting the children beats keeping a
+        // custom figure whose definition is stranded in a note.
+        final children = _structuredCompoundChildren(childTexts, childBeats);
+        if (children != null) {
+          return _Compound(_withParentShorthandNote(children, parsed), i);
+        }
+        base = parsed; // unknown parent → already-scrubbed custom fallback
       } else {
-        base = customFigure(
-          scrubbed,
-          beats: parentBeats,
-          origin: CustomOrigin.importGap,
-        );
+        // A structured parent carrying a top-level `;` (would fan into clauses):
+        // keep it whole as one scrubbed custom figure instead of splitting.
+        final scrubbed = scrubFigureText(parentText);
+        if (scrubbed.isEmpty) {
+          if (parsed == null) return null;
+          base = parsed;
+        } else {
+          base = customFigure(
+            scrubbed,
+            beats: parentBeats,
+            origin: CustomOrigin.importGap,
+          );
+        }
       }
     }
 
@@ -436,6 +446,49 @@ class CallersBoxAdapter implements SourceAdapter {
 
     return _Compound([base.copyWith(note: note)], i);
   }
+
+  /// The two supplied CallersBox Double-slice records use this exact
+  /// eight-beat, two-diagonal definition. It maps to the existing diagonal
+  /// return variant; near-matches remain the ordinary atomic custom parent.
+  static Figure? _doubleSlice(
+    String parentText,
+    List<String> childTexts,
+    List<int> childBeats,
+    int parentBeats,
+  ) {
+    final parent = _doubleSliceParent.firstMatch(parentText.trim());
+    if (parent == null ||
+        parentBeats != 8 ||
+        childBeats.length != 2 ||
+        childBeats[0] != 4 ||
+        childBeats[1] != 4 ||
+        childTexts.length != 2 ||
+        !_doubleSliceForward.hasMatch(childTexts[0]) ||
+        !_doubleSliceFallBack.hasMatch(childTexts[1])) {
+      return null;
+    }
+    return Figure(
+      move: 'slice',
+      params: {
+        'slice': parent.group(1)!.toLowerCase(),
+        'return': 'diagonal',
+        'beats': parentBeats,
+      },
+    );
+  }
+
+  static final RegExp _doubleSliceParent = RegExp(
+    r'^double\s+slice\s+(left|right)$',
+    caseSensitive: false,
+  );
+  static final RegExp _doubleSliceForward = RegExp(
+    r'^\(4\)\s+on left diagonal,\s+go forward to s1$',
+    caseSensitive: false,
+  );
+  static final RegExp _doubleSliceFallBack = RegExp(
+    r'^\(4\)\s+on other diagonal,\s+fall back to s2$',
+    caseSensitive: false,
+  );
 
   /// Parses a compound's children into structured figures, or `null` when ANY
   /// child fails to structure — the all-or-nothing guard that keeps a block from

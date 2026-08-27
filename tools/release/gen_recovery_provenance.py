@@ -24,9 +24,18 @@ def _validate_sha(value: str, label: str) -> str:
     return value
 
 
+def _validate_id(value: str, label: str) -> str:
+    if not value.isdigit():
+        raise ValueError(f"{label} must be a decimal integer")
+    return value
+
+
 def build_predicate(
     *,
     repository: str,
+    repository_id: str,
+    repository_owner_id: str,
+    runner_environment: str,
     server_url: str,
     workflow_ref: str,
     workflow_sha: str,
@@ -38,6 +47,10 @@ def build_predicate(
     """Return a GitHub Actions SLSA v1 predicate with split source/workflow refs."""
     if not _REPOSITORY_RE.fullmatch(repository):
         raise ValueError("repository must be in owner/name form")
+    _validate_id(repository_id, "repository_id")
+    _validate_id(repository_owner_id, "repository_owner_id")
+    if runner_environment not in {"github-hosted", "self-hosted"}:
+        raise ValueError("runner_environment must be github-hosted or self-hosted")
     parsed_url = urlparse(server_url)
     if parsed_url.scheme not in {"http", "https"} or not parsed_url.netloc:
         raise ValueError("server_url must be an absolute HTTP(S) URL")
@@ -59,6 +72,8 @@ def build_predicate(
         raise ValueError("workflow_ref must end in a full refs/... Git ref")
 
     repository_url = f"{server_url}/{repository}"
+    # Preserve the stock GitHub SLSA predicate shape and first dependency; the
+    # tagged source is an additional dependency unique to recovery runs.
     return {
         "buildDefinition": {
             "buildType": "https://actions.github.io/buildtypes/workflow/v1",
@@ -72,17 +87,19 @@ def build_predicate(
             "internalParameters": {
                 "github": {
                     "event_name": "workflow_dispatch",
-                    "release_recovery": True,
+                    "repository_id": repository_id,
+                    "repository_owner_id": repository_owner_id,
+                    "runner_environment": runner_environment,
                 }
             },
             "resolvedDependencies": [
                 {
-                    "uri": f"git+{repository_url}@{release_ref}",
-                    "digest": {"gitCommit": source_sha},
-                },
-                {
                     "uri": f"git+{repository_url}@{workflow_git_ref}",
                     "digest": {"gitCommit": workflow_sha},
+                },
+                {
+                    "uri": f"git+{repository_url}@{release_ref}",
+                    "digest": {"gitCommit": source_sha},
                 },
             ],
         },
@@ -100,6 +117,9 @@ def build_predicate(
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repository", required=True)
+    parser.add_argument("--repository-id", required=True)
+    parser.add_argument("--repository-owner-id", required=True)
+    parser.add_argument("--runner-environment", required=True)
     parser.add_argument("--server-url", required=True)
     parser.add_argument("--workflow-ref", required=True)
     parser.add_argument("--workflow-sha", required=True)
@@ -112,6 +132,9 @@ def main() -> None:
 
     predicate = build_predicate(
         repository=args.repository,
+        repository_id=args.repository_id,
+        repository_owner_id=args.repository_owner_id,
+        runner_environment=args.runner_environment,
         server_url=args.server_url,
         workflow_ref=args.workflow_ref,
         workflow_sha=args.workflow_sha,

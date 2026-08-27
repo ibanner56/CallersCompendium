@@ -406,6 +406,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '検証済みのファイルがファイルマネージャーで表示されました — インストーラーを実行してアップデートを完了してください。';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'アップデートして再起動';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'アップデートの準備ができました。ディスクイメージをマウントしてアプリを閉じると、「アプリケーション」フォルダ内で置き換えられます。';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'アップデートをダウンロードしてインストール';
 
   @override
@@ -1706,6 +1713,15 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionFacetStatus => 'ステータス';
+
+  @override
+  String get collectionFacetCallStatus => 'コール履歴';
+
+  @override
+  String get collectionFacetCalled => 'コール済み';
+
+  @override
+  String get collectionFacetNotCalled => '未コール';
 
   @override
   String get collectionFacetLevel => 'レベル';
@@ -3154,7 +3170,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportShareDanceText => 'ダンスを共有（テキスト）';
 
   @override
+  String get exportShareDanceBundle => 'ダンスファイルを共有';
+
+  @override
   String get exportCopyDance => 'ダンスをコピー';
+
+  @override
+  String get exportShareDanceJson => 'ダンスをJSONとしてエクスポート';
 
   @override
   String get exportPrintPdf => 'PDFにエクスポート／印刷';
@@ -3466,7 +3488,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get importFromTitleList => 'タイトルリストから';
 
   @override
+  String get importProgramFromTitleList => 'タイトルリストからインポート';
+
+  @override
   String get importFromContraDb => 'ContraDBから';
+
+  @override
+  String get importProgramFromContraDb => 'ContraDBからインポート';
 
   @override
   String get importProgramTitleLabel => 'プログラムタイトル';
@@ -5237,6 +5265,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version をインストールできます。';
+  }
+
+  @override
   String get updateBannerDownloadFailed => 'アップデートをダウンロードできませんでした。';
 
   @override
@@ -5252,6 +5285,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'ダウンロードしてインストール';
+
+  @override
+  String get updateBannerUpdateRestart => 'アップデートして再起動';
+
+  @override
+  String get updateMacosReadyTitle => 'アップデートの準備はできましたか？';
+
+  @override
+  String get updateMacosReadyBody =>
+      'アップデートは検証済みです。今すぐアップデートするとディスクイメージが開き、Caller\'s Compendium が閉じるため、「アプリケーション」フォルダ内で置き換えられます。';
+
+  @override
+  String get updateMacosNotNow => '今はしない';
+
+  @override
+  String get updateMacosUpdateNow => '今すぐアップデート';
 
   @override
   String get commandPaletteBarrierLabel => 'グローバル検索';
@@ -6156,6 +6205,20 @@ class AppLocalizationsJa extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · ダンス $count件';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'ライセンス: $license\n許可: $grantor が $holder に $basis に基づく利用許可を付与。対象フィールド: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'なし';
 
   @override
   String publishedCollectionSupersedes(String version) {

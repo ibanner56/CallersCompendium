@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:drift/drift.dart' show QueryExecutor;
 import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart' show addTearDown;
 
 /// An in-memory [CompendiumDatabase] for widget tests.
 ///
@@ -17,17 +18,29 @@ import 'package:drift/native.dart';
 ///
 /// Pass [executor] to wrap a non-default one (e.g. `NativeDatabase.memory()`
 /// with an interceptor).
-CompendiumDatabase openWidgetTestDatabase([QueryExecutor? executor]) =>
-    CompendiumDatabase(
-      executor ?? NativeDatabase.memory(),
-      closeStreamsSynchronously: true,
-    );
+///
+/// Databases close automatically when the current test tears down. Set
+/// [closeOnTearDown] to false when the caller owns an explicit or early close.
+CompendiumDatabase openWidgetTestDatabase({
+  QueryExecutor? executor,
+  bool closeOnTearDown = true,
+}) {
+  final db = CompendiumDatabase(
+    executor ?? NativeDatabase.memory(),
+    closeStreamsSynchronously: true,
+  );
+  if (closeOnTearDown) addTearDown(db.close);
+  return db;
+}
 
 /// An in-memory [CompendiumRepositories] for widget tests. Each call opens a
 /// fresh, isolated database (no shared state between tests), mirroring
 /// `packages/compendium_core/test/storage/test_database.dart`.
-CompendiumRepositories openTestRepositories() =>
-    CompendiumRepositories(openWidgetTestDatabase(), contraTaxonomy);
+CompendiumRepositories openTestRepositories({bool closeOnTearDown = true}) =>
+    CompendiumRepositories(
+      openWidgetTestDatabase(closeOnTearDown: closeOnTearDown),
+      contraTaxonomy,
+    );
 
 /// A [SettingsRepository] that can be forced to fail its writes, used to
 /// simulate the settings store throwing / being unavailable during a backup
@@ -62,8 +75,8 @@ class InjectedSettingsFailure implements Exception {
 /// share the same database, so a core restore commits normally while the
 /// settings-apply step fails.
 ({CompendiumRepositories repos, FailingSettingsRepository settings})
-openTestRepositoriesWithFailingSettings() {
-  final db = openWidgetTestDatabase();
+openTestRepositoriesWithFailingSettings({bool closeOnTearDown = true}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final settings = FailingSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
@@ -250,16 +263,16 @@ class InjectedProgramFailure implements Exception {
 }
 
 ({CompendiumRepositories repos, FailingProgramRepository programs})
-openTestRepositoriesWithFailingPrograms() {
-  final db = openWidgetTestDatabase();
+openTestRepositoriesWithFailingPrograms({bool closeOnTearDown = true}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final programs = FailingProgramRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
   return (repos: repos, programs: programs);
 }
 
 ({CompendiumRepositories repos, DelayedProgramRepository programs})
-openTestRepositoriesWithDelayedPrograms() {
-  final db = openWidgetTestDatabase();
+openTestRepositoriesWithDelayedPrograms({bool closeOnTearDown = true}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final programs = DelayedProgramRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
   return (repos: repos, programs: programs);
@@ -269,8 +282,8 @@ openTestRepositoriesWithDelayedPrograms() {
 /// tests can hold an autosave write or draft removal open while exercising a
 /// concurrent draft cleanup.
 ({CompendiumRepositories repos, DelayedSettingsRepository settings})
-openTestRepositoriesWithDelayedSettings() {
-  final db = openWidgetTestDatabase();
+openTestRepositoriesWithDelayedSettings({bool closeOnTearDown = true}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final settings = DelayedSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);
@@ -337,8 +350,8 @@ class DelayedReadSettingsRepository extends SettingsRepository {
 /// in-list, reproducing the late-read-clobber race for both the Collection
 /// and Programs lists (issue #895).
 ({CompendiumRepositories repos, DelayedReadSettingsRepository settings})
-openTestRepositoriesWithDelayedSettingsRead() {
-  final db = openWidgetTestDatabase();
+openTestRepositoriesWithDelayedSettingsRead({bool closeOnTearDown = true}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
   final settings = DelayedReadSettingsRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, settings: settings);
   return (repos: repos, settings: settings);

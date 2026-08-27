@@ -12,7 +12,6 @@ import 'support/test_repositories.dart';
 void main() {
   test('collects every promised user-content source', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
 
     // ignore: unused_result
     await repos.customFieldDefs.upsert(
@@ -114,7 +113,6 @@ void main() {
 
   test('is fail-closed: a source read error propagates', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     // Drop the first source table so its read throws a real SQLite error. The
     // gather MUST fail rather than return a partial set (which the export would
     // then treat as a complete "scrubbed" term list and leak the rest).

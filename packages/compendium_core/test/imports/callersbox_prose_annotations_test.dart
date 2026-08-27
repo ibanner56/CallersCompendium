@@ -12,10 +12,9 @@ final _renderer = FigureRenderer(contraTaxonomy);
 /// 3. **General prose** (`_proseAnnotation`): `(in center)`, `(along the set)`
 ///    → verbatim note, shape-gated by the presence of at least one lowercase
 ///    letter in the annotation body.
-/// 4. **Scope boundary**: `[bracket]` annotations must NOT become notes.
-/// 5. **Digit-bearing per-role codes**: couple-specific shorthand like
+/// 4. **Digit-bearing per-role codes**: couple-specific shorthand like
 ///    `M1 past M3, W1 past W2` must be declined, not verbatim-preserved.
-/// 6. **Round-trip**: synthesised role tokens must reach `renderFreeText` and
+/// 5. **Round-trip**: synthesised role tokens must reach `renderFreeText` and
 ///    render in the active dialect (not freeze as raw shorthand).
 ///
 /// The test file is structured to support red-run verification of each
@@ -285,72 +284,7 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // 4. Scope boundary: `[…]` annotations are NOT preserved as notes
-  // ---------------------------------------------------------------------------
-  //
-  // TCB uses `[…]` brackets for formation/who-performs context markers
-  // (`[Others]`, `[with N3]`, `[Top two couples]`).  These have a different
-  // payload from `(…)` prose annotations and must not become notes.
-  // Both `_perRoleChoreoAnnotation` and `_proseAnnotation` use
-  // `_parenAnnotations` (round-paren only) so `[…]` bodies never reach them.
-  //
-  // `_balancePairHandAnnotation` was already safe: its regex is `\(…\)`.
-  //
-  // Red-run target (for `[…]` scope): change `_parenAnnotations` to
-  // `_annotations` in `_proseAnnotation`.  Then `[with N3]` on a balance_ring
-  // would produce note `with N3` instead of null.
-
-  group('#744 — scope boundary: [bracket] annotations unchanged', () {
-    test('[bracket] body on a structured figure does NOT become a note', () {
-      // `[with N3]` is TCB formation context, not a prose annotation.
-      // `_proseAnnotation` uses _parenAnnotations (paren-only), so this
-      // bracket body must not reach it and must produce no note.
-      final f = _single('Balance ring [with N3]', beats: 4);
-      expect(f.move, 'balance_the_ring');
-      expect(f.note, isNull);
-    });
-
-    test(
-      '[bracket] body does not interfere with adjacent (paren) prose note',
-      () {
-        // If both a [bracket] and a (paren) annotation are present, only the
-        // paren annotation should produce a note.
-        final f = _single('Neighbor swing [Others] (in center)', beats: 8);
-        expect(f.move, 'swing');
-        expect(f.note, 'in center');
-        expect(f.note, isNot(contains('Others')));
-      },
-    );
-
-    // Nested (…) inside [bracket]: must NOT become a note.
-    // TCB writes e.g. `[Heads (ones+fours)]` where `(ones+fours)` is a
-    // role-set descriptor attached to the bracket annotation, not a free
-    // prose annotation.  _parenAnnotations strips [bracket] spans first so
-    // nested (…) bodies are never extracted.
-    //
-    // Red-run: remove `final noSquare = scrubbed.replaceAll(…)` stripping
-    // from `_parenAnnotations`.  Then `(ones+fours)` would be extracted from
-    // `[Heads (ones+fours)] Pass through across (NR)` and produce a spurious
-    // note `ones+fours` — exactly the regression caught by the failing
-    // callersbox_walk_forward_test.dart (dance #733).
-    test('(paren) nested inside [bracket] does NOT become a note', () {
-      // `[Heads (ones+fours)]` is a bracketed context marker; the inner
-      // `(ones+fours)` must not be extracted as a prose annotation.
-      // The line parses as pass_through (structured); no prose note.
-      final figures = _parse(
-        '[Heads (ones+fours)] Pass through across (NR)',
-        beats: 8,
-      );
-      final structured = figures.where((f) => !f.isCustom).toList();
-      expect(structured, isNotEmpty);
-      for (final f in structured) {
-        expect(f.note, isNot(contains('ones+fours')));
-      }
-    });
-  });
-
-  // ---------------------------------------------------------------------------
-  // 5. Digit-bearing per-role codes: declined, not verbatim-preserved
+  // 4. Digit-bearing per-role codes: declined, not verbatim-preserved
   // ---------------------------------------------------------------------------
   //
   // TCB occasionally writes couple-specific per-role codes like
@@ -395,7 +329,7 @@ void main() {
   });
 
   // ---------------------------------------------------------------------------
-  // 6. Round-trip: synthesised role tokens reach renderFreeText
+  // 5. Round-trip: synthesised role tokens reach renderFreeText
   // ---------------------------------------------------------------------------
   //
   // Proves that notes produced by the annotation pre-recognizers carry

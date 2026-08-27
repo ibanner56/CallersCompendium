@@ -21,8 +21,11 @@ class PublishedCollectionStatus {
   final String? importedVersion;
 }
 
-/// The user-initiated catalog for signed, immutable dance collections.
-class PublishedCollectionCatalogScreen extends StatefulWidget {
+/// Full-screen route for the signed, immutable dance-collection catalog.
+///
+/// Settings keeps this route while Collection embeds [PublishedCollectionCatalog]
+/// below its import-source selector.
+class PublishedCollectionCatalogScreen extends StatelessWidget {
   const PublishedCollectionCatalogScreen({
     super.key,
     this.service,
@@ -31,28 +34,68 @@ class PublishedCollectionCatalogScreen extends StatefulWidget {
   });
 
   final PublishedCollectionService? service;
-  final Future<PublishedCollectionStatus> Function(String collectionId)?
+  final Future<PublishedCollectionStatus> Function(
+    String collectionId,
+    String version,
+  )?
   statusLoader;
   final PublishedCollectionImportCallback onImport;
 
   @override
-  State<PublishedCollectionCatalogScreen> createState() =>
-      _PublishedCollectionCatalogScreenState();
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.publishedCollectionsTitle)),
+      body: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        children: [
+          PublishedCollectionCatalog(
+            service: service,
+            statusLoader: statusLoader,
+            onImport: onImport,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _PublishedCollectionCatalogScreenState
-    extends State<PublishedCollectionCatalogScreen> {
+/// Signed catalog content usable from either a full-screen route or an importer.
+class PublishedCollectionCatalog extends StatefulWidget {
+  const PublishedCollectionCatalog({
+    super.key,
+    this.service,
+    this.statusLoader,
+    required this.onImport,
+  });
+
+  final PublishedCollectionService? service;
+  final Future<PublishedCollectionStatus> Function(
+    String collectionId,
+    String version,
+  )?
+  statusLoader;
+  final PublishedCollectionImportCallback onImport;
+
+  @override
+  State<PublishedCollectionCatalog> createState() =>
+      _PublishedCollectionCatalogState();
+}
+
+class _PublishedCollectionCatalogState
+    extends State<PublishedCollectionCatalog> {
   late final PublishedCollectionService _service =
       widget.service ?? PublishedCollectionService();
   late final Future<PublishedCollectionManifest> _catalog = _service
       .fetchCatalog();
-  final _statusByCollectionId = <String, Future<PublishedCollectionStatus>>{};
+  final _statusByEntry =
+      <(String, String), Future<PublishedCollectionStatus>>{};
   PublishedCollectionEntry? _loadingEntry;
   PublishedCollectionFetchFailure? _archiveError;
   PublishedCollectionEntry? _archiveErrorEntry;
 
   Future<void> _import(PublishedCollectionEntry entry) async {
-    if (!entry.isSupported) return;
+    if (!entry.isSupported || _loadingEntry != null) return;
     setState(() {
       _loadingEntry = entry;
       _archiveError = null;
@@ -63,7 +106,7 @@ class _PublishedCollectionCatalogScreenState
       if (!mounted) return;
       await widget.onImport(entry, bytes);
       if (mounted) {
-        _statusByCollectionId.remove(entry.id);
+        _statusByEntry.removeWhere((key, _) => key.$1 == entry.id);
       }
     } on PublishedCollectionFetchException catch (error) {
       // diagnostics: silent — this expected typed failure is shown inline.
@@ -80,45 +123,43 @@ class _PublishedCollectionCatalogScreenState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(l10n.publishedCollectionsTitle)),
-      body: FutureBuilder<PublishedCollectionManifest>(
-        future: _catalog,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return Center(
+    return FutureBuilder<PublishedCollectionManifest>(
+      future: _catalog,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Center(
               child: Semantics(
                 label: l10n.publishedCollectionsLoading,
                 child: const CircularProgressIndicator(),
               ),
-            );
-          }
-          final error = snapshot.error;
-          if (error != null || !snapshot.hasData) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Text(
-                  l10n.publishedCollectionsUnavailable,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            );
-          }
-          final entries = snapshot.data!.collections;
-          return ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              Text(
-                l10n.publishedCollectionsDescription,
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              for (final entry in entries) _buildEntry(context, entry),
-            ],
+            ),
           );
-        },
-      ),
+        }
+        final error = snapshot.error;
+        if (error != null || !snapshot.hasData) {
+          return Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              l10n.publishedCollectionsUnavailable,
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+        final entries = snapshot.data!.collections;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              l10n.publishedCollectionsDescription,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            for (final entry in entries) _buildEntry(context, entry),
+          ],
+        );
+      },
     );
   }
 
@@ -129,10 +170,10 @@ class _PublishedCollectionCatalogScreenState
     final archiveError = _archiveError != null && _archiveErrorEntry == entry;
     final statusFuture = widget.statusLoader == null
         ? null
-        : _statusByCollectionId.putIfAbsent(
+        : _statusByEntry.putIfAbsent((
             entry.id,
-            () => widget.statusLoader!(entry.id),
-          );
+            entry.version,
+          ), () => widget.statusLoader!(entry.id, entry.version));
     return Card(
       margin: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Padding(
@@ -147,6 +188,18 @@ class _PublishedCollectionCatalogScreenState
                 entry.id,
                 entry.version,
                 entry.danceCount,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              l10n.publishedCollectionPermission(
+                entry.license,
+                entry.permission.grantor,
+                entry.permission.holder,
+                entry.permission.basis,
+                entry.permission.fields.isEmpty
+                    ? l10n.publishedCollectionNoCoveredFields
+                    : entry.permission.fields.join(', '),
               ),
             ),
             if (statusFuture != null)
@@ -197,7 +250,9 @@ class _PublishedCollectionCatalogScreenState
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: FilledButton.icon(
-                onPressed: unsupported || loading ? null : () => _import(entry),
+                onPressed: unsupported || _loadingEntry != null
+                    ? null
+                    : () => _import(entry),
                 icon: loading
                     ? const SizedBox.square(
                         dimension: 18,

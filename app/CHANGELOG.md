@@ -10,16 +10,18 @@ the exact `app/pubspec.yaml` version and select their channel from the tag:
 `vX.Y.Z-beta` for beta or `vX.Y.Z` for stable. Store build codes are derived
 from that tag, so new entries need no visible or manually maintained suffix.
 
-## Platforms & install
+### Platforms & install
 
-- **Android** — a signed universal `.apk`. Install it directly (sideload); you may
-  need to allow "install unknown apps" for your browser or file manager. It is **not**
-  on the Play Store yet. (If you ran beta.1, see the reinstall note under Known
-  issues.)
+- **Android** — a signed universal `.apk` for direct install (sideload); you may
+  need to allow "install unknown apps" for your browser or file manager. The app
+  is also in a **Google Play closed test**, which installs and updates through the
+  Play Store — ask about joining if you'd prefer that. The Play build and the
+  `.apk` are signed with **different keys**, so you can't upgrade between them in
+  place; pick one and stick with it (back up before switching).
 - **iOS** — delivered through **TestFlight** to invited testers; by design there is
   no `.ipa` on this Releases page.
-- **macOS** (universal) — **signed with an Apple Developer ID and notarized**, so it
-  opens normally (you may see a single first-launch confirmation).
+- **macOS** (universal) — **signed with an Apple Developer ID and notarized**, you
+  may see a confirmation on first launch.
 - **Linux** (x64) — desktop artifacts are **unsigned**, but Linux generally has no
   signing prompt:
   - The **`.tar.gz`** is the no-setup path — extract and run. The `.AppImage`
@@ -27,30 +29,77 @@ from that tag, so new entries need no visible or manually maintained suffix.
     Debian/Ubuntu, `fuse-libs` on Fedora — which some recent distros don't
     preinstall; install it, or launch with
     `./CallersCompendium-*.AppImage --appimage-extract-and-run`.
-- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing when
-  the release workflow's five `AZURE_*` repository variables and federated OIDC
-  configuration are present. Otherwise the unsigned fallback may show
-  **SmartScreen**; choose **More info → Run anyway** on the blue **Windows
-  protected your PC** prompt.
-
-## Feedback
-
-Please tell us what breaks or feels wrong:
-<https://github.com/ibanner56/CallersCompendium/issues>. Include your platform, the
-version shown under **Settings › About**, and the steps you took. If you installed
-a beta from Releases, include its release tag too. For import problems, a small
-sanitized sample of the file you were importing helps enormously.
-
-## License
-
-Caller's Compendium is free software under the **AGPL-3.0**, with an
-[additional permission](https://github.com/ibanner56/CallersCompendium/blob/main/LICENSE-EXCEPTION.md)
-that allows distribution through managed application marketplaces (Apple's App
-Store, Google Play, and comparable stores) under those stores' required terms —
-while the source stays fully AGPL-3.0 and every user keeps their rights to it. The
-source is always available at <https://github.com/ibanner56/CallersCompendium>.
+- **Windows** (x64) — release artifacts are signed via Azure Trusted Signing but
+  may show a **SmartScreen** warning; choose **More info → Run anyway** on the
+  blue **Windows protected your PC** prompt.
 
 ## [Unreleased]
+
+### Changed
+
+- **Dance file exports** — the dance **Export** menu now offers privacy-safe
+  `.ccshare` and `.json` files containing the dance and its referenced,
+  shareable metadata. Recipients review the import before committing it and can
+  undo a successful import.
+- **Desktop in-app updates** — verified Windows installers now start directly
+  after **Download & install**. On macOS, choose whether to update immediately;
+  the disk image opens before the app closes so you can replace it in
+  **Applications**, or defer with **Update and restart**.
+
+### Fixed
+
+- **macOS shutdown** — quitting from the Dock, menu, or Command-Q now waits for
+  the local database to close before macOS tears down the app.
+
+- **Windows shutdown** — closing the app now completes Flutter's native window
+  teardown before the runner releases COM resources, preventing a crash on exit.
+
+## [0.1.3] - 2026-08-26
+
+### Changed
+
+- **Collection and Programs picker** — filter dances by whether they have been
+  called in the active caller and performed-history scope.
+  
+### Fixed
+  
+- **macOS app name** — Finder and release bundles now use a branded name instead
+  of the internal `compendium_app` build name.
+  
+- **Caller's Box bracket annotations now preserve stated dancer context.**
+  Supported square-bracket dancer sets populate an otherwise unstated figure
+  subject; supported context is retained as a dialect-aware note when the
+  subject is already explicit or the move has no subject slot. Non-duple and
+  unrecognised dancer descriptions remain custom figures rather than being
+  silently dropped.
+
+- **Caller's Box imports** — selected fall-back and formation clauses now import
+  as existing figures instead of making the whole source line custom.
+
+## [0.1.2] - 2026-08-25
+
+### Changed
+
+- **Collection import** — browse signed Published collections from the Import
+  dances source picker, and open custom fields or recently deleted dances in
+  the desktop detail pane.
+
+- **Program editor** — keep Event date visible while grouping the remaining
+  event metadata under **More details**; mobile import actions now state what
+  each source imports.
+
+- **Navigation icons** — align Program, Experimental, and Collection actions
+  with their destinations.
+  
+### Fixed
+
+- **macOS in-app updates** — choosing **Download & install** now opens a Save
+  As dialog before downloading the disk image, so macOS records user-approved
+  download provenance and can launch the installed notarized app.
+
+- **Dialect move wording templates** — long-wave and promenade branches now
+  appear only after choosing those moves, while a single circle template keeps
+  the automatic **single file** prefix.
 
 ## [0.1.1] - 2026-08-24
 

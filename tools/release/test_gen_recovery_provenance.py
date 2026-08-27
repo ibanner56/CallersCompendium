@@ -24,6 +24,9 @@ SOURCE_SHA = "f" * 40
 def _build(**overrides: str) -> dict[str, object]:
     values = {
         "repository": REPOSITORY,
+        "repository_id": "1296988464",
+        "repository_owner_id": "2157650",
+        "runner_environment": "github-hosted",
         "server_url": SERVER_URL,
         "workflow_ref": WORKFLOW_REF,
         "workflow_sha": WORKFLOW_SHA,
@@ -47,20 +50,28 @@ def main() -> None:
             "repository": "https://github.com/ibanner56/CallersCompendium",
         }
     }
+    assert definition["internalParameters"] == {
+        "github": {
+            "event_name": "workflow_dispatch",
+            "repository_id": "1296988464",
+            "repository_owner_id": "2157650",
+            "runner_environment": "github-hosted",
+        }
+    }
     assert definition["resolvedDependencies"] == [
-        {
-            "uri": (
-                "git+https://github.com/ibanner56/CallersCompendium"
-                "@refs/tags/v0.1.1-beta"
-            ),
-            "digest": {"gitCommit": SOURCE_SHA},
-        },
         {
             "uri": (
                 "git+https://github.com/ibanner56/CallersCompendium"
                 "@refs/heads/main"
             ),
             "digest": {"gitCommit": WORKFLOW_SHA},
+        },
+        {
+            "uri": (
+                "git+https://github.com/ibanner56/CallersCompendium"
+                "@refs/tags/v0.1.1-beta"
+            ),
+            "digest": {"gitCommit": SOURCE_SHA},
         },
     ]
     assert predicate["runDetails"] == {
@@ -77,6 +88,9 @@ def main() -> None:
         {"release_ref": "refs/heads/main"},
         {"release_ref": "refs/tags/v0.1.1-beta.2"},
         {"source_sha": "not-a-sha"},
+        {"repository_id": "not-an-id"},
+        {"repository_owner_id": ""},
+        {"runner_environment": "unknown"},
         {"workflow_ref": "other/repo/.github/workflows/release.yml@refs/heads/main"},
         {"server_url": "file:///tmp/repo"},
     )

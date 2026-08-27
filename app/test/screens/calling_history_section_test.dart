@@ -268,7 +268,8 @@ void main() {
       // no calling history at all.
       final counter = _VenueSelectCounter();
       final db = openWidgetTestDatabase(
-        NativeDatabase.memory().interceptWith(counter),
+        executor: NativeDatabase.memory().interceptWith(counter),
+        closeOnTearDown: false,
       );
       addTearDown(db.close);
       final repos = CompendiumRepositories(db, contraTaxonomy);
@@ -304,7 +305,8 @@ void main() {
   ) async {
     final counter = _VenueSelectCounter();
     final db = openWidgetTestDatabase(
-      NativeDatabase.memory().interceptWith(counter),
+      executor: NativeDatabase.memory().interceptWith(counter),
+      closeOnTearDown: false,
     );
     addTearDown(db.close);
     final repos = CompendiumRepositories(db, contraTaxonomy);
@@ -413,7 +415,8 @@ void main() {
     // data: it tells the caller this dance has never been called.
     final failing = _FailingSelects();
     final db = openWidgetTestDatabase(
-      NativeDatabase.memory().interceptWith(failing),
+      executor: NativeDatabase.memory().interceptWith(failing),
+      closeOnTearDown: false,
     );
     addTearDown(db.close);
     final repos = CompendiumRepositories(db, contraTaxonomy);

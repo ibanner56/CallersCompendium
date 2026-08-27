@@ -416,6 +416,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Verificeret og vist i din filhåndtering – kør installationsprogrammet for at fuldføre opdateringen.';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'Opdater og genstart';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'Din opdatering er klar. Monter diskaftrykket, og luk appen, så du kan erstatte den i Programmer.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Hent og installer opdatering';
 
   @override
@@ -1767,6 +1774,15 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionFacetStatus => 'Status';
+
+  @override
+  String get collectionFacetCallStatus => 'Opkaldshistorik';
+
+  @override
+  String get collectionFacetCalled => 'Kaldt';
+
+  @override
+  String get collectionFacetNotCalled => 'Ikke kaldt';
 
   @override
   String get collectionFacetLevel => 'Niveau';
@@ -3252,7 +3268,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportShareDanceText => 'Del dans (tekst)';
 
   @override
+  String get exportShareDanceBundle => 'Del dansefil';
+
+  @override
   String get exportCopyDance => 'Kopiér dans';
+
+  @override
+  String get exportShareDanceJson => 'Eksportér dans som JSON';
 
   @override
   String get exportPrintPdf => 'Eksportér / udskriv PDF';
@@ -3571,7 +3593,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get importFromTitleList => 'Fra titelliste';
 
   @override
+  String get importProgramFromTitleList => 'Importér fra titelliste';
+
+  @override
   String get importFromContraDb => 'Fra ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Importér fra ContraDB';
 
   @override
   String get importProgramTitleLabel => 'Programtitel';
@@ -5422,6 +5450,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version er klar til installation.';
+  }
+
+  @override
   String get updateBannerDownloadFailed => 'Opdateringen kunne ikke hentes.';
 
   @override
@@ -5437,6 +5470,22 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'Hent og installer';
+
+  @override
+  String get updateBannerUpdateRestart => 'Opdater og genstart';
+
+  @override
+  String get updateMacosReadyTitle => 'Klar til at opdatere?';
+
+  @override
+  String get updateMacosReadyBody =>
+      'Opdateringen er bekræftet. Opdater nu åbner diskaftrykket og lukker Caller\'s Compendium, så du kan erstatte den i Programmer.';
+
+  @override
+  String get updateMacosNotNow => 'Ikke nu';
+
+  @override
+  String get updateMacosUpdateNow => 'Opdater nu';
 
   @override
   String get commandPaletteBarrierLabel => 'Global søgning';
@@ -6376,6 +6425,20 @@ class AppLocalizationsDa extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · $count danse';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'Licens: $license\nTilladelse: $grantor giver $holder tilladelse på grundlag af $basis. Omfattede felter: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'ingen';
 
   @override
   String publishedCollectionSupersedes(String version) {

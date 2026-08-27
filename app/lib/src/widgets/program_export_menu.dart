@@ -1,12 +1,11 @@
-import 'dart:io';
-
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
+
+export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
@@ -15,6 +14,7 @@ import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
 import '../export/program_share_bundle.dart';
 import '../export/share_sanitization.dart';
+import '../export/share_file.dart';
 import '../search/facet_labels.dart';
 import '../utils/safe_name.dart';
 import 'program_figures_prompt_dialog.dart';
@@ -26,46 +26,6 @@ enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
 /// Hands the shareable set list to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
 typedef ShareInvoker = Future<void> Function(ShareParams params);
-
-/// Materializes a share-bundle [json] payload as an [XFile] named [fileName]
-/// for the OS share sheet. The default writes it to a temp file (via
-/// `path_provider`); overridable so tests can supply the file without invoking
-/// the `path_provider` platform channel, which has no plugin implementation
-/// under `flutter test` (its calls would throw `MissingPluginException`).
-typedef BundleFileWriter = Future<XFile> Function(String json, String fileName);
-
-/// Resolves the base directory a share bundle is staged into before it is
-/// handed to the OS share sheet. Defaults to the OS temporary directory (via
-/// `path_provider`); injectable so [writeBundleFile] can be exercised in tests
-/// against a directory that doesn't touch the `path_provider` platform channel.
-typedef ShareTempDirProvider = Future<Directory> Function();
-
-/// Writes [json] to a file named [fileName] inside the directory from
-/// [getDir], **creating that directory first**, and returns it as a JSON
-/// [XFile].
-///
-/// The directory is created (recursively) before the write because on sandboxed
-/// macOS `getTemporaryDirectory()` returns a per-bundle subdirectory under
-/// `Caches/` that does not necessarily exist yet. Writing a file straight into
-/// a missing directory throws `PathNotFoundException` (errno 2), which the
-/// share action's guard surfaces as "Couldn't share this program". Creating the
-/// directory first makes the temp-file write reliable across platforms.
-Future<XFile> writeBundleFile(
-  String json,
-  String fileName, {
-  ShareTempDirProvider getDir = getTemporaryDirectory,
-}) async {
-  final dir = await getDir();
-  await dir.create(recursive: true);
-  final file = File('${dir.path}/$fileName');
-  await file.writeAsString(json);
-  return XFile(file.path, mimeType: 'application/json');
-}
-
-/// Default [BundleFileWriter]: writes [json] to a temp file (via
-/// `path_provider`) and returns it as a JSON [XFile].
-Future<XFile> writeBundleTempFile(String json, String fileName) =>
-    writeBundleFile(json, fileName);
 
 /// Hands a generated PDF to the OS print/save dialog. Defaults to
 /// [Printing.layoutPdf]; overridable so tests can force a failure.

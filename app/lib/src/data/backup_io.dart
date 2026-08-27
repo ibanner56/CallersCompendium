@@ -122,8 +122,9 @@ Future<void> writeStringAtomically(
 ///
 /// On desktop (macOS/Windows/Linux) a backup is a "save a file" action: this
 /// shows a native Save As dialog (via `file_selector`'s [getSaveLocation]) and
-/// writes [json] to the chosen path via [writeStringAtomically], so an
-/// interrupted write can never corrupt a backup the user is overwriting.
+/// writes [json] directly to the chosen path. On sandboxed macOS, the save
+/// panel grants access only to that exact path, not to an atomic writer's
+/// sibling `<path>.tmp` file.
 /// Returns `false` without writing anything if the user cancels the dialog.
 ///
 /// On mobile (iOS/Android) a backup is a "share to another app" action: this
@@ -141,7 +142,7 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
       acceptedTypeGroups: const [_jsonTypeGroup],
     );
     if (location == null) return false;
-    await writeStringAtomically(location.path, json);
+    await writeStringToUserSelectedPath(location.path, json);
     return true;
   }
 
@@ -161,6 +162,15 @@ Future<bool> saveBackupToFile(String json, String suggestedFileName) async {
     ),
   );
   return true;
+}
+
+/// Writes to the exact path authorized by a native desktop Save As panel.
+///
+/// macOS sandbox permissions for the selected destination do not extend to
+/// sibling paths, so this intentionally cannot use [writeStringAtomically].
+@visibleForTesting
+Future<void> writeStringToUserSelectedPath(String path, String contents) {
+  return File(path).writeAsString(contents, flush: true);
 }
 
 /// Default [BackupPicker]: opens the native open-file dialog (via

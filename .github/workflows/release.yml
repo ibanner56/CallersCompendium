@@ -389,7 +389,7 @@ jobs:
       # going to build a signed APK (android + secrets present).
       - name: Set up JDK 21 (Temurin)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
         with:
           distribution: temurin
           java-version: '21'
@@ -462,11 +462,11 @@ jobs:
         if: matrix.platform == 'macos' && steps.macos_signing.outputs.signing == 'missing'
         run: |
           set -euo pipefail
-          app_path="app/build/macos/Build/Products/Release/compendium_app.app"
+          app_path="app/build/macos/Build/Products/Release/Caller’s Compendium.app"
           mkdir -p dist
 
           # Informational: confirm the produced binary is a universal (fat) Mach-O.
-          lipo -info "$app_path/Contents/MacOS/compendium_app" || true
+          lipo -info "$app_path/Contents/MacOS/Caller’s Compendium" || true
 
           # Portable zip (ditto preserves macOS bundle metadata / symlinks).
           ditto -c -k --keepParent "$app_path" \
@@ -499,14 +499,14 @@ jobs:
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
         run: |
           set -euo pipefail
-          app_path="app/build/macos/Build/Products/Release/compendium_app.app"
+          app_path="app/build/macos/Build/Products/Release/Caller’s Compendium.app"
           entitlements="app/macos/Runner/Release.entitlements"
           dmg="dist/CallersCompendium-${VERSION}-macos-universal.dmg"
           zip="dist/CallersCompendium-${VERSION}-macos-universal.zip"
           mkdir -p dist
 
           # Informational: confirm the produced binary is a universal (fat) Mach-O.
-          lipo -info "$app_path/Contents/MacOS/compendium_app" || true
+          lipo -info "$app_path/Contents/MacOS/Caller’s Compendium" || true
 
           # ---- 1. Ephemeral, dedicated signing keychain ---------------------
           # A throwaway keychain (random password, fixed path so the always()
@@ -1382,8 +1382,8 @@ jobs:
           retention-days: 7
 
       # A recovery run's workflow comes from main while its source comes from the
-      # immutable tag. The stock predicate assumes those are the same ref, so
-      # generate a split-dependency predicate instead of misattributing the source.
+      # immutable tag. Preserve every stock GitHub predicate field and its workflow
+      # dependency, then append the tag dependency instead of misattributing source.
       - name: Check out recovery provenance helper
         if: needs.meta.outputs.recovery == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1395,6 +1395,9 @@ jobs:
         if: needs.meta.outputs.recovery == 'true'
         env:
           REPOSITORY: ${{ github.repository }}
+          REPOSITORY_ID: ${{ github.repository_id }}
+          REPOSITORY_OWNER_ID: ${{ github.repository_owner_id }}
+          RUNNER_ENVIRONMENT: ${{ runner.environment }}
           SERVER_URL: ${{ github.server_url }}
           WORKFLOW_REF: ${{ github.workflow_ref }}
           WORKFLOW_SHA: ${{ github.sha }}
@@ -1405,6 +1408,9 @@ jobs:
         run: |
           python3 workflow-tools/tools/release/gen_recovery_provenance.py \
             --repository "$REPOSITORY" \
+            --repository-id "$REPOSITORY_ID" \
+            --repository-owner-id "$REPOSITORY_OWNER_ID" \
+            --runner-environment "$RUNNER_ENVIRONMENT" \
             --server-url "$SERVER_URL" \
             --workflow-ref "$WORKFLOW_REF" \
             --workflow-sha "$WORKFLOW_SHA" \
@@ -1444,13 +1450,14 @@ jobs:
       # bare beta tag, and appends the signing/verify/maintainer footer. The
       # meta job rejects a missing section before any build begins.
       #
-      # The footer's macOS line must match what actually happened in the build
-      # matrix. macOS signing is gated on the six Apple secrets (same gate as the
-      # build job's `Determine macOS signing availability` step); if any is
-      # signing-configured-but-failing, the build job's verify gate fails the
-      # whole run so we never reach publish. So presence of all six secrets here
-      # is an accurate proxy for "macOS was Developer ID-signed + notarized",
-      # which we pass as `--macos-signing` so the notes never over-claim.
+      # The footer's Windows and macOS lines must match what actually happened in
+      # the build matrix. macOS signing is gated on the six Apple secrets and
+      # Windows signing on the five AZURE_* repository variables (same gates as
+      # the build jobs' "Determine … signing availability" steps); if a leg is
+      # signing-configured-but-failing, that build job's verify gate fails the
+      # whole run so we never reach publish. So presence of a leg's credentials
+      # here is an accurate proxy for "that leg was signed", which we pass as
+      # `--macos-signing` / `--windows-signing` so the notes never over-claim.
       - name: Generate release notes from CHANGELOG
         env:
           VERSION: ${{ needs.meta.outputs.version }}
@@ -1462,6 +1469,11 @@ jobs:
           APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
           APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
           APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+          AZURE_SIGNING_ACCOUNT_NAME: ${{ vars.AZURE_SIGNING_ACCOUNT_NAME }}
+          AZURE_CERT_PROFILE_NAME: ${{ vars.AZURE_CERT_PROFILE_NAME }}
         run: |
           set -euo pipefail
           macos_signing=missing
@@ -1473,11 +1485,20 @@ jobs:
             && [ -n "${APPLE_API_ISSUER_ID:-}" ]; then
             macos_signing=configured
           fi
+          windows_signing=missing
+          if [ -n "${AZURE_CLIENT_ID:-}" ] \
+            && [ -n "${AZURE_TENANT_ID:-}" ] \
+            && [ -n "${AZURE_SUBSCRIPTION_ID:-}" ] \
+            && [ -n "${AZURE_SIGNING_ACCOUNT_NAME:-}" ] \
+            && [ -n "${AZURE_CERT_PROFILE_NAME:-}" ]; then
+            windows_signing=configured
+          fi
           python3 tools/release/gen_release_notes.py \
             --version "$VERSION" \
             --tag "$TAG" \
             --channel "$CHANNEL" \
             --macos-signing "$macos_signing" \
+            --windows-signing "$windows_signing" \
             --changelog app/CHANGELOG.md \
             --output release-notes.md
 
@@ -1489,7 +1510,6 @@ jobs:
           CHANNEL: ${{ needs.meta.outputs.channel }}
           CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
-          TARGET_SHA: ${{ needs.meta.outputs.source_sha }}
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/sbom-${VERSION}.cdx.json")
@@ -1504,12 +1524,14 @@ jobs:
             echo "Release $TAG exists; refreshing assets (draft preserved)."
             gh release upload "$TAG" "${files[@]}" --clobber
           else
+            # The tag already exists in both release paths. Do not pass its
+            # historical SHA: GITHUB_TOKEN cannot authorize workflow changes
+            # when the release API compares that SHA with current main.
             gh release create "$TAG" "${files[@]}" \
               --draft \
               "${pre_flag[@]}" \
               --title "$TAG" \
-              --notes-file release-notes.md \
-              --target "$TARGET_SHA"
+              --notes-file release-notes.md
           fi
 
           echo "Draft release ready: https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
@@ -1592,7 +1614,7 @@ jobs:
     # TestFlight upload is irreversible. The protected environment provides the
     # same human approval gate that controls Windows Trusted Signing.
     runs-on: macos-latest
-    environment: release-signing
+    environment: release-publication
     permissions:
       contents: read
     steps:

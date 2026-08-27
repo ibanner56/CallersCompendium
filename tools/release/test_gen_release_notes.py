@@ -95,8 +95,9 @@ def _cases() -> None:
     assert "Beta / pre-release" not in body
     assert "A shiny new feature." in body
 
-    # 5. Footer is always present (both stable and beta). When macOS was signed,
-    #    the footer states Windows/Linux unsigned + macOS Developer ID-signed.
+    # 5. Footer is always present (both stable and beta). With macOS signed and
+    #    Windows unsigned (default), the footer names Windows+Linux unsigned and
+    #    macOS Developer ID-signed, but does NOT claim Windows is Azure-signed.
     for ch, ver, tag in (("stable", "0.2.0", "v0.2.0"),
                          ("beta", "0.1.0-beta", "v0.1.0-beta")):
         body, _ = g.build_notes(
@@ -105,22 +106,45 @@ def _cases() -> None:
         )
         assert "**unsigned**" in body
         assert "**Developer ID-signed & notarized**" in body
+        assert "Windows and Linux desktop builds are **unsigned**" in body
+        assert "Azure Trusted Signing" in body  # named as the pending Windows leg
+        assert "signed via Azure Trusted Signing" not in body  # but not claimed
         assert "`SHA256SUMS`" in body
         assert "maintainer publishes this draft after review" in body
 
-    # 5b. Honest footer when macOS was NOT signed (secrets absent / default):
+    # 5b. Honest footer when NEITHER Windows nor macOS was signed (default):
     #     all three desktops reported unsigned, and NO false signed claim.
-    for macos_signed_kwargs in ({}, {"macos_signed": False}):
+    for kwargs in ({}, {"macos_signed": False, "windows_signed": False}):
         body, _ = g.build_notes(
             version="0.2.0", tag="v0.2.0", channel="stable",
-            changelog_text=CHANGELOG, **macos_signed_kwargs,
+            changelog_text=CHANGELOG, **kwargs,
         )
-        assert "**unsigned**" in body
+        assert "Windows, Linux, and macOS desktop builds are **unsigned**" in body
         assert "Developer ID-signed & notarized" not in body
-        # It must name macOS as unsigned this release, not just Windows/Linux.
-        assert "macOS" in body
+        assert "signed via Azure Trusted Signing" not in body
         assert "`SHA256SUMS`" in body
         assert "maintainer publishes this draft after review" in body
+
+    # 5c. Windows signed via Azure Trusted Signing (macOS unsigned): the footer
+    #     claims Windows signing and does NOT list Windows among the unsigned.
+    body, _ = g.build_notes(
+        version="0.2.0", tag="v0.2.0", channel="stable",
+        changelog_text=CHANGELOG, windows_signed=True,
+    )
+    assert "Windows is **signed via Azure Trusted Signing**" in body
+    assert "Linux and macOS desktop builds are **unsigned**" in body
+    assert "Developer ID-signed & notarized" not in body
+
+    # 5d. Both Windows and macOS signed: only Linux is unsigned, and both signed
+    #     claims appear.
+    body, _ = g.build_notes(
+        version="0.2.0", tag="v0.2.0", channel="stable",
+        changelog_text=CHANGELOG, windows_signed=True, macos_signed=True,
+    )
+    assert "Linux desktop builds are **unsigned**" in body
+    assert "Windows is **signed via Azure Trusted Signing**" in body
+    assert "macOS is **Developer ID-signed & notarized**" in body
+    assert "this release" not in body  # nothing pending to activate
 
     # 6. Every selected release requires its shared core section.
     for version, tag, channel in (
@@ -219,6 +243,19 @@ def _cases() -> None:
         assert rc == 0
         signed_body = out_signed.read_text(encoding="utf-8")
         assert "**Developer ID-signed & notarized**" in signed_body
+
+        # 14b. --windows-signing toggles the footer's Windows claim end-to-end.
+        #      Default = unsigned (no Azure claim); 'configured' = Azure-signed.
+        assert "signed via Azure Trusted Signing" not in default_body
+        out_win = Path(td) / "notes-win.md"
+        rc = g.main(
+            ["--version", "0.2.0", "--channel", "stable", "--tag", "v0.2.0",
+             "--windows-signing", "configured",
+             "--changelog", str(cl), "--output", str(out_win)]
+        )
+        assert rc == 0
+        win_body = out_win.read_text(encoding="utf-8")
+        assert "Windows is **signed via Azure Trusted Signing**" in win_body
 
     # 15. Reject a beta counter, rc, malformed tags, mismatched channel, and
     # leading-zero core values rather than treating every hyphen as a beta.

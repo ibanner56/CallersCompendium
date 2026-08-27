@@ -20,6 +20,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../app_metadata.dart';
 import '../diagnostics/error_log.dart';
+import 'artifact_destination.dart';
 import 'artifact_downloader.dart';
 import 'artifact_handoff.dart';
 import 'artifact_verifier.dart';
@@ -65,9 +66,12 @@ enum AssistedDownloadStatus {
   /// Verification passed; the verified file is being handed to the OS installer.
   handingOff,
 
+  /// A verified macOS disk image awaits the user's decision to update and quit.
+  awaitingMacosInstall,
+
   /// The OS-handoff succeeded — the user finishes installing from here. On
-  /// macOS the installer was launched; on Windows/Linux it was revealed in the
-  /// file manager for the user to run (see [UpdateController.handoffResult]).
+  /// macOS and Windows the installer was launched; on Linux it was revealed in
+  /// the file manager for the user to run (see [UpdateController.handoffResult]).
   completed,
 
   /// The download, verification, or handoff failed. [UpdateController.downloadError]
@@ -90,7 +94,9 @@ class UpdateController extends ChangeNotifier {
     ArtifactDownloader? downloader,
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
+    ArtifactDestinationPicker? macosDestinationPicker,
     Future<Directory> Function()? temporaryDirectoryProvider,
+    this.onMacosShutdown,
   }) : _service = service ?? UpdateService(),
        currentVersion =
            currentVersion ??
@@ -101,6 +107,8 @@ class UpdateController extends ChangeNotifier {
        _downloader = downloader ?? downloadArtifact,
        _verifier = verifier ?? verifyArtifactSha256,
        _handoff = handoff ?? handoffArtifactToOs,
+       _macosDestinationPicker =
+           macosDestinationPicker ?? pickMacosArtifactDestination,
        _temporaryDirectoryProvider =
            temporaryDirectoryProvider ?? getTemporaryDirectory;
 
@@ -112,7 +120,9 @@ class UpdateController extends ChangeNotifier {
   final ArtifactDownloader _downloader;
   final ArtifactVerifier _verifier;
   final ArtifactHandoff _handoff;
+  final ArtifactDestinationPicker _macosDestinationPicker;
   final Future<Directory> Function() _temporaryDirectoryProvider;
+  final Future<void> Function()? onMacosShutdown;
 
   /// The running release identity (parsed from [kUpdaterVersion]) that manifest
   /// versions are compared against.
@@ -131,6 +141,7 @@ class UpdateController extends ChangeNotifier {
   DownloadProgress? _downloadProgress;
   String? _downloadError;
   HandoffResult? _handoffResult;
+  File? _pendingMacosArtifact;
   DownloadCancelToken? _cancelToken;
   int _lastNotifiedProgressTick = -1;
 
@@ -179,10 +190,15 @@ class UpdateController extends ChangeNotifier {
   String? get downloadError => _downloadError;
 
   /// How the verified artifact was handed off when [downloadStatus] is
-  /// [AssistedDownloadStatus.completed] — [HandoffResult.launched] on macOS,
-  /// [HandoffResult.revealed] on Windows/Linux — so the UI can instruct the
+  /// [AssistedDownloadStatus.completed] — [HandoffResult.launched] on macOS and
+  /// Windows, [HandoffResult.revealed] on Linux — so the UI can instruct the
   /// user accurately (open vs. run-it-yourself). `null` before completion.
   HandoffResult? get handoffResult => _handoffResult;
+
+  /// Whether a verified macOS disk image awaits user approval to mount and quit.
+  bool get isAwaitingMacosInstall =>
+      _downloadStatus == AssistedDownloadStatus.awaitingMacosInstall &&
+      _pendingMacosArtifact != null;
 
   /// Whether an assisted download/verify/handoff is currently in flight (so the
   /// UI shows progress + a cancel affordance and suppresses a second start).
@@ -206,13 +222,16 @@ class UpdateController extends ChangeNotifier {
 
   /// Runs the desktop assisted-download flow for the found update's artifact:
   /// stream it to a temp file → **mandatory sha256 verification** → OS-handoff.
+  ///
+  /// On macOS, verification ends at [AssistedDownloadStatus.awaitingMacosInstall]
+  /// until [installPendingMacosUpdate] receives explicit approval.
   /// A concurrent call is ignored while one is in flight. Never throws — every
   /// failure resolves to [AssistedDownloadStatus.failed] with a user-facing
   /// [downloadError] (a verification mismatch also deletes the file). This is
   /// deliberately **not** a silent no-op like the check: it is a security gate
   /// (ADR-002 §6, "Stage 1.5").
   Future<void> startAssistedDownload() async {
-    if (isDownloadInFlight) return;
+    if (isDownloadInFlight || isAwaitingMacosInstall) return;
     final artifact = downloadableArtifact;
     if (artifact == null) return;
 
@@ -225,29 +244,46 @@ class UpdateController extends ChangeNotifier {
     _downloadStatus = AssistedDownloadStatus.downloading;
     notifyListeners();
 
-    final Directory dir;
     Directory? downloadDir;
+    late final File destination;
+    var usesTemporaryDirectory = false;
     try {
-      dir = await _temporaryDirectoryProvider();
-      // A fresh, randomly-named subdirectory per attempt (issue #626): the
-      // artifact is written under an unpredictable path so a local attacker
-      // cannot pre-plant a symlink at a guessable location to redirect the
-      // write (CWE-59/377). The downloader's own `create(exclusive: true)`
-      // guard is defense-in-depth on top of this.
-      downloadDir = await dir.createTemp('cc_update_');
+      if (_platform == UpdatePlatform.macos) {
+        // A sandboxed macOS app must obtain this path through a user-initiated
+        // Save As panel. Writing first into the app container gives the image a
+        // hard quarantine flag ("created without user consent"), which prevents
+        // Gatekeeper from launching the installed application.
+        final selected = await _macosDestinationPicker(artifact);
+        if (selected == null) {
+          _cancelDownloadState(null);
+          return;
+        }
+        destination = selected;
+      } else {
+        final dir = await _temporaryDirectoryProvider();
+        // A fresh, randomly-named subdirectory per attempt (issue #626): the
+        // artifact is written under an unpredictable path so a local attacker
+        // cannot pre-plant a symlink at a guessable location to redirect the
+        // write (CWE-59/377). The downloader's own `create(exclusive: true)`
+        // guard is defense-in-depth on top of this.
+        downloadDir = await dir.createTemp('cc_update_');
+        usesTemporaryDirectory = true;
+        destination = File(
+          '${downloadDir.path}/${downloadFileName(artifact.url)}',
+        );
+      }
     } on Object catch (error, stackTrace) {
       logCaughtError(
         error,
         stackTrace,
         source: 'update_controller.startAssistedDownload.prepareDir',
       );
-      if (downloadDir != null) await _deleteDirQuietly(downloadDir);
-      _failDownload('Could not prepare a place to download the update.');
+      if (usesTemporaryDirectory && downloadDir != null) {
+        await _deleteDirQuietly(downloadDir);
+      }
+      _failDownload('Could not choose a place to download the update.');
       return;
     }
-    final destination = File(
-      '${downloadDir.path}/${downloadFileName(artifact.url)}',
-    );
 
     File? downloaded;
     try {
@@ -260,12 +296,12 @@ class UpdateController extends ChangeNotifier {
 
       if (token.isCancelled || outcome.kind == DownloadResultKind.cancelled) {
         _cancelDownloadState(outcome.file);
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
       if (!outcome.isSuccess || outcome.file == null) {
         _failDownload(_downloadFailureMessage(outcome.kind));
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
       final file = outcome.file!;
@@ -278,16 +314,24 @@ class UpdateController extends ChangeNotifier {
       final verified = await _verifier(file, artifact.sha256);
       if (token.isCancelled) {
         _cancelDownloadState(file);
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         return;
       }
       if (!verified) {
         await _deleteQuietly(file);
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
         _failDownload(
           'The downloaded update failed its security (sha256) check and was '
           'deleted. Try again, or use "View release" to download it manually.',
         );
+        return;
+      }
+
+      if (_platform == UpdatePlatform.macos) {
+        _pendingMacosArtifact = file;
+        _downloadStatus = AssistedDownloadStatus.awaitingMacosInstall;
+        _downloadProgress = null;
+        notifyListeners();
         return;
       }
 
@@ -296,7 +340,11 @@ class UpdateController extends ChangeNotifier {
 
       final handoff = await _handoff(file, _platform);
       if (handoff == HandoffResult.failed) {
-        await _deleteDirQuietly(downloadDir);
+        if (usesTemporaryDirectory) {
+          await _deleteDirQuietly(downloadDir!);
+        } else {
+          await _deleteQuietly(file);
+        }
         _failDownload(
           'The update was downloaded and verified, but could not be opened '
           'automatically. Use "View release" to finish installing.',
@@ -319,13 +367,71 @@ class UpdateController extends ChangeNotifier {
         source: 'update_controller.startAssistedDownload.install',
       );
       await _deleteQuietly(downloaded ?? destination);
-      await _deleteDirQuietly(downloadDir);
+      if (usesTemporaryDirectory) await _deleteDirQuietly(downloadDir!);
       _failDownload(
         'Something went wrong while installing the update. Try again, or use '
         '"View release" to download it manually.',
       );
     } finally {
       _cancelToken = null;
+    }
+  }
+
+  /// Opens the verified pending macOS disk image and then closes the application.
+  ///
+  /// Does nothing unless [isAwaitingMacosInstall] is true. The disk image is
+  /// never opened, and the app is never closed, before the mandatory checksum
+  /// verification performed by [startAssistedDownload].
+  Future<void> installPendingMacosUpdate() async {
+    if (!isAwaitingMacosInstall) return;
+    final file = _pendingMacosArtifact!;
+    _downloadStatus = AssistedDownloadStatus.handingOff;
+    notifyListeners();
+
+    final HandoffResult handoff;
+    try {
+      handoff = await _handoff(file, UpdatePlatform.macos);
+    } on Object catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'update_controller.installPendingMacosUpdate',
+      );
+      await _deleteQuietly(file);
+      _pendingMacosArtifact = null;
+      _failDownload(
+        'Something went wrong while installing the update. Try again, or use '
+        '"View release" to download it manually.',
+      );
+      return;
+    }
+
+    if (handoff == HandoffResult.failed) {
+      await _deleteQuietly(file);
+      _pendingMacosArtifact = null;
+      _failDownload(
+        'The update was downloaded and verified, but could not be opened '
+        'automatically. Use "View release" to finish installing.',
+      );
+      return;
+    }
+
+    _handoffResult = handoff;
+    _pendingMacosArtifact = null;
+    _downloadStatus = AssistedDownloadStatus.completed;
+    _downloadProgress = null;
+    notifyListeners();
+    final shutdown = onMacosShutdown;
+    if (shutdown != null) {
+      try {
+        await shutdown();
+      } on Object catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'update_controller.installPendingMacosUpdate.shutdown',
+        );
+      }
     }
   }
 
@@ -343,6 +449,7 @@ class UpdateController extends ChangeNotifier {
     _downloadProgress = null;
     _downloadError = null;
     _handoffResult = null;
+    _pendingMacosArtifact = null;
     notifyListeners();
   }
 
@@ -367,6 +474,7 @@ class UpdateController extends ChangeNotifier {
     _downloadProgress = null;
     _downloadError = null;
     _handoffResult = null;
+    _pendingMacosArtifact = null;
     _cancelToken = null;
     notifyListeners();
   }
@@ -376,6 +484,7 @@ class UpdateController extends ChangeNotifier {
     _downloadError = message;
     _downloadProgress = null;
     _handoffResult = null;
+    _pendingMacosArtifact = null;
     _cancelToken = null;
     notifyListeners();
   }
@@ -434,6 +543,7 @@ class UpdateController extends ChangeNotifier {
     _downloadProgress = null;
     _downloadError = null;
     _handoffResult = null;
+    _pendingMacosArtifact = null;
   }
 
   /// Loads the persisted prefs into memory. Defensive: any read failure or

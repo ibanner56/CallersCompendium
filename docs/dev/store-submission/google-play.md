@@ -29,7 +29,7 @@ work we have not done before.
 
 ## Account type decision (read first) — [One-time, Gate]
 
-- [ ] **[Gate]** Decide **personal** vs **organization** account. This changes the
+- [x] **[Gate]** Decide **personal** vs ~~organization~~ account. This changes the
   rules:
   - **Personal** — $25 one-time fee, no D-U-N-S number needed, verified with a
     government ID + name/address/phone. **Subject to the 12-testers / 14-day
@@ -46,20 +46,20 @@ work we have not done before.
 
 ## 0. Create & verify the Play Console account — [One-time, New]
 
-- [ ] **[New]** Register at <https://play.google.com/console/signup> and pay the
+- [x] **[New]** Register at <https://play.google.com/console/signup> and pay the
   **one-time $25** registration fee.
-- [ ] **[Gate]** Complete **identity verification**: government ID, legal name,
+- [x] **[Gate]** Complete **identity verification**: government ID, legal name,
   address, and a verified **phone + email** (OTP). **You cannot publish anything
   until verification passes** — it can take a few days, so start early.
-- [ ] Set the **public developer name** (does not have to be your legal name — e.g.
+- [x] Set the **public developer name** (does not have to be your legal name — e.g.
   "Caller's Compendium" or "Isaac Banner") and the **public developer email**
   (compendium@contra.dance is fine, and is shown on the listing).
-- [ ] Accept the **Developer Distribution Agreement** and **US export law**
+- [x] Accept the **Developer Distribution Agreement** and **US export law**
   acknowledgement.
 
 ## 1. Create the app — [New]
 
-- [ ] **[New]** Play Console → **Create app**.
+- [x] **[New]** Play Console → **Create app**.
   - App name: **Caller's Compendium**
   - Default language: **English (United States)** (add locales later)
   - App or game: **App**
@@ -67,7 +67,7 @@ work we have not done before.
     is correct for us and permanent)
   - Declarations: it's not a game; confirm it meets Developer Program Policies and
     US export laws.
-- [ ] **[Confirm]** The package name will be `org.callerscompendium.compendiumApp`
+- [x] **[Confirm]** The package name will be `org.callerscompendium.compendiumApp`
   (set at first upload; it is **permanent** and must match the manifest).
 
 ## 2. Produce a signed Android App Bundle (`.aab`) — [Gate, New]
@@ -87,17 +87,21 @@ already use for the release APK works as the **Play upload key**.
   [`../releasing.md`](../releasing.md#android-signed-apk)); the output is then at
   `app/build/app/outputs/bundle/release/app-release.aab` (i.e.
   `build/app/outputs/bundle/release/app-release.aab` relative to `app/`).
-- [ ] **[Gate]** Enrol in **Play App Signing** (the default): you upload an `.aab`
+- [x] **[Gate]** Enrol in **Play App Signing** (the default): you upload an `.aab`
   signed with your **upload key**; Google manages the real **app signing key**.
   Register the existing upload keystore's certificate as the upload key.
-- [ ] **[Confirm]** `versionCode` is the deterministic code derived from the
+- [x] **[Policy]** **Long-term channel policy.** We intentionally treat the Play build (standard Play App Signing, with a Google-held app-signing key) and the GitHub Releases APK (direct-signed with our keystore) as separate identities.
+  Switching requires **backup → uninstall → install → restore** — it is not an in-place upgrade.
+  The existing keystore currently signs both the Play upload and the direct APK; its custody and the constraint on independently rotating the Play upload key are in
+  [`../releasing.md`](../releasing.md#android-signing-key-custody-backup-and-rotation).
+- [x] **[Confirm]** `versionCode` is the deterministic code derived from the
   release tag (bounded SemVer core plus a channel bit, beta below stable for one
   core). It increases with each newer SemVer core; Play rejects duplicates.
-- [ ] **[Confirm]** `targetSdk` meets Play's current minimum target-API
+- [x] **[Confirm]** `targetSdk` meets Play's current minimum target-API
   requirement for **new apps** (Play raises this yearly; check the current floor
   in Play Console when it flags the bundle). Bump `flutter.targetSdkVersion` if
   Play complains.
-- [ ] **[Confirm]** The bundle is **debuggable=false**, release-signed (the Gradle
+- [x] **[Confirm]** The bundle is **debuggable=false**, release-signed (the Gradle
   guard already refuses an unsigned release), and passes Play's pre-launch checks.
 
 ## 3. Store listing (Main store listing) — [Gate, New]
@@ -105,19 +109,19 @@ already use for the release APK works as the **Play upload key**.
 Fill Play Console → **Grow → Store presence → Main store listing**. Text is in
 [`listing-copy.md`](listing-copy.md).
 
-- [ ] **[Gate]** **App name** (30 chars): "Caller's Compendium".
-- [ ] **[Gate]** **Short description** (80 chars): from draft.
-- [ ] **[Gate]** **Full description** (4000 chars): from draft.
-- [ ] **[Gate]** **App icon** — 512×512 PNG, 32-bit, no rounded corners/alpha
+- [x] **[Gate]** **App name** (30 chars): "Caller's Compendium".
+- [x] **[Gate]** **Short description** (80 chars): from draft.
+- [x] **[Gate]** **Full description** (4000 chars): from draft.
+- [x] **[Gate]** **App icon** — 512×512 PNG, 32-bit, no rounded corners/alpha
   weirdness.
-- [ ] **[Gate]** **Feature graphic** — 1024×500 PNG/JPG (Play-specific; required).
-- [ ] **[Gate]** **Phone screenshots** — 2–8, 16:9 or 9:16, min 320px, max 3840px.
-- [ ] **[Recommended]** **7-inch and 10-inch tablet screenshots** — we support
+- [x] **[Gate]** **Feature graphic** — 1024×500 PNG/JPG (Play-specific; required).
+- [x] **[Gate]** **Phone screenshots** — 2–8, 16:9 or 9:16, min 320px, max 3840px.
+- [x] **[Recommended]** **7-inch and 10-inch tablet screenshots** — we support
   tablets, so add them to qualify for tablet featuring and avoid a "not optimized
   for tablets" note.
-- [ ] **[Optional]** A **promo video** (YouTube URL).
-- [ ] **[Gate]** **Contact details**: email (required), website, phone (optional).
-- [ ] **[Gate]** **Privacy Policy URL** — required. Publish
+- [ ] ~~**[Optional]** A **promo video** (YouTube URL).~~
+- [x] **[Gate]** **Contact details**: email (required), website, phone (optional).
+- [x] **[Gate]** **Privacy Policy URL** — required. Publish
   [`privacy-policy.md`](privacy-policy.md) and paste the URL.
 
 ## 4. Policy & content forms (App content) — [Gate, New]
@@ -126,26 +130,28 @@ Play Console → **Policy → App content**. Every item here is **mandatory** be
 any track (including testing) can go live. Answers are drafted in
 [`listing-copy.md`](listing-copy.md).
 
-- [ ] **[Gate]** **Privacy policy** — paste the URL.
-- [ ] **[Gate]** **Ads** — declare **No ads**.
-- [ ] **[Gate]** **App access** — "**All functionality is available without special
+- [x] **[Gate]** **Privacy policy** — paste the URL.
+- [x] **[Gate]** **Ads** — declare **No ads**.
+- [x] **[Gate]** **App access** — "**All functionality is available without special
   access**" (no login). Say so, so review isn't blocked.
-- [ ] **[Gate]** **Content rating (IARC) questionnaire** — complete honestly;
+- [x] **[Gate]** **Content rating (IARC) questionnaire** — complete honestly;
   expected result **Everyone**. Answers in
   [`listing-copy.md`](listing-copy.md#age--content-rating).
-- [ ] **[Gate]** **Target audience and content** — target age groups. We're a
+- [x] **[Gate]** **Target audience and content** — target age groups. We're a
   utility for adult callers; select adult age bands (13+/18+ as you prefer) and
   **not** "designed for children," so the **Families policy / Play for Families**
   rules don't apply.
-- [ ] **[Gate]** **Data safety form** — declare **No data collected, no data
+- [x] **[Gate]** **Data safety form** — declare **No data collected, no data
   shared**. Note the app makes user-initiated network requests (imports) and an
   opt-in update check, but the developer **collects** nothing. Full answer set in
-  [`listing-copy.md`](listing-copy.md#data-safety-google-play).
-- [ ] **[Gate]** **Government apps / financial / health / etc.** declarations —
+  [`listing-copy.md`](listing-copy.md#data-safety-google-play). This is the
+  current-release answer; revisit it before Device Sync ships rather than copying
+  Apple's planned disclosure.
+- [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.
-- [ ] **[Gate]** **News app?** — **No**.
-- [ ] **[Gate]** **COVID-19 / contact-tracing?** — **No**.
-- [ ] **[Confirm]** **Advertising ID permission** — we do **not** request
+- [x] **[Gate]** **News app?** — **No**.
+- [x] **[Gate]** **COVID-19 / contact-tracing?** — **No**.
+- [x] **[Confirm]** **Advertising ID permission** — we do **not** request
   `AD_ID`; declare that the app does not use an advertising ID. (If a dependency
   pulls the `com.google.android.gms.permission.AD_ID` permission in, either
   remove it via manifest merge or declare its use — mismatches get flagged.)
@@ -165,16 +171,17 @@ flowchart LR
 
 ### 5a. Internal testing (smoke test) — [New, fast]
 
-- [ ] Create an **Internal testing** release, upload the `.aab`, add your own test
+- [x] Create an **Internal testing** release, upload the `.aab`, add your own test
   accounts, and confirm the app installs from Play and runs on a real device.
   This is instant and is the right place to shake out signing/target-SDK issues.
 
 ### 5b. Closed testing (the mandatory gate) — [Gate, New, long pole]
 
-- [ ] **[Gate]** Create a **Closed testing** track and release.
+- [x] **[Gate]** Create a **Closed testing** track and release.
 - [ ] **[Gate]** Recruit **≥12 testers** (real Google accounts, real devices) —
   e.g. from the beta guide, Discussions, and the caller community. Add them via an
   email list or a Google Group.
+  - Current status: **6 testers** recruited, still seeking others to join the Android beta.
 - [ ] **[Gate]** All 12+ must **opt in and keep the app installed for 14
   continuous days**. If the count drops below 12, replace testers promptly — the
   clock is unforgiving.
@@ -208,7 +215,8 @@ flowchart LR
 - [ ] Read tester feedback and reviews; reply from the console.
 - [ ] Keep `targetSdk`, the privacy policy URL, and Data safety answers current —
   Play emails deadlines for policy changes and target-API bumps.
-- [ ] Re-affirm Data safety at each release (still "no data collected").
+- [ ] Re-affirm Data safety at each release. The current release remains "no data
+  collected"; re-answer the form before a Device Sync release.
 
 ---
 

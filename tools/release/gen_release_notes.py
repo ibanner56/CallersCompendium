@@ -15,12 +15,14 @@ Behaviour:
   prepended so ``-beta`` never produces misleading stable wording.
 * A short footer is always appended: it states the per-platform signing
   posture, tells users to verify against ``SHA256SUMS``, and notes that a
-  maintainer publishes the draft after review. The macOS sentence is
-  **conditional on the actual signing outcome** (``--macos-signing``): macOS is
-  described as **Developer ID-signed & notarized** only when the pipeline
-  actually signed it (the Apple secrets were configured — ADR-002 §6);
-  otherwise all three desktops are reported as **unsigned**, so the notes never
-  over-claim provenance.
+  maintainer publishes the draft after review. The Windows and macOS sentences
+  are **each conditional on the actual signing outcome** (``--windows-signing`` /
+  ``--macos-signing``): Windows is described as **signed via Azure Trusted
+  Signing** only when the pipeline actually signed it (the five ``AZURE_*``
+  repository variables were configured), and macOS as **Developer ID-signed &
+  notarized** only when the Apple secrets were configured (ADR-002 §6). Linux is
+  always unsigned. Anything not signed is reported as **unsigned**, so the notes
+  never over-claim provenance.
 * Every selected release requires its matching CHANGELOG section. ``--check``
   and normal note emission both fail before a draft can be created when it is
   absent.
@@ -37,36 +39,77 @@ import sys
 from pathlib import Path
 
 # Footer appended to every generated body. The verify/publish reminder
-# (``_VERIFY_LINE``) is invariant; the signing sentence above it is chosen at
-# runtime from the ACTUAL macOS signing outcome (see ``_signing_line``) so the
-# notes never over-claim provenance. macOS signing is gated on the Apple secrets
-# (ADR-002 §6); when they're absent the macOS leg ships UNSIGNED like
-# Windows/Linux, and the footer says exactly that.
+# (``_VERIFY_LINE``) is invariant; the per-platform signing sentence above it is
+# built at runtime from the ACTUAL Windows and macOS signing outcomes (see
+# ``_signing_line``) so the notes never over-claim provenance. Linux is always
+# unsigned. Windows signing is gated on the five ``AZURE_*`` repository variables
+# (Azure Trusted Signing) and macOS on the Apple secrets (ADR-002 §6); when a
+# leg's credentials are absent it ships UNSIGNED and the footer says exactly that.
 _VERIFY_LINE = (
     "Verify downloads against `SHA256SUMS`. A maintainer publishes this draft "
     "after review."
 )
+_ADR_REF = "see ADR-002 §6"
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
 _STABLE_VERSION_RE = re.compile(rf"^{_CORE}$")
 _BETA_VERSION_RE = re.compile(rf"^{_CORE}-beta$")
 
 
-def _signing_line(*, macos_signed: bool) -> str:
-    """Per-platform signing sentence, honest about the macOS outcome."""
-    if macos_signed:
-        return (
-            "Windows and Linux desktop builds are **unsigned**; macOS is "
-            "**Developer ID-signed & notarized** (see ADR-002 §6)."
+def _and_join(items: list[str]) -> str:
+    """Join with Oxford-comma ``and`` for the signed-platform clauses."""
+    if len(items) == 1:
+        return items[0]
+    if len(items) == 2:
+        return f"{items[0]} and {items[1]}"
+    return ", ".join(items[:-1]) + f", and {items[-1]}"
+
+
+def _signing_line(*, macos_signed: bool, windows_signed: bool) -> str:
+    """Per-platform signing sentence, honest about each desktop's outcome.
+
+    Linux desktop artifacts are always unsigned. Windows (Azure Trusted Signing)
+    and macOS (Developer ID + notarization) are each conditional on their signing
+    credentials being present, so each is reported independently and anything
+    unsigned is named as such — the notes never claim a provenance a leg didn't
+    actually get.
+    """
+    unsigned = ["Linux"]
+    signed_clauses: list[str] = []
+    pending: list[str] = []
+
+    if windows_signed:
+        signed_clauses.append("Windows is **signed via Azure Trusted Signing**")
+    else:
+        unsigned.insert(0, "Windows")
+        pending.append(
+            "Windows Azure Trusted Signing activates once the Azure signing "
+            "variables are configured"
         )
+
+    if macos_signed:
+        signed_clauses.append("macOS is **Developer ID-signed & notarized**")
+    else:
+        unsigned.append("macOS")
+        pending.append(
+            "macOS Developer ID signing + notarization activates once the "
+            "Apple secrets are configured"
+        )
+
+    sentence = f"{_and_join(unsigned)} desktop builds are **unsigned**"
+    if not signed_clauses:
+        sentence += " this release"
+    if signed_clauses:
+        sentence += "; " + _and_join(signed_clauses)
+    if pending:
+        sentence += " — " + "; ".join(pending)
+    return f"{sentence} ({_ADR_REF})."
+
+
+def _footer(*, macos_signed: bool, windows_signed: bool) -> str:
     return (
-        "Windows, Linux, and macOS desktop builds are **unsigned** this "
-        "release — macOS Developer ID signing + notarization activates once "
-        "the Apple secrets are configured (see ADR-002 §6)."
+        f"{_signing_line(macos_signed=macos_signed, windows_signed=windows_signed)}"
+        f"\n{_VERIFY_LINE}"
     )
-
-
-def _footer(*, macos_signed: bool) -> str:
-    return f"{_signing_line(macos_signed=macos_signed)}\n{_VERIFY_LINE}"
 
 
 def _core_version(version: str) -> str:
@@ -170,13 +213,16 @@ def build_notes(
     channel: str,
     changelog_text: str,
     macos_signed: bool = False,
+    windows_signed: bool = False,
 ) -> tuple[str, bool]:
     """Build the release-notes body.
 
-    ``macos_signed`` selects the footer's macOS signing sentence: True only when
-    the pipeline actually Developer ID-signed + notarized the macOS artifacts
-    (the Apple secrets were configured). It defaults to False so the notes never
-    over-claim provenance when the signing outcome is unknown.
+    ``macos_signed`` / ``windows_signed`` select the footer's per-platform
+    signing sentences: each is True only when the pipeline actually signed that
+    leg (macOS Developer ID + notarization when the Apple secrets were present;
+    Windows Azure Trusted Signing when the five ``AZURE_*`` variables were
+    present). Both default to False so the notes never over-claim provenance when
+    a signing outcome is unknown.
 
     Returns ``(body, True)`` after validating the required CHANGELOG section.
     """
@@ -193,7 +239,7 @@ def build_notes(
     blocks.append(section)
 
     blocks.append("---")
-    blocks.append(_footer(macos_signed=macos_signed))
+    blocks.append(_footer(macos_signed=macos_signed, windows_signed=windows_signed))
 
     body = "\n\n".join(blocks).rstrip() + "\n"
     return body, section is not None
@@ -231,6 +277,16 @@ def main(argv: list[str] | None = None) -> int:
         "sentence so the notes never over-claim provenance. Default: missing.",
     )
     ap.add_argument(
+        "--windows-signing",
+        choices=["configured", "missing"],
+        default="missing",
+        help="the Windows signing outcome for this release: 'configured' when the "
+        "pipeline signed the Windows artifacts via Azure Trusted Signing (the five "
+        "AZURE_* repository variables present), else 'missing'. Selects the "
+        "footer's Windows signing sentence so the notes never over-claim "
+        "provenance. Default: missing.",
+    )
+    ap.add_argument(
         "--check",
         action="store_true",
         help="presence-check mode: require the selected release's CHANGELOG "
@@ -264,6 +320,7 @@ def main(argv: list[str] | None = None) -> int:
             channel=args.channel,
             changelog_text=changelog_text,
             macos_signed=args.macos_signing == "configured",
+            windows_signed=args.windows_signing == "configured",
         )
     except ValueError as error:
         print(f"::error::{error}", file=sys.stderr)

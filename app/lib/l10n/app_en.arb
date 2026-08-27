@@ -550,6 +550,14 @@
   "@settingsUpdatesCompletedSubtitleRevealed": {
     "description": "Subtitle shown after the download completes when the verified installer was revealed in the file manager, directing the user to run it."
   },
+  "settingsUpdatesMacosReadyTitle": "Update and restart",
+  "@settingsUpdatesMacosReadyTitle": {
+    "description": "Title of the macOS update row once a disk image has been verified and awaits approval to mount and close the app."
+  },
+  "settingsUpdatesMacosReadySubtitle": "Your update is ready. Mount the disk image and close the app so you can replace it in Applications.",
+  "@settingsUpdatesMacosReadySubtitle": {
+    "description": "Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt."
+  },
   "settingsUpdatesDownloadTitle": "Download & install update",
   "@settingsUpdatesDownloadTitle": {
     "description": "Title of the assisted-download tile in its idle and failed states, offering to download the update."
@@ -2242,6 +2250,18 @@
   "collectionFacetStatus": "Status",
   "@collectionFacetStatus": {
     "description": "Filter section heading for the dance status facet."
+  },
+  "collectionFacetCallStatus": "Calling history",
+  "@collectionFacetCallStatus": {
+    "description": "Filter section heading for the called/not-called facet."
+  },
+  "collectionFacetCalled": "Called",
+  "@collectionFacetCalled": {
+    "description": "Filter chip selecting dances called in the active history scope."
+  },
+  "collectionFacetNotCalled": "Not called",
+  "@collectionFacetNotCalled": {
+    "description": "Filter chip selecting dances not called in the active history scope."
   },
   "collectionFacetLevel": "Level",
   "@collectionFacetLevel": {
@@ -4341,9 +4361,17 @@
   "@exportShareDanceText": {
     "description": "Export-menu item: share the dance as a plain-text card via the OS share sheet."
   },
+  "exportShareDanceBundle": "Share dance file",
+  "@exportShareDanceBundle": {
+    "description": "Export-menu item: share the dance and its referenced metadata as a .ccshare file."
+  },
   "exportCopyDance": "Copy dance",
   "@exportCopyDance": {
     "description": "Export-menu item: copy the dance's plain-text card to the clipboard."
+  },
+  "exportShareDanceJson": "Export dance as JSON",
+  "@exportShareDanceJson": {
+    "description": "Export-menu item: share the dance and its referenced metadata as a plain .json file."
   },
   "exportPrintPdf": "Export / print PDF",
   "@exportPrintPdf": {
@@ -4780,9 +4808,17 @@
   "@importFromTitleList": {
     "description": "Import-program menu item: import a program from a pasted title list."
   },
+  "importProgramFromTitleList": "Import from title list",
+  "@importProgramFromTitleList": {
+    "description": "Compact import-program menu item: import a program from a pasted title list."
+  },
   "importFromContraDb": "From ContraDB",
   "@importFromContraDb": {
     "description": "Import-program menu item: import a program from ContraDB."
+  },
+  "importProgramFromContraDb": "Import from ContraDB",
+  "@importProgramFromContraDb": {
+    "description": "Compact import-program menu item: import a program from ContraDB."
   },
   "importProgramTitleLabel": "Program title",
   "@importProgramTitleLabel": {
@@ -6200,7 +6236,7 @@
   },
   "danceEditorMoreDetailsTitle": "More details",
   "@danceEditorMoreDetailsTitle": {
-    "description": "Expansion tile title for less frequently used dance metadata fields."
+    "description": "Expansion tile title for less frequently used editor metadata fields."
   },
   "danceEditorStatusLabel": "Status",
   "@danceEditorStatusLabel": {
@@ -7235,6 +7271,18 @@
       }
     }
   },
+  "updateBannerMacosReady": "{appName} {version} is ready to install.",
+  "@updateBannerMacosReady": {
+    "description": "Update banner copy after a macOS disk image is verified and the user deferred mounting it and closing the app.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "updateBannerDownloadFailed": "The update could not be downloaded.",
   "@updateBannerDownloadFailed": {
     "description": "Fallback update-banner error shown when the assisted download fails and no specific message is available."
@@ -7262,6 +7310,26 @@
   "updateBannerDownloadInstall": "Download & install",
   "@updateBannerDownloadInstall": {
     "description": "Update banner action that starts the assisted download-and-install flow."
+  },
+  "updateBannerUpdateRestart": "Update and restart",
+  "@updateBannerUpdateRestart": {
+    "description": "Banner action that mounts a verified macOS disk image and closes the app."
+  },
+  "updateMacosReadyTitle": "Ready to update?",
+  "@updateMacosReadyTitle": {
+    "description": "Title of the post-download macOS update confirmation dialog."
+  },
+  "updateMacosReadyBody": "The update has been verified. Update now will open the disk image and close Caller's Compendium so you can replace it in Applications.",
+  "@updateMacosReadyBody": {
+    "description": "Body of the post-download macOS update confirmation dialog explaining that the app will close after the disk image opens."
+  },
+  "updateMacosNotNow": "Not now",
+  "@updateMacosNotNow": {
+    "description": "Action that defers a verified macOS update without opening the disk image or closing the app."
+  },
+  "updateMacosUpdateNow": "Update now",
+  "@updateMacosUpdateNow": {
+    "description": "Action that mounts a verified macOS update disk image and closes the app."
   },
   "commandPaletteBarrierLabel": "Global search",
   "@commandPaletteBarrierLabel": {
@@ -8472,6 +8540,36 @@
         "example": "50"
       }
     }
+  },
+  "publishedCollectionPermission": "License: {license}\nPermission: {grantor} grants {holder} permission under {basis}. Covered fields: {fields}",
+  "@publishedCollectionPermission": {
+    "description": "Catalog metadata showing the signed collection license and permission declaration before import.",
+    "placeholders": {
+      "license": {
+        "type": "String",
+        "example": "CC0-1.0"
+      },
+      "grantor": {
+        "type": "String",
+        "example": "Example Foundation"
+      },
+      "holder": {
+        "type": "String",
+        "example": "Caller's Compendium users"
+      },
+      "basis": {
+        "type": "String",
+        "example": "written permission"
+      },
+      "fields": {
+        "type": "String",
+        "example": "figures, titles"
+      }
+    }
+  },
+  "publishedCollectionNoCoveredFields": "none",
+  "@publishedCollectionNoCoveredFields": {
+    "description": "Value shown when a published collection permission declaration has no covered fields."
   },
   "publishedCollectionSupersedes": "Supersedes version {version}",
   "@publishedCollectionSupersedes": {

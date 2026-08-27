@@ -1,6 +1,5 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/testing.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -268,8 +267,6 @@ Future<void> _addPhraseMove(
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   testWidgets('picker text search keeps the default Omni scope', (
     tester,
   ) async {

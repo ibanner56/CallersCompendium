@@ -26,7 +26,6 @@ void main() {
 
   test('emits an initial reference set without waiting for a write', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
     // ignore: unused_result
     await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Gene'));
@@ -43,7 +42,6 @@ void main() {
 
   test('re-emits when a choreographer is added elsewhere', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
 
     final seen = <DanceEditorReferenceData>[];
     final sub = DanceEditorReferenceData.watch(repos).listen(seen.add);
@@ -61,7 +59,6 @@ void main() {
 
   test('re-emits when a tag is renamed elsewhere', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
 
@@ -79,7 +76,6 @@ void main() {
 
   test('re-emits when a dance is retitled elsewhere', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
 
     final seen = <DanceEditorReferenceData>[];
@@ -96,7 +92,6 @@ void main() {
 
   test('re-emits when a published source is added elsewhere', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
 
     final seen = <DanceEditorReferenceData>[];
     final sub = DanceEditorReferenceData.watch(repos).listen(seen.add);
@@ -116,7 +111,6 @@ void main() {
 
   test('a program-side write does NOT wake this stream', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
 
     final seen = <DanceEditorReferenceData>[];
@@ -203,7 +197,6 @@ Future<int> _burst({
   required int writes,
   Duration coalesce = DanceEditorReferenceData.coalesceWindow,
 }) async {
-  addTearDown(repos.db.close);
   final now = DateTime.utc(2026, 1, 1);
 
   var emits = 0;

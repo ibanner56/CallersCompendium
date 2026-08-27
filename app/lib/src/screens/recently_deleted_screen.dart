@@ -94,23 +94,30 @@ class RecentlyDeletedConfig<T> {
 ///
 /// An empty state is shown when no items are pending deletion.
 class RecentlyDeletedScreen<T> extends StatefulWidget {
-  const RecentlyDeletedScreen({super.key, required this.config});
+  const RecentlyDeletedScreen({super.key, required this.config, this.onClose});
 
   final RecentlyDeletedConfig<T> config;
+  final VoidCallback? onClose;
 
   /// The dances "Recently Deleted" screen.
-  static RecentlyDeletedScreen<Dance> dances({Key? key}) =>
-      RecentlyDeletedScreen<Dance>(
-        key: key,
-        config: danceRecentlyDeletedConfig,
-      );
+  static RecentlyDeletedScreen<Dance> dances({
+    Key? key,
+    VoidCallback? onClose,
+  }) => RecentlyDeletedScreen<Dance>(
+    key: key,
+    config: danceRecentlyDeletedConfig,
+    onClose: onClose,
+  );
 
   /// The programs "Recently Deleted" screen.
-  static RecentlyDeletedScreen<Program> programs({Key? key}) =>
-      RecentlyDeletedScreen<Program>(
-        key: key,
-        config: programRecentlyDeletedConfig,
-      );
+  static RecentlyDeletedScreen<Program> programs({
+    Key? key,
+    VoidCallback? onClose,
+  }) => RecentlyDeletedScreen<Program>(
+    key: key,
+    config: programRecentlyDeletedConfig,
+    onClose: onClose,
+  );
 
   @override
   State<RecentlyDeletedScreen<T>> createState() =>
@@ -214,7 +221,17 @@ class _RecentlyDeletedScreenState<T> extends State<RecentlyDeletedScreen<T>> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.recentlyDeletedTitle)),
+      appBar: AppBar(
+        title: Text(l10n.recentlyDeletedTitle),
+        leading: widget.onClose == null
+            ? null
+            : IconButton(
+                key: const ValueKey('recently-deleted-close'),
+                tooltip: l10n.commonClose,
+                icon: const Icon(Icons.close),
+                onPressed: widget.onClose,
+              ),
+      ),
       body: FutureBuilder<List<T>>(
         future: _future,
         builder: (context, snapshot) {

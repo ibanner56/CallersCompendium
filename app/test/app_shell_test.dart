@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -78,8 +77,6 @@ Future<void> _pump(
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   // The guide is now a kept-alive shell destination, so its doc FutureBuilder
   // builds (offstage) in every test. The root bundle caches parsed results as
   // `SynchronousFuture`s after the first load, which stalls that FutureBuilder

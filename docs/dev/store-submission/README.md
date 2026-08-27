@@ -64,8 +64,8 @@ Keep this handy — every form asks some slice of it.
 | Source & issues | <https://github.com/ibanner56/CallersCompendium> |
 | Privacy policy URL | <https://ibanner56.github.io/CallersCompendium/privacy/> (published — source in [`privacy-policy.md`](privacy-policy.md), page at `site/privacy/index.html`) |
 | License | AGPL-3.0 (source-available) |
-| Data collected | **None** (local-first, no telemetry, no accounts) |
-| Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; opt-in update check (off by default) |
+| Data collection | **Current release:** none. **Apple submission:** Other User Content, not linked to you, used for App Functionality (anticipating planned opt-in Device Sync). |
+| Network use | User-initiated imports (Caller's Box, ContraDB, JSON) over HTTPS; published-collection browsing/imports from a developer-hosted catalog; opt-in update check (off by default) |
 | Age rating | Suitable for everyone (no objectionable content) |
 | Primary category | Productivity (secondary: Reference / Tools) |
 
@@ -203,13 +203,17 @@ Apple has no equivalent tester-count gate: once your first external build passes
   TestFlight build (and occasionally later ones). Not the same as full App Review.
 - **App Review** — the full review that gates a public App Store release.
 - **App Privacy ("nutrition label")** — the data-practices disclosure on your
-  App Store listing. Ours is "Data Not Collected."
+  App Store listing. The submitted disclosure is **"Data Not Linked to You"**:
+  **User Content → Other User Content**, used for **App Functionality**. It
+  anticipates the planned opt-in Device Sync; the current release has no sync.
 - **Play Console** — Google's web console (the counterpart to ASC).
 - **Testing tracks (Play)** — **Internal** (≤100 testers, instant), **Closed**
   (named testers/lists), **Open** (anyone can join = public beta), **Production**
   (public store). New personal accounts must clear closed testing first.
 - **Data safety (Play)** — Google's data-practices form (counterpart to Apple's
-  App Privacy). Ours is "No data collected / no data shared."
+  App Privacy). The current release's answer is "No data collected / no data
+  shared." Revisit it before any Device Sync release; do not copy Apple's
+  disclosure into Play without checking Play's then-current definitions.
 - **Content / age rating** — a questionnaire (Apple's own; Google uses **IARC**)
   that yields an age label. Ours comes out "everyone / 4+".
 - **`.aab` (Android App Bundle)** — the upload format Play requires (Play generates

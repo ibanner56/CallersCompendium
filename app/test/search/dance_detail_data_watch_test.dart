@@ -44,7 +44,6 @@ void main() {
 
   test('emits an initial record without waiting for a write', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
 
     final seen = <DanceDetailData?>[];
@@ -58,7 +57,6 @@ void main() {
 
   test('emits null for a dance that does not exist', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
 
     final seen = <DanceDetailData?>[];
     final sub = DanceDetailData.watch(repos, 'missing').listen(seen.add);
@@ -71,7 +69,6 @@ void main() {
 
   test('re-emits when the dance is edited elsewhere', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
 
     final seen = <DanceDetailData?>[];
@@ -93,7 +90,6 @@ void main() {
     // exercises the other half of it: nothing about `dance_tags` changes, and
     // the chip's text comes from `tags`.
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
     await repos.dances.create(
@@ -115,7 +111,6 @@ void main() {
 
   test('a program-side write does NOT wake this stream', () async {
     final repos = openTestRepositories();
-    addTearDown(repos.db.close);
     await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
 
     final seen = <DanceDetailData?>[];
@@ -253,7 +248,6 @@ Future<int> _burst({
   required int writes,
   Duration coalesce = DanceDetailData.coalesceWindow,
 }) async {
-  addTearDown(repos.db.close);
   await repos.dances.create(_plain(repos, 'd1', 'Alpha'));
 
   var emits = 0;
@@ -285,7 +279,6 @@ Future<int> _tightBurst({
   required CompendiumRepositories repos,
   required Duration coalesce,
 }) async {
-  addTearDown(repos.db.close);
   await repos.dances.create(_plain(repos, 'd1', 'Alpha'));
 
   var emits = 0;

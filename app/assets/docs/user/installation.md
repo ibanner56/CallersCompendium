@@ -98,9 +98,33 @@ There are two downloads for Windows (x64).
 
 ## Install on Android
 
-Android has one download that works on all supported phones and tablets:
-`...-android-universal.apk`. Caller's Compendium isn't on the Google Play Store
-yet, so you install this file directly (sometimes called *sideloading*).
+There are two ways to get Caller's Compendium on Android, and you only need one:
+
+- **Google Play (closed testing)** — the app is now in a **closed test** on the
+  Google Play Store. It installs and updates like any Play app, so it's the
+  smoothest option — and joining genuinely helps us, because Google requires a
+  round of real closed testers before we can open the app up more widely.
+  **Because a spot on the tester list is tied to a Google account, joining means
+  telling us the Google-account email you use on that device** (see below). If
+  you'd rather not do that, the direct download works too — no pressure either
+  way.
+- **Direct download (`...-android-universal.apk`)** — one file that works on all
+  supported phones and tablets. You install it yourself (sometimes called
+  *sideloading*), and it doesn't need a Google account or the tester list.
+
+### Join the Google Play closed test
+
+1. Give us the **Google-account email** you use on the Android device you'll test
+   on. The easiest way is the platform question and email field on the
+   **[Join the beta](https://github.com/ibanner56/CallersCompendium/issues/new?template=beta_signup.yml)**
+   form; you can also reach out through the [beta guide](../beta/beta-guide.md)
+   contact links.
+2. Once we've added you to the tester list, you'll get an **opt-in link**. Open
+   it on your device and accept to become a tester.
+3. Install **Caller's Compendium** from the Play Store page the link takes you
+   to. From then on, Play handles updates for you automatically.
+
+### Install the `.apk` directly
 
 1. Download the `.apk` to your device.
 2. Open it. Android may say it needs permission to **install unknown apps** for
@@ -108,6 +132,15 @@ yet, so you install this file directly (sometimes called *sideloading*).
    for an app installed outside the Play Store.
 3. Allow installing from that app, then continue.
 4. Finish the install and open Caller's Compendium.
+
+> **Pick one lane and stay in it.** The Play Store build and the direct `.apk`
+> are signed with **different keys**, so Android treats them as two separate
+> apps. You can't upgrade from one to the other in place — installing the Play
+> version won't replace a sideloaded `.apk` (or the other way around), and your
+> data doesn't carry across on its own. If you ever need to switch, do it
+> deliberately: open the app you have and **export a backup** (Settings ▸ General
+> ▸ Export a backup), **uninstall** it, install the other one, then **restore**
+> from that backup. Choosing one route from the start avoids all of this.
 
 > **Upgrading from the very first beta (`v0.1.0-beta.1`)?** That early Android
 > build used a different internal app identifier, so a newer build installs
@@ -176,7 +209,9 @@ During the beta, a couple of things are worth knowing:
 When the app does find an update: on **desktop** it can download it, verify it
 hasn't been tampered with, and hand it to your system's installer to finish. On
 **phones and tablets** it links you to the release so you can download it the
-usual way for your device.
+usual way for your device. (If you installed on Android through the **Google Play
+closed test**, you don't need any of this — Play updates you automatically, the
+same as any other Play app.)
 
 ## Where to go next
 

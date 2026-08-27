@@ -1268,7 +1268,6 @@ void main() {
       // so the exporter's title lookup misses it, yet the tombstone caption
       // carries the slot.
       final repos = openTestRepositories();
-      addTearDown(repos.db.close);
       await repos.dances.create(
         Dance(
           id: 'gone',

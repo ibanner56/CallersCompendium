@@ -416,6 +416,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verifiziert und im Dateimanager angezeigt – führen Sie das Installationsprogramm aus, um die Aktualisierung abzuschließen.';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'Aktualisieren und neu starten';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'Ihr Update ist bereit. Binden Sie das Disk-Image ein und schließen Sie die App, damit Sie sie im Ordner „Programme“ ersetzen können.';
+
+  @override
   String get settingsUpdatesDownloadTitle =>
       'Update herunterladen & installieren';
 
@@ -1792,6 +1799,15 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionFacetStatus => 'Status';
+
+  @override
+  String get collectionFacetCallStatus => 'Anrufverlauf';
+
+  @override
+  String get collectionFacetCalled => 'Aufgerufen';
+
+  @override
+  String get collectionFacetNotCalled => 'Nicht aufgerufen';
 
   @override
   String get collectionFacetLevel => 'Niveau';
@@ -3290,7 +3306,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportShareDanceText => 'Tanz teilen (Text)';
 
   @override
+  String get exportShareDanceBundle => 'Tanzdatei teilen';
+
+  @override
   String get exportCopyDance => 'Tanz kopieren';
+
+  @override
+  String get exportShareDanceJson => 'Tanz als JSON exportieren';
 
   @override
   String get exportPrintPdf => 'PDF exportieren / drucken';
@@ -3613,7 +3635,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get importFromTitleList => 'Aus Titelliste';
 
   @override
+  String get importProgramFromTitleList => 'Aus Titelliste importieren';
+
+  @override
   String get importFromContraDb => 'Aus ContraDB';
+
+  @override
+  String get importProgramFromContraDb => 'Aus ContraDB importieren';
 
   @override
   String get importProgramTitleLabel => 'Programmtitel';
@@ -5493,6 +5521,11 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version kann installiert werden.';
+  }
+
+  @override
   String get updateBannerDownloadFailed =>
       'Das Update konnte nicht heruntergeladen werden.';
 
@@ -5509,6 +5542,22 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'Herunterladen & installieren';
+
+  @override
+  String get updateBannerUpdateRestart => 'Aktualisieren und neu starten';
+
+  @override
+  String get updateMacosReadyTitle => 'Bereit für das Update?';
+
+  @override
+  String get updateMacosReadyBody =>
+      'Das Update wurde überprüft. „Jetzt aktualisieren“ öffnet das Disk-Image und schließt Caller\'s Compendium, damit Sie die App im Ordner „Programme“ ersetzen können.';
+
+  @override
+  String get updateMacosNotNow => 'Jetzt nicht';
+
+  @override
+  String get updateMacosUpdateNow => 'Jetzt aktualisieren';
 
   @override
   String get commandPaletteBarrierLabel => 'Globale Suche';
@@ -6462,6 +6511,20 @@ class AppLocalizationsDe extends AppLocalizations {
   String publishedCollectionDetails(String id, String version, int count) {
     return '$id · $version · $count Tänze';
   }
+
+  @override
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  ) {
+    return 'Lizenz: $license\nBerechtigung: $grantor erteilt $holder die Berechtigung auf Grundlage von $basis. Abgedeckte Felder: $fields';
+  }
+
+  @override
+  String get publishedCollectionNoCoveredFields => 'keine';
 
   @override
   String publishedCollectionSupersedes(String version) {

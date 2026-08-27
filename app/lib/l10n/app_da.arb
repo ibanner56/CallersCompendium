@@ -452,6 +452,14 @@
   "@settingsUpdatesCompletedSubtitleRevealed": {
     "x-sourceSha256": "952d932120ca0b26a5aa5bcecb8341f972d6503efcae02b96aa38ecfb1103d41"
   },
+  "settingsUpdatesMacosReadyTitle": "Opdater og genstart",
+  "@settingsUpdatesMacosReadyTitle": {
+    "x-sourceSha256": "853c6a3cc7ff193c1f6ace227245030ed64f215f93d38c2291562649d3f1a6a7"
+  },
+  "settingsUpdatesMacosReadySubtitle": "Din opdatering er klar. Monter diskaftrykket, og luk appen, så du kan erstatte den i Programmer.",
+  "@settingsUpdatesMacosReadySubtitle": {
+    "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
+  },
   "settingsUpdatesDownloadTitle": "Hent og installer opdatering",
   "@settingsUpdatesDownloadTitle": {
     "x-sourceSha256": "46bd75a84bf0657814b6e6812de9cce6446dfa4a736892b587440a4ba1d69882"
@@ -1911,6 +1919,18 @@
   "collectionFacetStatus": "Status",
   "@collectionFacetStatus": {
     "x-sourceSha256": "920e413c7d411b61ef3e8c63b1cb6ad058d5f95f8b481dbafe60248387d8c355"
+  },
+  "collectionFacetCallStatus": "Opkaldshistorik",
+  "@collectionFacetCallStatus": {
+    "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
+  },
+  "collectionFacetCalled": "Kaldt",
+  "@collectionFacetCalled": {
+    "x-sourceSha256": "3bb8faf30715b01cb7e0fb7cdd033bcbf5912a57f46289bb2090d470b6f3c610"
+  },
+  "collectionFacetNotCalled": "Ikke kaldt",
+  "@collectionFacetNotCalled": {
+    "x-sourceSha256": "606124ade426a3e8c2a0da3680ae9b518934979c772e0e7564630fd46e96e592"
   },
   "collectionFacetLevel": "Niveau",
   "@collectionFacetLevel": {
@@ -3380,9 +3400,17 @@
   "@exportShareDanceText": {
     "x-sourceSha256": "6b9d8c1ecf939ac29fb94f26e591175ee31b79f251b0e7decd36a62b2d97f568"
   },
+  "exportShareDanceBundle": "Del dansefil",
+  "@exportShareDanceBundle": {
+    "x-sourceSha256": "29c9786e0737eac3cd1c9154fb88a22b635b7d0f7af5d9bd9c5ea50842fde6f0"
+  },
   "exportCopyDance": "Kopiér dans",
   "@exportCopyDance": {
     "x-sourceSha256": "2ffac8a5b092603538cd48f6dc8841ab41879f471ad6fea998797ecdc824c1d5"
+  },
+  "exportShareDanceJson": "Eksportér dans som JSON",
+  "@exportShareDanceJson": {
+    "x-sourceSha256": "51d8ac6f502215be1cf0988afe7d67a6358e44129837800d079777d68b6f3bd4"
   },
   "exportPrintPdf": "Eksportér / udskriv PDF",
   "@exportPrintPdf": {
@@ -3728,9 +3756,17 @@
   "@importFromTitleList": {
     "x-sourceSha256": "1ec4fcef1c4528751b3ee2d164edd592f4e653daae698d2416a4c2d467d5ed5d"
   },
+  "importProgramFromTitleList": "Importér fra titelliste",
+  "@importProgramFromTitleList": {
+    "x-sourceSha256": "91e600cec80dafa0b7abe6d76f7f26fbb22a0055d9134ce3e5fb9206cf476a71"
+  },
   "importFromContraDb": "Fra ContraDB",
   "@importFromContraDb": {
     "x-sourceSha256": "018a17c622f1a3f36e955c5f04449880e83544ea0af90604245b7f1f6d7bc712"
+  },
+  "importProgramFromContraDb": "Importér fra ContraDB",
+  "@importProgramFromContraDb": {
+    "x-sourceSha256": "42454b76236b6fd95b7014ec5214cbf84d59dfd03d61283b6d8b5205db17fc91"
   },
   "importProgramTitleLabel": "Programtitel",
   "@importProgramTitleLabel": {
@@ -5468,6 +5504,10 @@
   "@updateBannerCompletedManual": {
     "x-sourceSha256": "7541e377878528425ab97b6a7e561c260a9aaea0dc1e8ebad023f00461908bb6"
   },
+  "updateBannerMacosReady": "{appName} {version} er klar til installation.",
+  "@updateBannerMacosReady": {
+    "x-sourceSha256": "a5b1111927fe6cc042bcad3244ba61ac54b0c94693eeb52be1fbaaf0083a0557"
+  },
   "updateBannerDownloadFailed": "Opdateringen kunne ikke hentes.",
   "@updateBannerDownloadFailed": {
     "x-sourceSha256": "4d6fd789fd1fe3406fb4b41914626e95cfc936b8e899a835c9d0721339a6ff67"
@@ -5487,6 +5527,26 @@
   "updateBannerDownloadInstall": "Hent og installer",
   "@updateBannerDownloadInstall": {
     "x-sourceSha256": "4c9a6b06e5efa450a3a32cf800b8a998f340ba39069d629737fdfc7de3216cbe"
+  },
+  "updateBannerUpdateRestart": "Opdater og genstart",
+  "@updateBannerUpdateRestart": {
+    "x-sourceSha256": "853c6a3cc7ff193c1f6ace227245030ed64f215f93d38c2291562649d3f1a6a7"
+  },
+  "updateMacosReadyTitle": "Klar til at opdatere?",
+  "@updateMacosReadyTitle": {
+    "x-sourceSha256": "09b6fb9311759d9e4168b54d599963d9d9eab9b2efb4ebdcdbb1b4abe71d19fc"
+  },
+  "updateMacosReadyBody": "Opdateringen er bekræftet. Opdater nu åbner diskaftrykket og lukker Caller's Compendium, så du kan erstatte den i Programmer.",
+  "@updateMacosReadyBody": {
+    "x-sourceSha256": "8230ec5164a04b24a1e6c3d6d3d2a1403dd219e3fde998235c83f7b99c8f4785"
+  },
+  "updateMacosNotNow": "Ikke nu",
+  "@updateMacosNotNow": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
+  "updateMacosUpdateNow": "Opdater nu",
+  "@updateMacosUpdateNow": {
+    "x-sourceSha256": "63bf045213cebbafc438a7a79e633015cbd047b8864eb2f9dffc45b641607048"
   },
   "commandPaletteBarrierLabel": "Global søgning",
   "@commandPaletteBarrierLabel": {
@@ -6423,6 +6483,14 @@
   "publishedCollectionDetails": "{id} · {version} · {count} danse",
   "@publishedCollectionDetails": {
     "x-sourceSha256": "ebb910dba0722f7dd04d3ea953aceee41ba0238f0dd1bbfb3c03a93663f7fd67"
+  },
+  "publishedCollectionPermission": "Licens: {license}\nTilladelse: {grantor} giver {holder} tilladelse på grundlag af {basis}. Omfattede felter: {fields}",
+  "@publishedCollectionPermission": {
+    "x-sourceSha256": "1c4ef5b148a542934dd2d630141a4209a08b606bcc7d69b6705bda04e41bafb2"
+  },
+  "publishedCollectionNoCoveredFields": "ingen",
+  "@publishedCollectionNoCoveredFields": {
+    "x-sourceSha256": "140bedbf9c3f6d56a9846d2ba7088798683f4da0c248231336e6a05679e4fdfe"
   },
   "publishedCollectionSupersedes": "Erstatter version {version}",
   "@publishedCollectionSupersedes": {

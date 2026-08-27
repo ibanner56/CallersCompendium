@@ -136,6 +136,14 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_changelog_promoted.py"),),
     ),
     Step(
+        "changelog-structure",
+        "both CHANGELOGs: version sections in order, no category repeated in one",
+        (
+            py("tools/ci/test_check_changelog_structure.py"),
+            py("tools/ci/check_changelog_structure.py"),
+        ),
+    ),
+    Step(
         "l10n",
         "translation ARBs: parity, freshness, content safety, full coverage",
         (
@@ -149,6 +157,7 @@ STEPS: tuple[Step, ...] = (
         "user-docs",
         "docs/user is the single source of the in-app bundle, and guides render",
         (
+            py("tools/ci/test_sync_user_docs.py"),
             py("tools/ci/sync_user_docs.py", "--check"),
             py("tools/site/test_markdown_to_html.py"),
             py("tools/site/test_render_user_docs.py"),

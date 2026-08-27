@@ -18,11 +18,24 @@ step-by-step does not prevent on its own.
   this release — then read the rendered draft on the release page before
   publishing. (A CI gate now covers the common case; the read is still the
   backstop.)
+- **The core CHANGELOG is not a second source of published release notes.**
+  `tools/release/gen_release_notes.py` reads `app/CHANGELOG.md` only. A
+  user-visible outcome of a `packages/compendium_core` change must therefore be
+  recorded in both `## [Unreleased]` sections: the core entry is the package
+  version record, and the app entry is what users receive. The release-prep
+  session cannot reliably reconstruct that context, so catch the missing app
+  entry in the behavioral-change PR.
 - **Re-derive the schema and taxonomy versions from source at tag time.** They
   move while a release is being prepared, so a number quoted in a status report
   an hour old may already be wrong. The Data/Migrations section is where users
   learn what is about to happen to their data; a stale range misinforms them.
 - **Derive the next tag from the existing tags.** Do not assume the increment.
+- **Issue forms cannot read a release tag dynamically.** Their build-version
+  defaults and fallback hints are static YAML. Every app version bump must
+  update every explicit SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and
+  `*.yaml` to the bare app `X.Y.Z`; `tools/ci/check_app_version.py` catches a
+  mismatch. A tag-prefixed or beta-suffixed literal is also wrong: the reporter
+  needs the installed app build version, not a release tag.
 - **Publish only after the provenance gate is green**, and confirm afterwards
   that the channel manifest *and* its detached signature are both live and that
   the signature verifies. A manifest without its signature makes the in-app

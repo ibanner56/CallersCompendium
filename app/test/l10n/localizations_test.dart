@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
@@ -25,7 +24,7 @@ class _NoopWindowService extends WindowService {
 }
 
 AppData _openAppData() {
-  final appData = AppData(openWidgetTestDatabase());
+  final appData = AppData(openWidgetTestDatabase(closeOnTearDown: false));
   addTearDown(appData.close);
   return appData;
 }
@@ -34,8 +33,6 @@ Locale? _materialAppLocale(WidgetTester tester) =>
     tester.widget<MaterialApp>(find.byType(MaterialApp)).locale;
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   // Booting the full app mounts [AppShell] (whose kept-alive User Guide loads a
   // cached doc); clearing the bundle cache before each test lets that
   // FutureBuilder settle. Mirrors startup_sequence_test.

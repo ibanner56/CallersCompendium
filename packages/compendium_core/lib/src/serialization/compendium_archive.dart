@@ -139,10 +139,9 @@ class CompendiumArchive {
 }
 
 /// The number of entities a shared/imported [archive] would write into the
-/// collection: its dances, their author choreographers, its programs, and the
-/// venues those programs reference. Program slots ride inside their program and
-/// the published-source / custom-field / tag metadata is not committed by the
-/// import path, so none of those is counted separately.
+/// collection: its dances, their author choreographers, programs, referenced
+/// metadata, and the venues those programs reference. Program slots ride inside
+/// their program.
 ///
 /// Used by the share-target intake (issue #432) to decide whether an incoming
 /// bundle is unusually large (a **soft** cap). The count is derived once from
@@ -153,7 +152,10 @@ int compendiumArchiveEntityCount(CompendiumArchive archive) =>
     archive.dances.length +
     archive.choreographers.length +
     archive.programs.length +
-    archive.venues.length;
+    archive.venues.length +
+    archive.publishedSources.length +
+    archive.customFields.length +
+    archive.tags.length;
 
 /// Which phase produced an [ArchiveError].
 enum ArchiveErrorKind {

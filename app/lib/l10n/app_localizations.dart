@@ -788,6 +788,18 @@ abstract class AppLocalizations {
   /// **'Verified and revealed in your file manager — run the installer to finish updating.'**
   String get settingsUpdatesCompletedSubtitleRevealed;
 
+  /// Title of the macOS update row once a disk image has been verified and awaits approval to mount and close the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update and restart'**
+  String get settingsUpdatesMacosReadyTitle;
+
+  /// Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.'**
+  String get settingsUpdatesMacosReadySubtitle;
+
   /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
   ///
   /// In en, this message translates to:
@@ -2977,6 +2989,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Status'**
   String get collectionFacetStatus;
+
+  /// Filter section heading for the called/not-called facet.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling history'**
+  String get collectionFacetCallStatus;
+
+  /// Filter chip selecting dances called in the active history scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Called'**
+  String get collectionFacetCalled;
+
+  /// Filter chip selecting dances not called in the active history scope.
+  ///
+  /// In en, this message translates to:
+  /// **'Not called'**
+  String get collectionFacetNotCalled;
 
   /// Filter section heading for the difficulty level facet.
   ///
@@ -5210,11 +5240,23 @@ abstract class AppLocalizations {
   /// **'Share dance (text)'**
   String get exportShareDanceText;
 
+  /// Export-menu item: share the dance and its referenced metadata as a .ccshare file.
+  ///
+  /// In en, this message translates to:
+  /// **'Share dance file'**
+  String get exportShareDanceBundle;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
   /// **'Copy dance'**
   String get exportCopyDance;
+
+  /// Export-menu item: share the dance and its referenced metadata as a plain .json file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export dance as JSON'**
+  String get exportShareDanceJson;
 
   /// Export-menu item: hand a generated PDF to the OS print/save dialog.
   ///
@@ -5732,11 +5774,23 @@ abstract class AppLocalizations {
   /// **'From title list'**
   String get importFromTitleList;
 
+  /// Compact import-program menu item: import a program from a pasted title list.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from title list'**
+  String get importProgramFromTitleList;
+
   /// Import-program menu item: import a program from ContraDB.
   ///
   /// In en, this message translates to:
   /// **'From ContraDB'**
   String get importFromContraDb;
+
+  /// Compact import-program menu item: import a program from ContraDB.
+  ///
+  /// In en, this message translates to:
+  /// **'Import from ContraDB'**
+  String get importProgramFromContraDb;
 
   /// Label for the program-title text field in the import screens.
   ///
@@ -7292,7 +7346,7 @@ abstract class AppLocalizations {
   /// **'Edit snippet'**
   String get settingsWalkthroughSnippetEditTitle;
 
-  /// Expansion tile title for less frequently used dance metadata fields.
+  /// Expansion tile title for less frequently used editor metadata fields.
   ///
   /// In en, this message translates to:
   /// **'More details'**
@@ -8357,6 +8411,12 @@ abstract class AppLocalizations {
   /// **'{appName} {version} downloaded — follow the installer to finish updating.'**
   String updateBannerCompletedManual(String appName, String version);
 
+  /// Update banner copy after a macOS disk image is verified and the user deferred mounting it and closing the app.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} {version} is ready to install.'**
+  String updateBannerMacosReady(String appName, String version);
+
   /// Fallback update-banner error shown when the assisted download fails and no specific message is available.
   ///
   /// In en, this message translates to:
@@ -8386,6 +8446,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download & install'**
   String get updateBannerDownloadInstall;
+
+  /// Banner action that mounts a verified macOS disk image and closes the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update and restart'**
+  String get updateBannerUpdateRestart;
+
+  /// Title of the post-download macOS update confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to update?'**
+  String get updateMacosReadyTitle;
+
+  /// Body of the post-download macOS update confirmation dialog explaining that the app will close after the disk image opens.
+  ///
+  /// In en, this message translates to:
+  /// **'The update has been verified. Update now will open the disk image and close Caller\'s Compendium so you can replace it in Applications.'**
+  String get updateMacosReadyBody;
+
+  /// Action that defers a verified macOS update without opening the disk image or closing the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get updateMacosNotNow;
+
+  /// Action that mounts a verified macOS update disk image and closes the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update now'**
+  String get updateMacosUpdateNow;
 
   /// Screen-reader barrier label for the global command-palette dialog.
   ///
@@ -9790,6 +9880,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{id} · {version} · {count} dances'**
   String publishedCollectionDetails(String id, String version, int count);
+
+  /// Catalog metadata showing the signed collection license and permission declaration before import.
+  ///
+  /// In en, this message translates to:
+  /// **'License: {license}\nPermission: {grantor} grants {holder} permission under {basis}. Covered fields: {fields}'**
+  String publishedCollectionPermission(
+    String license,
+    String grantor,
+    String holder,
+    String basis,
+    String fields,
+  );
+
+  /// Value shown when a published collection permission declaration has no covered fields.
+  ///
+  /// In en, this message translates to:
+  /// **'none'**
+  String get publishedCollectionNoCoveredFields;
 
   /// Catalog metadata showing that this collection version replaces an older version.
   ///

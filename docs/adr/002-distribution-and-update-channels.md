@@ -154,16 +154,22 @@ When a newer version is found on **macOS/Windows/Linux**, the banner and
 Settings ▸ Updates additionally offer a **"Download & install"** action that:
 
 1. **Downloads** the manifest-selected `UpdateArtifact` (via the same injected
-   `http.Client` seam as the check) to a **temp file**, with progress reporting
-   and user **cancel**.
+   `http.Client` seam as the check), with progress reporting and user
+   **cancel**. macOS first presents a native Save As panel and writes directly
+   to the user-selected path, preserving user-consented download provenance;
+   Windows and Linux use a private temp file.
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
-   **mandatory** integrity gate. A mismatch **fails loudly**: the temp file is
-   deleted and a clear error is surfaced (never a silent no-op).
-3. **Hands the verified file off to the OS** so the user completes the install
-   themselves — macOS opens the `.dmg`, Windows launches the installer `.exe`,
-   Linux marks the `.AppImage` executable / reveals it. It **never replaces the
-   running binary in place** — that self-update behavior is Stage 2 and stays
-   gated on code-signing.
+   **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
+   artifact is deleted and a clear error is surfaced (never a silent no-op).
+3. **Hands the verified file off to the OS.** On macOS, the app asks whether the
+   user is ready to update; accepting opens the `.dmg` and then closes the running
+   app, so the user can replace it in Applications. Deferring keeps the verified
+   image and offers **Update and restart** in the banner and Settings. On Windows,
+   the original **Download & install** action authorizes directly starting the
+   verified `.exe`; the installer terminates and replaces the old installation.
+   Linux reveals the containing folder for the user to run the artifact. The app
+   **never replaces the running binary in place** — that self-update behavior is
+   Stage 2 and stays gated on code-signing.
 
 The download is always **explicit and user-initiated** (there is no automatic
 background download), the "View release" link remains available as a fallback,
@@ -216,16 +222,20 @@ Flutter deployment docs (<https://docs.flutter.dev/deployment>).
 | Linux    | AppImage + `tar.gz` (baseline); **Snap** (Flutter-documented); Flathub | None — Linux has no OS-trust-warning model (all free) |
 | macOS    | Direct notarized `dmg`/`zip` (recommended); Mac App Store | Apple Developer Program **$99/yr** (both paths) |
 | Windows  | Azure Trusted Signing for the installer + `zip` when configured; unsigned fallback on GitHub Releases → Microsoft Store MSIX / other certificate routes | Azure service cost when enabled; see below |
-| Android  | Release APK signed with a self-generated upload keystore (official Flutter mechanism); F-Droid; optional Play Store | Self-managed keystore (free); Play $25 one-time (optional) |
+| Android  | Direct release APK signed with a self-managed key; Play uses standard Play App Signing; F-Droid | Self-managed direct-APK key (free); Google-managed Play app-signing key; Play $25 one-time |
 | iOS      | App Store / TestFlight | Apple Developer Program **$99/yr** |
 
 **Android.** The official Flutter-documented signing mechanism is a `keytool`
 **upload-keystore** referenced from `android/key.properties` and wired into
 Gradle `signingConfigs` for the release build type. The Flutter docs stress the
 keystore **must not be committed to public source control** — so we store it (and
-`key.properties`) as **CI secrets**. This confirms our free self-signed
-release-key plan; no paid authority is required to produce an installable signed
-APK. (Flutter: *Build and release an Android app*.)
+`key.properties`) as **CI secrets**. It directly signs the GitHub Releases APK;
+for the Play `.aab`, it is the Play upload key while standard Play App Signing
+uses Google's distinct app-signing key on installed devices. The two channels
+therefore require an explicit backup/uninstall/install/restore migration to
+switch. The [release runbook's custody policy](../dev/releasing.md#android-signing-key-custody-backup-and-rotation)
+defines backup, recovery, and rotation. (Flutter: *Build and release an Android
+app*.)
 
 **Windows.** Cheapest → priciest *trusted* routes:
 
@@ -403,8 +413,10 @@ Per ADR-001's "pure-Dart core, no Flutter/I-O in business logic" rule:
   - **Windows Trusted Signing configuration** — gates SmartScreen-clean
     installers and WinSparkle-signed updates; the workflow is wired but remains
     unsigned when its repository variables are absent.
-  - **Android keystore custody policy** — who holds the signing key and how it is
-    stored/rotated (a lost key blocks all future updates).
+  - **Android keystore custody policy — RESOLVED.** Policy: the repository owner is accountable for maintaining encrypted backups of the direct-APK signing key; Google retains the
+    distinct Play app-signing key. The channel-specific recovery and rotation
+    policy is in the
+    [release runbook](../dev/releasing.md#android-signing-key-custody-backup-and-rotation).
   - **Bundle-id mismatch — RESOLVED.** Android/Linux previously used
     `org.callerscompendium.compendium_app` while Apple used
     `org.callerscompendium.compendiumApp`; all platforms now unify on the Apple

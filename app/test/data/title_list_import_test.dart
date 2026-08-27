@@ -2,7 +2,6 @@ import 'package:compendium_app/src/data/online_search.dart';
 import 'package:compendium_app/src/data/title_list_import.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -199,8 +198,6 @@ class _CountingRepositories extends CompendiumRepositories {
 }
 
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   group('preflightTitleList (bounds)', () {
     test('trims, drops blank lines, and preserves paste order', () {
       final pre = preflightTitleList('  Money Musk \n\n\t\n Petronella\n');

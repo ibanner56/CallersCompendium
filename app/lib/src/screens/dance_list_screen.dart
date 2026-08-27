@@ -19,6 +19,7 @@ import '../data/import_error_labels.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/online_search_labels.dart';
+import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/sort_ignore_articles_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
@@ -91,7 +92,9 @@ class DanceListScreen extends StatefulWidget {
     this.onNewDance,
     this.selectedDanceId,
     this.onImport,
-    this.onPublishedCollections,
+    this.onCustomFields,
+    this.onRecentlyDeleted,
+    this.compactActions = false,
     this.onSelectOnlineDance,
     this.selectedOnlineId,
     this.callersBoxOnline,
@@ -117,8 +120,14 @@ class DanceListScreen extends StatefulWidget {
   /// list itself stays layout-agnostic (mirrors [onSelectDance]).
   final VoidCallback? onImport;
 
-  /// Opens the signed published-collection catalog.
-  final VoidCallback? onPublishedCollections;
+  /// Lets a split-pane owner show custom fields in its detail pane.
+  final VoidCallback? onCustomFields;
+
+  /// Lets a split-pane owner show recently deleted dances in its detail pane.
+  final VoidCallback? onRecentlyDeleted;
+
+  /// Moves app-bar actions into the overflow menu for a constrained parent.
+  final bool compactActions;
 
   /// Called with a tapped online result when the split-pane shell owns the
   /// preview pane. Null ⇒ the list pushes its own preview route (narrow mode).
@@ -146,10 +155,22 @@ enum _BatchMoreAction { setRating, addTunes, clearTunes, editCustomField }
 
 enum _CollectionCompactAction {
   importDances,
-  publishedCollections,
   batchSelect,
   manageCustomFields,
   recentlyDeleted,
+  sortDirection,
+}
+
+class _CollectionCompactSortAction {
+  const _CollectionCompactSortAction(this.value);
+
+  final CollectionSort value;
+}
+
+class _CollectionCompactGroupAction {
+  const _CollectionCompactGroupAction(this.value);
+
+  final String value;
 }
 
 class _DanceListScreenState extends State<DanceListScreen> {
@@ -178,6 +199,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// and a default caller is configured, the per-dance "called ×N" / last-called
   /// data is scoped to that caller's programs, so a change re-runs [_boot].
   bool _trackHistoryForAllCallers = false;
+
+  /// Whether calling-history filters use performed slots only.
+  bool _requirePerformedForHistory = false;
 
   static const Duration _debounce = Duration(milliseconds: 250);
 
@@ -350,6 +374,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final trackAllCallersChanged =
         _started && newTrackAllCallers != _trackHistoryForAllCallers;
     _trackHistoryForAllCallers = newTrackAllCallers;
+    final newRequirePerformed = RequirePerformedForHistoryScope.of(context);
+    final requirePerformedChanged =
+        _started && newRequirePerformed != _requirePerformedForHistory;
+    _requirePerformedForHistory = newRequirePerformed;
 
     if (!_started) {
       _started = true;
@@ -359,6 +387,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _boot();
     } else if (trackAllCallersChanged) {
       _boot();
+    } else if (requirePerformedChanged && !_onlineEnabled && _data != null) {
+      _runSearch();
     } else if (dialectChanged || ignoreArticlesChanged || enrichmentChanged) {
       _runSearch();
     }
@@ -544,6 +574,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         previous == null ||
         !mapEquals(previous.dancesById, data.dancesById) ||
         !listEquals(previous.customFieldDefs, data.customFieldDefs) ||
+        (_facets.callStatuses.isNotEmpty &&
+            (!mapEquals(previous.callCounts, data.callCounts) ||
+                previous.callerFilter != data.callerFilter)) ||
         // The author sort orders by choreographer NAME (`_sortByAuthor`), not
         // by the ids stored on the dance — so a rename reorders the results
         // while every dance row is byte-identical. Without this the labels
@@ -716,6 +749,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
         scope: _ftsScope,
         byPhrase: _byPhrase,
         advancedRoot: _advancedEnabled ? _advancedRoot : null,
+        callerFilter: data.callerFilter,
+        performedOnly: _requirePerformedForHistory,
       );
       final ids = await _repos.dances.search(
         filter,
@@ -1772,12 +1807,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
   PreferredSizeWidget _buildDefaultAppBar() {
     final l10n = AppLocalizations.of(context);
     final openSearch = AppShellSearchScope.of(context)?.openSearch;
+    final compactActions =
+        openSearch != null ||
+        (widget.compactActions && (_data?.tags.isNotEmpty ?? false));
     return AppBar(
       title: Text(l10n.collectionScreenTitle),
       actions: [
-        // Phone-only: search lives in the app bar (the bottom-right FAB slot is
-        // reserved for the "New dance" FAB). On wide layouts the nav rail owns
-        // search, so no scope is present and this action is omitted.
+        // Search lives in the app bar on narrow layouts (the bottom-right FAB
+        // slot is reserved for the "New dance" FAB). On wide layouts the nav
+        // rail owns search, so no scope is present and this action is omitted.
         if (openSearch != null)
           IconButton(
             key: const ValueKey('collection-search'),
@@ -1786,22 +1824,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
             onPressed: openSearch,
           ),
         if (_data != null) ...[
-          if (openSearch != null)
+          if (compactActions)
             _buildCompactMoreActions(l10n)
           else ...[
             if (widget.onImport != null)
               IconButton(
                 key: const ValueKey('import-dances'),
                 tooltip: l10n.importDances,
-                icon: const Icon(Icons.download_outlined),
+                icon: const Icon(Icons.file_download_outlined),
                 onPressed: widget.onImport,
-              ),
-            if (widget.onPublishedCollections != null)
-              IconButton(
-                key: const ValueKey('published-collections'),
-                tooltip: l10n.publishedCollectionsTitle,
-                icon: const Icon(Icons.library_books_outlined),
-                onPressed: widget.onPublishedCollections,
               ),
             IconButton(
               key: const ValueKey('batch-select'),
@@ -1812,7 +1843,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             IconButton(
               key: const ValueKey('manage-custom-fields'),
               tooltip: l10n.collectionManageCustomFieldsTooltip,
-              icon: const Icon(Icons.list_alt_outlined),
+              icon: const Icon(Icons.note_add_outlined),
               onPressed: _openCustomFields,
             ),
             IconButton(
@@ -1822,73 +1853,86 @@ class _DanceListScreenState extends State<DanceListScreen> {
               onPressed: _openRecentlyDeleted,
             ),
           ],
-          PopupMenuButton<CollectionSort>(
-            tooltip: l10n.collectionSortByTooltip(
-              collectionSortLabel(l10n, _sort),
+          if (!compactActions) ...[
+            PopupMenuButton<CollectionSort>(
+              tooltip: l10n.collectionSortByTooltip(
+                collectionSortLabel(l10n, _sort),
+              ),
+              initialValue: _sort,
+              icon: const Icon(Icons.sort),
+              onSelected: _selectSort,
+              itemBuilder: (context) => [
+                for (final option in _availableSorts)
+                  PopupMenuItem(
+                    value: option,
+                    child: Text(collectionSortLabel(l10n, option)),
+                  ),
+              ],
             ),
-            initialValue: _sort,
-            icon: const Icon(Icons.sort),
-            onSelected: (value) {
-              setState(() {
-                _sortUserSet = true;
-                _sort = value;
-                _sortDir = value.searchSort.defaultDirection;
-              });
-              _persistLastUsedSort();
-              _runSearch();
-            },
-            itemBuilder: (context) => [
-              for (final option in _availableSorts)
-                PopupMenuItem(
-                  value: option,
-                  child: Text(collectionSortLabel(l10n, option)),
-                ),
-            ],
-          ),
-          _buildGroupByButton(l10n),
-          IconButton(
-            key: const ValueKey('collection-sort-direction'),
-            tooltip: _sortDir == SortDirection.ascending
-                ? l10n.collectionSortAscendingTooltip
-                : l10n.collectionSortDescendingTooltip,
-            icon: Icon(
-              _sortDir == SortDirection.ascending
-                  ? Icons.arrow_upward
-                  : Icons.arrow_downward,
+            _buildGroupByButton(l10n),
+            IconButton(
+              key: const ValueKey('collection-sort-direction'),
+              tooltip: _sortDir == SortDirection.ascending
+                  ? l10n.collectionSortAscendingTooltip
+                  : l10n.collectionSortDescendingTooltip,
+              icon: Icon(
+                _sortDir == SortDirection.ascending
+                    ? Icons.arrow_upward
+                    : Icons.arrow_downward,
+              ),
+              onPressed: _toggleSortDirection,
             ),
-            onPressed: () {
-              setState(() {
-                _sortUserSet = true;
-                _sortDir = _sortDir == SortDirection.ascending
-                    ? SortDirection.descending
-                    : SortDirection.ascending;
-              });
-              _persistLastUsedSort();
-              _runSearch();
-            },
-          ),
+          ],
         ],
       ],
     );
   }
 
+  void _selectSort(CollectionSort value) {
+    setState(() {
+      _sortUserSet = true;
+      _sort = value;
+      _sortDir = value.searchSort.defaultDirection;
+    });
+    _persistLastUsedSort();
+    _runSearch();
+  }
+
+  void _toggleSortDirection() {
+    setState(() {
+      _sortUserSet = true;
+      _sortDir = _sortDir == SortDirection.ascending
+          ? SortDirection.descending
+          : SortDirection.ascending;
+    });
+    _persistLastUsedSort();
+    _runSearch();
+  }
+
+  void _selectGroup(String value) {
+    setState(() => _groupTagId = value == _noGroupSentinel ? null : value);
+  }
+
   Widget _buildCompactMoreActions(AppLocalizations l10n) {
-    return PopupMenuButton<_CollectionCompactAction>(
+    return PopupMenuButton<Object>(
       key: const ValueKey('collection-more-actions'),
       tooltip: l10n.danceMoreActions,
       icon: const Icon(Icons.more_vert),
       onSelected: (action) {
-        switch (action) {
-          case _CollectionCompactAction.importDances:
-            widget.onImport?.call();
-          case _CollectionCompactAction.publishedCollections:
-            widget.onPublishedCollections?.call();
-          case _CollectionCompactAction.batchSelect:
-            if (_results.isNotEmpty) _enterSelectionMode();
-          case _CollectionCompactAction.manageCustomFields:
-            _openCustomFields();
-          case _CollectionCompactAction.recentlyDeleted:
-            _openRecentlyDeleted();
+        if (action is _CollectionCompactSortAction) {
+          _selectSort(action.value);
+        } else if (action is _CollectionCompactGroupAction) {
+          _selectGroup(action.value);
+        } else if (action == _CollectionCompactAction.sortDirection) {
+          _toggleSortDirection();
+        } else if (action == _CollectionCompactAction.importDances) {
+          widget.onImport?.call();
+        } else if (action == _CollectionCompactAction.batchSelect) {
+          if (_results.isNotEmpty) _enterSelectionMode();
+        } else if (action == _CollectionCompactAction.manageCustomFields) {
+          _openCustomFields();
+        } else if (action == _CollectionCompactAction.recentlyDeleted) {
+          _openRecentlyDeleted();
         }
       },
       itemBuilder: (context) => [
@@ -1896,11 +1940,6 @@ class _DanceListScreenState extends State<DanceListScreen> {
           PopupMenuItem(
             value: _CollectionCompactAction.importDances,
             child: Text(l10n.importDances),
-          ),
-        if (widget.onPublishedCollections != null)
-          PopupMenuItem(
-            value: _CollectionCompactAction.publishedCollections,
-            child: Text(l10n.publishedCollectionsTitle),
           ),
         PopupMenuItem(
           enabled: _results.isNotEmpty,
@@ -1915,6 +1954,42 @@ class _DanceListScreenState extends State<DanceListScreen> {
           value: _CollectionCompactAction.recentlyDeleted,
           child: Text(l10n.collectionRecentlyDeletedTooltip),
         ),
+        const PopupMenuDivider(),
+        PopupMenuItem<Object>(
+          enabled: false,
+          child: Text(
+            l10n.collectionSortByTooltip(collectionSortLabel(l10n, _sort)),
+          ),
+        ),
+        for (final option in _availableSorts)
+          PopupMenuItem<Object>(
+            value: _CollectionCompactSortAction(option),
+            child: Text(collectionSortLabel(l10n, option)),
+          ),
+        PopupMenuItem<Object>(
+          value: _CollectionCompactAction.sortDirection,
+          child: Text(
+            _sortDir == SortDirection.ascending
+                ? l10n.collectionSortAscendingTooltip
+                : l10n.collectionSortDescendingTooltip,
+          ),
+        ),
+        if (_data?.tags.isNotEmpty ?? false) ...[
+          const PopupMenuDivider(),
+          PopupMenuItem<Object>(
+            enabled: false,
+            child: Text(l10n.collectionGroupByHeader),
+          ),
+          PopupMenuItem<Object>(
+            value: const _CollectionCompactGroupAction(_noGroupSentinel),
+            child: Text(l10n.collectionGroupByNone),
+          ),
+          for (final tag in _data!.tags)
+            PopupMenuItem<Object>(
+              value: _CollectionCompactGroupAction(tag.id),
+              child: Text(tag.name),
+            ),
+        ],
       ],
     );
   }
@@ -1945,7 +2020,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         // A null-valued PopupMenuItem is treated as a *cancel* by
         // PopupMenuButton (onSelected never fires), so "No grouping" carries a
         // non-null sentinel that we map back to null here.
-        setState(() => _groupTagId = value == _noGroupSentinel ? null : value);
+        _selectGroup(value);
       },
       itemBuilder: (context) => [
         PopupMenuItem<String>(
@@ -2058,6 +2133,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openCustomFields() async {
+    final onCustomFields = widget.onCustomFields;
+    if (onCustomFields != null) {
+      onCustomFields();
+      return;
+    }
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const CustomFieldsScreen()));
@@ -2066,6 +2146,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _openRecentlyDeleted() async {
+    final onRecentlyDeleted = widget.onRecentlyDeleted;
+    if (onRecentlyDeleted != null) {
+      onRecentlyDeleted();
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => RecentlyDeletedScreen.dances()),
     );
@@ -2328,6 +2413,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
           hasMixedLevel: data.hasMixedLevel,
           hasMixer: data.hasMixer,
           hasRating: data.hasRating,
+          hasCallingHistory: data.callCounts.values.any(
+            (counts) => counts.countFor(_requirePerformedForHistory) > 0,
+          ),
           authors: data.authors,
           tags: data.tags,
           citedSources: data.citedSources,
@@ -2798,6 +2886,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         _facets.formations.length +
         _facets.progressions.length +
         _facets.statuses.length +
+        _facets.callStatuses.length +
         _facets.authorIds.length +
         _facets.tagIds.length +
         _facets.sourceIds.length +

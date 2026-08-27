@@ -96,14 +96,14 @@ class SettingsScreen extends StatefulWidget {
 /// a value (and its content in [_SettingsScreenState._content]) to add a page.
 enum _SettingsSection {
   general(Icons.tune_outlined, Icons.tune),
-  program(Icons.grid_view_outlined, Icons.grid_view),
+  program(Icons.event_note_outlined, Icons.event_note),
   appearance(Icons.palette_outlined, Icons.palette),
   dialect(Icons.groups_outlined, Icons.groups),
   regional(Icons.translate_outlined, Icons.translate),
   defaults(Icons.settings_suggest_outlined, Icons.settings_suggest),
   updates(Icons.system_update_alt_outlined, Icons.system_update_alt),
   diagnostics(Icons.bug_report_outlined, Icons.bug_report),
-  experimental(Icons.science_outlined, Icons.science),
+  experimental(Icons.psychology_outlined, Icons.psychology),
   about(Icons.info_outline, Icons.info);
 
   const _SettingsSection(this.icon, this.selectedIcon);

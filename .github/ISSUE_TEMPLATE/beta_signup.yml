@@ -7,16 +7,19 @@ body:
     attributes:
       value: >-
         Thanks for wanting to help test Caller's Compendium! This is a one-time
-        signup so we know who's testing and can line up the right builds (and
-        TestFlight invites for iOS/iPadOS). Already signed up and want to share
-        how a build held up? Use the **Beta check-in** form instead.
+        signup so we know who's testing and can line up the right builds (plus
+        TestFlight invites for iOS/iPadOS and Google Play closed-test invites for
+        Android). Already signed up and want to share how a build held up? Use the
+        **Beta check-in** form instead.
   - type: markdown
     attributes:
       value: >-
         **Privacy:** the app is local-first and collects no telemetry. This form
-        is entirely what you choose to share. The only detail we actually
-        *need* is an Apple ID email **if** you want iOS/iPadOS TestFlight access —
-        everything else is optional. Please don't include other personal or
+        is entirely what you choose to share. The only details we actually
+        *need* are a contact email for each mobile beta you want in — an Apple ID
+        email **if** you want iOS/iPadOS TestFlight access, and the Google-account
+        email on your device **if** you want the Android Google Play closed test.
+        Everything else is optional. Please don't include other personal or
         identifying information.
   - type: dropdown
     id: platforms
@@ -39,6 +42,19 @@ body:
       description: >-
         Required only if you selected iOS / iPadOS above — TestFlight invites
         are sent to an Apple ID email. Leave blank for every other platform.
+      placeholder: you@example.com
+    validations:
+      required: false
+  - type: input
+    id: play-email
+    attributes:
+      label: Google-account email for the Play Store closed test (Android only)
+      description: >-
+        Optional, and only relevant if you selected Android. Caller's Compendium
+        is in a **Google Play closed test**: give the Google-account email on the
+        device you'll test on and we'll add you to the tester list so it installs
+        and updates straight from Play. Prefer to sideload the `.apk` instead?
+        Leave this blank — you don't need to be on the list for that.
       placeholder: you@example.com
     validations:
       required: false
@@ -82,5 +98,5 @@ body:
     attributes:
       label: Privacy acknowledgement
       options:
-        - label: Apart from a TestFlight email (if I asked for iOS access), I haven't included personal or identifying information.
+        - label: Apart from a contact email for a mobile beta I asked for (a TestFlight Apple ID and/or a Google Play account email), I haven't included personal or identifying information.
           required: true

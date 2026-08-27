@@ -62,6 +62,19 @@ class PublishedSourceRepository {
     return rows.map(_toModel).toList();
   }
 
+  Future<List<({PublishedSource source, bool deleted})>>
+  listAllWithDeleted() async {
+    final rows =
+        await (_db.select(_db.publishedSources)..orderBy([
+              (t) => OrderingTerm(expression: t.title.collate(Collate.noCase)),
+            ]))
+            .get();
+    return [
+      for (final row in rows)
+        (source: _toModel(row), deleted: row.deletedAt != null),
+    ];
+  }
+
   /// Throws if [id] is still referenced by any `dance_sources` row — callers
   /// must remove the citing dances' citations first (deleting a source out
   /// from under citing dances would be a silent data-loss bug). The "still
@@ -84,6 +97,7 @@ class PublishedSourceRepository {
           '${stillUsed.length} dance(s)',
         );
       }
+
       if (permanent) {
         await (_db.delete(
           _db.publishedSources,
@@ -99,6 +113,22 @@ class PublishedSourceRepository {
         deleted: true,
       );
     });
+  }
+
+  Future<void> restore(String id, {required DateTime at}) =>
+      stampExistenceTransition(
+        _db,
+        table: _db.publishedSources,
+        keyColumn: 'id',
+        key: id,
+        at: at,
+        deleted: false,
+      );
+
+  Future<void> hardDelete(Iterable<String> ids) async {
+    for (final id in ids) {
+      await delete(id, permanent: true);
+    }
   }
 
   PublishedSource _toModel(PublishedSourceRow row) => PublishedSource(

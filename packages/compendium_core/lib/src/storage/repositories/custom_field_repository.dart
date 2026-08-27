@@ -84,6 +84,18 @@ class CustomFieldDefRepository {
     return [for (final row in rows) ?toModel(row)];
   }
 
+  Future<List<({CustomFieldDef field, bool deleted})>>
+  listAllWithDeleted() async {
+    final rows = await (_db.select(
+      _db.customFieldDefs,
+    )..orderBy([(t) => OrderingTerm(expression: t.label)])).get();
+    return [
+      for (final row in rows)
+        if (toModel(row) case final field?)
+          (field: field, deleted: row.deletedAt != null),
+    ];
+  }
+
   /// [listAll] as a live stream: the current definitions immediately, then
   /// again after every write that changes them (issue #768).
   ///
@@ -152,6 +164,7 @@ class CustomFieldDefRepository {
           '${stillUsed.length} dance(s)',
         );
       }
+
       if (permanent) {
         await (_db.delete(
           _db.customFieldDefs,
@@ -167,6 +180,22 @@ class CustomFieldDefRepository {
         deleted: true,
       );
     });
+  }
+
+  Future<void> restore(String id, {required DateTime at}) =>
+      stampExistenceTransition(
+        _db,
+        table: _db.customFieldDefs,
+        keyColumn: 'id',
+        key: id,
+        at: at,
+        deleted: false,
+      );
+
+  Future<void> hardDelete(Iterable<String> ids) async {
+    for (final id in ids) {
+      await delete(id, permanent: true);
+    }
   }
 
   /// Maps a row to a [CustomFieldDef], returning `null` for a row whose

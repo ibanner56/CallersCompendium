@@ -1,5 +1,4 @@
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show driftRuntimeOptions;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -37,8 +36,6 @@ import 'support/test_repositories.dart';
 /// being true when they were re-parented into a kept-alive `IndexedStack`,
 /// without a line of their code changing. These tests fail if that recurs here.
 void main() {
-  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
-
   Future<void> pump(
     WidgetTester tester,
     CompendiumRepositories repos,
