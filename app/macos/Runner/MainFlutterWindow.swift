@@ -2,8 +2,11 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
+  private(set) var flutterViewController: FlutterViewController?
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
+    self.flutterViewController = flutterViewController
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)

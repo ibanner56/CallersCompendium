@@ -19,7 +19,7 @@
 ///
 /// The default implementation shells out via `dart:io` `Process` behind an
 /// injectable [ProcessRunner] seam, so tests assert the exact command invoked
-/// (and that Windows/Linux are only ever *revealed*, never executed) without
+/// (and that each platform invokes only its documented command) without
 /// launching anything real.
 library;
 

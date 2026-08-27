@@ -4,7 +4,7 @@ import 'package:compendium_app/src/data/window_service.dart';
 
 void main() {
   test(
-    'closes the app before destroying the window, only once in flight',
+    'closes the app before closing the window, only once in flight',
     () async {
       final events = <String>[];
       final coordinator = WindowCloseCoordinator(
@@ -12,26 +12,42 @@ void main() {
           events.add('close');
           await Future<void>.delayed(Duration.zero);
         },
-        destroyWindow: () async {
-          events.add('destroy');
+        closeWindow: () async {
+          events.add('close window');
         },
       );
 
       await Future.wait([coordinator.handle(), coordinator.handle()]);
 
-      expect(events, ['close', 'destroy']);
+      expect(events, ['close', 'close window']);
+    },
+  );
+
+  test(
+    'allows the native Windows close path before closing the window',
+    () async {
+      final events = <String>[];
+      final coordinator = WindowCloseCoordinator(
+        closeApp: () async => events.add('close app'),
+        allowWindowClose: () async => events.add('allow native close'),
+        closeWindow: () async => events.add('close window'),
+      );
+
+      await coordinator.handle();
+
+      expect(events, ['close app', 'allow native close', 'close window']);
     },
   );
 
   test('allows a later close attempt after the first completes', () async {
     var closeCount = 0;
-    var destroyCount = 0;
+    var closeWindowCount = 0;
     final coordinator = WindowCloseCoordinator(
       closeApp: () async {
         closeCount++;
       },
-      destroyWindow: () async {
-        destroyCount++;
+      closeWindow: () async {
+        closeWindowCount++;
       },
     );
 
@@ -39,34 +55,53 @@ void main() {
     await coordinator.handle();
 
     expect(closeCount, 2);
-    expect(destroyCount, 2);
+    expect(closeWindowCount, 2);
   });
 
-  test('reports close failures without leaving an unhandled error', () async {
+  test('continues closing after an app-close failure', () async {
     final events = <String>[];
     final coordinator = WindowCloseCoordinator(
       closeApp: () async {
         events.add('close');
         throw StateError('database close failed');
       },
-      destroyWindow: () async {
-        events.add('destroy');
+      closeWindow: () async {
+        events.add('close window');
       },
     );
 
     await coordinator.handle();
 
-    expect(events, ['close', 'destroy']);
+    expect(events, ['close', 'close window']);
   });
 
-  test('reports destroy failures without leaving an unhandled error', () async {
+  test('continues closing after allowing native close fails', () async {
+    final events = <String>[];
     final coordinator = WindowCloseCoordinator(
-      closeApp: () async {},
-      destroyWindow: () async {
-        throw StateError('window destroy failed');
+      closeApp: () async => events.add('close app'),
+      allowWindowClose: () async {
+        events.add('allow native close');
+        throw StateError('allow close failed');
       },
+      closeWindow: () async => events.add('close window'),
     );
 
     await coordinator.handle();
+
+    expect(events, ['close app', 'allow native close', 'close window']);
   });
+
+  test(
+    'reports close-window failures without leaving an unhandled error',
+    () async {
+      final coordinator = WindowCloseCoordinator(
+        closeApp: () async {},
+        closeWindow: () async {
+          throw StateError('window destroy failed');
+        },
+      );
+
+      await coordinator.handle();
+    },
+  );
 }

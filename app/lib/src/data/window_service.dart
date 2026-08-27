@@ -23,21 +23,26 @@ bool get isDesktopWindowPlatform =>
 /// Coordinates an orderly desktop shutdown.
 ///
 /// The window must remain alive while Drift sends its close request to the
-/// background database isolate. Destroying it first lets Flutter tear down the
-/// Dart isolate while sqlite3 native finalizers are still pending.
+/// background database isolate. On Windows, the native close must then proceed
+/// through `WM_CLOSE` so Flutter tears down before the runner uninitializes COM.
 class WindowCloseCoordinator {
-  WindowCloseCoordinator({required this.closeApp, required this.destroyWindow});
+  WindowCloseCoordinator({
+    required this.closeApp,
+    this.allowWindowClose,
+    required this.closeWindow,
+  });
 
   final Future<void> Function() closeApp;
-  final Future<void> Function() destroyWindow;
+  final Future<void> Function()? allowWindowClose;
+  final Future<void> Function() closeWindow;
 
   Future<void>? _closeFuture;
 
-  /// Closes application resources before force-destroying the native window.
+  /// Closes application resources before closing the native window.
   /// Repeated close events share the first in-flight operation.
-  Future<void> handle() => _closeFuture ??= _closeAndDestroy();
+  Future<void> handle() => _closeFuture ??= _closeAndCloseWindow();
 
-  Future<void> _closeAndDestroy() async {
+  Future<void> _closeAndCloseWindow() async {
     try {
       try {
         await closeApp();
@@ -48,13 +53,25 @@ class WindowCloseCoordinator {
           source: 'window_service._closeApp',
         );
       }
+      final allowClose = allowWindowClose;
+      if (allowClose != null) {
+        try {
+          await allowClose();
+        } catch (error, stackTrace) {
+          logCaughtErrorTypeOnly(
+            error,
+            stackTrace,
+            source: 'window_service._allowWindowClose',
+          );
+        }
+      }
       try {
-        await destroyWindow();
+        await closeWindow();
       } catch (error, stackTrace) {
         logCaughtErrorTypeOnly(
           error,
           stackTrace,
-          source: 'window_service._destroyWindow',
+          source: 'window_service._closeWindow',
         );
       }
     } finally {
@@ -81,7 +98,12 @@ class WindowService with WindowListener {
            ? null
            : WindowCloseCoordinator(
                closeApp: onClose,
-               destroyWindow: windowManager.destroy,
+               allowWindowClose: Platform.isWindows
+                   ? () => windowManager.setPreventClose(false)
+                   : null,
+               closeWindow: Platform.isWindows
+                   ? windowManager.close
+                   : windowManager.destroy,
              );
 
   final SettingsRepository _settings;

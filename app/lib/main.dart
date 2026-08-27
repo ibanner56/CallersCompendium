@@ -4,11 +4,14 @@ import 'dart:io' show Directory, File, Platform, exit, stderr;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'
+    show MethodCall, MethodChannel, PlatformException;
 import 'package:path/path.dart' as p;
 
 import 'l10n/app_localizations.dart';
 import 'src/data/active_dialect_scope.dart';
 import 'src/data/aggressive_beats_update_scope.dart';
+import 'src/data/application_shutdown_controller.dart';
 import 'src/data/app_database.dart';
 import 'src/data/app_theme_scope.dart';
 import 'src/data/archive_intake_labels.dart';
@@ -86,6 +89,11 @@ import 'src/widgets/app_bootstrap.dart';
 
 AppData _defaultAppDataFactory() => AppData(openAppDatabase());
 
+const MethodChannel _applicationTerminationChannel = MethodChannel(
+  'is.banner.callerscompendium/application_lifecycle',
+);
+const String _requestApplicationShutdownMethod = 'requestApplicationShutdown';
+
 Future<ResetResult> _resetDatabaseFile(File dbFile) =>
     performReset(dbFile: dbFile);
 
@@ -137,14 +145,27 @@ Future<void> main() async {
     // AppBootstrap error/retry screen instead of throwing out of `main` before
     // `runApp` — which would leave a blank window with no way to recover.
     final appData = AppData(openAppDatabase());
+    final shutdownController = ApplicationShutdownController(appData.close);
+    _applicationTerminationChannel.setMethodCallHandler((
+      MethodCall call,
+    ) async {
+      if (call.method != _requestApplicationShutdownMethod) {
+        throw PlatformException(
+          code: 'not_implemented',
+          message: 'Unsupported application lifecycle method: ${call.method}',
+        );
+      }
+      await shutdownController.close();
+    });
     final windowService = WindowService(
       appData.repositories.settings,
-      onClose: appData.close,
+      onClose: shutdownController.close,
     );
     runApp(
       CompendiumApp(
         appData: appData,
         windowService: windowService,
+        applicationShutdownController: shutdownController,
         crashReporter: crashReporter,
         migrationPreflight: (onSnapshotFailure) => runMigrationPreflightForApp(
           runningSchemaVersion: kCompendiumSchemaVersion,
@@ -195,6 +216,7 @@ class CompendiumApp extends StatefulWidget {
     this.windowServiceFactory,
     this.databaseFileResolver = resolveDatabaseFile,
     this.databaseResetter = _resetDatabaseFile,
+    this.applicationShutdownController,
   });
 
   /// The initially opened database + repositories facade. Injected from [main]
@@ -204,6 +226,12 @@ class CompendiumApp extends StatefulWidget {
 
   /// The desktop window service to tear down on dispose (no-op off desktop).
   final WindowService windowService;
+
+  /// Serializes database shutdown requested by AppKit or the desktop window.
+  ///
+  /// The reset flow swaps this controller's action to its replacement database,
+  /// so native termination never closes a stale connection.
+  final ApplicationShutdownController? applicationShutdownController;
 
   /// Initial value for the history preference notifier. Exposed for widget
   /// tests that need to verify replacement resets a stale in-memory value.
@@ -469,16 +497,18 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _walkthroughSnippets.dispose();
     _updateController.dispose();
 
-    final replacementData = widget.appDataFactory();
+    final appData = widget.appDataFactory();
+    widget.applicationShutdownController?.replaceCloseApp(appData.close);
     _windowService =
         widget.windowServiceFactory?.call(
-          replacementData.repositories.settings,
+          appData.repositories.settings,
         ) ??
         WindowService(
-          replacementData.repositories.settings,
-          onClose: replacementData.close,
+          appData.repositories.settings,
+          onClose:
+              widget.applicationShutdownController?.close ?? appData.close,
         );
-    _initializeDatabaseBackedServices(replacementData);
+    _initializeDatabaseBackedServices(appData);
   }
 
   void _resetAppPreferenceNotifiers() {
