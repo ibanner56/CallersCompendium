@@ -161,11 +161,15 @@ Settings ▸ Updates additionally offer a **"Download & install"** action that:
 2. **Verifies** the file's **sha256 against `UpdateArtifact.sha256`** — a
    **mandatory** integrity gate. A mismatch **fails loudly**: the downloaded
    artifact is deleted and a clear error is surfaced (never a silent no-op).
-3. **Hands the verified file off to the OS** so the user completes the install
-   themselves — macOS opens the `.dmg`, Windows launches the installer `.exe`,
-   Linux marks the `.AppImage` executable / reveals it. It **never replaces the
-   running binary in place** — that self-update behavior is Stage 2 and stays
-   gated on code-signing.
+3. **Hands the verified file off to the OS.** On macOS, the app asks whether the
+   user is ready to update; accepting opens the `.dmg` and then closes the running
+   app, so the user can replace it in Applications. Deferring keeps the verified
+   image and offers **Update and restart** in the banner and Settings. On Windows,
+   the original **Download & install** action authorizes directly starting the
+   verified `.exe`; the installer terminates and replaces the old installation.
+   Linux reveals the containing folder for the user to run the artifact. The app
+   **never replaces the running binary in place** — that self-update behavior is
+   Stage 2 and stays gated on code-signing.
 
 The download is always **explicit and user-initiated** (there is no automatic
 background download), the "View release" link remains available as a fallback,

@@ -10,10 +10,11 @@
 ///
 /// - **macOS** (signed + notarized): `open` the `.dmg`/`.zip` so it auto-mounts
 ///   / expands — [HandoffResult.launched].
-/// - **Windows / Linux** (OS-unsigned): **reveal** the verified installer in the
-///   file manager and let the *user* run it — never auto-execute. Windows uses
-///   `explorer /select,<file>`; Linux `xdg-open`s the containing folder. No
-///   `chmod +x`, no direct `.exe`/`.AppImage` execution — [HandoffResult.revealed].
+/// - **Windows**: start the verified installer that the user explicitly
+///   requested with "Download & install" — [HandoffResult.launched].
+/// - **Linux** (OS-unsigned): **reveal** the verified installer in the file
+///   manager and let the *user* run it. Linux `xdg-open`s the containing folder;
+///   no `chmod +x` or direct `.AppImage` execution — [HandoffResult.revealed].
 /// - **Android/iOS**: no handoff — [HandoffResult.failed].
 ///
 /// The default implementation shells out via `dart:io` `Process` behind an
@@ -29,11 +30,11 @@ import 'update_manifest.dart';
 /// The outcome of an OS-handoff attempt (issue #431). Distinguishes an
 /// auto-launch from a reveal-only so the UI can instruct the user accurately.
 enum HandoffResult {
-  /// The artifact was opened/launched for the user (macOS `open`).
+  /// The artifact was opened/launched for the user (macOS `open`, Windows `.exe`).
   launched,
 
   /// The artifact was revealed in the file manager for the user to run
-  /// manually (Windows/Linux — never auto-executed).
+  /// manually (Linux — never auto-executed).
   revealed,
 
   /// No handoff happened: an unsupported platform (mobile) or the reveal/launch
@@ -93,7 +94,7 @@ class ProcessRunner {
   }
 }
 
-/// Default [ArtifactHandoff]: opens (macOS) or reveals (Windows/Linux) the
+/// Default [ArtifactHandoff]: opens (macOS), starts (Windows), or reveals (Linux) the
 /// verified [file] per-platform so the user finishes installing. See the
 /// library doc for the exact per-platform behavior. [runner] is injectable for
 /// tests; production uses the real [ProcessRunner].
@@ -114,12 +115,11 @@ Future<HandoffResult> handoffArtifactToOs(
         final ok = await runner.runToCompletion('open', [file.path]);
         return ok ? HandoffResult.launched : HandoffResult.failed;
       case UpdatePlatform.windows:
-        // OS-unsigned: never auto-execute. Reveal the installer in Explorer and
-        // let the user run it themselves.
-        final ok = await runner.startDetached('explorer.exe', [
-          '/select,${file.path}',
-        ]);
-        return ok ? HandoffResult.revealed : HandoffResult.failed;
+        // Starting the installer is authorized by the user's explicit
+        // "Download & install" action. The installer itself coordinates closing
+        // any running instance before replacing the installed files.
+        final ok = await runner.startDetached(file.path, const []);
+        return ok ? HandoffResult.launched : HandoffResult.failed;
       case UpdatePlatform.linux:
         // OS-unsigned: never mark executable and never launch. Reveal the
         // containing folder so the user runs the installer themselves.

@@ -419,8 +419,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
   @override
   void initState() {
     super.initState();
-    _initializeDatabaseBackedServices(widget.appData);
     _windowService = widget.windowService;
+    _initializeDatabaseBackedServices(widget.appData);
     // Listen for files opened while the app is running (AirDrop / "Open with"
     // on an already-launched app). The cold-start file is pulled once the ready
     // UI is shown (see [_buildReadyApp]). No-op when intake is not wired.
@@ -450,7 +450,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _walkthroughSnippets = WalkthroughSnippetLibraryController(
       _appData.repositories.settings,
     );
-    _updateController = UpdateController(_appData.repositories.settings);
+    _updateController = UpdateController(
+      _appData.repositories.settings,
+      onMacosShutdown: _windowService.closeForUpdate,
+    );
   }
 
   void _replaceDatabaseBackedServices() {
@@ -466,10 +469,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _walkthroughSnippets.dispose();
     _updateController.dispose();
 
-    _initializeDatabaseBackedServices(widget.appDataFactory());
+    final replacementData = widget.appDataFactory();
     _windowService =
-        widget.windowServiceFactory?.call(_appData.repositories.settings) ??
-        WindowService(_appData.repositories.settings, onClose: _appData.close);
+        widget.windowServiceFactory?.call(
+          replacementData.repositories.settings,
+        ) ??
+        WindowService(
+          replacementData.repositories.settings,
+          onClose: replacementData.close,
+        );
+    _initializeDatabaseBackedServices(replacementData);
   }
 
   void _resetAppPreferenceNotifiers() {

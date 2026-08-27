@@ -788,6 +788,18 @@ abstract class AppLocalizations {
   /// **'Verified and revealed in your file manager — run the installer to finish updating.'**
   String get settingsUpdatesCompletedSubtitleRevealed;
 
+  /// Title of the macOS update row once a disk image has been verified and awaits approval to mount and close the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update and restart'**
+  String get settingsUpdatesMacosReadyTitle;
+
+  /// Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.'**
+  String get settingsUpdatesMacosReadySubtitle;
+
   /// Title of the assisted-download tile in its idle and failed states, offering to download the update.
   ///
   /// In en, this message translates to:
@@ -8387,6 +8399,12 @@ abstract class AppLocalizations {
   /// **'{appName} {version} downloaded — follow the installer to finish updating.'**
   String updateBannerCompletedManual(String appName, String version);
 
+  /// Update banner copy after a macOS disk image is verified and the user deferred mounting it and closing the app.
+  ///
+  /// In en, this message translates to:
+  /// **'{appName} {version} is ready to install.'**
+  String updateBannerMacosReady(String appName, String version);
+
   /// Fallback update-banner error shown when the assisted download fails and no specific message is available.
   ///
   /// In en, this message translates to:
@@ -8416,6 +8434,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download & install'**
   String get updateBannerDownloadInstall;
+
+  /// Banner action that mounts a verified macOS disk image and closes the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update and restart'**
+  String get updateBannerUpdateRestart;
+
+  /// Title of the post-download macOS update confirmation dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to update?'**
+  String get updateMacosReadyTitle;
+
+  /// Body of the post-download macOS update confirmation dialog explaining that the app will close after the disk image opens.
+  ///
+  /// In en, this message translates to:
+  /// **'The update has been verified. Update now will open the disk image and close Caller\'s Compendium so you can replace it in Applications.'**
+  String get updateMacosReadyBody;
+
+  /// Action that defers a verified macOS update without opening the disk image or closing the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get updateMacosNotNow;
+
+  /// Action that mounts a verified macOS update disk image and closes the app.
+  ///
+  /// In en, this message translates to:
+  /// **'Update now'**
+  String get updateMacosUpdateNow;
 
   /// Screen-reader barrier label for the global command-palette dialog.
   ///

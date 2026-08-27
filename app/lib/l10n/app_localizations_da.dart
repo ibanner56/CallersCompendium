@@ -416,6 +416,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Verificeret og vist i din filhåndtering – kør installationsprogrammet for at fuldføre opdateringen.';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'Opdater og genstart';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'Din opdatering er klar. Monter diskaftrykket, og luk appen, så du kan erstatte den i Programmer.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Hent og installer opdatering';
 
   @override
@@ -5437,6 +5444,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version er klar til installation.';
+  }
+
+  @override
   String get updateBannerDownloadFailed => 'Opdateringen kunne ikke hentes.';
 
   @override
@@ -5452,6 +5464,22 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'Hent og installer';
+
+  @override
+  String get updateBannerUpdateRestart => 'Opdater og genstart';
+
+  @override
+  String get updateMacosReadyTitle => 'Klar til at opdatere?';
+
+  @override
+  String get updateMacosReadyBody =>
+      'Opdateringen er bekræftet. Opdater nu åbner diskaftrykket og lukker Caller\'s Compendium, så du kan erstatte den i Programmer.';
+
+  @override
+  String get updateMacosNotNow => 'Ikke nu';
+
+  @override
+  String get updateMacosUpdateNow => 'Opdater nu';
 
   @override
   String get commandPaletteBarrierLabel => 'Global søgning';

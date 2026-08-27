@@ -35,6 +35,13 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Changed
+
+- **Desktop in-app updates** — verified Windows installers now start directly
+  after **Download & install**. On macOS, choose whether to update immediately;
+  the disk image opens before the app closes so you can replace it in
+  **Applications**, or defer with **Update and restart**.
+
 ## [0.1.3] - 2026-08-26
 
 ### Changed

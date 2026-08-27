@@ -88,6 +88,15 @@ class WindowService with WindowListener {
   final String frameKey;
   final WindowCloseCoordinator? _closeCoordinator;
 
+  /// Performs the same ordered shutdown used for a user-initiated window close.
+  ///
+  /// macOS update installation calls this only after the verified disk image has
+  /// opened, so the replacement app is not blocked by the running process.
+  Future<void> closeForUpdate() async {
+    final coordinator = _closeCoordinator;
+    if (coordinator != null) await coordinator.handle();
+  }
+
   /// Debounce delay for persisting size/position during a drag — mirrors the
   /// editor autosave (500 ms) so we don't hammer settings mid-drag.
   static const Duration _persistDebounce = Duration(milliseconds: 500);

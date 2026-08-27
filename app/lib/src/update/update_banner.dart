@@ -4,6 +4,7 @@ import '../../l10n/app_localizations.dart';
 import '../app_metadata.dart';
 import '../utils/launch_external_url.dart';
 import 'artifact_handoff.dart';
+import 'macos_update_prompt.dart';
 import 'update_controller.dart';
 import 'update_scope.dart';
 import 'update_service.dart';
@@ -68,6 +69,8 @@ class UpdateBanner extends StatelessWidget {
         return Text(l10n.updateBannerVerifying(kAppName, version));
       case AssistedDownloadStatus.handingOff:
         return Text(l10n.updateBannerPreparingInstaller);
+      case AssistedDownloadStatus.awaitingMacosInstall:
+        return Text(l10n.updateBannerMacosReady(kAppName, version));
       case AssistedDownloadStatus.completed:
         final revealed = controller.handoffResult == HandoffResult.revealed;
         return Text(
@@ -121,6 +124,19 @@ class UpdateBanner extends StatelessWidget {
       child: Text(l10n.updateBannerDismiss),
     );
 
+    if (controller.isAwaitingMacosInstall) {
+      return [
+        dismissButton,
+        TextButton(
+          key: const ValueKey('update-banner-restart'),
+          onPressed: () =>
+              UpdateScope.controllerOf(context).installPendingMacosUpdate(),
+          child: Text(l10n.updateBannerUpdateRestart),
+        ),
+        viewButton,
+      ];
+    }
+
     if (controller.canAssistDownload &&
         controller.downloadStatus != AssistedDownloadStatus.completed) {
       final retry = controller.downloadStatus == AssistedDownloadStatus.failed;
@@ -128,8 +144,7 @@ class UpdateBanner extends StatelessWidget {
         dismissButton,
         TextButton(
           key: const ValueKey('update-banner-download'),
-          onPressed: () =>
-              UpdateScope.controllerOf(context).startAssistedDownload(),
+          onPressed: () => _startAssistedDownload(context),
           child: Text(
             retry ? l10n.commonTryAgain : l10n.updateBannerDownloadInstall,
           ),
@@ -139,5 +154,12 @@ class UpdateBanner extends StatelessWidget {
     }
 
     return [dismissButton, viewButton];
+  }
+
+  Future<void> _startAssistedDownload(BuildContext context) async {
+    final controller = UpdateScope.controllerOf(context);
+    await controller.startAssistedDownload();
+    if (!context.mounted) return;
+    await promptForMacosUpdate(context, controller);
   }
 }

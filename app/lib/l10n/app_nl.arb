@@ -452,6 +452,14 @@
   "@settingsUpdatesCompletedSubtitleRevealed": {
     "x-sourceSha256": "952d932120ca0b26a5aa5bcecb8341f972d6503efcae02b96aa38ecfb1103d41"
   },
+  "settingsUpdatesMacosReadyTitle": "Bijwerken en opnieuw starten",
+  "@settingsUpdatesMacosReadyTitle": {
+    "x-sourceSha256": "853c6a3cc7ff193c1f6ace227245030ed64f215f93d38c2291562649d3f1a6a7"
+  },
+  "settingsUpdatesMacosReadySubtitle": "Je update is klaar. Koppel de schijfkopie aan en sluit de app zodat je deze in Programma's kunt vervangen.",
+  "@settingsUpdatesMacosReadySubtitle": {
+    "x-sourceSha256": "005d5b6d4026d34cd4bb0a4ede76c2fd391bd3598b5fcfd2b21103f543100223"
+  },
   "settingsUpdatesDownloadTitle": "Update downloaden en installeren",
   "@settingsUpdatesDownloadTitle": {
     "x-sourceSha256": "46bd75a84bf0657814b6e6812de9cce6446dfa4a736892b587440a4ba1d69882"
@@ -5488,6 +5496,10 @@
   "@updateBannerCompletedManual": {
     "x-sourceSha256": "7541e377878528425ab97b6a7e561c260a9aaea0dc1e8ebad023f00461908bb6"
   },
+  "updateBannerMacosReady": "{appName} {version} is klaar om te installeren.",
+  "@updateBannerMacosReady": {
+    "x-sourceSha256": "a5b1111927fe6cc042bcad3244ba61ac54b0c94693eeb52be1fbaaf0083a0557"
+  },
   "updateBannerDownloadFailed": "De update kon niet worden gedownload.",
   "@updateBannerDownloadFailed": {
     "x-sourceSha256": "4d6fd789fd1fe3406fb4b41914626e95cfc936b8e899a835c9d0721339a6ff67"
@@ -5507,6 +5519,26 @@
   "updateBannerDownloadInstall": "Downloaden en installeren",
   "@updateBannerDownloadInstall": {
     "x-sourceSha256": "4c9a6b06e5efa450a3a32cf800b8a998f340ba39069d629737fdfc7de3216cbe"
+  },
+  "updateBannerUpdateRestart": "Bijwerken en opnieuw starten",
+  "@updateBannerUpdateRestart": {
+    "x-sourceSha256": "853c6a3cc7ff193c1f6ace227245030ed64f215f93d38c2291562649d3f1a6a7"
+  },
+  "updateMacosReadyTitle": "Klaar om bij te werken?",
+  "@updateMacosReadyTitle": {
+    "x-sourceSha256": "09b6fb9311759d9e4168b54d599963d9d9eab9b2efb4ebdcdbb1b4abe71d19fc"
+  },
+  "updateMacosReadyBody": "De update is geverifieerd. Nu bijwerken opent de schijfkopie en sluit Caller's Compendium zodat je de app in Programma's kunt vervangen.",
+  "@updateMacosReadyBody": {
+    "x-sourceSha256": "8230ec5164a04b24a1e6c3d6d3d2a1403dd219e3fde998235c83f7b99c8f4785"
+  },
+  "updateMacosNotNow": "Niet nu",
+  "@updateMacosNotNow": {
+    "x-sourceSha256": "a0e63d7c7125d29af84d6919af5550529be77c327324940c98c4b2cb13a99c8c"
+  },
+  "updateMacosUpdateNow": "Nu bijwerken",
+  "@updateMacosUpdateNow": {
+    "x-sourceSha256": "63bf045213cebbafc438a7a79e633015cbd047b8864eb2f9dffc45b641607048"
   },
   "commandPaletteBarrierLabel": "Globaal zoeken",
   "@commandPaletteBarrierLabel": {

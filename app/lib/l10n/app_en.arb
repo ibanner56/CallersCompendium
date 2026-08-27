@@ -550,6 +550,14 @@
   "@settingsUpdatesCompletedSubtitleRevealed": {
     "description": "Subtitle shown after the download completes when the verified installer was revealed in the file manager, directing the user to run it."
   },
+  "settingsUpdatesMacosReadyTitle": "Update and restart",
+  "@settingsUpdatesMacosReadyTitle": {
+    "description": "Title of the macOS update row once a disk image has been verified and awaits approval to mount and close the app."
+  },
+  "settingsUpdatesMacosReadySubtitle": "Your update is ready. Mount the disk image and close the app so you can replace it in Applications.",
+  "@settingsUpdatesMacosReadySubtitle": {
+    "description": "Subtitle of the macOS update row that resumes installation after the user deferred the post-download prompt."
+  },
   "settingsUpdatesDownloadTitle": "Download & install update",
   "@settingsUpdatesDownloadTitle": {
     "description": "Title of the assisted-download tile in its idle and failed states, offering to download the update."
@@ -7255,6 +7263,18 @@
       }
     }
   },
+  "updateBannerMacosReady": "{appName} {version} is ready to install.",
+  "@updateBannerMacosReady": {
+    "description": "Update banner copy after a macOS disk image is verified and the user deferred mounting it and closing the app.",
+    "placeholders": {
+      "appName": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "updateBannerDownloadFailed": "The update could not be downloaded.",
   "@updateBannerDownloadFailed": {
     "description": "Fallback update-banner error shown when the assisted download fails and no specific message is available."
@@ -7282,6 +7302,26 @@
   "updateBannerDownloadInstall": "Download & install",
   "@updateBannerDownloadInstall": {
     "description": "Update banner action that starts the assisted download-and-install flow."
+  },
+  "updateBannerUpdateRestart": "Update and restart",
+  "@updateBannerUpdateRestart": {
+    "description": "Banner action that mounts a verified macOS disk image and closes the app."
+  },
+  "updateMacosReadyTitle": "Ready to update?",
+  "@updateMacosReadyTitle": {
+    "description": "Title of the post-download macOS update confirmation dialog."
+  },
+  "updateMacosReadyBody": "The update has been verified. Update now will open the disk image and close Caller's Compendium so you can replace it in Applications.",
+  "@updateMacosReadyBody": {
+    "description": "Body of the post-download macOS update confirmation dialog explaining that the app will close after the disk image opens."
+  },
+  "updateMacosNotNow": "Not now",
+  "@updateMacosNotNow": {
+    "description": "Action that defers a verified macOS update without opening the disk image or closing the app."
+  },
+  "updateMacosUpdateNow": "Update now",
+  "@updateMacosUpdateNow": {
+    "description": "Action that mounts a verified macOS update disk image and closes the app."
   },
   "commandPaletteBarrierLabel": "Global search",
   "@commandPaletteBarrierLabel": {

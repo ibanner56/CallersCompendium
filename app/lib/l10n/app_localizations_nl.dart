@@ -412,6 +412,13 @@ class AppLocalizationsNl extends AppLocalizations {
       'Geverifieerd en zichtbaar in je bestandsbeheer — voer de installer uit om het bijwerken te voltooien.';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'Bijwerken en opnieuw starten';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'Je update is klaar. Koppel de schijfkopie aan en sluit de app zodat je deze in Programma\'s kunt vervangen.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Update downloaden en installeren';
 
   @override
@@ -5478,6 +5485,11 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version is klaar om te installeren.';
+  }
+
+  @override
   String get updateBannerDownloadFailed =>
       'De update kon niet worden gedownload.';
 
@@ -5494,6 +5506,22 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'Downloaden en installeren';
+
+  @override
+  String get updateBannerUpdateRestart => 'Bijwerken en opnieuw starten';
+
+  @override
+  String get updateMacosReadyTitle => 'Klaar om bij te werken?';
+
+  @override
+  String get updateMacosReadyBody =>
+      'De update is geverifieerd. Nu bijwerken opent de schijfkopie en sluit Caller\'s Compendium zodat je de app in Programma\'s kunt vervangen.';
+
+  @override
+  String get updateMacosNotNow => 'Niet nu';
+
+  @override
+  String get updateMacosUpdateNow => 'Nu bijwerken';
 
   @override
   String get commandPaletteBarrierLabel => 'Globaal zoeken';

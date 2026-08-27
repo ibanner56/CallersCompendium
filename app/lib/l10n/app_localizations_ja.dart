@@ -406,6 +406,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '検証済みのファイルがファイルマネージャーで表示されました — インストーラーを実行してアップデートを完了してください。';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'アップデートして再起動';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'アップデートの準備ができました。ディスクイメージをマウントしてアプリを閉じると、「アプリケーション」フォルダ内で置き換えられます。';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'アップデートをダウンロードしてインストール';
 
   @override
@@ -5252,6 +5259,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version をインストールできます。';
+  }
+
+  @override
   String get updateBannerDownloadFailed => 'アップデートをダウンロードできませんでした。';
 
   @override
@@ -5267,6 +5279,22 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'ダウンロードしてインストール';
+
+  @override
+  String get updateBannerUpdateRestart => 'アップデートして再起動';
+
+  @override
+  String get updateMacosReadyTitle => 'アップデートの準備はできましたか？';
+
+  @override
+  String get updateMacosReadyBody =>
+      'アップデートは検証済みです。今すぐアップデートするとディスクイメージが開き、Caller\'s Compendium が閉じるため、「アプリケーション」フォルダ内で置き換えられます。';
+
+  @override
+  String get updateMacosNotNow => '今はしない';
+
+  @override
+  String get updateMacosUpdateNow => '今すぐアップデート';
 
   @override
   String get commandPaletteBarrierLabel => 'グローバル検索';

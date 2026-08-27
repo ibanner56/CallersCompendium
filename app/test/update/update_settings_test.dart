@@ -230,6 +230,8 @@ void main() {
             }) async => DownloadOutcome.success(destination),
         verifier: verifier ?? (file, expected) async => true,
         handoff: handoff ?? (file, platform) async => HandoffResult.launched,
+        macosDestinationPicker: (artifact) async =>
+            File('${tempDir.path}/macos-update.dmg'),
         temporaryDirectoryProvider: () async => tempDir,
       );
     }
@@ -271,6 +273,32 @@ void main() {
       expect(controller.foundUpdate, isNotNull);
       expect(controller.canAssistDownload, isFalse);
       expect(find.byKey(const ValueKey('updates-download')), findsNothing);
+    });
+
+    testWidgets('macOS settings asks before opening the verified disk image', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.macos,
+        platformWire: 'macos',
+        arch: 'universal',
+      );
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller);
+      await tester.tap(find.byKey(const ValueKey('updates-check-now')));
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('updates-download')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(
+        find.byKey(const ValueKey('update-macos-ready-dialog')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('a verify failure surfaces a clear error in Settings', (
