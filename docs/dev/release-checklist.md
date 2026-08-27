@@ -51,6 +51,29 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] The required shared `## [X.Y.Z]` section exists for **both** beta and stable.
  The beta establishes it from `Unreleased`; beta-to-stable fixes are added to
  that same section.
+- [ ] `packages/compendium_core/CHANGELOG.md`'s `## [Unreleased]` has been read,
+ and the outcome recorded either way. **Empty → the core pubspec and core
+ CHANGELOG are untouched by this release** (mark this row N/A with that
+ reason). Non-empty → the rows below apply. The section as written is the
+ trigger; do not substitute a diff of `packages/compendium_core` or a judgement
+ call.
+- [ ] If it was non-empty: the new core version came from **asking the
+ maintainer**, with the current `packages/compendium_core/pubspec.yaml`
+ `version:` presented for context. It is not derived from the tag, from the app
+ version, or from the shape of the changes.
+- [ ] If it was non-empty: `packages/compendium_core/pubspec.yaml` `version:` is
+ that exact bare `X.Y.Z` — no `v`, no prerelease suffix, no build metadata —
+ and a new `## [X.Y.Z] - YYYY-MM-DD` section dated the release date holds the
+ drained entries, with a fresh empty `## [Unreleased]` above it. Unlike the
+ app's shared section, a core section is **always new**: the core version is
+ not the tag's core, so a beta and a later stable that both carry core changes
+ get two sections.
+- [ ] Both CHANGELOGs pass the structure gate — versions strictly increasing and
+ no repeated `###` subheading inside one `##` section:
+
+ ```sh
+ python3 tools/ci/check_changelog_structure.py
+ ```
 
 ## 2. Data safety (Gate — local-first app, user data is sacred)
 - [ ] Every schema migration since the last release has a v(N-1)→vN migration test

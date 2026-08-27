@@ -114,6 +114,13 @@ jobs:
         run: python3 tools/ci/test_check_version_history.py
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
+      # The structure gate itself runs in changelog-structure.yml, because
+      # ci.yml skips Markdown-only PRs and both changelogs are Markdown. Its
+      # suite is pure-stdlib and trigger-agnostic, so it also runs here with the
+      # other tool suites — a code PR that changes the gate but no changelog
+      # would otherwise not exercise it at all.
+      - name: Test the changelog structure gate
+        run: python3 tools/ci/test_check_changelog_structure.py
       - name: Test the app release-version guard
         run: python3 tools/ci/test_check_app_version.py
       - name: Test the Android release versionCode encoder

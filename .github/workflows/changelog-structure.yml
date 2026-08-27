@@ -1,0 +1,56 @@
+# Structural gate for the two hand-maintained CHANGELOGs.
+#
+# app/CHANGELOG.md and packages/compendium_core/CHANGELOG.md are written by
+# hand, rendered into release notes, and drained at release time exactly as
+# written. Two structural mistakes render as valid Markdown and are therefore
+# invisible to a preview and to every other gate: a category repeated inside one
+# version section (the second list hides below the first), and a version section
+# out of order (the notes generator finds a section anywhere in the file). See
+# tools/ci/check_changelog_structure.py for the incidents behind each.
+#
+# It lives in its own workflow — rather than the shared _checks.yml — for the
+# same reason docs-bundle-check.yml does: _checks.yml is reachable only from
+# ci.yml, which skips entirely for Markdown-only changes (`paths-ignore:
+# '**.md'`), and from release.yml, which runs after the tag. Both changelogs are
+# Markdown, and the PR that edits nothing else is exactly the release-prep PR
+# this gate exists to check. A gate that only ran inside ci.yml would miss it.
+#
+# It is intentionally cheap (plain python3, no Flutter setup) and is not marked
+# a required status, so it never runs on unrelated PRs and never leaves a
+# required check pending.
+name: Changelog structure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/CHANGELOG.md'
+      - 'packages/compendium_core/CHANGELOG.md'
+      - 'tools/ci/check_changelog_structure.py'
+      - 'tools/ci/test_check_changelog_structure.py'
+      - '.github/workflows/changelog-structure.yml'
+  pull_request:
+    paths:
+      - 'app/CHANGELOG.md'
+      - 'packages/compendium_core/CHANGELOG.md'
+      - 'tools/ci/check_changelog_structure.py'
+      - 'tools/ci/test_check_changelog_structure.py'
+      - '.github/workflows/changelog-structure.yml'
+
+# Least privilege: this check only reads the checked-out code.
+permissions:
+  contents: read
+
+jobs:
+  changelog-structure:
+    name: CHANGELOG structure
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The gate's own suite also runs in _checks.yml with the other tool
+      # suites; repeated here because ci.yml skips on a Markdown-only PR, which
+      # is the only kind of PR this workflow is guaranteed to see.
+      - name: Test the changelog structure gate
+        run: python3 tools/ci/test_check_changelog_structure.py
+      - name: Guard CHANGELOG structure (version order, no repeated category)
+        run: python3 tools/ci/check_changelog_structure.py

@@ -136,6 +136,14 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_changelog_promoted.py"),),
     ),
     Step(
+        "changelog-structure",
+        "both CHANGELOGs: version sections in order, no category repeated in one",
+        (
+            py("tools/ci/test_check_changelog_structure.py"),
+            py("tools/ci/check_changelog_structure.py"),
+        ),
+    ),
+    Step(
         "l10n",
         "translation ARBs: parity, freshness, content safety, full coverage",
         (

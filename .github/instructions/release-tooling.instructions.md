@@ -6,6 +6,9 @@ applyTo:
   - ".github/workflows/pages-site.yml"
   - ".github/workflows/pages-sig-gate.yml"
   - "app/CHANGELOG.md"
+  - "packages/compendium_core/pubspec.yaml"
+  - "packages/compendium_core/CHANGELOG.md"
+  - "tools/ci/check_changelog_structure.py"
   - "docs/dev/releasing.md"
   - "docs/dev/release-checklist.md"
 ---
@@ -31,6 +34,15 @@ prevent on its own are in
   while a release is being prepared. The Data/Migrations section is where users
   learn what is about to happen to their data.
 - **Derive the next tag from the existing tags.** Do not assume the increment.
+- **`packages/compendium_core` has its own version, and it is not the tag's.**
+  Bump it if and only if `packages/compendium_core/CHANGELOG.md` has entries
+  under `## [Unreleased]` — that section as written is the trigger, not a diff
+  and not a judgement call — and get the new number by **asking the maintainer**,
+  showing them the current one. Nothing resolves that `version:` at build time
+  (the app takes the core by workspace `path:`), so no gate and no build failure
+  will tell you it is wrong; it is a record, and a bump invented to look tidy is
+  a false one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
+  its own new heading.
 - **Publish only after the provenance gate is green**, then confirm the channel
   manifest *and* its detached `.sig` are both live and that the signature
   verifies. A manifest without its signature makes the in-app updater fail closed
