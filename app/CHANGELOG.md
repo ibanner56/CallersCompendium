@@ -35,6 +35,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Windows shutdown** — closing the app now completes Flutter's native window
+  teardown before the runner releases COM resources, preventing a crash on exit.
+
 ## [0.1.3] - 2026-08-26
 
 ### Changed
