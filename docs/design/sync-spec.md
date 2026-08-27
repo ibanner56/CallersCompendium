@@ -1457,10 +1457,15 @@ holding different libraries, and requires that when it does, the difference
 stamp would have provided, obtained without inventing an order over rows nobody
 edited.
 
-§4.1's one-time normalisation pass is the only operation in this specification
-that qualifies. Its single cross-row dependency — the `UNIQUE` collision skip —
-is enumerated there, and its divergence surfaces as an equal-`updatedAt`
-`changed`/`changed` report under §6.3.
+§4.1's normalisation passes — the one-time pass **and its retry** — are the only
+operations in this specification that qualify. Both are covered by the same
+proof: they share one cross-row dependency, the `UNIQUE` collision skip
+enumerated there, and either one's divergence surfaces as an equal-`updatedAt`
+`changed`/`changed` report under §6.3. Retry is named explicitly because §4.1
+attaches the rewrite obligation to *any* pass that writes, retry included, and
+because retry is the pass that runs indefinitely rather than once — so an
+exception naming only the one-time pass would leave the recurring writer both
+unexempted and unstoppable.
 
 A conforming implementation MUST NOT satisfy this by maintaining a list of
 exempt operations; a list would relocate the omission it exists to catch, which
@@ -2314,7 +2319,13 @@ single-device test).
 existence rule from the `same`/`changed` row). A live record never out-ranks an
 applied tombstone. Only a deliberate edit resurrects. A sync-initiated write
 never cancels a tombstone. `existenceAt` crosses a device boundary. A later sync
-write does not erase a revival (mutation: carry the signal as a boolean).
+write does not erase a revival (mutation: carry the signal as a boolean). **The
+existence winner's body is not persisted on the strength of its having won
+existence** — three peers where the greatest `existenceAt` and the greatest
+`updatedAt` come from *different* peers; assert the persisted body is the
+`updatedAt` winner's (mutation: adopt the existence winner's body, which §6.4
+notes is the ordinary case rather than the exotic one once there are three or
+more peers, and so silently discards the newer edit).
 
 **Soft-delete join coverage.** §3.1's rule that every read joining through to a
 soft-deletable parent filters `parent.deleted_at IS NULL` MUST be enforced by a
@@ -2341,24 +2352,26 @@ enforcement MUST be structural over write paths rather than a maintained list
 of known ones; a list relocates the omission it is meant to catch.
 
 I1's test MUST also pin the **exception** in §6.5, not just the rule, and it
-MUST cover both of the exception's conditions. For the content-derived
-condition, an operation claiming the exemption is shown to produce identical
-output on two independent runs over the same database while leaving all three
-stamps unchanged
-(mutation: let the exemption be claimed by declaration — an operation that
-consults the clock, the device id or a random source then passes, and its output
-diverges between devices with no stamp to order it). For the
-divergence-surfacing condition, the operation is run over **two databases that
-contain the same row** and differ only in whether its enumerated cross-row
-dependency fires, and the row's output is either identical in both or shown to
-surface as a §6.3 report (mutation: assert only the same-database property — it
-is satisfied by any deterministic operation, including one that reads every
-other row in the table, so a deterministic sibling read whose result differs
-between devices passes it unchanged; this is the exact hole through which
-§4.1's collision skip entered the specification while its justifying sentence
-claimed the pass consulted nothing outside the row). The structural scan MUST
-cover repository write paths; a migration-path operation is in scope only
-through this proof, never through an exemption list.
+MUST cover both of the exception's conditions **for each operation the exception
+names** — the one-time normalisation pass and its retry are two operations and
+MUST each be proved, since a proof of the one-time pass says nothing about a
+writer that runs again after it. For the content-derived condition, an operation
+claiming the exemption is shown to produce identical output on two independent
+runs over the same database while leaving all three stamps unchanged (mutation:
+let the exemption be claimed by declaration — an operation that consults the
+clock, the device id or a random source then passes, and its output diverges
+between devices with no stamp to order it). For the divergence-surfacing
+condition, the operation is run over **two databases that contain the same row**
+and differ only in whether its enumerated cross-row dependency fires, and the
+row's output is either identical in both or shown to surface as a §6.3 report
+(mutation: assert only the same-database property — it is satisfied by any
+deterministic operation, including one that reads every other row in the table,
+so a deterministic sibling read whose result differs between devices passes it
+unchanged; this is the exact hole through which §4.1's collision skip entered
+the specification while its justifying sentence claimed the pass consulted
+nothing outside the row). The structural scan MUST cover repository write paths;
+a migration-path operation is in scope only through this proof, never through an
+exemption list.
 
 Separately, and gating the normalisation pass rather than I1: **every write path
 that populates a `shareable` string column routes through the normalising choke
