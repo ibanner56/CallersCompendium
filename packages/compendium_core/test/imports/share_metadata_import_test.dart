@@ -48,6 +48,54 @@ void main() {
     expect((await sources.getById('fresh-source'))!.title, 'Shared source');
   });
 
+  test('keeps distinct archive ids for identical published sources', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      tags: TagRepository(db),
+      sources: PublishedSourceRepository(db),
+      customFields: CustomFieldDefRepository(db),
+    );
+    final archive = CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'd1',
+          title: 'Shared dance',
+          sourceCitations: [
+            SourceCitation(sourceId: 's1'),
+            SourceCitation(sourceId: 's2'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      publishedSources: [
+        PublishedSource(id: 's1', title: 'Same source'),
+        PublishedSource(id: 's2', title: 'Same source'),
+      ],
+    );
+    var nextId = 0;
+
+    final result = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: _now,
+      newId: () => 'receiver-${++nextId}',
+    );
+
+    final imported = (await dances.listAll()).single;
+    expect(imported.sourceCitations.map((c) => c.sourceId), [
+      'receiver-1',
+      'receiver-2',
+    ]);
+    expect(result.importedMetadataCount, 2);
+  });
+
   test(
     'rejects an incompatible live custom-field key before writing',
     () async {
@@ -225,6 +273,111 @@ void main() {
     expect(await tags.listAll(), isEmpty);
     expect(await sources.listAll(), isEmpty);
     expect(await fields.listAll(), isEmpty);
+  });
+
+  test('undo preserves metadata linked by a later local dance', () async {
+    final db = openTestDatabase();
+    addTearDown(db.close);
+    final dances = DanceRepository(db, contraTaxonomy);
+    final importer = CompendiumArchiveImporter(
+      ImportPipeline(dances, ChoreographerRepository(db)),
+      ProgramRepository(db),
+      VenueRepository(db),
+      tags: TagRepository(db),
+      sources: PublishedSourceRepository(db),
+      customFields: CustomFieldDefRepository(db),
+    );
+    final archive = CompendiumArchive(
+      exportedAt: _now,
+      dances: [
+        Dance(
+          id: 'shared',
+          title: 'Shared dance',
+          tagIds: const ['t1', 't2'],
+          sourceCitations: [
+            SourceCitation(sourceId: 's1'),
+            SourceCitation(sourceId: 's2'),
+          ],
+          customFields: [
+            CustomFieldValue(fieldId: 'f1', value: 'yes'),
+            CustomFieldValue(fieldId: 'f2', value: 'no'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      ],
+      tags: [
+        Tag(id: 't1', name: 'kept'),
+        Tag(id: 't2', name: 'removed'),
+      ],
+      publishedSources: [
+        PublishedSource(id: 's1', title: 'Kept source'),
+        PublishedSource(id: 's2', title: 'Removed source'),
+      ],
+      customFields: [
+        CustomFieldDef(
+          id: 'f1',
+          key: 'kept',
+          label: 'Kept',
+          type: CustomFieldType.text,
+        ),
+        CustomFieldDef(
+          id: 'f2',
+          key: 'removed',
+          label: 'Removed',
+          type: CustomFieldType.text,
+        ),
+      ],
+    );
+    var nextId = 0;
+    final result = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: _now,
+      newId: () => 'receiver-${++nextId}',
+    );
+    final imported = (await dances.listAll()).single;
+    await dances.create(
+      Dance(
+        id: 'local',
+        title: 'Local dance',
+        tagIds: [imported.tagIds.first],
+        sourceCitations: [imported.sourceCitations.first],
+        customFields: [imported.customFields.first],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await importer.undo(result);
+
+    expect(await (TagRepository(db)).getById(imported.tagIds.first), isNotNull);
+    expect(
+      await (PublishedSourceRepository(
+        db,
+      )).getById(imported.sourceCitations.first.sourceId),
+      isNotNull,
+    );
+    expect(
+      await (CustomFieldDefRepository(
+        db,
+      )).getById(imported.customFields.first.fieldId),
+      isNotNull,
+    );
+    expect(await (TagRepository(db)).getById(imported.tagIds.last), isNull);
+    expect(
+      await (PublishedSourceRepository(
+        db,
+      )).getById(imported.sourceCitations.last.sourceId),
+      isNull,
+    );
+    expect(
+      await (CustomFieldDefRepository(
+        db,
+      )).getById(imported.customFields.last.fieldId),
+      isNull,
+    );
+    expect(await dances.getById('local'), isNotNull);
   });
 
   test('rejects dangling metadata references before creating rows', () async {

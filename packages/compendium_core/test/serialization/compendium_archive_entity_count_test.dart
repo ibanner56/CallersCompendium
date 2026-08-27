@@ -60,15 +60,23 @@ void main() {
       expect(compendiumArchiveEntityCount(archive), 1);
     });
 
-    test('ignores non-committed metadata (sources, custom fields, tags)', () {
+    test('counts committed metadata (sources, custom fields, tags)', () {
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026, 1, 1),
         dances: [_dance('d1')],
         publishedSources: [PublishedSource(id: 'ps1', title: 'Zesty Contras')],
+        customFields: [
+          CustomFieldDef(
+            id: 'cf1',
+            key: 'tempo',
+            label: 'Tempo',
+            type: CustomFieldType.text,
+          ),
+        ],
         tags: [Tag(id: 't1', name: 'reel')],
       );
-      // Only the dance counts; sources and tags are not written by the import.
-      expect(compendiumArchiveEntityCount(archive), 1);
+      // One dance plus each committed metadata entity.
+      expect(compendiumArchiveEntityCount(archive), 4);
     });
   });
 }

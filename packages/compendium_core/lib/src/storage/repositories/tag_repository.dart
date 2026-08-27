@@ -102,6 +102,16 @@ class TagRepository {
     ];
   }
 
+  /// Returns whether any dance still references [id].
+  Future<bool> isInUse(String id) async {
+    final row =
+        await (_db.select(_db.danceTags)
+              ..where((t) => t.tagId.equals(id))
+              ..limit(1))
+            .getSingleOrNull();
+    return row != null;
+  }
+
   /// [listAll] as a live stream: the current tags immediately, then again after
   /// every write that changes them (issue #768).
   ///

@@ -155,16 +155,40 @@ class ShareMetadataImporter {
   }
 
   Future<void> undo(ShareMetadataImportResult result) async {
-    await customFields.hardDelete(result.insertedFieldIds);
+    for (final id in result.insertedFieldIds) {
+      try {
+        await customFields.delete(id, permanent: true);
+      } on StateError {
+        // A surviving local dance may now use this imported definition.
+      }
+    }
     for (final id in result.restoredFieldIds) {
-      await customFields.delete(id);
+      try {
+        await customFields.delete(id);
+      } on StateError {
+        // A surviving local dance may now use this restored definition.
+      }
     }
-    await sources.hardDelete(result.insertedSourceIds);
+    for (final id in result.insertedSourceIds) {
+      try {
+        await sources.delete(id, permanent: true);
+      } on StateError {
+        // A surviving local dance may now cite this imported source.
+      }
+    }
     for (final id in result.restoredSourceIds) {
-      await sources.delete(id);
+      try {
+        await sources.delete(id);
+      } on StateError {
+        // A surviving local dance may now cite this restored source.
+      }
     }
-    await tags.hardDelete(result.insertedTagIds);
+    for (final id in result.insertedTagIds) {
+      if (await tags.isInUse(id)) continue;
+      await tags.hardDelete([id]);
+    }
     for (final id in result.restoredTagIds) {
+      if (await tags.isInUse(id)) continue;
       await tags.delete(id);
     }
   }
@@ -202,29 +226,35 @@ class ShareMetadataImporter {
     String Function() newId,
   ) {
     final planned = <String, ({PublishedSource source, bool deleted})>{};
+    final assignedReceiverIds = <String>{};
     for (final source in incoming) {
       ({PublishedSource source, bool deleted})? match;
       for (final item in existing) {
-        if (_sameSource(item.source, source)) {
+        if (!assignedReceiverIds.contains(item.source.id) &&
+            _sameSource(item.source, source)) {
           match = item;
           break;
         }
       }
       if (match == null) {
-        for (final item in planned.values) {
-          if (_sameSource(item.source, source)) {
-            match = item;
+        for (final item in planned.entries) {
+          if (!assignedReceiverIds.contains(item.key) &&
+              _sameSource(item.value.source, source)) {
+            assignedReceiverIds.add(item.key);
+            match = item.value;
             break;
           }
         }
       }
       if (match != null) {
         result.sourceIdByArchiveId[source.id] = match.source.id;
+        assignedReceiverIds.add(match.source.id);
         if (match.deleted) result.restoredSourceIds.add(match.source.id);
         continue;
       }
       final id = newId();
       result.sourceIdByArchiveId[source.id] = id;
+      assignedReceiverIds.add(id);
       result.insertedSourceIds.add(id);
       planned[id] = (
         source: PublishedSource(
