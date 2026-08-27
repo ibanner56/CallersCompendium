@@ -732,18 +732,31 @@ what it protects.
 - **Inherits** nothing whatsoever.
 - **Produces** amended `docs/dev/store-submission/privacy-policy.md` **and** its
   mirror `site/privacy/index.html`, changed together, with the effective date
-  bumped; the amendment MUST both remove the false claims and **add** spec §8's
-  affirmative disclosures — that the operator can see all store content except
-  venue addresses and contacts, and that break-glass access exists and is logged
-  with a stated retention (spec §7.4).
+  bumped; the amendment MUST retire the dated no-cloud-sync claim, correct the
+  "before it ships" undertaking to S7's gate, and **add** spec §8's affirmative
+  disclosures — that the operator can see all store content except venue
+  addresses and contacts, and that break-glass access exists and is logged with
+  a stated retention (spec §7.4).
 - **Unblocks** nothing directly — but **C6 and C7 both depend on it** (S7).
-- **Done when** neither file claims "there is no cloud sync" or "we have no
-  servers that receive or hold your content", both of which they say today and
-  both of which both app-store listings link to, **and** both files state the
-  operator-visibility and break-glass disclosures plainly. Removing a false
-  claim is not the same as making the true one, and §8 requires the latter: a
-  policy merely silent about operator visibility still implies the store is
-  opaque.
+- **Done when** neither file claims the release "has no cloud sync", **and**
+  both state the operator-visibility and break-glass disclosures plainly,
+  **and** neither defers the amendment to when the feature "ships". Removing a
+  false claim is not the same as making the true one, and §8 requires the
+  latter: a policy merely silent about operator visibility still implies the
+  store is opaque.
+
+  **Scope reduced by #1086, which landed on `main` while this PR was open.** The
+  absolute claims this unit was written against — "We have no servers that
+  receive or hold your content, and there is no cloud sync" — are already gone
+  from both files. What remains is narrower and in two parts. First, "The
+  current release has no cloud sync" is *true today* and becomes false on the
+  release that ships sync, so it is a dated claim W15 must still retire rather
+  than a false one it must correct. Second, #1086 added "We will update this
+  policy with the feature's implemented data handling **before it ships**" —
+  which is the same too-late gate S7 exists to reject, now published in a
+  store-linked document. W15 must move it to before any real user's content
+  leaves a device. Neither file says anything about operator visibility or
+  break-glass, so that half of this unit is untouched by #1086.
 
 Fully parallel with all code, and best done early: it is the cheapest unit in
 the programme and the only one that can block a release on its own.
@@ -1034,14 +1047,16 @@ cannot recover from.
 - **S7 · W15 lands before *any real user's content leaves a device*, which is
   C6, not C7.** Both published policy documents —
   `docs/dev/store-submission/privacy-policy.md` and its mirror
-  `site/privacy/index.html` — currently say "We have no servers that receive or
-  hold your content, and there is no cloud sync." Both app-store listings link
-  to them. A beta running against that text means real dances, programs and
-  venue notes on project infrastructure while a store-linked statement says it
-  cannot happen. S5 was written as though C7 were the first moment content
-  moves; C6 is. This is the cheapest item in the whole plan and the only one
-  whose blast radius is outside the repository, which is a bad combination to
-  get wrong.
+  `site/privacy/index.html` — say "The current release has no cloud sync", and
+  promise an update "before it ships". Both app-store listings link to them.
+  Until #1086 they made the stronger claim that no server receives or holds
+  content at all; that is gone, but "before it ships" restates the very gate
+  this rule rejects. A beta running against that text means real dances,
+  programs and venue notes on project infrastructure while a store-linked
+  statement says it cannot happen. S5 was written as though C7 were the first
+  moment content moves; C6 is. This is the cheapest item in the whole plan and
+  the only one whose blast radius is outside the repository, which is a bad
+  combination to get wrong.
 - **S8 · The C1 contract freeze needs an amendment path, not just a freeze.**
   Frozen does not mean immutable — a defect found at C4 in the manifest schema
   has to be fixable. What it means is that a change after C1 is an *event*: it

@@ -1204,13 +1204,14 @@ makes self-hosting materially harder, which constraint 4 forbids.
 
 **The published privacy policy contradicts this design.**
 `docs/dev/store-submission/privacy-policy.md` §2 and its mirror
-`site/privacy/index.html` both state that "there is no cloud sync" and that "we
-have no servers that receive or hold your content", and both app store listings
-link to it. Both files must be amended together, with the effective date bumped,
-**before any real user's content leaves a device** — which is the beta, not the
-public release. "Before it ships" is too late: a beta tester's dances reach the
-server under a policy saying no server holds them. The execution plan binds this
-as rule S7. It is a prerequisite of shipping, not of this ADR.
+`site/privacy/index.html` both state that "the current release has no cloud
+sync", and both undertake to update the policy "before it ships". Both app store
+listings link to them. Both files must be amended together, with the effective
+date bumped, **before any real user's content leaves a device** — which is the
+beta, not the public release. "Before it ships" is too late: a beta tester's
+dances reach the server under a policy saying no server holds them. The
+execution plan binds this as rule S7. It is a prerequisite of shipping, not of
+this ADR.
 
 ## Revisit triggers
 
