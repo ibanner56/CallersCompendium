@@ -1207,7 +1207,10 @@ makes self-hosting materially harder, which constraint 4 forbids.
 `site/privacy/index.html` both state that "there is no cloud sync" and that "we
 have no servers that receive or hold your content", and both app store listings
 link to it. Both files must be amended together, with the effective date bumped,
-**before Device Sync ships**. This is a prerequisite of shipping, not of this ADR.
+**before any real user's content leaves a device** — which is the beta, not the
+public release. "Before it ships" is too late: a beta tester's dances reach the
+server under a policy saying no server holds them. The execution plan binds this
+as rule S7. It is a prerequisite of shipping, not of this ADR.
 
 ## Revisit triggers
 

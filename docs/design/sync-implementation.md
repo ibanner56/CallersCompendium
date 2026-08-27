@@ -11,12 +11,12 @@
 and that ruling is the maintainer's. The plan is written now so the shape of
 the programme is visible *before* the decision, not to presume it.
 
-One unit has already shipped: the §3.1 schema migration, merged as
-[#898](https://github.com/ibanner56/CallersCompendium/issues/898), ahead of the
-ADR and deliberately — see *What must be serialised*, **S6**. Everything else is
-unstarted. That unit shipped its *migration* cleanly but not its *invariant*:
-§3.1's soft-delete join rule was violated in `main` when **W17** was written,
-which is why W17 exists.
+One unit has already shipped: the §3.1 schema migration, tracked as
+[#898](https://github.com/ibanner56/CallersCompendium/issues/898) and delivered
+by PRs #901 and #903, ahead of the ADR and deliberately — see *What must be
+serialised*, **S6**. Everything else is unstarted. That unit shipped its
+*migration* cleanly but not its *invariant*: §3.1's soft-delete join rule was
+violated in `main` when **W17** was written, which is why W17 exists.
 
 Three live defects found while reviewing this plan were filed rather than folded
 in, and all three have since been fixed on `main`: **#1016** (an archive
@@ -100,7 +100,7 @@ down in another document.
   — twenty columns — and six entity-level hard deletes converted to tombstones.
 - **Unblocks** everything. Nothing else in the programme changes the schema of
   an existing table.
-- **Done when** merged — it is, as #898.
+- **Done when** merged — it is. #898 is the issue; PRs #901 and #903 closed it.
 
 Its early landing is load-bearing rather than incidental, and the reasoning
 matters for anyone tempted to treat the gap as wasted time: each device stamps
@@ -559,10 +559,11 @@ deletion silently reverts".
 - **Serves** §5.1, §5.2, §5.3 (client half), §8.
 - **Inherits** W3 (what it sends and receives).
 - **Produces** diceware generation over the EFF long wordlist; the client-side
-  strength floor; the structural rule and the **normalisation applied before
-  the HMAC** (trim → NFC → locale-independent lowercase); bearer auth that never
-  puts the ID in a URL; and status handling — `409` forces fresh attach, `422`
-  is surfaced and **never retried**, `429` honours `Retry-After`.
+  strength floor; the structural rule and the **normalisation applied before the
+  HMAC** (trim → NFC → locale-independent lowercase), written **once** as the
+  shared definition W10 imports rather than reimplements, per contract 5; bearer
+  auth that never puts the ID in a URL; and status handling — `409` forces fresh
+  attach, `422` is surfaced and **never retried**, `429` honours `Retry-After`.
 - **Unblocks** W6, W8, W13.
 - **Done when** the ID bound cases pass (one code point over rejected, at the
   bound accepted), a client/server `id_key` agreement test passes under
@@ -662,8 +663,11 @@ otherwise.
   `badCertificateCallback`, `SecurityContext` construction,
   `setTrustedCertificates` and equivalents — over the same roots and with the
   same comment-stripping as `app/test/data/settings_classification_test.dart`
-  (`:64`–`:73`, `:85`–`:102`). **The fix for #1016 is inherited, not owed** —
-  #1018 closed the instance on `main`, leaving W17 the class.
+  (`:64`–`:73`, `:85`–`:102`); and two **single-definition** source scans, one
+  asserting that sync-ID normalisation (contract 5) exists once and is imported
+  by both W5 and W10, the other that `normalizeTitle` (contract 6) has exactly
+  one definition. **The fix for #1016 is inherited, not owed** — #1018 closed
+  the instance on `main`, leaving W17 the class.
 - **Unblocks** nothing, in the sense that no unit must wait for it — but its
   I1/I2 ratchet **constrains** W6 and every write path built after it, and it
   gates **C0's honesty** (see below). A constraint is not a dependency: W6 can
@@ -680,14 +684,24 @@ otherwise.
   watching CI go red — the arrangement W5's behavioural test passes. None is
   proved by adding a test beside the current code and observing it pass.
 
-All three ratchets MUST be **structural** — a scan that flags any new read
-joining through a soft-deletable parent, any new write path that can change
-serialised content, and any certificate-validation escape hatch anywhere in the
-client — rather than a maintained enumeration of the ones known today. An
-enumeration relocates the forgetting instead of removing it: it turns "someone
-forgot the filter" into "someone forgot to add their read to the list", which
-fails the same way and is harder to notice. #1016 arrived as a *new* read,
-which is exactly the case a list does not cover.
+  The two single-definition scans are the exception to this unit's pattern: they
+  are gated by **no §9 bucket**, and deliberately. §9 is scoped to the rules the
+  specification states normatively, and the specification requires the two sides
+  to *agree*, not to share source — an implementation that duplicates the
+  function correctly conforms. "Exactly one definition" is this plan's chosen
+  means of guaranteeing that agreement, so the plan owns it. Their mutation is a
+  second copy that currently agrees, which is precisely the state no behavioural
+  test can distinguish from the correct one.
+
+Every ratchet and scan in this unit MUST be **structural** — flagging any new
+read joining through a soft-deletable parent, any new write path that can change
+serialised content, any certificate-validation escape hatch anywhere in the
+client, and any second definition of the two shared functions — rather than a
+maintained enumeration of the ones known today. An enumeration relocates the
+forgetting instead of removing it: it turns "someone forgot the filter" into
+"someone forgot to add their read to the list", which fails the same way and is
+harder to notice. #1016 arrived as a *new* read, which is exactly the case a
+list does not cover.
 
 **This unit exists because "exactly one owning unit" is the wrong tool for a
 standing property.** It is the right tool for a behaviour: a behaviour is
@@ -718,11 +732,18 @@ what it protects.
 - **Inherits** nothing whatsoever.
 - **Produces** amended `docs/dev/store-submission/privacy-policy.md` **and** its
   mirror `site/privacy/index.html`, changed together, with the effective date
-  bumped.
+  bumped; the amendment MUST both remove the false claims and **add** spec §8's
+  affirmative disclosures — that the operator can see all store content except
+  venue addresses and contacts, and that break-glass access exists and is logged
+  with a stated retention (spec §7.4).
 - **Unblocks** nothing directly — but **C6 and C7 both depend on it** (S7).
 - **Done when** neither file claims "there is no cloud sync" or "we have no
-  servers that receive or hold your content", both of which they say today, and
-  both of which both app-store listings link to.
+  servers that receive or hold your content", both of which they say today and
+  both of which both app-store listings link to, **and** both files state the
+  operator-visibility and break-glass disclosures plainly. Removing a false
+  claim is not the same as making the true one, and §8 requires the latter: a
+  policy merely silent about operator visibility still implies the store is
+  opaque.
 
 Fully parallel with all code, and best done early: it is the cheapest unit in
 the programme and the only one that can block a release on its own.
@@ -950,6 +971,18 @@ one. It is my expectation, from W1 carrying the golden corpus and W2 being a
 generator over a registry that already exists. If W2 turns out to be the longer
 leg, the path runs through it instead and nothing else about the plan changes.
 
+**W18 is the third candidate, and by textual weight the largest single unit
+here**: a data migration over user rows, a new persistent table with its own
+retry and retirement rules, a choke-point refactor across three repositories, a
+new unfiltered lookup in each of them, and several structural ratchets. It gates
+C1 exactly as W1 and W2 do. I left it out of the leg above because it inherits
+only W1's normalisation primitive and then runs entirely in app code the rest of
+the programme does not touch, so it can start almost immediately and absorb
+slack the W1 → W3 → W5 → W6 → W8 chain cannot — but that is an argument about
+*when it can start*, not about how long it takes, and the two coincide only if
+it finishes before W1 does. If it does not, C1 waits on W18 and the leg above is
+the wrong one. Naming it here so the judgement is visible rather than absent.
+
 Everything else has slack, and the slack is worth spending deliberately:
 
 - **W2 runs beside W1.** It reads the privacy registry and touches none of W1's
@@ -1082,11 +1115,22 @@ theoretical one.
   units, in different languages' worth of code, scheduled in parallel from C1.
   They share no file. A disagreement produces no error at all: the same typed ID
   becomes two `id_key`s, and the second device sees a working sync of an empty
-  store. Write it once and have both sides import it, or pin both against one
-  shared vector set at C2.
+  store. **Resolved: write it once and have both sides import it**, rather than
+  pinning two implementations against a shared vector set. A vector set fixes
+  the cases someone thought of, and this is a Unicode normalisation and
+  case-folding rule whose disagreements live in the cases nobody thought of; it
+  also has to be re-agreed every time either side is touched. The shared
+  definition is owned by **W5** and imported by W10, and **W17** carries a
+  standing check that neither side has grown a second implementation — the same
+  source-scan shape it already uses for the certificate affordance, and for the
+  same reason: the hazard is a copy appearing later, which no behavioural test
+  sees while the two copies still agree.
 - **W8 and any future reimplementation of `normalizeTitle`** (contract 6). It is
   normative by reference precisely so there is one of it; a copy that agrees on
   lowercase ASCII and disagrees on a leading article merges records silently.
+  **W17** carries the standing check here too — that `normalizeTitle` has
+  exactly one definition — since "do not reimplement this" is a property of the
+  source tree with no behavioural signal until the copy diverges.
 - **W18 and W8** both depend on `normalizeTitle`'s behaviour, from opposite
   sides. W18 changes what reaches it — every title becomes NFC, including the
   ones the fold table currently mangles — while W8 builds fresh-attach dedupe on
@@ -1139,7 +1183,7 @@ is where the interesting code is.
 | §5.1 | W5 + W10 | §6.12 | W13 |
 | §5.2 | W5 + W10 | §7.1 | W10 |
 | §5.3 | W5 + W10 | §7.2 | W2 + W11 |
-| §5.4 | W10 | §7.3 | W12 |
+| §5.4 | W10 (caps enforced at the boundary) + W12 (store-level quota values) | §7.3 | W12 |
 | §6.1 | W13 | §7.4 | W12 + W16 |
 | §6.2 | W8 | §7.5 | W16 |
 | §6.3 | W6 | §8 | W5 + W10 |
@@ -1157,19 +1201,24 @@ buckets. Ownership is now explicit:
 | Existence | W6 |
 | Soft-delete join coverage | **W17** |
 | Write-path invariants | **W17** (I1, I2 and I1's exception) + **W18** (the write-path normalisation clause) |
-| Classification | W2 (registry property test) + W6 (inbound apply) |
+| Classification | W2 (registry property test, including the allow-list bijection) + W6 (inbound apply) |
 | Reconciliation | W7 |
 | Dedupe | W8 |
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
-| Server | W12 |
-| Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) |
+| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, and the `{deviceId}`/`{hash}` format clauses) + **W12** (the `DELETE` grace-window clause and the no-logging clause) + **W16** (the plaintext-refusal clause, checked against the running configuration) |
+| Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
 
 A bucket split across units is split by clause, not left jointly owned: each
 unit's **Done when** names the clauses it carries. §10 (deferred) is owned by
-nobody by definition — but its last two entries are shipping prerequisites
-rather than deferrals, and are carried by W15 and W16.
+nobody by definition — but two of its entries are shipping prerequisites rather
+than deferrals: the **privacy-policy amendment**, carried by W15, and
+**alerting, retention proof, break-glass authorisation and lost-ID support**,
+carried by W16. They are named rather than located, because an earlier draft
+said "its last two entries" and §10 has since gained the certificate-pinning
+deferral at the end — a positional reference into a list that grows silently
+stops pointing at what it meant.
 
 ## 10. Relationship to a coarser issue breakdown
 

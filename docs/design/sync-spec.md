@@ -1278,7 +1278,7 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    | same | same | nothing |
    | changed | same | upload |
    | same | changed | download only if `remote.updatedAt > local.updatedAt` |
-   | changed | changed | conflict → higher `updatedAt` wins |
+   | changed | changed | conflict → higher `updatedAt` wins; equal is a tie, see below |
    | absent from baseline, present locally | absent remotely | upload |
    | absent locally | absent from baseline, present remotely | download |
    | absent from baseline, present locally | absent from baseline, present remotely | resolve as `changed`/`changed` |
@@ -1821,6 +1821,15 @@ data/
   blobs/<id_key>/<aa>/<bb>/<hash>
 ```
 
+`{deviceId}` MUST match `^[A-Za-z0-9_-]{1,64}$`, validated before it is used as
+a database key or any part of a filesystem path, on `GET`, `PUT` and `DELETE
+/v1/manifests/{deviceId}`. §7.1 stores manifests as rows, where an unvalidated
+segment is contained by parameter binding — but the ADR sketches the same data
+as `<syncId>/devices/<deviceId>.json`, and under that shape an unvalidated
+segment gives any holder of a sync ID an arbitrary file write. The rule is
+stated here so that it does not depend on which storage shape an implementation
+chooses.
+
 Every path that turns a **caller-supplied** hash into a filesystem path MUST
 validate it against `^[0-9a-f]{64}$` before touching the filesystem: `GET`,
 `PUT`, and every hash in a `POST /v1/blobs/missing` body. Blobs have no `DELETE`
@@ -2191,8 +2200,14 @@ disclosed. A peer can write any `shareable` record; it cannot write
 `deviceLocal` or `deviceScoped` fields, because the receiver filters
 independently of the server.
 
-**Enumeration.** Rate limits are per-IP and per-ID-hash, with a global cap on
-store creation.
+**Enumeration.** Guessing is bounded by the entropy floor stated at the top of
+this section, by the **per-IP** rate limit, and by the global cap on store
+creation. The **per-ID-hash** limit is not part of this: a guesser submits a
+different ID on every attempt, so it never sees the same `id_key` twice and that
+limiter never engages. It bounds abuse of a store the attacker already has the
+ID for, which is a different thing. The conclusion is unchanged at 2⁴⁰–2⁵² —
+this corrects which control is doing the work, so that weakening the wrong one
+later reads as safe when it is not.
 
 **Operator visibility.** The operator can see all store content: choreography,
 programs, tags, shareable settings. Not venue addresses or contacts. The privacy
@@ -2200,9 +2215,13 @@ policy MUST say this plainly rather than implying the store is opaque.
 
 ## 9. Conformance tests
 
-A conforming implementation MUST cover at least the following. Each is stated
-with the mutation it must catch; a test that cannot fail against that mutation
-does not satisfy the requirement.
+A conforming implementation MUST cover at least the following. Most entries are
+stated with the mutation they must catch, and where one is, a test that cannot
+fail against that mutation does not satisfy the requirement. Where no mutation
+is given the entry is a bare assertion, and the bar is the same: the test MUST
+fail when the assertion is false. Those entries are the weaker ones — a mutation
+names the implementation that would otherwise pass — so adding the missing
+mutations is an improvement to this section, not a change to it.
 
 This list is scoped to the rules **this document** states normatively, and it is
 the completion bar for an implementation built from this document alone.
@@ -2417,10 +2436,12 @@ from a recorded skip. What separates them is that the sanctioned path passed
 through the choke point and left a `normalisation_skips` entry behind; the bug
 did neither.
 
-**Classification.** `deviceLocal` never serialised — property test over the
-registry, and it MUST NOT be allowed to become vacuous. Inbound apply preserves
-device-local columns. Inbound apply rejects present non-shareable keys, using
-the **wire** spelling. A peer cannot push a `deviceScoped` setting.
+**Classification.** Allow-list bijection over real `encodeArchive`-shaped
+output, never a hand-written key string. `deviceLocal` never serialised —
+property test over the registry, and it MUST NOT be allowed to become vacuous.
+Inbound apply preserves device-local columns. Inbound apply rejects present
+non-shareable keys, using the **wire** spelling. A peer cannot push a
+`deviceScoped` setting.
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
@@ -2508,12 +2529,17 @@ has uploaded, and `POST /v1/blobs/missing` reports it missing (mutation: serve
 any blob whose hash exists anywhere, which is the natural read of a
 content-addressed store and is the forbidden cross-store deduplication — it also
 lets any sync-ID holder confirm whether a given record exists in someone else's
-store). A `{hash}` path segment that is not `^[0-9a-f]{64}$` — containing `../`,
-a `/`, or any non-hex character — is rejected before any filesystem path is
-constructed, on `GET`, on `PUT`, and for every hash inside a `POST
-/v1/blobs/missing` body, and the same check is applied to values read back from
-the database by the sweep (mutation: rely on the `PUT` path's hash verification,
-which computes the hash from the body and so is not a check on the
+store). A `{deviceId}` segment that is not `^[A-Za-z0-9_-]{1,64}$` is rejected
+on `GET`, `PUT` and `DELETE /v1/manifests/{deviceId}` (mutation: validate
+`{hash}` and not `{deviceId}` — under §7.1's row storage nothing observable
+changes, which is why the gap survives review, and under the ADR's
+file-per-device sketch the same server takes an arbitrary file write from any
+sync-ID holder). A `{hash}` path segment that is not `^[0-9a-f]{64}$` —
+containing `../`, a `/`, or any non-hex character — is rejected before any
+filesystem path is constructed, on `GET`, on `PUT`, and for every hash inside a
+`POST /v1/blobs/missing` body, and the same check is applied to values read back
+from the database by the sweep (mutation: rely on the `PUT` path's hash
+verification, which computes the hash from the body and so is not a check on the
 caller-supplied segment at all; §9's existing hash test covers §5.2 body
 verification, which is a different check and passes unchanged). No log written
 on any path — including a `400` and a `422` over a malformed body, and a debug
@@ -2534,8 +2560,7 @@ but which of the two reaches a given deployment is not the operator's to know
 deployment test against the running configuration, since no unit test of the
 server process can observe which port a proxy accepted the request on).
 
-**Client isolate and robustness.** Allow-list bijection over real
-`encodeArchive`-shaped output, never a hand-written key string. Hostile peer
+**Client isolate and robustness.** Hostile peer
 blob: a malformed date rejects one record without aborting the batch or escaping
 the isolate. Interrupted sync is a no-op. **An app with no sync ID configured
 makes no sync-related network call of any kind**, asserted over a full app
