@@ -25,6 +25,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  build metadata or prerelease suffix. The workflow rejects any other pubspec
  format or a tag whose core differs. (The repo-root `pubspec.yaml` is the
  workspace file and has **no** `version:`.)
+- [ ] Every explicit build-version literal in `.github/ISSUE_TEMPLATE/*.yml` and
+ `*.yaml` is the same bare `X.Y.Z` as `app/pubspec.yaml`. GitHub issue forms
+ are static and cannot read the latest tag dynamically; `check_app_version.py`
+ rejects a stale, tag-prefixed, or suffixed literal.
 - [ ] Each `X.Y.Z` component is in `0..999`. The workflow derives Android's
  `versionCode` from the tag, with beta lower than stable for the same core; no
  manually maintained store-build suffix exists.

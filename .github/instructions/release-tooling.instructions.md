@@ -5,6 +5,7 @@ applyTo:
   - ".github/workflows/release.yml"
   - ".github/workflows/pages-site.yml"
   - ".github/workflows/pages-sig-gate.yml"
+  - ".github/ISSUE_TEMPLATE/**"
   - "app/CHANGELOG.md"
   - "packages/compendium_core/pubspec.yaml"
   - "packages/compendium_core/CHANGELOG.md"
@@ -49,6 +50,13 @@ prevent on its own are in
   app's `## [Unreleased]` as well as recording the core change under the core's.
   The two entries have different audiences: the core entry is the package
   version record; the app entry is the published user-facing release note.
+- **Issue-form build hints are static.** GitHub cannot substitute the latest
+  release tag when a reporter opens a form. On every app version bump, update
+  every explicit build-version literal in `.github/ISSUE_TEMPLATE/*.yml` and
+  `*.yaml` to the new bare app `X.Y.Z`; `tools/ci/check_app_version.py` rejects
+  a stale, suffixed, or tag-prefixed literal. The release workflow makes that
+  pubspec version the tag core, so the hints match the latest release after the
+  tag lands.
 - **Publish only after the provenance gate is green**, then confirm the channel
   manifest *and* its detached `.sig` are both live and that the signature
   verifies. A manifest without its signature makes the in-app updater fail closed

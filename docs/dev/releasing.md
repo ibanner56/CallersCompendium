@@ -26,14 +26,14 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~70 KB — read the section you
+> **Section index.** This document is ~71 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
 
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
-- [Cutting a release](#cutting-a-release) — 223 lines
+- [Cutting a release](#cutting-a-release) — 233 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
@@ -247,6 +247,16 @@ and produces no Android artifact.
      `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
      below them. Choose a newer `X.Y.Z` core instead.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
+   - **Update the static build-version hints in every issue form.** GitHub issue
+     forms cannot read the latest release tag dynamically. Set every explicit
+     SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
+     bare `X.Y.Z` as `app/pubspec.yaml` — currently the default and fallback
+     hint in the beta check-in and bug-report forms. Do not write `vX.Y.Z`, a
+     beta suffix, or build metadata: reporters are supplying the app build
+     version, not its release tag. `tools/ci/check_app_version.py` checks all
+     literals in those files, while the release workflow requires the pubspec
+     core to match the tag; together that makes the static hints match the
+     latest release after the tag lands.
 3. **Bump `packages/compendium_core` — if, and only if, its CHANGELOG has
    unreleased changes.** The trigger is the literal content of
    `## [Unreleased]` in `packages/compendium_core/CHANGELOG.md`, not a diff

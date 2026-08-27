@@ -30,6 +30,12 @@ step-by-step does not prevent on its own.
   an hour old may already be wrong. The Data/Migrations section is where users
   learn what is about to happen to their data; a stale range misinforms them.
 - **Derive the next tag from the existing tags.** Do not assume the increment.
+- **Issue forms cannot read a release tag dynamically.** Their build-version
+  defaults and fallback hints are static YAML. Every app version bump must
+  update every explicit SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and
+  `*.yaml` to the bare app `X.Y.Z`; `tools/ci/check_app_version.py` catches a
+  mismatch. A tag-prefixed or beta-suffixed literal is also wrong: the reporter
+  needs the installed app build version, not a release tag.
 - **Publish only after the provenance gate is green**, and confirm afterwards
   that the channel manifest *and* its detached signature are both live and that
   the signature verifies. A manifest without its signature makes the in-app
