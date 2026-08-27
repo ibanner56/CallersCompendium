@@ -3260,16 +3260,32 @@ supporting material is three entries old.
 were *not*.** The entry recording that the retrospective had begun producing
 its own defects named both of them — exactly what the rule beside it asks for —
 and was false anyway, because alongside the property it argued for it asserted
-an exclusion: that the specification had been clean while those two defects
-were found. An exclusion's instances are the ones it claims do not exist, so
-there is nothing to name and naming cannot discharge it. The only check is the
-population, and for a claim about where a round's findings were the population
-is that round's report — round 46's lists four, the two most severe of them in
-the specification and in the ADR. A rule that checks the positive half of a
-sentence has nothing to say about the negative half, and both halves were
-written in one breath.
+an exclusion: that the specification and the ADR had been clean while those two
+defects were found. An exclusion's instances are the ones it claims do not
+exist, so there is nothing to name and naming cannot discharge it. The only
+check is the population, and for a claim about where a round's findings were
+the population is that round's report — round 46's lists four, the two most
+severe of them in the specification and in the ADR. A rule that checks the
+positive half of a sentence has nothing to say about the negative half, and
+both halves were written in one breath.
 
-**The general lesson, which is now nineteen rounds old: the newest machinery
+**A scan that reports zero is an exclusion, and needs a positive control.** The
+entry above says an exclusion is checkable only against its population, and a
+scan *is* a population check — which is why "zero mid-word hyphen breaks in all
+four documents" read as the verified kind of claim. It was asserted in two
+consecutive commit messages here and in two consecutive review reports, and it
+was false every time: four breaks were live in the text throughout, two of them
+in the ADR, one of them inside the paragraph that settles how a poisoned
+timestamp is classified. Both scans matched a pattern requiring the
+continuation character to sit at the start of the line, so both skipped every
+indented list continuation — and every surviving break was in one. That the
+same blind spot appeared in two independently written scans is the part worth
+keeping: both were written from the same picture of the text, so neither could
+see the shape it left out. A scan asserting an absence should be run first
+against a case known to be present. It costs one line, and it is the only thing
+separating "nothing matched" from "nothing could have matched".
+
+**The general lesson, which is now twenty rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3316,16 +3332,19 @@ opposite direction, in the same slot of the same section, for the third round
 running. Round 47 found the normative text correct for the first time in four
 rounds, and both of its defects in the retrospective written to explain the
 repair. Round 48 then found that the entry written to record *that* was false
-about round 46, in the same commit as a sentence contradicting it. Eighteen
-consecutive rounds have found the round's defects in the previous round's
-repair, which is no longer a coincidence and is better read as a property of
-how repairs get written: under the belief that the hard thinking has just been
-done. Round 30's instance was the spec paraphrasing an algorithm; round 31's
-was the same thing twice more; round 32's was the plan getting less scrutiny
-than the spec. Scaffolding built to close a gap is written last, reviewed
-least, and inherits none of the scrutiny that produced it — and a
-*justification* written to close a gap is the least reviewed artefact of all,
-because it reads as the premise rather than as the new work.
+about round 46, in the same commit as a sentence contradicting it. Round 49
+then found nothing wrong with that repair — the first round since round 30 to
+find no defect in the previous round's, so the run stops at eighteen, and the
+two Low findings it did raise were both about scans reporting an absence they
+could not have detected. Eighteen consecutive rounds found the round's defects
+in the previous round's repair, which is no longer a coincidence and is better
+read as a property of how repairs get written: under the belief that the hard
+thinking has just been done. Round 30's instance was the spec paraphrasing an
+algorithm; round 31's was the same thing twice more; round 32's was the plan
+getting less scrutiny than the spec. Scaffolding built to close a gap is
+written last, reviewed least, and inherits none of the scrutiny that produced
+it — and a *justification* written to close a gap is the least reviewed
+artefact of all, because it reads as the premise rather than as the new work.
 
 **Normalise at the choke point, not in every writer.** The plan originally said
 "every import adapter", which is an enumeration — and enumerations are exactly
@@ -4943,13 +4962,14 @@ must say this plainly rather than implying sync is opaque to us.
   when rebuilding `existenceAt` and excluded when rebuilding `updatedAt`.
   Mutation-proved by filtering both rebuilds on `existenceAt`, which adopts a
   value outside the local window and re-quarantines the record immediately.
-- **A rebuilt value is re-checked before the record is called repaired** — assert
-  a rebuild that would still land outside the local window leaves the record
-  quarantined rather than reported as fixed. Include the peer-exactly-at-the-
-  ceiling case, and assert the record stays quarantined there too. Mutation-proved
-  by clamping to the ceiling instead: that is the *only* case the clamp can fire
-  in, it ties the peer it was meant to outrank, and on `existenceAt` the standing
-  tie rule then silently reverts a user's un-delete.
+- **A rebuilt value is re-checked before the record is called repaired** —
+  assert a rebuild that would still land outside the local window leaves the
+  record quarantined rather than reported as fixed. Include the
+  peer-exactly-at-the-ceiling case, and assert the record stays quarantined
+  there too. Mutation-proved by clamping to the ceiling instead: that is the
+  *only* case the clamp can fire in, it ties the peer it was meant to outrank,
+  and on `existenceAt` the standing tie rule then silently reverts a user's
+  un-delete.
 - **An upgraded record is not treated as never-agreed** — a device attached
   under the wire-hash-only scheme holds a record its peers have since edited
   past; poison its clock and repair. Assert the record is **quarantined**, not
@@ -5043,11 +5063,12 @@ must say this plainly rather than implying sync is opaque to us.
   the first pass observing agreement. Mutation-proved by backfilling from current
   local content, which records every in-flight edit as agreed.
 - **A poisoned `updatedAt` does not travel** — poison both fields on a deleting
-  device, repair, and assert the blob peers receive carries neither. Mutation-
-  proved by taking `max(local, peer + 1 tick)`: the poisoned value dominates the
-  max, the record's clean tombstone then wins the existence decision, and the
-  blob is applied wholesale — carrying the poison fleet-wide, where every
-  honestly-stamped later edit loses until wall-clock time catches up.
+  device, repair, and assert the blob peers receive carries neither.
+  Mutation-proved by taking `max(local, peer + 1 tick)`: the poisoned value
+  dominates the max, the record's clean tombstone then wins the existence
+  decision, and the blob is applied wholesale — carrying the poison fleet-wide,
+  where every honestly-stamped later edit loses until wall-clock time catches
+  up.
 - **One unacceptable peer does not veto a repair** — ten peers with acceptable
   values and one without; assert the record repairs against the ten.
 - **A quarantined record cannot outrank an unacceptable peer value** — a peer

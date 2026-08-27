@@ -976,18 +976,18 @@ makes self-hosting materially harder, which constraint 4 forbids.
   device's own hash coming back to it, and treating it otherwise would populate
   a baseline from the poisoned content it exists to repair.
 
-  **Choosing those classifiers was the substance of the decision.** Neither field
-  carries a signal separating a value poisoned by a broken clock from a genuine
-  one, so no comparison of magnitude can tell them apart; plausibility against
-  the local window can, and that is what selects the fields to rebuild. Two
-  earlier drafts then reached for the nearest observable to decide *how* to
-  rebuild: live-or-deleted agreement, which is orthogonal to poisoned-versus-
-  genuine, and content differing from the peer's, which is orthogonal to
-  edited-versus-stale — and worse, anti-correlated with it, since a poisoned
-  discriminator wins every content merge and so manufactures the staleness that
-  inverts the signal. The baseline was already in the design, already
-  distinguishing "I changed this" from "I haven't caught up", and is the signal
-  the question actually turns on.
+  **Choosing those classifiers was the substance of the decision.** Neither
+  field carries a signal separating a value poisoned by a broken clock from a
+  genuine one, so no comparison of magnitude can tell them apart; plausibility
+  against the local window can, and that is what selects the fields to rebuild.
+  Two earlier drafts then reached for the nearest observable to decide *how* to
+  rebuild: live-or-deleted agreement, which is orthogonal to
+  poisoned-versus-genuine, and content differing from the peer's, which is
+  orthogonal to edited-versus-stale — and worse, anti-correlated with it, since
+  a poisoned discriminator wins every content merge and so manufactures the
+  staleness that inverts the signal. The baseline was already in the design,
+  already distinguishing "I changed this" from "I haven't caught up", and is
+  the signal the question actually turns on.
 
   A successor draft kept a `localNow` fallback for the case with no acceptable
   peer copy, and that single branch reinstated the whole failure for a clock
@@ -1210,9 +1210,9 @@ link to it. Both files must be amended together, with the effective date bumped,
 ## Revisit triggers
 
 - **Users ask for venue addresses on their second device often enough that the
-  answer "re-enter them" stops being acceptable.** The options are a device-to-
-  device channel (rejected here) or encryption (rejected by constraint 1);
-  either would reopen this ADR.
+  answer "re-enter them" stops being acceptable.** The options are a
+  device-to-device channel (rejected here) or encryption (rejected by
+  constraint 1); either would reopen this ADR.
 - **Two-person sharing becomes common in practice.** Last-writer-wins without
   attribution is defensible for one person's devices and indefensible for a
   couple sharing a library; observing real use would justify per-field merge or
