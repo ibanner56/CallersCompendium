@@ -747,6 +747,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final size = MediaQuery.sizeOf(context);
+    final origin = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
+    );
     try {
       final json = buildDanceShareBundle(
         detail.dance,
@@ -760,12 +766,6 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         extension: extension,
       );
       final xfile = await writeBundleTempFile(json, fileName);
-      final size = MediaQuery.sizeOf(context);
-      final origin = Rect.fromCenter(
-        center: Offset(size.width / 2, size.height / 2),
-        width: 1,
-        height: 1,
-      );
       await SharePlus.instance.share(
         ShareParams(
           files: [xfile],
