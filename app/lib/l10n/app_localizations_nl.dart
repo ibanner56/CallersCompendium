@@ -3290,7 +3290,13 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportShareDanceText => 'Dans delen (tekst)';
 
   @override
+  String get exportShareDanceBundle => 'Dansbestand delen';
+
+  @override
   String get exportCopyDance => 'Dans kopiëren';
+
+  @override
+  String get exportShareDanceJson => 'Dans exporteren als JSON';
 
   @override
   String get exportPrintPdf => 'Exporteren / afdrukken als PDF';

@@ -1,17 +1,24 @@
 import 'package:meta/meta.dart';
 
+import '../model/custom_field.dart';
+import '../model/dance.dart';
+import '../model/enums.dart';
 import '../model/program.dart';
 import '../model/provenance.dart';
-import '../model/enums.dart';
+import '../model/source_citation.dart';
 import '../model/venue.dart';
 import '../serialization/compendium_archive.dart';
+import '../storage/repositories/custom_field_repository.dart';
 import '../storage/repositories/program_repository.dart';
+import '../storage/repositories/published_source_repository.dart';
+import '../storage/repositories/tag_repository.dart';
 import '../storage/repositories/venue_repository.dart';
 import '../util/uuid.dart';
 import 'dedupe.dart';
 import 'generic_json_adapter.dart';
 import 'import_pipeline.dart';
 import 'program_slot_note.dart';
+import 'share_metadata_import.dart';
 import 'source_adapter.dart';
 import 'structured_draft.dart';
 import 'venue_dedupe.dart';
@@ -205,6 +212,7 @@ class CompendiumArchiveImportResult {
     required this.danceSession,
     required List<Program> programs,
     required List<ImportIssue> programIssues,
+    this.metadata,
     List<String> insertedProgramIds = const [],
     List<Program> updatedProgramPriorStates = const [],
     List<String> restoredProgramIds = const [],
@@ -222,6 +230,10 @@ class CompendiumArchiveImportResult {
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
   final ImportSession danceSession;
+
+  /// Metadata written or revived before the dance pipeline. Null for legacy
+  /// callers that supplied an archive importer without metadata repositories.
+  final ShareMetadataImportResult? metadata;
 
   /// Every program this import persisted — both newly inserted and updated
   /// (re-imported) — carrying its final id. Ordered as the archive listed them.
@@ -267,6 +279,10 @@ class CompendiumArchiveImportResult {
   int get insertedProgramCount => insertedProgramIds.length;
   int get updatedProgramCount => updatedProgramPriorStates.length;
   int get insertedVenueCount => insertedVenueIds.length;
+  int get importedMetadataCount =>
+      (metadata?.tagIdByArchiveId.length ?? 0) +
+      (metadata?.sourceIdByArchiveId.length ?? 0) +
+      (metadata?.fieldIdByArchiveId.length ?? 0);
 
   /// True once [CompendiumArchiveImporter.undo] has reverted this import.
   bool get isUndone => _undone;
@@ -289,11 +305,25 @@ class CompendiumArchiveImportResult {
 /// repositories) so it lives in the core and is trivially unit-testable; the
 /// app supplies the archive JSON.
 class CompendiumArchiveImporter {
-  CompendiumArchiveImporter(this._pipeline, this._programs, this._venues);
+  CompendiumArchiveImporter(
+    this._pipeline,
+    this._programs,
+    this._venues, {
+    TagRepository? tags,
+    PublishedSourceRepository? sources,
+    CustomFieldDefRepository? customFields,
+  }) : _metadata = tags == null || sources == null || customFields == null
+           ? null
+           : ShareMetadataImporter(
+               tags: tags,
+               sources: sources,
+               customFields: customFields,
+             );
 
   final ImportPipeline _pipeline;
   final ProgramRepository _programs;
   final VenueRepository _venues;
+  final ShareMetadataImporter? _metadata;
 
   final GenericJsonAdapter _adapter = GenericJsonAdapter();
 
@@ -324,22 +354,6 @@ class CompendiumArchiveImporter {
     Map<int, DedupeResolution> resolutions = const {},
   }) async {
     final mintId = newId ?? uuidV4;
-    final danceSession = await _pipeline.commit(
-      batch,
-      now: now,
-      newId: mintId,
-      resolutions: resolutions,
-    );
-
-    final danceIdByOriginalId = _danceIdByOriginalId(danceSession, archive);
-
-    final existingByExternalId = await _programs.externalIdToProgramId(
-      ProvenanceSource.json,
-    );
-    // Working copy that also absorbs ids inserted during *this* commit, so a
-    // duplicate externalId appearing twice in a single (untrusted) archive
-    // updates the row in place instead of inserting it twice.
-    final resolvedByExternalId = Map<String, String>.from(existingByExternalId);
     final insertedIds = <String>[];
     final insertedIdSet = <String>{};
     final priorCapturedFor = <String>{};
@@ -348,10 +362,38 @@ class CompendiumArchiveImporter {
     final restoredProgramIdSet = <String>{};
     final insertedVenueIds = <String>[];
     final restoredVenueIds = <String>[];
-    // Keyed by final program id so repeated externalIds collapse to one entry
-    // carrying the final persisted state, preserving first-seen archive order.
-    final persisted = <String, Program>{};
+    ShareMetadataImportResult? metadata;
+    ImportSession? danceSession;
     try {
+      metadata = await _commitMetadata(archive, now: now, newId: mintId);
+      final commitBatch = metadata == null
+          ? batch
+          : _remapBatch(batch, metadata);
+      final committedDanceSession = await _pipeline.commit(
+        commitBatch,
+        now: now,
+        newId: mintId,
+        resolutions: resolutions,
+      );
+      danceSession = committedDanceSession;
+
+      final danceIdByOriginalId = _danceIdByOriginalId(
+        committedDanceSession,
+        archive,
+      );
+
+      final existingByExternalId = await _programs.externalIdToProgramId(
+        ProvenanceSource.json,
+      );
+      // Working copy that also absorbs ids inserted during *this* commit, so a
+      // duplicate externalId appearing twice in a single (untrusted) archive
+      // updates the row in place instead of inserting it twice.
+      final resolvedByExternalId = Map<String, String>.from(
+        existingByExternalId,
+      );
+      // Keyed by final program id so repeated externalIds collapse to one entry
+      // carrying the final persisted state, preserving first-seen archive order.
+      final persisted = <String, Program>{};
       // Venues first — a program's `venueId` soft-references a venue, so the
       // record must exist before the program is written (the repository rejects
       // a non-existent `venueId`). Each *new* bundled venue is inserted under a
@@ -568,9 +610,10 @@ class CompendiumArchiveImporter {
       }
 
       return CompendiumArchiveImportResult(
-        danceSession: danceSession,
+        danceSession: committedDanceSession,
         programs: persisted.values.toList(growable: false),
         programIssues: built.issues,
+        metadata: metadata,
         insertedProgramIds: insertedIds,
         updatedProgramPriorStates: priorStates,
         restoredProgramIds: restoredProgramIds,
@@ -599,10 +642,73 @@ class CompendiumArchiveImporter {
           // failure or skipping dance rollback.
         }
       }
-      await _pipeline.undo(danceSession);
+      if (danceSession != null) await _pipeline.undo(danceSession);
+      if (metadata != null) await _metadata!.undo(metadata);
       rethrow;
     }
   }
+
+  Future<ShareMetadataImportResult?> _commitMetadata(
+    CompendiumArchive archive, {
+    required DateTime now,
+    required String Function() newId,
+  }) {
+    final hasMetadata =
+        archive.tags.isNotEmpty ||
+        archive.publishedSources.isNotEmpty ||
+        archive.customFields.isNotEmpty;
+    if (!hasMetadata) return Future.value(null);
+    final importer = _metadata;
+    if (importer == null) {
+      throw StateError(
+        'metadata repositories are required to import a shared archive',
+      );
+    }
+    return importer.commit(archive, now: now, newId: newId);
+  }
+
+  ImportBatchResult _remapBatch(
+    ImportBatchResult batch,
+    ShareMetadataImportResult metadata,
+  ) {
+    return ImportBatchResult(
+      records: [
+        for (final record in batch.records)
+          ImportRecordPlan(
+            draft: StructuredDraft(
+              dance: _remapDance(record.draft.dance, metadata),
+              raw: record.draft.raw,
+              quality: record.draft.quality,
+              issues: record.draft.issues,
+              authorNames: record.draft.authorNames,
+            ),
+            verdict: record.verdict,
+          ),
+      ],
+      errors: batch.errors,
+      dedupeIndex: batch.dedupeIndex,
+    );
+  }
+
+  Dance _remapDance(Dance dance, ShareMetadataImportResult metadata) =>
+      dance.copyWith(
+        tagIds: [for (final id in dance.tagIds) ?metadata.tagIdByArchiveId[id]],
+        sourceCitations: [
+          for (final citation in dance.sourceCitations)
+            if (metadata.sourceIdByArchiveId[citation.sourceId]
+                case final mapped?)
+              SourceCitation(
+                sourceId: mapped,
+                page: citation.page,
+                number: citation.number,
+              ),
+        ],
+        customFields: [
+          for (final value in dance.customFields)
+            if (metadata.fieldIdByArchiveId[value.fieldId] case final mapped?)
+              CustomFieldValue(fieldId: mapped, value: value.value),
+        ],
+      );
 
   /// Convenience end-to-end import of an [archiveJson] payload: [plan]s the
   /// dances, then automatically resolves any **ambiguous** dedupe verdicts for
@@ -698,6 +804,9 @@ class CompendiumArchiveImporter {
       }
     }
     await _pipeline.undo(result.danceSession);
+    if (result.metadata != null) {
+      await _metadata!.undo(result.metadata!);
+    }
     result._undone = true;
   }
 

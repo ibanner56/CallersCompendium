@@ -4361,9 +4361,17 @@
   "@exportShareDanceText": {
     "description": "Export-menu item: share the dance as a plain-text card via the OS share sheet."
   },
+  "exportShareDanceBundle": "Share dance file",
+  "@exportShareDanceBundle": {
+    "description": "Export-menu item: share the dance and its referenced metadata as a .ccshare file."
+  },
   "exportCopyDance": "Copy dance",
   "@exportCopyDance": {
     "description": "Export-menu item: copy the dance's plain-text card to the clipboard."
+  },
+  "exportShareDanceJson": "Export dance as JSON",
+  "@exportShareDanceJson": {
+    "description": "Export-menu item: share the dance and its referenced metadata as a plain .json file."
   },
   "exportPrintPdf": "Export / print PDF",
   "@exportPrintPdf": {

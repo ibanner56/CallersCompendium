@@ -180,11 +180,13 @@ void main() {
       isSemantics(tooltip: 'Export', isButton: true, hasTapAction: true),
     );
 
-    // The menu opens and offers the three print/share actions.
+    // The menu opens and offers both file formats alongside the text actions.
     await tester.tap(menu);
     await tester.pumpAndSettle();
     expect(find.text('Share dance (text)'), findsOneWidget);
+    expect(find.text('Share dance file'), findsOneWidget);
     expect(find.text('Copy dance'), findsOneWidget);
+    expect(find.text('Export dance as JSON'), findsOneWidget);
     expect(find.text('Export / print PDF'), findsOneWidget);
   });
 
@@ -259,6 +261,14 @@ void main() {
           findsOneWidget,
         );
         expect(
+          find.byKey(const ValueKey('overflow-share-dance-bundle')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance-json')),
+          findsOneWidget,
+        );
+        expect(
           find.byKey(const ValueKey('overflow-export-pdf')),
           findsOneWidget,
         );
@@ -278,6 +288,41 @@ void main() {
 
         // The (scrollable) menu itself introduces no overflow at 360dp.
         expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'reports a missing referenced tag from the compact file export',
+      (tester) async {
+        final baseRepos = openTestRepositories();
+        await baseRepos.dances.create(_dance(id: 'd1'));
+        final repos = CompendiumRepositories(
+          baseRepos.db,
+          contraTaxonomy,
+          dances: _DanglingDances(
+            baseRepos.db,
+            contraTaxonomy,
+            _dance(id: 'd1', tagIds: const ['missing-tag']),
+          ),
+        );
+        final library = await buildLibrary(repos);
+
+        await _pumpDetail(
+          tester,
+          repos,
+          'd1',
+          surfaceSize: const Size(360, 800),
+          dialectLibrary: library,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('overflow-share-dance-bundle')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text("Couldn't share this dance"), findsOneWidget);
       },
     );
 
@@ -2134,5 +2179,19 @@ class _FailingDances extends DanceRepository {
       return Future.error(StateError('injected record read failure'));
     }
     return super.listIdsAndTitles(includeDeleted: includeDeleted);
+  }
+}
+
+/// Returns a dance with a dangling metadata reference so the compact export
+/// handler's user-facing error path is exercised without violating database FKs.
+class _DanglingDances extends DanceRepository {
+  _DanglingDances(super.db, super.taxonomy, this.danglingDance);
+
+  final Dance danglingDance;
+
+  @override
+  Future<Dance?> getById(String id, {bool includeDeleted = false}) async {
+    if (id == danglingDance.id) return danglingDance;
+    return super.getById(id, includeDeleted: includeDeleted);
   }
 }

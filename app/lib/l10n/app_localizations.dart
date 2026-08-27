@@ -5240,11 +5240,23 @@ abstract class AppLocalizations {
   /// **'Share dance (text)'**
   String get exportShareDanceText;
 
+  /// Export-menu item: share the dance and its referenced metadata as a .ccshare file.
+  ///
+  /// In en, this message translates to:
+  /// **'Share dance file'**
+  String get exportShareDanceBundle;
+
   /// Export-menu item: copy the dance's plain-text card to the clipboard.
   ///
   /// In en, this message translates to:
   /// **'Copy dance'**
   String get exportCopyDance;
+
+  /// Export-menu item: share the dance and its referenced metadata as a plain .json file.
+  ///
+  /// In en, this message translates to:
+  /// **'Export dance as JSON'**
+  String get exportShareDanceJson;
 
   /// Export-menu item: hand a generated PDF to the OS print/save dialog.
   ///

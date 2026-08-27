@@ -3170,7 +3170,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportShareDanceText => 'ダンスを共有（テキスト）';
 
   @override
+  String get exportShareDanceBundle => 'ダンスファイルを共有';
+
+  @override
   String get exportCopyDance => 'ダンスをコピー';
+
+  @override
+  String get exportShareDanceJson => 'ダンスをJSONとしてエクスポート';
 
   @override
   String get exportPrintPdf => 'PDFにエクスポート／印刷';
