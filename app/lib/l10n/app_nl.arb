@@ -3400,9 +3400,17 @@
   "@exportShareDanceText": {
     "x-sourceSha256": "6b9d8c1ecf939ac29fb94f26e591175ee31b79f251b0e7decd36a62b2d97f568"
   },
+  "exportShareDanceBundle": "Dansbestand delen",
+  "@exportShareDanceBundle": {
+    "x-sourceSha256": "29c9786e0737eac3cd1c9154fb88a22b635b7d0f7af5d9bd9c5ea50842fde6f0"
+  },
   "exportCopyDance": "Dans kopiëren",
   "@exportCopyDance": {
     "x-sourceSha256": "2ffac8a5b092603538cd48f6dc8841ab41879f471ad6fea998797ecdc824c1d5"
+  },
+  "exportShareDanceJson": "Dans exporteren als JSON",
+  "@exportShareDanceJson": {
+    "x-sourceSha256": "51d8ac6f502215be1cf0988afe7d67a6358e44129837800d079777d68b6f3bd4"
   },
   "exportPrintPdf": "Exporteren / afdrukken als PDF",
   "@exportPrintPdf": {

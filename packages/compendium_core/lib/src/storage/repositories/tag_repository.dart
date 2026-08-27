@@ -92,6 +92,16 @@ class TagRepository {
     return rows.map(_toModel).toList();
   }
 
+  Future<List<({Tag tag, bool deleted})>> listAllWithDeleted() async {
+    final rows = await (_db.select(
+      _db.tags,
+    )..orderBy([(t) => OrderingTerm(expression: t.name)])).get();
+    return [
+      for (final row in rows)
+        (tag: _toModel(row), deleted: row.deletedAt != null),
+    ];
+  }
+
   /// [listAll] as a live stream: the current tags immediately, then again after
   /// every write that changes them (issue #768).
   ///
@@ -115,14 +125,36 @@ class TagRepository {
   /// would mean a revived tag came back untagged, silently losing every
   /// association. Reads filter the tag out instead, so the dances stop showing
   /// it either way.
-  Future<void> delete(String id, {DateTime? at}) => stampExistenceTransition(
-    _db,
-    table: _db.tags,
-    keyColumn: 'id',
-    key: id,
-    at: resolveStamp(at),
-    deleted: true,
-  );
+  Future<void> delete(String id, {DateTime? at, bool permanent = false}) async {
+    if (permanent) {
+      await (_db.delete(_db.tags)..where((t) => t.id.equals(id))).go();
+      return;
+    }
+    await stampExistenceTransition(
+      _db,
+      table: _db.tags,
+      keyColumn: 'id',
+      key: id,
+      at: resolveStamp(at),
+      deleted: true,
+    );
+  }
+
+  Future<void> restore(String id, {required DateTime at}) =>
+      stampExistenceTransition(
+        _db,
+        table: _db.tags,
+        keyColumn: 'id',
+        key: id,
+        at: at,
+        deleted: false,
+      );
+
+  Future<void> hardDelete(Iterable<String> ids) async {
+    for (final id in ids) {
+      await delete(id, permanent: true);
+    }
+  }
 
   /// Reads a row back, re-normalizing the stored colour so a row written by an
   /// older build or a corrupted file cannot paint an invisible chip.

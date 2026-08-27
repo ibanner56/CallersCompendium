@@ -3258,7 +3258,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportShareDanceText => 'Share dance (text)';
 
   @override
+  String get exportShareDanceBundle => 'Share dance file';
+
+  @override
   String get exportCopyDance => 'Copy dance';
+
+  @override
+  String get exportShareDanceJson => 'Export dance as JSON';
 
   @override
   String get exportPrintPdf => 'Export / print PDF';

@@ -180,11 +180,13 @@ void main() {
       isSemantics(tooltip: 'Export', isButton: true, hasTapAction: true),
     );
 
-    // The menu opens and offers the three print/share actions.
+    // The menu opens and offers both file formats alongside the text actions.
     await tester.tap(menu);
     await tester.pumpAndSettle();
     expect(find.text('Share dance (text)'), findsOneWidget);
+    expect(find.text('Share dance file'), findsOneWidget);
     expect(find.text('Copy dance'), findsOneWidget);
+    expect(find.text('Export dance as JSON'), findsOneWidget);
     expect(find.text('Export / print PDF'), findsOneWidget);
   });
 
@@ -256,6 +258,14 @@ void main() {
         );
         expect(
           find.byKey(const ValueKey('overflow-copy-dance')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance-bundle')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('overflow-share-dance-json')),
           findsOneWidget,
         );
         expect(

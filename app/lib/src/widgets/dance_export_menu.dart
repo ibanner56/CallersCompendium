@@ -10,9 +10,11 @@ import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../utils/safe_name.dart';
+import '../export/dance_share_bundle.dart';
+import '../export/share_file.dart';
 
 /// Actions offered by the [DanceExportMenu].
-enum _ExportAction { shareText, copyText, pdf }
+enum _ExportAction { shareText, shareBundle, copyText, shareJson, pdf }
 
 /// Hands the shareable card to the OS share sheet. Defaults to
 /// [SharePlus.instance.share]; overridable so tests can force a failure.
@@ -30,7 +32,7 @@ typedef PdfLayouter =
 /// (`docs/design/ux.md` §2 dance-detail actions).
 ///
 /// Mirrors the program-level [ProgramExportMenu]: a [PopupMenuButton] (icon +
-/// tooltip "Export") with three actions:
+/// tooltip "Export") with five actions:
 /// - **Share dance (text)** — the shareable plain-text card, via the OS share
 ///   sheet (`share_plus`).
 /// - **Copy dance** — copies the same text to the clipboard (an
@@ -51,7 +53,12 @@ class DanceExportMenu extends StatelessWidget {
     required this.statusLabel,
     this.levelLabel,
     this.renderer,
+    this.choreographersById = const {},
+    this.tagsById = const {},
+    this.sourcesById = const {},
+    this.customFieldsById = const {},
     this.shareInvoker,
+    this.bundleFileWriter,
     this.pdfLayouter,
   });
 
@@ -62,9 +69,16 @@ class DanceExportMenu extends StatelessWidget {
   final String statusLabel;
   final String? levelLabel;
   final FigureRenderer? renderer;
+  final Map<String, Choreographer> choreographersById;
+  final Map<String, Tag> tagsById;
+  final Map<String, PublishedSource> sourcesById;
+  final Map<String, CustomFieldDef> customFieldsById;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
+
+  /// Test seam for staging a share file.
+  final BundleFileWriter? bundleFileWriter;
 
   /// Test seam for the print/save call; defaults to [Printing.layoutPdf].
   final PdfLayouter? pdfLayouter;
@@ -96,6 +110,34 @@ class DanceExportMenu extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: _plainText(l10n)));
     messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
+  }
+
+  Future<void> _shareBundle(
+    Rect? origin, {
+    String extension = danceShareBundleExtension,
+  }) async {
+    final json = buildDanceShareBundle(
+      dance,
+      choreographerFor: (id) => choreographersById[id],
+      tagFor: (id) => tagsById[id],
+      publishedSourceFor: (id) => sourcesById[id],
+      customFieldFor: (id) => customFieldsById[id],
+    );
+    final fileName = danceShareBundleFileName(
+      dance.title,
+      extension: extension,
+    );
+    final writeFile = bundleFileWriter ?? writeBundleTempFile;
+    final xfile = await writeFile(json, fileName);
+    final share = shareInvoker ?? SharePlus.instance.share;
+    await share(
+      ShareParams(
+        files: [xfile],
+        fileNameOverrides: [fileName],
+        subject: dance.title,
+        sharePositionOrigin: origin,
+      ),
+    );
   }
 
   Future<void> _exportPdf(AppLocalizations l10n) async {
@@ -134,8 +176,20 @@ class DanceExportMenu extends StatelessWidget {
           l10n.exportShareDanceError,
           () => _shareText(l10n, origin),
         );
+      case _ExportAction.shareBundle:
+        await _guard(
+          messenger,
+          l10n.exportShareDanceError,
+          () => _shareBundle(origin),
+        );
       case _ExportAction.copyText:
         await _copyText(context);
+      case _ExportAction.shareJson:
+        await _guard(
+          messenger,
+          l10n.exportShareDanceError,
+          () => _shareBundle(origin, extension: danceShareJsonExtension),
+        );
       case _ExportAction.pdf:
         await _guard(messenger, l10n.exportDanceError, () => _exportPdf(l10n));
     }
@@ -179,10 +233,26 @@ class DanceExportMenu extends StatelessWidget {
           ),
         ),
         PopupMenuItem<_ExportAction>(
+          value: _ExportAction.shareBundle,
+          child: ListTile(
+            leading: const Icon(Icons.share_outlined),
+            title: Text(l10n.exportShareDanceBundle),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<_ExportAction>(
           value: _ExportAction.copyText,
           child: ListTile(
             leading: const Icon(Icons.copy_outlined),
             title: Text(l10n.exportCopyDance),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<_ExportAction>(
+          value: _ExportAction.shareJson,
+          child: ListTile(
+            leading: const Icon(Icons.data_object_outlined),
+            title: Text(l10n.exportShareDanceJson),
             contentPadding: EdgeInsets.zero,
           ),
         ),

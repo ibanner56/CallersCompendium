@@ -37,6 +37,10 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Changed
 
+- **Dance file exports** — the dance **Export** menu now offers privacy-safe
+  `.ccshare` and `.json` files containing the dance and its referenced,
+  shareable metadata. Recipients review the import before committing it and can
+  undo a successful import.
 - **Desktop in-app updates** — verified Windows installers now start directly
   after **Download & install**. On macOS, choose whether to update immediately;
   the disk image opens before the app closes so you can replace it in

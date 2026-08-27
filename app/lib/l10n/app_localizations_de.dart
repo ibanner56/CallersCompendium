@@ -3306,7 +3306,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportShareDanceText => 'Tanz teilen (Text)';
 
   @override
+  String get exportShareDanceBundle => 'Tanzdatei teilen';
+
+  @override
   String get exportCopyDance => 'Tanz kopieren';
+
+  @override
+  String get exportShareDanceJson => 'Tanz als JSON exportieren';
 
   @override
   String get exportPrintPdf => 'PDF exportieren / drucken';
