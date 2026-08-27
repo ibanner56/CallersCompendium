@@ -26,14 +26,14 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~57 KB — read the section you
+> **Section index.** This document is ~71 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
 
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
-- [Cutting a release](#cutting-a-release) — 161 lines
+- [Cutting a release](#cutting-a-release) — 233 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
@@ -133,6 +133,15 @@ and produces no Android artifact.
    tagging. The release fails fast in the `meta` job if `Unreleased` still has
    list items. Every release, stable or beta, requires the matching shared
    versioned section.
+
+   **A core entry never replaces an app entry.** `app/CHANGELOG.md` is the only
+   CHANGELOG consumed to generate the published release notes. If a change
+   recorded in `packages/compendium_core/CHANGELOG.md` changes behavior visible
+   to an app user, it must also have a corresponding app `## [Unreleased]`
+   entry. The core entry records the core package version; the app entry tells
+   users what changed. This belongs in the PR that makes the behavioral change,
+   not in a release-prep diff, where the missing context may no longer be
+   recoverable.
 
    **If a section for this core version already exists, merge into it — do not
    create a second one.** Successive betas in a line all render the *same*
@@ -238,7 +247,66 @@ and produces no Android artifact.
      `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
      below them. Choose a newer `X.Y.Z` core instead.
    - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
-3. **Land the promotion on `main` first, then tag `main`'s tip.** Steps 1–2 edit
+   - **Update the static build-version hints in every issue form.** GitHub issue
+     forms cannot read the latest release tag dynamically. Set every explicit
+     SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
+     bare `X.Y.Z` as `app/pubspec.yaml` — currently the default and fallback
+     hint in the beta check-in and bug-report forms. Do not write `vX.Y.Z`, a
+     beta suffix, or build metadata: reporters are supplying the app build
+     version, not its release tag. `tools/ci/check_app_version.py` checks all
+     literals in those files, while the release workflow requires the pubspec
+     core to match the tag; together that makes the static hints match the
+     latest release after the tag lands.
+3. **Bump `packages/compendium_core` — if, and only if, its CHANGELOG has
+   unreleased changes.** The trigger is the literal content of
+   `## [Unreleased]` in `packages/compendium_core/CHANGELOG.md`, not a diff
+   against the previous tag and not your judgement about whether the core
+   "really" changed. Keeping that section current is a per-PR responsibility;
+   at release time you take it as written.
+
+   The core CHANGELOG is not published release notes. Before draining it,
+   confirm its user-visible entries already have corresponding entries in
+   `app/CHANGELOG.md`'s `## [Unreleased]`; do not treat a core entry as a reason
+   to omit an app entry.
+
+   ```sh
+   awk '/^## \[Unreleased\]/{f=1;next} /^## /{f=0} f' \
+     packages/compendium_core/CHANGELOG.md | grep -c '^- '
+   ```
+
+   `0` — stop. Do not touch the core pubspec or the core CHANGELOG. A core
+   version bumped on a release with nothing to record is a false entry in the
+   record, and the app depends on the core by workspace `path:`, so the bump
+   buys nothing mechanically.
+
+   Non-zero — **ask the maintainer for the new core version, showing them the
+   current one for context.** Do not derive it. The core's version is
+   independent of both the release tag and the app version, so there is no
+   correct increment to infer: only the maintainer knows whether the accumulated
+   changes are a patch, a minor, or a break.
+
+   ```sh
+   grep '^version:' packages/compendium_core/pubspec.yaml   # show this, then ask
+   ```
+
+   Then, with the answer:
+
+   - Set `version:` in `packages/compendium_core/pubspec.yaml` to that bare
+     `X.Y.Z`. No `v`, no prerelease suffix — as with the app, the tag alone
+     carries the channel.
+   - Drain `## [Unreleased]` into a new `## [X.Y.Z] - YYYY-MM-DD` section at the
+     top of `packages/compendium_core/CHANGELOG.md`, dated the release date, and
+     leave a fresh empty `## [Unreleased]` above it.
+   - Unlike the app, **this is always a new heading.** The app's shared
+     `## [X.Y.Z]` section spans a beta and its stable because the app version is
+     the tag's core; the core version is not, so a beta and a later stable that
+     both carry core changes produce two different core sections. Merge into an
+     existing core section only if you are re-cutting the same core version.
+
+   Nothing reads the core's `version:` at build time — the app resolves the core
+   through the workspace `path:` dependency, so it always compiles the checked-out
+   source. The bump is a record, which is exactly why it has to be deliberate.
+4. **Land the promotion on `main` first, then tag `main`'s tip.** Steps 1–3 edit
    tracked files, so they go through a PR like any other change — the release is
    tagged from `main`, never from the release branch. This repo squash-merges, so
    what you want is the post-merge tip of `main` (a single-parent commit, not a
@@ -254,7 +322,7 @@ and produces no Android artifact.
    is still full, so the `meta` gate fails on a CHANGELOG that looks correct in
    your working copy. If the tag is already pushed, delete and re-push it at the
    right commit before the draft is published.
-4. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
+5. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
    `vX.Y.Z-beta`; beta creates a GitHub prerelease. **Name the commit
    explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
    which is the release branch if you never switched off it:
@@ -264,23 +332,23 @@ and produces no Android artifact.
    git push origin v0.2.0
    ```
 
-5. Watch the run under **Actions → Release**. It resolves + validates metadata
+6. Watch the run under **Actions → Release**. It resolves + validates metadata
    (an unpromoted CHANGELOG fails here, fast; schema changes also require a
    current Data / Migrations range), gates on the reusable checks, builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
-6. Review the draft under **Releases**: confirm the desktop binaries and, when
+7. Review the draft under **Releases**: confirm the desktop binaries and, when
    Android signing was configured, the additional Android APK; then confirm `SHA256SUMS`,
    both refreshed channel manifests (stable releases attach `stable.json` and
    `beta.json`; betas attach `beta.json`) and their `.sig` files are present and
    named correctly, **and that the notes body matches the CHANGELOG section**.
-7. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
+8. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
    re-downloads every `CallersCompendium-*` binary and runs `gh attestation
    verify` for both the build provenance and the SBOM attestation. **Do not
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-8. **Publish** the draft manually once the `verify` job is green and the draft
+9. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
 
 ## CHANGELOG-driven release notes

@@ -6,9 +6,9 @@ description: >-
   this when reviewing a pull request, a staged/unstaged/branch diff, or a
   proposed change, or when reading and answering a Copilot review. Combines a
   general reviewing baseline with the repository-specific hazards that have
-  actually caused churn here (documentation drift, unclassified persisted
-  fields, guard tests that cannot fail, drifted taxonomy fixtures, stale review
-  freshness, and unintended issue-closing links).
+  actually caused churn here (documentation drift, missing changelog entries,
+  unclassified persisted fields, guard tests that cannot fail, drifted taxonomy
+  fixtures, stale review freshness, and unintended issue-closing links).
 ---
 
 # Code review
@@ -91,8 +91,30 @@ Documentation drift is this repo's most persistent defect class.
   `<!-- generated-by: ... -->` marker on line 1 (e.g.
   `docs/dev/data-classification.md`). The fix is to change the source and
   regenerate.
-- `app/CHANGELOG.md` is user-facing: user-visible changes belong under
-  `## [Unreleased]`.
+- **Both CHANGELOGs are load-bearing, and release prep will not catch a missing
+  entry.** Release prep drains `## [Unreleased]` *as written* — it does not diff
+  the tree — so a bullet omitted at review time is omitted from the record
+  permanently. This is not hypothetical: `packages/compendium_core` recorded
+  almost nothing across `v0.1.0-beta.1`–`.9`, and 268 core commits had to be
+  reconstructed from git history long after the fact. Flag a diff that changes
+  behaviour without a matching `## [Unreleased]` bullet:
+  - `app/CHANGELOG.md` — anything user-visible.
+  - `packages/compendium_core/CHANGELOG.md` — any behavioural change under
+    `packages/compendium_core/lib/**`. That section is also the sole trigger for
+    bumping the core package version at release time, so a missing entry
+    silently suppresses the bump as well as the note.
+  - **A core entry does not substitute for an app entry.** If a core change has
+    a user-visible outcome in the app, require an entry in **both** CHANGELOGs:
+    the core entry records the core package version, while the app entry is what
+    `tools/release/gen_release_notes.py` publishes. Flag a PR that has only the
+    core entry for that outcome.
+  - Neither is owed by a pure refactor, a test-only change, or a docs-only
+    change. Say which of those applies rather than staying silent, so the
+    omission reads as considered rather than forgotten.
+- Within one `##` section, a category (`### Added`, `### Fixed`, …) must appear
+  **once**. Appending a second `### Fixed` renders as two lists and hides the
+  first. `tools/ci/check_changelog_structure.py` gates this and the ordering of
+  version headings.
 - Re-take any measurement quoted in the PR body after the final rebase
   ([#729](../../../docs/dev/agents/incidents.md#729-a-measurement-that-went-stale-before-merge)).
 

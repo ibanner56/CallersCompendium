@@ -5,7 +5,11 @@ applyTo:
   - ".github/workflows/release.yml"
   - ".github/workflows/pages-site.yml"
   - ".github/workflows/pages-sig-gate.yml"
+  - ".github/ISSUE_TEMPLATE/**"
   - "app/CHANGELOG.md"
+  - "packages/compendium_core/pubspec.yaml"
+  - "packages/compendium_core/CHANGELOG.md"
+  - "tools/ci/check_changelog_structure.py"
   - "docs/dev/releasing.md"
   - "docs/dev/release-checklist.md"
 ---
@@ -31,6 +35,28 @@ prevent on its own are in
   while a release is being prepared. The Data/Migrations section is where users
   learn what is about to happen to their data.
 - **Derive the next tag from the existing tags.** Do not assume the increment.
+- **`packages/compendium_core` has its own version, and it is not the tag's.**
+  Bump it if and only if `packages/compendium_core/CHANGELOG.md` has entries
+  under `## [Unreleased]` — that section as written is the trigger, not a diff
+  and not a judgement call — and get the new number by **asking the maintainer**,
+  showing them the current one. Nothing resolves that `version:` at build time
+  (the app takes the core by workspace `path:`), so no gate and no build failure
+  will tell you it is wrong; it is a record, and a bump invented to look tidy is
+  a false one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
+  its own new heading.
+- **A core CHANGELOG entry never replaces an app one.** The release-notes
+  generator reads `app/CHANGELOG.md` only. If a `packages/compendium_core`
+  change has a user-visible effect in the app, record that outcome under the
+  app's `## [Unreleased]` as well as recording the core change under the core's.
+  The two entries have different audiences: the core entry is the package
+  version record; the app entry is the published user-facing release note.
+- **Issue-form build hints are static.** GitHub cannot substitute the latest
+  release tag when a reporter opens a form. On every app version bump, update
+  every explicit build-version literal in `.github/ISSUE_TEMPLATE/*.yml` and
+  `*.yaml` to the new bare app `X.Y.Z`; `tools/ci/check_app_version.py` rejects
+  a stale, suffixed, or tag-prefixed literal. The release workflow makes that
+  pubspec version the tag core, so the hints match the latest release after the
+  tag lands.
 - **Publish only after the provenance gate is green**, then confirm the channel
   manifest *and* its detached `.sig` are both live and that the signature
   verifies. A manifest without its signature makes the in-app updater fail closed

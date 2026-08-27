@@ -25,6 +25,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  build metadata or prerelease suffix. The workflow rejects any other pubspec
  format or a tag whose core differs. (The repo-root `pubspec.yaml` is the
  workspace file and has **no** `version:`.)
+- [ ] Every explicit build-version literal in `.github/ISSUE_TEMPLATE/*.yml` and
+ `*.yaml` is the same bare `X.Y.Z` as `app/pubspec.yaml`. GitHub issue forms
+ are static and cannot read the latest tag dynamically; `check_app_version.py`
+ rejects a stale, tag-prefixed, or suffixed literal.
 - [ ] Each `X.Y.Z` component is in `0..999`. The workflow derives Android's
  `versionCode` from the tag, with beta lower than stable for the same core; no
  manually maintained store-build suffix exists.
@@ -51,6 +55,34 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] The required shared `## [X.Y.Z]` section exists for **both** beta and stable.
  The beta establishes it from `Unreleased`; beta-to-stable fixes are added to
  that same section.
+- [ ] `app/CHANGELOG.md`'s `## [Unreleased]` covers every user-visible outcome,
+ including an outcome caused by a `packages/compendium_core` change. The core
+ CHANGELOG records the core package version; it does **not** feed published
+ release notes and never substitutes for the app entry.
+- [ ] `packages/compendium_core/CHANGELOG.md`'s `## [Unreleased]` has been read,
+ and the outcome recorded either way. **Empty → the core pubspec and core
+ CHANGELOG are untouched by this release** (mark this row N/A with that
+ reason). Non-empty → the rows below apply. The section as written is the
+ trigger; do not substitute a diff of `packages/compendium_core` or a judgement
+ call.
+- [ ] If it was non-empty: the new core version came from **asking the
+ maintainer**, with the current `packages/compendium_core/pubspec.yaml`
+ `version:` presented for context. It is not derived from the tag, from the app
+ version, or from the shape of the changes.
+- [ ] If it was non-empty: `packages/compendium_core/pubspec.yaml` `version:` is
+ that exact bare `X.Y.Z` — no `v`, no prerelease suffix, no build metadata —
+ and a new `## [X.Y.Z] - YYYY-MM-DD` section dated the release date holds the
+ drained entries, with a fresh empty `## [Unreleased]` above it. Unlike the
+ app's shared section, a core section is **always new**: the core version is
+ not the tag's core, so a beta and a later stable that both carry core changes
+ get two sections.
+- [ ] Both CHANGELOGs pass the structure gate — version sections strictly
+ descending by SemVer precedence and
+ no repeated `###` subheading inside one `##` section:
+
+ ```sh
+ python3 tools/ci/check_changelog_structure.py
+ ```
 
 ## 2. Data safety (Gate — local-first app, user data is sacred)
 - [ ] Every schema migration since the last release has a v(N-1)→vN migration test
