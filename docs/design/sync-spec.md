@@ -41,6 +41,8 @@ merging, user accounts, and any sharing of fields not classified `shareable`.
 | **epoch** | An opaque 128-bit value identifying one incarnation of a store. |
 | **pass** | One complete sync cycle. |
 | **quarantine** | Local state of a record whose timestamps are implausible. |
+| **detach** | Stop syncing on *this* device: forget the sync ID and the baseline locally. Purely local. It sends no request, leaves this device's manifest and every blob on the server, and affects no peer. |
+| **wipe** | Destroy the whole store server-side via `DELETE /v1/store`, for every device at once. Not reversible, and not what the Settings detach control does. |
 | **report** | Surface a condition to the user as a non-blocking notice that survives the pass which raised it. Reporting MUST NOT block a write, gate a pass, or require a gesture to clear. Distinct from `review_queue`, which holds candidate *records* awaiting a decision: a report names a condition, not a pending choice. |
 | **tick** | The smallest interval the timestamp storage representation can distinguish. Currently **one second**: `DateTimeColumn` persists as a unix second count, so a sub-second increment does not survive a write. Every `+ 1 tick` in this document means this quantity, not a fixed millisecond. |
 
@@ -1097,7 +1099,7 @@ header that carries no information the request does not already imply.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/v1/store` | Store metadata: epoch, device list, quota usage. Creates the store if absent. |
-| `DELETE` | `/v1/store` | Detach-and-wipe. |
+| `DELETE` | `/v1/store` | Wipe store (destructive). |
 | `GET` | `/v1/manifests/{deviceId}` | Fetch one manifest. `ETag` / `If-None-Match`. |
 | `PUT` | `/v1/manifests/{deviceId}` | Publish this device's manifest. |
 | `DELETE` | `/v1/manifests/{deviceId}` | Remove a device's manifest. |
@@ -1289,7 +1291,7 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    two conforming implementations diverge permanently. It is not an edge case.
    §4.4 makes the settings key the record `id`, so it is a natural key rather
    than a UUID: two attached devices that each set the same shareable preference
-   before the next pass reach exactly this state, and 47 settings keys are
+   before the next pass reach exactly this state, and 49 settings keys are
    `shareable`. Records with UUID ids reach it too, because archive
    import preserves ids, so two devices importing one bundle and then editing it
    locally collide on the same id.
@@ -1513,6 +1515,31 @@ rule that decides on "local" versus "incoming" does not converge.
 
 `deviceLocal` coalescing applies to step 2 only. Step 1 involves two
 pre-existing local rows and MUST NOT coalesce.
+
+**A record this device created and no peer has seen MUST NOT be reconciled out
+of existence silently.** Where step 2 resolves the survivor to non-existence
+and the losing local row is **absent from this device's baseline** — created
+here, never observed on any peer manifest — the resolution MUST be reported
+rather than applied, on the same terms as §6.3's equal-`updatedAt` divergence.
+Report and leave the local row in place; do not invent a tie-break.
+
+This is the one existence decision that needs it, because creation is the one
+existence write exempt from the causal floor: §6.4's stamping table seeds
+`existenceAt` from the plain clock, there being no prior value to supersede. A
+device whose clock is behind therefore stamps a record it creates *now* below a
+tombstone a correctly-clocked peer stamped **earlier** in real time, for a
+different UUID on the same natural key. Nothing else catches it. Both values
+sit inside the acceptable window, so §6.9 quarantines neither; a moderate
+behind-skew never trips clock-suspect, which requires every observed peer value
+to fall outside the window; and repair revisits only records already flagged,
+so no repair path reaches it. Without this rule the record the user created
+moments ago disappears from their own device, with nothing reported.
+
+This does not disturb the equal-`existenceAt` rule below, which resolves
+silently by design. That case is a genuine tie between two transitions each
+stamped against a real prior value; this one is an *unequal* comparison against
+a value that was never floored, so the ordering carries no causal meaning to
+respect.
 
 **Custom-field defs** reconcile only when `type` matches. On mismatch both
 survive: the smaller UUID keeps the bare key, the other is renamed.
@@ -2356,18 +2383,24 @@ the **wire** spelling. A peer cannot push a `deviceScoped` setting.
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
-preserved. Recency respected. Existence respected. Rename into an existing name.
-Two devices derive the **same** renamed custom-field key from the same collision
-(mutation: derive the suffix from a counter). Three devices carrying three types
-yield three **distinct** keys (mutation: derive the suffix from the surviving
-UUID rather than the losing one — two devices agree on the survivor, so a
-two-device fixture cannot distinguish the two derivations). A collided derived
-key lengthens to the full UUID in one step (mutation: lengthen progressively).
-Custom-field type mismatch does not crash on read. Alias chains resolve
-transitively. Alias retention is content-bounded. Rewriting a reference bumps
-the referring record's `updated_at` and re-uploads it (mutation: rewrite in
-place — the content changed but no row did, so peers never learn of it and the
-reference stays broken on every device but this one).
+preserved. Recency respected. Existence respected. Rename into an existing
+name. Two devices derive the **same** renamed custom-field key from the same
+collision (mutation: derive the suffix from a counter). Three devices carrying
+three types yield three **distinct** keys (mutation: derive the suffix from the
+surviving UUID rather than the losing one — two devices agree on the survivor,
+so a two-device fixture cannot distinguish the two derivations). A collided
+derived key lengthens to the full UUID in one step (mutation: lengthen
+progressively). A record created on a device whose clock is behind, colliding
+on the natural key with a tombstone a correctly-clocked peer stamped later in
+real time, is **reported and left in place**, never silently erased (mutation:
+apply the greater `existenceAt` without the baseline-absence check — the
+tombstone wins and the just-created record vanishes with no report). Both
+stamps MUST sit inside the acceptable window, so that the fixture proves the
+rule rather than §6.9's quarantine. Custom-field type mismatch does not crash
+on read. Alias chains resolve transitively. Alias retention is content-bounded.
+Rewriting a reference bumps the referring record's `updated_at` and re-uploads
+it (mutation: rewrite in place — the content changed but no row did, so peers
+never learn of it and the reference stays broken on every device but this one).
 
 **Dedupe.** A tombstone is never a dedupe candidate (mutation: include
 tombstones, which silently resurrects a deleted dance by merging a live one onto

@@ -453,8 +453,10 @@ Two paths, together covering every case without us processing a request by hand:
 
 - **Abandoned stores reap themselves** after 30 days of disuse. No action by
   anyone.
-- **Active stores are wiped by their owner**, at any time, via detach — which
-  issues `DELETE /v1/store` and removes everything under the sync ID.
+- **Active stores are wiped by their owner**, at any time, via wipe — which
+  issues `DELETE /v1/store` and removes everything under the sync ID. This is
+  distinct from detach, which only makes one device forget the sync ID and
+  leaves every other device's data untouched.
 
 Stated precisely because the looser phrasing is tempting and wrong: this is a
 rolling TTL on *activity*, not an absolute age cap. A store synced weekly
