@@ -3233,16 +3233,17 @@ Writing an entry about rigour is not an exemption from it, and the examples in
 an argument are the part nobody verifies.
 
 **The retrospective is now the least-scrutinised artefact in the set, and it
-has started producing the defects it describes.** Two rounds running, the
-findings against this design were found *here* rather than in the
-specification: an entry arguing for mechanisation whose examples were two
-artefacts these pages record failing silently, and an entry prescribing a
-remedy whose worked example covered one of the two defects it claimed. The
-normative text was correct both times. The reason is structural and the same
-one this document gives for everything else — the retrospective is written
-last, it is prose about prose, no gate reads it, and it is the part of a commit
-a reviewer arrives at with the least attention left. It has the property it
-keeps attributing to justifications.
+has started producing the defects it describes.** Each of the last two rounds
+found a defect *here*: an entry arguing for mechanisation whose examples were
+two artefacts these pages record failing silently, and an entry prescribing a
+remedy whose worked example covered one of the two defects it claimed. What
+changed in round 47 is that this is where *every* finding landed, and the
+normative text came back clean for the first time in four rounds; round 46's
+two most severe findings were in the specification and in the ADR. The reason
+is structural and the same one this document gives for everything else — the
+retrospective is written last, it is prose about prose, no gate reads it, and
+it is the part of a commit a reviewer arrives at with the least attention left.
+It has the property it keeps attributing to justifications.
 
 **So an entry that generalises must name its instances.** The generalisation is
 where the remedy comes from, and a remedy is fitted to the shape of the
@@ -3255,7 +3256,20 @@ should be weakened until it can, because an unstated instance is one nobody can
 check the conclusion against, and this document's own verdict on unchecked
 supporting material is three entries old.
 
-**The general lesson, which is now eighteen rounds old: the newest machinery
+**Naming the instances is not enough when an entry also says where the defects
+were *not*.** The entry recording that the retrospective had begun producing
+its own defects named both of them — exactly what the rule beside it asks for —
+and was false anyway, because alongside the property it argued for it asserted
+an exclusion: that the specification had been clean while those two defects
+were found. An exclusion's instances are the ones it claims do not exist, so
+there is nothing to name and naming cannot discharge it. The only check is the
+population, and for a claim about where a round's findings were the population
+is that round's report — round 46's lists four, the two most severe of them in
+the specification and in the ADR. A rule that checks the positive half of a
+sentence has nothing to say about the negative half, and both halves were
+written in one breath.
+
+**The general lesson, which is now nineteen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3301,13 +3315,15 @@ that the sentence written to replace the retracted claim was false in the
 opposite direction, in the same slot of the same section, for the third round
 running. Round 47 found the normative text correct for the first time in four
 rounds, and both of its defects in the retrospective written to explain the
-repair. Seventeen consecutive rounds have found the round's defects in the
-previous round's repair, which is no longer a coincidence and is better read as
-a property of how repairs get written: under the belief that the hard thinking
-has just been done. Round 30's instance was the spec paraphrasing an algorithm;
-round 31's was the same thing twice more; round 32's was the plan getting less
-scrutiny than the spec. Scaffolding built to close a gap is written last,
-reviewed least, and inherits none of the scrutiny that produced it — and a
+repair. Round 48 then found that the entry written to record *that* was false
+about round 46, in the same commit as a sentence contradicting it. Eighteen
+consecutive rounds have found the round's defects in the previous round's
+repair, which is no longer a coincidence and is better read as a property of
+how repairs get written: under the belief that the hard thinking has just been
+done. Round 30's instance was the spec paraphrasing an algorithm; round 31's
+was the same thing twice more; round 32's was the plan getting less scrutiny
+than the spec. Scaffolding built to close a gap is written last, reviewed
+least, and inherits none of the scrutiny that produced it — and a
 *justification* written to close a gap is the least reviewed artefact of all,
 because it reads as the premise rather than as the new work.
 
