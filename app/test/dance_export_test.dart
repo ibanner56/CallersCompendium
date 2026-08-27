@@ -222,26 +222,22 @@ void main() {
           'A_dance___with_unsafe_name.json',
         ]),
       );
-      final ccSharePayload = jsonDecode(
-        staged['A_dance___with_unsafe_name.ccshare']!,
-      ) as Map<String, dynamic>;
-      final jsonPayload = jsonDecode(
-        staged['A_dance___with_unsafe_name.json']!,
-      ) as Map<String, dynamic>;
+      final ccSharePayload =
+          jsonDecode(staged['A_dance___with_unsafe_name.ccshare']!)
+              as Map<String, dynamic>;
+      final jsonPayload =
+          jsonDecode(staged['A_dance___with_unsafe_name.json']!)
+              as Map<String, dynamic>;
       ccSharePayload.remove('exportedAt');
       jsonPayload.remove('exportedAt');
       expect(ccSharePayload, jsonPayload);
       expect(shared, hasLength(2));
       expect(shared[0].files!.single.path, endsWith('.ccshare'));
       expect(shared[1].files!.single.path, endsWith('.json'));
-      expect(
-        shared[0].fileNameOverrides,
-        ['A_dance___with_unsafe_name.ccshare'],
-      );
-      expect(
-        shared[1].fileNameOverrides,
-        ['A_dance___with_unsafe_name.json'],
-      );
+      expect(shared[0].fileNameOverrides, [
+        'A_dance___with_unsafe_name.ccshare',
+      ]);
+      expect(shared[1].fileNameOverrides, ['A_dance___with_unsafe_name.json']);
       expect(shared[0].sharePositionOrigin, isNotNull);
       expect(shared[1].sharePositionOrigin, isNotNull);
     });
