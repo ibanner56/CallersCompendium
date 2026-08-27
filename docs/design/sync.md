@@ -3200,9 +3200,26 @@ in prose. It attracts errors because it is written last, reads as explanation
 rather than as a claim, and asserts things about third-party behaviour that no
 gate checks. The cheap discipline, smaller than the grep the previous round
 adopted: **when a justification is rewritten, read it beside the passage it
-cites, in both directions.** Both of this round's defects were adjacent-
-paragraph contradictions — one sentence conceding that the outcome depends on
-the client's header policy, directly beneath a sentence asserting it does not.
+cites, in both directions.** That catches the §9 defect, which was a
+same-paragraph contradiction — a sentence conceding that the outcome depends on
+the client's header policy, immediately after one asserting it does not — and
+which cites §7.5, the passage that settles it.
+
+**It does not catch the other defect, and the difference is the point.** The
+ADR's version of the same error had nothing adjacent to contradict it: the
+claim was simply *unconditioned*, and the one clause mentioning header policy
+attached to refusal's outcome rather than the redirect's. An absent condition
+is not a disagreement between two present sentences, so there was nothing for a
+side-by-side read to catch — and the bullet's only cross-reference is to §8,
+about the client refusing a plaintext endpoint, which says nothing about header
+retention. A citation-adjacency check surfaces exactly nothing there. That
+shape is caught by the previous round's cross-document grep instead, and the
+two remedies are not substitutes: one finds a sentence that argues with its
+neighbour, the other finds a sentence with no neighbour to argue with.
+Generalising from two instances without saying what each one was is how a
+remedy ends up fitted to one of them, leaving the other silently uncovered —
+which is the failure the entry below this one names, committed in the same
+paragraph that names it.
 
 **An entry arguing for mechanisation listed, as its examples of mechanisms, two
 artefacts this document records failing silently.** The claim that the
@@ -3215,7 +3232,30 @@ checkable, and therefore better than a habit, but silent when nobody checks.
 Writing an entry about rigour is not an exemption from it, and the examples in
 an argument are the part nobody verifies.
 
-**The general lesson, which is now seventeen rounds old: the newest machinery
+**The retrospective is now the least-scrutinised artefact in the set, and it
+has started producing the defects it describes.** Two rounds running, the
+findings against this design were found *here* rather than in the
+specification: an entry arguing for mechanisation whose examples were two
+artefacts these pages record failing silently, and an entry prescribing a
+remedy whose worked example covered one of the two defects it claimed. The
+normative text was correct both times. The reason is structural and the same
+one this document gives for everything else — the retrospective is written
+last, it is prose about prose, no gate reads it, and it is the part of a commit
+a reviewer arrives at with the least attention left. It has the property it
+keeps attributing to justifications.
+
+**So an entry that generalises must name its instances.** The generalisation is
+where the remedy comes from, and a remedy is fitted to the shape of the
+examples in front of the person writing it. Two defects that look alike from a
+distance — both false justifications attached to a correct rule, both about the
+same claim, both fixed in one commit — turned out to need different checks,
+because one contradicted its neighbour and the other had no neighbour at all.
+Stating only the count hid that. Where an instance cannot be stated, the entry
+should be weakened until it can, because an unstated instance is one nobody can
+check the conclusion against, and this document's own verdict on unchecked
+supporting material is three entries old.
+
+**The general lesson, which is now eighteen rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3259,7 +3299,9 @@ from the retraction, in the same file — and that the habit prescribing the gre
 which would have caught it was added by that same commit. Round 46 then found
 that the sentence written to replace the retracted claim was false in the
 opposite direction, in the same slot of the same section, for the third round
-running. Sixteen consecutive rounds have found the round's defects in the
+running. Round 47 found the normative text correct for the first time in four
+rounds, and both of its defects in the retrospective written to explain the
+repair. Seventeen consecutive rounds have found the round's defects in the
 previous round's repair, which is no longer a coincidence and is better read as
 a property of how repairs get written: under the belief that the hard thinking
 has just been done. Round 30's instance was the spec paraphrasing an algorithm;
