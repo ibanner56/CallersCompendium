@@ -412,6 +412,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Verified and revealed in your file manager — run the installer to finish updating.';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'Update and restart';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'Your update is ready. Mount the disk image and close the app so you can replace it in Applications.';
+
+  @override
   String get settingsUpdatesDownloadTitle => 'Download & install update';
 
   @override
@@ -5426,6 +5433,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version is ready to install.';
+  }
+
+  @override
   String get updateBannerDownloadFailed =>
       'The update could not be downloaded.';
 
@@ -5442,6 +5454,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'Download & install';
+
+  @override
+  String get updateBannerUpdateRestart => 'Update and restart';
+
+  @override
+  String get updateMacosReadyTitle => 'Ready to update?';
+
+  @override
+  String get updateMacosReadyBody =>
+      'The update has been verified. Update now will open the disk image and close Caller\'s Compendium so you can replace it in Applications.';
+
+  @override
+  String get updateMacosNotNow => 'Not now';
+
+  @override
+  String get updateMacosUpdateNow => 'Update now';
 
   @override
   String get commandPaletteBarrierLabel => 'Global search';

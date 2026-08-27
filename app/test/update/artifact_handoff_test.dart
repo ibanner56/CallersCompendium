@@ -5,8 +5,7 @@ import 'package:compendium_app/src/update/update_manifest.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// A [ProcessRunner] that records every command instead of launching it, so we
-/// can assert exactly what the handoff would run (and that Windows/Linux are
-/// only ever *revealed*, never executed).
+/// can assert exactly what the handoff would run without launching anything.
 class _RecordingRunner extends ProcessRunner {
   _RecordingRunner({this.succeed = true});
 
@@ -75,27 +74,21 @@ void main() {
     expect(runner.startCalls, isEmpty);
   });
 
-  test(
-    'Windows reveals in Explorer and never executes the installer',
-    () async {
-      final exe = File('${tempDir.path}/CallersCompendium-Setup.exe')
-        ..writeAsStringSync('fake');
-      final runner = _RecordingRunner();
-      final result = await handoffArtifactToOs(
-        exe,
-        UpdatePlatform.windows,
-        runner: runner,
-      );
-      expect(result, HandoffResult.revealed);
-      // Only a reveal (explorer /select), never a direct launch of the .exe.
-      expect(runner.startCalls, [
-        ['explorer.exe', '/select,${exe.path}'],
-      ]);
-      expect(runner.runCalls, isEmpty);
-      // Defensive: the installer path is never itself an executable we started.
-      expect(runner.startCalls.every((c) => c.first != exe.path), isTrue);
-    },
-  );
+  test('Windows starts the verified installer directly', () async {
+    final exe = File('${tempDir.path}/CallersCompendium-Setup.exe')
+      ..writeAsStringSync('fake');
+    final runner = _RecordingRunner();
+    final result = await handoffArtifactToOs(
+      exe,
+      UpdatePlatform.windows,
+      runner: runner,
+    );
+    expect(result, HandoffResult.launched);
+    expect(runner.startCalls, [
+      [exe.path],
+    ]);
+    expect(runner.runCalls, isEmpty);
+  });
 
   test(
     'Linux reveals the folder, never chmods or launches the AppImage',

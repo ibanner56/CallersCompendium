@@ -419,6 +419,13 @@ class AppLocalizationsFr extends AppLocalizations {
       'Vérifiée et affichée dans votre gestionnaire de fichiers — exécutez le programme d’installation pour terminer la mise à jour.';
 
   @override
+  String get settingsUpdatesMacosReadyTitle => 'Mettre à jour et redémarrer';
+
+  @override
+  String get settingsUpdatesMacosReadySubtitle =>
+      'Votre mise à jour est prête. Montez l’image disque et fermez l’application afin de pouvoir la remplacer dans Applications.';
+
+  @override
   String get settingsUpdatesDownloadTitle =>
       'Télécharger et installer la mise à jour';
 
@@ -5521,6 +5528,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String updateBannerMacosReady(String appName, String version) {
+    return '$appName $version est prêt à être installé.';
+  }
+
+  @override
   String get updateBannerDownloadFailed =>
       'Impossible de télécharger la mise à jour.';
 
@@ -5537,6 +5549,22 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get updateBannerDownloadInstall => 'Télécharger et installer';
+
+  @override
+  String get updateBannerUpdateRestart => 'Mettre à jour et redémarrer';
+
+  @override
+  String get updateMacosReadyTitle => 'Prêt à mettre à jour ?';
+
+  @override
+  String get updateMacosReadyBody =>
+      'La mise à jour a été vérifiée. Mettre à jour maintenant ouvrira l’image disque et fermera Caller\'s Compendium afin que vous puissiez le remplacer dans Applications.';
+
+  @override
+  String get updateMacosNotNow => 'Pas maintenant';
+
+  @override
+  String get updateMacosUpdateNow => 'Mettre à jour maintenant';
 
   @override
   String get commandPaletteBarrierLabel => 'Recherche globale';

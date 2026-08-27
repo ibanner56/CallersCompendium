@@ -250,6 +250,8 @@ void main() {
             }) async => DownloadOutcome.success(destination),
         verifier: verifier ?? (file, expected) async => true,
         handoff: handoff ?? (file, platform) async => HandoffResult.launched,
+        macosDestinationPicker: (artifact) async =>
+            File('${tempDir.path}/macos-update.dmg'),
         temporaryDirectoryProvider: () async => tempDir,
       );
     }
@@ -269,6 +271,54 @@ void main() {
       );
       expect(find.byKey(const ValueKey('update-banner-view')), findsOneWidget);
       expect(find.text('Download & install'), findsOneWidget);
+    });
+
+    testWidgets('macOS can defer the prompt and update from the banner', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      var handoffs = 0;
+      final controller = build(
+        repos,
+        platform: UpdatePlatform.macos,
+        platformWire: 'macos',
+        arch: 'universal',
+        handoff: (file, platform) async {
+          handoffs++;
+          return HandoffResult.launched;
+        },
+      );
+      addTearDown(controller.dispose);
+
+      await _pump(tester, controller);
+      await controller.checkNow();
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('update-banner-download')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(
+        find.byKey(const ValueKey('update-macos-ready-dialog')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('update-macos-not-now')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(
+        find.byKey(const ValueKey('update-banner-restart')),
+        findsOneWidget,
+      );
+      expect(handoffs, 0);
+
+      await tester.tap(find.byKey(const ValueKey('update-banner-restart')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(handoffs, 1);
+      expect(controller.downloadStatus, AssistedDownloadStatus.completed);
     });
 
     testWidgets('mobile does NOT show Download & install (link only)', (

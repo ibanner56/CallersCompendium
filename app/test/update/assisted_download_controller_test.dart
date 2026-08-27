@@ -68,6 +68,7 @@ void main() {
     ArtifactVerifier? verifier,
     ArtifactHandoff? handoff,
     ArtifactDestinationPicker? macosDestinationPicker,
+    Future<void> Function()? onMacosShutdown,
     UpdatePlatform platform = UpdatePlatform.macos,
     UpdateArch arch = UpdateArch.universal,
   }) {
@@ -101,6 +102,7 @@ void main() {
           (artifact) async =>
               File('${tempDir.path}/macos-${downloadFileName(artifact.url)}'),
       temporaryDirectoryProvider: () async => tempDir,
+      onMacosShutdown: onMacosShutdown,
     );
   }
 
@@ -121,6 +123,7 @@ void main() {
 
     expect(c.canAssistDownload, isTrue);
     await c.startAssistedDownload();
+    await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.completed);
     expect(c.downloadError, isNull);
@@ -197,28 +200,26 @@ void main() {
     expect(handoffs, isEmpty);
   });
 
-  test(
-    'a reveal handoff (Windows/Linux) completes and reports revealed',
-    () async {
-      final repos = openTestRepositories();
-      final c = controller(
-        repos,
-        manifestBody: _manifest(platform: 'linux', arch: 'x64'),
-        platform: UpdatePlatform.linux,
-        arch: UpdateArch.x64,
-        handoff: (file, platform) async => HandoffResult.revealed,
-      );
-      addTearDown(c.dispose);
-      await c.load();
-      await c.checkNow();
+  test('a Linux reveal handoff completes and reports revealed', () async {
+    final repos = openTestRepositories();
+    final c = controller(
+      repos,
+      manifestBody: _manifest(platform: 'linux', arch: 'x64'),
+      platform: UpdatePlatform.linux,
+      arch: UpdateArch.x64,
+      handoff: (file, platform) async => HandoffResult.revealed,
+    );
+    addTearDown(c.dispose);
+    await c.load();
+    await c.checkNow();
 
-      await c.startAssistedDownload();
+    await c.startAssistedDownload();
+    await c.installPendingMacosUpdate();
 
-      expect(c.downloadStatus, AssistedDownloadStatus.completed);
-      expect(c.downloadError, isNull);
-      expect(c.handoffResult, HandoffResult.revealed);
-    },
-  );
+    expect(c.downloadStatus, AssistedDownloadStatus.completed);
+    expect(c.downloadError, isNull);
+    expect(c.handoffResult, HandoffResult.revealed);
+  });
 
   test('a launch handoff (macOS) completes and reports launched', () async {
     final repos = openTestRepositories();
@@ -232,10 +233,49 @@ void main() {
     await c.checkNow();
 
     await c.startAssistedDownload();
+    await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.completed);
     expect(c.handoffResult, HandoffResult.launched);
   });
+
+  test(
+    'macOS holds a verified disk image until approval, then opens and quits',
+    () async {
+      final repos = openTestRepositories();
+      var handoffs = 0;
+      var shutdowns = 0;
+      final c = controller(
+        repos,
+        manifestBody: _manifest(),
+        handoff: (file, platform) async {
+          handoffs++;
+          expect(platform, UpdatePlatform.macos);
+          return HandoffResult.launched;
+        },
+        onMacosShutdown: () async {
+          shutdowns++;
+        },
+      );
+      addTearDown(c.dispose);
+      await c.load();
+      await c.checkNow();
+
+      await c.startAssistedDownload();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.awaitingMacosInstall);
+      expect(c.isAwaitingMacosInstall, isTrue);
+      expect(handoffs, 0);
+      expect(shutdowns, 0);
+
+      await c.installPendingMacosUpdate();
+
+      expect(c.downloadStatus, AssistedDownloadStatus.completed);
+      expect(c.isAwaitingMacosInstall, isFalse);
+      expect(handoffs, 1);
+      expect(shutdowns, 1);
+    },
+  );
 
   test('macOS writes directly to the user-selected destination', () async {
     final repos = openTestRepositories();
@@ -265,7 +305,7 @@ void main() {
 
     await c.startAssistedDownload();
 
-    expect(c.downloadStatus, AssistedDownloadStatus.completed);
+    expect(c.downloadStatus, AssistedDownloadStatus.awaitingMacosInstall);
     expect(downloaded, chosen);
     expect(await chosen.exists(), isTrue);
   });
@@ -329,6 +369,7 @@ void main() {
       await c.checkNow();
 
       await c.startAssistedDownload();
+      await c.installPendingMacosUpdate();
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
       expect(c.downloadError, contains('View release'));
@@ -367,6 +408,7 @@ void main() {
     await c.checkNow();
 
     await c.startAssistedDownload();
+    await c.installPendingMacosUpdate();
 
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
     expect(await chosen.exists(), isFalse);
@@ -454,6 +496,7 @@ void main() {
     await c.load();
     await c.checkNow();
     await c.startAssistedDownload();
+    await c.installPendingMacosUpdate();
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
 
     // Re-checking clears the terminal state so the affordance re-arms.
@@ -473,6 +516,7 @@ void main() {
     await c.load();
     await c.checkNow();
     await c.startAssistedDownload();
+    await c.installPendingMacosUpdate();
     expect(c.downloadStatus, AssistedDownloadStatus.failed);
 
     c.resetDownload();
@@ -502,6 +546,7 @@ void main() {
         await c.checkNow();
 
         await c.startAssistedDownload(); // must not rethrow
+        await c.installPendingMacosUpdate(); // must not rethrow
 
         expect(c.downloadStatus, AssistedDownloadStatus.failed);
         expect(c.downloadError, isNotNull);
@@ -534,6 +579,7 @@ void main() {
       await c.checkNow();
 
       await c.startAssistedDownload(); // must not rethrow
+      await c.installPendingMacosUpdate(); // must not rethrow
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
       expect(c.downloadError, isNotNull);
@@ -553,6 +599,7 @@ void main() {
       await c.checkNow();
 
       await c.startAssistedDownload(); // must not rethrow
+      await c.installPendingMacosUpdate(); // must not rethrow
 
       expect(c.downloadStatus, AssistedDownloadStatus.failed);
       expect(c.downloadError, isNotNull);

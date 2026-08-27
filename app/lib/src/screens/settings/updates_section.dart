@@ -5,6 +5,7 @@ import '../../app_metadata.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../theme/app_spacing.dart';
 import '../../update/artifact_handoff.dart';
+import '../../update/macos_update_prompt.dart';
 import '../../update/update_controller.dart';
 import '../../update/update_scope.dart';
 import '../../widgets/section_header.dart';
@@ -150,6 +151,15 @@ class UpdatesSection extends StatelessWidget {
           subtitle: Text(l10n.settingsUpdatesHandoffSubtitle),
           trailing: spinner,
         );
+      case AssistedDownloadStatus.awaitingMacosInstall:
+        return ListTile(
+          key: const ValueKey('updates-download'),
+          leading: const Icon(Icons.restart_alt),
+          title: Text(l10n.settingsUpdatesMacosReadyTitle),
+          subtitle: Text(l10n.settingsUpdatesMacosReadySubtitle),
+          trailing: const Icon(Icons.restart_alt),
+          onTap: controller.installPendingMacosUpdate,
+        );
       case AssistedDownloadStatus.completed:
         final revealed = controller.handoffResult == HandoffResult.revealed;
         return ListTile(
@@ -176,7 +186,7 @@ class UpdatesSection extends StatelessWidget {
             style: TextStyle(color: theme.colorScheme.error),
           ),
           trailing: const Icon(Icons.refresh),
-          onTap: controller.startAssistedDownload,
+          onTap: () => _startAssistedDownload(context, controller),
         );
       case AssistedDownloadStatus.idle:
       case AssistedDownloadStatus.cancelled:
@@ -186,9 +196,18 @@ class UpdatesSection extends StatelessWidget {
           title: Text(l10n.settingsUpdatesDownloadTitle),
           subtitle: Text(l10n.settingsUpdatesDownloadSubtitle(version)),
           trailing: const Icon(Icons.download),
-          onTap: controller.startAssistedDownload,
+          onTap: () => _startAssistedDownload(context, controller),
         );
     }
+  }
+
+  Future<void> _startAssistedDownload(
+    BuildContext context,
+    UpdateController controller,
+  ) async {
+    await controller.startAssistedDownload();
+    if (!context.mounted) return;
+    await promptForMacosUpdate(context, controller);
   }
 
   /// The inline status line under "Check for updates". Never an error — a
