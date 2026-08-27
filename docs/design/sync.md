@@ -3285,7 +3285,34 @@ see the shape it left out. A scan asserting an absence should be run first
 against a case known to be present. It costs one line, and it is the only thing
 separating "nothing matched" from "nothing could have matched".
 
-**The general lesson, which is now twenty rounds old: the newest machinery
+**The one class of claim here with a mechanical check is the one that keeps
+going unchecked.** Three rounds running, the defect was a statement about what
+a previous round found: that round 46's findings were all in the retrospective,
+that both of round 47's defects had the same shape, and now that both of round
+49's were about scans. Every one of those is decidable by opening a file that
+was already on disk — the reports are files, their findings are headed, and a
+grep answers the question in less time than writing the sentence took. This is
+unlike the other things that go wrong in these pages: whether a justification
+is true or a rule enforceable needs judgement, and judgement is what a review
+is for. A claim about review history needs only that someone look. Two of the
+three were written while the report they were about sat in the working
+directory. The check is cheap enough that not doing it is the whole of the
+defect.
+
+**Prefer the unfavourable reading of a source that contradicts itself, or stop
+and resolve it.** Round 49's report opened with "no findings against this
+round's changes" and then raised one, marked Low and optional, against a
+sentence added by that very commit. Both statements were in front of me. I took
+the headline, wrote that the streak of defects-in-the-previous-repair had
+ended, and recorded a nineteenth instance as the moment the run stopped — using
+the one reading that made the record flattering. A self-critical document has a
+standing appetite for the tidy narrative beat, and "the streak finally broke"
+is a better sentence than "it did not". That appetite is exactly why the tie
+should not go to the pleasing side. Where a source disagrees with itself, the
+disagreement is the finding, and suppressing it silently is worse than either
+reading.
+
+**The general lesson, which is now twenty-one rounds old: the newest machinery
 carries the round's defects.** W18 was created in round 32 to fix an ownership
 gap, and in round 33 it was where both blocking findings lived — including a
 fresh ownership gap, since its own ratchet was gated by no conformance bucket.
@@ -3333,11 +3360,13 @@ running. Round 47 found the normative text correct for the first time in four
 rounds, and both of its defects in the retrospective written to explain the
 repair. Round 48 then found that the entry written to record *that* was false
 about round 46, in the same commit as a sentence contradicting it. Round 49
-then found nothing wrong with that repair — the first round since round 30 to
-find no defect in the previous round's, so the run stops at eighteen, and the
-two Low findings it did raise were both about scans reporting an absence they
-could not have detected. Eighteen consecutive rounds found the round's defects
-in the previous round's repair, which is no longer a coincidence and is better
+raised two Low findings: that four mid-word line breaks had been live in the
+text throughout while two independently written scans certified their absence,
+and that the exclusion clause in the entry written the round before named only
+half of what it was excluding. The second of those is a defect in the previous
+round's repair, so the run did not stop, and this paragraph said it had — round
+50 caught that. Nineteen consecutive rounds have found the round's defects in
+the previous round's repair, which is no longer a coincidence and is better
 read as a property of how repairs get written: under the belief that the hard
 thinking has just been done. Round 30's instance was the spec paraphrasing an
 algorithm; round 31's was the same thing twice more; round 32's was the plan
