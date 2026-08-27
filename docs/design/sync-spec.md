@@ -2501,43 +2501,70 @@ exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
 Two stores upload a byte-identical blob and one is wiped; the survivor can still
 `GET` it (mutation: drop the `<id_key>` segment from the blob path — every other
 server test passes, because the damage is only observable from the second
-store). No log written on any path — including a `400` and a `422` over a
-malformed body, and a debug level — contains a blob body, a manifest body or
-decoded record content (mutation: log the offending body in the `422` handler,
-which survives both the sweep and `DELETE /v1/store`). **A plaintext request to
-`/v1` on the public listener is refused, never proxied and never redirected**
-(mutation: place the `ProxyPass` outside a vhost, or in both the `:80` and
-`:443` vhosts — the API answers identically on each, and the bearer credential
-is disclosed on every plaintext call. Second mutation: answer `301` to the
-`https` origin instead of refusing — the credential is already disclosed by the
-plaintext request itself, and what the redirect adds is that a client which
-follows it *and retains* `Authorization` across the hop gets a sync that
-**works**, so nothing ever surfaces the misconfiguration and every run repeats
-the disclosure. A client that strips instead follows the redirect and gets a
-`401`, which fails visibly — but which of the two reaches a given deployment is
-not the operator's to know (§7.5), and refusal is the only answer that fails
-visibly for both. This is a deployment test against the running configuration,
-since no unit test of the server process can observe which port a proxy accepted
-the request on).
+store). The same two stores hold **two** copies of those bytes, and a blob
+uploaded under one `id_key` is **not** served under the other — `GET
+/v1/blobs/{hash}` authorised for store B returns `404` for a hash only store A
+has uploaded, and `POST /v1/blobs/missing` reports it missing (mutation: serve
+any blob whose hash exists anywhere, which is the natural read of a
+content-addressed store and is the forbidden cross-store deduplication — it also
+lets any sync-ID holder confirm whether a given record exists in someone else's
+store). A `{hash}` path segment that is not `^[0-9a-f]{64}$` — containing `../`,
+a `/`, or any non-hex character — is rejected before any filesystem path is
+constructed, on `GET`, on `PUT`, and for every hash inside a `POST
+/v1/blobs/missing` body, and the same check is applied to values read back from
+the database by the sweep (mutation: rely on the `PUT` path's hash verification,
+which computes the hash from the body and so is not a check on the
+caller-supplied segment at all; §9's existing hash test covers §5.2 body
+verification, which is a different check and passes unchanged). No log written
+on any path — including a `400` and a `422` over a malformed body, and a debug
+level — contains a blob body, a manifest body or decoded record content
+(mutation: log the offending body in the `422` handler, which survives both the
+sweep and `DELETE /v1/store`). **A plaintext request to `/v1` on the public
+listener is refused, never proxied and never redirected** (mutation: place the
+`ProxyPass` outside a vhost, or in both the `:80` and `:443` vhosts — the API
+answers identically on each, and the bearer credential is disclosed on every
+plaintext call. Second mutation: answer `301` to the `https` origin instead of
+refusing — the credential is already disclosed by the plaintext request itself,
+and what the redirect adds is that a client which follows it *and retains*
+`Authorization` across the hop gets a sync that **works**, so nothing ever
+surfaces the misconfiguration and every run repeats the disclosure. A client
+that strips instead follows the redirect and gets a `401`, which fails visibly —
+but which of the two reaches a given deployment is not the operator's to know
+(§7.5), and refusal is the only answer that fails visibly for both. This is a
+deployment test against the running configuration, since no unit test of the
+server process can observe which port a proxy accepted the request on).
 
 **Client isolate and robustness.** Allow-list bijection over real
 `encodeArchive`-shaped output, never a hand-written key string. Hostile peer
-blob: a malformed date rejects one record without aborting the batch or
-escaping the isolate. Interrupted sync is a no-op. **A server presenting an
-untrusted, expired or wrong-host certificate is refused, and no request
-carrying `Authorization` is issued to it** (mutation: install a
-`badCertificateCallback` returning `true` — the endpoint is still `https`, the
-per-hop table still passes in full, and the sync ID is readable by anyone able
-to present a certificate; a test asserting only on the URL scheme cannot fail
-here). **No certificate-validation escape hatch exists in the client source at
-all** (mutation: add a `badCertificateCallback` behind a debug flag defaulting
-to off — the behavioural vector above still passes, because the test build
-takes the default; only a source scan sees it. This is why the property is
-owned by a standing ratchet and not by the unit that builds the client). **A
-`localhost`-prefixed public host is refused** (mutation: test the loopback
-exemption with `startsWith` or `contains` rather than an exact host match —
-`http://localhost.example.com/v1` is then accepted as exempt and the sync ID
-goes out in plaintext to a registrable domain). **`http://[::1]` and
+blob: a malformed date rejects one record without aborting the batch or escaping
+the isolate. Interrupted sync is a no-op. **An app with no sync ID configured
+makes no sync-related network call of any kind**, asserted over a full app
+lifecycle including every §6.12 trigger — launch, the debounced post-change
+interval, and a manual "Sync now" (mutation: have the client `GET /v1/store` to
+discover whether a store exists before checking whether one is configured —
+every functional test still passes, because a configured app behaves
+identically, and the only symptom is that an app the user never opted in with is
+talking to Athenaeum). **A `Content-Encoding: gzip` body inflating past §5.4's
+limits aborts mid-stream**, asserted by feeding a body that expands beyond 10×
+or 32 MB and observing that the abort happens before the full inflation is
+allocated (mutation: inflate to completion and then compare the size — the limit
+is still enforced and the cap still reported, so every size-rejection test
+passes, while the memory the cap exists to bound has already been committed.
+This applies identically to the client and the server, since §4 puts the limit
+on the receiver). **A server presenting an untrusted, expired or wrong-host
+certificate is refused, and no request carrying `Authorization` is issued to
+it** (mutation: install a `badCertificateCallback` returning `true` — the
+endpoint is still `https`, the per-hop table still passes in full, and the sync
+ID is readable by anyone able to present a certificate; a test asserting only on
+the URL scheme cannot fail here). **No certificate-validation escape hatch
+exists in the client source at all** (mutation: add a `badCertificateCallback`
+behind a debug flag defaulting to off — the behavioural vector above still
+passes, because the test build takes the default; only a source scan sees it.
+This is why the property is owned by a standing ratchet and not by the unit that
+builds the client). **A `localhost`-prefixed public host is refused** (mutation:
+test the loopback exemption with `startsWith` or `contains` rather than an exact
+host match — `http://localhost.example.com/v1` is then accepted as exempt and
+the sync ID goes out in plaintext to a registrable domain). **`http://[::1]` and
 `http://127.0.0.2` are refused** (mutation: implement the exemption as a
 loopback-*range* test, such as `InternetAddress.tryParse(host)?.isLoopback` —
 this is a distinct implementation from the one above and neither test catches
@@ -2546,10 +2573,16 @@ admitting every address §5 excludes). **A `302` to a foreign https host is
 refused, and no request carrying `Authorization` is issued to it** (mutation:
 validate only scheme, userinfo and port — every cosmetic check still passes and
 the sync ID, which is the whole credential, leaves for an attacker-controlled
-origin on the first hop). These are client-side and are grouped here rather
-than under **Server** because the server never parses record content beyond
-§7.2's key check — a server suite written from a list that included them would
-be testing rules its implementation is forbidden to have.
+origin on the first hop). **§6.12's triggers behave as specified**: *Sync only
+on WiFi* defaults to on; on a metered connection no automatic pass runs and a
+manual attempt routes to the setting rather than failing; and a pass suppressed
+for either reason runs at the next trigger without user action (mutation: treat
+a suppressed pass as a completed one — nothing reports an error, and the device
+simply stops syncing on any connection it considers metered, which the user
+experiences as sync having quietly stopped working). These are client-side and
+are grouped here rather than under **Server** because the server never parses
+record content beyond §7.2's key check — a server suite written from a list that
+included them would be testing rules its implementation is forbidden to have.
 
 A blob uploaded but not yet manifested survives a concurrent peer's manifest
 `PUT` and survives the sweep (mutation: collect every unreferenced blob
