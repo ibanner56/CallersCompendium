@@ -38,7 +38,8 @@ narrative behind each rule stays in
 - **Report only high-confidence findings**: bugs, security vulnerabilities,
   logic errors, data-integrity or privacy regressions, and broken or
   cannot-fail tests. For each, give a severity, a confidence, the file and line,
-  and the smallest concrete fix.
+  and the smallest concrete fix. Emit them in the **output format** below so a
+  downstream agent can act on them without re-parsing prose.
 - **Do not report style, formatting, naming, or import order.** Those are
   machine-enforced here (`dart format`, `flutter analyze --fatal-infos`) and a
   human finding about them is noise. If the diff would fail a formatter or the
@@ -192,3 +193,71 @@ It checks review freshness against the reviewer's own latest entry (not
 named. Beware that a **branch name** or prose containing `close #N` can close an
 issue on its own — even a denial like `Does not close #887`. Reasoning:
 [merging.md](../../../docs/dev/agents/merging.md).
+
+## Output format
+
+Most work here is done by AI agents, so a review is an **input to another
+session**, not just prose for a human. Emit findings in the structure below: it
+is skimmable top-to-bottom, and each finding is self-contained so a fixing agent
+can act on one without reading the rest.
+
+Rules for the output:
+
+- **Lead with the verdict line** so a dispatcher can route without reading the
+  body.
+- **One finding per block.** Never merge two defects into one bullet — they get
+  fixed in one push and re-reviewed as a pair.
+- **Order by severity**, `blocker` first. Within a severity, order by file.
+- **Every finding cites `path:line`** against the diff under review, a
+  `Confidence`, and a `Fix` that is a concrete change, not "consider revisiting".
+- **Name the gate** when a ratchet already covers the finding (e.g.
+  `Gate: settings-reads`) — that turns a debate into a reproduction step.
+- **Omit empty sections.** If there are no blockers, drop the heading; do not
+  write "None".
+- If you inspected an area and found nothing, that belongs in `Checked` (one
+  line each), not as a finding.
+
+### Template
+
+```markdown
+## Review verdict: <BLOCK | APPROVE-WITH-NITS | APPROVE>
+
+<one sentence: what the change does and the single most important finding, or
+"no high-confidence findings">
+
+### Blockers
+
+#### B1. <one-line title>
+- **Where:** `path/to/file.dart:123`
+- **Severity:** blocker
+- **Confidence:** high
+- **Category:** correctness | security | privacy | data-integrity | test-gap | docs-drift
+- **Gate:** <ratchet name, or "none">
+- **What:** <what is wrong and the concrete way it fails — the input, the path,
+  the result>
+- **Fix:** <the specific change to make>
+
+### Non-blocking findings
+
+#### N1. <one-line title>
+- **Where:** `path/to/file.dart:88`
+- **Severity:** minor
+- **Confidence:** medium
+- **Category:** <as above>
+- **What:** <...>
+- **Fix:** <...>
+
+### Checked (no finding)
+
+- <area inspected> — <why it is fine in one clause>
+
+### Verification the author still owes
+
+- [ ] `python3 tools/preflight.py` clean on the current head
+- [ ] <new guard test> proven red before green
+- [ ] docs updated in this PR for <the behaviour that changed>
+```
+
+For a clean review, the whole output collapses to the verdict line, an empty
+finding list, and the `Checked` and `Verification` sections — which is the
+signal a dispatcher wants, in the place it looks first.
