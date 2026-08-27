@@ -872,8 +872,31 @@ the wire.
   proof; the break-glass authorisation process; and lost-ID support.
 - **Unblocks** nothing — but **C7 cannot pass without it**.
 - **Done when** a from-scratch self-host reaches a working sync using only the
-  published documentation, **and a plaintext request to `/v1` against the
-  running deployment is refused — never redirected, never proxied**.
+  published documentation; **a plaintext request to `/v1` against the running
+  deployment is refused — never redirected, never proxied**; and each of the
+  four operational prerequisites has been *exercised*, not merely written:
+  - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each
+    raise an alert that reaches a human, demonstrated on the running deployment.
+  - **Retention proof** — a store left untouched past the disuse TTL is shown to
+    be gone, by querying for it rather than by reading the sweep's code, and the
+    same check confirms no ordinary log still holds its content (spec §7.3).
+  - **Break-glass authorisation** — one access is performed end to end under the
+    documented process, and the §7.4 log is then shown to contain exactly the
+    row it should.
+  - **Lost-ID support** — the documented flow is run once against a real store,
+    confirming the answer is that nothing can be recovered and that the response
+    says so, since there is no recovery path by design.
+
+Each of the four is a *process*, so none is reachable by a §9 conformance vector
+and none was gated by anything. Spec §10 lists them as prerequisites of shipping
+rather than of implementation, and C7 inherits that wording — so before this, a
+W16 that shipped the container documentation and a correct proxy configuration,
+built no alert and wrote no lost-ID process, passed every gate in the plan. That
+is the shape this document warns against elsewhere: a checkpoint that cannot
+fail is not a checkpoint. Requiring each to have been run once is the cheapest
+thing that can fail, and it also catches the case a written procedure hides — an
+alert nobody receives, or a retention claim true of the store and false of the
+logs.
 
 Requirements (3), (4) and (5) — no proxy-side decompression, the sync ID never
 written to a log, and no plaintext `/v1` — are invisible in behaviour, which is
