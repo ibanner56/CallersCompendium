@@ -500,13 +500,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     final appData = widget.appDataFactory();
     widget.applicationShutdownController?.replaceCloseApp(appData.close);
     _windowService =
-        widget.windowServiceFactory?.call(
-          appData.repositories.settings,
-        ) ??
+        widget.windowServiceFactory?.call(appData.repositories.settings) ??
         WindowService(
           appData.repositories.settings,
-          onClose:
-              widget.applicationShutdownController?.close ?? appData.close,
+          onClose: widget.applicationShutdownController?.close ?? appData.close,
         );
     _initializeDatabaseBackedServices(appData);
   }
