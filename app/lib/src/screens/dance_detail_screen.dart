@@ -760,11 +760,18 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         extension: extension,
       );
       final xfile = await writeBundleTempFile(json, fileName);
+      final size = MediaQuery.sizeOf(context);
+      final origin = Rect.fromCenter(
+        center: Offset(size.width / 2, size.height / 2),
+        width: 1,
+        height: 1,
+      );
       await SharePlus.instance.share(
         ShareParams(
           files: [xfile],
           fileNameOverrides: [fileName],
           subject: detail.dance.title,
+          sharePositionOrigin: origin,
         ),
       );
     } on Object catch (e, stackTrace) {
