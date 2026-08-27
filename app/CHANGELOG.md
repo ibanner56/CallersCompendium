@@ -39,6 +39,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - **macOS shutdown** — quitting from the Dock, menu, or Command-Q now waits for
   the local database to close before macOS tears down the app.
+  
+- **Windows shutdown** — closing the app now completes Flutter's native window
+  teardown before the runner releases COM resources, preventing a crash on exit.
 
 ## [0.1.3] - 2026-08-26
 
