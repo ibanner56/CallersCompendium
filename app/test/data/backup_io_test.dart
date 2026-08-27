@@ -197,6 +197,15 @@ void main() {
         final chmod = await Process.run('chmod', ['0500', dir.path]);
         expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
 
+        // Prove the directory is no longer writable for new siblings (what this
+        // regression guard relies on).
+        final sibling = File('${target.path}.tmp');
+        await expectLater(
+          sibling.writeAsString('SHOULD-NOT-WRITE'),
+          throwsA(isA<FileSystemException>()),
+        );
+        expect(await sibling.exists(), isFalse);
+
         try {
           await writeStringToUserSelectedPath(target.path, 'BACKUP');
         } finally {
