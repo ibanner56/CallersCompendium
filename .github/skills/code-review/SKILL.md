@@ -103,6 +103,11 @@ Documentation drift is this repo's most persistent defect class.
     `packages/compendium_core/lib/**`. That section is also the sole trigger for
     bumping the core package version at release time, so a missing entry
     silently suppresses the bump as well as the note.
+  - **A core entry does not substitute for an app entry.** If a core change has
+    a user-visible outcome in the app, require an entry in **both** CHANGELOGs:
+    the core entry records the core package version, while the app entry is what
+    `tools/release/gen_release_notes.py` publishes. Flag a PR that has only the
+    core entry for that outcome.
   - Neither is owed by a pure refactor, a test-only change, or a docs-only
     change. Say which of those applies rather than staying silent, so the
     omission reads as considered rather than forgotten.

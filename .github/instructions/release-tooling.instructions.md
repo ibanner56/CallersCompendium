@@ -43,6 +43,12 @@ prevent on its own are in
   will tell you it is wrong; it is a record, and a bump invented to look tidy is
   a false one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
   its own new heading.
+- **A core CHANGELOG entry never replaces an app one.** The release-notes
+  generator reads `app/CHANGELOG.md` only. If a `packages/compendium_core`
+  change has a user-visible effect in the app, record that outcome under the
+  app's `## [Unreleased]` as well as recording the core change under the core's.
+  The two entries have different audiences: the core entry is the package
+  version record; the app entry is the published user-facing release note.
 - **Publish only after the provenance gate is green**, then confirm the channel
   manifest *and* its detached `.sig` are both live and that the signature
   verifies. A manifest without its signature makes the in-app updater fail closed

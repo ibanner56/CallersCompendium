@@ -51,6 +51,10 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] The required shared `## [X.Y.Z]` section exists for **both** beta and stable.
  The beta establishes it from `Unreleased`; beta-to-stable fixes are added to
  that same section.
+- [ ] `app/CHANGELOG.md`'s `## [Unreleased]` covers every user-visible outcome,
+ including an outcome caused by a `packages/compendium_core` change. The core
+ CHANGELOG records the core package version; it does **not** feed published
+ release notes and never substitutes for the app entry.
 - [ ] `packages/compendium_core/CHANGELOG.md`'s `## [Unreleased]` has been read,
  and the outcome recorded either way. **Empty → the core pubspec and core
  CHANGELOG are untouched by this release** (mark this row N/A with that
@@ -68,7 +72,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  app's shared section, a core section is **always new**: the core version is
  not the tag's core, so a beta and a later stable that both carry core changes
  get two sections.
-- [ ] Both CHANGELOGs pass the structure gate — versions strictly increasing and
+- [ ] Both CHANGELOGs pass the structure gate — version sections strictly
+ descending by SemVer precedence and
  no repeated `###` subheading inside one `##` section:
 
  ```sh

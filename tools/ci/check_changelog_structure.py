@@ -2,15 +2,16 @@
 """Structural gate for the two hand-maintained CHANGELOGs.
 
 ``app/CHANGELOG.md`` and ``packages/compendium_core/CHANGELOG.md`` are written
-by hand, read by ``tools/release/gen_release_notes.py``, and drained at release
-time *as written*. Two structural mistakes are invisible to every other gate and
+by hand and drained at release time *as written*. Only the app CHANGELOG feeds
+``tools/release/gen_release_notes.py``; the core CHANGELOG is the core package's
+version record. Two structural mistakes are invisible to every other gate and
 to a rendered preview, because both of them render as valid Markdown:
 
 **A repeated category inside one version section.** Appending a second
 ``### Fixed`` to a section that already has one produces two separate lists under
-two identical headings. Nothing is lost from the file, but a reader -- and the
-release notes -- see the first list and stop, so entries added to the second one
-are effectively invisible. This is not hypothetical: ``compendium_core``'s
+two identical headings. Nothing is lost from the file, but a reader sees the
+first list and stops, so entries added to the second one are effectively
+invisible. This is not hypothetical: ``compendium_core``'s
 ``## Unreleased`` on ``main`` accumulated three ``### Fixed`` blocks and two
 ``### Changed`` blocks before anyone noticed.
 

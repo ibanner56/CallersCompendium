@@ -26,14 +26,14 @@ This is the operator runbook for cutting a desktop release. It documents the
 > per-platform signing table.
 
 <!-- section-index -->
-> **Section index.** This document is ~68 KB — read the section you
+> **Section index.** This document is ~70 KB — read the section you
 > need rather than the whole file. Line counts indicate size, not position;
 > follow the anchor. Keep this index current when you add or retitle a
 > section.
 
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
-- [Cutting a release](#cutting-a-release) — 205 lines
+- [Cutting a release](#cutting-a-release) — 223 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
@@ -133,6 +133,15 @@ and produces no Android artifact.
    tagging. The release fails fast in the `meta` job if `Unreleased` still has
    list items. Every release, stable or beta, requires the matching shared
    versioned section.
+
+   **A core entry never replaces an app entry.** `app/CHANGELOG.md` is the only
+   CHANGELOG consumed to generate the published release notes. If a change
+   recorded in `packages/compendium_core/CHANGELOG.md` changes behavior visible
+   to an app user, it must also have a corresponding app `## [Unreleased]`
+   entry. The core entry records the core package version; the app entry tells
+   users what changed. This belongs in the PR that makes the behavioral change,
+   not in a release-prep diff, where the missing context may no longer be
+   recoverable.
 
    **If a section for this core version already exists, merge into it — do not
    create a second one.** Successive betas in a line all render the *same*
@@ -244,6 +253,11 @@ and produces no Android artifact.
    against the previous tag and not your judgement about whether the core
    "really" changed. Keeping that section current is a per-PR responsibility;
    at release time you take it as written.
+
+   The core CHANGELOG is not published release notes. Before draining it,
+   confirm its user-visible entries already have corresponding entries in
+   `app/CHANGELOG.md`'s `## [Unreleased]`; do not treat a core entry as a reason
+   to omit an app entry.
 
    ```sh
    awk '/^## \[Unreleased\]/{f=1;next} /^## /{f=0} f' \

@@ -1,12 +1,14 @@
 # Structural gate for the two hand-maintained CHANGELOGs.
 #
 # app/CHANGELOG.md and packages/compendium_core/CHANGELOG.md are written by
-# hand, rendered into release notes, and drained at release time exactly as
-# written. Two structural mistakes render as valid Markdown and are therefore
-# invisible to a preview and to every other gate: a category repeated inside one
-# version section (the second list hides below the first), and a version section
-# out of order (the notes generator finds a section anywhere in the file). See
-# tools/ci/check_changelog_structure.py for the incidents behind each.
+# hand and drained at release time exactly as written. Only the app CHANGELOG
+# renders into published release notes; the core CHANGELOG is the core package's
+# version record. Two structural mistakes render as valid Markdown and are
+# therefore invisible to a preview and to every other gate: a category repeated
+# inside one version section (the second list hides below the first), and a
+# version section out of order (the notes generator finds a section anywhere in
+# the file). See tools/ci/check_changelog_structure.py for the incidents behind
+# each.
 #
 # It lives in its own workflow — rather than the shared _checks.yml — for the
 # same reason docs-bundle-check.yml does: _checks.yml is reachable only from
