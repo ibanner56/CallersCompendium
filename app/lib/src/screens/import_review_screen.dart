@@ -289,10 +289,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Uint8List? _payloadBytes;
 
   /// A [SharedBundleImport] decoded from the current paste-field text when
-  /// that text is a valid [CompendiumArchive] that carries programs.
+  /// that text is a valid [CompendiumArchive] that carries programs, or a
+  /// standalone dance plus referenced metadata.
   /// Maintained by [_onPasteChanged], which fires on every controller change
   /// (programmatic or user). Null when the text is absent, not an archive,
-  /// or decodes to an archive with no programs.
+  /// or does not carry a shared-bundle payload.
   ///
   /// **Never write directly.** [_onPasteChanged] is the sole writer; it keeps
   /// this in sync with [_pasteController.text] automatically.
@@ -304,7 +305,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
 
   /// Returns [_cachedPickedBundle], which is always in sync with the current
   /// paste-field text. Non-null only when the paste field holds a valid
-  /// [CompendiumArchive] with programs.
+  /// [CompendiumArchive] with programs, or standalone dances plus metadata.
   ///
   /// Manual-picker shared-bundle sites route through this accessor so they
   /// cannot diverge from each other.
@@ -334,12 +335,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// Listener registered on [_pasteController] in [initState]. Re-decodes the
   /// paste-field text whenever it changes and updates [_cachedPickedBundle].
   ///
-  /// A cheap pre-screen (`contains('"programs"')`) skips the full decode for
-  /// text that cannot possibly be an archive with programs — title lists, plain
-  /// JSON, and any bundle without programs. This screens out all text this app
-  /// serialises that does not carry programs. It does not guarantee that every
-  /// text that passes the screen is valid (a parse error leaves [bundle] null),
-  /// and it does not handle JSON with escaped key characters (`\u0070rograms`),
+  /// A cheap pre-screen (`contains('"dances"')`) skips the full decode for
+  /// text that cannot possibly be an archive with dances — title lists and
+  /// unrelated plain JSON. It recognizes standalone archives when they carry
+  /// metadata; a metadata-free dance archive remains on the legacy dance
+  /// adapter path for compatibility. It does not guarantee that every text
+  /// that passes the screen is valid (a parse error leaves [bundle] null),
+  /// and it does not handle JSON with escaped key characters (`\u0064ances`),
   /// which no [CompendiumArchive] serialiser produces but a conforming JSON
   /// parser would accept. That edge is near-zero in practice and is not handled.
   void _onPasteChanged() {
@@ -347,17 +349,24 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (text == _lastDecodedText) return;
     _lastDecodedText = text;
     SharedBundleImport? bundle;
-    if (text.contains('"programs"')) {
+    if (text.contains('"dances"')) {
       try {
         final result = decodeArchive(text);
         final hasRootError = result.errors.any(
           (e) => e.entityType == 'archive' && e.kind == ArchiveErrorKind.read,
         );
-        if (!hasRootError && result.archive.programs.isNotEmpty) {
+        final archive = result.archive;
+        final hasMetadata =
+            archive.tags.isNotEmpty ||
+            archive.publishedSources.isNotEmpty ||
+            archive.customFields.isNotEmpty;
+        if (!hasRootError &&
+            (archive.programs.isNotEmpty ||
+                (archive.dances.isNotEmpty && hasMetadata))) {
           bundle = SharedBundleImport(
             json: text,
-            archive: result.archive,
-            entityCount: compendiumArchiveEntityCount(result.archive),
+            archive: archive,
+            entityCount: compendiumArchiveEntityCount(archive),
           );
         }
       } catch (_) {
@@ -1414,6 +1423,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       pipeline,
       _repos.programs,
       _repos.venues,
+      tags: _repos.tags,
+      sources: _repos.publishedSources,
+      customFields: _repos.customFieldDefs,
     );
     final result = await importer.commit(
       commitBatch,
@@ -1443,7 +1455,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final importedDances = result.danceSession.records
         .where((r) => r.succeeded && r.action != CommitAction.skip)
         .length;
-    final importedCount = importedDances + result.programs.length;
+    final importedCount =
+        importedDances + result.programs.length + result.importedMetadataCount;
 
     showUndoSnackBar(
       messenger,

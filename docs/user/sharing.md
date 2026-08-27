@@ -16,12 +16,14 @@ dialects — to move to a new device? That is a different job, and
 
 ## Share a dance
 
-Open a dance and choose **Export**. Three actions:
+Open a dance and choose **Export**. Five actions:
 
 | Action | What happens |
 |---|---|
 | **Share dance (text)** | Hands a plain-text dance card to your system's share sheet — email, messages, notes, whatever you have |
+| **Share dance file** | Packages the dance and its referenced metadata into a `.ccshare` file for another Caller's Compendium user |
 | **Copy dance** | Puts the same text on your clipboard, and confirms with "Dance copied to clipboard." |
+| **Export dance as JSON** | The same package, named `.json` instead — for a recipient without the app or for inspection |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
 
 **Export / print PDF** is a real print path, not a save-to-PDF shortcut: your
@@ -42,6 +44,20 @@ active dialect first — see [Dialect](./dialects.md).
 
 The field labels around the content — *Formation*, *Level*, *Figures*, *Calling
 notes*, and so on — follow the app's language setting, not your dialect.
+
+### Share a dance file
+
+**Share dance file** and **Export dance as JSON** contain the same canonical
+archive: the selected dance, its credited choreographers, tags, cited published
+sources, and shareable custom-field definitions and values. The `.ccshare` and
+`.json` extensions are the only difference. Private choreographer contact
+details are removed, and custom fields marked **Include in sharing** off are
+omitted.
+
+Opening either file in Caller's Compendium goes through import review before
+anything is added. Existing compatible metadata is reused without overwriting
+local edits; incompatible custom-field definitions are rejected. A successful
+import can be undone from the confirmation message.
 
 ## Share a program
 

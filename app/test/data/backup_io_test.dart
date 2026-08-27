@@ -162,4 +162,60 @@ void main() {
       expect(await readBackupFile(XFile(target.path)), contents);
     });
   });
+
+  group('writeStringToUserSelectedPath', () {
+    late Directory dir;
+
+    setUp(() async {
+      dir = await Directory.systemTemp.createTemp(
+        'backup_io_selected_path_test',
+      );
+    });
+
+    tearDown(() async {
+      if (await dir.exists()) await dir.delete(recursive: true);
+    });
+
+    test(
+      'writes directly to the selected path without creating a sibling',
+      () async {
+        final target = File('${dir.path}/backup.json');
+
+        await writeStringToUserSelectedPath(target.path, 'BACKUP');
+
+        expect(await target.readAsString(), 'BACKUP');
+        expect(await File('${target.path}.tmp').exists(), isFalse);
+      },
+    );
+
+    test(
+      'overwrites the selected file when sibling creation is denied',
+      () async {
+        final target = File('${dir.path}/backup.json');
+        await target.writeAsString('OLD');
+
+        final chmod = await Process.run('chmod', ['0500', dir.path]);
+        expect(chmod.exitCode, 0, reason: '${chmod.stderr}');
+
+        // Prove the directory is no longer writable for new siblings (what this
+        // regression guard relies on).
+        final sibling = File('${target.path}.tmp');
+        await expectLater(
+          sibling.writeAsString('SHOULD-NOT-WRITE'),
+          throwsA(isA<FileSystemException>()),
+        );
+        expect(await sibling.exists(), isFalse);
+
+        try {
+          await writeStringToUserSelectedPath(target.path, 'BACKUP');
+        } finally {
+          final restore = await Process.run('chmod', ['0700', dir.path]);
+          expect(restore.exitCode, 0, reason: '${restore.stderr}');
+        }
+
+        expect(await target.readAsString(), 'BACKUP');
+      },
+      skip: Platform.isWindows,
+    );
+  });
 }

@@ -3268,7 +3268,13 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportShareDanceText => 'Del dans (tekst)';
 
   @override
+  String get exportShareDanceBundle => 'Del dansefil';
+
+  @override
   String get exportCopyDance => 'Kopiér dans';
+
+  @override
+  String get exportShareDanceJson => 'Eksportér dans som JSON';
 
   @override
   String get exportPrintPdf => 'Eksportér / udskriv PDF';

@@ -17,7 +17,9 @@ import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
+import '../export/dance_share_bundle.dart';
 import '../export/export_labels_l10n.dart';
+import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
@@ -543,6 +545,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       levelLabel: _levelLabel(l10n, detail.dance),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
+      choreographersById: detail.choreographersById,
+      tagsById: detail.tagsById,
+      sourcesById: detail.sourcesById,
+      customFieldsById: detail.customFieldsById,
     );
   }
 
@@ -640,11 +646,30 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
         ),
         PopupMenuItem<void>(
+          key: const ValueKey('overflow-share-dance-bundle'),
+          onTap: () => _shareDanceBundle(detail),
+          child: ListTile(
+            leading: const Icon(Icons.share_outlined),
+            title: Text(l10n.exportShareDanceBundle),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
           key: const ValueKey('overflow-copy-dance'),
           onTap: () => _copyDance(exportText()),
           child: ListTile(
             leading: const Icon(Icons.copy_outlined),
             title: Text(l10n.exportCopyDance),
+            contentPadding: EdgeInsets.zero,
+          ),
+        ),
+        PopupMenuItem<void>(
+          key: const ValueKey('overflow-share-dance-json'),
+          onTap: () =>
+              _shareDanceBundle(detail, extension: danceShareJsonExtension),
+          child: ListTile(
+            leading: const Icon(Icons.data_object_outlined),
+            title: Text(l10n.exportShareDanceJson),
             contentPadding: EdgeInsets.zero,
           ),
         ),
@@ -714,6 +739,51 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final l10n = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: text));
     messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
+  }
+
+  Future<void> _shareDanceBundle(
+    DanceDetailData detail, {
+    String extension = danceShareBundleExtension,
+  }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+    final size = MediaQuery.sizeOf(context);
+    final origin = Rect.fromCenter(
+      center: Offset(size.width / 2, size.height / 2),
+      width: 1,
+      height: 1,
+    );
+    try {
+      final json = buildDanceShareBundle(
+        detail.dance,
+        choreographerFor: (id) => detail.choreographersById[id],
+        tagFor: (id) => detail.tagsById[id],
+        publishedSourceFor: (id) => detail.sourcesById[id],
+        customFieldFor: (id) => detail.customFieldsById[id],
+      );
+      final fileName = danceShareBundleFileName(
+        detail.dance.title,
+        extension: extension,
+      );
+      final xfile = await writeBundleTempFile(json, fileName);
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [xfile],
+          fileNameOverrides: [fileName],
+          subject: detail.dance.title,
+          sharePositionOrigin: origin,
+        ),
+      );
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'dance_detail_screen._shareDanceBundle',
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.exportShareDanceError)),
+      );
+    }
   }
 
   Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
