@@ -74,6 +74,9 @@ SUBQUERY_JOIN_RE = re.compile(r"\bJOIN\s*\(\s*SELECT\b", re.IGNORECASE)
 DRIFT_MUTATION_ROOT_RE = re.compile(
     r"\b[A-Za-z_][A-Za-z0-9_]*\s*\.\s*(?:update|into)\s*\("
 )
+DRIFT_BATCH_MUTATION_RE = re.compile(
+    r"\bbatch\s*\.\s*(?:insert|update|replace|delete)\s*\("
+)
 DRIFT_MUTATION_METHOD_RE = re.compile(
     r"\.(?:write|insert(?:OnConflictUpdate)?|replace)\s*\("
 )
@@ -525,7 +528,12 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
 
     masked = "\n".join(mask_source(source))
     violations: list[Violation] = []
-    for match in DRIFT_MUTATION_ROOT_RE.finditer(masked):
+    matches = {
+        match.start(): match
+        for pattern in (DRIFT_MUTATION_ROOT_RE, DRIFT_BATCH_MUTATION_RE)
+        for match in pattern.finditer(masked)
+    }
+    for match in sorted(matches.values(), key=lambda value: value.start()):
         open_at = masked.find("(", match.start())
         argument = _first_call_argument(masked, open_at)
         if not (
@@ -536,7 +544,10 @@ def _drift_write_violations(source: str, path: str) -> list[Violation]:
         if statement_end < 0:
             statement_end = len(masked)
         statement = re.sub(r"\s+", "", masked[match.start() : statement_end])
-        if not DRIFT_MUTATION_METHOD_RE.search(statement):
+        is_batch = DRIFT_BATCH_MUTATION_RE.fullmatch(
+            masked[match.start() : open_at + 1]
+        )
+        if not is_batch and not DRIFT_MUTATION_METHOD_RE.search(statement):
             continue
         line = _line_number(source, match.start())
         if not re.search(r"[A-Za-z_][A-Za-z0-9_]*Companion(?:\.insert)?\(", statement):
