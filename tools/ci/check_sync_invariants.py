@@ -1,0 +1,554 @@
+#!/usr/bin/env python3
+"""CI ratchets for the invariants shared by future device-sync paths.
+
+The checker deliberately covers the production source roots only:
+``app/lib/src`` and ``packages/*/lib/src``.  It checks:
+
+* every Drift or raw-SQL join through a soft-deletable parent has a
+  ``deleted_at IS NULL`` predicate;
+* raw SQL content updates advance ``updated_at`` (I1), and raw SQL updates that
+  advance ``updated_at`` also change content or existence state (I2);
+* the concrete certificate-validation escape hatches are absent;
+* ``normalizeTitle`` has exactly one definition; and
+* once a ``syncId`` use appears, ``normalizeSyncId`` has exactly one shared
+  definition imported by both sync client and server units.
+
+The sync-ID check is intentionally dormant while sync code is absent, but it is
+not an unconditional pass: the first sync-ID marker activates the definition and
+import requirements.  Unsupported source shapes fail closed.
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+from check_debug_print import mask_source
+from check_settings_marker_reads import extract_sql_literals
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+SOFT_SQL_TABLES = frozenset(
+    {
+        "dances",
+        "programs",
+        "choreographers",
+        "tags",
+        "custom_field_defs",
+        "published_sources",
+        "venues",
+        "settings",
+    }
+)
+
+SOFT_DRIFT_TABLES = {
+    "dances",
+    "programs",
+    "choreographers",
+    "tags",
+    "customFieldDefs",
+    "publishedSources",
+    "venues",
+    "settings",
+}
+
+# Maintenance migrations rewrite canonical derived content without representing
+# a user/sync record edit.  The marker is required at each call site rather than
+# exempting an entire file, so a future steady-state write cannot hide here.
+EXCEPTION_MARKER_RE = re.compile(
+    r"sync-invariant-exception:\s*"
+    r"(?:migration|backfill|maintenance)\b[^\n]*",
+    re.IGNORECASE,
+)
+SOFT_JOIN_EXCEPTION_RE = re.compile(
+    r"sync-invariant-exception:\s*soft-delete-join\b[^\n]*",
+    re.IGNORECASE,
+)
+
+JOIN_RE = re.compile(
+    r"\b(?:INNER\s+|LEFT(?:\s+OUTER)?\s+|CROSS\s+)?JOIN\s+"
+    r"([a-z_][a-z0-9_]*)(?:\s+(?:AS\s+)?([a-z_][a-z0-9_]*))?",
+    re.IGNORECASE,
+)
+DRIFT_JOIN_RE = re.compile(r"\b(?:innerJoin|leftOuterJoin)\s*\(")
+DRIFT_TABLE_RE = re.compile(
+    r"\b[A-Za-z_][A-Za-z0-9_]*\.([A-Za-z_][A-Za-z0-9_]*)\b"
+)
+UPDATE_RE = re.compile(
+    r"\bUPDATE\b.*?\bSET\b(?P<set>.*?)(?:\bWHERE\b|$)",
+    re.IGNORECASE | re.DOTALL,
+)
+ASSIGNMENT_RE = re.compile(r"\b([a-z_][a-z0-9_]*)\s*=", re.IGNORECASE)
+SERIALIZED_COLUMNS = frozenset(
+    {"figures_json", "body", "body_json", "record_json", "canonical_json"}
+)
+
+CERTIFICATE_PATTERNS = (
+    (
+        "badCertificateCallback",
+        re.compile(r"\.badCertificateCallback\s*=", re.IGNORECASE),
+    ),
+    (
+        "SecurityContext(withTrustedRoots: false)",
+        re.compile(
+            r"\bSecurityContext\s*\(\s*withTrustedRoots\s*:\s*false\b",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "SecurityContext.setTrustedCertificates",
+        re.compile(r"\.setTrustedCertificates\s*\(", re.IGNORECASE),
+    ),
+    (
+        "SecurityContext.setTrustedCertificatesBytes",
+        re.compile(r"\.setTrustedCertificatesBytes\s*\(", re.IGNORECASE),
+    ),
+)
+
+NORMALIZE_TITLE_DEF_RE = re.compile(
+    r"^\s*(?:static\s+)?[A-Za-z_][A-Za-z0-9_<>,? ]*\s+"
+    r"normalizeTitle\s*\([^;\n]*\)\s*(?:\{|=>)",
+    re.MULTILINE,
+)
+SYNC_ID_MARKER_RE = re.compile(
+    r"\b(?:sync[_-]?id|syncId|syncID)\b",
+    re.IGNORECASE,
+)
+SYNC_ID_DEF_RE = re.compile(
+    r"^\s*(?:static\s+)?[A-Za-z_][A-Za-z0-9_<>,? ]*\s+"
+    r"normalizeSyncId\s*\([^;\n]*\)\s*(?:\{|=>)",
+    re.MULTILINE,
+)
+SYNC_ID_IMPORT_RE = re.compile(
+    r"^\s*import\s+[^;\n]*(?:normalizeSyncId|sync[_-]?normaliz)",
+    re.MULTILINE | re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class Violation:
+    kind: str
+    path: str
+    line: int
+    detail: str
+
+    def format(self) -> str:
+        return f"{self.path}:{self.line}: {self.detail}"
+
+
+@dataclass(frozen=True)
+class ScanResult:
+    violations: tuple[Violation, ...]
+    soft_join_candidates: int
+    normalize_title_definitions: int
+    sync_id_activated: bool
+
+
+def blank_comments(source: str) -> str:
+    """Blank comments exactly as the settings classification ratchet does."""
+
+    source = re.sub(
+        r"/\*.*?\*/",
+        lambda match: re.sub(r"[^\n]", " ", match.group(0)),
+        source,
+        flags=re.DOTALL,
+    )
+    return re.sub(
+        r"//[^\n]*",
+        lambda match: " " * len(match.group(0)),
+        source,
+    )
+
+
+def source_roots(root: Path) -> list[Path]:
+    """Return ``app/lib/src`` plus every existing ``packages/*/lib/src``."""
+
+    roots: list[Path] = []
+    app_root = root / "app" / "lib" / "src"
+    if app_root.is_dir():
+        roots.append(app_root)
+    packages = root / "packages"
+    if packages.is_dir():
+        for package in sorted(path for path in packages.iterdir() if path.is_dir()):
+            package_root = package / "lib" / "src"
+            if package_root.is_dir():
+                roots.append(package_root)
+    return roots
+
+
+def source_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for source_root in source_roots(root):
+        files.extend(sorted(source_root.rglob("*.dart")))
+    return files
+
+
+def _line_number(source: str, offset: int) -> int:
+    return source.count("\n", 0, offset) + 1
+
+
+def _exception_on_line(
+    source: str,
+    line: int,
+    pattern: re.Pattern[str] = EXCEPTION_MARKER_RE,
+) -> bool:
+    lines = source.splitlines()
+    start = max(0, line - 8)
+    for value in lines[start:line]:
+        if not pattern.search(value):
+            continue
+        if pattern is EXCEPTION_MARKER_RE:
+            normalized = value.lower()
+            return "idempotent" in normalized and (
+                "derived rebuild" in normalized or "divergence" in normalized
+            )
+        return True
+    return False
+
+
+def _statement_for(content: str, offset: int) -> str:
+    starts = [
+        content.rfind(token, 0, offset)
+        for token in ("SELECT", "UPDATE", "DELETE", "INSERT", ";")
+    ]
+    start = max(starts)
+    if start >= 0 and content[start] == ";":
+        start += 1
+    end = content.find(";", offset)
+    return content[start:] if end < 0 else content[start:end]
+
+
+def _raw_join_violations(source: str, path: str) -> tuple[list[Violation], int]:
+    violations: list[Violation] = []
+    candidates = 0
+    for literal in extract_sql_literals(blank_comments(source)):
+        if not literal.parseable:
+            if JOIN_RE.search(literal.content) and any(
+                re.search(rf"\bJOIN\s+{table}\b", literal.content, re.IGNORECASE)
+                for table in SOFT_SQL_TABLES
+            ):
+                violations.append(
+                    Violation(
+                        "soft-delete-join-boundary",
+                        path,
+                        literal.line_no,
+                        "cannot verify a soft-delete join in a raw/triple-quoted "
+                        "literal; use plain quoted literals or extend the parser",
+                    )
+                )
+            continue
+        for match in JOIN_RE.finditer(literal.content):
+            table = match.group(1).lower()
+            if table not in SOFT_SQL_TABLES:
+                continue
+            candidates += 1
+            statement = _statement_for(literal.content, match.start())
+            alias = match.group(2)
+            if alias and alias.lower() not in {"on", "where", "join"}:
+                predicate = re.compile(
+                    rf"\b{re.escape(alias)}\.deleted_at\s+IS\s+NULL\b",
+                    re.IGNORECASE,
+                )
+            else:
+                predicate = re.compile(r"\bdeleted_at\s+IS\s+NULL\b", re.IGNORECASE)
+            if predicate.search(statement) or _predicate_in_call_scope(
+                source, literal.line_no, table, predicate
+            ):
+                continue
+            violations.append(
+                Violation(
+                    "soft-delete-join",
+                    path,
+                    literal.line_no,
+                    f"JOIN {table} must filter its parent with deleted_at IS NULL",
+                )
+            )
+    return violations, candidates
+
+
+def _predicate_in_call_scope(
+    source: str,
+    line: int,
+    table: str,
+    predicate: re.Pattern[str],
+) -> bool:
+    """Check a raw SQL predicate split by Dart interpolation.
+
+    A customSelect can build one SQL statement from several literal groups with
+    an interpolated optional clause between them. The literal parser correctly
+    keeps those groups separate; this second, call-scoped check reassembles the
+    surrounding customSelect without treating arbitrary source text as SQL.
+    """
+
+    line_starts = [0]
+    for match in re.finditer("\n", source):
+        line_starts.append(match.end())
+    search_from = line_starts[min(line - 1, len(line_starts) - 1)]
+    join_match = re.search(
+        rf"\bJOIN\s+{re.escape(table)}\b",
+        source[search_from:],
+        re.IGNORECASE,
+    )
+    if join_match is None:
+        return False
+    join_at = search_from + join_match.start()
+    call_at = source.rfind("customSelect(", 0, join_at)
+    if call_at < 0:
+        return False
+    open_at = source.find("(", call_at)
+    if open_at < 0:
+        return False
+    end = _balanced_call_end(source, open_at)
+    return end is not None and predicate.search(source[call_at : end + 1]) is not None
+
+
+def _balanced_call_end(source: str, open_at: int) -> int | None:
+    depth = 0
+    for offset in range(open_at, len(source)):
+        if source[offset] == "(":
+            depth += 1
+        elif source[offset] == ")":
+            depth -= 1
+            if depth == 0:
+                return offset
+    return None
+
+
+def _drift_join_violations(source: str, path: str) -> tuple[list[Violation], int]:
+    masked = "\n".join(mask_source(source))
+    violations: list[Violation] = []
+    candidates = 0
+    for match in DRIFT_JOIN_RE.finditer(masked):
+        end = _balanced_call_end(masked, masked.find("(", match.start()))
+        if end is None:
+            violations.append(
+                Violation(
+                    "soft-delete-join-boundary",
+                    path,
+                    _line_number(source, match.start()),
+                    "unbalanced Drift join call; cannot verify its parent filter",
+                )
+            )
+            continue
+        call = masked[match.start() : end + 1]
+        tables = {
+            table
+            for table in DRIFT_TABLE_RE.findall(call)
+            if table in SOFT_DRIFT_TABLES
+        }
+        for table in tables:
+            candidates += 1
+            join_start = masked.rfind(".join(", 0, match.start())
+            query_end = masked.find(".get(", end)
+            if join_start < 0 or query_end < 0:
+                violations.append(
+                    Violation(
+                        "soft-delete-join-boundary",
+                        path,
+                        _line_number(source, match.start()),
+                        f"cannot identify the query scope for joined {table}",
+                    )
+                )
+                continue
+            query = masked[join_start : query_end + 5]
+            if re.search(
+                rf"\b[A-Za-z_][A-Za-z0-9_]*\.{re.escape(table)}"
+                r"\.deletedAt\.isNull\s*\(\s*\)",
+                query,
+            ):
+                continue
+            if _exception_on_line(source, _line_number(source, match.start()), SOFT_JOIN_EXCEPTION_RE):
+                continue
+            violations.append(
+                Violation(
+                    "soft-delete-join",
+                    path,
+                    _line_number(source, match.start()),
+                    f"Drift join through {table} must filter deletedAt.isNull()",
+                )
+            )
+    return violations, candidates
+
+
+def _write_violations(source: str, path: str) -> list[Violation]:
+    violations: list[Violation] = []
+    for literal in extract_sql_literals(blank_comments(source)):
+        if not literal.parseable:
+            if UPDATE_RE.search(literal.content):
+                violations.append(
+                    Violation(
+                        "write-boundary",
+                        path,
+                        literal.line_no,
+                        "cannot verify I1/I2 in a raw/triple-quoted UPDATE literal",
+                    )
+                )
+            continue
+        for update in UPDATE_RE.finditer(literal.content):
+            assignments = {
+                column.lower() for column in ASSIGNMENT_RE.findall(update.group("set"))
+            }
+            has_updated = "updated_at" in assignments
+            # existence_at orders transitions; deleted_at is the existence state.
+            has_existence = "deleted_at" in assignments
+            content_columns = assignments & SERIALIZED_COLUMNS
+            line = literal.line_no
+            if content_columns and not has_updated and not _exception_on_line(
+                source, line
+            ):
+                violations.append(
+                    Violation(
+                        "I1",
+                        path,
+                        line,
+                        "serialized content update must also advance updated_at",
+                    )
+                )
+            if (
+                has_updated
+                and not content_columns
+                and not has_existence
+                and not _exception_on_line(source, line)
+            ):
+                violations.append(
+                    Violation(
+                        "I2",
+                        path,
+                        line,
+                        "updated_at advance must change body or existence state",
+                    )
+                )
+    return violations
+
+
+def _certificate_violations(source: str, path: str) -> list[Violation]:
+    masked = "\n".join(mask_source(source))
+    violations: list[Violation] = []
+    for name, pattern in CERTIFICATE_PATTERNS:
+        for match in pattern.finditer(masked):
+            violations.append(
+                Violation(
+                    "certificate-hatch",
+                    path,
+                    _line_number(source, match.start()),
+                    f"forbidden certificate-validation escape hatch: {name}",
+                )
+            )
+    return violations
+
+
+def _definitions(source: str, pattern: re.Pattern[str]) -> list[int]:
+    masked = "\n".join(mask_source(source))
+    return [match.start() for match in pattern.finditer(masked)]
+
+
+def scan(root: Path = REPO_ROOT) -> ScanResult:
+    files = source_files(root)
+    violations: list[Violation] = []
+    soft_candidates = 0
+    title_definitions = 0
+    sync_id_activated = False
+    sync_id_definitions: list[tuple[str, int]] = []
+    sync_id_files: list[tuple[str, str]] = []
+
+    for path in files:
+        source = path.read_text(encoding="utf-8", errors="replace")
+        relative = path.relative_to(root).as_posix()
+        raw_violations, raw_candidates = _raw_join_violations(source, relative)
+        drift_violations, drift_candidates = _drift_join_violations(source, relative)
+        violations.extend(raw_violations)
+        violations.extend(drift_violations)
+        violations.extend(_write_violations(source, relative))
+        violations.extend(_certificate_violations(source, relative))
+        soft_candidates += raw_candidates + drift_candidates
+
+        title_definitions += len(_definitions(source, NORMALIZE_TITLE_DEF_RE))
+        sync_id_uses = SYNC_ID_MARKER_RE.search("\n".join(mask_source(source)))
+        if sync_id_uses:
+            sync_id_activated = True
+        for offset in _definitions(source, SYNC_ID_DEF_RE):
+            sync_id_definitions.append((relative, _line_number(source, offset)))
+        if (
+            "sync" in relative.lower()
+            and ("client" in relative.lower() or "server" in relative.lower())
+        ):
+            sync_id_files.append((relative, source))
+
+    if not files:
+        violations.append(
+            Violation("source-scope", ".", 0, "no Dart source files found under src roots")
+        )
+    if title_definitions != 1:
+        violations.append(
+            Violation(
+                "normalizeTitle",
+                "source roots",
+                0,
+                f"expected exactly one normalizeTitle definition, found "
+                f"{title_definitions}",
+            )
+        )
+    if soft_candidates == 0:
+        violations.append(
+            Violation(
+                "soft-delete-join-scope",
+                "source roots",
+                0,
+                "found no soft-delete join candidates; the join detector is vacuous",
+            )
+        )
+    if sync_id_activated:
+        if len(sync_id_definitions) != 1:
+            violations.append(
+                Violation(
+                    "sync-ID",
+                    "source roots",
+                    0,
+                    "sync-ID use is present but exactly one normalizeSyncId "
+                    f"definition was not found (found {len(sync_id_definitions)})",
+                )
+            )
+        for relative, source in sync_id_files:
+            if not SYNC_ID_IMPORT_RE.search(blank_comments(source)):
+                violations.append(
+                    Violation(
+                        "sync-ID",
+                        relative,
+                        1,
+                        "sync client/server unit must import normalizeSyncId "
+                        "from the shared normalizer",
+                    )
+                )
+
+    return ScanResult(
+        tuple(violations),
+        soft_candidates,
+        title_definitions,
+        sync_id_activated,
+    )
+
+
+def main() -> int:
+    result = scan()
+    if result.violations:
+        for violation in result.violations:
+            print(f"::error::{violation.kind}: {violation.format()}")
+        return 1
+    sync_status = (
+        "active and shared"
+        if result.sync_id_activated
+        else "not active (no sync-ID use yet)"
+    )
+    print(
+        "OK: sync invariant ratchets passed; "
+        f"{result.soft_join_candidates} soft-delete joins checked, "
+        "normalizeTitle has one definition, "
+        f"sync-ID check is {sync_status}."
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -969,6 +969,7 @@ class DanceRepository {
   ) async {
     if (toPurge.isEmpty) return;
     for (final d in toPurge) {
+      // sync-invariant-exception: maintenance cleanup is idempotent; derived rebuild follows; it is not a sync record edit.
       await _db.customUpdate(
         'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
         'WHERE dance_id = ? AND text IS NULL',

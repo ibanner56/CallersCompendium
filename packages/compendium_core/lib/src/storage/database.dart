@@ -650,6 +650,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'custom_field_defs',
           'venues',
         ]) {
+          // sync-invariant-exception: migration backfill is idempotent; divergence is not applicable during schema initialization; it is not a sync record edit.
           await customStatement(
             'UPDATE $table SET updated_at = ?, '
             'existence_at = COALESCE(deleted_at, ?)',

@@ -382,6 +382,8 @@ class VenueRepository {
   ) async {
     final rows =
         await (_db.select(_db.venueProvenance).join([
+              // sync-invariant-exception: soft-delete-join tombstone lookup
+              // intentionally reads deleted venues for exact restoration.
               innerJoin(
                 _db.venues,
                 _db.venues.id.equalsExp(_db.venueProvenance.venueId),

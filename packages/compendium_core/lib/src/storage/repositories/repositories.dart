@@ -666,6 +666,7 @@ class CompendiumRepositories {
         // Rewrite only the figures_json column — nothing else about the dance
         // changes, and a full _upsert would needlessly rebuild derived rows
         // per dance (the bulk rebuild at the end is cheaper).
+        // sync-invariant-exception: maintenance backfill is idempotent; derived rebuild follows; it is not a sync record edit.
         await db.customUpdate(
           'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
           'WHERE id = ?',
@@ -764,6 +765,7 @@ class CompendiumRepositories {
       // Rewrite only the figures_json column — nothing else about the dance
       // changes, and a full _upsert would needlessly rebuild derived rows per
       // dance (the bulk rebuild below is cheaper).
+      // sync-invariant-exception: maintenance backfill is idempotent; derived rebuild follows; it is not a sync record edit.
       await db.customUpdate(
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
         variables: [
@@ -970,6 +972,7 @@ class CompendiumRepositories {
           // dance changes, and a full _upsert would needlessly rebuild
           // derived rows per dance (the bulk rebuild at the end is
           // cheaper).
+          // sync-invariant-exception: maintenance backfill is idempotent; derived rebuild follows; it is not a sync record edit.
           await db.customUpdate(
             'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
             'WHERE id = ?',
