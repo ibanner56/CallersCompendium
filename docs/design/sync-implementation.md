@@ -125,10 +125,11 @@ schedule, not slack in it.
 - **Unblocks** W3, and transitively everything.
 - **Done when** the §9 *Wire format* bucket is green **except** the
   normalisation clauses W18 owns, including the imported RFC 8785 conformance
-  vectors, a fractional
-  `custom_field_values.value_num` agreeing across two independently written
-  encoders, and the surrogate rejection firing before `utf8.encode` rather than
-  after it.
+  vectors, a fractional `custom_field_values.value_num` agreeing across two
+  independently written encoders, and the surrogate rejection firing before
+  `utf8.encode` rather than after it. W1 also carries the **manifest nesting**
+  clause of *Cross-kind identity*: the manifest is keyed kind-then-id, and a
+  fixture holding a dance and a program with the same id round-trips both.
 
 W1 exposes the normalisation primitive; it does **not** normalise. The
 serialiser emits the string **as stored**, and that is a decision rather than an
@@ -546,12 +547,14 @@ import dedupe path, and nothing yet normalises a value that gets **stored**.
 - **Done when** the ratchet is green and each table's lifecycle is tested,
   including the three that differ: `pending_deletions` survives an epoch reset,
   clears on detach, and is revalidated against restored data after a restore;
-  `published_records` clears on *nothing*; the rest clear with the baseline.
-  `normalisation_skips` is **not** W4's — it is created and lifecycle-tested by
-  W18, which is why "the rest clear with the baseline" is true here. Read
-  without that carve-out the sentence is exactly the mistake §3.2's lifecycle
-  paragraph warns against, so do not extend this unit to the new table by
-  analogy.
+  `published_records` clears on *nothing*; the rest clear with the baseline. W4
+  also carries the **baseline** clause of *Cross-kind identity*: an entry is
+  addressed by `(kind, record_id)`, so the same fixture keeps two entries rather
+  than one. `normalisation_skips` is **not** W4's — it is created and
+  lifecycle-tested by W18, which is why "the rest clear with the baseline" is
+  true here. Read without that carve-out the sentence is exactly the mistake
+  §3.2's lifecycle paragraph warns against, so do not extend this unit to the
+  new table by analogy.
 
 `published_records` is the one to get right, because its whole purpose is to
 resist the intuitive rule. It records that bytes physically left this device,
@@ -788,17 +791,21 @@ the programme and the only one that can block a release on its own.
   the isolate boundary; and enforcement of **I1** and **I2**.
 - **Unblocks** W7, W8, W9, and **W13**'s `sync_exclude_imports` filter.
 - **Done when** the §9 *Merge* and *Existence* buckets are green, including
-  ≥3-device
-  convergence with interleaved edits, the equal-`updatedAt` tie being **reported
-  rather than resolved**, and a bystander failing to resurrect a tombstone. The
-  inbound-apply half of *Classification* is also W6's: apply preserves
-  `deviceLocal` columns, rejects present non-shareable keys by their **wire**
-  spelling, and refuses a peer's `deviceScoped` setting. The isolate half of
-  *Client isolate and robustness* lands here too — a malformed date rejects one
-  record without aborting the batch or escaping the isolate; **an interrupted
-  sync is a no-op**, which is §6.7's single apply transaction observed from
-  outside; and **a blob `GET` returning `404` skips and reports the record and
-  leaves the baseline unadvanced** rather than deleting it (§6.3 step 6).
+  ≥3-device convergence with interleaved edits, the equal-`updatedAt` tie being
+  **reported rather than resolved**, and a bystander failing to resurrect a
+  tombstone. W6 carries the **merge** clause of *Cross-kind identity*: a dance
+  and a program sharing an id are merged independently and neither is treated as
+  the other's remote side. The inbound-apply half of *Classification* is also
+  W6's: apply preserves `deviceLocal` columns, rejects present non-shareable
+  keys by their **wire** spelling, and refuses a peer's `deviceScoped` setting.
+  The isolate half of *Client isolate and robustness* lands here too — a
+  malformed date rejects one record without aborting the batch or escaping the
+  isolate; **an interrupted pass leaves no partial apply**, which is §6.7's
+  single apply transaction seen from outside — and, per §6.12, *not* that a
+  failed pass leaves local data untouched, since a failure between steps 7 and 8
+  keeps the applied content and leaves the baseline unadvanced; and **a blob
+  `GET` returning `404` skips and reports the record and leaves the baseline
+  unadvanced** rather than deleting it (§6.3 step 6).
 
 I1 and I2 are normative constraints on *every* new write path in the app, not
 just sync's. I1 is easy to violate innocently, because a record's serialised
@@ -914,18 +921,23 @@ the wire.
 
 - **Serves** §7.5; the operational half of §7.4; §10.
 - **Inherits** W10, W12.
-- **Produces** the container and deployment documentation; the **five proxy
+- **Produces** the container and deployment documentation; the **six proxy
   conformance requirements**, each of which some common proxy violates by
   default — including that the public listener never serves `/v1` over
-  plaintext; the `https` origin's `Strict-Transport-Security` header, which is
-  browser-only defence in depth and explicitly **not** part of the guarantee
-  (spec §7.5), since no client this app ships honours it; alerting; retention
-  proof; the break-glass authorisation process; and lost-ID support.
+  plaintext, and that the per-IP rate limit is enforced against the real client
+  address rather than the loopback socket peer the proxy presents; the `https`
+  origin's `Strict-Transport-Security` header, which is browser-only defence in
+  depth and explicitly **not** part of the guarantee (spec §7.5), since no
+  client this app ships honours it; alerting; retention proof; the break-glass
+  authorisation process; and lost-ID support.
 - **Unblocks** nothing — but **C7 cannot pass without it**.
 - **Done when** a from-scratch self-host reaches a working sync using only the
   published documentation; **a plaintext request to `/v1` against the running
-  deployment is refused — never redirected, never proxied**; and each of the
-  four operational prerequisites has been *exercised*, not merely written:
+  deployment is refused — never redirected, never proxied**; **the per-IP limit
+  is shown to separate two clients arriving through the proxy from different
+  addresses**, which is the only check that distinguishes a working limiter from
+  one counting `127.0.0.1`; and each of the four operational prerequisites has
+  been *exercised*, not merely written:
   - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each
     raise an alert that reaches a human, demonstrated on the running deployment.
   - **Retention proof** — a store left untouched past the disuse TTL is shown to
@@ -1233,6 +1245,7 @@ buckets. Ownership is now explicit:
 | §9 bucket | Owning unit(s) |
 | --- | --- |
 | Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) |
+| Cross-kind identity | **W1** (the manifest's kind nesting) + **W4** (the baseline's `kind` column) + **W6** (the merge keeping two same-id records of different kinds apart) |
 | Merge | W6 |
 | Existence | W6 |
 | Soft-delete join coverage | **W17** |
@@ -1243,7 +1256,7 @@ buckets. Ownership is now explicit:
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, and the `{deviceId}`/`{hash}` format clauses) + **W12** (the `DELETE` grace-window clause and the no-logging clause) + **W16** (the plaintext-refusal clause, checked against the running configuration) |
+| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, and the `{deviceId}`/`{hash}` format clauses) + **W12** (the `DELETE` grace-window clause and the no-logging clause) + **W16** (the plaintext-refusal clause and the per-IP-rate-limit clause, both checked against the running configuration) |
 | User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses and the partial-venue hint) |
 | Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
 

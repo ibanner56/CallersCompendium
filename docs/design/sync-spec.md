@@ -156,7 +156,7 @@ MUST be classified in the PR that creates it or the coverage ratchet fails.
 
 | Table | Columns | Classification |
 | --- | --- | --- |
-| baseline | epoch, per-record wire hash, per-record `body` hash | `deviceScoped` |
+| baseline | epoch, and per record `kind`, `record_id`, wire hash, `body` hash | `deviceScoped` |
 | `id_aliases` | `losing_id`, `surviving_id`, `kind` | `deviceScoped` |
 | `pending_deletions` | `kind`, `record_id`, `tombstoned_at`, `tombstone_hash` | `deviceScoped` |
 | `pending_deletions` | `tombstone_blob` | **`shareable`** |
@@ -989,7 +989,7 @@ Eight kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
 | `kind` | One of the eight above. |
-| `id` | The record's UUID. |
+| `id` | The record's id — a UUID for the seven entity kinds, the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
@@ -1014,14 +1014,44 @@ wire.
   "deviceId": "b31f...",
   "epoch": "9c4a...",
   "writtenAt": "2026-08-03T04:11:22.000Z",
-  "records": {
-    "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11": "e3b0c442..."
+    "records": {
+    "dance": {
+      "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11": "e3b0c442..."
+    },
+    "setting": {
+      "walkthrough_font_scale": "9f86d081..."
+    }
   }
 }
 ```
 
 `records` includes tombstones. A record absent from a manifest was never known
 to that device and MUST NOT be treated as a deletion.
+
+**`records` is keyed by kind first and only then by record id, and a flat
+`id → hash` map is not an acceptable simplification.** A record id is unique
+within its own table and nowhere else: every kind's table declares its own
+`primaryKey => {id}`, the schema carries no cross-table uniqueness constraint of
+any sort, and archive restore writes incoming ids verbatim
+(`archive_service.dart:202`) without consulting the other tables. Two kinds can
+therefore hold the same id string — a shared archive file is enough, and §8
+already grants a peer the ability to write any `shareable` record. A flat map
+cannot express that: the second entry silently replaces the first, the losing
+record disappears from this device's manifest, and §7.3 reaps its blob once no
+manifest references it. The loss is silent on both devices.
+
+Nesting rather than a composite `"kind:id"` key is deliberate. A composite key
+needs a delimiter rule, and settings ids are natural keys that already contain
+colons — `editor_draft:<id>` is a live example (#923) — so the rule would have
+to say which colon separates the halves, and an implementation that splits on
+the last one is wrong in a way no test over UUID ids can see. Nesting has no
+delimiter to get wrong.
+
+The same argument applies to the **baseline**, which is keyed per record and
+therefore MUST carry `kind` alongside the record id (§3.2), exactly as
+`published_records`, `pending_deletions` and `review_queue` already do. The
+baseline was the one per-record structure that did not, which is why this is
+stated in both places rather than left to follow.
 
 ## 5. HTTP contract
 
@@ -1904,8 +1934,22 @@ tombstone.
 
 ### 6.12 Failure, offline and triggers
 
-Sync is best-effort and MUST NOT block the UI. Any failure MUST leave local data
-untouched and MUST retry on the next trigger.
+Sync is best-effort and MUST NOT block the UI. A failure MUST retry on the next
+trigger.
+
+**What a failure guarantees, stated precisely, because the obvious wording is
+false.** The guarantee is that no pass leaves a *partial* apply: §6.7's apply is
+one transaction, so it either commits whole or not at all. It is **not** that a
+failed pass leaves local data untouched. §6.3 commits that transaction at step
+7 and publishes at step 8, so a network error or an epoch `409` between them
+leaves local data legitimately changed by a pass that then failed. That is
+correct behaviour and MUST NOT be undone: the applied content was validly
+merged, and rolling it back would discard a peer's record on a transport error.
+What the failure leaves unadvanced is the **published manifest and the
+baseline** — step 9 runs only after step 8 — so the next pass republishes and
+converges. The ordering cannot be reversed to make the two atomic, because
+publishing a manifest before applying would advertise content this device has
+not stored.
 
 Triggers: app start, a debounced interval after a change, and a manual "Sync
 now" (a delta pass). *Sync only on WiFi* defaults to on; on a metered connection
@@ -2182,7 +2226,7 @@ ADR-004, *TLS and deployment*, for why — the reason is certificate renewal, no
 issuance.
 
 Where a proxy is used, it is part of the conforming implementation and MUST
-satisfy all five of the following. Each has been chosen because the default
+satisfy all six of the following. Each has been chosen because the default
 behaviour of at least one common proxy violates it.
 
 | # | Requirement | Why it is not automatic |
@@ -2192,11 +2236,22 @@ behaviour of at least one common proxy violates it.
 | 3 | The proxy MUST NOT decompress request bodies. | §4 puts the decompression limit on the receiver, enforced streaming-abort style. Inflating at the proxy moves a security control to a component that does not implement it. |
 | 4 | The sync ID MUST NOT be written to any log. | Common log formats omit headers, so this holds by default and is lost the moment someone adds `%{Authorization}i` or `$http_authorization` to a debug format. §5.1 keeps the ID out of URLs for the same reason. |
 | 5 | The public listener MUST NOT serve `/v1` over plaintext HTTP. A plaintext request to `/v1` MUST be **refused**, never proxied and never redirected; other paths MAY redirect. The `https` origin SHOULD send `Strict-Transport-Security` with a `max-age` of at least six months, as browser-only defence in depth. | A vhost that owns `:80` for ACME HTTP-01 (which the reference deployment does — see ADR-004) will serve whatever its configuration reaches, and a `ProxyPass` written outside a vhost, or copied into both, silently exposes the API on both ports. Nothing in the response distinguishes the two. |
+| 6 | The **per-IP** rate limit MUST be enforced against the real client address — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against §8's entropy floor, while an honest shared-NAT user is still throttled. |
 
 A server behind a proxy that violates (1) or (2) is **not conforming**: it will
-reject valid requests. Violations of (3), (4) or (5) are not visible in
+reject valid requests. Violations of (3), (4), (5) or (6) are not visible in
 behaviour at all, which is why they are stated rather than left to deployment
 taste.
+
+**(6) is the one that silently deletes a control §8 depends on.** §8 rests the
+enumeration bound on the per-IP limit specifically, having already established
+that the per-ID-hash limit never engages against a guesser — so if the per-IP
+limit degenerates to a single global bucket, the entropy floor is left carrying
+the whole argument alone. Nothing about that failure is observable: the limiter
+is present, configured and firing, and it is simply counting the wrong thing.
+The reverse error is equally quiet, and worse: trusting an attacker-supplied
+`X-Forwarded-For` turns the limiter into a no-op for exactly the party it
+exists to stop, while continuing to throttle ordinary users.
 
 **(5) is the one this specification cannot rely on the client to cover.** Every
 other transport rule here is enforced twice — §8 already requires a conforming
@@ -2372,6 +2427,15 @@ ID for, which is a different thing. The conclusion is unchanged at 2⁴⁰–2�
 this corrects which control is doing the work, so that weakening the wrong one
 later reads as safe when it is not.
 
+That the load-bearing control is the *per-IP* limit is exactly why §7.5
+requirement 6 exists. The reference deployment terminates TLS at a proxy and
+binds the server to loopback, so the server's socket peer is `127.0.0.1` on
+every request from every user in the world. A limiter keyed on it is a single
+global bucket, and this paragraph's bound would be resting on a control that
+has no per-client meaning at all — while still appearing configured, firing and
+correct. The deployment topology deletes the control silently, so the control
+must be specified against the topology rather than against the socket.
+
 **Operator visibility.** The operator can see all store content: choreography,
 programs, tags, shareable settings. Not venue addresses or contacts. The privacy
 policy MUST say this plainly rather than implying the store is opaque.
@@ -2512,6 +2576,14 @@ record identity — the settings record is renamed rather than repaired).
 — a pass interrupted after its last write then repeats it). **A row whose text
 changed is still found by search afterwards** (mutation: skip the derived
 rebuild — the index keeps the pre-normalisation text and matches nothing).
+
+**Cross-kind identity.** A manifest carrying a `dance` and a `program` that
+share one id round-trips both, and both survive a full pass on a second device
+(mutation: key `records` by bare record id — every single-kind test still
+passes, because the collision needs two kinds and the fixtures generate distinct
+UUIDs; build the fixture by restoring an archive that sets the two ids equal,
+which `archive_service.dart:202` permits). The baseline keeps the two apart on
+the same terms.
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -2746,7 +2818,15 @@ that strips instead follows the redirect and gets a `401`, which fails visibly �
 but which of the two reaches a given deployment is not the operator's to know
 (§7.5), and refusal is the only answer that fails visibly for both. This is a
 deployment test against the running configuration, since no unit test of the
-server process can observe which port a proxy accepted the request on).
+server process can observe which port a proxy accepted the request on). **The
+per-IP rate limit is enforced against the real client address**, per §7.5
+requirement 6: two clients presenting different forwarded addresses through the
+loopback proxy are limited separately, and a client-IP header arriving from a
+**non**-loopback socket peer is ignored (mutation: trust the header
+unconditionally, then assert that 1,000 guesses bearing 1,000 distinct forwarded
+addresses are still throttled — the socket-peer mutation is the complementary
+one, and is caught by asserting two honest clients are *not* throttled
+together).
 
 **User-visible sync obligations.** With `sync_exclude_imports` on, an imported
 dance that no published record cites is absent from this device's manifest,
@@ -2765,8 +2845,14 @@ claim contact details stay on the device — `venues.notes` is `shareable`, so
 that claim is false and the hint is where a user would read it).
 
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
-one record without aborting the batch or escaping the isolate. Interrupted sync
-is a no-op. **At most one pass is in flight**: a trigger firing mid-pass is
+one record without aborting the batch or escaping the isolate. **An interrupted
+pass leaves no partial apply** — kill the isolate mid-apply and assert the
+library is exactly pre-pass or exactly post-apply, never between. The
+complementary assertion is that a pass killed *after* step 7 and before step 8
+leaves the applied content in place and the baseline unadvanced, and the next
+pass publishes it (mutation: roll the apply back on any pass failure, which
+reads as the safer behaviour and discards a peer's record on a transport
+error). **At most one pass is in flight**: a trigger firing mid-pass is
 coalesced into at most one queued follow-up, asserted by holding a pass open and
 firing every §6.12 trigger at it (mutation: start the second pass concurrently
 and let the slower, older one finish last — assert the published manifest and

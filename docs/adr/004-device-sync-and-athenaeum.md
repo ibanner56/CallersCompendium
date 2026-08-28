@@ -1,6 +1,6 @@
 # ADR-004: Device Sync, and the Athenaeum sync store
 
-- **Status**: Proposed
+- **Status**: Accepted
 - **Roadmap item**: Amends the v1 non-goals list in `docs/ROADMAP.md` (removing
   "cloud sync") and supersedes the Later-milestones item "Optional
   device-to-device sync, beyond Apple-native AirDrop support". Referenced by

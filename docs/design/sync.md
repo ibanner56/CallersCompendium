@@ -27,11 +27,11 @@ no client, no server, no network code.
 | **Device Sync** | The user-facing feature. |
 | **Athenaeum** | The store Device Sync talks to. Default `https://athenaeum.callerscompendium.com/`; user-editable. |
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
-| **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `deviceScoped` — it is never synced as a record — while the same string travels in manifest envelopes and request paths as an opaque routing key. See "what `EgressClass` actually governs". |
+| **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
 | **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
-| **manifest** | One device's map of record id → content hash. |
+| **manifest** | One device's map of kind → record id → content hash. |
 | **baseline** | The manifest a device last successfully synced, held locally. The merge base. |
 
 ## What travels
@@ -2441,9 +2441,10 @@ bookkeeping — which record, when, which tombstone — and are meaningless
 elsewhere. The blob is not: it is the record's own serialised content,
 `deviceLocal` fields already omitted, and the **entire reason** for keeping it is
 so the holder can re-`PUT` it to project infrastructure. `deviceScoped` asserts a
-value is never transmitted as record content, with a carve-out only for routing
-metadata that carries no user data by construction; these bytes are exactly
-record content and are transmitted verbatim, so that label would have been false.
+value is never transmitted **by any route at all**; these bytes are transmitted
+verbatim, so that label would have been false. Nor is this
+`protocolIdentifier`, which permits transmission precisely because the value is
+a routing token rather than content — these bytes are the content.
 
 The distinction matters against `review_queue.candidate_blob`, which *is*
 `deviceScoped` and correctly so: that candidate is a local adjudication artifact
