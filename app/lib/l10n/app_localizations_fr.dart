@@ -2459,6 +2459,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonClose => 'Fermer';
 
   @override
+  String get viewDetails => 'Voir les détails';
+
+  @override
   String get programsNoDateSet => 'Aucune date définie';
 
   @override
@@ -3981,12 +3984,43 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String importReviewAmbiguousGroup(String title) {
+    return '« $title » — choisissez-en un, ou laissez-le ignoré';
+  }
+
+  @override
+  String importReviewMetadataAuthor(String author) {
+    return 'Par $author';
+  }
+
+  @override
+  String importReviewMetadataFormation(String formation) {
+    return '$formation';
+  }
+
+  @override
+  String importReviewMetadataSource(String source) {
+    return 'De $source';
+  }
+
+  @override
   String importReviewTitleListToImport(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count à importer',
       one: '1 à importer',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListAmbiguous(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nécessitent un choix',
+      one: '1 nécessite un choix',
     );
     return '$_temp0';
   }

@@ -141,12 +141,13 @@ any track (including testing) can go live. Answers are drafted in
   utility for adult callers; select adult age bands (13+/18+ as you prefer) and
   **not** "designed for children," so the **Families policy / Play for Families**
   rules don't apply.
-- [x] **[Gate]** **Data safety form** — declare **No data collected, no data
-  shared**. Note the app makes user-initiated network requests (imports) and an
-  opt-in update check, but the developer **collects** nothing. Full answer set in
-  [`listing-copy.md`](listing-copy.md#data-safety-google-play). This is the
-  current-release answer; revisit it before Device Sync ships rather than copying
-  Apple's planned disclosure.
+- [x] **[Gate]** **Data safety form** — for a pre-Sync build, declare **No data
+  collected, no data shared**. Note the app makes user-initiated network
+  requests (imports) and an opt-in update check, but the developer **collects**
+  nothing. Full answer set in
+  [`listing-copy.md`](listing-copy.md#data-safety-google-play). Re-answer it
+  before any beta where opt-in Device Sync transfers content; do not carry the
+  pre-Sync answer into that beta.
 - [x] **[Gate]** **Government apps / financial / health / etc.** declarations —
   all **No** for us.
 - [x] **[Gate]** **News app?** — **No**.
@@ -215,8 +216,9 @@ flowchart LR
 - [ ] Read tester feedback and reviews; reply from the console.
 - [ ] Keep `targetSdk`, the privacy policy URL, and Data safety answers current —
   Play emails deadlines for policy changes and target-API bumps.
-- [ ] Re-affirm Data safety at each release. The current release remains "no data
-  collected"; re-answer the form before a Device Sync release.
+- [ ] Re-affirm Data safety at each release. A pre-Sync release remains "no data
+  collected"; re-answer the form before any beta where Device Sync can transfer
+  content.
 
 ---
 

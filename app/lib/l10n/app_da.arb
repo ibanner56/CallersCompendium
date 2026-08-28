@@ -2624,6 +2624,10 @@
   "@commonClose": {
     "x-sourceSha256": "7d9eb7acb13e24625c404401d8e88b2350e32162455885f18276cf802f7701ed"
   },
+  "viewDetails": "Vis detaljer",
+  "@viewDetails": {
+    "x-sourceSha256": "d1bf045bb524dae5b02c471c230958bcd1bf232d7a49367b1cdf977855a06b41"
+  },
   "programsNoDateSet": "Ingen dato angivet",
   "@programsNoDateSet": {
     "x-sourceSha256": "4b69308991b5c63e82a15f77c9c81b12905f3291139a152d7df21fe12b1387b1"
@@ -4028,9 +4032,29 @@
   "@importReviewProgramAmbiguousLine": {
     "x-sourceSha256": "64f34196c48ede648b27e75c39bed0c16801a40f9a1027866ea97720f66a2952"
   },
+  "importReviewAmbiguousGroup": "\"{title}\" — vælg én, eller lad den være sprunget over",
+  "@importReviewAmbiguousGroup": {
+    "x-sourceSha256": "bc31d7d6dd0c16b79cc7003485e095b8ddec6cabfa6cea2720b9b670459ab113"
+  },
+  "importReviewMetadataAuthor": "Af {author}",
+  "@importReviewMetadataAuthor": {
+    "x-sourceSha256": "c63374c54075c2ecffba6bcf2f66b9b829822e5ef9dd82d4fa9033583317fece"
+  },
+  "importReviewMetadataFormation": "{formation}",
+  "@importReviewMetadataFormation": {
+    "x-sourceSha256": "2cf85de09de252ffc700591fcb6a1a61a84a7ff392d4d99f59cf599647bee48f"
+  },
+  "importReviewMetadataSource": "Fra {source}",
+  "@importReviewMetadataSource": {
+    "x-sourceSha256": "f8cd93f784e1604a9602292564fd69fc104ba62b0a0c595a327d6ecaa7e570e0"
+  },
   "importReviewTitleListToImport": "{count, plural, =1{1 at importere} other{{count} at importere}}",
   "@importReviewTitleListToImport": {
     "x-sourceSha256": "ed5d8c84d3679287fd91967f4079a251a82ce8eb09368aedb5721b0bba80d1c4"
+  },
+  "importReviewTitleListAmbiguous": "{count, plural, =1{1 kræver et valg} other{{count} kræver et valg}}",
+  "@importReviewTitleListAmbiguous": {
+    "x-sourceSha256": "8230a822286c32eb258d0ddcd3096a7404f6800f78a3ed9db0f147ffdc7949d4"
   },
   "importReviewTitleListOwned": "{count, plural, =1{1 allerede i din samling} other{{count} allerede i din samling}}",
   "@importReviewTitleListOwned": {

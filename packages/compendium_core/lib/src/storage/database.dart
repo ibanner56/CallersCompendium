@@ -671,6 +671,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'venues',
         ]) {
           await customStatement(
+            // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
             'UPDATE $table SET updated_at = ?, '
             'existence_at = COALESCE(deleted_at, ?)',
             [t0, t0],

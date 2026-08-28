@@ -18,6 +18,8 @@ import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
+import '../data/callersbox_online.dart';
+import '../data/contradb_online.dart';
 import '../data/online_search.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
@@ -37,6 +39,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/collection_picker.dart';
 import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
+import 'dance_detail_screen.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -61,6 +64,8 @@ import '../widgets/program_status_chip.dart';
 /// than a resolved string) so the message re-localizes if the app language is
 /// switched live while this retained editor is off-screen.
 enum _ProgramLoadError { missing }
+
+enum _PreviewPane { editor, picker }
 
 /// [programId] null ⇒ create a new program; otherwise edit that program.
 /// Raised into a pending first-value future when its subscription is replaced
@@ -142,6 +147,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final ValueNotifier<Map<String, int>> _pickerCounts = ValueNotifier(const {});
 
   CollectionData? _data;
+  _PreviewPane? _previewPane;
+  String? _previewDanceId;
+  OnlinePreview? _previewOnline;
+  OnlineSearchResultRow? _previewOnlineResult;
+  String? _previewError;
+  bool _previewLoading = false;
+  bool _previewPersistent = false;
+  int _previewGeneration = 0;
   bool _saving = false;
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
@@ -160,6 +173,229 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _pickerImportOwners.remove(owner);
       }
     });
+  }
+
+  OnlineSearchService _onlineServiceFor(OnlineSource source) =>
+      switch (source) {
+        OnlineSource.callersBox =>
+          widget.callersBoxOnline ?? CallersBoxOnline(),
+        OnlineSource.contraDb => widget.contraDbOnline ?? ContraDbOnline(),
+      };
+
+  void _showSavedPreview(
+    String danceId,
+    _PreviewPane pane, {
+    required bool persistent,
+  }) {
+    ++_previewGeneration;
+    setState(() {
+      _previewPane = pane;
+      _previewDanceId = danceId;
+      _previewOnline = null;
+      _previewOnlineResult = null;
+      _previewError = null;
+      _previewLoading = false;
+      _previewPersistent = persistent;
+    });
+  }
+
+  void _endSavedPreview(String danceId) {
+    if (_previewPersistent || _previewDanceId != danceId) return;
+    _clearPreview();
+  }
+
+  Future<void> _showOnlinePreview(
+    OnlineSearchResultRow result,
+    _PreviewPane pane, {
+    required bool persistent,
+  }) async {
+    final generation = ++_previewGeneration;
+    setState(() {
+      _previewPane = pane;
+      _previewDanceId = null;
+      _previewOnline = null;
+      _previewOnlineResult = result;
+      _previewError = null;
+      _previewLoading = true;
+      _previewPersistent = persistent;
+    });
+    try {
+      final preview = await _onlineServiceFor(
+        result.source,
+      ).loadPreview(_repos, result);
+      if (!mounted || generation != _previewGeneration) return;
+      setState(() {
+        _previewOnline = preview;
+        _previewLoading = false;
+      });
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._showOnlinePreview',
+      );
+      if (!mounted || generation != _previewGeneration) return;
+      setState(() {
+        _previewError = AppLocalizations.of(
+          context,
+        ).onlineLoadError(result.source.label);
+        _previewLoading = false;
+      });
+    }
+  }
+
+  void _endOnlinePreview(OnlineSearchResultRow result) {
+    final previewResult = _previewOnlineResult;
+    if (_previewPersistent ||
+        _previewPane == null ||
+        previewResult == null ||
+        previewResult.source != result.source ||
+        previewResult.id != result.id) {
+      return;
+    }
+    _clearPreview();
+  }
+
+  void _clearPreview() {
+    ++_previewGeneration;
+    if (_previewPane == null) return;
+    setState(() {
+      _previewPane = null;
+      _previewDanceId = null;
+      _previewOnline = null;
+      _previewOnlineResult = null;
+      _previewError = null;
+      _previewLoading = false;
+      _previewPersistent = false;
+    });
+  }
+
+  Widget _buildPreviewPane() {
+    final danceId = _previewDanceId;
+    final online = _previewOnline;
+    final content = _previewLoading
+        ? const Center(child: CircularProgressIndicator())
+        : _previewError != null
+        ? Center(child: Text(_previewError!, textAlign: TextAlign.center))
+        : danceId != null
+        ? DanceDetailScreen(
+            key: ValueKey('program-preview-$danceId'),
+            danceId: danceId,
+            readOnly: true,
+            onPreviewNavigate: (target) => _showSavedPreview(
+              target,
+              _previewPane!,
+              persistent: _previewPersistent,
+            ),
+          )
+        : online != null
+        ? DanceDetailScreen.readOnlyPreview(
+            key: ValueKey(
+              'program-online-preview-${online.result.source.name}-${online.result.id}',
+            ),
+            data: online.detail,
+            onPreviewNavigate: (target) => _showSavedPreview(
+              target,
+              _previewPane!,
+              persistent: _previewPersistent,
+            ),
+          )
+        : const SizedBox.shrink();
+    return Column(
+      children: [
+        if (_previewPersistent)
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              key: const ValueKey('program-preview-close'),
+              tooltip: AppLocalizations.of(context).commonClose,
+              icon: const Icon(Icons.close),
+              onPressed: _clearPreview,
+            ),
+          ),
+        Expanded(child: content),
+      ],
+    );
+  }
+
+  Future<void> _openSavedPreviewSheet(String danceId) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(sheetContext).height * 0.9,
+          child: DanceDetailScreen(
+            key: ValueKey('program-preview-sheet-$danceId'),
+            danceId: danceId,
+            readOnly: true,
+            onPreviewNavigate: (target) {
+              Navigator.of(sheetContext).pop();
+              unawaited(_openSavedPreviewSheet(target));
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openOnlinePreviewSheet(OnlineSearchResultRow result) {
+    final preview = _loadOnlinePreviewForSheet(result);
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: SizedBox(
+          height: MediaQuery.sizeOf(sheetContext).height * 0.9,
+          child: FutureBuilder<OnlinePreview>(
+            future: preview,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text(
+                    AppLocalizations.of(
+                      context,
+                    ).onlineLoadError(result.source.label),
+                    textAlign: TextAlign.center,
+                  ),
+                );
+              }
+
+              final data = snapshot.data;
+              if (data == null) return const SizedBox.shrink();
+              return DanceDetailScreen.readOnlyPreview(
+                key: ValueKey(
+                  'program-online-preview-sheet-${result.source.name}-${result.id}',
+                ),
+                data: data.detail,
+                onPreviewNavigate: (target) {
+                  Navigator.of(sheetContext).pop();
+                  unawaited(_openSavedPreviewSheet(target));
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<OnlinePreview> _loadOnlinePreviewForSheet(
+    OnlineSearchResultRow result,
+  ) async {
+    try {
+      return await _onlineServiceFor(result.source).loadPreview(_repos, result);
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._openOnlinePreviewSheet',
+      );
+      rethrow;
+    }
   }
 
   /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
@@ -1735,14 +1971,29 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       builder: (context, constraints) {
         final twoPane =
             constraints.maxWidth >= ProgramEditorScreen.twoPaneBreakpoint;
-        final left = ExcludeFocus(
+        final editor = ExcludeFocus(
           excluding: _pickerImporting,
           child: IgnorePointer(
             ignoring: _pickerImporting,
             child: _buildEditorColumn(twoPane: twoPane),
           ),
         );
-        if (!twoPane) return left;
+        if (!twoPane) {
+          if (_previewPane != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _clearPreview();
+            });
+          }
+          return editor;
+        }
+        final left = _previewPane == _PreviewPane.editor
+            ? Stack(
+                children: [
+                  Offstage(child: editor),
+                  Positioned.fill(child: _buildPreviewPane()),
+                ],
+              )
+            : editor;
         final data = _data;
         return Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1755,23 +2006,56 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   excluding: _saving || _pickerImporting,
                   child: IgnorePointer(
                     ignoring: _saving || _pickerImporting,
-                    child: CollectionPicker(
-                      key: const ValueKey('inline-picker'),
-                      data: data,
-                      dialect: _dialect,
-                      enrichment: _enrichment,
-                      addedDanceCounts: _pickerCounts.value,
-                      onAddDance: _addDanceSlot,
-                      onDanceImported: _rememberImportedDance,
-                      onImportingChanged: _setPickerImportActivity,
-                      callersBoxOnline: widget.callersBoxOnline,
-                      contraDbOnline: widget.contraDbOnline,
-                      danceOverrides: _createdDances,
-                      choreographerNamesOverride: {
-                        for (final entry in _createdChoreographers.entries)
-                          entry.key: entry.value.name,
-                      },
-                      enableOnlineSearch: true,
+                    child: Stack(
+                      children: [
+                        Offstage(
+                          offstage: _previewPane == _PreviewPane.picker,
+                          child: CollectionPicker(
+                            key: const ValueKey('inline-picker'),
+                            data: data,
+                            dialect: _dialect,
+                            enrichment: _enrichment,
+                            addedDanceCounts: _pickerCounts.value,
+                            onAddDance: _addDanceSlot,
+                            onDanceImported: _rememberImportedDance,
+                            onImportingChanged: _setPickerImportActivity,
+                            callersBoxOnline: widget.callersBoxOnline,
+                            contraDbOnline: widget.contraDbOnline,
+                            danceOverrides: _createdDances,
+                            choreographerNamesOverride: {
+                              for (final entry
+                                  in _createdChoreographers.entries)
+                                entry.key: entry.value.name,
+                            },
+                            enableOnlineSearch: true,
+                            onPreviewDanceStarted: (id) => _showSavedPreview(
+                              id,
+                              _PreviewPane.editor,
+                              persistent: false,
+                            ),
+                            onPreviewDanceEnded: _endSavedPreview,
+                            onViewDanceDetails: (id) => _showSavedPreview(
+                              id,
+                              _PreviewPane.editor,
+                              persistent: true,
+                            ),
+                            onPreviewOnlineStarted: (result) =>
+                                _showOnlinePreview(
+                                  result,
+                                  _PreviewPane.editor,
+                                  persistent: false,
+                                ),
+                            onPreviewOnlineEnded: _endOnlinePreview,
+                            onViewOnlineDetails: (result) => _showOnlinePreview(
+                              result,
+                              _PreviewPane.editor,
+                              persistent: true,
+                            ),
+                          ),
+                        ),
+                        if (_previewPane == _PreviewPane.picker)
+                          Positioned.fill(child: _buildPreviewPane()),
+                      ],
                     ),
                   ),
                 ),
@@ -2008,6 +2292,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onPickReplacementDance: _data == null
                 ? null
                 : _pickReplacementDance,
+            onPreviewDanceStarted: twoPane
+                ? (id) => _showSavedPreview(
+                    id,
+                    _PreviewPane.picker,
+                    persistent: false,
+                  )
+                : _openSavedPreviewSheet,
+            onPreviewDanceEnded: twoPane ? _endSavedPreview : null,
+            onViewDanceDetails: twoPane
+                ? (id) => _showSavedPreview(
+                    id,
+                    _PreviewPane.picker,
+                    persistent: true,
+                  )
+                : _openSavedPreviewSheet,
           ),
           const SizedBox(height: 80),
         ],
@@ -2094,6 +2393,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                                 entry.key: entry.value.name,
                             },
                             enableOnlineSearch: true,
+                            onPreviewDanceStarted: (id) =>
+                                _openSavedPreviewSheet(id),
+                            onViewDanceDetails: (id) =>
+                                _openSavedPreviewSheet(id),
+                            onPreviewOnlineStarted: (result) =>
+                                _openOnlinePreviewSheet(result),
+                            onViewOnlineDetails: (result) =>
+                                _openOnlinePreviewSheet(result),
                           ),
                         ),
                       ),

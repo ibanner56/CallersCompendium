@@ -1,4 +1,5 @@
 import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/data/program_ambiguous_review.dart';
 import 'package:compendium_app/src/data/title_list_import.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -372,23 +373,61 @@ void main() {
         repos: repos,
       );
 
-      expect(result.batch.records, isEmpty);
+      expect(result.batch.records, hasLength(2));
       expect(result.rows, hasLength(5));
-      expect(
-        result.rows.map((r) => r.group),
-        everyElement(TitleListGroup.notFound),
-      );
-      expect(result.rows.map((r) => r.reason), [
+      expect(result.rows.map((r) => r.group), [
+        TitleListGroup.notFound,
+        TitleListGroup.notFound,
+        TitleListGroup.ambiguous,
+        TitleListGroup.notFound,
+        TitleListGroup.notFound,
+      ]);
+      expect(result.rows.where((r) => r.reason != null).map((r) => r.reason), [
         TitleListNotFoundReason.noResults,
         TitleListNotFoundReason.noExactMatch,
-        TitleListNotFoundReason.multipleExactMatches,
         TitleListNotFoundReason.fetchError,
         TitleListNotFoundReason.fetchError,
       ]);
+      expect(result.ambiguousReviewImport!.groups, hasLength(1));
+      expect(
+        result.ambiguousReviewImport!.groups.single.candidates,
+        hasLength(2),
+      );
+      expect(service.loadedIds, ['1', '2', '99']);
       // Paste order is preserved across the whole list.
       expect(result.rows.first.title, 'Nothing Here');
       expect(result.rows.last.title, 'Offline Title');
     });
+
+    test(
+      'ambiguous exact matches retain deterministic order and cap previews',
+      () async {
+        final repos = openTestRepositories();
+        final rows = [
+          for (var i = 0; i < kMaxAmbiguousCandidatesPerLine + 2; i++)
+            _row('Twice Over', id: '$i'),
+        ];
+        final service = _CountingOnlineService(
+          rowsByTitle: {'twice over': rows},
+        );
+
+        final result = await resolveTitleList(
+          'Twice Over',
+          service: service,
+          repos: repos,
+        );
+
+        expect(service.loadedIds, [
+          for (var i = 0; i < kMaxAmbiguousCandidatesPerLine; i++) '$i',
+        ]);
+        expect(
+          result.ambiguousReviewImport!.groups.single.candidates,
+          hasLength(kMaxAmbiguousCandidatesPerLine),
+        );
+        expect(result.rows.single.group, TitleListGroup.ambiguous);
+        expect(result.batch.records, hasLength(kMaxAmbiguousCandidatesPerLine));
+      },
+    );
 
     test('T3: a unique exact hit is PLANNED, never committed — nothing is '
         'written to the collection during resolution', () async {

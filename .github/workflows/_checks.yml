@@ -96,6 +96,13 @@ jobs:
         run: python3 tools/ci/test_check_settings_marker_reads.py
       - name: Guard raw settings reads (must filter deleted_at IS NULL)
         run: python3 tools/ci/check_settings_marker_reads.py
+      # Device Sync depends on every soft-delete join and write boundary keeping
+      # its causal invariants; the certificate and normalizer scans prevent
+      # regressions before sync client/server units exist.
+      - name: Test the device-sync invariant ratchets
+        run: python3 tools/ci/test_check_sync_invariants.py
+      - name: Guard device-sync invariants
+        run: python3 tools/ci/check_sync_invariants.py
       # The schema-bump gate itself is PR-only (it needs the pull_request base
       # ref) and so lives in ci.yml, but its test suite is pure-stdlib and
       # trigger-agnostic, so it runs here — otherwise the gate's own logic would
@@ -201,6 +208,7 @@ jobs:
         run: |
           python3 tools/site/test_markdown_to_html.py
           python3 tools/site/test_render_user_docs.py
+          python3 tools/site/test_privacy_policy.py
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Single source of truth for the Flutter version (see .fvmrc).

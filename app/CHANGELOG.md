@@ -35,21 +35,40 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
-- Normalize and sanitize shareable text on local writes, including existing
-  collections repaired safely on database open.
+### Added
 
+- **Program dance previews** — inspect saved or online dance details from the
+  program builder without adding or importing them. Hold a result or dance slot
+  for a temporary wide-screen preview, or use **View details** for a
+  keyboard-accessible read-only preview.
+  
 ### Changed
 
+- **Privacy policy** — the published policy now discloses optional Device Sync,
+  the content its operator can access, venue fields that remain local, the
+  freeform-note limitation, and break-glass access-log retention.
+  
+- **Import review** — review rows now show author, formation, and source
+  attribution; pasted title lists with multiple exact matches now offer a
+  grouped choice instead of discarding the candidates.
+  
 - **Dance file exports** — the dance **Export** menu now offers privacy-safe
   `.ccshare` and `.json` files containing the dance and its referenced,
   shareable metadata. Recipients review the import before committing it and can
   undo a successful import.
+  
 - **Desktop in-app updates** — verified Windows installers now start directly
   after **Download & install**. On macOS, choose whether to update immediately;
   the disk image opens before the app closes so you can replace it in
   **Applications**, or defer with **Update and restart**.
 
 ### Fixed
+
+- **Text input sanitization** — Normalize and sanitize shareable text on local 
+  writes, including existing collections repaired safely on database open.
+
+- **Meanwhile groups in the dance editor** — beat totals and section labels now
+  update immediately when you group figures, before saving the dance.
 
 - **macOS shutdown** — quitting from the Dock, menu, or Command-Q now waits for
   the local database to close before macOS tears down the app.
