@@ -190,6 +190,14 @@ def test_typed_drift_writes_fail_closed() -> None:
     )
     batch_i1 = "await batch.insert(db.dances, DancesCompanion(figuresJson: Value(json)));\n"
     batch_i2 = "await batch.update(db.dances, DancesCompanion(updatedAt: Value(now)));\n"
+    renamed_batch_i1 = (
+        "await writes.insert(db.dances, "
+        "DancesCompanion(figuresJson: Value(json)));\n"
+    )
+    renamed_batch_i2 = (
+        "await b.update(db.dances, "
+        "DancesCompanion(updatedAt: Value(now)));\n"
+    )
     unknown = "await db.update(db.dances).write(companion);\n"
     assert_no(_drift_write_violations(compliant, "fixture.dart"))
     assert_no(_drift_write_violations(upsert, "fixture.dart"))
@@ -197,6 +205,14 @@ def test_typed_drift_writes_fail_closed() -> None:
     assert any(v.kind == "typed-I2" for v in _drift_write_violations(typed_i2, "fixture.dart"))
     assert any(v.kind == "typed-I1" for v in _drift_write_violations(batch_i1, "fixture.dart"))
     assert any(v.kind == "typed-I2" for v in _drift_write_violations(batch_i2, "fixture.dart"))
+    assert any(
+        v.kind == "typed-I1"
+        for v in _drift_write_violations(renamed_batch_i1, "fixture.dart")
+    )
+    assert any(
+        v.kind == "typed-I2"
+        for v in _drift_write_violations(renamed_batch_i2, "fixture.dart")
+    )
     assert any(
         v.kind == "typed-write-boundary"
         for v in _drift_write_violations(unknown, "fixture.dart")
