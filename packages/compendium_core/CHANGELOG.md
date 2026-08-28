@@ -20,6 +20,9 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+- Normalize shareable text to Unicode NFC and remove unsafe controls at all
+  repository write boundaries, with collision-safe existing-data backfill.
+
 ## [0.1.3] - 2026-08-26
 
 ### Added

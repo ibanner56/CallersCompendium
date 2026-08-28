@@ -45,6 +45,8 @@ import 'dart:io';
 const Map<String, String> getterNameOverrides = {
   // `TextColumn get text_ => text().nullable().named('text')();`
   'program_slots.text': 'text_',
+  'normalisation_skips.table_name': 'tableNameValue',
+  'normalisation_skips.column_name': 'columnNameValue',
 };
 
 /// Members of drift's `Table` that a generated column field cannot shadow.

@@ -35,6 +35,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+- Normalize and sanitize shareable text on local writes, including existing
+  collections repaired safely on database open.
+
 ### Changed
 
 - **Dance file exports** — the dance **Export** menu now offers privacy-safe
