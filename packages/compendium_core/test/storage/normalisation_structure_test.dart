@@ -135,6 +135,14 @@ DancesCompanion.insert(title: value);
     ''';
     expect(_hasUnwrappedShareableCall(source), isTrue);
   });
+
+  test('does not confuse a local suffix with the normalized local', () {
+    const source = '''
+    final name = normalizeShareableText(value);
+    TagsCompanion.insert(name: Value(nameForImport));
+    ''';
+    expect(_hasUnwrappedShareableCall(source), isTrue);
+  });
 }
 
 bool _hasUnwrappedShareableCall(String source) {
@@ -152,7 +160,7 @@ bool _hasUnwrappedShareableCall(String source) {
         };
         final precomputed =
             precomputedName != null &&
-            argument.contains(precomputedName) &&
+            _referencesLocal(argument, precomputedName) &&
             source.contains('final $precomputedName = ${field.value}(');
         if (!argument.contains(field.value) &&
             !(starts.length == 1 && precomputed)) {
@@ -234,4 +242,11 @@ String? _argumentBody(String call, String field) {
     }
   }
   return call.substring(valueStart);
+}
+
+bool _referencesLocal(String expression, String local) {
+  final pattern = RegExp(
+    '(?<![A-Za-z0-9_\\.])${RegExp.escape(local)}(?![A-Za-z0-9_])',
+  );
+  return pattern.hasMatch(expression);
 }
