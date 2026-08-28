@@ -1002,9 +1002,12 @@ Join rows are not separate records; they ride inline with their parent.
 One blob per settings key, `kind: "setting"`, with `id` the settings key.
 Per-key rather than per-table, because egress is classified per key.
 
-`settings` MUST gain `deleted_at`: `SettingsRepository.remove` is a hard delete
-today, and without a tombstone a removed setting cannot be expressed on the
-wire.
+`settings` carries `deleted_at`, and `SettingsRepository.remove` tombstones by
+default — both shipped with the W0 migration (#901, schema v25). Without a
+tombstone a removed setting could not be expressed on the wire: the peer would
+still hold it, §6.4's "absence never deletes" would preserve it, and the next
+pass would download it back. `remove` also implements §3.1's `permanent` hatch,
+which is what keeps editor-draft churn from accruing unbounded tombstones.
 
 ### 4.5 Manifest
 

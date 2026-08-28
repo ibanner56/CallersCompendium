@@ -2182,10 +2182,13 @@ it. **The sync migration** adds `updated_at` *and* `deleted_at`, stamping existi
 at migration time. Both need classifying like any other column, and the coverage
 ratchet will require it.
 
-`deleted_at` is not optional. `SettingsRepository.remove` is a hard delete today,
-so without a tombstone a removed setting cannot be expressed on the wire: the
-peer still holds it, "absence never deletes" preserves it, and the next sync
-**downloads it back**. The deletion would reverse every time, permanently.
+`deleted_at` is not optional, and this is the part of the migration that has
+already shipped: `settings` carries the column and `SettingsRepository.remove`
+tombstones by default as of #901 (schema v25). Before that it was a hard
+delete, and without a tombstone a removed setting cannot be expressed on the
+wire — the peer still holds it, "absence never deletes" preserves it, and the
+next sync **downloads it back**. The deletion would reverse every time,
+permanently.
 
 #### The real scope of the sync migration
 
