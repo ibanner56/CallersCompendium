@@ -9,6 +9,7 @@ from pathlib import Path
 from check_sync_invariants import (
     _certificate_violations,
     _drift_join_violations,
+    _drift_write_violations,
     _raw_join_violations,
     _write_violations,
     blank_comments,
@@ -69,6 +70,19 @@ def test_raw_soft_delete_join_requires_parent_filter() -> None:
     assert_no(_raw_join_violations(split, "fixture.dart")[0])
 
 
+def test_raw_joined_subquery_requires_parent_filter() -> None:
+    compliant = (
+        "final q = 'SELECT * FROM dance_tags dt JOIN (SELECT * FROM venues "
+        "WHERE deleted_at IS NULL) v ON v.id = dt.venue_id';\n"
+    )
+    missing = (
+        "final q = 'SELECT * FROM dance_tags dt JOIN (SELECT * FROM venues) "
+        "v ON v.id = dt.venue_id';\n"
+    )
+    assert_no(_raw_join_violations(compliant, "fixture.dart")[0])
+    assert _raw_join_violations(missing, "fixture.dart")[0]
+
+
 def test_drift_soft_delete_join_requires_parent_filter() -> None:
     compliant = """
       final rows = await (_db.select(_db.danceTags).join([
@@ -100,21 +114,22 @@ def test_i1_and_i2_write_paths_are_independent() -> None:
         "WHERE id = ?';\n"
     )
     exception = (
-        "// sync-invariant-exception: maintenance backfill is idempotent; "
-        "derived rebuild follows\n"
+        "// sync-invariant-exception: content-derived normalization is idempotent; "
+        "divergence is surfaced\n"
         + i1_missing
     )
     exception_without_idempotence = (
-        "// sync-invariant-exception: maintenance backfill; derived rebuild follows\n"
+        "// sync-invariant-exception: content-derived normalization; "
+        "divergence is surfaced\n"
         + i1_missing
     )
     exception_without_divergence_surface = (
-        "// sync-invariant-exception: maintenance backfill is idempotent\n"
+        "// sync-invariant-exception: content-derived normalization is idempotent\n"
         + i1_missing
     )
     migration = (
-        "// sync-invariant-exception: migration backfill is idempotent; "
-        "divergence is not applicable during schema initialization\n"
+        "// sync-invariant-exclusion: migration-backfill is idempotent; "
+        "not a sync record edit\n"
         "final q = 'UPDATE dances SET updated_at = ?, existence_at = ? "
         "WHERE id = ?';\n"
     )
@@ -130,17 +145,32 @@ def test_i1_and_i2_write_paths_are_independent() -> None:
         for v in _write_violations(exception_without_divergence_surface, "fixture.dart")
     )
     assert_no(_write_violations(migration, "fixture.dart"))
+    assert any(
+        v.kind == "I2"
+        for v in _write_violations(
+            exception
+            + "final q = 'UPDATE dances SET updated_at = ? WHERE id = ?';\n",
+            "fixture.dart",
+        )
+    )
+
+
+def test_typed_drift_writes_fail_closed() -> None:
+    compliant = "await db.update(db.dances).write(companion);\n"
+    assert _drift_write_violations(compliant, "fixture.dart")
+    assert_no(_drift_write_violations("// await db.update(db.dances).write(x);", "fixture.dart"))
 
 
 def test_certificate_scan_catches_each_concrete_escape_hatch() -> None:
     source = """
       client.badCertificateCallback = (_, __, ___) => true;
+      client.badCertificateCallback ??= (_, __, ___) => true;
       final a = SecurityContext(withTrustedRoots: false);
       context.setTrustedCertificates('/tmp/root.pem');
       context.setTrustedCertificatesBytes(bytes);
     """
     violations = _certificate_violations(source, "fixture.dart")
-    assert len(violations) == 4
+    assert len(violations) == 5
     assert_no(
         _certificate_violations(
             "// client.badCertificateCallback = true;\n"

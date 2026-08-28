@@ -54,18 +54,21 @@ SOFT_DRIFT_TABLES = {
     "settings",
 }
 
-# Maintenance migrations rewrite canonical derived content without representing
-# a user/sync record edit.  The marker is required at each call site rather than
-# exempting an entire file, so a future steady-state write cannot hide here.
-EXCEPTION_MARKER_RE = re.compile(
-    r"sync-invariant-exception:\s*"
-    r"(?:migration|backfill|maintenance)\b[^\n]*",
+I1_EXCEPTION_MARKER_RE = re.compile(
+    r"sync-invariant-exception:\s*content-derived\b[^\n]*",
+    re.IGNORECASE,
+)
+NON_SYNC_WRITE_EXCLUSION_RE = re.compile(
+    r"sync-invariant-exclusion:\s*"
+    r"(?:migration-backfill|maintenance-backfill|maintenance-cleanup)\b[^\n]*",
     re.IGNORECASE,
 )
 SOFT_JOIN_EXCEPTION_RE = re.compile(
     r"sync-invariant-exception:\s*soft-delete-join\b[^\n]*",
     re.IGNORECASE,
 )
+SUBQUERY_JOIN_RE = re.compile(r"\bJOIN\s*\(\s*SELECT\b", re.IGNORECASE)
+DRIFT_UPDATE_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\.update\s*\(")
 
 JOIN_RE = re.compile(
     r"\b(?:INNER\s+|LEFT(?:\s+OUTER)?\s+|CROSS\s+)?JOIN\s+"
@@ -88,7 +91,7 @@ SERIALIZED_COLUMNS = frozenset(
 CERTIFICATE_PATTERNS = (
     (
         "badCertificateCallback",
-        re.compile(r"\.badCertificateCallback\s*=", re.IGNORECASE),
+        re.compile(r"\.badCertificateCallback\s*(?:\?\?=|=(?!=))", re.IGNORECASE),
     ),
     (
         "SecurityContext(withTrustedRoots: false)",
@@ -192,20 +195,18 @@ def _line_number(source: str, offset: int) -> int:
 def _exception_on_line(
     source: str,
     line: int,
-    pattern: re.Pattern[str] = EXCEPTION_MARKER_RE,
+    pattern: re.Pattern[str] = I1_EXCEPTION_MARKER_RE,
 ) -> bool:
     lines = source.splitlines()
-    start = max(0, line - 8)
-    for value in lines[start:line]:
-        if not pattern.search(value):
-            continue
-        if pattern is EXCEPTION_MARKER_RE:
-            normalized = value.lower()
-            return "idempotent" in normalized and (
-                "derived rebuild" in normalized or "divergence" in normalized
-            )
-        return True
-    return False
+    if line <= 1:
+        return False
+    value = lines[line - 2]
+    if not pattern.search(value):
+        return False
+    if pattern is I1_EXCEPTION_MARKER_RE:
+        normalized = value.lower()
+        return "idempotent" in normalized and "divergence" in normalized
+    return True
 
 
 def _statement_for(content: str, offset: int) -> str:
@@ -239,6 +240,42 @@ def _raw_join_violations(source: str, path: str) -> tuple[list[Violation], int]:
                     )
                 )
             continue
+        for match in SUBQUERY_JOIN_RE.finditer(literal.content):
+            open_at = literal.content.find("(", match.start())
+            end = _balanced_call_end(literal.content, open_at)
+            if end is None:
+                violations.append(
+                    Violation(
+                        "soft-delete-join-boundary",
+                        path,
+                        literal.line_no,
+                        "unbalanced joined subquery; cannot verify its parent filter",
+                    )
+                )
+                continue
+            subquery = literal.content[open_at + 1 : end]
+            tables = {
+                table.lower()
+                for table in SOFT_SQL_TABLES
+                if re.search(
+                    rf"\bFROM\s+{re.escape(table)}\b",
+                    subquery,
+                    re.IGNORECASE,
+                )
+            }
+            for table in tables:
+                candidates += 1
+                if re.search(r"\bdeleted_at\s+IS\s+NULL\b", subquery, re.IGNORECASE):
+                    continue
+                violations.append(
+                    Violation(
+                        "soft-delete-join",
+                        path,
+                        literal.line_no,
+                        f"joined subquery reading {table} must filter "
+                        "deleted_at IS NULL",
+                    )
+                )
         for match in JOIN_RE.finditer(literal.content):
             table = match.group(1).lower()
             if table not in SOFT_SQL_TABLES:
@@ -316,6 +353,21 @@ def _balanced_call_end(source: str, open_at: int) -> int | None:
     return None
 
 
+def _first_call_argument(source: str, open_at: int) -> str:
+    depth = 0
+    for offset in range(open_at + 1, len(source)):
+        char = source[offset]
+        if char == "(":
+            depth += 1
+        elif char == ")":
+            if depth == 0:
+                return source[open_at + 1 : offset]
+            depth -= 1
+        elif char == "," and depth == 0:
+            return source[open_at + 1 : offset]
+    return source[open_at + 1 :]
+
+
 def _drift_join_violations(source: str, path: str) -> tuple[list[Violation], int]:
     masked = "\n".join(mask_source(source))
     violations: list[Violation] = []
@@ -333,9 +385,10 @@ def _drift_join_violations(source: str, path: str) -> tuple[list[Violation], int
             )
             continue
         call = masked[match.start() : end + 1]
+        argument = _first_call_argument(call, call.find("("))
         tables = {
             table
-            for table in DRIFT_TABLE_RE.findall(call)
+            for table in DRIFT_TABLE_RE.findall(argument)
             if table in SOFT_DRIFT_TABLES
         }
         for table in tables:
@@ -395,8 +448,9 @@ def _write_violations(source: str, path: str) -> list[Violation]:
             has_existence = "deleted_at" in assignments
             content_columns = assignments & SERIALIZED_COLUMNS
             line = literal.line_no
-            if content_columns and not has_updated and not _exception_on_line(
-                source, line
+            if content_columns and not has_updated and not (
+                _exception_on_line(source, line)
+                or _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE)
             ):
                 violations.append(
                     Violation(
@@ -410,7 +464,7 @@ def _write_violations(source: str, path: str) -> list[Violation]:
                 has_updated
                 and not content_columns
                 and not has_existence
-                and not _exception_on_line(source, line)
+                and not _exception_on_line(source, line, NON_SYNC_WRITE_EXCLUSION_RE)
             ):
                 violations.append(
                     Violation(
@@ -420,6 +474,30 @@ def _write_violations(source: str, path: str) -> list[Violation]:
                         "updated_at advance must change body or existence state",
                     )
                 )
+    return violations
+
+
+def _drift_write_violations(source: str, path: str) -> list[Violation]:
+    """Reject direct Drift writes until they use an inspectable sync helper."""
+
+    masked = "\n".join(mask_source(source))
+    violations: list[Violation] = []
+    for match in DRIFT_UPDATE_RE.finditer(masked):
+        statement_end = masked.find(";", match.start())
+        if statement_end < 0:
+            statement_end = len(masked)
+        statement = masked[match.start() : statement_end].replace(" ", "")
+        if ".write(" not in statement:
+            continue
+        violations.append(
+            Violation(
+                "typed-write-boundary",
+                path,
+                _line_number(source, match.start()),
+                "direct Drift .update(...).write(...) must use an "
+                "inspectable sync write helper",
+            )
+        )
     return violations
 
 
@@ -461,6 +539,7 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         violations.extend(raw_violations)
         violations.extend(drift_violations)
         violations.extend(_write_violations(source, relative))
+        violations.extend(_drift_write_violations(source, relative))
         violations.extend(_certificate_violations(source, relative))
         soft_candidates += raw_candidates + drift_candidates
 
