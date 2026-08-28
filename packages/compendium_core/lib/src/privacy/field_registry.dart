@@ -84,7 +84,7 @@ const _existenceStamp = DataClassification(
 const _normalisationRepairState = DataClassification(
   term: DpvTerm.nonPersonal,
   subject: DataSubject.none,
-  egress: EgressClass.deviceLocal,
+  egress: EgressClass.deviceScoped,
   note: 'Local collision-repair bookkeeping; never exported or synchronized.',
 );
 
