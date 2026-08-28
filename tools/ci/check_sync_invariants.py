@@ -76,7 +76,7 @@ DRIFT_MUTATION_ROOT_RE = re.compile(
 )
 DRIFT_BATCH_MUTATION_RE = re.compile(
     r"\b(?!_?db\b)[A-Za-z_][A-Za-z0-9_]*\s*\.\s*"
-    r"(?:insert|update|replace)\s*\("
+    r"(?:insert|update|replace|delete)\s*\("
 )
 DRIFT_MUTATION_METHOD_RE = re.compile(
     r"\.(?:write|insert(?:OnConflictUpdate)?|replace)\s*\("

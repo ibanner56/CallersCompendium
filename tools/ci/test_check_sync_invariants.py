@@ -198,6 +198,8 @@ def test_typed_drift_writes_fail_closed() -> None:
         "await b.update(db.dances, "
         "DancesCompanion(updatedAt: Value(now)));\n"
     )
+    batch_delete = "await batch.delete(db.dances, dance);\n"
+    renamed_batch_delete = "await writes.delete(db.dances, dance);\n"
     unknown = "await db.update(db.dances).write(companion);\n"
     assert_no(_drift_write_violations(compliant, "fixture.dart"))
     assert_no(_drift_write_violations(upsert, "fixture.dart"))
@@ -212,6 +214,14 @@ def test_typed_drift_writes_fail_closed() -> None:
     assert any(
         v.kind == "typed-I2"
         for v in _drift_write_violations(renamed_batch_i2, "fixture.dart")
+    )
+    assert any(
+        v.kind == "typed-write-boundary"
+        for v in _drift_write_violations(batch_delete, "fixture.dart")
+    )
+    assert any(
+        v.kind == "typed-write-boundary"
+        for v in _drift_write_violations(renamed_batch_delete, "fixture.dart")
     )
     assert any(
         v.kind == "typed-write-boundary"
