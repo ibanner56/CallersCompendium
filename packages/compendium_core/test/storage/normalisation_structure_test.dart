@@ -5,15 +5,58 @@ import 'package:test/test.dart';
 
 import '../test_package_root.dart';
 
-const _shareableCompanions = [
-  'ChoreographersCompanion.insert',
-  'CustomFieldDefsCompanion.insert',
-  'DancesCompanion.insert',
-  'ProgramsCompanion.insert',
-  'PublishedSourcesCompanion.insert',
-  'TagsCompanion.insert',
-  'VenuesCompanion.insert',
-];
+// Keep this field-specific: one wrapped field must not hide another bypass.
+const _shareableTextFields = {
+  'ChoreographersCompanion.insert': {
+    'name': 'normalizeShareableText',
+    'website': 'normalizeShareableText',
+    'notes': 'normalizeShareableText',
+  },
+  'CustomFieldDefsCompanion.insert': {
+    'key': 'normalizeShareableText',
+    'label': 'normalizeShareableText',
+  },
+  'DancesCompanion.insert': {
+    'title': 'normalizeShareableText',
+    'formationDetail': 'normalizeShareableText',
+    'figuresJson': 'normalizeShareableJsonText',
+    'hook': 'normalizeShareableText',
+    'callingNotes': 'normalizeShareableText',
+    'walkthrough': 'normalizeShareableText',
+    'tunesJson': 'normalizeShareableJsonText',
+  },
+  'ProgramsCompanion.insert': {
+    'title': 'normalizeShareableText',
+    'venue': 'normalizeShareableText',
+    'band': 'normalizeShareableText',
+    'caller': 'normalizeShareableText',
+    'dancerLevel': 'normalizeShareableText',
+    'notes': 'normalizeShareableText',
+  },
+  'PublishedSourcesCompanion.insert': {
+    'title': 'normalizeShareableText',
+    'author': 'normalizeShareableText',
+    'url': 'normalizeShareableText',
+    'notes': 'normalizeShareableText',
+  },
+  'TagsCompanion.insert': {'name': 'normalizeShareableText'},
+  'VenuesCompanion.insert': {
+    'name': 'normalizeShareableText',
+    'website': '_normalize',
+    'sponsor': '_normalize',
+    'eventName': '_normalize',
+    'time': '_normalize',
+    'genericSchedule': '_normalize',
+    'price': '_normalize',
+    'notes': '_normalize',
+  },
+  'VenueProvenanceCompanion.insert': {
+    'externalId': 'normalizeShareableText',
+    'permission': '_normalize',
+    'license': '_normalize',
+    'sourceVersion': '_normalize',
+  },
+};
 
 void main() {
   test('all shareable persistence calls wrap their text inputs', () async {
@@ -31,13 +74,7 @@ void main() {
 
     for (final relativePath in repositoryFiles) {
       final source = File(p.join(root, relativePath)).readAsStringSync();
-      expect(
-        _hasUnwrappedShareableCall(source),
-        isFalse,
-        reason:
-            '$relativePath has a shareable persistence call without '
-            'normalizeShareableText',
-      );
+      expect(_hasUnwrappedShareableCall(source), isFalse, reason: relativePath);
       if (relativePath.endsWith('settings_repository.dart')) {
         expect(
           source,
@@ -58,16 +95,22 @@ DancesCompanion.insert(title: value);
 }
 
 bool _hasUnwrappedShareableCall(String source) {
-  for (final companion in _shareableCompanions) {
+  for (final entry in _shareableTextFields.entries) {
+    final companion = entry.key;
     final starts = _occurrences(source, '$companion(').toList();
     for (final start in starts) {
-      final callNormalizes = _callBody(
-        source,
-        start,
-      ).contains('normalizeShareableText');
-      final singlePrecomputedValue =
-          starts.length == 1 && source.contains('normalizeShareableText(');
-      if (!callNormalizes && !singlePrecomputedValue) return true;
+      final call = _callBody(source, start);
+      for (final field in entry.value.entries) {
+        final argument = _argumentBody(call, field.key);
+        if (argument == null) continue;
+        final precomputed =
+            argument.contains(field.key) &&
+            source.contains('final ${field.key} = ${field.value}(');
+        if (!argument.contains(field.value) &&
+            !(starts.length == 1 && precomputed)) {
+          return true;
+        }
+      }
     }
   }
   return false;
@@ -108,4 +151,37 @@ String _callBody(String source, int openParen) {
     }
   }
   throw StateError('unclosed call at offset $openParen');
+}
+
+String? _argumentBody(String call, String field) {
+  final start = call.indexOf('$field:');
+  if (start < 0) return null;
+  final valueStart = start + field.length + 1;
+  var depth = 0;
+  var quote = '';
+  var escaped = false;
+  for (var i = valueStart; i < call.length; i++) {
+    final char = call[i];
+    if (quote.isNotEmpty) {
+      if (escaped) {
+        escaped = false;
+      } else if (char == r'\') {
+        escaped = true;
+      } else if (char == quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (char == "'" || char == '"') {
+      quote = char;
+    } else if ('([{'.contains(char)) {
+      depth++;
+    } else if (')]}'.contains(char)) {
+      if (depth == 0) return call.substring(valueStart, i);
+      depth--;
+    } else if (char == ',' && depth == 0) {
+      return call.substring(valueStart, i);
+    }
+  }
+  return call.substring(valueStart);
 }

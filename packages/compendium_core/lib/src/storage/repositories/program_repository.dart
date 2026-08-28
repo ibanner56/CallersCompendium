@@ -321,7 +321,11 @@ class ProgramRepository {
                   ? null
                   : normalizeShareableText(program.caller!),
             ),
-            dancerLevel: Value(program.dancerLevel),
+            dancerLevel: Value(
+              program.dancerLevel == null
+                  ? null
+                  : normalizeShareableText(program.dancerLevel!),
+            ),
             notes: Value(normalizeShareableText(program.notes)),
             status: program.status,
             hideAlternates: Value(program.hideAlternates),

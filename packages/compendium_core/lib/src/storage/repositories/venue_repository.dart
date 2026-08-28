@@ -98,9 +98,9 @@ class VenueRepository {
                       : normalizeShareableText(prov.externalId!),
                 ),
                 importedAt: prov.importedAt,
-                permission: Value(prov.permission),
-                license: Value(prov.license),
-                sourceVersion: Value(prov.sourceVersion),
+                permission: Value(_normalize(prov.permission)),
+                license: Value(_normalize(prov.license)),
+                sourceVersion: Value(_normalize(prov.sourceVersion)),
               ),
             );
       }

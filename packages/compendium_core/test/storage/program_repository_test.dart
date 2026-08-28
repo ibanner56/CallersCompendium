@@ -61,6 +61,12 @@ void main() {
       expect(await repo.getById(program.id), program);
     });
 
+    test('normalizes nullable dancer level on write', () async {
+      final program = sampleProgram().copyWith(dancerLevel: 'cafe\u0301');
+      await repo.create(program);
+      expect((await repo.getById(program.id))!.dancerLevel, 'café');
+    });
+
     test(
       'round-trips slots in position order, including text-only slots',
       () async {
