@@ -48,8 +48,8 @@ stored by the sync service you configure so it can be synchronized.
 
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
-logged. The derived sync ID in that log remains linkable for 30 days; after that
-it becomes a timestamp-only aggregate row.
+logged. The derived sync ID in that log remains linkable for 30 days of
+inactivity; after that it becomes a timestamp-only aggregate row.
 
 Device Sync does not transfer structured venue street address, city, region,
 country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
