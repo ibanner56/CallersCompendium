@@ -37,6 +37,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Changed
 
+- **Import review** — review rows now show author, formation, and source
+  attribution; pasted title lists with multiple exact matches now offer a
+  grouped choice instead of discarding the candidates.
 - **Dance file exports** — the dance **Export** menu now offers privacy-safe
   `.ccshare` and `.json` files containing the dance and its referenced,
   shareable metadata. Recipients review the import before committing it and can

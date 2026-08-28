@@ -18,6 +18,37 @@ import 'plaintext_program_import.dart';
 /// successfully.
 const int kMaxAmbiguousCandidatesPerLine = 6;
 
+/// One source-neutral group of candidate rows for the import review screen.
+///
+/// The group identity is used only for review headings and the one-commit
+/// backstop. Program-specific line mapping lives on [AmbiguousReviewImport] so
+/// title-list groups never acquire program-slot behavior.
+class AmbiguousReviewGroup {
+  const AmbiguousReviewGroup({
+    required this.id,
+    required this.label,
+    required this.candidates,
+  });
+
+  final String id;
+  final String label;
+  final List<ImportRecordPlan> candidates;
+}
+
+/// A pre-previewed set of ambiguous candidates for import review.
+class AmbiguousReviewImport {
+  const AmbiguousReviewImport({
+    required this.groups,
+    this.programLineIndexByGroup = const {},
+  });
+
+  final List<AmbiguousReviewGroup> groups;
+
+  /// Generic group id → original program line index. Empty for title-list
+  /// groups; only these entries may produce [onProgramCommitted] results.
+  final Map<String, int> programLineIndexByGroup;
+}
+
 /// One program line no online source could resolve confidently, together with
 /// a non-committing preview [ImportRecordPlan] for each candidate that
 /// previewed successfully (issue #943). Handed to `ImportReviewScreen` (via
@@ -54,6 +85,21 @@ class ProgramAmbiguousImport {
   const ProgramAmbiguousImport({required this.lines});
 
   final List<ProgramAmbiguousLine> lines;
+
+  AmbiguousReviewImport get reviewImport => AmbiguousReviewImport(
+    groups: [
+      for (final line in lines)
+        AmbiguousReviewGroup(
+          id: 'program:${line.originalLineIndex}',
+          label: line.lineText,
+          candidates: line.candidates,
+        ),
+    ],
+    programLineIndexByGroup: {
+      for (final line in lines)
+        'program:${line.originalLineIndex}': line.originalLineIndex,
+    },
+  );
 }
 
 /// Previews every online candidate of [line]'s ambiguity (issue #943) into a
@@ -68,10 +114,11 @@ class ProgramAmbiguousImport {
 /// batch. A candidate whose source has no entry in [servicesBySource] is
 /// dropped the same way (defensive; should not happen — every source that can
 /// produce a candidate row is one this function was called with).
-Future<List<ImportRecordPlan>> _previewAmbiguousCandidates(
+Future<List<ImportRecordPlan>> previewAmbiguousCandidates(
   List<OnlineSearchResultRow> candidates, {
   required Map<OnlineSource, OnlineSearchService> servicesBySource,
   required CompendiumRepositories repos,
+  DedupeIndex? index,
   DateTime? now,
 }) async {
   final plans = <ImportRecordPlan>[];
@@ -79,7 +126,12 @@ Future<List<ImportRecordPlan>> _previewAmbiguousCandidates(
     final service = servicesBySource[row.source];
     if (service == null) continue;
     try {
-      final preview = await service.loadPreview(repos, row, now: now);
+      final preview = await service.loadPreview(
+        repos,
+        row,
+        now: now,
+        index: index,
+      );
       plans.add(preview.plan);
     } on Exception {
       // diagnostics: silent — preview failure for one candidate; skip it and continue with remaining candidates
@@ -111,7 +163,7 @@ Future<ProgramAmbiguousImport?> buildProgramAmbiguousImport(
   for (var i = 0; i < lines.length; i++) {
     final line = lines[i];
     if (line.onlineCandidates.isEmpty) continue;
-    final plans = await _previewAmbiguousCandidates(
+    final plans = await previewAmbiguousCandidates(
       line.onlineCandidates,
       servicesBySource: servicesBySource,
       repos: repos,

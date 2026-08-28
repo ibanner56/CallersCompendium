@@ -5184,9 +5184,54 @@
       }
     }
   },
+  "importReviewAmbiguousGroup": "\"{title}\" — pick one, or leave it skipped",
+  "@importReviewAmbiguousGroup": {
+    "description": "Heading above candidates for one ambiguous import input group. The user can pick one candidate or leave the whole group skipped.",
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "importReviewMetadataAuthor": "By {author}",
+  "@importReviewMetadataAuthor": {
+    "description": "Compact author metadata shown under an import-review dance title.",
+    "placeholders": {
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "importReviewMetadataFormation": "{formation}",
+  "@importReviewMetadataFormation": {
+    "description": "Compact formation metadata shown under an import-review dance title.",
+    "placeholders": {
+      "formation": {
+        "type": "String"
+      }
+    }
+  },
+  "importReviewMetadataSource": "From {source}",
+  "@importReviewMetadataSource": {
+    "description": "Compact provenance/source metadata shown under an import-review dance title.",
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
   "importReviewTitleListToImport": "{count, plural, =1{1 to import} other{{count} to import}}",
   "@importReviewTitleListToImport": {
     "description": "Summary/group count of pasted titles that resolved to a dance available to import.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importReviewTitleListAmbiguous": "{count, plural, =1{1 needs a choice} other{{count} need a choice}}",
+  "@importReviewTitleListAmbiguous": {
+    "description": "Summary count of pasted titles with multiple exact online matches that are shown in the grouped review.",
     "placeholders": {
       "count": {
         "type": "int"

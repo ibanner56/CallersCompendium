@@ -3912,12 +3912,43 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String importReviewAmbiguousGroup(String title) {
+    return '\"$title\" — pick one, or leave it skipped';
+  }
+
+  @override
+  String importReviewMetadataAuthor(String author) {
+    return 'By $author';
+  }
+
+  @override
+  String importReviewMetadataFormation(String formation) {
+    return '$formation';
+  }
+
+  @override
+  String importReviewMetadataSource(String source) {
+    return 'From $source';
+  }
+
+  @override
   String importReviewTitleListToImport(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count to import',
       one: '1 to import',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListAmbiguous(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count need a choice',
+      one: '1 needs a choice',
     );
     return '$_temp0';
   }
