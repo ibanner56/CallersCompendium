@@ -121,6 +121,14 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "sync-invariants",
+        "soft-delete joins, sync writes, certificate hatches, and normalizers",
+        (
+            py("tools/ci/test_check_sync_invariants.py"),
+            py("tools/ci/check_sync_invariants.py"),
+        ),
+    ),
+    Step(
         "schema-gate",
         "the schema-bump gate's own logic",
         (py("tools/ci/test_check_schema_migration.py"),),
