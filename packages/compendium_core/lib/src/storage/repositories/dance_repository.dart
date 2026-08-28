@@ -403,14 +403,15 @@ class DanceRepository {
         );
       }
       final (rawText, num) = encodeCustomFieldValue(value, fieldDef);
-      final text = rawText == null ? null : normalizeShareableText(rawText);
       await _db
           .into(_db.customFieldValues)
           .insert(
             CustomFieldValuesCompanion.insert(
               danceId: dance.id,
               fieldId: value.fieldId,
-              valueText: Value(text),
+              valueText: Value(
+                rawText == null ? null : normalizeShareableText(rawText),
+              ),
               valueNum: Value(num),
             ),
           );

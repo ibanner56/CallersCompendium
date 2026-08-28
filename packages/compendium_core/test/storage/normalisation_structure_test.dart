@@ -127,6 +127,14 @@ DancesCompanion.insert(title: value);
     ''';
     expect(_hasUnwrappedShareableCall(source), isTrue);
   });
+
+  test('does not trust an unrelated normalized local', () {
+    const source = '''
+    final text = normalizeShareableText(value);
+    DancesCompanion.insert(hook: Value(text));
+    ''';
+    expect(_hasUnwrappedShareableCall(source), isTrue);
+  });
 }
 
 bool _hasUnwrappedShareableCall(String source) {
@@ -138,15 +146,16 @@ bool _hasUnwrappedShareableCall(String source) {
       for (final field in entry.value.entries) {
         final argument = _argumentBody(call, field.key);
         if (argument == null) continue;
+        final precomputedName = switch (field.key) {
+          'key' || 'label' || 'name' => field.key,
+          _ => null,
+        };
         final precomputed =
-            argument.contains(field.key) &&
-            source.contains('final ${field.key} = ${field.value}(');
-        final sharedTextPrecomputed =
-            argument.contains('text') &&
-            source.contains('final text =') &&
-            source.contains('${field.value}(');
+            precomputedName != null &&
+            argument.contains(precomputedName) &&
+            source.contains('final $precomputedName = ${field.value}(');
         if (!argument.contains(field.value) &&
-            !(starts.length == 1 && (precomputed || sharedTextPrecomputed))) {
+            !(starts.length == 1 && precomputed)) {
           return true;
         }
       }
