@@ -258,8 +258,8 @@ Device Sync holds no allow-list of its own. It reads `EgressClass` from the
 privacy registry (`field_registry.dart`, `settings_registry.dart`).
 
 - `shareable` — MAY travel.
-- `deviceLocal`, `deviceScoped`, `derived`, `protocolIdentifier` — MUST NOT be
-  serialised into a blob.
+- `deviceLocal`, `deviceScoped`, `derived`, `protocolIdentifier`,
+  `accessControlData` — MUST NOT be serialised into a blob.
 
 **`protocolIdentifier` is a fifth `EgressClass`, added by this programme.** It
 covers a value the protocol MUST put on the wire in order to function, and which
@@ -271,7 +271,7 @@ devices one manifest. A `protocolIdentifier` value MUST:
 
 1. be generated locally from a cryptographically secure source, and derived from
    no device, user or hardware attribute;
-2. never be serialised into a record blob, exactly as the other three
+2. never be serialised into a record blob, exactly as the other four
    non-`shareable` classes;
 3. never be **applied** from a received record or envelope — a device's own
    identifier is minted once and only ever read from local storage; and
@@ -282,6 +282,48 @@ Rule 3 is the one no other class expresses. `shareable` permits adoption and
 `deviceScoped` forbids it only by forbidding transmission outright, so a value
 that must travel *and* must never be adopted had no correct classification
 before this member existed.
+
+**`accessControlData` is a sixth `EgressClass`, added by this programme.** It
+covers a value whose transmission *is* the authorisation for the request
+carrying it: `sync_id` is the only such value here. It is not `deviceScoped`,
+for the same reason `sync_device_id` is not — that class means never transmitted
+by any route, and this one rides an `Authorization` header on every request. It
+is not `protocolIdentifier` either, and the distinction is the reason the sixth
+member exists rather than a second tenant of the fifth: rule 1 of that class
+requires the value be derived from nothing and carry no user data by
+construction, while §8 permits a **user-chosen** sync ID of one to thirty-two
+arbitrary code points. A user-chosen ID can carry personal content, so
+classifying it as a protocol identifier would weaken the guarantee for
+`sync_device_id`, which is the value that class exists to protect. An
+`accessControlData` value MUST:
+
+1. never be serialised into a record blob, exactly as the other four
+   non-`shareable` classes;
+2. never be **applied** from a received record or envelope — a device's sync ID
+   is entered or generated locally and only ever read from local storage;
+3. never be durably recorded by the server, or by any proxy in front of it, in a
+   form from which the value can be recovered — only an irreversible derivation
+   may be stored (§7.1 requires `HMAC-SHA256(pepper, syncID)`);
+4. never be written to any log, including request and access logs (§7.3, and
+   proxy requirement 4); and
+5. be transmitted only to the configured endpoint's own origin, and never
+   carried across a redirect (§8).
+
+Rules 3 and 4 are what no other class expresses. Every other class is a rule
+about whether a value **moves**; this one is additionally a rule about what the
+*recipient* may do with a value that has already arrived, because the harm from
+a leaked credential is not that it travelled but that it was kept. Those five
+rules already existed in this specification before the class did — scattered
+across §7.1, §7.3, §7.5 and §8, each attached to `sync_id` individually, with
+nothing naming the property that makes them one set. The classification is where
+a second credential, if one is ever added, inherits all five instead of
+rediscovering them.
+
+Neither `protocolIdentifier` nor `accessControlData` is added to the Dart
+`EgressClass` enum by this design. Both are specified here and land with their
+first registry entry, when W2 and W4 first classify a sync settings key: an enum
+member with no entries is not exercised by the registry ratchets, so adding it
+early buys nothing and risks a member nothing checks.
 
 The serialiser MUST filter by classification; the archive codec does not do this
 and MUST NOT be relied on for it. The registry uses snake_case `table.column`
@@ -2796,6 +2838,15 @@ leaves the local identifier unchanged, asserted by reading it back after apply
 every serialisation test still passes because the send side never emits it — the
 adoption bug is receive-only). A `protocolIdentifier` value is also never
 serialised into a blob, on the same terms as the other non-`shareable` classes.
+**An `accessControlData` value is never adopted, never serialised and never
+logged**: a received envelope naming a `sync_id` leaves the local credential
+untouched (mutation: apply it, which locks the device out of its own store on
+the next request and is receive-only in the same way); no blob, manifest or
+export carries it (mutation: classify it `shareable`); and no server or proxy
+log line contains it, checked against the response to a request that fails
+authentication as well as one that succeeds (mutation: log the request line
+verbatim — the failing case is the one a naive implementation logs, because it
+is the one an operator wants to debug).
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields

@@ -504,6 +504,15 @@ and walkthrough snippets represent real work a user would hate to redo.
   that obliges a stated retention wherever the server records it, logs included,
   because `{deviceId}` sits in a request path and lands in ordinary access logs
   by default. Spec §3.3 and §7.3.
+- `accessControlData` → **a sixth class this programme adds**, for the sync ID
+  itself. It is not `deviceScoped` for the same reason the device ID is not — it
+  rides an `Authorization` header on every request — and it is not a protocol
+  identifier, because that class requires the value carry no user data by
+  construction while a sync ID may be user-chosen. It is the one class that
+  constrains the **recipient** rather than only the movement: never stored
+  recoverably (only `HMAC-SHA256(pepper, syncID)`), never logged, never adopted,
+  never carried across a redirect. The harm from a leaked credential is not that
+  it travelled but that it was kept. Spec §3.3.
 - `derived` → never transmitted; rebuilt on arrival
 
 **There is no device-to-device channel.** `deviceLocal` data moves only by the

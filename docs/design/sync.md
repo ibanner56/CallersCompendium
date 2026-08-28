@@ -473,15 +473,42 @@ mention.
 
 The ruling instead: **protocol identifiers get a class of their own.** The enum
 gains a fifth member, `EgressClass.protocolIdentifier`, and `deviceScoped`
-returns to the wording it had before this design touched it.
+returns to the wording it had before this design touched it. A later round added
+a sixth, `accessControlData`, for the sync ID itself — recorded below the table.
 
-| | `deviceScoped` | `protocolIdentifier` |
-| --- | --- | --- |
-| In a record blob | Never | Never |
-| In a request path or envelope | Never | Yes, to the configured endpoint only |
-| Adopted from a peer | N/A | Never — each installation mints its own |
-| Content | Any local value | Opaque random bytes, derived from nothing |
-| Retention | Local only | Stated, bounded, and disclosed |
+| | `deviceScoped` | `protocolIdentifier` | `accessControlData` |
+| --- | --- | --- | --- |
+| In a record blob | Never | Never | Never |
+| In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
+| Adopted from a peer | N/A | Never — each installation mints its own | Never — entered or generated locally |
+| Content | Any local value | Opaque random bytes, derived from nothing | May be user-chosen, so may carry personal content |
+| Retention | Local only | Stated, bounded, and disclosed | Never retained recoverably; never logged |
+
+A later Copilot round found that `sync_id` had the same defect the device ID
+had, one row down in the same table: it was `deviceScoped` while being the
+bearer credential on every request. The sentence that made it undeniable was one
+written *in this design*, to close the previous finding — the egress table's new
+"a value a transport must carry to function is **not** this class and does not
+get an exception from it".
+
+Neither existing class fitted. `protocolIdentifier` requires the value carry no
+user data by construction, and a sync ID may be **user-chosen** — so filing it
+there would have weakened the guarantee for `sync_device_id`, the value that
+class was created for. Narrowing `EgressClass` to govern only values serialised
+into documents was the tempting alternative, and had a clean line available: the
+device ID rides inside the manifest envelope, the sync ID only in a header. It
+was rejected because it is the same *shape* as the scope carve-out the previous
+ruling had just removed, restored under a different name and for a different
+value.
+
+**The maintainer's ruling: a sixth class, `accessControlData`.** It earns its
+place on a property no other class expresses. Every other member answers whether
+a value may **move**; this one also constrains what the recipient may do with a
+value that has already arrived — never stored recoverably, never logged. The
+harm from a leaked credential is not that it travelled but that it was kept, and
+no egress class had a way to say that. In practice the class *collects* five
+rules this specification already contained, each attached to `sync_id`
+individually across four sections, with nothing naming what made them one set.
 
 Two properties of that table are the reason it is a class and not a footnote.
 The first is that a protocol identifier is **linkable** — it correlates every
@@ -510,15 +537,17 @@ than by prose around it.
 
 ### Device Sync's own configuration never syncs
 
-Every settings key Device Sync introduces is `deviceScoped`, with the single
-exception of `sync_device_id`, which is `protocolIdentifier` for the reasons
-above — it must travel, and it must never be adopted:
+Every settings key Device Sync introduces is `deviceScoped`, with two
+exceptions — the two values the protocol itself puts on the wire.
+`sync_device_id` is `protocolIdentifier` for the reasons above: it must travel,
+and it must never be adopted. `sync_id` is `accessControlData`, because
+transmitting it *is* the authorisation for the request carrying it:
 
 | Key | Why it must not travel |
 | --- | --- |
 | `sync_enabled` | Each installation opts in for itself. |
 | `sync_endpoint` | Syncing it would let one device silently redirect another. |
-| `sync_id` | The bearer credential. Uploading it to the store it authenticates is self-defeating. |
+| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but is never stored recoverably, never logged, never adopted, and never carried across a redirect. |
 | `sync_device_id` (`protocolIdentifier`) | Travels as a routing key, but is never *adopted*: two devices sharing an ID collide in the manifest namespace. |
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
