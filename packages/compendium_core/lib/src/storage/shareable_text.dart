@@ -31,7 +31,7 @@ Object? normalizeShareableJson(Object? value) {
   if (value is Map) {
     final normalized = <String, Object?>{};
     for (final entry in value.entries) {
-      final key = normalizeShareableText(entry.key.toString());
+      final key = entry.key is String ? normalizeShareableText(entry.key as String) : throw ArgumentError.value(entry.key, 'key', 'JSON object keys must be strings');
       if (normalized.containsKey(key)) {
         throw ShareableJsonKeyCollision(key);
       }
