@@ -30,7 +30,6 @@ class CustomFieldDefRepository {
     final now = resolveStamp(at);
     return _db.transaction(() async {
       final key = normalizeShareableText(def.key);
-      final label = normalizeShareableText(def.label);
       final choices = def.choices
           ?.map(normalizeShareableText)
           .toList(growable: false);
@@ -60,8 +59,10 @@ class CustomFieldDefRepository {
           .insertOnConflictUpdate(
             CustomFieldDefsCompanion.insert(
               id: id,
-              key: collidingEdit ? current.key : key,
-              label: label,
+              key: collidingEdit
+                  ? current.key
+                  : normalizeShareableText(def.key),
+              label: normalizeShareableText(def.label),
               type: def.type,
               choicesJson: Value(choices == null ? null : jsonEncode(choices)),
               showInList: Value(def.showInList),

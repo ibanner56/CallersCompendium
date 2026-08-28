@@ -136,10 +136,18 @@ DancesCompanion.insert(title: value);
     expect(_hasUnwrappedShareableCall(source), isTrue);
   });
 
-  test('does not confuse a local suffix with the normalized local', () {
+  test('does not confuse a local suffix with a normalized field', () {
     const source = '''
     final name = normalizeShareableText(value);
     TagsCompanion.insert(name: Value(nameForImport));
+    ''';
+    expect(_hasUnwrappedShareableCall(source), isTrue);
+  });
+
+  test('does not allow a mixed normalized and raw expression', () {
+    const source = '''
+    final name = normalizeShareableText(value);
+    TagsCompanion.insert(name: Value(name ?? rawName));
     ''';
     expect(_hasUnwrappedShareableCall(source), isTrue);
   });
@@ -154,16 +162,7 @@ bool _hasUnwrappedShareableCall(String source) {
       for (final field in entry.value.entries) {
         final argument = _argumentBody(call, field.key);
         if (argument == null) continue;
-        final precomputedName = switch (field.key) {
-          'key' || 'label' || 'name' => field.key,
-          _ => null,
-        };
-        final precomputed =
-            precomputedName != null &&
-            _referencesLocal(argument, precomputedName) &&
-            source.contains('final $precomputedName = ${field.value}(');
-        if (!argument.contains(field.value) &&
-            !(starts.length == 1 && precomputed)) {
+        if (!argument.contains(field.value)) {
           return true;
         }
       }
@@ -242,11 +241,4 @@ String? _argumentBody(String call, String field) {
     }
   }
   return call.substring(valueStart);
-}
-
-bool _referencesLocal(String expression, String local) {
-  final pattern = RegExp(
-    '(?<![A-Za-z0-9_\\.])${RegExp.escape(local)}(?![A-Za-z0-9_])',
-  );
-  return pattern.hasMatch(expression);
 }

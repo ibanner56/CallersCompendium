@@ -52,7 +52,9 @@ class ChoreographerRepository {
           .insertOnConflictUpdate(
             ChoreographersCompanion.insert(
               id: id,
-              name: collidingEdit ? current.name : name,
+              name: collidingEdit
+                  ? current.name
+                  : normalizeShareableText(c.name),
               website: Value(
                 c.website == null ? null : normalizeShareableText(c.website!),
               ),

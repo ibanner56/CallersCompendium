@@ -71,7 +71,9 @@ class TagRepository {
           .insertOnConflictUpdate(
             TagsCompanion.insert(
               id: id,
-              name: collidingEdit ? current.name : name,
+              name: collidingEdit
+                  ? current.name
+                  : normalizeShareableText(tag.name),
               color: Value(normalizeArgb(tag.color)),
               updatedAt: Value(now),
             ),
