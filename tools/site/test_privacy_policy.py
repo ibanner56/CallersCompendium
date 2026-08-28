@@ -14,6 +14,7 @@ POLICY_FILES = (
     ROOT / "site" / "privacy" / "index.html",
 )
 REQUIRED_PHRASES = (
+    "operator can read the plaintext",
     "break-glass access",
     "timestamp-only aggregate",
     "freeform venue notes",
