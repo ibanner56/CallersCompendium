@@ -1134,8 +1134,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final acted = <ImportRecordPlan>[];
     final actedRowIndices = <int>[];
     final resolutions = <int, DedupeResolution>{};
-    // Seed with lines whose candidate already committed via per-row Edit, so
-    // a different candidate for the same line can never ALSO import here.
+    // Seed with groups whose candidate already committed via per-row Edit, so
+    // a different candidate for the same ambiguity group can never ALSO import here.
     final decidedAmbiguousGroups = <String>{};
     for (var i = 0; i < batch.records.length; i++) {
       if (!_committed.contains(i) || i >= _ambiguousGroupOfRow.length) {
