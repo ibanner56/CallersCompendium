@@ -25,6 +25,14 @@ const _shareableTextFields = {
     'walkthrough': 'normalizeShareableText',
     'tunesJson': 'normalizeShareableJsonText',
   },
+  'DanceLinksCompanion.insert': {
+    'url': 'normalizeShareableText',
+    'label': 'normalizeShareableText',
+  },
+  'ProgramSlotsCompanion.insert': {
+    'text_': 'normalizeShareableText',
+    'guestCaller': 'normalizeShareableText',
+  },
   'ProgramsCompanion.insert': {
     'title': 'normalizeShareableText',
     'venue': 'normalizeShareableText',
@@ -40,6 +48,23 @@ const _shareableTextFields = {
     'notes': 'normalizeShareableText',
   },
   'TagsCompanion.insert': {'name': 'normalizeShareableText'},
+  'DanceSourcesCompanion.insert': {
+    'page': 'normalizeShareableText',
+    'number': 'normalizeShareableText',
+  },
+  'CustomFieldValuesCompanion.insert': {'valueText': 'normalizeShareableText'},
+  'ProvenanceCompanion.insert': {
+    'externalId': 'normalizeShareableText',
+    'permission': 'normalizeShareableText',
+    'license': 'normalizeShareableText',
+    'sourceVersion': 'normalizeShareableText',
+  },
+  'ProgramProvenanceCompanion.insert': {
+    'externalId': 'normalizeShareableText',
+    'permission': 'normalizeShareableText',
+    'license': 'normalizeShareableText',
+    'sourceVersion': 'normalizeShareableText',
+  },
   'VenuesCompanion.insert': {
     'name': 'normalizeShareableText',
     'website': '_normalize',
@@ -92,6 +117,16 @@ DancesCompanion.insert(title: value);
 ''';
     expect(_hasUnwrappedShareableCall(source), isTrue);
   });
+
+  test('detects an unwrapped child-table field', () {
+    const source = '''
+    ProgramSlotsCompanion.insert(
+      text_: Value(normalizeShareableText(value)),
+      guestCaller: Value(value),
+    );
+    ''';
+    expect(_hasUnwrappedShareableCall(source), isTrue);
+  });
 }
 
 bool _hasUnwrappedShareableCall(String source) {
@@ -106,8 +141,12 @@ bool _hasUnwrappedShareableCall(String source) {
         final precomputed =
             argument.contains(field.key) &&
             source.contains('final ${field.key} = ${field.value}(');
+        final sharedTextPrecomputed =
+            argument.contains('text') &&
+            source.contains('final text =') &&
+            source.contains('${field.value}(');
         if (!argument.contains(field.value) &&
-            !(starts.length == 1 && precomputed)) {
+            !(starts.length == 1 && (precomputed || sharedTextPrecomputed))) {
           return true;
         }
       }
@@ -121,7 +160,9 @@ Iterable<int> _occurrences(String source, String needle) sync* {
   while (true) {
     final index = source.indexOf(needle, offset);
     if (index < 0) return;
-    yield index + needle.length - 1;
+    if (index == 0 || !RegExp(r'[A-Za-z0-9_]').hasMatch(source[index - 1])) {
+      yield index + needle.length - 1;
+    }
     offset = index + needle.length;
   }
 }
