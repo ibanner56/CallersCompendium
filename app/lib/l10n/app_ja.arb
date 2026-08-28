@@ -4028,9 +4028,29 @@
   "@importReviewProgramAmbiguousLine": {
     "x-sourceSha256": "64f34196c48ede648b27e75c39bed0c16801a40f9a1027866ea97720f66a2952"
   },
+  "importReviewAmbiguousGroup": "「{title}」 — 1つ選ぶか、スキップしてください",
+  "@importReviewAmbiguousGroup": {
+    "x-sourceSha256": "bc31d7d6dd0c16b79cc7003485e095b8ddec6cabfa6cea2720b9b670459ab113"
+  },
+  "importReviewMetadataAuthor": "作者: {author}",
+  "@importReviewMetadataAuthor": {
+    "x-sourceSha256": "c63374c54075c2ecffba6bcf2f66b9b829822e5ef9dd82d4fa9033583317fece"
+  },
+  "importReviewMetadataFormation": "{formation}",
+  "@importReviewMetadataFormation": {
+    "x-sourceSha256": "2cf85de09de252ffc700591fcb6a1a61a84a7ff392d4d99f59cf599647bee48f"
+  },
+  "importReviewMetadataSource": "{source} から",
+  "@importReviewMetadataSource": {
+    "x-sourceSha256": "f8cd93f784e1604a9602292564fd69fc104ba62b0a0c595a327d6ecaa7e570e0"
+  },
   "importReviewTitleListToImport": "{count, plural, other{インポート可能{count}件}}",
   "@importReviewTitleListToImport": {
     "x-sourceSha256": "ed5d8c84d3679287fd91967f4079a251a82ce8eb09368aedb5721b0bba80d1c4"
+  },
+  "importReviewTitleListAmbiguous": "{count, plural, =1{1件は選択が必要} other{{count}件は選択が必要}}",
+  "@importReviewTitleListAmbiguous": {
+    "x-sourceSha256": "8230a822286c32eb258d0ddcd3096a7404f6800f78a3ed9db0f147ffdc7949d4"
   },
   "importReviewTitleListOwned": "{count, plural, other{すでにコレクションにあるもの{count}件}}",
   "@importReviewTitleListOwned": {

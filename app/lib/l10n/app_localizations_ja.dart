@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3797,12 +3796,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importReviewAmbiguousGroup(String title) {
-    return '\"$title\" — pick one, or leave it skipped';
+    return '「$title」 — 1つ選ぶか、スキップしてください';
   }
 
   @override
   String importReviewMetadataAuthor(String author) {
-    return 'By $author';
+    return '作者: $author';
   }
 
   @override
@@ -3812,7 +3811,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String importReviewMetadataSource(String source) {
-    return 'From $source';
+    return '$source から';
   }
 
   @override
@@ -3830,8 +3829,8 @@ class AppLocalizationsJa extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count need a choice',
-      one: '1 needs a choice',
+      other: '$count件は選択が必要',
+      one: '1件は選択が必要',
     );
     return '$_temp0';
   }

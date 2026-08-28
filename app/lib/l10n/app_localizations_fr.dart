@@ -1,6 +1,5 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3983,12 +3982,12 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importReviewAmbiguousGroup(String title) {
-    return '\"$title\" — pick one, or leave it skipped';
+    return '« $title » — choisissez-en un, ou laissez-le ignoré';
   }
 
   @override
   String importReviewMetadataAuthor(String author) {
-    return 'By $author';
+    return 'Par $author';
   }
 
   @override
@@ -3998,7 +3997,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String importReviewMetadataSource(String source) {
-    return 'From $source';
+    return 'De $source';
   }
 
   @override
@@ -4017,8 +4016,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
-      other: '$count need a choice',
-      one: '1 needs a choice',
+      other: '$count nécessitent un choix',
+      one: '1 nécessite un choix',
     );
     return '$_temp0';
   }
@@ -4551,7 +4550,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Cet import contient $count éléments — plus que prévu pour un partage normal.',
-      one: 'Cet import contient 1 élément — plus que prévu pour un partage normal.',
+      one:
+          'Cet import contient 1 élément — plus que prévu pour un partage normal.',
     );
     return '$_temp0';
   }
@@ -5279,7 +5279,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
-      one: '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+      one:
+          '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
     );
     return '$_temp0';
   }
@@ -5838,7 +5839,8 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count paires de contraste inférieures au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
-      one: '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
+      one:
+          '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
     );
     return '$_temp0';
   }
