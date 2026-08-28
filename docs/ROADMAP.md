@@ -30,8 +30,9 @@ Cloud sync was a v1 non-goal and is now **designed** — see
 #903) — deliberately early, so soft-delete columns have time to hydrate across
 devices before any sync code depends on them. No client, server or network code
 exists. It keeps the properties the
-original non-goal was protecting: no user accounts, no sign-in, nothing we host
-surviving 30 days of disuse, and no venue address or contact data ever reaching
+original non-goal was protecting: no user accounts, no sign-in, no sync-store
+content we host surviving 30 days of disuse, and no venue address or contact
+data ever reaching
 our infrastructure.
 
 ## Completed phases

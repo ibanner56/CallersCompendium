@@ -67,13 +67,17 @@ assumption about one of these six:
    into a schema, which is exactly why they were the last to get one.
 5. **Sync-ID normalisation** (§5.1, §8). Trim → NFC → locale-independent
    lowercase, applied identically by client and server before the HMAC. The
-   plan schedules **W5 and W10 in parallel from C1**, which is two units
-   independently implementing one algorithm with no file overlap — the exact
-   configuration contracts exist to catch. The spec calls the divergence the
+   plan schedules **W5 and W10 in parallel from C1**, which absent a contract
+   is two units independently implementing one algorithm with no file overlap
+   — the exact configuration contracts exist to catch. The spec calls the
+   divergence the
    nastiest failure in the HTTP contract *because it produces no error*: one ID
    the user typed resolves to two storage keys, and the second device sees a
    working sync of an empty store. This is the same argument that produced the
-   generated allow-list, and it applies here for the same reason.
+   generated allow-list, and it applies here for the same reason. The
+   resolution is a **single shared definition, written by W5 and imported by
+   W10**, carried by a narrow W5 → W10 edge covering the `id_key` derivation
+   alone, so everything else in the two units still runs in parallel.
 6. **`normalizeTitle`** (§6.10). Normative by reference since round 30,
    consumed by W8. A second implementation that agrees on lowercase ASCII and
    disagrees on a leading article merges records **silently**.
@@ -603,7 +607,8 @@ deletion silently reverts".
   shared definition W10 imports rather than reimplements, per contract 5; bearer
   auth that never puts the ID in a URL; and status handling — `409` forces fresh
   attach, `422` is surfaced and **never retried**, `429` honours `Retry-After`.
-- **Unblocks** W6, W8, W13.
+- **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
+  only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
   bound accepted), a client/server `id_key` agreement test passes under
   differing whitespace and Unicode form, **and a `302` to a foreign https host
@@ -727,10 +732,14 @@ otherwise.
   by both W5 and W10, the other that `normalizeTitle` (contract 6) has exactly
   one definition. **The fix for #1016 is inherited, not owed** — #1018 closed
   the instance on `main`, leaving W17 the class.
-- **Unblocks** nothing, in the sense that no unit must wait for it — but its
-  I1/I2 ratchet **constrains** W6 and every write path built after it, and it
-  gates **C0's honesty** (see below). A constraint is not a dependency: W6 can
-  start without W17, it just cannot be trusted to have held I1/I2 without it.
+- **Unblocks** nothing — no unit must wait for it.
+
+  That is a claim about scheduling, not about force. Its I1/I2 ratchet
+  **constrains** W6 and every write path built after it, and it gates **C0's
+  honesty** (see below). A constraint is not a dependency: W6 can start without
+  W17, it just cannot be trusted to have held I1/I2 without it. The graph draws
+  the relation as `W17 -.constrains.-> W6`, which is deliberately not a
+  dependency arrow.
 - **Done when** the §9 *Soft-delete join coverage* **and** *Write-path
   invariants* buckets are both green, **and** the *Client isolate and
   robustness* clause *"No certificate-validation escape hatch exists in the
@@ -1055,9 +1064,11 @@ graph LR
 **The graph is a reading aid, not the authoritative edge list.** It omits edges
 that a path already implies, where drawing them would only add clutter — W3→W6,
 W4→W7, W4→W8, W4→W9, W5→W8, W6→W8 and W10→W16 are all real dependencies that do
-not appear as arrows. A dotted arrow carries a scope label and is narrow: it
-records a dependency that gates one named thing rather than a whole unit, so it
-does not stand in for the solid edge it runs beside. The **Inherits** and
+not appear as arrows. A dotted arrow carries a label and is narrow: where the
+label names a scope, it records a dependency that gates one named thing rather
+than a whole unit, so it does not stand in for the solid edge it runs beside.
+The arrow labelled `constrains` is not a dependency at all — W17's ratchets
+bind what W6 may do without gating when W6 starts. The **Inherits** and
 **Unblocks** fields on each unit are authoritative; where they and this picture
 disagree, they win.
 

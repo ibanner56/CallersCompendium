@@ -5706,6 +5706,49 @@ external input, which is #444's and #611's concern and a different path from
 sync apply; removing it because a write-path rule now exists would retire a
 protection on the strength of an unrelated fix.
 
+#### The dependency-graph checker has now been blind three times
+
+The plan states that a unit's **Inherits** and **Unblocks** fields *together*
+are the authoritative dependency graph, and the mermaid picture is a reading
+aid. Three defect classes have hidden in that arrangement, and each was
+invisible to the check written after the previous one:
+
+1. **A drawn edge nobody declared.** The first check computed this, so it
+   caught the first instance.
+2. **A declared edge nobody drew.** The check was one-directional, so it was
+   *structurally incapable* of seeing this — which is how a `W6 --> W8` arrow
+   survived beside a card that said `W7 --> W8`. Writing the reverse direction
+   found three more instances immediately, two of them created by my own fixes
+   in the rounds between.
+3. **The two authoritative fields disagreeing with each other.** The check
+   unions them into one declared-edge set before comparing against the picture,
+   so `W5 Unblocks: W6, W8, W13` and `W10 Inherits: … W5` are consistent with
+   the drawing and contradict each other. A review found this; the checker
+   reported PASS.
+
+The general shape is that a consistency check is written from the picture the
+author already has of the artefact, so it inherits that picture's blind spots.
+The fix for each round's defect was a new *direction* of comparison, never a
+stricter version of the existing one — and each direction had to be proved by
+mutation, because a direction that is merely absent looks exactly like a
+direction that is clean.
+
+Two wrinkles are worth recording because they are where a naive extractor goes
+wrong. `Unblocks everything` (W0) and `Unblocks nothing` (W17) are wildcards,
+not omissions, so a symmetry check that does not special-case them reports
+three false positives on a correct document. And W17's field originally carried
+its justifying prose inside the bullet, naming W6 while *denying* that W6
+depends on it — so the extractor manufactured the exact edge the sentence
+existed to disclaim. That is the same rule this design already recorded for W1
+and W10: **a field that is authoritative for a machine-checked property must
+contain only the property**, with the reasoning in the paragraph beneath it.
+
+The picture carries one arrow that is deliberately not a dependency,
+`W17 -.constrains.-> W6`. A ratchet binds what W6 may do without gating when
+W6 starts, and the legend now says so; the previous round's description of
+dotted arrows as narrow *dependencies* was written without checking all three
+against it.
+
 ## Open questions
 
 None outstanding at the design level.
