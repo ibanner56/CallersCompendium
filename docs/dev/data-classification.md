@@ -212,7 +212,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**187 columns**: 137 shareable, 25 device-local, 25 derived. 24 personal data by category.
+**187 columns**: 137 shareable, 21 device-local, 4 device-scoped, 25 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -309,10 +309,10 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `tunes_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `dances` | `walkthrough` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
-| `normalisation_skips` | `column_name` | `dpv:NonPersonalData` | NonPersonalData | — | **device-local** | Local collision-repair bookkeeping; never exported or synchronized. |
-| `normalisation_skips` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | **device-local** | Local collision-repair bookkeeping; never exported or synchronized. |
-| `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | **device-local** | Local collision-repair bookkeeping; never exported or synchronized. |
-| `normalisation_skips` | `target_value` | `dpv:NonPersonalData` | NonPersonalData | — | **device-local** | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `column_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `target_value` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `program_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `program_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
