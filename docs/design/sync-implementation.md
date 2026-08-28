@@ -7,9 +7,9 @@
 
 ## 1. Status
 
-**ADR-004 is `Proposed`. Nothing in this plan may start until it is Accepted**,
-and that ruling is the maintainer's. The plan is written now so the shape of
-the programme is visible *before* the decision, not to presume it.
+**ADR-004 is `Accepted`; S1's prerequisite is satisfied.** The maintainer's
+ruling is recorded in the ADR. Apart from the already-shipped schema migration,
+implementation remains unstarted.
 
 One unit has already shipped: the §3.1 schema migration, tracked as
 [#898](https://github.com/ibanner56/CallersCompendium/issues/898) and delivered
