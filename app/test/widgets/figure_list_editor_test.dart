@@ -3055,16 +3055,26 @@ void main() {
           move: 'allemande',
           params: {'beats': 8, 'who': 'neighbors', 'hand': 'left'},
         ),
+        FigureDraft(move: 'balance', params: {'beats': 16}),
       ];
       await _pump(tester, drafts);
 
       await _tapMenuItem(tester, 0, 'group-with-next');
 
-      expect(drafts, hasLength(1));
-      expect(drafts.single.isMeanwhileGroup, isTrue);
-      expect(drafts.single.meanwhileSides, hasLength(2));
-      expect(drafts.single.meanwhileSides![0].move, 'swing');
-      expect(drafts.single.meanwhileSides![1].move, 'allemande');
+      expect(drafts, hasLength(2));
+      expect(drafts.first.isMeanwhileGroup, isTrue);
+      expect(drafts.first.meanwhileSides, hasLength(2));
+      expect(drafts.first.meanwhileSides![0].move, 'swing');
+      expect(drafts.first.meanwhileSides![1].move, 'allemande');
+      expect(find.text('Total: 24 / 64 beats'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+        'A1',
+      );
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
+        'A1',
+      );
 
       // Expand the group and edit the single shared beats field.
       await _openFigure(tester, 0);
@@ -3073,10 +3083,15 @@ void main() {
         '16',
       );
       await tester.pumpAndSettle();
-      expect(drafts.single.beats, 16);
+      expect(drafts.first.beats, 16);
+      expect(find.text('Total: 32 / 64 beats'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
+        'A2',
+      );
 
       // Round-trips through toFigure() as a genuine Figure.meanwhile.
-      final figure = drafts.single.toFigure()!;
+      final figure = drafts.first.toFigure()!;
       expect(figure.isMeanwhile, isTrue);
       expect(figure.beats, 16);
       expect(figure.subFigures, hasLength(2));
