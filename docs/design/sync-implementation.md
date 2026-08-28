@@ -449,29 +449,34 @@ rebuild (`:1011`–`:1016`), not with the marker, or retry rebuilds and then
 leaves the flag standing for the next open to honour with a second
 whole-library recomputation.
 
-*Compare column sets at open; do not hang the re-run off a migration.* The
-marker records which columns the scan covered, and the pass re-runs when the
-live in-scope set **differs** from it. A migration hook looks equivalent and is
-not: reclassifying a column to `shareable` is an edit to a map entry in
-`field_registry.dart`, with no schema change, no version bump and no migration
-step, so a migration-gated guard is vacuously satisfied for one of the two
-triggers it exists to catch. Compare with **inequality**, not containment: a
-removal shrinks the live set, containment would pass it silently, and the
-recorded set would become a high-water mark that never notices the same column
-coming back — after an interval in which its rows accrued NFD unnormalised and
-unrecorded. And derive the live set by reflecting over the schema's column types
-intersected with `fieldClassifications`: `DataClassification` has no column-type
-field, so "string" is a schema fact, and hand-enumerating it means a newly
-`shareable` column never enters the live set and the comparison never fires —
-disabling this safety net through its own input. Exclude identity by reflection
-as well, through `Table.primaryKey`: the scope is *string, `shareable`, and not
-identity*, and mechanising two of the three is worse than mechanising none,
-because `_key` is itself classified `shareable`. A literal string ∩ `shareable`
-set therefore contains every id column in the schema, and normalising
-`settings.key` renames records rather than repairing them. Budget a ratchet that
-asserts the derived set, not one shaped like the coverage test: that test
-compares `table.column` names for presence and staleness and would pass
-unchanged with every primary key leaked into the scan.
+*Compare in-scope sets at open; do not hang the re-run off a migration.* The
+marker records a fingerprint of what the scan covered — the columns **and** the
+`shareable` settings classifications — and the pass re-runs when the live
+in-scope set **differs** from it. Both halves are needed because the write
+path's obligation follows the value, not the column: `settings.value_json` is
+`deviceLocal`, so a column-only marker never covers a settings value and
+reclassifying a key to `shareable` trips no re-run at all. A migration hook
+looks equivalent and is not: reclassifying a column to `shareable` is an edit
+to a map entry in `field_registry.dart`, with no schema change, no version bump
+and no migration step, so a migration-gated guard is vacuously satisfied for
+one of the two triggers it exists to catch. Compare with **inequality**, not
+containment: a removal shrinks the live set, containment would pass it
+silently, and the recorded set would become a high-water mark that never
+notices the same column coming back — after an interval in which its rows
+accrued NFD unnormalised and unrecorded. And derive the live set by reflecting
+over the schema's column types intersected with `fieldClassifications`:
+`DataClassification` has no column-type field, so "string" is a schema fact,
+and hand-enumerating it means a newly `shareable` column never enters the live
+set and the comparison never fires — disabling this safety net through its own
+input. Exclude identity by reflection as well, through `Table.primaryKey`: the
+scope is *string, `shareable`, and not identity*, and mechanising two of the
+three is worse than mechanising none, because `_key` is itself classified
+`shareable`. A literal string ∩ `shareable` set therefore contains every id
+column in the schema, and normalising `settings.key` renames records rather
+than repairing them. Budget a ratchet that asserts the derived set, not one
+shaped like the coverage test: that test compares `table.column` names for
+presence and staleness and would pass unchanged with every primary key leaked
+into the scan.
 
 *Generate the `(table, column)` spelling; do not write it twice.* The pass and
 the write-path carve-out are separate writers, and retry correlates their

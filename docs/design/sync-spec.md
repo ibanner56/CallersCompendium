@@ -612,20 +612,54 @@ asserting the work is done. That is not a hypothetical — §7.2 treats a new
 `shareable` field as an anticipated, recurring event — and left unhandled it
 reproduces exactly the failure the one-time pass exists to close, since
 normalising on write never reaches a row that is never written again. **The
-completion marker MUST therefore record the set of columns the scan covered,
-and the pass MUST re-run whenever the live in-scope set differs from that
-recorded set.** The obligation is stated over the *comparison*, not over a
-migration, because only one of the two triggers involves a migration at all:
-adding a column does, but reclassifying one is an edit to a plain map entry in
-`field_registry.dart` — changing `egress` there touches no schema, bumps no
-schema version, and runs no migration step. An implementation that satisfies
-this rule by clearing a boolean marker from a migration hook would therefore
-satisfy it *vacuously* for reclassification, leaving the newly in-scope rows
-un-normalised behind a standing marker, which is the failure this paragraph
-exists to close. Comparing the recorded set against the live one at open
-catches both triggers with one mechanism and needs no migration to remember
-anything. Re-running is a no-op for every already-normalised row, so the cost
-falls on the change that altered the set rather than on ordinary opens.
+completion marker MUST therefore record a fingerprint of the whole in-scope set
+the scan covered — its columns *and* the `shareable` settings classifications,
+exact keys and prefixes alike — and the pass MUST re-run whenever the live
+in-scope set differs from that recorded set.**
+
+The settings half is not decorative, and recording columns alone fails for it in
+both directions. The scan's scope must match the write path's, and the write
+path's obligation follows the value rather than the column: every string inside
+the decoded value of a `shareable` settings key, recursively. Those values sit
+in `settings.value_json`, which is `deviceLocal` at the column level *by design*
+— so a marker and a live set built from columns alone contain no settings entry
+at all, the scan never judges a settings value, and reclassifying a key to
+`shareable` moves no column and so trips no re-run. The values of that key stay
+in whatever form they were written in, permanently, which is exactly the
+never-written-again population this pass exists for. The opposite error is the
+one an implementer hits first: comparing a column-only marker against a live set
+that *does* include settings values differs on every open and re-runs the pass
+at every launch. Both sides MUST be built from the same criteria.
+
+**For settings the fingerprint covers the classification entries, not the live
+keys.** A settings key may be constructed at runtime (`editor_draft:<id>`), so
+the set of live keys changes constantly and fingerprinting it would re-run the
+pass whenever a user opened an editor. It would also be redundant: a key that
+did not exist before is written by the write path, which normalises it. Only a
+change to *which keys are classified `shareable`* brings already-written values
+newly into scope, so that is what the fingerprint MUST cover — the `shareable`
+subset of `settingsClassifications` and of `settingsPrefixClassifications`. The
+scan itself walks the live keys, resolving each through `classifySettingsKey`
+with its exact-first, longest-prefix-second precedence; reading the exact map
+alone resolves every prefix-keyed classification to nothing.
+
+The collision machinery below does not apply to this half. A settings value is
+JSON inside one column under no `UNIQUE` constraint, so normalising a string
+within it cannot collide with a sibling row, and no entry is recorded in
+`normalisation_skips` for it. The two halves share the pass, the marker and the
+derived rebuild, and diverge only there. The obligation is stated over the
+*comparison*, not over a migration, because only one of the two triggers
+involves a migration at all: adding a column does, but reclassifying one is an
+edit to a plain map entry in `field_registry.dart` — changing `egress` there
+touches no schema, bumps no schema version, and runs no migration step. An
+implementation that satisfies this rule by clearing a boolean marker from a
+migration hook would therefore satisfy it *vacuously* for reclassification,
+leaving the newly in-scope rows un-normalised behind a standing marker, which
+is the failure this paragraph exists to close. Comparing the recorded set
+against the live one at open catches both triggers with one mechanism and needs
+no migration to remember anything. Re-running is a no-op for every
+already-normalised row, so the cost falls on the change that altered the set
+rather than on ordinary opens.
 
 **The comparison MUST be inequality, not containment**, which is worth stating
 because containment is the tempting form and is subtly directional. A pure
@@ -644,9 +678,9 @@ recorded set without rescanning would save that scan, and is rejected: it is a
 second bookkeeping path that must itself be crash-safe, added to avoid a scan
 that happens at most once per reclassification.
 
-**The live in-scope set MUST be derived, not enumerated by hand.** It is
-defined as `shareable` string columns that are not record identity, and that
-predicate cannot be read off the classification registry alone:
+**The live in-scope set MUST be derived, not enumerated by hand.** Its column
+half is defined as `shareable` string columns that are not record identity, and
+that predicate cannot be read off the classification registry alone:
 `DataClassification` carries `term`, `subject`, `egress` and `note`
 (`data_classification.dart:185`–`:205`) and no column type, so *string* is a
 fact about the schema rather than about the registry. The set MUST therefore be
@@ -664,6 +698,14 @@ schema**, because `_key` is classified `shareable` and identity columns use it
 normalises it renames records instead of repairing them, contradicting both
 this section's own scope sentence and §9's vector that `settings.key` is not
 rewritten.
+
+The settings half of the set is derived from the two settings classification
+maps filtered to `shareable`, which needs no schema reflection because a
+settings entry is already keyed by the thing being classified. It inherits the
+identity exclusion by construction rather than by rule: `settings.key` is the
+record's id and is a *column*, so it is excluded with the other primary keys,
+while what this half contributes is the strings **inside** the value, which are
+never identity.
 
 That derivation MUST be backed by a ratchet in the same family as the existing
 coverage test, and it MUST assert the identity exclusion specifically. The
