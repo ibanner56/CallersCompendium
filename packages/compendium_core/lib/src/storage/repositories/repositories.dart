@@ -684,7 +684,7 @@ class CompendiumRepositories {
             continue;
           }
           final rowId = group.single.$1;
-          final target = group.single.$2;
+          final target = group.single.$3;
           final occupied = await db
               .customSelect(
                 'SELECT rowid FROM $table WHERE $column = ? AND rowid != ? LIMIT 1',
