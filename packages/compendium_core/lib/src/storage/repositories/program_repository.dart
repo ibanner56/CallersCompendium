@@ -7,6 +7,7 @@ import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 import '../utc_datetime.dart';
 import '../calling_history_scope.dart';
 import 'venue_repository.dart';
@@ -302,14 +303,30 @@ class ProgramRepository {
         .insertOnConflictUpdate(
           ProgramsCompanion.insert(
             id: program.id,
-            title: program.title,
+            title: normalizeShareableText(program.title),
             eventDate: Value(program.eventDate),
-            venue: Value(program.venue),
+            venue: Value(
+              program.venue == null
+                  ? null
+                  : normalizeShareableText(program.venue!),
+            ),
             venueId: Value(program.venueId),
-            band: Value(program.band),
-            caller: Value(program.caller),
-            dancerLevel: Value(program.dancerLevel),
-            notes: Value(program.notes),
+            band: Value(
+              program.band == null
+                  ? null
+                  : normalizeShareableText(program.band!),
+            ),
+            caller: Value(
+              program.caller == null
+                  ? null
+                  : normalizeShareableText(program.caller!),
+            ),
+            dancerLevel: Value(
+              program.dancerLevel == null
+                  ? null
+                  : normalizeShareableText(program.dancerLevel!),
+            ),
+            notes: Value(normalizeShareableText(program.notes)),
             status: program.status,
             hideAlternates: Value(program.hideAlternates),
             createdAt: program.createdAt,
@@ -335,9 +352,15 @@ class ProgramRepository {
               programId: program.id,
               position: slot.position,
               danceId: Value(slot.danceId),
-              text_: Value(slot.text),
+              text_: Value(
+                slot.text == null ? null : normalizeShareableText(slot.text!),
+              ),
               isAlt: Value(slot.isAlt),
-              guestCaller: Value(slot.guestCaller),
+              guestCaller: Value(
+                slot.guestCaller == null
+                    ? null
+                    : normalizeShareableText(slot.guestCaller!),
+              ),
               plannedMinutes: Value(slot.plannedMinutes),
               performedAt: Value(slot.performedAt),
             ),
@@ -358,11 +381,27 @@ class ProgramRepository {
             ProgramProvenanceCompanion.insert(
               programId: program.id,
               source: prov.source,
-              externalId: Value(prov.externalId),
+              externalId: Value(
+                prov.externalId == null
+                    ? null
+                    : normalizeShareableText(prov.externalId!),
+              ),
               importedAt: prov.importedAt,
-              permission: Value(prov.permission),
-              license: Value(prov.license),
-              sourceVersion: Value(prov.sourceVersion),
+              permission: Value(
+                prov.permission == null
+                    ? null
+                    : normalizeShareableText(prov.permission!),
+              ),
+              license: Value(
+                prov.license == null
+                    ? null
+                    : normalizeShareableText(prov.license!),
+              ),
+              sourceVersion: Value(
+                prov.sourceVersion == null
+                    ? null
+                    : normalizeShareableText(prov.sourceVersion!),
+              ),
             ),
           );
     }

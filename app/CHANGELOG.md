@@ -64,6 +64,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Fixed
 
+- **Text input sanitization** — Normalize and sanitize shareable text on local 
+  writes, including existing collections repaired safely on database open.
+
 - **Meanwhile groups in the dance editor** — beat totals and section labels now
   update immediately when you group figures, before saving the dance.
 

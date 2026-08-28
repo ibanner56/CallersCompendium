@@ -5,6 +5,7 @@ import '../../model/tag.dart';
 import '../../util/argb.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 
 /// CRUD for flat [Tag] rows.
 ///
@@ -43,28 +44,49 @@ class TagRepository {
   Future<String> upsert(Tag tag, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final id =
-          await adoptTombstonedNaturalKey(
-            _db,
-            table: _db.tags,
-            keyColumn: 'id',
-            naturalKeyColumn: 'name',
-            naturalKey: tag.name,
-            incomingId: tag.id,
-            joinTable: _db.danceTags,
-            joinColumn: 'tag_id',
-          ) ??
-          tag.id;
+      final name = normalizeShareableText(tag.name);
+      final incumbent = await (_db.select(
+        _db.tags,
+      )..where((t) => t.name.equals(name))).getSingleOrNull();
+      final current = await (_db.select(
+        _db.tags,
+      )..where((t) => t.id.equals(tag.id))).getSingleOrNull();
+      final collidingEdit =
+          current != null && incumbent != null && incumbent.id != tag.id;
+      final id = collidingEdit
+          ? tag.id
+          : await adoptTombstonedNaturalKey(
+                  _db,
+                  table: _db.tags,
+                  keyColumn: 'id',
+                  naturalKeyColumn: 'name',
+                  naturalKey: name,
+                  incomingId: tag.id,
+                  joinTable: _db.danceTags,
+                  joinColumn: 'tag_id',
+                ) ??
+                tag.id;
       await _db
           .into(_db.tags)
           .insertOnConflictUpdate(
             TagsCompanion.insert(
               id: id,
-              name: tag.name,
+              name: collidingEdit
+                  ? current.name
+                  : normalizeShareableText(tag.name),
               color: Value(normalizeArgb(tag.color)),
               updatedAt: Value(now),
             ),
           );
+      if (collidingEdit) {
+        await recordNormalisationSkip(
+          _db,
+          table: 'tags',
+          column: 'name',
+          recordId: tag.id,
+          targetValue: name,
+        );
+      }
       await applyUpsertExistence(
         _db,
         table: _db.tags,

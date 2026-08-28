@@ -432,6 +432,11 @@ can still fire.
   index. Existing dances are repopulated through the durable derived-rebuild
   marker before reads proceed; both indexes remain derived and are maintained
   by every dance write, delete, archive replacement, and repair path.
+- v29 (issue #1111): adds `normalisation_skips`, durable local bookkeeping for
+  unique natural-key collisions encountered by the shareable-text repair pass.
+  Repository writes now store NFC/sanitized shareable text, and the post-open
+  pass backfills existing values without changing timestamp triples. The table
+  is device-local and is not part of transfer or sync payloads.
 
 ## The delete model
 

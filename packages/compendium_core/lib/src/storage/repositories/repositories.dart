@@ -1,10 +1,16 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:meta/meta.dart';
 
 import '../../model/enums.dart';
+import '../../privacy/field_registry.dart';
+import '../../privacy/data_classification.dart';
+import '../../privacy/settings_registry.dart';
 import '../../serialization/figure_codec.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
+import '../shareable_text.dart';
 import 'choreographer_repository.dart';
 import 'collection_import_event_repository.dart';
 import 'custom_field_repository.dart';
@@ -14,6 +20,39 @@ import 'published_source_repository.dart';
 import 'settings_repository.dart';
 import 'tag_repository.dart';
 import 'venue_repository.dart';
+
+String _normaliseStoredColumn(String column, String raw) {
+  const jsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
+  return jsonColumns.contains(column)
+      ? normalizeShareableJsonText(raw)
+      : normalizeShareableText(raw);
+}
+
+Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
+  final rows = await db
+      .customSelect(
+        'SELECT table_name, column_name, record_id FROM normalisation_skips',
+      )
+      .get();
+  for (final row in rows) {
+    final table = row.read<String>('table_name');
+    final id = row.read<String>('record_id');
+    final keyColumn = table == 'settings' ? 'key' : 'id';
+    final present = await db
+        .customSelect(
+          'SELECT 1 FROM $table WHERE $keyColumn = ? LIMIT 1',
+          variables: [Variable<String>(id)],
+        )
+        .get();
+    if (present.isEmpty) {
+      await db.customStatement(
+        'DELETE FROM normalisation_skips WHERE table_name = ? '
+        'AND column_name = ? AND record_id = ?',
+        [table, row.read<String>('column_name'), id],
+      );
+    }
+  }
+}
 
 /// Bundles every repository over a single [CompendiumDatabase], so app code
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
@@ -57,6 +96,39 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
+
+  /// The scope is derived from the live Drift schema and privacy registry, so
+  /// adding a shareable text column cannot be missed by the repair sweep.
+  List<(String, String)> get _normalisationColumns {
+    final columns = <(String, String)>[];
+    for (final table in db.allTables) {
+      final primaryKeys = table.$primaryKey
+          .map((column) => column.name)
+          .toSet();
+      for (final column in table.$columns) {
+        final classification =
+            fieldClassifications['${table.actualTableName}.${column.name}'];
+        if (column.type != DriftSqlType.string ||
+            classification?.egress != EgressClass.shareable ||
+            classification!.isIdentity ||
+            primaryKeys.contains(column.name)) {
+          continue;
+        }
+        columns.add((table.actualTableName, column.name));
+      }
+    }
+    columns.sort((a, b) {
+      final table = a.$1.compareTo(b.$1);
+      return table == 0 ? a.$2.compareTo(b.$2) : table;
+    });
+    return columns;
+  }
+
+  static const _naturalKeys = <(String, String)>[
+    ('choreographers', 'name'),
+    ('tags', 'name'),
+    ('custom_field_defs', 'key'),
+  ];
 
   /// Emits once whenever anything the Collection's reference/vocabulary data is
   /// built from changes — the trigger for re-reading a `CollectionData`
@@ -527,6 +599,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      await _normaliseShareableTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
     } catch (_) {
       // Don't cache a failed migration: clear the memo so a subsequent call
       // retries. The durable marker is still set (only deleted after a
@@ -535,6 +611,166 @@ class CompendiumRepositories {
       rethrow;
     }
   }
+
+  Future<void> _normaliseShareableTextIfNeeded({
+    required bool alreadyRebuilt,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final marker = await db
+        .customSelect(
+          'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(shareableTextNormalisationScopeKey)],
+        )
+        .get();
+    final skips = await db
+        .customSelect('SELECT table_name FROM normalisation_skips LIMIT 1')
+        .get();
+    final scope = jsonEncode(
+      _normalisationColumns.map((c) => '${c.$1}.${c.$2}').toList(),
+    );
+    if (marker.isNotEmpty &&
+        marker.single.read<String>('value_json') == scope &&
+        skips.isEmpty) {
+      return;
+    }
+
+    var rebuild = false;
+    await db.transaction(() async {
+      for (final (table, column) in _normalisationColumns) {
+        final natural = _naturalKeys.contains((table, column));
+        final rows = await db
+            .customSelect(
+              'SELECT rowid AS _rowid${natural ? ', id AS _record_id' : ''}, '
+              '$column FROM $table '
+              'WHERE $column IS NOT NULL',
+            )
+            .get();
+        final targets = <String, List<(int, String, String)>>{};
+        for (final row in rows) {
+          final raw = row.read<String>(column);
+          final target = _normaliseStoredColumn(column, raw);
+          if (natural) {
+            targets.putIfAbsent(target, () => []).add((
+              row.read<int>('_rowid'),
+              row.read<String>('_record_id'),
+              target,
+            ));
+          } else if (target != raw) {
+            await db.customUpdate(
+              'UPDATE $table SET $column = ? WHERE rowid = ?',
+              variables: [
+                Variable<String>(target),
+                Variable<int>(row.read<int>('_rowid')),
+              ],
+              updates: _updatesForTable(table),
+              updateKind: UpdateKind.update,
+            );
+            if (table == 'dances') rebuild = true;
+          }
+        }
+        if (!natural) continue;
+        for (final entry in targets.entries) {
+          final group = entry.value;
+          if (group.length > 1) {
+            for (final (_, recordId, target) in group) {
+              await recordNormalisationSkip(
+                db,
+                table: table,
+                column: column,
+                recordId: recordId,
+                targetValue: target,
+              );
+            }
+            continue;
+          }
+          final rowId = group.single.$1;
+          final target = group.single.$3;
+          final occupied = await db
+              .customSelect(
+                'SELECT rowid FROM $table WHERE $column = ? AND rowid != ? LIMIT 1',
+                variables: [Variable<String>(target), Variable<int>(rowId)],
+              )
+              .get();
+          if (occupied.isNotEmpty) {
+            await recordNormalisationSkip(
+              db,
+              table: table,
+              column: column,
+              recordId: rows
+                  .firstWhere((r) => r.read<int>('_rowid') == rowId)
+                  .read<String>('_record_id'),
+              targetValue: target,
+            );
+          } else {
+            final raw = rows
+                .firstWhere((r) => r.read<int>('_rowid') == rowId)
+                .read<String>(column);
+            if (raw != target) {
+              await db.customUpdate(
+                'UPDATE $table SET $column = ? WHERE rowid = ?',
+                variables: [Variable<String>(target), Variable<int>(rowId)],
+                updates: _updatesForTable(table),
+                updateKind: UpdateKind.update,
+              );
+              if (table == 'dances') rebuild = true;
+            }
+          }
+        }
+      }
+
+      for (final row
+          in await db
+              .customSelect('SELECT key, value_json FROM settings')
+              .get()) {
+        final key = row.read<String>('key');
+        final classification = classifySettingsKey(key);
+        if (classification?.egress != EgressClass.shareable) continue;
+        Object? value;
+        try {
+          value = normalizeShareableJson(
+            jsonDecode(row.read<String>('value_json')),
+          );
+        } on ShareableJsonKeyCollision catch (error) {
+          await recordNormalisationSkip(
+            db,
+            table: 'settings',
+            column: 'value_json',
+            recordId: key,
+            targetValue: error.normalizedKey,
+          );
+          continue;
+        }
+        final encoded = jsonEncode(value);
+        if (encoded != row.read<String>('value_json')) {
+          await db.customUpdate(
+            'UPDATE settings SET value_json = ? WHERE key = ?',
+            variables: [Variable<String>(encoded), Variable<String>(key)],
+            updates: {db.settings},
+            updateKind: UpdateKind.update,
+          );
+        }
+      }
+      if (rebuild) {
+        await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
+      }
+    });
+
+    if (rebuild) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    await _retireMissingNormalisationSkips(db);
+    await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
+  }
+
+  Set<TableInfo<Table, dynamic>> _updatesForTable(String tableName) => {
+    db.allTables.firstWhere((table) => table.actualTableName == tableName),
+  };
 
   /// The derived-index rebuild step of [ensureMigrated]. Extracted so tests can
   /// inject a transient failure and assert the marker survives and the retry

@@ -146,6 +146,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'update_beta_channel': _installState,
   'update_dismissed_version': _installState,
   'backup_reminder_cadence': _preference,
+  '__shareable_text_normalisation_scope__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

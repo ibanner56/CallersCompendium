@@ -56,6 +56,8 @@ void main() {
       'a deleted tag is still on disk, and invisible to every read',
       () async {
         // ignore: unused_result
+        // ignore: unused_result
+        // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
           at: t0,
@@ -147,6 +149,8 @@ void main() {
     test(
       'a tombstoning delete stamps existence_at, deleted_at and updated_at',
       () async {
+        // ignore: unused_result
+        // ignore: unused_result
         // ignore: unused_result
         await repos.tags.upsert(
           Tag(id: 't1', name: 'Easy'),
@@ -527,13 +531,7 @@ void main() {
       },
     );
 
-    test('a RENAME onto a tombstoned name does not adopt it', () async {
-      // A rename is a creation-shaped write carrying an existing id. Adopting
-      // there writes the new name onto the *other* row and leaves the row being
-      // renamed alone, so the user asks to rename "Hard" to "Easy" and gets two
-      // tags instead — with the deleted one resurrected. Silently duplicating
-      // is worse than failing, so this must raise UNIQUE, exactly as renaming
-      // onto a *live* name always has.
+    test('a RENAME onto a tombstoned name preserves the edited row', () async {
       // ignore: unused_result
       await repos.tags.upsert(
         Tag(id: 'T9', name: 'Easy'),
@@ -546,13 +544,10 @@ void main() {
         at: t0,
       );
 
-      await expectLater(
-        repos.tags.upsert(
-          Tag(id: 'T1', name: 'Easy'),
-          at: t0,
-        ),
-        throwsA(anything),
-        reason: 'renaming onto a tombstoned name must fail, not adopt',
+      // ignore: unused_result
+      await repos.tags.upsert(
+        Tag(id: 'T1', name: 'Easy'),
+        at: t0,
       );
 
       final live = await repos.tags.listAll();
@@ -560,35 +555,41 @@ void main() {
         [for (final t in live) '${t.id}/${t.name}'],
         ['T1/Hard'],
         reason:
-            'the rename failed, so the collection is unchanged: no duplicate, '
-            'and the tombstoned tag stays dead',
+            'the edited row keeps its natural-key spelling and the tombstoned '
+            'tag stays dead',
       );
+      final skip = await db
+          .customSelect(
+            'SELECT target_value FROM normalisation_skips WHERE table_name = ? '
+            'AND column_name = ? AND record_id = ?',
+            variables: [
+              Variable.withString('tags'),
+              Variable.withString('name'),
+              Variable.withString('T1'),
+            ],
+          )
+          .getSingle();
+      expect(skip.read<String>('target_value'), 'Easy');
     });
 
-    test(
-      'renaming onto a LIVE name fails the same way (unchanged by v25)',
-      () async {
-        // The control: this behaviour predates the migration, and the case above
-        // must match it rather than inventing a third outcome.
-        // ignore: unused_result
-        await repos.tags.upsert(
-          Tag(id: 'T9', name: 'Easy'),
-          at: t0,
-        );
-        // ignore: unused_result
-        await repos.tags.upsert(
-          Tag(id: 'T1', name: 'Hard'),
-          at: t0,
-        );
-        await expectLater(
-          repos.tags.upsert(
-            Tag(id: 'T1', name: 'Easy'),
-            at: t0,
-          ),
-          throwsA(anything),
-        );
-      },
-    );
+    test('renaming onto a LIVE name preserves the edited row', () async {
+      // ignore: unused_result
+      await repos.tags.upsert(
+        Tag(id: 'T9', name: 'Easy'),
+        at: t0,
+      );
+      // ignore: unused_result
+      await repos.tags.upsert(
+        Tag(id: 'T1', name: 'Hard'),
+        at: t0,
+      );
+      // ignore: unused_result
+      await repos.tags.upsert(
+        Tag(id: 'T1', name: 'Easy'),
+        at: t0,
+      );
+      expect((await repos.tags.getById('T1'))!.name, 'Hard');
+    });
 
     test(
       'creation still adopts, so the two cases stay distinguishable',

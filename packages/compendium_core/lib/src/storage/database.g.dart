@@ -10909,6 +10909,348 @@ class CollectionImportEventsCompanion
   }
 }
 
+class $NormalisationSkipsTable extends NormalisationSkips
+    with TableInfo<$NormalisationSkipsTable, NormalisationSkipRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NormalisationSkipsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tableNameValueMeta = const VerificationMeta(
+    'tableNameValue',
+  );
+  @override
+  late final GeneratedColumn<String> tableNameValue = GeneratedColumn<String>(
+    'table_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _columnNameValueMeta = const VerificationMeta(
+    'columnNameValue',
+  );
+  @override
+  late final GeneratedColumn<String> columnNameValue = GeneratedColumn<String>(
+    'column_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _targetValueMeta = const VerificationMeta(
+    'targetValue',
+  );
+  @override
+  late final GeneratedColumn<String> targetValue = GeneratedColumn<String>(
+    'target_value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tableNameValue,
+    columnNameValue,
+    recordId,
+    targetValue,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'normalisation_skips';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NormalisationSkipRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('table_name')) {
+      context.handle(
+        _tableNameValueMeta,
+        tableNameValue.isAcceptableOrUnknown(
+          data['table_name']!,
+          _tableNameValueMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tableNameValueMeta);
+    }
+    if (data.containsKey('column_name')) {
+      context.handle(
+        _columnNameValueMeta,
+        columnNameValue.isAcceptableOrUnknown(
+          data['column_name']!,
+          _columnNameValueMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_columnNameValueMeta);
+    }
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('target_value')) {
+      context.handle(
+        _targetValueMeta,
+        targetValue.isAcceptableOrUnknown(
+          data['target_value']!,
+          _targetValueMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_targetValueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {
+    tableNameValue,
+    columnNameValue,
+    recordId,
+  };
+  @override
+  NormalisationSkipRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NormalisationSkipRow(
+      tableNameValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}table_name'],
+      )!,
+      columnNameValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}column_name'],
+      )!,
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      targetValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target_value'],
+      )!,
+    );
+  }
+
+  @override
+  $NormalisationSkipsTable createAlias(String alias) {
+    return $NormalisationSkipsTable(attachedDatabase, alias);
+  }
+}
+
+class NormalisationSkipRow extends DataClass
+    implements Insertable<NormalisationSkipRow> {
+  final String tableNameValue;
+  final String columnNameValue;
+  final String recordId;
+  final String targetValue;
+  const NormalisationSkipRow({
+    required this.tableNameValue,
+    required this.columnNameValue,
+    required this.recordId,
+    required this.targetValue,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['table_name'] = Variable<String>(tableNameValue);
+    map['column_name'] = Variable<String>(columnNameValue);
+    map['record_id'] = Variable<String>(recordId);
+    map['target_value'] = Variable<String>(targetValue);
+    return map;
+  }
+
+  NormalisationSkipsCompanion toCompanion(bool nullToAbsent) {
+    return NormalisationSkipsCompanion(
+      tableNameValue: Value(tableNameValue),
+      columnNameValue: Value(columnNameValue),
+      recordId: Value(recordId),
+      targetValue: Value(targetValue),
+    );
+  }
+
+  factory NormalisationSkipRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NormalisationSkipRow(
+      tableNameValue: serializer.fromJson<String>(json['tableNameValue']),
+      columnNameValue: serializer.fromJson<String>(json['columnNameValue']),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      targetValue: serializer.fromJson<String>(json['targetValue']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tableNameValue': serializer.toJson<String>(tableNameValue),
+      'columnNameValue': serializer.toJson<String>(columnNameValue),
+      'recordId': serializer.toJson<String>(recordId),
+      'targetValue': serializer.toJson<String>(targetValue),
+    };
+  }
+
+  NormalisationSkipRow copyWith({
+    String? tableNameValue,
+    String? columnNameValue,
+    String? recordId,
+    String? targetValue,
+  }) => NormalisationSkipRow(
+    tableNameValue: tableNameValue ?? this.tableNameValue,
+    columnNameValue: columnNameValue ?? this.columnNameValue,
+    recordId: recordId ?? this.recordId,
+    targetValue: targetValue ?? this.targetValue,
+  );
+  NormalisationSkipRow copyWithCompanion(NormalisationSkipsCompanion data) {
+    return NormalisationSkipRow(
+      tableNameValue: data.tableNameValue.present
+          ? data.tableNameValue.value
+          : this.tableNameValue,
+      columnNameValue: data.columnNameValue.present
+          ? data.columnNameValue.value
+          : this.columnNameValue,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      targetValue: data.targetValue.present
+          ? data.targetValue.value
+          : this.targetValue,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NormalisationSkipRow(')
+          ..write('tableNameValue: $tableNameValue, ')
+          ..write('columnNameValue: $columnNameValue, ')
+          ..write('recordId: $recordId, ')
+          ..write('targetValue: $targetValue')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(tableNameValue, columnNameValue, recordId, targetValue);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NormalisationSkipRow &&
+          other.tableNameValue == this.tableNameValue &&
+          other.columnNameValue == this.columnNameValue &&
+          other.recordId == this.recordId &&
+          other.targetValue == this.targetValue);
+}
+
+class NormalisationSkipsCompanion
+    extends UpdateCompanion<NormalisationSkipRow> {
+  final Value<String> tableNameValue;
+  final Value<String> columnNameValue;
+  final Value<String> recordId;
+  final Value<String> targetValue;
+  final Value<int> rowid;
+  const NormalisationSkipsCompanion({
+    this.tableNameValue = const Value.absent(),
+    this.columnNameValue = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.targetValue = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NormalisationSkipsCompanion.insert({
+    required String tableNameValue,
+    required String columnNameValue,
+    required String recordId,
+    required String targetValue,
+    this.rowid = const Value.absent(),
+  }) : tableNameValue = Value(tableNameValue),
+       columnNameValue = Value(columnNameValue),
+       recordId = Value(recordId),
+       targetValue = Value(targetValue);
+  static Insertable<NormalisationSkipRow> custom({
+    Expression<String>? tableNameValue,
+    Expression<String>? columnNameValue,
+    Expression<String>? recordId,
+    Expression<String>? targetValue,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tableNameValue != null) 'table_name': tableNameValue,
+      if (columnNameValue != null) 'column_name': columnNameValue,
+      if (recordId != null) 'record_id': recordId,
+      if (targetValue != null) 'target_value': targetValue,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NormalisationSkipsCompanion copyWith({
+    Value<String>? tableNameValue,
+    Value<String>? columnNameValue,
+    Value<String>? recordId,
+    Value<String>? targetValue,
+    Value<int>? rowid,
+  }) {
+    return NormalisationSkipsCompanion(
+      tableNameValue: tableNameValue ?? this.tableNameValue,
+      columnNameValue: columnNameValue ?? this.columnNameValue,
+      recordId: recordId ?? this.recordId,
+      targetValue: targetValue ?? this.targetValue,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tableNameValue.present) {
+      map['table_name'] = Variable<String>(tableNameValue.value);
+    }
+    if (columnNameValue.present) {
+      map['column_name'] = Variable<String>(columnNameValue.value);
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (targetValue.present) {
+      map['target_value'] = Variable<String>(targetValue.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NormalisationSkipsCompanion(')
+          ..write('tableNameValue: $tableNameValue, ')
+          ..write('columnNameValue: $columnNameValue, ')
+          ..write('recordId: $recordId, ')
+          ..write('targetValue: $targetValue, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -10940,6 +11282,8 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
   );
   late final $CollectionImportEventsTable collectionImportEvents =
       $CollectionImportEventsTable(this);
+  late final $NormalisationSkipsTable normalisationSkips =
+      $NormalisationSkipsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -10964,6 +11308,7 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     venues,
     venueProvenance,
     collectionImportEvents,
+    normalisationSkips,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -19766,6 +20111,206 @@ typedef $$CollectionImportEventsTableProcessedTableManager =
       CollectionImportEventRow,
       PrefetchHooks Function()
     >;
+typedef $$NormalisationSkipsTableCreateCompanionBuilder =
+    NormalisationSkipsCompanion Function({
+      required String tableNameValue,
+      required String columnNameValue,
+      required String recordId,
+      required String targetValue,
+      Value<int> rowid,
+    });
+typedef $$NormalisationSkipsTableUpdateCompanionBuilder =
+    NormalisationSkipsCompanion Function({
+      Value<String> tableNameValue,
+      Value<String> columnNameValue,
+      Value<String> recordId,
+      Value<String> targetValue,
+      Value<int> rowid,
+    });
+
+class $$NormalisationSkipsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $NormalisationSkipsTable> {
+  $$NormalisationSkipsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tableNameValue => $composableBuilder(
+    column: $table.tableNameValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get columnNameValue => $composableBuilder(
+    column: $table.columnNameValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get targetValue => $composableBuilder(
+    column: $table.targetValue,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NormalisationSkipsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $NormalisationSkipsTable> {
+  $$NormalisationSkipsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tableNameValue => $composableBuilder(
+    column: $table.tableNameValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get columnNameValue => $composableBuilder(
+    column: $table.columnNameValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get targetValue => $composableBuilder(
+    column: $table.targetValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NormalisationSkipsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $NormalisationSkipsTable> {
+  $$NormalisationSkipsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tableNameValue => $composableBuilder(
+    column: $table.tableNameValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get columnNameValue => $composableBuilder(
+    column: $table.columnNameValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<String> get targetValue => $composableBuilder(
+    column: $table.targetValue,
+    builder: (column) => column,
+  );
+}
+
+class $$NormalisationSkipsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $NormalisationSkipsTable,
+          NormalisationSkipRow,
+          $$NormalisationSkipsTableFilterComposer,
+          $$NormalisationSkipsTableOrderingComposer,
+          $$NormalisationSkipsTableAnnotationComposer,
+          $$NormalisationSkipsTableCreateCompanionBuilder,
+          $$NormalisationSkipsTableUpdateCompanionBuilder,
+          (
+            NormalisationSkipRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $NormalisationSkipsTable,
+              NormalisationSkipRow
+            >,
+          ),
+          NormalisationSkipRow,
+          PrefetchHooks Function()
+        > {
+  $$NormalisationSkipsTableTableManager(
+    _$CompendiumDatabase db,
+    $NormalisationSkipsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NormalisationSkipsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NormalisationSkipsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NormalisationSkipsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tableNameValue = const Value.absent(),
+                Value<String> columnNameValue = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<String> targetValue = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => NormalisationSkipsCompanion(
+                tableNameValue: tableNameValue,
+                columnNameValue: columnNameValue,
+                recordId: recordId,
+                targetValue: targetValue,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tableNameValue,
+                required String columnNameValue,
+                required String recordId,
+                required String targetValue,
+                Value<int> rowid = const Value.absent(),
+              }) => NormalisationSkipsCompanion.insert(
+                tableNameValue: tableNameValue,
+                columnNameValue: columnNameValue,
+                recordId: recordId,
+                targetValue: targetValue,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NormalisationSkipsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $NormalisationSkipsTable,
+      NormalisationSkipRow,
+      $$NormalisationSkipsTableFilterComposer,
+      $$NormalisationSkipsTableOrderingComposer,
+      $$NormalisationSkipsTableAnnotationComposer,
+      $$NormalisationSkipsTableCreateCompanionBuilder,
+      $$NormalisationSkipsTableUpdateCompanionBuilder,
+      (
+        NormalisationSkipRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $NormalisationSkipsTable,
+          NormalisationSkipRow
+        >,
+      ),
+      NormalisationSkipRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -19810,4 +20355,6 @@ class $CompendiumDatabaseManager {
         _db,
         _db.collectionImportEvents,
       );
+  $$NormalisationSkipsTableTableManager get normalisationSkips =>
+      $$NormalisationSkipsTableTableManager(_db, _db.normalisationSkips);
 }

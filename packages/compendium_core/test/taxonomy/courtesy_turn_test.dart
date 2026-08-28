@@ -63,8 +63,9 @@ void main() {
       // touched no canonical key, so it bumped the schema and left the
       // taxonomy alone. Schema 27 (#862) likewise added
       // collection_import_events without changing the taxonomy. Schema 28
-      // (#1005) added scoped search indexes without changing the taxonomy.
-      expect(kCompendiumSchemaVersion, 28);
+      // (#1005) added scoped search indexes, and schema 29 (#1111) added
+      // shareable-text repair bookkeeping; neither changed the taxonomy.
+      expect(kCompendiumSchemaVersion, 29);
     });
 
     test('registers with the maintainer-ruled param set', () {

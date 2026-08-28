@@ -174,6 +174,7 @@ class DataClassification {
     required this.subject,
     required this.egress,
     this.note,
+    this.isIdentity = false,
   });
 
   /// The data category.
@@ -184,6 +185,10 @@ class DataClassification {
 
   /// Whether, and by what route, the field may leave the device.
   final EgressClass egress;
+
+  /// Whether this field is a record or relational identity and must never be
+  /// rewritten as content.
+  final bool isIdentity;
 
   /// Why this classification, where the reason is not self-evident. A reviewer
   /// should not have to guess why a personal-data field is

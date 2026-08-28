@@ -212,7 +212,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**183 columns**: 137 shareable, 21 device-local, 25 derived. 24 personal data by category.
+**187 columns**: 137 shareable, 21 device-local, 4 device-scoped, 25 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -309,6 +309,10 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `tunes_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `dances` | `walkthrough` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `normalisation_skips` | `column_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `normalisation_skips` | `target_value` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `program_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `program_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -404,10 +408,11 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**57 settings keys**: 49 shareable, 8 device-scoped. 2 personal data by category.
+**58 settings keys**: 49 shareable, 9 device-scoped. 2 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
+| `__shareable_text_normalisation_scope__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `active_custom_theme` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect` | `dpv:NonPersonalData` | app user | shareable |  |
 | `active_dialect_ref` | `dpv:NonPersonalData` | app user | shareable |  |
