@@ -698,6 +698,36 @@ void main() {
     },
   );
 
+  testWidgets(
+    'holding a dance slot in compact layout opens read-only details',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(600, 2000),
+      );
+
+      await tester.longPress(find.byKey(const ValueKey('slot-s1-title')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('program-preview-sheet-d1')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
+    },
+  );
+
   testWidgets('adds a free-text slot', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(_program(id: 'p1', title: 'Night'));

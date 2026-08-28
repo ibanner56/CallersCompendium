@@ -594,10 +594,10 @@ class _SlotTile extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Listener(
-                      onPointerUp: previewable
+                      onPointerUp: onPreviewDanceEnded != null
                           ? (_) => onPreviewDanceEnded!()
                           : null,
-                      onPointerCancel: previewable
+                      onPointerCancel: onPreviewDanceEnded != null
                           ? (_) => onPreviewDanceEnded!()
                           : null,
                       child: GestureDetector(
