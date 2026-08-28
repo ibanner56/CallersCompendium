@@ -189,6 +189,38 @@ void main() {
 
     expect(seen.last, 'café');
   });
+
+  test(
+    'clears the rebuild marker after a successful normalization backfill',
+    () async {
+      await repos.dances.create(sampleDance(id: 'd1', title: 'Original'));
+      await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+        'cafe\u0301',
+        'd1',
+      ]);
+      await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+      for (final key in [
+        inversePairNormalisationDoneKey,
+        starPromenadeHandRemovalDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
+        chainHandBackfillDoneKey,
+      ]) {
+        await repos.settings.set(key, 'done');
+      }
+
+      await repos.ensureMigrated();
+
+      final marker = await db
+          .customSelect(
+            'SELECT 1 FROM settings WHERE key = ?',
+            variables: [const Variable<String>(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(marker, isEmpty);
+    },
+  );
 }
 
 class _FailingOnceNormalisationRepositories extends CompendiumRepositories {
