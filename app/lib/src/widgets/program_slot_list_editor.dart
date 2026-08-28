@@ -599,59 +599,55 @@ class _SlotTile extends StatelessWidget {
                           ? onPreviewDanceStarted
                           : null,
                       onPreviewEnded: onPreviewDanceEnded,
-                      childBuilder: (onLongPress) => GestureDetector(
-                        behavior: HitTestBehavior.deferToChild,
-                        onLongPress: onLongPress,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                if (slot.isAlt) ...[
-                                  Icon(
-                                    Icons.subdirectory_arrow_right,
-                                    size: 16,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              if (slot.isAlt) ...[
+                                Icon(
+                                  Icons.subdirectory_arrow_right,
+                                  size: 16,
+                                  color: theme.colorScheme.tertiary,
+                                ),
+                                const SizedBox(width: 2),
+                                Text(
+                                  l10n.programsAltBadge,
+                                  key: ValueKey('slot-${slot.id}-alt-badge'),
+                                  style: theme.textTheme.labelSmall?.copyWith(
                                     color: theme.colorScheme.tertiary,
-                                  ),
-                                  const SizedBox(width: 2),
-                                  Text(
-                                    l10n.programsAltBadge,
-                                    key: ValueKey('slot-${slot.id}-alt-badge'),
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: theme.colorScheme.tertiary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                ],
-                                Flexible(
-                                  child: Text(
-                                    title,
-                                    key: ValueKey('slot-${slot.id}-title'),
-                                    style: theme.textTheme.titleSmall,
-                                    overflow: TextOverflow.ellipsis,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                if (performed) ...[
-                                  const SizedBox(width: 6),
-                                  Icon(
-                                    Icons.check_circle_outline,
-                                    size: 16,
-                                    color: theme.colorScheme.primary,
-                                    semanticLabel: l10n.programsPerformed,
-                                  ),
-                                ],
+                                const SizedBox(width: 6),
                               ],
-                            ),
-                            if (subtitleParts.isNotEmpty)
-                              Text(
-                                subtitleParts.join(' · '),
-                                style: theme.textTheme.bodySmall?.copyWith(
-                                  color: theme.colorScheme.onSurfaceVariant,
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  key: ValueKey('slot-${slot.id}-title'),
+                                  style: theme.textTheme.titleSmall,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                          ],
-                        ),
+                              if (performed) ...[
+                                const SizedBox(width: 6),
+                                Icon(
+                                  Icons.check_circle_outline,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                  semanticLabel: l10n.programsPerformed,
+                                ),
+                              ],
+                            ],
+                          ),
+                          if (subtitleParts.isNotEmpty)
+                            Text(
+                              subtitleParts.join(' · '),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),

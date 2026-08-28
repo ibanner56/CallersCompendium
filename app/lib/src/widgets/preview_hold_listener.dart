@@ -1,16 +1,21 @@
+import 'dart:async';
+
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-/// Observes the lifetime of a recognized long press without entering the
-/// gesture arena, so an unrelated pointer cannot end the active preview.
+/// Recognizes a stationary hold without entering the gesture arena.
+///
+/// This keeps scroll and drag gestures independent while preserving the pointer
+/// that began the hold through its end or cancellation.
 class PreviewHoldListener extends StatefulWidget {
   const PreviewHoldListener({
     super.key,
-    required this.childBuilder,
+    required this.child,
     this.onPreviewStarted,
     this.onPreviewEnded,
   });
 
-  final Widget Function(VoidCallback? onLongPress) childBuilder;
+  final Widget child;
   final VoidCallback? onPreviewStarted;
   final VoidCallback? onPreviewEnded;
 
@@ -19,39 +24,78 @@ class PreviewHoldListener extends StatefulWidget {
 }
 
 class _PreviewHoldListenerState extends State<PreviewHoldListener> {
-  int? _candidatePointer;
-  int? _previewPointer;
+  final _pendingHolds = <int, _PendingHold>{};
+  final _previewPointers = <int>{};
 
   void _handlePointerDown(PointerDownEvent event) {
     if (widget.onPreviewStarted == null) return;
-    _candidatePointer ??= event.pointer;
+    final hold = _PendingHold(event.position);
+    _pendingHolds[event.pointer] = hold;
+    hold.timer = Timer(kLongPressTimeout, () {
+      if (!mounted || !identical(_pendingHolds[event.pointer], hold)) return;
+      _pendingHolds.remove(event.pointer);
+      final onPreviewStarted = widget.onPreviewStarted;
+      if (onPreviewStarted == null) return;
+      if (_previewPointers.isEmpty) {
+        _previewPointers.add(event.pointer);
+        onPreviewStarted();
+      } else {
+        _previewPointers.add(event.pointer);
+      }
+    });
   }
 
-  void _handleLongPress() {
-    final candidatePointer = _candidatePointer;
-    if (candidatePointer == null) return;
-    _previewPointer = candidatePointer;
-    widget.onPreviewStarted!();
+  void _handlePointerMove(PointerMoveEvent event) {
+    final hold = _pendingHolds[event.pointer];
+    if (hold == null) return;
+    if ((event.position - hold.startPosition).distanceSquared >
+        kTouchSlop * kTouchSlop) {
+      _cancelPendingHold(event.pointer);
+    }
   }
 
   void _handlePointerEnd(PointerEvent event) {
-    if (_candidatePointer == event.pointer) {
-      _candidatePointer = null;
+    _cancelPendingHold(event.pointer);
+    if (!_previewPointers.remove(event.pointer) ||
+        _previewPointers.isNotEmpty) {
+      return;
     }
-    if (_previewPointer != event.pointer) return;
-    _previewPointer = null;
     widget.onPreviewEnded?.call();
+  }
+
+  void _cancelPendingHold(int pointer) {
+    _pendingHolds.remove(pointer)?.timer?.cancel();
+  }
+
+  @override
+  void dispose() {
+    for (final hold in _pendingHolds.values) {
+      hold.timer?.cancel();
+    }
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Listener(
       onPointerDown: _handlePointerDown,
+      onPointerMove: _handlePointerMove,
       onPointerUp: _handlePointerEnd,
       onPointerCancel: _handlePointerEnd,
-      child: widget.childBuilder(
-        widget.onPreviewStarted == null ? null : _handleLongPress,
+      // The passive timer owns the preview lifecycle. This recognizer only
+      // rejects a child tap after a hold has been recognized.
+      child: GestureDetector(
+        behavior: HitTestBehavior.deferToChild,
+        onLongPress: widget.onPreviewStarted == null ? null : () {},
+        child: widget.child,
       ),
     );
   }
+}
+
+class _PendingHold {
+  _PendingHold(this.startPosition);
+
+  final Offset startPosition;
+  Timer? timer;
 }

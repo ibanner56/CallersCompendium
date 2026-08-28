@@ -996,11 +996,10 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 onPreviewEnded: widget.onPreviewDanceEnded == null
                     ? null
                     : () => widget.onPreviewDanceEnded!(entry.dance.id),
-                childBuilder: (onLongPress) => DanceListTile(
+                child: DanceListTile(
                   key: ValueKey('picker-tile-${entry.dance.id}'),
                   entry: entry,
                   onTap: () => _handleAdd(entry.dance.id),
-                  onLongPress: onLongPress,
                 ),
               ),
               // Persistent in-program marker: visible whenever the dance
@@ -1152,7 +1151,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                 onPreviewEnded: widget.onPreviewOnlineEnded == null
                     ? null
                     : () => widget.onPreviewOnlineEnded!(result),
-                childBuilder: (onLongPress) => OnlineResultTile(
+                child: OnlineResultTile(
                   key: ValueKey(
                     'picker-online-result-${result.source.name}-${result.id}',
                   ),
@@ -1160,7 +1159,6 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   onTap: _onlineImporting
                       ? null
                       : () => _importOnlineResult(result),
-                  onLongPress: onLongPress,
                 ),
               ),
               if (_onlineAddedIds.contains((

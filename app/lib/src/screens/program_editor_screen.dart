@@ -336,9 +336,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _openOnlinePreviewSheet(OnlineSearchResultRow result) {
-    final preview = _onlineServiceFor(
-      result.source,
-    ).loadPreview(_repos, result);
+    final preview = _loadOnlinePreviewForSheet(result);
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -361,6 +359,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 );
               }
+
               final data = snapshot.data;
               if (data == null) return const SizedBox.shrink();
               return DanceDetailScreen.readOnlyPreview(
@@ -378,6 +377,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ),
       ),
     );
+  }
+
+  Future<OnlinePreview> _loadOnlinePreviewForSheet(
+    OnlineSearchResultRow result,
+  ) async {
+    try {
+      return await _onlineServiceFor(result.source).loadPreview(_repos, result);
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._openOnlinePreviewSheet',
+      );
+      rethrow;
+    }
   }
 
   /// Column **ids** (`MatrixColumn.moveId`) the caller has hidden from the
