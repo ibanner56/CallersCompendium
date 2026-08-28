@@ -757,6 +757,12 @@ class CompendiumRepositories {
 
     if (rebuild) {
       await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
     }
     await _retireMissingNormalisationSkips(db);
     await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);

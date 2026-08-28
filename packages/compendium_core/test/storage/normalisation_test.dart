@@ -135,6 +135,13 @@ void main() {
       expect(marker, isNotEmpty);
 
       await failing.ensureMigrated();
+      final cleared = await db
+          .customSelect(
+            'SELECT 1 FROM settings WHERE key = ?',
+            variables: [const Variable<String>(derivedRebuildRequiredKey)],
+          )
+          .get();
+      expect(cleared, isEmpty);
 
       final indexed = await db
           .customSelect(
