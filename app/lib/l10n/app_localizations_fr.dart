@@ -2459,6 +2459,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonClose => 'Fermer';
 
   @override
+  String get viewDetails => 'Voir les détails';
+
+  @override
   String get programsNoDateSet => 'Aucune date définie';
 
   @override

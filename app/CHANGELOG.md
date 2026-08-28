@@ -35,6 +35,13 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Added
+
+- **Program dance previews** — inspect saved or online dance details from the
+  program builder without adding or importing them. Hold a result or dance slot
+  for a temporary wide-screen preview, or use **View details** for a
+  keyboard-accessible read-only preview.
+  
 ### Changed
 
 - **Privacy policy** — the published policy now discloses optional Device Sync,

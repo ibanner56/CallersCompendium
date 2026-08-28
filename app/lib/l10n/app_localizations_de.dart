@@ -2454,6 +2454,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonClose => 'Schließen';
 
   @override
+  String get viewDetails => 'Details anzeigen';
+
+  @override
   String get programsNoDateSet => 'Kein Datum festgelegt';
 
   @override

@@ -2439,6 +2439,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonClose => 'Sluiten';
 
   @override
+  String get viewDetails => 'Details bekijken';
+
+  @override
   String get programsNoDateSet => 'Geen datum ingesteld';
 
   @override

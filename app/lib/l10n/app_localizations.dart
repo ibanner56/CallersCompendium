@@ -4050,6 +4050,12 @@ abstract class AppLocalizations {
   /// **'Close'**
   String get commonClose;
 
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
+
   /// Placeholder shown for the event date field when no date has been chosen.
   ///
   /// In en, this message translates to:

@@ -2409,6 +2409,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonClose => 'Close';
 
   @override
+  String get viewDetails => 'View details';
+
+  @override
   String get programsNoDateSet => 'No date set';
 
   @override

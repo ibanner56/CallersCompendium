@@ -79,7 +79,12 @@ Visual design: Material 3 adaptive (Flutter), light/dark/high-contrast themes.*
   list/detail split-pane breakpoint, same as Collection above.
 - Builder: two-pane — program (ordered slots) | collection picker with the
   same filter panel as Collection, including caller-scoped Called / Not called
-  history filtering.
+  history filtering. A sustained primary press is an optional, temporary preview
+  shortcut: a picker result replaces the program pane while held and a dance
+  slot replaces the picker pane while held. Each eligible result and dance slot
+  also exposes a visible, keyboard-operable **View details** action that opens
+  an explicitly closable, read-only preview; short taps keep their add/import
+  behavior.
 - Slots: dance slots + free-text slots (break, waltz, announcements); **ALT
   flag** renders as an indented alternate under its primary (color + icon +
   text, never color alone). A free-text slot's overflow menu offers **create a
