@@ -7,6 +7,7 @@ import '../data/app_theme_scope.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
+import 'preview_hold_listener.dart';
 
 /// Editable, reorderable list of a program's slots for the builder
 /// (`docs/design/ux.md` §4).
@@ -593,16 +594,14 @@ class _SlotTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Listener(
-                      onPointerUp: onPreviewDanceEnded != null
-                          ? (_) => onPreviewDanceEnded!()
+                    child: PreviewHoldListener(
+                      onPreviewStarted: previewable
+                          ? onPreviewDanceStarted
                           : null,
-                      onPointerCancel: onPreviewDanceEnded != null
-                          ? (_) => onPreviewDanceEnded!()
-                          : null,
-                      child: GestureDetector(
+                      onPreviewEnded: onPreviewDanceEnded,
+                      childBuilder: (onLongPress) => GestureDetector(
                         behavior: HitTestBehavior.deferToChild,
-                        onLongPress: previewable ? onPreviewDanceStarted : null,
+                        onLongPress: onLongPress,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

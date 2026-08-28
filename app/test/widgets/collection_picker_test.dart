@@ -637,7 +637,7 @@ void main() {
 
   // --- rowAction (issue #964) -------------------------------------------------
 
-  testWidgets('saved result hold previews without adding and ends on release', (
+  testWidgets('saved preview ends only for its recognized holding pointer', (
     tester,
   ) async {
     final started = <String>[];
@@ -654,14 +654,37 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byKey(const ValueKey('picker-tile-a'))),
+    final center = tester.getCenter(
+      find.byKey(const ValueKey('picker-tile-a')),
     );
+
+    final tap = await tester.startGesture(center, pointer: 4);
+    await tap.up();
+    await tester.pump();
+    expect(started, isEmpty);
+    expect(ended, isEmpty);
+    expect(added, ['a']);
+    added.clear();
+
+    final scroll = await tester.startGesture(center, pointer: 3);
+    await scroll.moveBy(const Offset(0, -100));
+    await tester.pump(const Duration(milliseconds: 600));
+    await scroll.up();
+    await tester.pump();
+    expect(started, isEmpty);
+    expect(ended, isEmpty);
+
+    final gesture = await tester.startGesture(center);
     await tester.pump(const Duration(milliseconds: 600));
     expect(started, ['a']);
     expect(added, isEmpty);
 
-    await gesture.up();
+    final secondPointer = await tester.startGesture(center, pointer: 2);
+    await secondPointer.up();
+    await tester.pump();
+    expect(ended, isEmpty);
+
+    await gesture.cancel();
     await tester.pump();
     expect(ended, ['a']);
     expect(added, isEmpty);

@@ -22,6 +22,7 @@ import 'by_phrase_panel.dart';
 import 'dance_list_tile.dart';
 import 'facet_panel.dart';
 import 'online_result_tile.dart';
+import 'preview_hold_listener.dart';
 
 /// A reusable dance picker that reuses the Collection search stack (full-text
 /// search + [FacetPanel] + [ByPhrasePanel] + [AdvancedQueryBuilder] +
@@ -988,20 +989,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
               : l10n.collectionPickerAddSemantic(entry.dance.title),
           child: Stack(
             children: [
-              Listener(
-                onPointerUp: widget.onPreviewDanceEnded == null
+              PreviewHoldListener(
+                onPreviewStarted: widget.onPreviewDanceStarted == null
                     ? null
-                    : (_) => widget.onPreviewDanceEnded!(entry.dance.id),
-                onPointerCancel: widget.onPreviewDanceEnded == null
+                    : () => widget.onPreviewDanceStarted!(entry.dance.id),
+                onPreviewEnded: widget.onPreviewDanceEnded == null
                     ? null
-                    : (_) => widget.onPreviewDanceEnded!(entry.dance.id),
-                child: DanceListTile(
+                    : () => widget.onPreviewDanceEnded!(entry.dance.id),
+                childBuilder: (onLongPress) => DanceListTile(
                   key: ValueKey('picker-tile-${entry.dance.id}'),
                   entry: entry,
                   onTap: () => _handleAdd(entry.dance.id),
-                  onLongPress: widget.onPreviewDanceStarted == null
-                      ? null
-                      : () => widget.onPreviewDanceStarted!(entry.dance.id),
+                  onLongPress: onLongPress,
                 ),
               ),
               // Persistent in-program marker: visible whenever the dance
@@ -1145,14 +1144,15 @@ class _CollectionPickerState extends State<CollectionPicker> {
               : l10n.collectionPickerAddSemantic(result.name),
           child: Stack(
             children: [
-              Listener(
-                onPointerUp: widget.onPreviewOnlineEnded == null
+              PreviewHoldListener(
+                onPreviewStarted:
+                    _onlineImporting || widget.onPreviewOnlineStarted == null
                     ? null
-                    : (_) => widget.onPreviewOnlineEnded!(result),
-                onPointerCancel: widget.onPreviewOnlineEnded == null
+                    : () => widget.onPreviewOnlineStarted!(result),
+                onPreviewEnded: widget.onPreviewOnlineEnded == null
                     ? null
-                    : (_) => widget.onPreviewOnlineEnded!(result),
-                child: OnlineResultTile(
+                    : () => widget.onPreviewOnlineEnded!(result),
+                childBuilder: (onLongPress) => OnlineResultTile(
                   key: ValueKey(
                     'picker-online-result-${result.source.name}-${result.id}',
                   ),
@@ -1160,10 +1160,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   onTap: _onlineImporting
                       ? null
                       : () => _importOnlineResult(result),
-                  onLongPress:
-                      _onlineImporting || widget.onPreviewOnlineStarted == null
-                      ? null
-                      : () => widget.onPreviewOnlineStarted!(result),
+                  onLongPress: onLongPress,
                 ),
               ),
               if (_onlineAddedIds.contains((
