@@ -128,7 +128,8 @@ String provenanceSourceLabel(AppLocalizations l10n, ProvenanceSource source) =>
       ProvenanceSource.callersCompanion => "Caller's Companion",
       ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
       ProvenanceSource.json => l10n.danceProvenanceSourceJson,
-      ProvenanceSource.publishedCollection => l10n.importSourceLabelPublishedCollection,
+      ProvenanceSource.publishedCollection =>
+        l10n.importSourceLabelPublishedCollection,
     };
 
 /// Localized refusal for a pasted title list that tripped a hard cap
