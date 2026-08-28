@@ -496,8 +496,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
       );
     }
 
-    // Derive a phrase label per drafted (move-bearing) figure by walking the
-    // cumulative beats, mirroring deriveSections but keeping the draft↔row map.
+    // Derive a phrase label per move-bearing draft or meanwhile container by
+    // walking cumulative beats, mirroring deriveSections while keeping the
+    // draft↔row map.
     // `sectionStart` marks the first figure of each section so the label gutter
     // only prints at section boundaries (like figure_table.dart's headers),
     // while the keyed label widget stays present on every row.
@@ -508,7 +509,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     var placedCount = 0;
     String? lastLabel;
     for (final draft in drafts) {
-      if (draft.move == null) {
+      if (draft.move == null && !draft.isMeanwhileGroup) {
         labels[draft.id] = null;
         sectionStart[draft.id] = false;
         continue;

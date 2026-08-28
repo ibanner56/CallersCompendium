@@ -1,8 +1,9 @@
 # Triage label taxonomy — SOURCE OF TRUTH for the Caller's Compendium beta program.
 #
 # This file defines every triage label used to sort, prioritize, and route beta
-# feedback and issues. Edit labels here (name, color, description); do not create
-# ad-hoc labels in the GitHub UI, so the taxonomy stays consistent and reviewable.
+# feedback and issues, including labels created ad hoc before they were recorded
+# here. Edit labels here (name, color, description) so the taxonomy stays
+# consistent and reviewable.
 #
 # Colors are grouped by one hue family per group so a label's group is obvious at
 # a glance:
@@ -25,6 +26,9 @@
 - name: "type: enhancement"
   color: "0E68C9"
   description: "A new feature or an improvement to existing behavior"
+- name: "type: experimental"
+  color: "1D76DB"
+  description: "Experimental behavior under evaluation; may change or be removed"
 - name: "type: feedback"
   color: "3D8BF0"
   description: "General beta-tester feedback or impressions"
@@ -70,7 +74,10 @@
   description: "Perform / calling mode"
 - name: "area: dialect"
   color: "3FB950"
-  description: "Figure taxonomy, notation, and dialects"
+  description: "Figure notation and dialects"
+- name: "area: taxonomy"
+  color: "0E8A16"
+  description: "Figure definitions, parameters, parameter options, and new figure support"
 - name: "area: import"
   color: "57D364"
   description: "Import pipeline and parsers"
@@ -94,6 +101,9 @@
 - name: "status: triage"
   color: "5319E7"
   description: "Awaiting initial triage"
+- name: "status: backlog"
+  color: "FFDDFF"
+  description: "Accepted; not currently scheduled"
 - name: "status: needs-info"
   color: "6F42C1"
   description: "Waiting on more information from the reporter"
@@ -152,6 +162,9 @@
 - name: "help wanted"
   color: "E3A008"
   description: "Extra attention or a contributor is welcome"
+- name: "cluster: callers box improvements"
+  color: "E6E6E6"
+  description: "Tickets for mid/long-term improvements related to parse and import from The Caller's Box"
 
 # --- automation: dependency & CI maintenance (neutral gray) ------------------
 # Applied by Dependabot (or manually) to update PRs; hueless so they read as

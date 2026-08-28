@@ -48,6 +48,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Fixed
 
+- **Meanwhile groups in the dance editor** — beat totals and section labels now
+  update immediately when you group figures, before saving the dance.
+
 - **macOS shutdown** — quitting from the Dock, menu, or Command-Q now waits for
   the local database to close before macOS tears down the app.
 
