@@ -5603,6 +5603,57 @@ with a dedupe review, for an operational event they did not cause).
   predictable inbound. The second is not a fault at all — it is the disuse TTL
   working — and it will read as data loss.
 
+### Sanitising on write, and the transform that must never run on receive
+
+A Copilot review found that the archive decoder sanitises text on the way in
+while the archive encoder and every local write path do not, so the same
+characters that are stripped from an imported dance survive when typed into the
+editor. Verified: `sanitizeImportedText` has no caller under `storage/` or
+`app/lib/`, and `DanceRepository._upsert` does not invoke it.
+
+Under sync that inconsistency stops being cosmetic. A zero-width space pasted
+from a web page produces a record whose hash differs from the one a peer
+computes over the same *visible* text; §6.3 step 9 advances a baseline only
+where a peer's manifest carries this device's current hash, so **neither**
+baseline advances, and the resulting `changed`/`changed` carries an equal
+`updatedAt` because the receiver copies the envelope stamp. §6.3 declines to
+resolve an equal tie and requires it reported — on both devices, on every pass,
+until a human edits a character they cannot see.
+
+**Maintainer's ruling: run the sanitiser on all shareable text**, on write, not
+only on the columns sync serialises. The alternative — reject on send and skip
+on receive — matches this design's skip-and-report stance elsewhere, but the
+report it produces is unactionable, because the offending characters are
+invisible and the message would name a title that looks entirely normal.
+
+Two things fell out of specifying it that the ruling did not have to state.
+
+The first is that **no per-column line-break policy is needed**, which is what
+made the wide scope cheap. `allowLineBreaks` gates exactly three code points —
+tab, LF and CR — and every other class the sanitiser removes is stripped
+unconditionally. Running it with line breaks permitted therefore removes
+precisely the characters that threaten hash stability and touches no legitimate
+structure, so the rule needs no notes-versus-title distinction, no new registry
+axis, and no maintained enumeration of multi-line columns. A registry axis was
+the tempting move and would have been wrong twice over: it overloads a privacy
+classification with an editor concern, and it churns a generated document to
+answer a question the privacy boundary does not ask.
+
+The second is that **the receiver must not be where this is fixed**, and the
+receiver is exactly where the existing code does it. The archive decoder is
+sound precisely because an archive has no manifest and no baseline; port that
+shape to the sync apply path and it becomes the bug. What keeps the inbound call
+harmless is not a carve-out but the write path plus the one-time pass: a
+conforming sender has already sanitised, so the transform returns its input
+unchanged. That is the same argument §4.1 makes for NFC, and it is why the two
+transforms share one unit, one choke point and one backfill rather than being
+specified twice.
+
+**The import path's decode-side sanitisation stays.** It guards untrusted
+external input, which is #444's and #611's concern and a different path from
+sync apply; removing it because a write-path rule now exists would retire a
+protection on the strength of an unrelated fix.
+
 ## Open questions
 
 None outstanding at the design level.

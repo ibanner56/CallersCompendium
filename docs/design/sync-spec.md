@@ -1056,6 +1056,66 @@ therefore MUST carry `kind` alongside the record id (§3.2), exactly as
 baseline was the one per-record structure that did not, which is why this is
 stated in both places rather than left to follow.
 
+### 4.6 Text sanitisation
+
+`sanitizeImportedText`
+(`packages/compendium_core/lib/src/util/text_sanitizer.dart`) removes characters
+that are invisible, that reorder surrounding text, or that have no valid UTF-8
+encoding: unpaired surrogates, C0/C1 controls and `DEL`, the bidi marks and
+embedding controls, `U+200B` ZWSP, `U+2028`/`U+2029`, the word-joiner block, the
+Arabic letter mark and the Mongolian vowel separator. It deliberately keeps
+`U+200C`/`U+200D`, which are shaping controls with no spoofing role.
+
+**Sanitisation applies to every write path, on exactly the terms §4.1 sets for
+NFC**, and for the same reason: it is a transform on stored text, so if it runs
+on some paths and not others, two devices hold one record id and two byte
+strings, and §6.3 reports a `changed`/`changed` conflict that no edit resolves.
+A conforming client MUST therefore sanitise every `shareable` string on every
+path that can populate it, at the same repository write choke point, including
+recursively through the decoded value of a `shareable` settings key; and MUST
+run it over existing rows in the **same one-time pass** as the NFC backfill,
+under the same rules about stamps, collisions and skips.
+
+**The transform is applied with line breaks permitted.** `allowLineBreaks`
+governs exactly three code points — tab, LF and CR (`text_sanitizer.dart:113`) —
+and every other class above is stripped unconditionally. Sanitising on write
+with the default therefore removes precisely the characters that threaten hash
+stability and touches no legitimate structure. Whether a *title* may contain a
+newline is a pre-existing editor question, decided by the editor and unchanged
+by this specification: a rule that stripped line breaks from a notes field to
+satisfy sync would be destroying user content to fix a problem sync does not
+have.
+
+**Why this is not a receiver-side repair.** The obvious reading — the receiver
+cleans what it is given — is wrong, and it is wrong in a way that is invisible
+until two devices are running. A receiver that rewrites inbound content breaks
+"the hash identifies the content": it stores bytes whose hash is not the one the
+sender's manifest advertised, so under §6.3 step 9 **neither** device's baseline
+ever advances, both then read `changed`/`changed`, and because the receiver
+copies the envelope's `updatedAt` the tie is equal and §6.3 declines to resolve
+it. The result is not a bad pass; it is a conflict reported on both devices on
+every pass, forever, triggered by a user pasting a zero-width space from a web
+page. Sanitising *inbound* is a no-op against a conforming peer for the same
+reason NFC is — the sender already ran it, and the function returns its input
+unchanged when nothing is stripped — and it is the write path plus the one-time
+pass, not the inbound call, that makes that true.
+
+This closes a divergence that predates sync. Archive **decode** sanitises
+(`archive_codec.dart:980-1042`, and `_sanitizeFigureJson` at `:755-778`);
+archive **encode** does not; and local edits do not, since
+`DanceRepository._upsert` never calls it. So an imported dance is clean and
+the same text typed into the editor is not, which today shows up only as an
+inconsistency and under sync becomes an unresolvable conflict.
+
+Maintainer's ruling, 2026-08-28, on the scope question this raised: the
+sanitiser runs on **all** `shareable` text, not only the columns sync
+serialises. The rejected alternative was send-side rejection with the receiver
+skipping rather than cleaning, which matches the design's skip-and-report stance
+elsewhere but leaves the user a permanent, unactionable report — the offending
+characters are invisible, so "this dance will not sync" names a title that looks
+entirely normal. Scoping the rule to the sync set was rejected as the same kind
+of maintained enumeration this section rejects for NFC.
+
 ## 5. HTTP contract
 
 Base path `/v1`. TLS required; a client MUST refuse a non-`https` endpoint
@@ -2675,6 +2735,21 @@ point**, asserted structurally over the write paths themselves rather than over
 a list of importers (mutation: add a writer that bypasses the choke point — the
 row is stored NFD, and because nothing recorded it in `normalisation_skips` it
 is never retried and is uploaded verbatim for the life of the install).
+
+The **sanitiser** (§4.6) is asserted on the same terms and by the same routing
+scan, because it is the same choke point and the same failure: a title
+containing `U+200B` typed into the editor is stored clean, and the record's hash
+therefore matches the one a peer computes over the same visible text (mutation:
+sanitise on the inbound apply path *instead* of on write, which is the reading
+the archive decoder already models — every single-device test passes, both
+devices then hold one record id and two byte strings, and the resulting
+`changed`/`changed` has an equal `updatedAt`, so §6.3 reports it on every pass
+and no edit on either device resolves it). A second vector asserts the transform
+is a **no-op on the inbound path against conforming input**, which is what makes
+"the hash identifies the content" true; a receiver whose sanitiser can alter a
+conforming peer's bytes has broken it regardless of what the write path does.
+The one-time pass covers both transforms and is proved on a row that needs each
+independently and on a row that needs both.
 
 The ratchet is stated over **routing**, not over stored bytes, and that
 distinction is now load-bearing rather than stylistic. §4.1's carve-out means a

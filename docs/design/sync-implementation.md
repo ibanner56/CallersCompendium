@@ -194,22 +194,24 @@ and program content — which is precisely what the editor-draft keys held until
 
 > **Checkpoint C1 — the wire format is frozen.** See *Checkpoints* below.
 
-#### W18 · Unicode normalisation across write paths
+#### W18 · Text normalisation and sanitisation across write paths
 
-- **Serves** §4.1 (the every-write-path rule and its one-time pass), and the
-  NFC precondition §6.10 depends on.
+- **Serves** §4.1 and §4.6 (each transform's every-write-path rule, and the
+  one-time pass they share), and the NFC precondition §6.10 depends on.
 - **Inherits** W1's normalisation primitive. Nothing else — it touches no sync
   machinery, and can otherwise start the moment the ADR is accepted.
-- **Produces** NFC normalisation applied at every path that populates a
-  `shareable` string, implemented at the **repository write choke point** each
-  kind already funnels through rather than per-writer; a **one-time backfill
-  migration** over existing rows that leaves `updated_at`, `existence_at` and
-  `deleted_at` untouched, excludes record-identity columns (`settings.key`),
-  detects collisions by **grouping on `(table, column, target)` before writing**
-  rather than by catching the `UNIQUE` violation, **skips and reports** whole
-  colliding groups without aborting, and **rebuilds derived indexes if it wrote
-  anything**; the `normalisation_skips` table (§3.2) with its **retry on each
-  open judged by both halves of the grouping test** — recorded-row grouping by
+- **Produces** NFC normalisation **and `sanitizeImportedText` with
+  `allowLineBreaks: true`** applied at every path that populates a `shareable`
+  string, implemented at the **repository write choke point** each kind already
+  funnels through rather than per-writer; a **one-time backfill migration**
+  applying both transforms over existing rows that leaves `updated_at`,
+  `existence_at` and `deleted_at` untouched, excludes record-identity columns
+  (`settings.key`), detects collisions by **grouping on `(table, column,
+  target)` before writing** rather than by catching the `UNIQUE` violation,
+  **skips and reports** whole colliding groups without aborting, and
+  **rebuilds derived indexes if it wrote anything**; the `normalisation_skips`
+  table (§3.2) with its **retry on each open judged by both halves of the
+  grouping test** — recorded-row grouping by
   `(table, column, target)` *and* live occupancy — its **retirement of entries
   whose row was hard-deleted**, which requires a **new lookup unfiltered by
   `deleted_at`** in all three in-scope repositories, since every existing
@@ -252,7 +254,10 @@ and program content — which is precisely what the editor-draft keys held until
   **constants declared once and imported at all four sites**, which must be
   created — the registry's identifiers are inline map keys today; and a
   **structural** ratchet asserting that write paths route through the choke
-  point.
+  point. The two transforms share the choke point, the backfill, the collision
+  grouping and `normalisation_skips`, so they are one unit: splitting them makes
+  two passes over the same rows and gives one table two owning units, which is
+  the ambiguity W4's card exists to avoid.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
   and otherwise nothing directly, but it **gates C1**: the *Wire format*
   bucket's locally-created-NFD vector, pre-existing-row vector, collision,
@@ -280,7 +285,12 @@ and program content — which is precisely what the editor-draft keys held until
   to a blocked row succeeds, `settings.key` is untouched, a second run of the
   pass changes nothing, a row whose text the pass changed is still found by
   search, and the write-path ratchet catches a **newly added** writer that
-  bypasses the choke point rather than a writer removed from a list.
+  bypasses the choke point rather than a writer removed from a list; and, for
+  the sanitiser specifically, a title containing `U+200B` typed into the editor
+  is stored clean, a paragraph break in a notes field **survives** the pass, the
+  inbound apply path is proved to leave a conforming peer's bytes
+  byte-identical, and a row needing only sanitisation, a row needing only
+  normalisation and a row needing both are each repaired by the one pass.
 
 **This unit exists because the round-31 fix to §4.1 corrected the rule without
 assigning the work it created.** Correcting a rule and leaving its
@@ -1227,6 +1237,7 @@ is where the interesting code is.
 | §4.3 | W3 | §6.9 | W9 |
 | §4.4 | W3 | §6.10 | W8 + W18 |
 | §4.5 | W3 | §6.11 | W9 |
+| §4.6 | W1 + W18 | | |
 | §5.1 | W5 + W10 | §6.12 | W13 |
 | §5.2 | W5 + W10 | §7.1 | W10 |
 | §5.3 | W5 + W10 | §7.2 | W2 + W11 |
@@ -1249,7 +1260,7 @@ buckets. Ownership is now explicit:
 | Merge | W6 |
 | Existence | W6 |
 | Soft-delete join coverage | **W17** |
-| Write-path invariants | **W17** (I1, I2 and I1's exception) + **W18** (the write-path normalisation clause) |
+| Write-path invariants | **W17** (I1, I2 and I1's exception) + **W18** (the write-path normalisation and sanitisation clauses, and the inbound no-op vector) |
 | Classification | W2 (registry property test, including the allow-list bijection) + W6 (inbound apply) |
 | Reconciliation | W7 |
 | Dedupe | W8 |
