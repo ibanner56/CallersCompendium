@@ -2781,10 +2781,13 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // [_showResult] only reports [ImportReviewScreen.onProgramCommitted]
               // from the batch commit path, so an Edit-committed candidate would
               // create a dance the program screen never learns about and can
-              // never link into its slot.
+              // never link into its slot. Title-list ambiguity candidates use
+              // the same suppression to preserve one commit per group.
               if (_effectiveSharedBundle == null &&
                   (i >= _programLineOfRow.length ||
-                      _programLineOfRow[i] == null)) ...[
+                      _programLineOfRow[i] == null) &&
+                  (i >= _ambiguousGroupOfRow.length ||
+                      _ambiguousGroupOfRow[i] == null)) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,

@@ -433,6 +433,10 @@ void main() {
               .onPressed,
           isNull,
         );
+        // Immediate Edit is suppressed for every ambiguity candidate too:
+        // otherwise two Edit actions could bypass the shared group guard.
+        expect(find.byKey(const ValueKey('import-row-0-edit')), findsNothing);
+        expect(find.byKey(const ValueKey('import-row-1-edit')), findsNothing);
 
         await tester.tap(find.byKey(const ValueKey('import-row-0-create')));
         await tester.pumpAndSettle();
