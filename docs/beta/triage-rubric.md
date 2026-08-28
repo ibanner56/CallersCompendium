@@ -5,7 +5,7 @@ after it is filed. It describes how incoming beta feedback is sorted, labeled, a
 tracked so nothing gets lost and testers can see where their reports stand.
 
 Every label named here comes from the project's single source of truth,
-[`.github/labels.yml`](../../.github/labels.yml) — the 38-label taxonomy. Use labels
+[`.github/labels.yml`](../../.github/labels.yml) — the 47-label taxonomy. Use labels
 by their **exact names** (for example `severity: critical`, not "critical"); do not
 invent ad-hoc labels in the GitHub UI.
 
