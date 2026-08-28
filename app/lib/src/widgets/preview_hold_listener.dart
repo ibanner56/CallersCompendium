@@ -73,6 +73,10 @@ class _PreviewHoldListenerState extends State<PreviewHoldListener> {
     for (final hold in _pendingHolds.values) {
       hold.timer?.cancel();
     }
+    if (_previewPointers.isNotEmpty) {
+      _previewPointers.clear();
+      widget.onPreviewEnded?.call();
+    }
     super.dispose();
   }
 

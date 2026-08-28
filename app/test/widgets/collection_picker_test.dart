@@ -766,6 +766,32 @@ void main() {
     expect(added, isEmpty);
   });
 
+  testWidgets('disposing an active saved preview ends its lifecycle', (
+    tester,
+  ) async {
+    final started = <String>[];
+    final ended = <String>[];
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      onPreviewDanceStarted: started.add,
+      onPreviewDanceEnded: ended.add,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('picker-tile-a'))),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(started, ['a']);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(ended, ['a']);
+  });
+
   group('rowAction', () {
     // M5 (issue #964): the paired assertion matters as much as the replace
     // one — a mutation that deletes the rowAction branch would make row
