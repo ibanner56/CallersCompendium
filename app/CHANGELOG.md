@@ -37,6 +37,10 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Changed
 
+- **Program dance previews** — inspect saved or online dance details from the
+  program builder without adding or importing them. Hold a result or dance slot
+  for a temporary wide-screen preview, or use **View details** for a
+  keyboard-accessible read-only preview.
 - **Dance file exports** — the dance **Export** menu now offers privacy-safe
   `.ccshare` and `.json` files containing the dance and its referenced,
   shareable metadata. Recipients review the import before committing it and can

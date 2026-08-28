@@ -3188,6 +3188,7 @@
     "description": "Title of the bottom sheet for picking a dance to add to the program."
   },
   "commonClose": "Close",
+  "viewDetails": "View details",
   "@commonClose": {
     "description": "Generic Close button/tooltip label."
   },

@@ -58,6 +58,9 @@ Future<void> _pumpPicker(
   OnlineSearchService? callersBoxOnline,
   OnlineSearchService? contraDbOnline,
   Future<void> Function(String danceId)? onDanceImported,
+  void Function(String danceId)? onPreviewDanceStarted,
+  void Function(String danceId)? onPreviewDanceEnded,
+  void Function(String danceId)? onViewDanceDetails,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -83,6 +86,9 @@ Future<void> _pumpPicker(
             callersBoxOnline: callersBoxOnline,
             contraDbOnline: contraDbOnline,
             onDanceImported: onDanceImported,
+            onPreviewDanceStarted: onPreviewDanceStarted,
+            onPreviewDanceEnded: onPreviewDanceEnded,
+            onViewDanceDetails: onViewDanceDetails,
           ),
         ),
       ),
@@ -518,7 +524,8 @@ void main() {
     testWidgets('the tapped row shows a check, then reverts to the plus', (
       tester,
     ) async {
-      final repos = await reposWithTwoDances();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
       await _pumpPicker(tester, repos, onAddDance: (_) {});
       await tester.pumpAndSettle();
 
@@ -539,7 +546,8 @@ void main() {
     testWidgets('the confirming row keeps a tooltip naming the dance', (
       tester,
     ) async {
-      final repos = await reposWithTwoDances();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
       await _pumpPicker(tester, repos, onAddDance: (_) {});
       await tester.pumpAndSettle();
 
@@ -628,6 +636,54 @@ void main() {
   });
 
   // --- rowAction (issue #964) -------------------------------------------------
+
+  testWidgets('saved result hold previews without adding and ends on release', (
+    tester,
+  ) async {
+    final started = <String>[];
+    final ended = <String>[];
+    final added = <String>[];
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      onPreviewDanceStarted: started.add,
+      onPreviewDanceEnded: ended.add,
+    );
+    await tester.pumpAndSettle();
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('picker-tile-a'))),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(started, ['a']);
+    expect(added, isEmpty);
+
+    await gesture.up();
+    await tester.pump();
+    expect(ended, ['a']);
+    expect(added, isEmpty);
+  });
+
+  testWidgets('View details is a separate saved-result action', (tester) async {
+    final opened = <String>[];
+    final added = <String>[];
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      onViewDanceDetails: opened.add,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('picker-details-a')));
+    expect(opened, ['a']);
+    expect(added, isEmpty);
+  });
 
   group('rowAction', () {
     // M5 (issue #964): the paired assertion matters as much as the replace

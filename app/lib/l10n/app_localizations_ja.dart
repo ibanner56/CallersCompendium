@@ -2346,6 +2346,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonClose => '閉じる';
 
   @override
+  String get viewDetails => '詳細を表示';
+
+  @override
   String get programsNoDateSet => '日付未設定';
 
   @override

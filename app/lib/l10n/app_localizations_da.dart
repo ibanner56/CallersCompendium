@@ -2422,6 +2422,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonClose => 'Luk';
 
   @override
+  String get viewDetails => 'Vis detaljer';
+
+  @override
   String get programsNoDateSet => 'Ingen dato angivet';
 
   @override

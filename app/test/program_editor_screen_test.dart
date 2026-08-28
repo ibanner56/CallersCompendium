@@ -673,6 +673,31 @@ void main() {
     expect(pickerWidth, closeTo(expectedPaneWidth, 2));
   });
 
+  testWidgets(
+    'holding a saved picker result temporarily previews it in editor pane',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        size: const Size(1200, 2000),
+      );
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey('picker-tile-d1'))),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      expect(find.byKey(const ValueKey('program-preview-d1')), findsOneWidget);
+
+      await gesture.up();
+      await tester.pump();
+      expect(find.byKey(const ValueKey('program-preview-d1')), findsNothing);
+    },
+  );
+
   testWidgets('adds a free-text slot', (tester) async {
     final repos = openTestRepositories();
     await repos.programs.create(_program(id: 'p1', title: 'Night'));

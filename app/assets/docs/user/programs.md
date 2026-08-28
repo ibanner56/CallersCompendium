@@ -120,6 +120,13 @@ picker.*
   immediately. An exact match selects the dance already in your collection
   without prompting. When the import needs your choice between a likely match
   and a separate record, a resolution dialog appears before the dance is added.
+  Use **View details** on a result to inspect it without adding or importing it.
+  On a wide screen, holding a result temporarily shows its details in the
+  program pane; holding a dance slot temporarily shows its details in the picker
+  pane. Releasing restores the pane. **View details** opens the same read-only
+  preview until you close it. On a narrow screen, either action opens details
+  above the still-open picker so your search and selections remain available
+  when you dismiss the preview.
 
 ### Kinds of slots
 
@@ -146,6 +153,8 @@ in minutes — useful both for pacing the evening and for the timing display in
 button for swapping the dance in place — keeping the note, guest caller,
 planned length, and mark-performed status exactly as they were — instead of
 adding the new dance, dragging it into position, and deleting the old one.
+Dance slots also have **View details** for an inspection-only preview; it cannot
+change the program or the dance.
 
 To reorder slots, use the **drag handle** or the **move up / move down** buttons.
 Both do the same job, so you are never forced to drag.

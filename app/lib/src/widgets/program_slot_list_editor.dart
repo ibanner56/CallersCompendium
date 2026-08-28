@@ -31,6 +31,9 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onRemove,
     required this.onCreateDance,
     this.onPickReplacementDance,
+    this.onPreviewDanceStarted,
+    this.onPreviewDanceEnded,
+    this.onViewDanceDetails,
   });
 
   /// Slots in position order.
@@ -76,6 +79,13 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// own state and only committed if the dialog's Save is tapped afterward, so
   /// Cancel discards it like every other in-dialog edit.
   final Future<String?> Function()? onPickReplacementDance;
+
+  /// Optional Program-only lifecycle for a held preview of a resolvable dance.
+  final void Function(String danceId)? onPreviewDanceStarted;
+  final void Function(String danceId)? onPreviewDanceEnded;
+
+  /// Opens a persistent details preview for keyboard and AT users.
+  final void Function(String danceId)? onViewDanceDetails;
 
   @override
   State<ProgramSlotListEditor> createState() => _ProgramSlotListEditorState();
@@ -239,6 +249,21 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   onTogglePerformed: () => _togglePerformed(i),
                   onRemove: () => _remove(i),
                   onCreateDance: () => widget.onCreateDance(i),
+                  onPreviewDanceStarted:
+                      widget.onPreviewDanceStarted == null ||
+                          slots[i].danceId == null
+                      ? null
+                      : () => widget.onPreviewDanceStarted!(slots[i].danceId!),
+                  onPreviewDanceEnded:
+                      widget.onPreviewDanceEnded == null ||
+                          slots[i].danceId == null
+                      ? null
+                      : () => widget.onPreviewDanceEnded!(slots[i].danceId!),
+                  onViewDanceDetails:
+                      widget.onViewDanceDetails == null ||
+                          slots[i].danceId == null
+                      ? null
+                      : () => widget.onViewDanceDetails!(slots[i].danceId!),
                 ),
             ],
           )
@@ -406,6 +431,9 @@ class _SlotTile extends StatelessWidget {
     required this.onTogglePerformed,
     required this.onRemove,
     required this.onCreateDance,
+    this.onPreviewDanceStarted,
+    this.onPreviewDanceEnded,
+    this.onViewDanceDetails,
   });
 
   final int index;
@@ -440,6 +468,9 @@ class _SlotTile extends StatelessWidget {
   /// Create a dance from this slot's note text (issue #881). Only meaningful
   /// when [_showCreateDance] gates the menu item in.
   final VoidCallback onCreateDance;
+  final VoidCallback? onPreviewDanceStarted;
+  final VoidCallback? onPreviewDanceEnded;
+  final VoidCallback? onViewDanceDetails;
 
   /// Whether to offer "create a dance from this" on the "…" menu: only for a
   /// note slot (no [ProgramSlot.danceId]) that isn't the structural break
@@ -453,6 +484,8 @@ class _SlotTile extends StatelessWidget {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final performed = slot.performedAt != null;
+    final previewable =
+        isDanceSlot && !isTombstone && onPreviewDanceStarted != null;
 
     // Redundant formation-family accent (issue #270, extended for mixer flag in
     // issue #732): only for dance slots with a resolved formation, when the user
@@ -560,57 +593,77 @@ class _SlotTile extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
+                    child: Listener(
+                      onPointerUp: previewable
+                          ? (_) => onPreviewDanceEnded!()
+                          : null,
+                      onPointerCancel: previewable
+                          ? (_) => onPreviewDanceEnded!()
+                          : null,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.deferToChild,
+                        onLongPress: previewable ? onPreviewDanceStarted : null,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            if (slot.isAlt) ...[
-                              Icon(
-                                Icons.subdirectory_arrow_right,
-                                size: 16,
-                                color: theme.colorScheme.tertiary,
-                              ),
-                              const SizedBox(width: 2),
+                            Row(
+                              children: [
+                                if (slot.isAlt) ...[
+                                  Icon(
+                                    Icons.subdirectory_arrow_right,
+                                    size: 16,
+                                    color: theme.colorScheme.tertiary,
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    l10n.programsAltBadge,
+                                    key: ValueKey('slot-${slot.id}-alt-badge'),
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.tertiary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    key: ValueKey('slot-${slot.id}-title'),
+                                    style: theme.textTheme.titleSmall,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (performed) ...[
+                                  const SizedBox(width: 6),
+                                  Icon(
+                                    Icons.check_circle_outline,
+                                    size: 16,
+                                    color: theme.colorScheme.primary,
+                                    semanticLabel: l10n.programsPerformed,
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (subtitleParts.isNotEmpty)
                               Text(
-                                l10n.programsAltBadge,
-                                key: ValueKey('slot-${slot.id}-alt-badge'),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: theme.colorScheme.tertiary,
-                                  fontWeight: FontWeight.bold,
+                                subtitleParts.join(' · '),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                            ],
-                            Flexible(
-                              child: Text(
-                                title,
-                                key: ValueKey('slot-${slot.id}-title'),
-                                style: theme.textTheme.titleSmall,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (performed) ...[
-                              const SizedBox(width: 6),
-                              Icon(
-                                Icons.check_circle_outline,
-                                size: 16,
-                                color: theme.colorScheme.primary,
-                                semanticLabel: l10n.programsPerformed,
-                              ),
-                            ],
                           ],
                         ),
-                        if (subtitleParts.isNotEmpty)
-                          Text(
-                            subtitleParts.join(' · '),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                   ),
+                  if (onViewDanceDetails != null && !isTombstone)
+                    IconButton(
+                      key: ValueKey('slot-$index-view-details'),
+                      tooltip: l10n.viewDetails,
+                      icon: const Icon(Icons.visibility_outlined, size: 18),
+                      visualDensity: VisualDensity.compact,
+                      onPressed: onViewDanceDetails,
+                    ),
                   IconButton(
                     key: ValueKey('slot-$index-move-up'),
                     tooltip: l10n.programsMoveSlotUp(title),

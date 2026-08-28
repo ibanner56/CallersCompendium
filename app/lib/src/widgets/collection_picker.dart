@@ -50,6 +50,12 @@ class CollectionPicker extends StatefulWidget {
     this.onImportingChanged,
     this.danceOverrides = const {},
     this.choreographerNamesOverride = const {},
+    this.onPreviewDanceStarted,
+    this.onPreviewDanceEnded,
+    this.onViewDanceDetails,
+    this.onPreviewOnlineStarted,
+    this.onPreviewOnlineEnded,
+    this.onViewOnlineDetails,
   });
 
   /// Preloaded collection vocabulary/dances (loaded once by the builder and
@@ -119,6 +125,20 @@ class CollectionPicker extends StatefulWidget {
   /// Names for authors referenced by [danceOverrides] while the collection
   /// snapshot has not yet observed those choreographers.
   final Map<String, String> choreographerNamesOverride;
+
+  /// Optional Program-only lifecycle for a held saved-dance preview.
+  final void Function(String danceId)? onPreviewDanceStarted;
+  final void Function(String danceId)? onPreviewDanceEnded;
+
+  /// Opens a persistent saved-dance preview for keyboard and AT users.
+  final void Function(String danceId)? onViewDanceDetails;
+
+  /// Optional Program-only lifecycle for a held online-dance preview.
+  final void Function(OnlineSearchResultRow result)? onPreviewOnlineStarted;
+  final void Function(OnlineSearchResultRow result)? onPreviewOnlineEnded;
+
+  /// Opens a persistent online-dance preview for keyboard and AT users.
+  final void Function(OnlineSearchResultRow result)? onViewOnlineDetails;
 
   @override
   State<CollectionPicker> createState() => _CollectionPickerState();
@@ -968,10 +988,21 @@ class _CollectionPickerState extends State<CollectionPicker> {
               : l10n.collectionPickerAddSemantic(entry.dance.title),
           child: Stack(
             children: [
-              DanceListTile(
-                key: ValueKey('picker-tile-${entry.dance.id}'),
-                entry: entry,
-                onTap: () => _handleAdd(entry.dance.id),
+              Listener(
+                onPointerUp: widget.onPreviewDanceEnded == null
+                    ? null
+                    : (_) => widget.onPreviewDanceEnded!(entry.dance.id),
+                onPointerCancel: widget.onPreviewDanceEnded == null
+                    ? null
+                    : (_) => widget.onPreviewDanceEnded!(entry.dance.id),
+                child: DanceListTile(
+                  key: ValueKey('picker-tile-${entry.dance.id}'),
+                  entry: entry,
+                  onTap: () => _handleAdd(entry.dance.id),
+                  onLongPress: widget.onPreviewDanceStarted == null
+                      ? null
+                      : () => widget.onPreviewDanceStarted!(entry.dance.id),
+                ),
               ),
               // Persistent in-program marker: visible whenever the dance
               // already appears in the program being built, whether or not
@@ -983,7 +1014,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
               if (inProgramCount > 0)
                 Positioned(
                   top: 12,
-                  right: 56,
+                  right: widget.onViewDanceDetails == null ? 56 : 104,
                   child: Semantics(
                     label: inProgramCount > 1
                         ? l10n.collectionPickerInProgramCountSemantic(
@@ -1033,6 +1064,17 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   onPressed: () => _handleAdd(entry.dance.id),
                 ),
               ),
+              if (widget.onViewDanceDetails != null)
+                Positioned(
+                  top: 8,
+                  right: 56,
+                  child: IconButton(
+                    key: ValueKey('picker-details-${entry.dance.id}'),
+                    tooltip: l10n.viewDetails,
+                    icon: const Icon(Icons.visibility_outlined),
+                    onPressed: () => widget.onViewDanceDetails!(entry.dance.id),
+                  ),
+                ),
             ],
           ),
         );
@@ -1103,14 +1145,26 @@ class _CollectionPickerState extends State<CollectionPicker> {
               : l10n.collectionPickerAddSemantic(result.name),
           child: Stack(
             children: [
-              OnlineResultTile(
-                key: ValueKey(
-                  'picker-online-result-${result.source.name}-${result.id}',
-                ),
-                result: result,
-                onTap: _onlineImporting
+              Listener(
+                onPointerUp: widget.onPreviewOnlineEnded == null
                     ? null
-                    : () => _importOnlineResult(result),
+                    : (_) => widget.onPreviewOnlineEnded!(result),
+                onPointerCancel: widget.onPreviewOnlineEnded == null
+                    ? null
+                    : (_) => widget.onPreviewOnlineEnded!(result),
+                child: OnlineResultTile(
+                  key: ValueKey(
+                    'picker-online-result-${result.source.name}-${result.id}',
+                  ),
+                  result: result,
+                  onTap: _onlineImporting
+                      ? null
+                      : () => _importOnlineResult(result),
+                  onLongPress:
+                      _onlineImporting || widget.onPreviewOnlineStarted == null
+                      ? null
+                      : () => widget.onPreviewOnlineStarted!(result),
+                ),
               ),
               if (_onlineAddedIds.contains((
                 source: result.source,
@@ -1118,7 +1172,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
               )))
                 Positioned(
                   top: 12,
-                  right: 16,
+                  right: widget.onViewOnlineDetails == null ? 16 : 56,
                   child: IgnorePointer(
                     child: Tooltip(
                       message: l10n.collectionPickerAddedTooltip(result.name),
@@ -1129,6 +1183,21 @@ class _CollectionPickerState extends State<CollectionPicker> {
                         Icons.check_circle,
                       ),
                     ),
+                  ),
+                ),
+              if (widget.onViewOnlineDetails != null)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: IconButton(
+                    key: ValueKey(
+                      'picker-online-details-${result.source.name}-${result.id}',
+                    ),
+                    tooltip: l10n.viewDetails,
+                    icon: const Icon(Icons.visibility_outlined),
+                    onPressed: _onlineImporting
+                        ? null
+                        : () => widget.onViewOnlineDetails!(result),
                   ),
                 ),
             ],

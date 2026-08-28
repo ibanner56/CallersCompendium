@@ -2624,6 +2624,10 @@
   "@commonClose": {
     "x-sourceSha256": "7d9eb7acb13e24625c404401d8e88b2350e32162455885f18276cf802f7701ed"
   },
+  "viewDetails": "Details anzeigen",
+  "@viewDetails": {
+    "x-sourceSha256": "d1bf045bb524dae5b02c471c230958bcd1bf232d7a49367b1cdf977855a06b41"
+  },
   "programsNoDateSet": "Kein Datum festgelegt",
   "@programsNoDateSet": {
     "x-sourceSha256": "4b69308991b5c63e82a15f77c9c81b12905f3291139a152d7df21fe12b1387b1"
