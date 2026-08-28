@@ -38,11 +38,8 @@ def policy_text(path: Path) -> str:
 
 def main() -> None:
     texts = {path: policy_text(path) for path in POLICY_FILES}
-    dates = {
-        re.search(r"effective date:\s*([a-z]+ \d{1,2}, \d{4})", text).group(1)
-        for text in texts.values()
-        if re.search(r"effective date:\s*([a-z]+ \d{1,2}, \d{4})", text)
-    }
+    date_re = re.compile(r"effective date:\**\s*([a-z]+ \d{1,2}, \d{4})")
+    dates = {m.group(1) for text in texts.values() for m in [date_re.search(text)] if m}
     assert len(dates) == 1, f"policy copies have different effective dates: {dates}"
 
     for path, text in texts.items():
