@@ -218,9 +218,17 @@ and program content — which is precisely what the editor-draft keys held until
   `getById` there filters and would make a tombstone indistinguishable from a
   deleted row; a **primary key on `(table, column, record_id)`** with recording
   as an upsert; its restore-clears rule; and its second writer on the
-  ordinary-edit carve-out. The completion marker MUST **record the set of
-  columns the scan covered**, with the pass re-running whenever the live
-  in-scope set **differs** from it — a comparison at open, **not** a migration
+  ordinary-edit carve-out. The completion marker MUST **record a
+  fingerprint of the whole in-scope set — the columns *and* the settings-key
+  classifications, exact keys and prefixes alike** — with the pass re-running
+  whenever the live in-scope set **differs** from it. Recording columns alone
+  fails in both directions: `settings.value_json` is `deviceLocal` at the
+  column level, so reclassifying a key to `shareable` changes no column and the
+  comparison never differs, leaving that key's existing values unbackfilled
+  forever; and the live set already includes those decoded values, so comparing
+  it against a column-only marker differs on every open and re-runs the pass
+  every launch. The two sides of the comparison must be built from the same
+  criteria — a comparison at open, **not** a migration
   hook, since reclassifying a column runs no migration, and inequality rather
   than containment, so a reclassify-out does not make the recorded set a
   high-water mark. That live set MUST be **derived by reflecting over the
@@ -608,7 +616,16 @@ and is marginally stricter locks a user out of their own store, because the ID
 - **Serves** §7.1, §5.1–§5.4 (server half), §8 (server half — the structural
   sync-ID rule and its `403`, and the prohibition on the server running its own
   strength estimator).
-- **Inherits** W3 (schemas). W2 arrives later, via W11.
+- **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation definition
+  only** (contract 5). W2 arrives later, via W11.
+
+  That second edge is narrow by design — it gates the `id_key` derivation and
+  nothing else, so the rest of this unit still runs beside W5 from C1, exactly
+  as the schedule intends. It is declared because the rule above forbids a
+  consumer running parallel with the producer of a contract, and contract 5's
+  resolution makes W5 that producer; left undeclared, the two units sit in
+  precisely the configuration that contract exists to prevent while reading as
+  though nothing connected them.
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
   keying with versioned peppers; the store, manifest and blob endpoints; strong
   quoted `ETag` equal to the manifest content hash, with `If-None-Match`;
@@ -830,7 +847,12 @@ own row can still change what it publishes.
   natural-key collision reconciliation for the `UNIQUE` kinds; `id_aliases` with
   reference rewriting that **bumps the referring record's `updated_at`**; and
   the forfeiture check against `published_records`.
-- **Unblocks** nothing directly; W8 assumes its rules exist.
+- **Unblocks** W8, which applies its alias-rewriting rules to the survivor of
+  a dedupe it does not itself own. An earlier draft said this unit unblocked
+  "nothing directly" in the same sentence that said W8 assumes its rules
+  exist — the two halves contradicted each other, and the schedule followed the
+  first, permitting the two units to decide independently what a rewritten
+  reference means.
 - **Done when** the §9 *Reconciliation* and *Deletion* buckets are both green,
   including the rewrite-in-place mutation — where content changes but no row
   does, so peers never learn of it and the reference stays broken everywhere
@@ -848,8 +870,9 @@ content conflict for W6's table rather than a reconciliation for this unit.
 #### W8 · Attach and fresh-attach dedupe
 
 - **Serves** §6.2, §6.10.
-- **Inherits** W5, W6, W4, and **W14** (dedupe has nowhere to defer to without
-  a review surface).
+- **Inherits** W5, W6, W4, **W7** (the survivor's references are rewritten by
+  its rules), and **W14** (dedupe has nowhere to defer to without a review
+  surface).
 - **Produces** the union — **absence never deletes at attach, but an explicit
   tombstone with the greater `existenceAt` is applied** (§6.2 step 5, §6.4);
   dedupe on `normalizeTitle` plus `_choreographyEquals`, with tombstones

@@ -2093,7 +2093,7 @@ data/
 a database key or any part of a filesystem path, on `GET`, `PUT` and `DELETE
 /v1/manifests/{deviceId}`. §7.1 stores manifests as rows, where an unvalidated
 segment is contained by parameter binding — but the ADR sketches the same data
-as `<syncId>/devices/<deviceId>.json`, and under that shape an unvalidated
+as `<idKey>/devices/<deviceId>.json`, and under that shape an unvalidated
 segment gives any holder of a sync ID an arbitrary file write. The rule is
 stated here so that it does not depend on which storage shape an implementation
 chooses.
@@ -2608,54 +2608,61 @@ rescan finds nothing to write and is forbidden from rebuilding).
 (mutation: test the live set for containment in the recorded set rather than
 inequality — the removal contracts nothing, so the re-entry is contained and
 silent, and rows that accrued NFD while out of scope are never scanned and
-never recorded). **A newly `shareable` column enters the live in-scope set
-without anyone editing a list** (mutation: hand-enumerate the string columns —
-a column added to the registry but not the list never enters the live set, the
-comparison never differs, and the widening trigger is disabled at its input).
-**No primary key enters the live in-scope set** (mutation: derive the set as
-string ∩ `shareable` without excluding identity by reflection — `_key` is
-`shareable`, so every id column joins the scan and `settings.key` is renamed
-rather than repaired; a ratchet checking only classification coverage passes
-this mutation unchanged, so the vector must assert the derived set itself). **A
-retry that rebuilds does not leave a rebuild owed** (mutation: clear the flag
-only alongside the completion marker — retry never writes one, so the next open
-performs a second whole-library rebuild it did not owe). **A pass that skips
-the rebuild sets no flag** (mutation: take the permission on its rebuild only,
-still committing the flag in step 1 — nothing clears it, and the next open
-performs the whole-library rebuild the skip was taken to avoid). **The
-column-to-index mapping is checked against the rebuild's behaviour, not the FTS
-schema** (mutation: join one more column into an existing indexed value without
-altering `CREATE VIRTUAL TABLE` — a schema-derived mapping is unchanged, and a
-skip covering that column becomes silently wrong). **Both writers of
-`normalisation_skips` spell `(table, column)` identically** (mutation: have the
-write-path carve-out use the Dart accessor name while the pass uses the
-registry's snake_case form — entries for the same column never group, condition
-(a) stops correlating them, and no error is raised anywhere). **A tag and a
-choreographer with the same name are both normalised** (mutation: group by
-target value alone rather than by `(table, column, target)` — both are skipped
-forever, and retry cannot repair it because a cross-table collision never stops
-colliding). **A restore re-runs the pass** — restore a library containing an
-un-normalised row after the pass has completed, and assert it is NFC (mutation:
-keep the completion marker across restore — the row is never scanned and stays
-un-normalised for the life of the install; mutation: revalidate the recorded
-entries instead of clearing the marker — the restored row is in no entry, so
-nothing discovers it). **`normalisation_skips` survives an epoch reset and a
-detach** (mutation: clear it with the baseline, as `id_aliases` and
-`review_queue` do — every owed repair is dropped on the next `409` while the
-marker still asserts the scan completed). **A live row whose only colliding
-partner is a tombstone is also skipped, and is normalised on a later run once
-that tombstone is purged** (mutations: ignore soft-deleted rows when grouping —
-the write then fails against an index that does not filter `deleted_at`; treat
-a skip as final — the live row is blocked forever by a record the user cannot
-see or list). **An ordinary edit to a blocked row succeeds** (mutation: apply
-the write-path normalisation rule unconditionally — the user's edit is rejected
-to satisfy an internal invariant). **`settings.key` is not rewritten by the
-pass** (mutation: include every `shareable` string column without excluding
-record identity — the settings record is renamed rather than repaired).
-**Re-running the pass changes nothing** (mutation: make any step non-idempotent
-— a pass interrupted after its last write then repeats it). **A row whose text
-changed is still found by search afterwards** (mutation: skip the derived
-rebuild — the index keeps the pre-normalisation text and matches nothing).
+never recorded). **Reclassifying a settings *key* to `shareable` re-runs the
+pass, and its existing decoded values are backfilled** (mutation: fingerprint
+the marker over columns alone — `settings.value_json` is `deviceLocal` at the
+column level, so no column changes, the comparison never differs, and that
+key's values are never scanned; the inverse mutation, comparing a column-only
+marker against a live set that includes settings values, differs on every open
+and re-runs the pass at every launch). **A newly `shareable` column enters the
+live in-scope set without anyone editing a list** (mutation: hand-enumerate the
+string columns — a column added to the registry but not the list never enters
+the live set, the comparison never differs, and the widening trigger is
+disabled at its input). **No primary key enters the live in-scope set**
+(mutation: derive the set as string ∩ `shareable` without excluding identity by
+reflection — `_key` is `shareable`, so every id column joins the scan and
+`settings.key` is renamed rather than repaired; a ratchet checking only
+classification coverage passes this mutation unchanged, so the vector must
+assert the derived set itself). **A retry that rebuilds does not leave a
+rebuild owed** (mutation: clear the flag only alongside the completion marker —
+retry never writes one, so the next open performs a second whole-library
+rebuild it did not owe). **A pass that skips the rebuild sets no flag**
+(mutation: take the permission on its rebuild only, still committing the flag
+in step 1 — nothing clears it, and the next open performs the whole-library
+rebuild the skip was taken to avoid). **The column-to-index mapping is checked
+against the rebuild's behaviour, not the FTS schema** (mutation: join one more
+column into an existing indexed value without altering `CREATE VIRTUAL TABLE` —
+a schema-derived mapping is unchanged, and a skip covering that column becomes
+silently wrong). **Both writers of `normalisation_skips` spell `(table,
+column)` identically** (mutation: have the write-path carve-out use the Dart
+accessor name while the pass uses the registry's snake_case form — entries for
+the same column never group, condition (a) stops correlating them, and no error
+is raised anywhere). **A tag and a choreographer with the same name are both
+normalised** (mutation: group by target value alone rather than by `(table,
+column, target)` — both are skipped forever, and retry cannot repair it because
+a cross-table collision never stops colliding). **A restore re-runs the pass**
+— restore a library containing an un-normalised row after the pass has
+completed, and assert it is NFC (mutation: keep the completion marker across
+restore — the row is never scanned and stays un-normalised for the life of the
+install; mutation: revalidate the recorded entries instead of clearing the
+marker — the restored row is in no entry, so nothing discovers it).
+**`normalisation_skips` survives an epoch reset and a detach** (mutation: clear
+it with the baseline, as `id_aliases` and `review_queue` do — every owed repair
+is dropped on the next `409` while the marker still asserts the scan
+completed). **A live row whose only colliding partner is a tombstone is also
+skipped, and is normalised on a later run once that tombstone is purged**
+(mutations: ignore soft-deleted rows when grouping — the write then fails
+against an index that does not filter `deleted_at`; treat a skip as final — the
+live row is blocked forever by a record the user cannot see or list). **An
+ordinary edit to a blocked row succeeds** (mutation: apply the write-path
+normalisation rule unconditionally — the user's edit is rejected to satisfy an
+internal invariant). **`settings.key` is not rewritten by the pass** (mutation:
+include every `shareable` string column without excluding record identity — the
+settings record is renamed rather than repaired). **Re-running the pass changes
+nothing** (mutation: make any step non-idempotent — a pass interrupted after
+its last write then repeats it). **A row whose text changed is still found by
+search afterwards** (mutation: skip the derived rebuild — the index keeps the
+pre-normalisation text and matches nothing).
 
 **Cross-kind identity.** A manifest carrying a `dance` and a `program` that
 share one id round-trips both, and both survive a full pass on a second device

@@ -133,9 +133,12 @@ These bound every option below.
    serves Apple users and strands the rest.
 4. **Self-hostable, and optional.** Whatever we run, a user must be able to run
    their own, and the app must work fully when it is unreachable or gone.
-5. **Nothing we host survives 30 days of disuse.** Retention is a rolling
-   TTL on activity, not an absolute age cap: an actively-synced store persists
-   as long as it is used. See Retention.
+5. **No sync-store content we host survives 30 days of disuse.** Retention is
+   a rolling TTL on activity, not an absolute age cap: an actively-synced store
+   persists as long as it is used. The promise is over store *content*; the
+   break-glass access log and any diagnostic log follow their own disclosed
+   retention, stated below and in spec §7.3–§7.4, because a record of access
+   that a reap could destroy is not evidence. See Retention.
 6. **No user accounts and no sign-in**, per the published policy.
 
 ## Decision
@@ -183,12 +186,21 @@ lost and no revocation if it leaks.
 ### What the server holds
 
 ```
-<syncId>/epoch                     opaque 128-bit random value
-<syncId>/blobs/<content-hash>      one copy per distinct record, shared
-<syncId>/devices/<deviceId>.json   one manifest per device
+<idKey>/epoch                     opaque 128-bit random value
+<idKey>/blobs/<content-hash>      one copy per distinct record, shared
+<idKey>/devices/<deviceId>.json   one manifest per device
 ```
 
-A **manifest** maps record ids to content hashes. A device writes only its own
+`<idKey>` is `HMAC-SHA256(pepper, syncID)`, never the sync ID itself — see
+*Security* below, which requires that the plaintext credential is never
+retained. The namespace is written as the derived key here so that a layout
+read in isolation cannot lead an implementer to persist the credential it is
+authenticating with.
+
+A **manifest** maps **kind, then record id**, to content hashes. The two levels
+are normative (spec §4.3): record ids are unique only within their kind, so a
+flat map lets two records of different kinds sharing an id displace one
+another. A device writes only its own
 manifest and reads every sibling. Records are stored as **content-addressed
 blobs**, so two devices holding the same dance store it once: N devices cost N
 small manifests plus one copy of each distinct record, not N copies of the
@@ -200,8 +212,11 @@ key-value store with a TTL and a generated allow-list.
 ### Merging
 
 **The manifest is the merge base.** For each record a device has three hashes —
-its own, the sibling's, and the baseline it last synced — which is a complete
-three-way merge without vector clocks or wall-clock ordering:
+its own, the sibling's, and the baseline it last synced — which detects *what
+changed* without vector clocks or wall-clock ordering. Clocks re-enter only to
+**resolve** the one case hashes cannot, `changed`/`changed`, where the rule is
+last-writer-wins on `updatedAt` — a plain local wall clock (spec §4.3). So the
+design removes clocks from change detection, not from conflict resolution:
 
 | Local | Remote | Result |
 | --- | --- | --- |
@@ -572,7 +587,7 @@ that owns those ports permanently has no such window. It also means the service
 runs unprivileged, never restarts for a renewal, and needs no certificate paths
 in its configuration.
 
-**Five requirements on whatever proxy is used.** These are conformance
+**Six requirements on whatever proxy is used.** These are conformance
 requirements, not deployment taste, and each has a concrete failure mode:
 
 - **`Authorization` must reach the backend unmodified.** The sync ID is a
@@ -618,13 +633,28 @@ requirements, not deployment taste, and each has a concrete failure mode:
   credential on every request with no rotation and no revocation — so one
   plaintext call is a complete and permanent disclosure.
 
+- **The per-IP rate limit must see the real client address.** The server binds
+  loopback, so its socket peer is the proxy on *every* request. A server that
+  limits by socket peer therefore puts every user on earth in one bucket, where
+  one active device can exhaust the limit for everybody — and §8 rests the whole
+  enumeration bound on this limit specifically, the per-ID-hash limit having
+  already been shown never to engage against a guesser. Either the proxy
+  enforces the limit itself, or the server reads a client-IP header the proxy is
+  required to set. If the header route is taken the proxy MUST **overwrite** any
+  inbound value rather than append, and the server MUST accept the header only
+  when the socket peer is loopback: trusting a spoofable forwarding header is
+  strictly worse than having no limit at all, because an attacker sets a fresh
+  value per request and buys unlimited guesses while an honest shared-NAT user
+  is still throttled. Both failure directions are silent. See spec §7.5,
+  requirement 6.
+
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound
 source port while the service is stopped and block it from rebinding —
 intermittent, self-clearing, and painful to diagnose. Reserve it
 (`net.ipv4.ip_local_reserved_ports`) or choose a port below the range.
 
-**Self-hosters are not held to the Apache specifics**, only to the five
+**Self-hosters are not held to the Apache specifics**, only to the six
 requirements above — and the fifth is one this project can only guarantee for
 the deployment it runs. A self-hoster who serves plaintext cannot be detected
 from the client: an `https` endpoint whose proxy *also* answers on `:80` is
