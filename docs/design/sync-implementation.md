@@ -621,19 +621,29 @@ contact with the real contract happens at the end. My recommendation is to start
 W10 at C1, concurrently with W4 and W5, and to treat "the client team has a real
 server to run against" as the point of it rather than a side effect.
 
-#### W13 · Settings blade, enablement, pairing and triggers
+#### W13 · Settings blade, pairing, triggers and user-facing obligations
 
-- **Serves** §6.1, §6.12.
-- **Inherits** W5 for the ID and endpoint types. Everything else can be built
-  against a fake engine from C1 onward.
+- **Serves** §6.1, §6.12, §6.13.
+- **Inherits** W5 for the ID and endpoint types, and **W6 + W9 for the
+  `sync_exclude_imports` filter alone** — that clause acts on the publish set
+  and needs §6.9's citation closure, so it is the one part of this unit that
+  cannot be built against a fake engine. The blade, pairing, triggers, status
+  surface and the §6.13 hint can, from C1 onward.
 - **Produces** the top-level Settings blade; **off on every installation until
   the user turns it on, with no sync-related network call while off**; the
   pairing flow, which must work for a user reading an ID aloud over the phone;
   *Sync only on WiFi* defaulting to on, with a manual attempt on a metered
-  connection routing to the setting; and the status surface.
+  connection routing to the setting; the status surface;
+  **`sync_exclude_imports`** and the publish-set filter it drives, including the
+  §6.9 citation closure that keeps a cited imported dance published and the
+  upload-only scope that keeps it convergent; and the **partial-venue hint** of
+  §6.13, derived on read and naming the local-only fields.
 - **Unblocks** nothing. It is a leaf, which is what makes it safely parallel.
 - **Done when** the enablement test proves the no-network-call property, not
-  merely that the toggle renders.
+  merely that the toggle renders, **and** the §9 *User-visible sync obligations*
+  bucket is green — both `sync_exclude_imports` clauses (a cited imported dance
+  stays published; a second pass makes no further request for a peer's imported
+  dance) and the hint's field-naming clause.
 
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop.
@@ -776,7 +786,7 @@ the programme and the only one that can block a release on its own.
   that resolves as `changed`/`changed`; existence decided by `existenceAt`
   *before* the table is consulted and separately from content; the apply path;
   the isolate boundary; and enforcement of **I1** and **I2**.
-- **Unblocks** W7, W8, W9.
+- **Unblocks** W7, W8, W9, and **W13**'s `sync_exclude_imports` filter.
 - **Done when** the §9 *Merge* and *Existence* buckets are green, including
   ≥3-device
   convergence with interleaved edits, the equal-`updatedAt` tie being **reported
@@ -861,7 +871,8 @@ and it merges records **silently**.
   with the baseline" clears neither, and the pass never re-runs over restored
   rows. The rule is over the **event**, not the mode: `RestoreMode.merge` writes
   unjudged rows exactly as `replace` does.
-- **Unblocks** nothing.
+- **Unblocks** **W13**'s `sync_exclude_imports` filter, which reuses this
+  unit's §6.9 citation closure and nothing else here.
 - **Done when** the §9 *Quarantine and repair* bucket is green, and so is the
   restore half of *Attach and restore* — a restore converges rather than
   diverging — and a restore is proved to re-run the normalisation pass: a
@@ -970,7 +981,9 @@ graph LR
   W6 --> W9[W9 quarantine + restore]
   W4 --> W14[W14 review surface]
   W14 --> W8
-  W5 --> W13[W13 settings + pairing]
+    W5 --> W13[W13 settings + pairing]
+  W6 --> W13
+  W9 -.exclude-imports.-> W13
   W12 --> W16[W16 ops]
   W15[W15 privacy policy<br/>fully parallel]
   W17[W17 standing-invariant<br/>ratchets] -.constrains.-> W6
@@ -1009,7 +1022,8 @@ Everything else has slack, and the slack is worth spending deliberately:
 - **W10 runs beside W4 and W5**, from C1. It is off the *nominal* critical path
   and on the *practical* one, because W6 is far cheaper to build and far safer
   to trust against a real server than a mock.
-- **W13 and W14 run from C1** against fakes. They are leaves; W14 rejoins at W8.
+- **W13 and W14 run from C1** against fakes. They are leaves; W14 rejoins at W8,
+  and W13 rejoins at W6 + W9 for the `sync_exclude_imports` filter only.
 - **W15 runs whenever.** It should be done first, being the cheapest thing that
   can block a release — and under S7 it blocks the beta, not just the release.
 - **W17 runs first, or as near to first as anything does.** It is independent of
@@ -1205,9 +1219,10 @@ is where the interesting code is.
 | §5.2 | W5 + W10 | §7.1 | W10 |
 | §5.3 | W5 + W10 | §7.2 | W2 + W11 |
 | §5.4 | W10 (caps enforced at the boundary) + W12 (store-level quota values) | §7.3 | W12 |
-| §6.1 | W13 | §7.4 | W12 + W16 |
+| §6.1 | W13 (including `sync_exclude_imports`: the publish-set filter, its citation closure and its upload-only scope) | §7.4 | W12 + W16 |
 | §6.2 | W8 | §7.5 | W16 |
 | §6.3 | W6 | §8 | W5 + W10 |
+| §6.13 | W13 (the partial-venue hint) | | |
 
 §9 is **not** distributed by prose. An earlier draft claimed it was, while only
 six of its buckets were named by any unit — leaving *Existence*,
@@ -1229,6 +1244,7 @@ buckets. Ownership is now explicit:
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
 | Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, and the `{deviceId}`/`{hash}` format clauses) + **W12** (the `DELETE` grace-window clause and the no-logging clause) + **W16** (the plaintext-refusal clause, checked against the running configuration) |
+| User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses and the partial-venue hint) |
 | Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
 
 A bucket split across units is split by clause, not left jointly owned: each

@@ -448,7 +448,10 @@ Rationale.
 
 **A sync ID that no device has used for 30 days is dropped in its entirety** —
 epoch, manifests and blobs. The next device to connect performs a fresh attach,
-and the first to do so seeds the store.
+and the first to do so seeds the store — which works only because an attach ends
+by running one steady-state pass (spec §6.2 step 7). Attach itself publishes no
+manifest, so without that step the seeding device would be invisible to peers
+and the blobs it uploaded would be collected as unreferenced.
 
 Two paths, together covering every case without us processing a request by hand:
 
@@ -472,10 +475,20 @@ and walkthrough snippets represent real work a user would hate to redo.
 
 - `shareable` → travels
 - `deviceLocal` → **never reaches Athenaeum**
-- `deviceScoped` → never travels **as record content** (window position,
-  per-device text scale). The class governs serialised record fields, not a
-  transport's own routing metadata: the device ID is `deviceScoped` and still
-  appears in manifest envelopes and request paths as an opaque routing key.
+- `deviceScoped` → never travels **by any route** (window position, per-device
+  text scale). A draft of this design read the class as governing record content
+  only, so that the device ID could be `deviceScoped` and still ride in a
+  request path; the maintainer rejected that, because the ruling on #923 depends
+  on the absolute reading and weakening the term here would have weakened that
+  ruling in a file it does not mention.
+- `protocolIdentifier` → **a fifth class this programme adds.** It covers a
+  value the protocol must put on the wire to function and which carries no user
+  data by construction — here, only the sync device ID. It is the one class that
+  permits transmission and forbids *adoption*: a device mints its own and MUST
+  never take a peer's, or two devices write one manifest. It is also the one
+  that obliges a stated retention wherever the server records it, logs included,
+  because `{deviceId}` sits in a request path and lands in ordinary access logs
+  by default. Spec §3.3 and §7.3.
 - `derived` → never transmitted; rebuilt on arrival
 
 **There is no device-to-device channel.** `deviceLocal` data moves only by the
@@ -486,14 +499,16 @@ The visible consequence is that **venues sync partially**: name, website, event
 name, schedule, time, price, sponsor and notes arrive; the address block and both
 contact blocks stay blank. This is correct and required, and it looks exactly
 like data loss, so affected venue records carry a **persistent hint**.
+Specified at spec §6.13 and owned by W13.
 
 The hint must **name the fields that stay local** rather than promise that
 contact details do not travel. `venues.notes` is `shareable` — ruled so
-deliberately, as the user's own words — and the registry's own note for that
-field predicts the interaction verbatim: *"a user who wrote 'ask for Bob,
-555-1234' into a venue note will have that text travel."* A hint saying "contact
-details stay on this device" would therefore be a false assurance about the one
-field most likely to break it.
+deliberately, as the user's own words — and the classification it carries
+(`_freeformNote`, `field_registry.dart:251`) records the interaction as
+knowingly accepted residual risk: *"a user who wrote 'ask for Bob, 555-1234'
+into a venue note will have that text travel with the note."* A hint saying
+"contact details stay on this device" would therefore be a false assurance about
+the one field most likely to break it.
 
 ### Imported dances
 
@@ -503,6 +518,12 @@ path and no special case.
 
 A user setting to **exclude imported dances from sync** ships in v1, for people
 who want a lean sync — and it is the lever offered when a store hits its quota.
+Specified at spec §6.1 and owned by W13. Two properties there are not obvious
+from this sentence: it governs **upload only**, because filtering the download
+side never converges; and it withholds only imported dances **no published
+record cites**, because withholding them outright would drag every program
+citing them out of sync along the §6.9 closure — saving space by removing the
+user's programs.
 
 The reference-and-refetch alternative is recorded under Rationale and as a
 revisit trigger, not as an open choice.

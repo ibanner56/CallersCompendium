@@ -258,7 +258,30 @@ Device Sync holds no allow-list of its own. It reads `EgressClass` from the
 privacy registry (`field_registry.dart`, `settings_registry.dart`).
 
 - `shareable` — MAY travel.
-- `deviceLocal`, `deviceScoped`, `derived` — MUST NOT be serialised into a blob.
+- `deviceLocal`, `deviceScoped`, `derived`, `protocolIdentifier` — MUST NOT be
+  serialised into a blob.
+
+**`protocolIdentifier` is a fifth `EgressClass`, added by this programme.** It
+covers a value the protocol MUST put on the wire in order to function, and which
+carries no user data by construction: `sync_device_id` is the only such value
+here. It is not `deviceScoped`, because that class means *never transmitted by
+any route* and this one is transmitted on every request; it is not `shareable`,
+because a receiving device that adopted the sender's value would give two
+devices one manifest. A `protocolIdentifier` value MUST:
+
+1. be generated locally from a cryptographically secure source, and derived from
+   no device, user or hardware attribute;
+2. never be serialised into a record blob, exactly as the other three
+   non-`shareable` classes;
+3. never be **applied** from a received record or envelope — a device's own
+   identifier is minted once and only ever read from local storage; and
+4. carry a bounded, stated retention wherever the server durably records it,
+   including logs (§7.3).
+
+Rule 3 is the one no other class expresses. `shareable` permits adoption and
+`deviceScoped` forbids it only by forbidding transmission outright, so a value
+that must travel *and* must never be adopted had no correct classification
+before this member existed.
 
 The serialiser MUST filter by classification; the archive codec does not do this
 and MUST NOT be relied on for it. The registry uses snake_case `table.column`
@@ -278,7 +301,7 @@ fail closed: a key with no classification MUST NOT be serialised, exactly as if
 it were `deviceLocal`.
 
 Filtering MUST therefore be expressed as an allow-list of keys classified
-`shareable`, never as a denylist of the other three classes. A denylist admits
+`shareable`, never as a denylist of the other classes. A denylist admits
 every key the lookup fails to resolve, and an unresolved `settings` key can hold
 unsaved user-authored dance and program content — which is exactly what the
 editor draft keys held for as long as they went unclassified, until #973.
@@ -1256,7 +1279,39 @@ Device Sync MUST be disabled on every installation until the user turns it on.
 An unconfigured app MUST make no sync-related network call. It gets its own
 top-level Settings blade.
 
-Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
+Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync,
+with one exception: `sync_device_id` is `protocolIdentifier` (§3.3). It travels
+on every request and MUST NEVER be applied from a peer.
+
+**`sync_exclude_imports`** is one of those keys: a per-device toggle, default
+**off**, which trims what this installation publishes. It is `deviceScoped`
+rather than `shareable` because it is a statement about this device's upload
+budget, not about the library: a phone may want it on while a laptop does not.
+
+It governs **upload only**. A device with it on still applies imported dances a
+peer publishes. Filtering the *download* side does not converge: a peer would go
+on advertising the record, this device would never record agreement for it, and
+every subsequent pass would re-fetch and re-discard it forever — the merge table
+in §6.3 has no "ignore" action, and adding one would need per-record state that
+outlives the setting.
+
+**Scope: a dance carrying import provenance that no published record cites.**
+Provenance alone decides it; there is no pristine-tracking, so a dance edited
+heavily after import is still an imported dance. The citation clause is
+load-bearing and is the §6.9 withholding fixpoint run in reverse: withholding an
+imported dance outright would withhold every program citing it, by the same
+database-enforced-foreign-key closure §6.9 already specifies, and most programs
+cite imported dances — so the naive reading removes the user's programs from
+sync in order to save space, which is not a lean sync but a broken one.
+Retaining cited dances leaves exactly the population the setting exists for: a
+large imported corpus of which a handful of dances are actually used.
+
+Two consequences MUST be surfaced rather than left to be discovered. Turning the
+setting **on** does not delete anything from peers — absence never deletes
+(§6.4, §6.2 step 5) — so records already published stay live on any peer holding
+them, and this device simply stops advertising them; the blobs become
+collectable under §7.3 only once no manifest references them. Turning it **off**
+republishes, which is an ordinary upload and needs no special path.
 
 ### 6.2 Attach
 
@@ -1288,6 +1343,24 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    the harm.
 6. Persist the epoch and the resulting manifest as the new baseline. Quarantine
    and repair run **after** this, never during the union.
+7. **Immediately run one steady-state pass (§6.3).** Attach itself publishes
+   nothing: it uploads blobs at step 4 and writes no manifest, so until §6.3
+   step 8 runs, this device is absent from §7.1's `devices` list, no peer can
+   see any record it holds, and by §7.3 the blobs it just uploaded are
+   unreferenced and become collectable once the grace window elapses. A device
+   attaching to an empty store — the expected shape after the §7.3 TTL expires
+   a store, and on first attach — would otherwise seed nothing at all.
+
+   This pass is a **continuation of the attach**, not a second concurrent
+   operation, and §6.12's single-flight rule MUST NOT be read as forbidding it.
+
+   **It MUST NOT re-enter attach.** If its §6.3 step 1 observes an epoch other
+   than the one step 6 just persisted, the store was re-created underneath this
+   attach; the pass MUST stop without publishing and leave the fresh attach to
+   the next ordinary trigger. Recursing instead is unbounded in the pathological
+   case — a peer that keeps re-creating the store keeps restarting the union —
+   and deferring costs only publication delay, since every record is already
+   held locally and the next trigger is a §6.12 event away.
 
 ### 6.3 Steady-state sync
 
@@ -1365,9 +1438,12 @@ Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync.
    an undone import is exactly what §3.1's `hardDelete` exemption exists to
    avoid — but it is recoverable and visible, where the under-mark is neither.
    This step is the only point at which a record becomes exposed: §6.2 performs
-   no manifest `PUT`, and by §7.3 a blob is unreachable until some manifest
-   references it, so the blobs uploaded at attach step 4 create no window ahead
-   of the first mark.
+   no manifest `PUT` of its own, and by §7.3 a blob is unreachable until some
+   manifest references it, so the blobs uploaded at attach step 4 create no
+   window ahead of the first mark. Attach reaches publication by *running this
+   pass* (§6.2 step 7), which is why there is still exactly one publication
+   point to reason about — and why those blobs are published well inside §7.3's
+   grace window rather than relying on it.
 9. Store the new baseline. A record's entry advances **only** where a peer's
    manifest was observed to carry this device's current content hash.
 
@@ -1846,6 +1922,43 @@ content it no longer holds, with a baseline that says the peers already agree.
 The triggers above make this reachable without adversarial timing: a debounced
 pass and a user's "Sync now" are the ordinary case.
 
+An attach and the §6.3 pass its step 7 requires are **one** operation for this
+purpose. Counting them as two makes attach either deadlock against its own
+single-flight lock or publish nothing — which is the defect §6.2 step 7 exists
+to fix.
+
+### 6.13 The partial-venue hint
+
+Venues sync partially and always will: name, website, event name, schedule,
+time, price, sponsor and notes are `shareable`, while the address block and both
+contact blocks are `deviceLocal` and there is no device-to-device channel to
+carry them. A venue therefore arrives on a second device with those fields
+blank, which is indistinguishable from data loss to the person looking at it.
+
+A client MUST therefore show a **persistent hint** on a venue whose
+`deviceLocal` fields are empty while Device Sync is enabled. Requirements:
+
+1. **Persistent, not transient.** A snackbar or toast is non-conforming: the
+   condition is permanent, so the explanation MUST remain visible for as long as
+   it holds, on the surface where the blank fields are.
+2. **Derived, never stored.** The condition is "sync enabled ∧ this venue's
+   `deviceLocal` fields are empty". It needs no column, no marker and no record
+   of provenance — and MUST NOT acquire one, because a stored flag would then
+   need its own classification, lifecycle and epoch behaviour to answer a
+   question two live reads already answer.
+3. **It MUST name the fields that stay on the device, and MUST NOT promise that
+   contact details do not travel.** `venues.notes` is `shareable` — ruled so
+   deliberately, because it is the user's own words — and the classification it
+   carries (`_freeformNote`, `field_registry.dart:251`) records the interaction
+   as knowingly accepted residual risk: *"a user who wrote 'ask for Bob,
+   555-1234' into a venue note will have that text travel with the note."* A
+   hint saying "contact details stay on this device" would be a false assurance
+   about precisely the field most likely to falsify it. Naming the address and
+   contact *fields* is true regardless of what the user typed elsewhere.
+
+Requirement 3 is why this is normative rather than a UI detail. The wrong
+wording here is not a worse hint; it is a privacy claim the app cannot keep.
+
 ## 7. Server conformance
 
 ### 7.1 Storage
@@ -2023,6 +2136,21 @@ any handler that reports a rejected body — MUST log the `id_key` and the blob
 hash only, never the offending body. Any diagnostic log that can contain
 store-derived data MUST carry a stated bounded retention, and that retention
 MUST be disclosed alongside §7.4's.
+
+**A request path contains a device identifier, and ordinary access logs record
+request paths.** `GET`, `PUT` and `DELETE /v1/manifests/{deviceId}` therefore
+put a `protocolIdentifier` (§3.3) into the default log line of every common
+server and proxy, without anyone deciding to log it. That identifier is
+linkable: it correlates every request one installation ever makes, alongside
+whatever else the format records. So either the `{deviceId}` segment MUST be
+redacted before the line is written, or the log MUST carry a bounded retention
+stated and disclosed on the same terms as §7.4's. An operator who does neither
+holds an indefinite per-installation request history while passing every other
+test in §9.
+
+The sync ID is governed more strictly and separately: §7.5 requirement 4 forbids
+writing it to any log at all, and §5.1 keeps it out of URLs precisely so that
+this paragraph's hazard cannot apply to it.
 
 This is stated because logs sit outside every mechanism the rest of this section
 builds. They are not in `blob_refs`, so the sweep never reaps them; they are not
@@ -2487,7 +2615,13 @@ output, never a hand-written key string. `deviceLocal` never serialised —
 property test over the registry, and it MUST NOT be allowed to become vacuous.
 Inbound apply preserves device-local columns. Inbound apply rejects present
 non-shareable keys, using the **wire** spelling. A peer cannot push a
-`deviceScoped` setting.
+`deviceScoped` setting. **A `protocolIdentifier` value is never adopted**: a
+manifest or settings record naming a `sync_device_id` other than this device's
+leaves the local identifier unchanged, asserted by reading it back after apply
+(mutation: treat `protocolIdentifier` as `shareable` on the inbound side, which
+every serialisation test still passes because the send side never emits it — the
+adoption bug is receive-only). A `protocolIdentifier` value is also never
+serialised into a blob, on the same terms as the other non-`shareable` classes.
 
 **Reconciliation.** Converges from both sides (mutation: keep the local row).
 Inbound references to the losing UUID are remapped. `deviceLocal` fields
@@ -2553,7 +2687,15 @@ swallowed, and is reported again on the next steady pass (mutation: apply the
 remote body and skip the report — a mutation that merely keeps local is
 indistinguishable from the rule). Fresh attach stays referentially closed across
 a pending hold. Three-peer fresh attach (deleter, pending holder, stale peer). A
-restore converges rather than diverging.
+restore converges rather than diverging. **An attach publishes**: after
+attaching to an empty store, this device appears in §7.1's `devices` list and a
+second device attaching afterwards receives its records (mutation: end attach at
+step 6 — every merge, union and dedupe test still passes, because each of them
+inspects local state and the defect is that nothing was ever exposed). The pass
+attach runs **does not re-enter attach** when the epoch changed underneath it:
+it stops without publishing and the next trigger performs the fresh attach
+(mutation: recurse, and assert boundedness against a store re-created on every
+`GET /v1/store`).
 
 **Server.** Each cap rejected at the boundary, not after allocation. A sync ID
 one code point over the word bound is rejected `403`, and one at the bound is
@@ -2605,6 +2747,22 @@ but which of the two reaches a given deployment is not the operator's to know
 (§7.5), and refusal is the only answer that fails visibly for both. This is a
 deployment test against the running configuration, since no unit test of the
 server process can observe which port a proxy accepted the request on).
+
+**User-visible sync obligations.** With `sync_exclude_imports` on, an imported
+dance that no published record cites is absent from this device's manifest,
+while an imported dance a published program cites is still published — asserted
+over a library holding both (mutation: withhold every imported dance, which
+passes any test that only checks the uncited one and silently drags the citing
+programs out of sync by the §6.9 closure). The setting filters **upload only**:
+with it on, a peer's imported dance still applies, and a second pass makes no
+further request for it — the mutation that also filters the download side does
+not converge and is detected by asserting the pass count, not the local state.
+Turning it on removes nothing from a peer. The **partial-venue hint** appears on
+a venue whose `deviceLocal` fields are empty while sync is enabled, is derived
+rather than stored, and **names the local-only fields** rather than promising
+that contact details do not travel (mutation: assert the hint text does not
+claim contact details stay on the device — `venues.notes` is `shareable`, so
+that claim is false and the hint is where a user would read it).
 
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
 one record without aborting the batch or escaping the isolate. Interrupted sync

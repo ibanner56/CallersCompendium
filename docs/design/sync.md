@@ -461,40 +461,73 @@ this contradicts the term, since the ID plainly travels. Over-correcting to
 sync would then carry `device_id` into a settings blob, and the receiving device
 would adopt the sender's ID — two devices writing the same manifest.
 
-The resolution is a distinction the registry always implied but did not say, and
-**the enum's own doc comment has been amended in this PR** to say it —
-documentation being part of the change:
+A first attempt at a resolution amended the enum's own doc comment so that
+`EgressClass` governed record *content* only, letting `device_id` be
+`deviceScoped` and still travel in a manifest envelope. **The maintainer
+rejected that**, and was right to: it makes egress depend on which part of a
+request a value lands in rather than on the classification, and the ruling on
+#923 turns on the absolute reading — it rejected `deviceLocal` for editor
+drafts *because* `deviceScoped` means never transmitted by any route. Weakening
+the term here would have silently weakened that ruling, in a file it does not
+mention.
 
-**`EgressClass` governs record *content*. Protocol envelopes are not records.**
+The ruling instead: **protocol identifiers get a class of their own.** The enum
+gains a fifth member, `EgressClass.protocolIdentifier`, and `deviceScoped`
+returns to the wording it had before this design touched it.
 
-The device ID, the epoch and the content hashes are routing metadata: they carry
-no user data by construction, and they must travel or the protocol does not
-function. The classification question — "may this field's value be included in a
-synced record?" — is answered for `device_id` by **`deviceScoped`**, which is
-correct and matches the enum's own wording ("a per-device marker"): a device must
-never adopt another's ID.
+| | `deviceScoped` | `protocolIdentifier` |
+| --- | --- | --- |
+| In a record blob | Never | Never |
+| In a request path or envelope | Never | Yes, to the configured endpoint only |
+| Adopted from a peer | N/A | Never — each installation mints its own |
+| Content | Any local value | Opaque random bytes, derived from nothing |
+| Retention | Local only | Stated, bounded, and disclosed |
 
-So: `device_id` is classified `deviceScoped` and never appears in a blob. The
-same string appears in manifest envelopes and request paths as an opaque routing
-key. Both statements are true and they are about different things.
+Two properties of that table are the reason it is a class and not a footnote.
+The first is that a protocol identifier is **linkable** — it correlates every
+request one installation ever makes — so "carries no user data by construction"
+is a claim about its *content*, not about its effect, and it is exactly the kind
+of claim this project does not let itself make without a retention rule
+attached. Spec §7.3 now carries one, because `{deviceId}` sits in a **request
+path** and therefore lands in ordinary access logs by default, where no
+mechanism in §7 reaches it: it is not in `blob_refs`, so the sweep never reaps
+it, and it is not under the store, so `DELETE /v1/store` does not remove it.
+That hole is the concrete cost of the carve-out we nearly took, and nothing in
+the "envelopes are not records" framing would have surfaced it.
+
+The second is that **the class has to forbid adoption**, which no existing class
+does as a rule of its own. `shareable` permits it — that is the bug in the
+paragraph above — and `deviceScoped` forbids it only as a side effect of
+forbidding all movement, which is no help once movement is permitted. A class
+that allows a value to travel and forbids the receiver from applying it is a
+shape the registry did not previously have, and it is the whole of what
+`sync_device_id` needs.
+
+So `device_id` never appears in a blob, appears in manifest envelopes and
+request paths as an opaque routing key with a stated retention, and is never
+adopted from a peer. Each clause is now carried by the classification rather
+than by prose around it.
 
 ### Device Sync's own configuration never syncs
 
-Every settings key Device Sync introduces is `deviceScoped`:
+Every settings key Device Sync introduces is `deviceScoped`, with the single
+exception of `sync_device_id`, which is `protocolIdentifier` for the reasons
+above — it must travel, and it must never be adopted:
 
 | Key | Why it must not travel |
 | --- | --- |
 | `sync_enabled` | Each installation opts in for itself. |
 | `sync_endpoint` | Syncing it would let one device silently redirect another. |
 | `sync_id` | The bearer credential. Uploading it to the store it authenticates is self-defeating. |
-| `sync_device_id` | Two devices sharing an ID collide in the manifest namespace. |
+| `sync_device_id` (`protocolIdentifier`) | Travels as a routing key, but is never *adopted*: two devices sharing an ID collide in the manifest namespace. |
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
 | `sync_last_synced_at` | Local state. |
 
 The rule is simple enough to state as one: **sync configuration is never itself
-synced.** Anything else is a bootstrapping paradox at best and a redirection
-vector at worst.
+synced** — `sync_device_id` included, which travels as a routing key without
+ever being applied to the receiving device. Anything else is a bootstrapping
+paradox at best and a redirection vector at worst.
 
 **Device Sync also introduces persisted state that is not a settings key**, and the
 repository requires everything persisted to be classified in the PR that adds
