@@ -161,6 +161,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/ci/sync_user_docs.py", "--check"),
             py("tools/site/test_markdown_to_html.py"),
             py("tools/site/test_render_user_docs.py"),
+            py("tools/site/test_privacy_policy.py"),
             py("tools/site/render_user_docs.py", "--check"),
         ),
     ),

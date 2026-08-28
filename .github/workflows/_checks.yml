@@ -201,6 +201,7 @@ jobs:
         run: |
           python3 tools/site/test_markdown_to_html.py
           python3 tools/site/test_render_user_docs.py
+          python3 tools/site/test_privacy_policy.py
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
         with:
           # Single source of truth for the Flutter version (see .fvmrc).

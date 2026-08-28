@@ -37,6 +37,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Changed
 
+- **Privacy policy** — the published policy now discloses optional Device Sync,
+  the content its operator can access, venue fields that remain local, the
+  freeform-note limitation, and break-glass access-log retention.
 - **Dance file exports** — the dance **Export** menu now offers privacy-safe
   `.ccshare` and `.json` files containing the dance and its referenced,
   shareable metadata. Recipients review the import before committing it and can

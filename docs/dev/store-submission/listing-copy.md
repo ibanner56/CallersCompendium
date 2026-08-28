@@ -2,8 +2,10 @@
 
 Everything you paste into App Store Connect and the Play Console, drafted for
 **Caller's Compendium** and ready to review/tweak. Character limits are noted so
-you don't overflow a field. Wording is deliberately accurate about what the app
-does and does **not** do (no data collection, no accounts) so it survives review.
+you don't overflow a field. Wording is deliberately accurate about what the
+pre-Sync app does and does **not** do (no data collection, no accounts) so it
+survives review. Re-answer the marked data-practice sections before any beta
+where Device Sync can transfer content.
 
 > These are **drafts for your review**, not final marketing. Adjust voice to
 > taste; keep the factual claims (offline, no telemetry, free, open-source) intact
@@ -135,7 +137,9 @@ GitHub. Tell us your device, the version, and what you were doing.
 
 ## App Privacy (Apple)
 
-Set in App Store Connect → App Privacy. Expected result: **"Data Not Collected."**
+For a pre-Sync build, set in App Store Connect → App Privacy. Expected result:
+**"Data Not Collected."** Do not use this answer for a beta where Device Sync
+can transfer content; re-answer the questionnaire for that build.
 
 - [ ] **"Do you or your third-party partners collect data from this app?"** →
   **No / Data Not Collected.**
@@ -153,8 +157,10 @@ Set in App Store Connect → App Privacy. Expected result: **"Data Not Collected
 
 ## Data safety (Google Play)
 
-Set in Play Console → App content → Data safety. Expected result: **"No data
-collected" and "No data shared."**
+For a pre-Sync build, set in Play Console → App content → Data safety. Expected
+result: **"No data collected" and "No data shared."** Do not use these answers
+for a beta where Device Sync can transfer content; re-answer the questionnaire
+for that build.
 
 - [ ] **Does your app collect or share any of the required user data types?** →
   **No.**
