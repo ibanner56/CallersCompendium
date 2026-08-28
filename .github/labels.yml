@@ -28,7 +28,7 @@
   description: "A new feature or an improvement to existing behavior"
 - name: "type: experimental"
   color: "1D76DB"
-  description: ""
+  description: "Experimental behavior under evaluation; may change or be removed"
 - name: "type: feedback"
   color: "3D8BF0"
   description: "General beta-tester feedback or impressions"
