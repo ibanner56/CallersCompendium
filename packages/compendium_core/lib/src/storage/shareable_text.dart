@@ -4,6 +4,17 @@ import 'package:unorm_dart/unorm_dart.dart';
 
 import '../util/text_sanitizer.dart';
 
+/// Raised when canonicalizing a JSON object would merge two distinct keys.
+class ShareableJsonKeyCollision implements Exception {
+  const ShareableJsonKeyCollision(this.normalizedKey);
+
+  final String normalizedKey;
+
+  @override
+  String toString() =>
+      'ShareableJsonKeyCollision: "$normalizedKey" has multiple source keys';
+}
+
 /// Canonicalizes text before it crosses a shareable persistence boundary.
 ///
 /// NFC is applied before sanitizing so canonically equivalent input has one
@@ -18,12 +29,15 @@ Object? normalizeShareableJson(Object? value) {
     return [for (final item in value) normalizeShareableJson(item)];
   }
   if (value is Map) {
-    return <String, Object?>{
-      for (final entry in value.entries)
-        normalizeShareableText(entry.key.toString()): normalizeShareableJson(
-          entry.value,
-        ),
-    };
+    final normalized = <String, Object?>{};
+    for (final entry in value.entries) {
+      final key = normalizeShareableText(entry.key.toString());
+      if (normalized.containsKey(key)) {
+        throw ShareableJsonKeyCollision(key);
+      }
+      normalized[key] = normalizeShareableJson(entry.value);
+    }
+    return normalized;
   }
   return value;
 }

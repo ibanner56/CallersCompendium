@@ -37,9 +37,10 @@ Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
   for (final row in rows) {
     final table = row.read<String>('table_name');
     final id = row.read<String>('record_id');
+    final keyColumn = table == 'settings' ? 'key' : 'id';
     final present = await db
         .customSelect(
-          'SELECT 1 FROM $table WHERE id = ? LIMIT 1',
+          'SELECT 1 FROM $table WHERE $keyColumn = ? LIMIT 1',
           variables: [Variable<String>(id)],
         )
         .get();
@@ -661,7 +662,8 @@ class CompendiumRepositories {
                 Variable<String>(target),
                 Variable<int>(row.read<int>('_rowid')),
               ],
-              updates: {},
+              updates: _updatesForTable(table),
+              updateKind: UpdateKind.update,
             );
             if (table == 'dances') rebuild = true;
           }
@@ -707,8 +709,10 @@ class CompendiumRepositories {
               await db.customUpdate(
                 'UPDATE $table SET $column = ? WHERE rowid = ?',
                 variables: [Variable<String>(target), Variable<int>(rowId)],
-                updates: {},
+                updates: _updatesForTable(table),
+                updateKind: UpdateKind.update,
               );
+              if (table == 'dances') rebuild = true;
             }
           }
         }
@@ -716,24 +720,38 @@ class CompendiumRepositories {
 
       for (final row
           in await db
-              .customSelect(
-                'SELECT key, value_json FROM settings WHERE deleted_at IS NULL',
-              )
+              .customSelect('SELECT key, value_json FROM settings')
               .get()) {
         final key = row.read<String>('key');
         final classification = classifySettingsKey(key);
         if (classification?.egress != EgressClass.shareable) continue;
-        final value = normalizeShareableJson(
-          jsonDecode(row.read<String>('value_json')),
-        );
+        Object? value;
+        try {
+          value = normalizeShareableJson(
+            jsonDecode(row.read<String>('value_json')),
+          );
+        } on ShareableJsonKeyCollision catch (error) {
+          await recordNormalisationSkip(
+            db,
+            table: 'settings',
+            column: 'value_json',
+            recordId: key,
+            targetValue: error.normalizedKey,
+          );
+          continue;
+        }
         final encoded = jsonEncode(value);
         if (encoded != row.read<String>('value_json')) {
           await db.customUpdate(
             'UPDATE settings SET value_json = ? WHERE key = ?',
             variables: [Variable<String>(encoded), Variable<String>(key)],
-            updates: {},
+            updates: {db.settings},
+            updateKind: UpdateKind.update,
           );
         }
+      }
+      if (rebuild) {
+        await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
       }
     });
 
@@ -743,6 +761,10 @@ class CompendiumRepositories {
     await _retireMissingNormalisationSkips(db);
     await _writeSweepMarker(shareableTextNormalisationScopeKey, scope);
   }
+
+  Set<TableInfo<Table, dynamic>> _updatesForTable(String tableName) => {
+    db.allTables.firstWhere((table) => table.actualTableName == tableName),
+  };
 
   /// The derived-index rebuild step of [ensureMigrated]. Extracted so tests can
   /// inject a transient failure and assert the marker survives and the retry
