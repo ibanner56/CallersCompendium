@@ -6188,11 +6188,41 @@ abstract class AppLocalizations {
   /// **'\"{title}\" — pick one, or leave as a note'**
   String importReviewProgramAmbiguousLine(String title);
 
+  /// Heading above candidates for one ambiguous import input group. The user can pick one candidate or leave the whole group skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" — pick one, or leave it skipped'**
+  String importReviewAmbiguousGroup(String title);
+
+  /// Compact author metadata shown under an import-review dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'By {author}'**
+  String importReviewMetadataAuthor(String author);
+
+  /// Compact formation metadata shown under an import-review dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}'**
+  String importReviewMetadataFormation(String formation);
+
+  /// Compact provenance/source metadata shown under an import-review dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'From {source}'**
+  String importReviewMetadataSource(String source);
+
   /// Summary/group count of pasted titles that resolved to a dance available to import.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 to import} other{{count} to import}}'**
   String importReviewTitleListToImport(int count);
+
+  /// Summary count of pasted titles with multiple exact online matches that are shown in the grouped review.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 needs a choice} other{{count} need a choice}}'**
+  String importReviewTitleListAmbiguous(int count);
 
   /// Summary/group count of pasted titles the user already has. Shown as its own group because 'which of these do I already have?' is useful on its own and needs different follow-up from 'not found'.
   ///
