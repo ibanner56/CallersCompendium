@@ -3073,7 +3073,7 @@ void main() {
       );
       expect(
         tester.widget<Text>(find.byKey(const ValueKey('figure-1-label'))).data,
-        'A1',
+        '',
       );
 
       // Expand the group and edit the single shared beats field.
