@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/title_list_import.dart';
 import 'package:compendium_app/src/screens/import_review_screen.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +37,10 @@ class _FakeOnline implements OnlineSearchService {
     DateTime? now,
     DedupeIndex? index,
   }) async {
-    final plan = _plan(result.name);
+    final plan = _plan(
+      result.name,
+      authorNames: result.author.isEmpty ? const [] : [result.author],
+    );
     return OnlinePreview(
       result: result,
       detail: _detail(plan.draft.dance),
@@ -53,31 +57,35 @@ class _FakeOnline implements OnlineSearchService {
   }) async => throw StateError('the title-list path must not commit directly');
 }
 
-ImportRecordPlan _plan(String title, {DedupeVerdict? verdict}) =>
-    ImportRecordPlan(
-      draft: StructuredDraft(
-        dance: Dance(
-          id: '',
-          title: title,
-          authorIds: const [],
-          tagIds: const [],
-          form: DanceForm.contra,
-          formation: const Formation(FormationShape.dupleImproper),
-          status: DanceStatus.active,
-          figures: const [],
-          customFields: const [],
-          hook: '',
-          createdAt: DateTime.utc(2026, 1, 1),
-          updatedAt: DateTime.utc(2026, 1, 1),
-        ),
-        raw: const RawRecord(
-          source: ProvenanceSource.callersbox,
-          externalId: '1',
-          payload: '{}',
-        ),
-      ),
-      verdict: verdict ?? DedupeVerdict.isNew(),
-    );
+ImportRecordPlan _plan(
+  String title, {
+  DedupeVerdict? verdict,
+  List<String> authorNames = const [],
+}) => ImportRecordPlan(
+  draft: StructuredDraft(
+    dance: Dance(
+      id: '',
+      title: title,
+      authorIds: const [],
+      tagIds: const [],
+      form: DanceForm.contra,
+      formation: const Formation(FormationShape.dupleImproper),
+      status: DanceStatus.active,
+      figures: const [],
+      customFields: const [],
+      hook: '',
+      createdAt: DateTime.utc(2026, 1, 1),
+      updatedAt: DateTime.utc(2026, 1, 1),
+    ),
+    raw: const RawRecord(
+      source: ProvenanceSource.callersbox,
+      externalId: '1',
+      payload: '{}',
+    ),
+    authorNames: authorNames,
+  ),
+  verdict: verdict ?? DedupeVerdict.isNew(),
+);
 
 DanceDetailData _detail(Dance dance) => DanceDetailData(
   dance: dance,
@@ -89,14 +97,17 @@ DanceDetailData _detail(Dance dance) => DanceDetailData(
   crossRefLinker: DanceTitleLinker.build(const [], excludeId: ''),
 );
 
-OnlineSearchResultRow _row(String name, {String id = '1'}) =>
-    OnlineSearchResultRow(
-      source: OnlineSource.callersBox,
-      id: id,
-      name: name,
-      author: '',
-      formation: '',
-    );
+OnlineSearchResultRow _row(
+  String name, {
+  String id = '1',
+  String author = '',
+}) => OnlineSearchResultRow(
+  source: OnlineSource.callersBox,
+  id: id,
+  name: name,
+  author: author,
+  formation: '',
+);
 
 Dance _localDance({
   required String id,
@@ -381,6 +392,86 @@ void main() {
       expect(
         (await repos.dances.listAll()).map((d) => d.title),
         contains('Money Musk'),
+      );
+    });
+
+    testWidgets(
+      'multiple exact matches use grouped review and commit at most one',
+      (tester) async {
+        final repos = openTestRepositories();
+        final service = _FakeOnline(
+          rowsByTitle: {
+            'twice over': [
+              _row('Twice Over', id: 'one'),
+              _row('Twice Over', id: 'two'),
+            ],
+          },
+        );
+        await _pump(tester, repos, service: service);
+
+        await _paste(tester, 'Twice Over');
+
+        expect(
+          find.byKey(const ValueKey('import-ambiguous-group-title:Twice Over')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('1 needs a choice'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('import-row-0-create')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('import-row-1-create')),
+          findsOneWidget,
+        );
+        // Ambiguous candidates are conservatively skipped until chosen.
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.byKey(const ValueKey('import-commit-button')),
+              )
+              .onPressed,
+          isNull,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('import-row-0-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-row-1-create')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('import-done-button')));
+        await tester.pumpAndSettle();
+
+        expect(await repos.dances.listAll(), hasLength(1));
+      },
+    );
+
+    testWidgets('review rows show author, formation, and provenance metadata', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final service = _FakeOnline(
+        rowsByTitle: {
+          'metadata dance': [
+            _row('Metadata Dance', id: 'metadata', author: 'Alice Smith'),
+          ],
+        },
+      );
+      await _pump(tester, repos, service: service);
+
+      await _paste(tester, 'Metadata Dance');
+
+      final l10n = await AppLocalizations.delegate.load(const Locale('en'));
+      final expectedFormation = formationLabel(
+        l10n,
+        const Formation(FormationShape.dupleImproper),
+      );
+      expect(
+        find.text(
+          'By Alice Smith · $expectedFormation · From The Caller\'s Box',
+        ),
+        findsOneWidget,
       );
     });
 

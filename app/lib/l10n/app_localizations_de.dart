@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3967,12 +3968,43 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String importReviewAmbiguousGroup(String title) {
+    return '\"$title\" — pick one, or leave it skipped';
+  }
+
+  @override
+  String importReviewMetadataAuthor(String author) {
+    return 'By $author';
+  }
+
+  @override
+  String importReviewMetadataFormation(String formation) {
+    return '$formation';
+  }
+
+  @override
+  String importReviewMetadataSource(String source) {
+    return 'From $source';
+  }
+
+  @override
   String importReviewTitleListToImport(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count zu importieren',
       one: '1 zu importieren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListAmbiguous(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count need a choice',
+      one: '1 needs a choice',
     );
     return '$_temp0';
   }
@@ -4509,8 +4541,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           'Dieser Import enthält $count Elemente — mehr als für eine normale Freigabe erwartet.',
-      one:
-          'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
+      one: 'Dieser Import enthält 1 Element — mehr als für eine normale Freigabe erwartet.',
     );
     return '$_temp0';
   }
@@ -5236,8 +5267,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Figuren hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
-      one:
-          '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
+      one: '1 Figur hinzugefügt. Geben Sie eine weitere ein oder drücken Sie Escape, um zu beenden.',
     );
     return '$_temp0';
   }
@@ -5796,8 +5826,7 @@ class AppLocalizationsDe extends AppLocalizations {
       locale: localeName,
       other:
           '$count Kontrastpaare unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
-      one:
-          '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
+      one: '1 Kontrastpaar unterhalb von WCAG AA. Sie können trotzdem speichern, aber einiger Text könnte schwer lesbar sein.',
     );
     return '$_temp0';
   }

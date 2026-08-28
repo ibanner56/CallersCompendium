@@ -1,3 +1,5 @@
+import 'package:compendium_core/compendium_core.dart';
+
 import '../../l10n/app_localizations.dart';
 import 'import_io.dart';
 import 'title_list_import.dart';
@@ -116,6 +118,17 @@ String importSourceLabel(AppLocalizations l10n, ImportSourceKind kind) =>
       ImportSourceKind.titleList => l10n.importSourceLabelTitleList,
       ImportSourceKind.publishedCollection =>
         l10n.importSourceLabelPublishedCollection,
+    };
+
+/// Localized display name for the provenance attached to an imported draft.
+String provenanceSourceLabel(AppLocalizations l10n, ProvenanceSource source) =>
+    switch (source) {
+      ProvenanceSource.callersbox => "The Caller's Box",
+      ProvenanceSource.contradb => 'ContraDB',
+      ProvenanceSource.callersCompanion => "Caller's Companion",
+      ProvenanceSource.manual => l10n.danceProvenanceSourceManual,
+      ProvenanceSource.json => l10n.danceProvenanceSourceJson,
+      ProvenanceSource.publishedCollection => l10n.publishedCollectionsTitle,
     };
 
 /// Localized refusal for a pasted title list that tripped a hard cap

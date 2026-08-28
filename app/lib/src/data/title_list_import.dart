@@ -1,5 +1,6 @@
 import 'package:compendium_core/compendium_core.dart';
 
+import 'program_ambiguous_review.dart';
 import 'online_search.dart';
 import 'online_title_lookup.dart';
 import 'plaintext_program_import.dart';
@@ -29,12 +30,14 @@ const int kMaxTitleListChars = 64 * 1024;
 
 /// Hard cap on how many **distinct** titles one paste may resolve.
 ///
-/// This is the fan-out bound: each title costs at most one search fetch plus one
-/// per-dance fetch, so an accepted paste is capped at `2 × kMaxTitleListTitles`
-/// requests, issued one at a time and cancellable. A paste above the cap makes
-/// **zero** requests — it is refused before the network is touched, rather than
-/// silently truncated, so a caller never believes a list imported in full when
-/// it did not.
+/// This is the fan-out bound: each title costs one search fetch plus one
+/// per-dance fetch for a unique hit, or at most
+/// [kMaxAmbiguousCandidatesPerLine] per-dance fetches for an ambiguous hit. An
+/// accepted paste is therefore capped at
+/// `kMaxTitleListTitles × (1 + kMaxAmbiguousCandidatesPerLine)` requests,
+/// issued one at a time and cancellable. A paste above the cap makes **zero**
+/// requests — it is refused before the network is touched, rather than silently
+/// truncated, so a caller never believes a list imported in full when it did not.
 ///
 /// 100 is deliberately far above real use (an evening's program is ~12-15
 /// dances, a season well under 100) and far below anything that would hammer The
@@ -89,14 +92,18 @@ class TitleListCancelled implements Exception {
   String toString() => 'TitleListCancelled';
 }
 
-/// Which of the three review groups a pasted title belongs to (issue #823).
+/// Which review group a pasted title belongs to (issue #823).
 ///
-/// Every pasted title lands in exactly one of these and **all three are shown**.
+/// Every pasted title lands in exactly one of these and **all four are shown**.
 /// The two non-importable groups exist because a caller who pastes twelve titles
 /// and gets six imports otherwise cannot tell which of the remaining six she
 /// already owned and which the app could not find — and those need completely
 /// different follow-up.
 enum TitleListGroup {
+  /// Several exact online matches were found; the candidates are shown in the
+  /// shared grouped review flow.
+  ambiguous,
+
   /// Resolved to a single online dance; has a review row with the usual
   /// per-record actions and dedupe verdict.
   toImport,
@@ -155,6 +162,11 @@ class TitleListRow {
         planIndex: planIndex,
       );
 
+  /// A title with several exact online matches, represented by a candidate
+  /// group in [TitleListResolution.ambiguousReviewImport].
+  const TitleListRow.ambiguous({required String title})
+    : this._(title: title, group: TitleListGroup.ambiguous);
+
   /// A title the local collection already has, [count] time(s). [authors] names
   /// the matched dance's choreographer(s) when there is exactly one match — the
   /// local match is title-only, so the author is what lets the user tell a real
@@ -206,6 +218,7 @@ class TitleListResolution {
     required this.batch,
     required this.rows,
     required this.duplicateLines,
+    this.ambiguousReviewImport,
   });
 
   /// Only the importable records, in paste order, ready for
@@ -217,6 +230,10 @@ class TitleListResolution {
 
   /// How many repeated lines were folded away by de-duplication.
   final int duplicateLines;
+
+  /// Candidate groups whose rows are flattened into [batch] and reviewed
+  /// together with the ordinary import rows.
+  final AmbiguousReviewImport? ambiguousReviewImport;
 
   Iterable<TitleListRow> rowsIn(TitleListGroup group) =>
       rows.where((r) => r.group == group);
@@ -358,8 +375,8 @@ class TitleListPreflight {
 ///
 /// 1. [parsePlaintextProgram] matches each title against the local collection;
 /// 2. anything the collection does not have is looked up online with
-///    [lookupUniqueExactTitle] and, on a unique exact hit, previewed into an
-///    `ImportRecordPlan`;
+///    [lookupUniqueExactTitle] and previewed into an `ImportRecordPlan` (or a
+///    capped grouped set of plans when several exact matches are returned);
 /// 3. `buildProgramSlots` is **never** called — it is the only program-coupled
 ///    stage, and this flow has no program.
 ///
@@ -451,6 +468,7 @@ Future<TitleListResolution> resolveTitleList(
 
   final rows = <TitleListRow>[];
   final plans = <ImportRecordPlan>[];
+  final ambiguousGroups = <AmbiguousReviewGroup>[];
   var cursor = 0;
   for (final line in pre.lines) {
     final rejected = line.rejected;
@@ -496,6 +514,7 @@ Future<TitleListResolution> resolveTitleList(
             repos: repos,
             index: index!,
             plans: plans,
+            ambiguousGroups: ambiguousGroups,
             now: now,
           ),
         );
@@ -508,19 +527,23 @@ Future<TitleListResolution> resolveTitleList(
     batch: ImportBatchResult(records: plans, dedupeIndex: index),
     rows: rows,
     duplicateLines: pre.duplicateLines,
+    ambiguousReviewImport: ambiguousGroups.isEmpty
+        ? null
+        : AmbiguousReviewImport(groups: ambiguousGroups),
   );
 }
 
-/// Looks [title] up online and, on a unique exact hit, previews it into a plan
-/// appended to [plans]. Never writes. Any [Exception] from the preview becomes a
-/// [TitleListNotFoundReason.fetchError] row so one unreachable dance cannot
-/// abort the batch; `Error`s (programmer bugs) still surface.
+/// Looks [title] up online and previews a unique exact hit, or a capped group of
+/// ambiguous exact hits, into [plans]. Never writes. Any [Exception] from a
+/// preview becomes a [TitleListNotFoundReason.fetchError] row so one unreachable
+/// dance cannot abort the batch; `Error`s (programmer bugs) still surface.
 Future<TitleListRow> _resolveOne(
   String title, {
   required OnlineSearchService service,
   required CompendiumRepositories repos,
   required DedupeIndex index,
   required List<ImportRecordPlan> plans,
+  required List<AmbiguousReviewGroup> ambiguousGroups,
   DateTime? now,
 }) async {
   // requireFigures is left at its #845 default (true) on purpose: unlike the
@@ -531,6 +554,26 @@ Future<TitleListRow> _resolveOne(
   // arriving as an empty stub.
   final lookup = await lookupUniqueExactTitle(title, service: service);
   if (lookup is OnlineTitleMiss) {
+    if (lookup.failure == OnlineTitleLookupFailure.multipleExactMatches) {
+      final candidates = await previewAmbiguousCandidates(
+        lookup.candidates,
+        servicesBySource: {service.source: service},
+        repos: repos,
+        index: index,
+        now: now,
+      );
+      if (candidates.isNotEmpty) {
+        plans.addAll(candidates);
+        ambiguousGroups.add(
+          AmbiguousReviewGroup(
+            id: 'title:$title',
+            label: title,
+            candidates: candidates,
+          ),
+        );
+        return TitleListRow.ambiguous(title: title);
+      }
+    }
     return TitleListRow.notFound(
       title: title,
       reason: switch (lookup.failure) {

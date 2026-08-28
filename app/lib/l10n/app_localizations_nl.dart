@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -3949,12 +3950,43 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewAmbiguousGroup(String title) {
+    return '\"$title\" — pick one, or leave it skipped';
+  }
+
+  @override
+  String importReviewMetadataAuthor(String author) {
+    return 'By $author';
+  }
+
+  @override
+  String importReviewMetadataFormation(String formation) {
+    return '$formation';
+  }
+
+  @override
+  String importReviewMetadataSource(String source) {
+    return 'From $source';
+  }
+
+  @override
   String importReviewTitleListToImport(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count te importeren',
       one: '1 te importeren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListAmbiguous(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count need a choice',
+      one: '1 needs a choice',
     );
     return '$_temp0';
   }
@@ -5209,8 +5241,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count figuren toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
-      one:
-          '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
+      one: '1 figuur toegevoegd. Typ nog een figuur of druk op Escape om te voltooien.',
     );
     return '$_temp0';
   }
@@ -5765,8 +5796,7 @@ class AppLocalizationsNl extends AppLocalizations {
       locale: localeName,
       other:
           '$count contrastparen onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
-      one:
-          '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
+      one: '1 contrastpaar onder WCAG AA. Je kunt nog steeds opslaan, maar sommige tekst is mogelijk moeilijk leesbaar.',
     );
     return '$_temp0';
   }

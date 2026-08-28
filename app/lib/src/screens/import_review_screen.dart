@@ -17,6 +17,7 @@ import '../data/shorthand_mappings_scope.dart';
 import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
 import '../diagnostics/error_log.dart';
+import '../search/facet_labels.dart';
 import '../utils/undo_snack_bar.dart';
 import '../widgets/figure_diff_view.dart';
 import 'dance_editor_screen.dart';
@@ -414,7 +415,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// Parallel to `_batch.records` — index `i` here describes `_batch!.records[i]`.
   /// Rows sharing the same line index are the candidates for one pasted
   /// program line, in the order [buildProgramAmbiguousImport] previewed them.
-  List<int> _programLineOfRow = const [];
+  List<int?> _programLineOfRow = const [];
+
+  /// Generic ambiguity group id for each flattened batch row.
+  List<String?> _ambiguousGroupOfRow = const [];
+  AmbiguousReviewImport? _ambiguousReview;
 
   /// Progress through the title-list online lookups as `(done, total)`, or
   /// `null` when no title-list resolution is running.
@@ -793,7 +798,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         isCancelled: () => _titleListCancelled || !mounted,
       );
       if (!mounted) return;
-      await _adoptBatch(resolution.batch, titleList: resolution);
+      await _adoptBatch(
+        resolution.batch,
+        titleList: resolution,
+        ambiguousReview: resolution.ambiguousReviewImport,
+      );
     } on TitleListTooLargeException catch (e, stackTrace) {
       if (!mounted) return;
       logCaughtError(
@@ -852,6 +861,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   Future<void> _adoptBatch(
     ImportBatchResult batch, {
     TitleListResolution? titleList,
+    AmbiguousReviewImport? ambiguousReview,
   }) async {
     final titles = batch.records.isEmpty
         // Nothing to review means nothing to name: `_titlesById` only labels
@@ -868,9 +878,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _batch = batch;
       // Set together with _batch, never separately — see this method's doc.
       _titleList = titleList;
+      _ambiguousReview = ambiguousReview;
       _titlesById = titles;
       _confidentDiffs = confidentDiffs;
+      _ambiguousGroupOfRow = _groupsForBatch(batch, ambiguousReview);
+      _programLineOfRow = _programLinesForBatch(batch, ambiguousReview);
       _choices = [for (final plan in batch.records) _defaultChoice(plan)];
+      if (ambiguousReview != null) {
+        for (var i = 0; i < _choices.length; i++) {
+          if (_ambiguousGroupOfRow[i] != null) {
+            _choices[i].kind = _ActionKind.skip;
+          }
+        }
+      }
       _committed.clear();
       _titleListProgress = null;
       _phase = _Phase.review;
@@ -887,18 +907,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// silently import the FIRST candidate of every line the instant the review
   /// opens.
   Future<void> _adoptProgramAmbiguousSeed(ProgramAmbiguousImport seed) async {
-    final records = <ImportRecordPlan>[];
-    final lineOfRow = <int>[];
-    for (final line in seed.lines) {
-      for (final plan in line.candidates) {
-        records.add(plan);
-        lineOfRow.add(line.originalLineIndex);
-      }
-    }
-    await _adoptBatch(ImportBatchResult(records: records));
+    final review = seed.reviewImport;
+    final records = [for (final group in review.groups) ...group.candidates];
+    await _adoptBatch(
+      ImportBatchResult(records: records),
+      ambiguousReview: review,
+    );
     if (!mounted) return;
     setState(() {
-      _programLineOfRow = lineOfRow;
       for (final choice in _choices) {
         choice.kind = _ActionKind.skip;
       }
@@ -938,11 +954,48 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     _batch = null;
     _titleList = null;
     _programLineOfRow = const [];
+    _ambiguousGroupOfRow = const [];
+    _ambiguousReview = null;
     _titleListProgress = null;
     _planError = null;
     // _cachedPickedBundle is maintained by _onPasteChanged and does not need
     // explicit clearing here; it stays valid as long as the paste text is
     // unchanged, and will update if the text is later modified.
+  }
+
+  List<String?> _groupsForBatch(
+    ImportBatchResult batch,
+    AmbiguousReviewImport? review,
+  ) {
+    if (review == null) return const [];
+    return [for (final plan in batch.records) _groupForPlan(plan, review)];
+  }
+
+  String? _groupForPlan(ImportRecordPlan plan, AmbiguousReviewImport review) {
+    for (final group in review.groups) {
+      if (group.candidates.any((candidate) => identical(candidate, plan))) {
+        return group.id;
+      }
+    }
+    return null;
+  }
+
+  List<int?> _programLinesForBatch(
+    ImportBatchResult batch,
+    AmbiguousReviewImport? review,
+  ) {
+    if (review == null) return const [];
+    return [
+      for (final plan in batch.records) _programLineForPlan(plan, review),
+    ];
+  }
+
+  int? _programLineForPlan(
+    ImportRecordPlan plan,
+    AmbiguousReviewImport review,
+  ) {
+    final group = _groupForPlan(plan, review);
+    return group == null ? null : review.programLineIndexByGroup[group];
   }
 
   /// Computes the issue #686 figure-level diff for every row whose verdict
@@ -1083,11 +1136,14 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final resolutions = <int, DedupeResolution>{};
     // Seed with lines whose candidate already committed via per-row Edit, so
     // a different candidate for the same line can never ALSO import here.
-    final decidedProgramLines = <int>{
-      for (var i = 0; i < batch.records.length; i++)
-        if (_committed.contains(i) && i < _programLineOfRow.length)
-          _programLineOfRow[i],
-    };
+    final decidedAmbiguousGroups = <String>{};
+    for (var i = 0; i < batch.records.length; i++) {
+      if (!_committed.contains(i) || i >= _ambiguousGroupOfRow.length) {
+        continue;
+      }
+      final group = _ambiguousGroupOfRow[i];
+      if (group != null) decidedAmbiguousGroups.add(group);
+    }
     var skipped = 0;
     for (var i = 0; i < batch.records.length; i++) {
       // Rows already committed via the per-row Edit action are excluded so the
@@ -1098,9 +1154,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         skipped++;
         continue;
       }
-      if (i < _programLineOfRow.length &&
-          !decidedProgramLines.add(_programLineOfRow[i])) {
-        // Another candidate for this line already committed to a non-skip
+      if (i < _ambiguousGroupOfRow.length &&
+          _ambiguousGroupOfRow[i] != null &&
+          !decidedAmbiguousGroups.add(_ambiguousGroupOfRow[i]!)) {
+        // Another candidate for this group already committed to a non-skip
         // choice (or committed on its own via Edit); this one no-ops.
         skipped++;
         continue;
@@ -1324,14 +1381,19 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     ImportSession session,
     List<int> actedRowIndices,
   ) {
-    if (_programLineOfRow.isEmpty) return null;
+    if (_programLineOfRow.isEmpty ||
+        !_programLineOfRow.any((line) => line != null)) {
+      return null;
+    }
     final results = <int, String>{};
     for (var j = 0; j < session.records.length; j++) {
       final record = session.records[j];
       if (!record.succeeded || record.danceId == null) continue;
       final rowIndex = actedRowIndices[j];
       if (rowIndex >= _programLineOfRow.length) continue;
-      results[_programLineOfRow[rowIndex]] = record.danceId!;
+      final lineIndex = _programLineOfRow[rowIndex];
+      if (lineIndex == null) continue;
+      results[lineIndex] = record.danceId!;
     }
     return results;
   }
@@ -2190,8 +2252,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               if (unreadable.isNotEmpty) _buildBatchErrors(context, unreadable),
               if (titleList != null) _buildTitleListSummary(context, titleList),
               for (var i = 0; i < batch.records.length; i++) ...[
-                if (_isFirstRowOfProgramLine(i))
-                  _buildProgramLineHeading(context, i),
+                if (_isFirstRowOfAmbiguousGroup(i))
+                  _buildAmbiguousGroupHeading(context, i),
                 _buildRow(context, i, batch.records[i]),
               ],
               if (titleList != null)
@@ -2307,8 +2369,10 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     final owned = titleList.countIn(TitleListGroup.alreadyInCollection);
     final notFound = titleList.countIn(TitleListGroup.notFound);
     final toImport = titleList.countIn(TitleListGroup.toImport);
+    final ambiguous = titleList.countIn(TitleListGroup.ambiguous);
     final parts = <String>[
       l10n.importReviewTitleListToImport(toImport),
+      if (ambiguous > 0) l10n.importReviewTitleListAmbiguous(ambiguous),
       l10n.importReviewTitleListOwned(owned),
       l10n.importReviewTitleListNotFound(notFound),
     ];
@@ -2607,25 +2671,28 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     );
   }
 
-  /// Whether row [i] is the first row of a program-ambiguity line (issue
-  /// #943) — the point at which [_buildProgramLineHeading] should render.
-  bool _isFirstRowOfProgramLine(int i) {
-    if (i >= _programLineOfRow.length) return false;
-    return i == 0 || _programLineOfRow[i - 1] != _programLineOfRow[i];
+  /// Whether row [i] is the first row of an ambiguity group.
+  bool _isFirstRowOfAmbiguousGroup(int i) {
+    if (i >= _ambiguousGroupOfRow.length || _ambiguousGroupOfRow[i] == null) {
+      return false;
+    }
+    return i == 0 || _ambiguousGroupOfRow[i - 1] != _ambiguousGroupOfRow[i];
   }
 
-  /// The heading introducing one program-ambiguity line's candidate rows
-  /// (issue #943): the pasted line text, so the user can see which line these
-  /// candidates are for before choosing one (or leaving them all skipped,
-  /// keeping the line a note).
-  Widget _buildProgramLineHeading(BuildContext context, int i) {
+  /// The heading introducing one ambiguity group's candidate rows.
+  Widget _buildAmbiguousGroupHeading(BuildContext context, int i) {
     final l10n = AppLocalizations.of(context);
-    final lineIndex = _programLineOfRow[i];
-    final lineText = widget.programAmbiguousImport!.lines
-        .firstWhere((l) => l.originalLineIndex == lineIndex)
-        .lineText;
+    final groupId = _ambiguousGroupOfRow[i]!;
+    final group = _ambiguousReview!.groups.firstWhere(
+      (group) => group.id == groupId,
+    );
+    final lineIndex = _ambiguousReview!.programLineIndexByGroup[groupId];
     return Padding(
-      key: ValueKey('import-program-line-$lineIndex'),
+      key: ValueKey(
+        lineIndex == null
+            ? 'import-ambiguous-group-$groupId'
+            : 'import-program-line-$lineIndex',
+      ),
       padding: const EdgeInsets.only(top: 12, bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2637,7 +2704,9 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              l10n.importReviewProgramAmbiguousLine(lineText),
+              lineIndex == null
+                  ? l10n.importReviewAmbiguousGroup(group.label)
+                  : l10n.importReviewProgramAmbiguousLine(group.label),
               style: Theme.of(context).textTheme.titleSmall,
             ),
           ),
@@ -2668,6 +2737,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
                 _qualityChip(context, quality),
               ],
             ),
+            _buildMetadata(context, i, draft),
             for (final issue in draft.issues)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -2713,7 +2783,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               // create a dance the program screen never learns about and can
               // never link into its slot.
               if (_effectiveSharedBundle == null &&
-                  i >= _programLineOfRow.length) ...[
+                  (i >= _programLineOfRow.length ||
+                      _programLineOfRow[i] == null)) ...[
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
@@ -2729,6 +2800,42 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
               ],
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetadata(
+    BuildContext context,
+    int index,
+    StructuredDraft draft,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final details = <String>[];
+    final authors = draft.authorNames
+        .map((author) => author.trim())
+        .where((author) => author.isNotEmpty)
+        .join(', ');
+    if (authors.isNotEmpty) {
+      details.add(l10n.importReviewMetadataAuthor(authors));
+    }
+    details.add(
+      l10n.importReviewMetadataFormation(
+        formationLabel(l10n, draft.dance.formation),
+      ),
+    );
+    details.add(
+      l10n.importReviewMetadataSource(
+        provenanceSourceLabel(l10n, draft.raw.source),
+      ),
+    );
+    return Padding(
+      key: ValueKey('import-row-$index-metadata'),
+      padding: const EdgeInsets.only(top: 4),
+      child: Text(
+        details.join(' · '),
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
