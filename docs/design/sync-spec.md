@@ -643,11 +643,26 @@ scan itself walks the live keys, resolving each through `classifySettingsKey`
 with its exact-first, longest-prefix-second precedence; reading the exact map
 alone resolves every prefix-keyed classification to nothing.
 
-The collision machinery below does not apply to this half. A settings value is
-JSON inside one column under no `UNIQUE` constraint, so normalising a string
-within it cannot collide with a sibling row, and no entry is recorded in
-`normalisation_skips` for it. The two halves share the pass, the marker and the
-derived rebuild, and diverge only there. The obligation is stated over the
+Sibling-row collisions cannot happen in this half, but key collisions can. A
+settings value is JSON inside one column under no `UNIQUE` constraint, so
+normalising a string within it cannot collide with another row. It can collide
+*inside the value*: object keys are normalised with everything else, and a map
+holding both `é` and `e` + `U+0301` — two keys a user can type as a custom
+dialect, theme or shorthand name — has **one** key afterwards, silently
+discarding whichever entry the rebuild writes second. A conforming client MUST
+therefore group each object's keys on their normalised target before writing,
+the same test the row half applies to `(table, column, target)`, and on a
+collision MUST skip the **whole settings key** and record it in
+`normalisation_skips` with `table` `settings`, `column` `value_json` and
+`record_id` the settings key. Skipping the whole key rather than the offending
+sub-object keeps the recorded unit equal to the retry unit: the pass retries a
+settings key by re-deriving its normalised form, and a partially rewritten blob
+would have no stable identity to retry against. Retry succeeds when the user
+renames or deletes one of the colliding keys, which is the same shape as the
+row half's live-occupancy test. The two halves otherwise share the pass, the
+marker and the derived rebuild, and diverge only in what a collision is.
+
+The obligation is stated over the
 *comparison*, not over a migration, because only one of the two triggers
 involves a migration at all: adding a column does, but reclassifying one is an
 edit to a plain map entry in `field_registry.dart` — changing `egress` there
@@ -1172,6 +1187,22 @@ path that can populate it, at the same repository write choke point, including
 recursively through the decoded value of a `shareable` settings key; and MUST
 run it over existing rows in the **same one-time pass** as the NFC backfill,
 under the same rules about stamps, collisions and skips.
+
+**The two transforms compose in one order: sanitise, then NFC.** They do not
+commute, and the wrong order breaks the invariant they exist to hold while
+looking like it was applied. `e` + `U+200B` + `U+0301` is already NFC — the
+zero-width space separates the combining acute from the `e`, so nothing
+composes — and sanitising *afterwards* strips the ZWSP to leave `e` + `U+0301`,
+which is **not** NFC. Sanitising *first* leaves `e` + `U+0301`, which NFC then
+composes to `U+00E9`. A client that runs NFC first therefore stores decomposed
+text having run the normaliser over it, and the one-time pass meant to repair
+such rows reproduces the defect instead. Every path that applies both — the
+write paths of §4.1 and this section, the one-time pass, and the grouping that
+computes a row's collision target — MUST apply the composition
+`NFC(sanitizeImportedText(s))`, and MUST derive collision targets from that
+composition rather than from NFC alone. The order is also the stable one:
+sanitisation strips only characters NFC never produces, so applying the
+composition again is a no-op.
 
 **The transform is applied with line breaks permitted.** `allowLineBreaks`
 governs exactly three code points — tab, LF and CR (`text_sanitizer.dart:113`) —
@@ -2857,7 +2888,16 @@ is a **no-op on the inbound path against conforming input**, which is what makes
 "the hash identifies the content" true; a receiver whose sanitiser can alter a
 conforming peer's bytes has broken it regardless of what the write path does.
 The one-time pass covers both transforms and is proved on a row that needs each
-independently and on a row that needs both.
+independently and on a row that needs both. The row that needs both MUST pin
+the **order**: `e` + `U+200B` + `U+0301` stores as `U+00E9` (mutation: apply NFC
+before the sanitiser — the row stores as `e` + `U+0301`, every single-transform
+vector still passes, and the stored text is left decomposed by the pass whose
+job was to compose it). A settings value whose decoded JSON holds two object
+keys differing only in Unicode form is **skipped whole** and recorded in
+`normalisation_skips`, not written with one key missing (mutation: normalise the
+map key by key — the later key overwrites the earlier, the blob is written with
+one entry fewer, nothing is recorded, and the loss is invisible to any test that
+only counts rows).
 
 The ratchet is stated over **routing**, not over stored bytes, and that
 distinction is now load-bearing rather than stylistic. §4.1's carve-out means a

@@ -324,12 +324,13 @@ design now states normatively: *any operation that changes a record's serialised
 content must advance its `updatedAt`.* Two separate mechanisms have broken it, so
 it is written down rather than left to be rediscovered.
 
-Reconciliation is **silent**. No prompt, no review queue: at beta scale the
-collision is common (any two devices that both typed "Cary Ravitz") and a prompt
-per entity would be noise. Silence is defensible here because **the schema
-already makes the same assumption**: `choreographers.name` is `UNIQUE`, so a
-single device cannot hold two same-named choreographers today. Sync applies that
-existing approximation across devices rather than introducing a new one. Two
+Natural-key reconciliation is **silent**. No prompt, no review queue: at beta
+scale the collision is common (any two devices that both typed "Cary Ravitz")
+and a prompt per entity would be noise. Silence is defensible here because **the
+schema already makes the same assumption**: `choreographers.name` is `UNIQUE`,
+so a single device cannot hold two same-named choreographers today. Sync
+applies that existing approximation across devices rather than introducing a
+new one. Two
 genuinely different people sharing a name do merge, and that is named as a known
 failure mode rather than fixed.
 
@@ -340,6 +341,15 @@ reconcile only when the type matches; otherwise both survive, and the tie-break 
 not "incoming" — decides which keeps the bare key, with the other renamed using a
 suffix derived from the losing UUID so that both devices compute the same result
 and a mint can never collide with an existing key.
+
+**Where the silence stops is normative, and §6.6 fixes it.** A matching UUID
+whose natural keys differ MUST NOT merge silently; a step-2 resolution to
+non-existence that no peer manifest ever observed MUST be reported, so that a
+record cannot vanish from a user's device unannounced; and a renamed key that
+still collides after its suffix MUST route to the review queue rather than
+rename again. The claim above is that the *common* case is silent, not that this
+design never prompts — a reader who took it for the latter would build a merge
+path with no review queue in it at all.
 
 `venues` and `published_sources` have **no** `UNIQUE` natural key —
 `venues.name` and `published_sources.title` are plain `text()`, unlike the three

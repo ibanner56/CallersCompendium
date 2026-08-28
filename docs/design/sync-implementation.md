@@ -202,19 +202,24 @@ and program content — which is precisely what the editor-draft keys held until
 - **Serves** §4.1 and §4.6 (each transform's every-write-path rule, and the
   one-time pass they share), and the NFC precondition §6.10 depends on.
 - **Inherits** W1's normalisation primitive. Nothing else — it touches no sync
-  machinery, and can otherwise start the moment the ADR is accepted.
+  machinery, so W1 is its only gate and it runs beside the sync programme
+  rather than after it.
 - **Produces** NFC normalisation **and `sanitizeImportedText` with
   `allowLineBreaks: true`** applied at every path that populates a `shareable`
-  string, implemented at the **repository write choke point** each kind already
+  string, composed in the order §4.6 fixes — **sanitise, then NFC**, since the
+  two do not commute and NFC-first leaves text decomposed — implemented at the
+  **repository write choke point** each kind already
   funnels through rather than per-writer; a **one-time backfill migration**
   applying both transforms over existing rows that leaves `updated_at`,
   `existence_at` and `deleted_at` untouched, excludes record-identity columns
   (`settings.key`), detects collisions by **grouping on `(table, column,
   target)` before writing** rather than by catching the `UNIQUE` violation,
-  **skips and reports** whole colliding groups without aborting, and
-  **rebuilds derived indexes if it wrote anything**; the `normalisation_skips`
-  table (§3.2) with its **retry on each open judged by both halves of the
-  grouping test** — recorded-row grouping by
+  **skips and reports** whole colliding groups without aborting, applies the
+  same grouping to the **object keys inside a `shareable` settings value** and
+  skips that settings key whole when two of its keys share a normalised target,
+  and **rebuilds derived indexes if it wrote anything**; the
+  `normalisation_skips` table (§3.2) with its **retry on each open judged by
+  both halves of the grouping test** — recorded-row grouping by
   `(table, column, target)` *and* live occupancy — its **retirement of entries
   whose row was hard-deleted**, which requires a **new lookup unfiltered by
   `deleted_at`** in all three in-scope repositories, since every existing

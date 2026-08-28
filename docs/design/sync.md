@@ -5678,6 +5678,29 @@ unchanged. That is the same argument §4.1 makes for NFC, and it is why the two
 transforms share one unit, one choke point and one backfill rather than being
 specified twice.
 
+**Sharing one backfill made their order load-bearing, and the first draft never
+said what it was.** A later review round found the two do not commute. `e` +
+`U+200B` + `U+0301` is already NFC — the zero-width space keeps the combining
+acute from composing — so normalising first and sanitising second leaves `e` +
+`U+0301`: decomposed text produced *by* the pass whose purpose was to compose
+it. Sanitising first yields `U+00E9`. The spec now fixes the composition as
+`NFC(sanitizeImportedText(s))` and derives collision targets from it. The lesson
+outlives the pair: two transforms specified as "the same rule, applied together"
+need their order pinned where they are composed, because each is correct alone
+and the defect exists only in the composition — so no single-transform test can
+see it.
+
+**The same round found the settings half has a collision after all.** The
+previous round had reasoned that it could not: a settings value is JSON inside
+one column under no `UNIQUE` constraint, so normalising a string inside it
+cannot collide with a sibling row. True, and beside the point. Because object
+keys are normalised along with values, a map holding both `é` and `e` + `U+0301`
+— two keys a user can type as a custom dialect, theme or shorthand name — has
+one key afterwards, and the losing entry is gone with nothing recorded. The
+correction was to ask what a collision *is* in each half rather than whether the
+row half's mechanism reaches: the unit of collision is the row on one side and
+the object key on the other, and only the second question exposes the gap.
+
 **The import path's decode-side sanitisation stays.** It guards untrusted
 external input, which is #444's and #611's concern and a different path from
 sync apply; removing it because a write-path rule now exists would retire a
