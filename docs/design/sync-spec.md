@@ -374,6 +374,19 @@ inherits the rule rather than restating it. This specification requires the
 property, not the placement; it names the placement because the property is
 cheap to hold this way and expensive to hold any other.
 
+**Normalising in the serialiser is not a substitute, and a conforming client
+MUST NOT count it as one.** A serialiser that normalises on the way out
+converges the *wire* bytes while the row on disk stays NFD, which reads as a fix
+because the hash vectors pass. Two things it does not fix: §6.10's dedupe
+compares **stored** values, so a fresh attach still forks the library; and the
+one-time pass has nothing to repair from, since the stored text was never the
+thing being corrected. The failure it does cause is quieter than the one it
+hides — a write path missed by the choke point becomes invisible to every
+wire-format test, so §9's locally-created-NFD vector must be asserted over the
+stored value and not the uploaded bytes alone. The same holds for §4.6's
+sanitiser. A client MAY still apply either transform at serialisation as an
+assertion; it MUST NOT be the only place either one runs.
+
 The scope is wider than the timestamp rule below, and the difference is
 load-bearing rather than stylistic. A timestamp is stored in a representation
 that *physically cannot* hold sub-tick precision, so normalising inbound values
@@ -2528,33 +2541,37 @@ bytes on two independent encoders (mutation: emit `double.toString()` instead
 of the shortest round-tripping form). The same title in NFC and NFD hashes
 identically after ingest (mutation: skip normalisation, and watch two devices
 hold one record as a permanent `changed`/`changed`). **A title created locally
-in NFD and never synced serialises as NFC on its first upload** (mutation:
-scope normalisation to inbound values only — the device then uploads NFD
-forever from its own unchanged storage, and no test exercising both forms
-*through* the sync path can catch it). A record requiring NaN or ±Infinity is
-rejected rather than coerced, and so is a `shareable` string carrying an
-unpaired UTF-16 surrogate (mutation: substitute `U+FFFD`, which converges only
-while every implementation picks the same repair). **The surrogate rejection is
-asserted on the string, before encoding** (mutation: check after `utf8.encode`
-— the platform has already substituted by then, no error is raised, and two
-devices agree on the hash of the repaired bytes while holding different
-strings). **A row written before the normalising build is NFC after upgrade**
-(mutation: normalise only on write — a library that is never edited again is
-never repaired, and §6.2 step 4 uploads it verbatim), **and the pass leaves
-`updated_at` unchanged** (mutation: bump it — every normalised row is then
-handed to whichever device upgraded last). **A pass over a local pair whose
-names normalise to the same `UNIQUE` value leaves both rows untouched, reports
-the pair, and completes** (mutations: merge them — two devices resolving the
-pair differently then diverge, and the pass no longer qualifies for I1's
-exception; abort the pass — the row throws on every launch and the device never
-normalises anything; **detect the collision by catching the `UNIQUE` violation
-instead of grouping before writing** — the first row of the pair writes
-successfully because nothing holds the target yet, so exactly one member is
-normalised and which one depends on row order). **A retry applies both halves
-of the grouping test — recorded-row grouping and live occupancy — and a
-mutually-colliding recorded pair survives re-open unchanged** (mutations: test
-live occupancy alone — neither member occupies the target, so whichever the
-client reaches first is written and the pair the initial pass left whole is
+in NFD and never synced is NFC in storage, and serialises as NFC on its first
+upload** — asserted over the **stored** value, not the uploaded bytes alone
+(mutations: scope normalisation to inbound values only — the device then
+uploads NFD forever from its own unchanged storage, and no test exercising both
+forms *through* the sync path can catch it; normalise in the serialiser instead
+of at the write path — the upload half passes against a broken write path while
+the row stays NFD, so §6.10's dedupe forks the library at fresh attach and the
+vector, asserted on the wire alone, cannot fail). A record requiring NaN or
+±Infinity is rejected rather than coerced, and so is a `shareable` string
+carrying an unpaired UTF-16 surrogate (mutation: substitute `U+FFFD`, which
+converges only while every implementation picks the same repair). **The
+surrogate rejection is asserted on the string, before encoding** (mutation:
+check after `utf8.encode` — the platform has already substituted by then, no
+error is raised, and two devices agree on the hash of the repaired bytes while
+holding different strings). **A row written before the normalising build is NFC
+after upgrade** (mutation: normalise only on write — a library that is never
+edited again is never repaired, and §6.2 step 4 uploads it verbatim), **and the
+pass leaves `updated_at` unchanged** (mutation: bump it — every normalised row
+is then handed to whichever device upgraded last). **A pass over a local pair
+whose names normalise to the same `UNIQUE` value leaves both rows untouched,
+reports the pair, and completes** (mutations: merge them — two devices
+resolving the pair differently then diverge, and the pass no longer qualifies
+for I1's exception; abort the pass — the row throws on every launch and the
+device never normalises anything; **detect the collision by catching the
+`UNIQUE` violation instead of grouping before writing** — the first row of the
+pair writes successfully because nothing holds the target yet, so exactly one
+member is normalised and which one depends on row order). **A retry applies
+both halves of the grouping test — recorded-row grouping and live occupancy —
+and a mutually-colliding recorded pair survives re-open unchanged** (mutations:
+test live occupancy alone — neither member occupies the target, so whichever
+the client reaches first is written and the pair the initial pass left whole is
 split along an unspecified iteration order, so two devices can normalise
 opposite members; test recorded-row grouping alone — record a skipped pair,
 create a third row already holding the target in NFC, rename one member, then
@@ -2602,14 +2619,14 @@ rather than repaired; a ratchet checking only classification coverage passes
 this mutation unchanged, so the vector must assert the derived set itself). **A
 retry that rebuilds does not leave a rebuild owed** (mutation: clear the flag
 only alongside the completion marker — retry never writes one, so the next open
-performs a second whole-library rebuild it did not owe). **A pass that skips the
-rebuild sets no flag** (mutation: take the permission on its rebuild only, still
-committing the flag in step 1 — nothing clears it, and the next open performs
-the whole-library rebuild the skip was taken to avoid). **The column-to-index
-mapping is checked against the rebuild's behaviour, not the FTS schema**
-(mutation: join one more column into an existing indexed value without altering
-`CREATE VIRTUAL TABLE` — a schema-derived mapping is unchanged, and a skip
-covering that column becomes silently wrong). **Both writers of
+performs a second whole-library rebuild it did not owe). **A pass that skips
+the rebuild sets no flag** (mutation: take the permission on its rebuild only,
+still committing the flag in step 1 — nothing clears it, and the next open
+performs the whole-library rebuild the skip was taken to avoid). **The
+column-to-index mapping is checked against the rebuild's behaviour, not the FTS
+schema** (mutation: join one more column into an existing indexed value without
+altering `CREATE VIRTUAL TABLE` — a schema-derived mapping is unchanged, and a
+skip covering that column becomes silently wrong). **Both writers of
 `normalisation_skips` spell `(table, column)` identically** (mutation: have the
 write-path carve-out use the Dart accessor name while the pass uses the
 registry's snake_case form — entries for the same column never group, condition
