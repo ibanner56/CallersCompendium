@@ -1980,9 +1980,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         );
         if (!twoPane) {
           if (_previewPane != null) {
-            WidgetsBinding.instance.addPostFrameCallback(
-              (_) => _clearPreview(),
-            );
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _clearPreview();
+            });
           }
           return editor;
         }
