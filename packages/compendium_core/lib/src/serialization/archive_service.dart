@@ -363,10 +363,9 @@ class ArchiveRestorer {
     await db.delete(db.publishedSources).go();
     await db.delete(db.venues).go();
     await db.customStatement('DELETE FROM normalisation_skips');
-    await db.customStatement(
-      'DELETE FROM settings WHERE key = ?',
-      [shareableTextNormalisationScopeKey],
-    );
+    await db.customStatement('DELETE FROM settings WHERE key = ?', [
+      shareableTextNormalisationScopeKey,
+    ]);
   }
 
   Future<void> _guard(
