@@ -150,6 +150,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   _PreviewPane? _previewPane;
   String? _previewDanceId;
   OnlinePreview? _previewOnline;
+  OnlineSearchResultRow? _previewOnlineResult;
   String? _previewError;
   bool _previewLoading = false;
   bool _previewPersistent = false;
@@ -191,6 +192,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPane = pane;
       _previewDanceId = danceId;
       _previewOnline = null;
+      _previewOnlineResult = null;
       _previewError = null;
       _previewLoading = false;
       _previewPersistent = persistent;
@@ -212,6 +214,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPane = pane;
       _previewDanceId = null;
       _previewOnline = null;
+      _previewOnlineResult = result;
       _previewError = null;
       _previewLoading = true;
       _previewPersistent = persistent;
@@ -242,12 +245,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   void _endOnlinePreview(OnlineSearchResultRow result) {
-    final preview = _previewOnline;
+    final previewResult = _previewOnlineResult;
     if (_previewPersistent ||
         _previewPane == null ||
-        (preview != null &&
-            (preview.result.source != result.source ||
-                preview.result.id != result.id))) {
+        previewResult == null ||
+        previewResult.source != result.source ||
+        previewResult.id != result.id) {
       return;
     }
     _clearPreview();
@@ -260,6 +263,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPane = null;
       _previewDanceId = null;
       _previewOnline = null;
+      _previewOnlineResult = null;
       _previewError = null;
       _previewLoading = false;
       _previewPersistent = false;

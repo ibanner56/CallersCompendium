@@ -223,6 +223,47 @@ class _PreviewQueuedProgramOnlineService extends _ProgramOnlineService {
   }
 }
 
+class _TwoQueuedPreviewProgramOnlineService extends _ProgramOnlineService {
+  final firstPreviewStarted = Completer<void>();
+  final secondPreviewStarted = Completer<void>();
+  final releaseSecondPreview = Completer<void>();
+
+  @override
+  Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async =>
+      const [
+        OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: 'first',
+          name: 'First Preview',
+          author: 'Imported Author',
+          formation: 'Duple Improper',
+        ),
+        OnlineSearchResultRow(
+          source: OnlineSource.callersBox,
+          id: 'second',
+          name: 'Second Preview',
+          author: 'Imported Author',
+          formation: 'Duple Improper',
+        ),
+      ];
+
+  @override
+  Future<OnlinePreview> loadPreview(
+    CompendiumRepositories repos,
+    OnlineSearchResultRow result, {
+    DateTime? now,
+    DedupeIndex? index,
+  }) async {
+    if (result.id == 'first') {
+      firstPreviewStarted.complete();
+      return Completer<OnlinePreview>().future;
+    }
+    secondPreviewStarted.complete();
+    await releaseSecondPreview.future;
+    return super.loadPreview(repos, result, now: now, index: index);
+  }
+}
+
 Future<void> _startInlineOnlineImport(WidgetTester tester) async {
   final picker = find.byKey(const ValueKey('inline-picker'));
   await tester.tap(
@@ -725,6 +766,73 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'ending an older online hold does not clear a newer loading preview',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.programs.create(_program(id: 'p1', title: 'Night'));
+      final online = _TwoQueuedPreviewProgramOnlineService();
+      await _pumpBuilder(
+        tester,
+        repos,
+        programId: 'p1',
+        callersBoxOnline: online,
+        size: const Size(1200, 2000),
+      );
+
+      final picker = find.byKey(const ValueKey('inline-picker'));
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-advanced-panel')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-online-search-enable')),
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: picker,
+          matching: find.byKey(const ValueKey('picker-search')),
+        ),
+        'Preview',
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final first = await tester.startGesture(
+        tester.getCenter(
+          find.byKey(const ValueKey('picker-online-result-callersBox-first')),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await online.firstPreviewStarted.future;
+
+      final second = await tester.startGesture(
+        tester.getCenter(
+          find.byKey(const ValueKey('picker-online-result-callersBox-second')),
+        ),
+        pointer: 2,
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      await online.secondPreviewStarted.future;
+
+      await first.up();
+      online.releaseSecondPreview.complete();
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('program-online-preview-callersBox-second')),
+        findsOneWidget,
+      );
+      await second.up();
     },
   );
 

@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-/// Recognizes a stationary hold without entering the gesture arena.
+/// Recognizes a stationary hold with passive pointer tracking.
 ///
 /// This keeps scroll and drag gestures independent while preserving the pointer
-/// that began the hold through its end or cancellation.
+/// that began the hold through its end or cancellation. Its recognizer only
+/// prevents a recognized hold from also triggering a child tap.
 class PreviewHoldListener extends StatefulWidget {
   const PreviewHoldListener({
     super.key,
