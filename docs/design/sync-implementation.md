@@ -122,7 +122,7 @@ schedule, not slack in it.
   rejection of NaN and ±Infinity; rejection of unpaired surrogates **checked on
   the string before encoding**; and the **golden vector corpus** that every
   later unit tests against.
-- **Unblocks** W3, and transitively everything.
+- **Unblocks** W3 and W18, and transitively everything below them.
 - **Done when** the §9 *Wire format* bucket is green **except** the
   normalisation clauses W18 owns, including the imported RFC 8785 conformance
   vectors, a fractional `custom_field_values.value_num` agreeing across two
@@ -144,7 +144,10 @@ written.
 
 Applying normalisation across the app's write paths, and repairing rows already
 stored, is therefore W18 — kept separate so that W1, the root of the serial
-phase, does not grow a data migration.
+phase, does not grow a data migration. W18 is named on W1's **Unblocks** field
+rather than left to "transitively everything", because it takes the primitive
+from W1 and nothing else: it hangs directly off the root and is not reachable
+through W3, so a reader tracing the chain forward from W3 never arrives at it.
 
 The primitive itself is now mostly a packaging job rather than an
 implementation: `unorm_dart` is already a dependency of `compendium_core`, and
@@ -622,7 +625,7 @@ and is marginally stricter locks a user out of their own store, because the ID
   sync-ID rule and its `403`, and the prohibition on the server running its own
   strength estimator).
 - **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation definition
-  only** (contract 5). W2 arrives later, via W11.
+  only** (contract 5).
 
   That second edge is narrow by design — it gates the `id_key` derivation and
   nothing else, so the rest of this unit still runs beside W5 from C1, exactly
@@ -630,7 +633,8 @@ and is marginally stricter locks a user out of their own store, because the ID
   consumer running parallel with the producer of a contract, and contract 5's
   resolution makes W5 that producer; left undeclared, the two units sit in
   precisely the configuration that contract exists to prevent while reading as
-  though nothing connected them.
+  though nothing connected them. W2 is deliberately not an edge here: it
+  arrives later, via W11, so it constrains that unit and not this one.
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
   keying with versioned peppers; the store, manifest and blob endpoints; strong
   quoted `ETag` equal to the manifest content hash, with `If-None-Match`;
@@ -1021,37 +1025,44 @@ graph LR
   W2 --> W11[W11 server validation]
   W3 --> W5[W5 sync ID + HTTP]
   W3 --> W10[W10 server core]
+  W5 -.sync-ID rule.-> W10
   W4 --> W6[W6 merge engine]
   W5 --> W6
   W10 -.fixture.-> W6
   W10 --> W11
   W10 --> W12[W12 GC + TTL]
   W6 --> W7[W7 deletion + aliases]
-  W6 --> W8[W8 attach + dedupe]
+  W7 --> W8[W8 attach + dedupe]
   W6 --> W9[W9 quarantine + restore]
   W4 --> W14[W14 review surface]
   W14 --> W8
-    W5 --> W13[W13 settings + pairing]
+  W5 --> W13[W13 settings + pairing]
   W6 --> W13
   W9 -.exclude-imports.-> W13
   W12 --> W16[W16 ops]
   W15[W15 privacy policy<br/>fully parallel]
   W17[W17 standing-invariant<br/>ratchets] -.constrains.-> W6
+  W0 --> W17
   W1 --> W18[W18 NFC across<br/>write paths]
+  W18 -.restore half.-> W9
 ```
 
-**The graph is a reading aid, not the authoritative edge list.** It is drawn as
-a transitive reduction, so edges implied by a path are omitted — W3→W6, W4→W7,
-W4→W8, W4→W9, W5→W8 and W10→W16 are all real dependencies that do not appear as
-arrows. The **Inherits** and **Unblocks** fields on each unit are authoritative;
-where they and this picture disagree, they win.
+**The graph is a reading aid, not the authoritative edge list.** It omits edges
+that a path already implies, where drawing them would only add clutter — W3→W6,
+W4→W7, W4→W8, W4→W9, W5→W8, W6→W8 and W10→W16 are all real dependencies that do
+not appear as arrows. A dotted arrow carries a scope label and is narrow: it
+records a dependency that gates one named thing rather than a whole unit, so it
+does not stand in for the solid edge it runs beside. The **Inherits** and
+**Unblocks** fields on each unit are authoritative; where they and this picture
+disagree, they win.
 
-**The critical path is W1 → W3 → W5 → W6 → W8**, with the caveat that it is a
-judgement rather than a derivation: W2 also gates W3, and no unit here carries a
-duration estimate, so nothing in this document *proves* the W1 leg is the long
-one. It is my expectation, from W1 carrying the golden corpus and W2 being a
-generator over a registry that already exists. If W2 turns out to be the longer
-leg, the path runs through it instead and nothing else about the plan changes.
+**The critical path is W1 → W3 → W5 → W6 → W7 → W8**, with the caveat that it
+is a judgement rather than a derivation: W2 also gates W3, and no unit here
+carries a duration estimate, so nothing in this document *proves* the W1 leg is
+the long one. It is my expectation, from W1 carrying the golden corpus and W2
+being a generator over a registry that already exists. If W2 turns out to be the
+longer leg, the path runs through it instead and nothing else about the plan
+changes.
 
 **W18 is the third candidate, and by textual weight the largest single unit
 here**: a data migration over user rows, a new persistent table with its own
@@ -1352,18 +1363,17 @@ one issue per track thereafter.
 Named here rather than assumed, because each changes the plan rather than its
 details:
 
-1. **ADR-004 acceptance** (S1). Gates everything.
-2. **Whether W10 is scheduled early**, as recommended under W10 and in *Order of
+1. **Whether W10 is scheduled early**, as recommended under W10 and in *Order of
    execution*. The alternative is a mocked server and a later, riskier first
    contact.
-3. **C6's exit criteria** — how many devices, over how long, what is watched,
+2. **C6's exit criteria** — how many devices, over how long, what is watched,
    and which observation sends the programme back to the ADR. C6 currently
    observes nothing, so none of the ADR's revisit triggers can fire against it.
    *Whether* there is a beta is settled: C6 exists, it is off by default, and
    under S7 it cannot run before W15. What is open is what would end it.
-4. **Issue-filing granularity**, as raised under *Relationship to a coarser
+3. **Issue-filing granularity**, as raised under *Relationship to a coarser
    issue breakdown*.
-5. **Whether a pre-attach automatic export ships with W8.** The shipped JSON
+4. **Whether a pre-attach automatic export ships with W8.** The shipped JSON
    export is the only rollback a user who attaches and regrets it will ever
    have. I would do it; it is a scope addition to a unit already on the critical
    path, so it is worth deciding deliberately rather than by default.
