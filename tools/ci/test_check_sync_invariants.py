@@ -81,6 +81,12 @@ def test_raw_joined_subquery_requires_parent_filter() -> None:
     )
     assert_no(_raw_join_violations(compliant, "fixture.dart")[0])
     assert _raw_join_violations(missing, "fixture.dart")[0]
+    multiple = (
+        "final q = 'SELECT * FROM dance_tags dt JOIN (SELECT * FROM venues v "
+        "JOIN tags t ON t.id = v.tag_id WHERE t.deleted_at IS NULL) x "
+        "ON x.id = dt.venue_id';\n"
+    )
+    assert _raw_join_violations(multiple, "fixture.dart")[0]
 
 
 def test_drift_soft_delete_join_requires_parent_filter() -> None:
@@ -96,6 +102,16 @@ def test_drift_soft_delete_join_requires_parent_filter() -> None:
     """
     assert_no(_drift_join_violations(compliant, "fixture.dart")[0])
     assert _drift_join_violations(missing, "fixture.dart")[0]
+    alias = """
+      final parent = _db.tags;
+      final rows = await (_db.select(_db.danceTags).join([
+        innerJoin(parent, parent.id.equalsExp(_db.danceTags.tagId)),
+      ])).get();
+    """
+    assert any(
+        v.kind == "soft-delete-join-boundary"
+        for v in _drift_join_violations(alias, "fixture.dart")[0]
+    )
 
 
 def test_i1_and_i2_write_paths_are_independent() -> None:
@@ -156,8 +172,31 @@ def test_i1_and_i2_write_paths_are_independent() -> None:
 
 
 def test_typed_drift_writes_fail_closed() -> None:
-    compliant = "await db.update(db.dances).write(companion);\n"
-    assert _drift_write_violations(compliant, "fixture.dart")
+    compliant = (
+        "await db.update(db.dances).write("
+        "DancesCompanion(title: Value(title), updatedAt: Value(now)));\n"
+    )
+    upsert = (
+        "await db.into(db.dances).insertOnConflictUpdate("
+        "DancesCompanion(title: Value(title), updatedAt: Value(now)));\n"
+    )
+    typed_i1 = (
+        "await db.update(db.dances).write("
+        "DancesCompanion(figuresJson: Value(json)));\n"
+    )
+    typed_i2 = (
+        "await db.update(db.dances).write("
+        "DancesCompanion(updatedAt: Value(now)));\n"
+    )
+    unknown = "await db.update(db.dances).write(companion);\n"
+    assert_no(_drift_write_violations(compliant, "fixture.dart"))
+    assert_no(_drift_write_violations(upsert, "fixture.dart"))
+    assert any(v.kind == "typed-I1" for v in _drift_write_violations(typed_i1, "fixture.dart"))
+    assert any(v.kind == "typed-I2" for v in _drift_write_violations(typed_i2, "fixture.dart"))
+    assert any(
+        v.kind == "typed-write-boundary"
+        for v in _drift_write_violations(unknown, "fixture.dart")
+    )
     assert_no(_drift_write_violations("// await db.update(db.dances).write(x);", "fixture.dart"))
 
 

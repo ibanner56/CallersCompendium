@@ -53,6 +53,9 @@ SOFT_DRIFT_TABLES = {
     "venues",
     "settings",
 }
+SQL_ALIAS_STOP_WORDS = frozenset(
+    {"where", "join", "on", "group", "order", "limit", "having", "union"}
+)
 
 I1_EXCEPTION_MARKER_RE = re.compile(
     r"sync-invariant-exception:\s*content-derived\b[^\n]*",
@@ -68,7 +71,12 @@ SOFT_JOIN_EXCEPTION_RE = re.compile(
     re.IGNORECASE,
 )
 SUBQUERY_JOIN_RE = re.compile(r"\bJOIN\s*\(\s*SELECT\b", re.IGNORECASE)
-DRIFT_UPDATE_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\.update\s*\(")
+DRIFT_MUTATION_ROOT_RE = re.compile(
+    r"\b[A-Za-z_][A-Za-z0-9_]*\s*\.\s*(?:update|into)\s*\("
+)
+DRIFT_MUTATION_METHOD_RE = re.compile(
+    r"\.(?:write|insert(?:OnConflictUpdate)?|replace)\s*\("
+)
 
 JOIN_RE = re.compile(
     r"\b(?:INNER\s+|LEFT(?:\s+OUTER)?\s+|CROSS\s+)?JOIN\s+"
@@ -254,18 +262,41 @@ def _raw_join_violations(source: str, path: str) -> tuple[list[Violation], int]:
                 )
                 continue
             subquery = literal.content[open_at + 1 : end]
-            tables = {
-                table.lower()
-                for table in SOFT_SQL_TABLES
-                if re.search(
-                    rf"\bFROM\s+{re.escape(table)}\b",
-                    subquery,
-                    re.IGNORECASE,
+            references = re.findall(
+                r"\b(?:FROM|JOIN)\s+([a-z_][a-z0-9_]*)"
+                r"(?:\s+(?:AS\s+)?([a-z_][a-z0-9_]*))?",
+                subquery,
+                re.IGNORECASE,
+            )
+            soft_references = [
+                (
+                    table.lower(),
+                    alias.lower()
+                    if alias and alias.lower() not in SQL_ALIAS_STOP_WORDS
+                    else None,
                 )
-            }
-            for table in tables:
+                for table, alias in references
+                if table.lower() in SOFT_SQL_TABLES
+            ]
+            for table, alias in soft_references:
                 candidates += 1
-                if re.search(r"\bdeleted_at\s+IS\s+NULL\b", subquery, re.IGNORECASE):
+                if len(soft_references) > 1 and alias is None:
+                    violations.append(
+                        Violation(
+                            "soft-delete-join-boundary",
+                            path,
+                            literal.line_no,
+                            f"joined subquery reading {table} has no alias for "
+                            "per-parent deleted_at verification",
+                        )
+                    )
+                    continue
+                predicate = (
+                    rf"\b{re.escape(alias)}\.deleted_at\s+IS\s+NULL\b"
+                    if alias
+                    else r"\bdeleted_at\s+IS\s+NULL\b"
+                )
+                if re.search(predicate, subquery, re.IGNORECASE):
                     continue
                 violations.append(
                     Violation(
@@ -386,11 +417,23 @@ def _drift_join_violations(source: str, path: str) -> tuple[list[Violation], int
             continue
         call = masked[match.start() : end + 1]
         argument = _first_call_argument(call, call.find("("))
+        all_tables = DRIFT_TABLE_RE.findall(argument)
         tables = {
             table
-            for table in DRIFT_TABLE_RE.findall(argument)
+            for table in all_tables
             if table in SOFT_DRIFT_TABLES
         }
+        if not tables and not all_tables:
+            violations.append(
+                Violation(
+                    "soft-delete-join-boundary",
+                    path,
+                    _line_number(source, match.start()),
+                    "cannot identify the Drift table in the joined-table "
+                    "argument; use a direct table reference",
+                )
+            )
+            continue
         for table in tables:
             candidates += 1
             join_start = masked.rfind(".join(", 0, match.start())
@@ -478,26 +521,66 @@ def _write_violations(source: str, path: str) -> list[Violation]:
 
 
 def _drift_write_violations(source: str, path: str) -> list[Violation]:
-    """Reject direct Drift writes until they use an inspectable sync helper."""
+    """Check direct Drift writes to sync-record tables for I1 and I2."""
 
     masked = "\n".join(mask_source(source))
     violations: list[Violation] = []
-    for match in DRIFT_UPDATE_RE.finditer(masked):
+    for match in DRIFT_MUTATION_ROOT_RE.finditer(masked):
+        open_at = masked.find("(", match.start())
+        argument = _first_call_argument(masked, open_at)
+        if not (
+            set(DRIFT_TABLE_RE.findall(argument)) & SOFT_DRIFT_TABLES
+        ):
+            continue
         statement_end = masked.find(";", match.start())
         if statement_end < 0:
             statement_end = len(masked)
-        statement = masked[match.start() : statement_end].replace(" ", "")
-        if ".write(" not in statement:
+        statement = re.sub(r"\s+", "", masked[match.start() : statement_end])
+        if not DRIFT_MUTATION_METHOD_RE.search(statement):
             continue
-        violations.append(
-            Violation(
-                "typed-write-boundary",
-                path,
-                _line_number(source, match.start()),
-                "direct Drift .update(...).write(...) must use an "
-                "inspectable sync write helper",
+        line = _line_number(source, match.start())
+        if not re.search(r"[A-Za-z_][A-Za-z0-9_]*Companion(?:\.insert)?\(", statement):
+            violations.append(
+                Violation(
+                    "typed-write-boundary",
+                    path,
+                    line,
+                    "typed Drift write must use an inline companion so its "
+                    "sync fields are inspectable",
+                )
             )
-        )
+            continue
+        fields = set(re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*:", statement))
+        has_updated = "updatedAt" in fields or "updated_at" in fields
+        has_existence = "deletedAt" in fields or "deleted_at" in fields
+        content_fields = fields - {
+            "createdAt",
+            "created_at",
+            "updatedAt",
+            "updated_at",
+            "deletedAt",
+            "deleted_at",
+            "existenceAt",
+            "existence_at",
+        }
+        if content_fields and not has_updated:
+            violations.append(
+                Violation(
+                    "typed-I1",
+                    path,
+                    line,
+                    "typed serialized-content write must also provide updatedAt",
+                )
+            )
+        if has_updated and not content_fields and not has_existence:
+            violations.append(
+                Violation(
+                    "typed-I2",
+                    path,
+                    line,
+                    "typed updatedAt write must also change body or existence state",
+                )
+            )
     return violations
 
 
