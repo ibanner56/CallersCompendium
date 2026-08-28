@@ -163,7 +163,7 @@
   color: "E3A008"
   description: "Extra attention or a contributor is welcome"
 - name: "cluster: callers box improvements"
-  color: "FFFFFF"
+  color: "E6E6E6"
   description: "Tickets for mid/long-term improvements related to parse and import from The Caller's Box"
 
 # --- automation: dependency & CI maintenance (neutral gray) ------------------
