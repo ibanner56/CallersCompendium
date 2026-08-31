@@ -1399,7 +1399,8 @@ header that carries no information the request does not already imply.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/v1/store` | Store metadata: epoch, device list, quota usage. Creates the store if absent. |
+| `GET` | `/v1/store` | Store metadata: epoch, device list, quota usage. `404` if no store exists for the `id_key`. **Creates nothing.** |
+| `POST` | `/v1/store` | Create the store and mint its epoch. `201` on success, `409` if it already exists. |
 | `DELETE` | `/v1/store` | Wipe store (destructive). |
 | `GET` | `/v1/manifests/{deviceId}` | Fetch one manifest. `ETag` / `If-None-Match`. |
 | `PUT` | `/v1/manifests/{deviceId}` | Publish this device's manifest. |
@@ -1424,7 +1425,8 @@ emitting one interoperates with a client library by luck. The failure is a
 permanent fallback to refetching every manifest every pass, which is invisible
 except as traffic.
 
-**`GET /v1/store`.** Creates the store if absent (§7.1) and returns:
+**`GET /v1/store`.** MUST NOT create anything. When no store exists for the
+`id_key` it MUST return `404`. Otherwise it returns:
 
 ```json
 {
@@ -1444,6 +1446,55 @@ except as traffic.
 
 `devices` is the peer set that drives step 3's per-peer manifest fetches. A
 client MUST exclude its own id from that iteration.
+
+**`POST /v1/store`.** Creates the store, mints its epoch (§7.1) and returns
+`201` with the same body `GET` returns. Against an `id_key` that already has a
+store it MUST return `409` and MUST NOT disturb the existing store — in
+particular it MUST NOT re-mint the epoch, which would present every attached
+device with a spurious reset.
+
+**Creation is a separate endpoint because a store lookup must be able to fail.**
+An earlier draft had `GET /v1/store` create the store if absent, which made
+creating and joining one call. That is convenient and it is why the split is
+worth explaining rather than just stating: with it, *no request an enumerating
+attacker can send ever fails*. A guessed ID is structurally valid, so it is not
+a `401` (§5.1) and not a `403` (§8); it resolves to some `id_key`, and the
+endpoint then manufactures a store and reports success. Wrong guesses became
+successful creations, distinguishable from hits only by an empty `devices` list,
+and §8's enumeration bound rested on a failed-authentication counter that
+guessing never incremented. Splitting creation out is what makes a wrong guess
+observable to the server as a failure, and §5.4's budget is what turns that
+observation into the bound §8 states.
+
+It also removes a silent client-side failure this specification otherwise works
+hard to prevent. Under the merged call a mistyped ID produced a *different,
+empty store* that looked exactly like a sync with nothing to say — the same
+failure the normalisation rules in §8 exist to prevent, arriving through a
+different door. Under the split it is a `404`, which a client can report.
+
+**On the pairing path a client MUST NOT convert a `404` into a `POST` of its own
+accord.** Auto-creating on absence rebuilds the merged call out of two requests
+and restores the silent-typo failure exactly: the ID at §6.2 step 1 has just
+been *typed*, so absence is as likely to mean "you mistyped it" as "no store
+exists". Which call to issue is a decision the user has already made at that
+step, and §6.14 requires the pairing surface to put it to them.
+
+**In steady state the opposite holds.** At §6.3 step 1 the ID is one this device
+has already synced against successfully, so a `404` cannot be a typo: it means
+§7.3 reaped the store. Re-creating is then correct and MUST happen without
+asking, exactly as an epoch change is handled without asking. The rule is
+therefore about the provenance of the ID rather than the status code — **a
+client MUST NOT create against an ID the user has just entered, and MUST create
+against one it has itself used successfully.**
+
+**This is my call, not a maintainer ruling.** The protocol split forces a client
+to choose some moment to create; the only two candidate policies are "ask" and
+"create on absence"; and the second reintroduces a silent divergence this
+document goes to considerable length to prevent everywhere else.
+
+`POST` carries no request body. The epoch is minted by the server and by nothing
+else (§7.1), and there is no other creation-time parameter, so a body could only
+carry something a client MUST NOT supply.
 
 **`POST /v1/blobs/missing`.** Request and response are both objects, not bare
 arrays, so either can gain a field without a `v` bump:
@@ -1480,14 +1531,14 @@ indefinitely, and the window would bound nothing.
 | Code | Meaning |
 | --- | --- |
 | `200` | OK. |
-| `201` | Blob or manifest created. |
+| `201` | Blob, manifest, or store created. |
 | `204` | Deleted. |
 | `304` | Manifest unchanged. |
 | `400` | Malformed request. |
 | `401` | Missing or malformed `Authorization`. |
 | `403` | Sync ID fails the structural rule (four hyphen-separated words). |
-| `404` | No such blob, manifest, device — or store. |
-| `409` | Epoch mismatch. |
+| `404` | No such blob, manifest, device — or store. On a store-scoped request this is also the signal an enumerating client sees, and §5.4 budgets it. |
+| `409` | Conflict: a stale epoch on a manifest `PUT`, or a `POST /v1/store` against an `id_key` that already has one. |
 | `413` | Payload exceeds a cap. |
 | `415` | Body media type is not the one the endpoint expects (optional; see §5.1). |
 | `422` | Payload rejected by the allow-list. |
@@ -1495,8 +1546,12 @@ indefinitely, and the window would bound nothing.
 | `507` | Store quota exhausted. |
 
 There is no distinct "expired" status. Reset detection is the epoch's job. A
-client receiving `404` from a store-scoped endpoint recovers by calling
-`GET /v1/store`.
+client receiving `404` from a *within-store* endpoint — a manifest, a blob —
+recovers by calling `GET /v1/store`, which tells it whether the store still
+exists at all. A `404` from `GET /v1/store` itself means the store is gone:
+either it never existed, or §7.3 reaped it. Recovery is then a `POST`, and
+because that mints a fresh epoch every peer fresh-attaches, which is the
+intended outcome of an expiry and the reason no separate status is needed.
 
 `413` and `507` divide on **per-request versus per-store**, and the split is
 normative because it is otherwise a coin toss. A single request exceeding a
@@ -1534,20 +1589,52 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
 | Request rate, per client IP | 60/minute, burst 120 |
 | Request rate, per store (`id_key`) | 600/minute |
-| **Failed** authentications, per client IP | 10/minute, burst 20 |
-| **Failed** authentications, server-wide | 1,000/minute |
+| **Failed store resolutions**, per client IP | 10/minute, burst 20 |
+| **Failed store resolutions**, server-wide | 1,000/minute |
+| Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
 
-The request-rate rows bound load. **The failed-authentication rows are the ones
-§8's enumeration bound rests on**, and the server-wide row is the load-bearing
-one: a per-IP limit alone is defeated by distributing the guessing, which is
-exactly what an attacker enumerating sync IDs would do. At 1,000 failures per
-minute the whole internet gets ~2²⁹ guesses a year against §8's 2⁴⁰ reference
-strength — about one in two thousand odds of finding *any* store, shared across
-all attackers at once — and ~2⁻²³ against the 2⁵² a generated ID carries. §8
-records why 2⁴⁰ is a warning threshold rather than a guaranteed floor, and what
-that costs the users who choose their own ID. Without a
+The request-rate rows bound load. **The failed-store-resolution rows are the
+ones §8's enumeration bound rests on**, and the server-wide row is the
+load-bearing one: a per-IP limit alone is defeated by distributing the guessing,
+which is exactly what an attacker enumerating sync IDs would do. At 1,000
+failures per minute the whole internet gets ~2²⁹ guesses a year against §8's 2⁴⁰
+reference strength — about one in two thousand odds of finding *any* store,
+shared across all attackers at once — and ~2⁻²³ against the 2⁵² a generated ID
+carries. §8 records why 2⁴⁰ is a warning threshold rather than a guaranteed
+floor, and what that costs the users who choose their own ID. Without a
 server-wide row the arithmetic has no bound to state, because the attacker
 chooses the number of IPs.
+
+**A failed store resolution is any response that tells the sender whether a
+store exists when they had not already shown they knew.** Exactly four outcomes
+qualify, and a server MUST count all four:
+
+| Outcome | What it reveals |
+| --- | --- |
+| `401` | The credential was malformed (§5.1). |
+| `403` | The sync ID fails the structural rule (§8). |
+| `404` on a store-scoped request | No store exists for this `id_key`. |
+| `409` on `POST /v1/store` | A store *does* exist for this `id_key`. |
+
+**Counting only `401` would bound nothing, and an earlier draft of this
+specification did exactly that.** A guessed sync ID is well-formed and
+structurally valid, so it produces neither `401` nor `403`; under the merged
+`GET`-creates-if-absent endpoint it produced `200`. The counter §8's arithmetic
+named could not be incremented by the attack it was supposed to bound, while
+appearing configured, firing on broken clients, and reading as correct. The last
+row matters for the same reason in the opposite direction: without it, `POST`
+becomes the oracle that `GET` used to be, since "already exists" is as
+informative as "found".
+
+**The creation row bounds storage rather than guessing.** Every `POST` that
+succeeds costs a row that lives until §7.3 reaps it, and no per-ID limiter
+engages because each creation uses a fresh `id_key`. Honest creation happens
+once per store in its lifetime, so 60/minute is several orders of magnitude
+above legitimate demand and still caps live empty stores at roughly 2.6 million
+against the 30-day TTL. Without this row the failure budget alone would leave
+creation unbounded, because a *successful* creation is not a failure and must
+not be counted as one — an honest first pairing would otherwise consume the same
+budget as an attack.
 
 These specific values are my choice, not a derivation from anything in the
 design; what is derived is the *shape* — that the limit which matters counts
@@ -1558,10 +1645,14 @@ limit, so lowering that row is a security change and not a capacity one.
 A server-wide failure limit would be a denial-of-service vector if it could
 lock out honest users, so it MUST be scoped to requests that *fail*: while it is
 saturated the server MUST continue to serve correctly-authenticated requests
-normally, and reject only those that would have produced `401` anyway. A user
-holding a valid sync ID is therefore never affected by another party's guessing,
-and a user mistyping an ID sees a `429` instead of a `401` — a worse message for
-the same outcome.
+normally, and reject only those that would have produced one of the four
+outcomes above anyway. A user holding a valid sync ID for an existing store is
+therefore never affected by another party's guessing: every request they make
+resolves. A user mistyping an ID sees a `429` instead of a `404` — a worse
+message for the same outcome. A user creating their *first* store while the
+budget is saturated is refused, which is the one honest case this control can
+delay; it is bounded by the same window, and it is the price of making a wrong
+guess cost something.
 
 ## 6. Client conformance
 
@@ -1611,8 +1702,14 @@ republishes, which is an ordinary upload and needs no special path.
 
 ### 6.2 Attach
 
-1. User enters or accepts a sync ID and confirms the endpoint.
-2. `GET /v1/store`.
+1. User chooses **create a new store** or **connect to an existing one**
+   (§6.14), then enters or accepts a sync ID and confirms the endpoint.
+2. Connecting: `GET /v1/store`. A `404` means nothing has that ID; the client
+   MUST report that and MUST NOT turn it into a `POST` (§5.2). Creating:
+   `POST /v1/store`. A `409` means the ID is already in use; the client MUST
+   report that and MUST NOT silently join, because a user who asked to create
+   and was quietly attached to a stranger's store is the exact failure the
+   choice exists to prevent.
 3. **Fresh attach** always: on first attach, on re-attach after detach, and on
    `409`. Detach MUST forget the sync ID entirely.
 4. Upload every local record; download every remote record. Inbound rejection
@@ -1647,8 +1744,9 @@ republishes, which is an ordinary upload and needs no special path.
    step 8 runs, this device is absent from §7.1's `devices` list, no peer can
    see any record it holds, and by §7.3 the blobs it just uploaded are
    unreferenced and become collectable once the grace window elapses. A device
-   attaching to an empty store — the expected shape after the §7.3 TTL expires
-   a store, and on first attach — would otherwise seed nothing at all.
+   attaching to an empty store — the shape on first attach, and again after
+   §7.3 reaps a store and some device re-creates it — would otherwise seed
+   nothing at all.
 
    This pass is a **continuation of the attach**, not a second concurrent
    operation, and §6.12's single-flight rule MUST NOT be read as forbidding it.
@@ -1663,7 +1761,10 @@ republishes, which is an ordinary upload and needs no special path.
 
 ### 6.3 Steady-state sync
 
-1. `GET /v1/store`. Epoch differs → fresh attach; stop.
+1. `GET /v1/store`. Epoch differs → fresh attach; stop. `404` → §7.3 reaped
+   the store; `POST /v1/store` to re-create it, then fresh attach and stop.
+   This device has synced against this ID before, so absence is a reap and not
+   a typo, and §5.2's no-auto-create rule does not reach it.
 2. Compute the local manifest.
 3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
 4. Per record, resolve existence first (§6.4), then compare hashes and
@@ -2355,7 +2456,7 @@ wording here is not a worse hint; it is a privacy claim the app cannot keep.
 
 ### 6.14 Pairing-time disclosures
 
-Four consequences of this design are user-visible, irreversible, and cannot be
+Five consequences of this design are user-visible, irreversible, and cannot be
 inferred from the interface. Each is recorded in ADR-004 as knowingly accepted,
 and each names a moment the user must be told. They are specified here because
 an obligation that lives only in the ADR is owned by no unit: the ownership
@@ -2377,14 +2478,24 @@ this document is invisible to it by construction. All four had that shape.
    "last synced" line is exactly what a user reads as "my data is safe", so the
    disclosure belongs on the status surface and not only at pairing.
 4. **The client SHOULD warn as the disuse expiry approaches.** Reaching it is
-   safe and correct — the next device to connect fresh-attaches (§6.2) — but it
-   arrives as an unexplained dedupe review for a user who simply did not open
-   the app for five weeks.
+   safe and correct — the next device to connect re-creates the store and
+   fresh-attaches (§6.3 step 1) — but it arrives as an unexplained dedupe
+   review for a user who simply did not open the app for five weeks.
+5. **The pairing surface MUST ask whether the user is creating a new store or
+   connecting to an existing one, and MUST NOT infer it.** §5.2 splits creation
+   onto its own endpoint, so the client necessarily issues one call or the
+   other; inferring from a `404` is what reintroduces the silent-typo failure
+   that split removed. The two errors MUST be reported distinctly: "no store has
+   that ID" when connecting, and "that ID is already in use" when creating. The
+   second matters more, because a user who asked to create and was quietly
+   attached instead has joined a stranger's library, and last-writer-wins gives
+   them no signal that anything is wrong.
 
-Requirements 1 to 3 are MUSTs because each states something the user cannot
-discover before the harm: a silently discarded edit, an unrecoverable
-credential, and a backup that is not one. Requirement 4 is a SHOULD because
-what it prevents is surprise, not loss.
+Requirements 1 to 3 and 5 are MUSTs because each states something the user
+cannot discover before the harm: a silently discarded edit, an unrecoverable
+credential, a backup that is not one, and a store that is not the one they
+meant. Requirement 4 is a SHOULD because what it prevents is surprise, not
+loss.
 
 ## 7. Server conformance
 
@@ -2457,15 +2568,17 @@ MUST NOT supply one on store creation. Only the server can mint it, because two
 devices creating the same store concurrently would otherwise choose different
 values and each treat the other as a reset.
 
-The server MUST mint a **fresh** 128-bit random epoch on every store creation:
-the first `GET /v1/store` for an unknown `id_key`, the next `GET` after
-`DELETE /v1/store`, and the next `GET` after the store was reaped by the sweep
-(§7.3). A fresh one MUST NOT be derived from the sync ID, the `id_key` or a
-counter, and an epoch MUST NOT be reused across incarnations of a store. This
-is the whole of the reset-detection mechanism: a device compares the epoch at
-§6.3 step 1 and fresh-attaches when it differs, so an implementation that
-reproduces an old epoch after a wipe leaves every peer believing its baseline
-still describes the store, and no device ever detects the reset.
+The server MUST mint a **fresh** 128-bit random epoch on every store creation —
+that is, on every `POST /v1/store` returning `201`: the first for an unknown
+`id_key`, the next after `DELETE /v1/store`, and the next after the store was
+reaped by the sweep (§7.3). A `POST` answered `409` MUST NOT mint one, because
+the store it names already has an epoch its devices are holding. A fresh one
+MUST NOT be derived from the sync ID, the `id_key` or a counter, and an epoch
+MUST NOT be reused across incarnations of a store. This is the whole of the
+reset-detection mechanism: a device compares the epoch at §6.3 step 1 and
+fresh-attaches when it differs, so an implementation that reproduces an old
+epoch after a wipe leaves every peer believing its baseline still describes the
+store, and no device ever detects the reset.
 
 Store creation MUST be an atomic upsert on the `stores` primary key, and
 concurrent creators MUST both observe the **same** epoch — the loser of the
@@ -2477,11 +2590,11 @@ identical across every incarnation of a store, and a layout that keys blobs and
 manifests on it alone **reuses the same physical paths after every reset**. An
 atomic upsert on the `stores` row does not make the destruction of that content
 atomic with it. A `DELETE /v1/store`, or a sweep reaping the store (§7.3), can
-still be removing blobs when a concurrent `GET /v1/store` mints the next epoch
+still be removing blobs when a concurrent `POST /v1/store` mints the next epoch
 and a device begins uploading into it — and the removal, walking paths it
-enumerated before the reset, deletes blobs belonging to the new incarnation.
-The interleaving needs no adversarial timing: the two `GET` cases named above
-are precisely "the next `GET` after `DELETE`" and "the next `GET` after the
+enumerated before the reset, deletes blobs belonging to the new incarnation. The
+interleaving needs no adversarial timing: the two creation cases named above are
+precisely "the next `POST` after `DELETE`" and "the next `POST` after the
 sweep", so the specification already lists the sequence as ordinary.
 
 Namespacing by epoch removes the race by construction rather than by ordering,
@@ -2769,10 +2882,14 @@ whitespace, apply Unicode NFC, then lowercase using the Unicode default,
 locale-independent mapping. This is stated because the failure it prevents is
 silent rather than loud. `id_key` is `HMAC-SHA256(pepper, syncID)`, so two
 implementations that disagree about whether to trim or normalise route the same
-ID the user typed to two different storage keys: the second device does not get
-an error, it gets a *different, empty store*, and it looks exactly like a sync
-that is working and has nothing to say. Every other disagreement in this section
-surfaces as a `403`.
+ID the user typed to two different storage keys. Since §5.2 split creation from
+lookup, the second device connecting with the divergent key gets a `404` rather
+than a *different, empty store* that looks exactly like a sync with nothing to
+say — so this failure is now loud where it used to be silent. The normalisation
+rule is still required: `404` tells the user the ID is not found, not that two
+implementations disagree about trimming, and a user who then chooses "create"
+would split their own library across two stores. Every other disagreement in
+this section surfaces as a `403`.
 
 **No implementation blocks on the score, and the reason is not the one this
 section used to give.** The earlier rule put the floor on the client "at the
@@ -2780,18 +2897,34 @@ point of choice", on the grounds that a *server* running a second, marginally
 stricter estimator would reject an ID the user had already adopted and lock
 them out of a store their own ID addresses. That asymmetry does not exist. A
 second device must **type** an existing ID, so a newer client with a stricter
-estimator rejects it before any request is made — the identical lockout,
-between client versions rather than between client and server. Nor can the
-server arbitrate: `GET /v1/store` creates the store if absent (§7.1), so
-creating and joining are the same call and are indistinguishable server-side,
-and "the point of choice" is not a boundary any implementation can locate.
-Since a heuristic with no canonical definition cannot be made to agree with
-itself across versions, and since the ID *is* the store address, the only
-placement that cannot lock a user out of their own data is none. A weak
-self-chosen ID is therefore possible; its residual risk is bounded by the
-rate limits below and is borne by the person who chose it, having been warned.
-This is the maintainer's ruling; the alternatives considered are in
-[sync.md](sync.md).
+estimator rejects it before any request is made — the identical lockout, between
+client versions rather than between client and server. Since a heuristic with no
+canonical definition cannot be made to agree with itself across versions, and
+since the ID *is* the store address, the only placement that cannot lock a user
+out of their own data is none. A weak self-chosen ID is therefore possible; its
+residual risk is bounded by the rate limits in §5.4 and is borne by the person
+who chose it, having been warned.
+
+**One leg of that argument has since been removed, and the ruling was
+re-affirmed without it.** The original also held that the server *cannot*
+arbitrate, because `GET /v1/store` created the store if absent and so creating
+and joining were one indistinguishable call, leaving "the point of choice"
+nowhere an implementation could locate. §5.2 has since split creation onto its
+own endpoint for the enumeration reason recorded there, and that leg is
+therefore simply false now: `POST /v1/store` *is* the point of choice, and a
+server could refuse a weak ID there while never scoring an ID at join.
+
+The maintainer re-affirmed the advisory rule anyway, and the re-derivation is
+mine. It stands on two grounds. The surviving legs are sufficient on their own:
+a cross-version estimator disagreement still locks a user out at the client,
+which is where the harm was located, and no server-side placement repairs that.
+And the control that was *supposed* to carry this risk now actually carries it —
+§5.4's budget was unreachable by an enumerating attacker before the split and
+bounds ~2²⁹ guesses a year after it, so "bounded by the rate limits and borne by
+the person who chose it" is a true statement today and was not when the ruling
+was first made. Blocking at creation would buy a refusal path for a risk that is
+disclosed, bounded and voluntary. The alternatives considered, in both rounds,
+are in [sync.md](sync.md).
 
 **Transport.** TLS required except `localhost`/`127.0.0.1`, matched exactly as
 §5 specifies, with certificate chain and hostname verification mandatory and not
@@ -2845,20 +2978,38 @@ disclosed. A peer can write any `shareable` record; it cannot write
 independently of the server.
 
 **Enumeration.** Guessing is bounded by the ID's own strength — guaranteed for a
-generated ID, warned about but not guaranteed for a chosen one — by the
-**server-wide failed-authentication limit** (§5.4), and by the global cap on
-store creation. The per-IP limits matter but are not what the bound rests on: an
-attacker enumerating sync IDs distributes the attempt, and chooses how many
-addresses to distribute it across, so any per-IP figure multiplies by a number
-the defender does not control. Only a server-wide limit on *failures* yields an
-arithmetic bound — ~2²⁹ guesses a year against a 2⁴⁰ reference, ~2⁻²³ against
-the 2⁵² a generated ID carries. The **per-ID-hash** limit
-is not part of this either: a guesser submits a different ID on every attempt,
-so it never sees the same `id_key` twice and that limiter never engages. It
-bounds abuse of a store the attacker already has the ID for, which is a
-different thing. The conclusion is unchanged at 2⁴⁰–2⁵² — this corrects which
-control is doing the work, so that weakening the wrong one later reads as safe
-when it is not.
+generated ID, warned about but not guaranteed for a chosen one — and by the
+**server-wide failed-store-resolution limit** (§5.4). The per-IP limits matter
+but are not what the bound rests on: an attacker enumerating sync IDs
+distributes the attempt, and chooses how many addresses to distribute it across,
+so any per-IP figure multiplies by a number the defender does not control. Only
+a server-wide limit on *failures* yields an arithmetic bound — ~2²⁹ guesses a
+year against a 2⁴⁰ reference, ~2⁻²³ against the 2⁵² a generated ID carries. The
+**per-ID-hash** limit is not part of this either: a guesser submits a different
+ID on every attempt, so it never sees the same `id_key` twice and that limiter
+never engages. It bounds abuse of a store the attacker already has the ID for,
+which is a different thing.
+
+**This bound requires that a guess be able to fail, and §5.2's endpoint split is
+what makes it able to.** The arithmetic above is unchanged from the first draft,
+but for one revision it was arithmetic about a counter the attack could not
+touch. A guessed ID is well-formed and structurally valid, so it draws neither
+`401` nor `403`; while `GET /v1/store` created the store if absent, it drew
+`200`. Every wrong guess was a successful creation, told apart from a hit by an
+empty `devices` list, and a second oracle sat beside it — `404` from any
+within-store endpoint answered the same question without creating anything at
+all. The limit was configured, fired on malformed clients, and bounded nothing
+an attacker did. §5.4 now counts all four resolution outcomes, including the
+`409` that would otherwise make `POST` the next oracle in the sequence, and the
+global creation cap that this section used to cite is specified rather than
+merely named.
+
+The conclusion is unchanged at 2⁴⁰–2⁵². What has changed twice is *which control
+does the work*: first from the per-IP limit to the server-wide one, then from a
+counter of authentication failures to a counter of store-resolution failures.
+Both corrections exist so that weakening the wrong control later cannot read as
+safe. A reviewer asking whether this bound holds should check one thing before
+anything else — that the enumerating request still produces a counted outcome.
 
 **2⁴⁰ is now the bottom of the *warned* range, not a guaranteed floor**, and
 the arithmetic must be read accordingly. The rate limit bounds the attacker at
@@ -3294,7 +3445,7 @@ inspects local state and the defect is that nothing was ever exposed). The pass
 attach runs **does not re-enter attach** when the epoch changed underneath it:
 it stops without publishing and the next trigger performs the fresh attach
 (mutation: recurse, and assert boundedness against a store re-created on every
-`GET /v1/store`).
+`POST /v1/store`).
 
 **Server.** Each cap rejected at the boundary, not after allocation. A sync ID
 one code point over the word bound is rejected `403`, and one at the bound is
@@ -3316,11 +3467,10 @@ filesystem cleanup is then allowed to run to completion: the new blob is still
 incarnations share one subtree — every steady-state blob test passes, because
 the damage needs a reset, and the sweep's own reap path reproduces it without
 any client action at all). The same two stores hold **two** copies of those
-bytes, and a blob
-uploaded under one `id_key` is **not** served under the other — `GET
-/v1/blobs/{hash}` authorised for store B returns `404` for a hash only store A
-has uploaded, and `POST /v1/blobs/missing` reports it missing (mutation: serve
-any blob whose hash exists anywhere, which is the natural read of a
+bytes, and a blob uploaded under one `id_key` is **not** served under the other
+— `GET /v1/blobs/{hash}` authorised for store B returns `404` for a hash only
+store A has uploaded, and `POST /v1/blobs/missing` reports it missing (mutation:
+serve any blob whose hash exists anywhere, which is the natural read of a
 content-addressed store and is the forbidden cross-store deduplication — it also
 lets any sync-ID holder confirm whether a given record exists in someone else's
 store). A `{deviceId}` segment that is not `^[A-Za-z0-9_-]{1,64}$` is rejected
@@ -3361,16 +3511,46 @@ unconditionally, then assert that 1,000 guesses bearing 1,000 distinct forwarded
 addresses are still throttled — the socket-peer mutation is the complementary
 one, and is caught by asserting two honest clients are *not* throttled
 together). **No log line contains a raw `{deviceId}`, and any log that records
-one carries a stated retention bound** (mutation: log the request path
-verbatim — the body-logging vector above still passes, because the identifier is
-in the path and never in a body, and §7.3's own reaping never reaches it). **A
+one carries a stated retention bound** (mutation: log the request path verbatim
+— the body-logging vector above still passes, because the identifier is in the
+path and never in a body, and §7.3's own reaping never reaches it). **A
 credential that is not valid base64url, or whose bytes are not well-formed
 UTF-8, is rejected `401`** (mutation: decode with `U+FFFD` substitution, then
 assert two distinct sync IDs differing only in an invalid byte do not resolve to
-one store). **While the server-wide failure limit is saturated, a
-correctly-authenticated request still succeeds** (mutation: apply the limit to
-all requests, which converts a guessing bound into a total outage any attacker
-can trigger).
+one store). **While the server-wide failure limit is saturated, a request that
+resolves an existing store still succeeds** (mutation: apply the limit to all
+requests, which converts a guessing bound into a total outage any attacker can
+trigger).
+
+**Creation is separable from lookup, and both halves of the enumeration
+oracle are closed**
+`GET /v1/store` for an unknown `id_key` returns `404` and **creates nothing** —
+asserted by re-issuing the same `GET` and requiring a second `404`, then
+requiring the store list to be unchanged (mutation: create on absence and return
+`200`; a test that only checks the status code passes, because the second `GET`
+then legitimately returns `200` for a store the first call made). `POST
+/v1/store` against an existing `id_key` returns `409`, leaves the epoch
+byte-identical and does not touch `devices` (mutation: re-mint on `POST`, which
+presents every attached device with a spurious reset and is invisible to any
+test that only reads the status code).
+
+**All four store-resolution outcomes increment the §5.4 budget, and success does
+not.** Asserted by driving each of `401`, `403`, `404`-on-store-scoped and
+`409`-on-create to saturation independently, and by driving a long run of
+*successful* resolutions and a successful creation against a budget that must
+not move (mutation: count only `401`, which is what an earlier draft did and
+which leaves the enumerating request — well-formed, structurally valid,
+resolving to some `id_key` — costing an attacker nothing at all; the mutation
+passes every test that exercises malformed credentials). The complementary
+mutation is to count successful resolutions too, which throttles an honest
+device's ordinary polling and is caught by the success run.
+
+**The creation cap bounds storage independently of the failure budget**: a run
+of successful creations is refused at the §5.4 rate while an unrelated existing
+store still resolves (mutation: fold creation into the failure budget, so a
+single honest first pairing consumes the guessing allowance, or drop the cap
+entirely, so an attacker converts an unbounded creation right into stored rows
+the sweep only reaches 30 days later).
 
 **User-visible sync obligations.** With `sync_exclude_imports` on, an imported
 dance that no published record cites is absent from this device's manifest,
@@ -3481,12 +3661,15 @@ The following are recorded as known and are not specified here:
 - Dance dedupe runs only at fresh attach, so a dance can fork permanently.
 - **A user-chosen sync ID may be weaker than the ~2⁴⁰ reference** (§8). The
   strength score warns and blocks nowhere, so nothing enforces a lower bound on
-  a chosen ID. Every other placement was worse: any component that refuses an
-  ID refuses access to the store it addresses, and since `GET /v1/store`
-  creates on absence, the server cannot distinguish a first use from a join and
-  could not refuse selectively even if it wanted to. The residual risk is
-  bounded by §5.4's server-wide limit and borne by the user who dismissed the
-  warning. Generated IDs, which is the default, are unaffected at ~2⁵².
+  a chosen ID. Client-side placement was worse: any component that refuses an
+  ID refuses access to the store it addresses, and a cross-version estimator
+  disagreement locks a user out of data their own ID names. Server-side
+  placement is now *possible* — §5.2's `POST /v1/store` is a locatable point of
+  choice, which it was not when this limitation was written — and was declined
+  on re-affirmation rather than being unavailable; §8 records the
+  re-derivation. The residual risk is bounded by §5.4's server-wide limit and
+  borne by the user who dismissed the warning. Generated IDs, which is the
+  default, are unaffected at ~2⁵².
 - Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
   The divergence is reported bilaterally rather than resolved, because every
   available tie-break is non-convergent.

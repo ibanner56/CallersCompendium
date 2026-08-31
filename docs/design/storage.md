@@ -462,8 +462,11 @@ favour of the tombstone. One tick is one **second**, because drift stores
 `DateTime` as unix seconds; a smaller increment would round away and the stamp
 would tie. See `lib/src/storage/existence.dart`.
 
-Nothing reads `existence_at` yet. It exists for Device Sync (ADR-004), which is
-not implemented; the migration that adds it is deliberately behaviour-preserving.
+Nothing reads `existence_at` *for a merge decision* yet. The causal advance
+described just above does read it, so the flat claim "nothing reads it" is
+false against the file this paragraph points at. It exists for Device Sync
+(ADR-004), which is not implemented; the migration that adds it is deliberately
+behaviour-preserving.
 
 **Deletion is a tombstone, with two named exceptions.** Deleting an entity
 writes `deleted_at` and leaves the row on disk, so the deletion is something a

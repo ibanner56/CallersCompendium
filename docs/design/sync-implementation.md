@@ -177,12 +177,17 @@ from W1 and nothing else: it hangs directly off the root and is not reachable
 through W3, so a reader tracing the chain forward from W3 never arrives at it.
 
 The primitive itself is now mostly a packaging job rather than an
-implementation: `unorm_dart` is already a dependency of `compendium_core`, and
-`nfc()` already has two call sites. Both are **comparison-only** — inside
-`_foldDiacritics` in `dedupe.dart` and `_normalizeName` in
-`import_pipeline.dart` — and neither is reachable from `app`, which does not
-depend on the package and cannot see `nfc` through the barrel. Nothing
-normalises a value that gets **stored**.
+implementation, and the storage half of it has already shipped — wrongly.
+`unorm_dart` is a dependency of `compendium_core`, and `nfc()` now has **three**
+call sites. Two are comparison-only: `_foldDiacritics` in `dedupe.dart` and
+`_normalizeName` in `import_pipeline.dart`, neither reachable from `app`, which
+does not depend on the package and cannot see `nfc` through the barrel.
+
+The third is `normalizeShareableText` in `storage/shareable_text.dart`, which
+#1119 put on every repository write path. So the claim this card was written
+against — that nothing normalises a value that gets **stored** — is no longer
+true. What W18 owes is therefore a correction, not a first implementation: that
+call composes the two transforms in the order §4.6 rules out. See W18.
 
 The golden corpus is the real deliverable. Code can be rewritten; the corpus is
 what makes a rewrite safe, and what lets the server be built by someone who
@@ -725,9 +730,10 @@ normalisation collapses, and so reports a strength the credential does not
 have. Blocking has no safe home: the ID *is* the store address, joining means
 typing an existing one, and a newer client with a stricter estimator locks a
 user out of an ID an older client accepted, exactly as a stricter server would.
-`GET /v1/store` creates the store if absent, so the server cannot tell creating
-from joining and cannot arbitrate either. Maintainer's ruling; spec §8 carries
-the reasoning.
+This unit inherits the rule and not its original third leg: spec §5.2 now splits
+creation onto `POST /v1/store`, so the server *can* tell creating from joining
+and a server-side floor is buildable. It is still not built. Maintainer's
+ruling, re-affirmed after the split; spec §8 carries the re-derivation.
 
 #### W10 · Athenaeum core — storage, endpoints, limits
 
@@ -749,34 +755,43 @@ the reasoning.
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
   keying, with the pepper in configuration and **no version scheme** — the spec
   specifies none, and §10 records pepper rotation as an unresolved limitation
-  whose proposed answer is versioned lazy re-keying, so building versioning
-  here would implement a resolution the design has not adopted, with no schema
-  column and no conformance case behind it; the store, manifest and blob
-  endpoints; strong
-  quoted `ETag` equal to the manifest content hash, with `If-None-Match`;
-  permissive `Content-Type` handling; **base64url credential decoding that
-  rejects malformed input with `401` rather than repairing it — never
-  `U+FFFD` substitution, which maps distinct IDs onto one store**; the
-  **failed-authentication limits, per-IP and server-wide**, the server-wide one
-  being what §8's enumeration bound actually rests on, scoped so that a
-  correctly-authenticated request still succeeds while it is saturated; and
-  **every limit enforced before
-  allocation**, streaming-abort style.
+  whose proposed answer is versioned lazy re-keying, so building versioning here
+  would implement a resolution the design has not adopted, with no schema column
+  and no conformance case behind it; the store, manifest and blob endpoints,
+  **including `POST /v1/store` as a separate creation call that `GET` never
+  performs**; strong quoted `ETag` equal to the manifest content hash, with
+  `If-None-Match`; permissive `Content-Type` handling; **base64url credential
+  decoding that rejects malformed input with `401` rather than repairing it —
+  never `U+FFFD` substitution, which maps distinct IDs onto one store**; **the
+  failed store-resolution limits, per-IP and server-wide**, counting all four of
+  §5.4's outcomes rather than `401` alone — the server-wide one is what §8's
+  enumeration bound actually rests on, and counting only `401` leaves a
+  structurally valid guess costing nothing — scoped so that a request resolving
+  an existing store still succeeds while the budget is saturated; the **separate
+  server-wide cap on store creations**, which bounds stored rows rather than
+  guessing and must not share the failure budget; and **every limit enforced
+  before allocation**, streaming-abort style.
 - **Unblocks** W11, W12, W16 — and, critically, **W6**.
 - **Done when** the loopback round trip at **C2** passes, and the
-  store-lifecycle half of §9 *Client isolate and robustness* is green: every
-  store creation mints
-  an epoch no peer has seen (mutation: derive it from the `id_key`, so a
-  `DELETE` and recreate reproduces it and nobody fresh-attaches); concurrent
+  store-lifecycle half of §9 *Client isolate and robustness* is green, together
+  with §9's *Server* cases for the endpoint split: `GET /v1/store` for an
+  unknown store is `404` and creates nothing; every `POST /v1/store` returning
+  `201` mints an epoch no peer has seen (mutation: derive it from the `id_key`,
+  so a `DELETE` and recreate reproduces it and nobody fresh-attaches); a `POST`
+  against a store that already exists is `409` and mints nothing; concurrent
   creators observe one epoch; a stale-epoch manifest `PUT` is `409` and does not
   land; a blob `PUT` not hashing to its path segment is rejected, and a `PUT` to
-  an existing hash neither replaces the bytes nor refreshes `uploaded_at`. Plus
-  the §8 server case: a structurally valid but *weak* user-chosen ID is
-  **accepted** (mutation: re-run the client's estimator server-side, which is
-  the lockout). Blob and manifest paths are namespaced by **epoch** as well as
-  `id_key`, so a wipe or a sweep still deleting an old incarnation cannot
-  remove content uploaded into its successor (mutation: key on `id_key` alone
-  and interleave a `DELETE /v1/store` with the recreating `GET`).
+  an existing hash neither replaces the bytes nor refreshes `uploaded_at`. The
+  budget cases are part of this gate rather than W12's, because the counter is
+  what §8's bound rests on: all four failure outcomes increment it, successes do
+  not, and creation is capped separately. Plus the §8 server case: a
+  structurally valid but *weak* user-chosen ID is **accepted** (mutation: re-run
+  the client's estimator server-side, which is the lockout — and note the split
+  makes this mutation *buildable*, where previously it had no endpoint to live
+  on). Blob and manifest paths are namespaced by **epoch** as well as `id_key`,
+  so a wipe or a sweep still deleting an old incarnation cannot remove content
+  uploaded into its successor (mutation: key on `id_key` alone and interleave a
+  `DELETE /v1/store` with the recreating `POST`).
 
 **This unit is numbered late and must be scheduled early.** It is the cheaper
 half of the programme and it is the *test fixture* for the expensive half: a
@@ -989,18 +1004,18 @@ what it protects.
   that the effective date is bumped in the release that turns the feature on —
   which is C7's gate, not this unit's.
 
-  **Scope reduced by #1086, which landed on `main` while this PR was open.** The
-  absolute claims this unit was written against — "We have no servers that
-  receive or hold your content, and there is no cloud sync" — are already gone
-  from both files. What remains is narrower and in two parts. First, "The
-  current release has no cloud sync" is *true today* and becomes false on the
-  release that ships sync, so it is a dated claim W15 must still retire rather
-  than a false one it must correct. Second, #1086 added "We will update this
-  policy with the feature's implemented data handling **before it ships**" —
-  which is the same too-late gate S7 exists to reject, now published in a
-  store-linked document. W15 must move it to before any real user's content
-  leaves a device. Neither file says anything about operator visibility or
-  break-glass, so that half of this unit is untouched by #1086.
+  **The scope this card was written against no longer exists.** #1086 removed
+  the absolute claims ("We have no servers that receive or hold your content,
+  and there is no cloud sync"), and #1115 removed what #1086 left: neither file
+  now contains the string "cloud sync" at all, and neither defers the amendment
+  to "before it ships" — the too-late gate S7 exists to reject. The
+  operator-visibility and break-glass half, which #1086 did not touch, is what
+  #1115 delivered.
+
+  This card is kept rather than struck because its `Done when` is still the
+  thing C7 checks, and because the unit that verifies a disclosure is not the
+  unit that wrote it. What is left is one release-time action, not a document
+  repair.
 
 Fully parallel with all code, and best done early: it is the cheapest unit in
 the programme and the only one that can block a release on its own.
@@ -1106,8 +1121,13 @@ content conflict for W6's table rather than a reconciliation for this unit.
   it needed to be an edge, not only a caution, because nothing else sequences
   the producer ahead of the surface that renders it.
 - **Done when** the §9 *Dedupe* bucket is green, and so is the attach half of
-  *Attach and restore* — epoch mismatch produces a fresh attach and never a
-  deletion;
+  *Attach and restore* — an epoch mismatch produces a fresh attach, and the
+  mismatch **itself** is never interpreted as a deletion. That is the whole of
+  the guarantee, and the narrow wording is the point: an explicit tombstone
+  carrying the greater `existenceAt` still applies at attach, exactly as this
+  card's `Produces` states and as the fresh-attach exclusion below requires.
+  Read as the broader "a fresh attach never deletes", it would license a test
+  that fails the correct implementation. Also green on:
   union and silent merge; an equal-`updatedAt` fresh-attach tie reported rather
   than swallowed *and* reported again on the next steady pass; referential
   closure across a pending hold; the three-peer case of deleter, pending holder
@@ -1398,14 +1418,14 @@ cannot fail is not a checkpoint.
 
 | ID | Lands after | Gate |
 | --- | --- | --- |
-| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. But §3.1 carries a §9 bucket — *Soft-delete join coverage* — that nothing enforces. The one known violation (#1016) was fixed by #1018; the *rule* still decays silently, since a new unfiltered read compiles and passes. C0 is green on the migration and not on the invariant; **W17 is what closes it**. |
+| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. §3.1 also carries a §9 bucket — *Soft-delete join coverage* — which nothing enforced when this row was written; the one known violation (#1016) was fixed by #1018 while the *rule* still decayed silently. **That is now enforced.** #1118 shipped `tools/ci/check_sync_invariants.py`, which fails the build on a Drift or raw-SQL join through a soft-deletable parent with no `deleted_at IS NULL` predicate. C0 is green on both halves. W17's remaining ratchet is a *different* invariant — that every write reaches W18's choke point — and is gated at C1, not here. |
 | **C1** | W1, W2, W3, W18 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, a locally-created never-synced NFD title, and a row normalised by W18's backfill; the surrogate rejection fires before encoding; allow-list bijection green over real codec output, and non-vacuous. *Parallel work begins here.* |
-| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: blob and manifest survive `PUT`/`GET` byte-identically; `413` and `415` paths exercised — **not `422`, which is the allow-list rejection and belongs to W11 at C5**, since W10 inherits W2 only *via* W11 and cannot reject a key it has no mapping for; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
+| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: `POST /v1/store` creates and `GET /v1/store` is `404` until it does, with neither call able to stand in for the other; blob and manifest survive `PUT`/`GET` byte-identically; `413` and `415` paths exercised — **not `422`, which is the allow-list rejection and belongs to W11 at C5**, since W10 inherits W2 only *via* W11 and cannot reject a key it has no mapping for; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
 | **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
 | **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact. |
 | **C5** | W11, W12 | **Server hardened.** §9 *Server* green; **`422` exercised over a blob carrying a non-`shareable` key, and an unknown `v` accepted**; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
 | **C6** | W9, W13, **C4 and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed** if any real user's content moves (S7). |
-| **C7** | W15, W16 | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
+| **C7** | W15, W16, **C6** | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
 
 C2 is the checkpoint most likely to be skipped and least advisable to skip. It
 is the first moment the two halves of the programme touch, and every defect it
@@ -1428,6 +1448,14 @@ C4 gates the surface while the thing it displays is still unbuilt. That C5 had
 to be added by hand is the precedent; leaving C4 implicit would have repeated
 it in the checkpoint immediately below the paragraph naming the problem. My
 call, on the same footing.
+
+**C7 is a prerequisite of nothing, but C6 is a prerequisite of C7, and that was
+missing too.** As written, the ship gate landed after W15 and W16 alone, so it
+was reachable with the beta gate unpassed and the client engine unproven —
+shipping to the public on the strength of a privacy-policy edit and an ops
+runbook. Numeric ordering is not authoritative in this table; the two paragraphs
+above exist precisely because it is not, and the same omission had already been
+made twice. My call, on the same footing as those.
 
 **C6 needs exit criteria, because a beta with none cannot fail.** The ADR
 defines revisit triggers, and not one of them can fire against a checkpoint that
@@ -1558,7 +1586,7 @@ buckets. Ownership is now explicit:
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, and the saturated-limit clause — a valid credential still succeeds while the server-wide failure limit is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause and the rate-limit clauses, both checked against the running configuration) |
+| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, since §8's bound is a property of the deployment) |
 | User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses and the partial-venue hint) |
 | Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
 

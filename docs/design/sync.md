@@ -3578,7 +3578,8 @@ client's cryptography is therefore unchanged from what the app ships today.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/v1/store` | Store metadata: epoch, device list, quota usage. Creates the store if absent. |
+| `GET` | `/v1/store` | Store metadata: epoch, device list, quota usage. `404` if none exists; creates nothing. |
+| `POST` | `/v1/store` | Creates the store and mints its epoch. `409` if one already exists. |
 | `DELETE` | `/v1/store` | Wipe store (destructive). Not what detach does. |
 | `GET` | `/v1/manifests/{deviceId}` | Fetch one device's manifest. `ETag` / `If-None-Match`. |
 | `PUT` | `/v1/manifests/{deviceId}` | Publish this device's manifest. |
@@ -3658,12 +3659,21 @@ buys nothing and creates one more way for a conforming client to be turned away.
 | `507` | Store quota exhausted. |
 
 There is deliberately **no distinct "expired" status.** An earlier draft had a
-`410` for it, which was wrong twice: `GET /v1/store` creates the store when
-absent, so a client starting every sync there would never observe it — it sees a
-new epoch and re-attaches via `409` — and for the server to tell "expired" from
-"never existed" it would have to **remember reaped sync IDs**, which is the exact
-persistent-metadata-past-expiry problem used to rule out monotonic epochs. The
-same objection applies to both, and it was missed here first time.
+`410` for it. The decisive objection is unchanged: for the server to tell
+"expired" from "never existed" it would have to **remember reaped sync IDs**,
+which is the exact persistent-metadata-past-expiry problem used to rule out
+monotonic epochs. The same objection applies to both, and it was missed here
+first time.
+
+The *second* reason given here has since expired, and is worth recording because
+it shows how an argument can survive losing a leg. It said a client would never
+observe a `410` anyway, since `GET /v1/store` created the store when absent.
+After the §5.2 split that is false — a reaped store now answers `404`, and the
+client does observe it. But the observation is deliberately undifferentiated:
+`404` means only "nothing is here", and the client responds by creating, which
+is the correct action whether the store expired or never existed. Distinguishing
+the two would buy the client nothing and would cost the server exactly the
+persistent record the first objection rules out.
 
 So: the other endpoints return `404` when the store is absent, indistinguishable
 from a missing blob, and the client recovers by calling `GET /v1/store`, which
@@ -3694,9 +3704,14 @@ sync ID entirely, so re-enabling is a fresh attach.
 
 ### Attach
 
-1. User enters or accepts a sync ID and confirms the endpoint.
-2. `GET /v1/store`. Server creates the store if it does not exist, returning its
-   epoch.
+1. User chooses **create a new store** or **connect to an existing one**, then
+   enters or accepts a sync ID and confirms the endpoint. The choice is
+   explicit: after the §5.2 split the client issues one call or the other and
+   MUST NOT infer which from a `404`.
+2. Create → `POST /v1/store`; `409` means the ID is already in use and is
+   reported, never silently joined. Connect → `GET /v1/store`; `404` means no
+   store has that ID — almost always a typo — and is reported, never silently
+   created.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
    detach, and on `409`. Detaching **forgets the sync ID entirely**: no
    list of previously-attached IDs is kept, so re-attaching cannot resurrect a
@@ -4714,12 +4729,25 @@ person is granting exactly this.
 
 ### Enumeration
 
-`GET /v1/store` creates a store if absent, so a probe cannot distinguish "exists"
-from "does not exist" by status code. Creation is cheap and the sweeper reaps
-unused stores after 30 days of disuse.
+A probe **can** distinguish "exists" from "does not exist": `GET /v1/store`
+answers `404` for an unknown ID. That is deliberate, and it is the direct
+consequence of the §5.2 split. The earlier design hid the distinction by having
+`GET` create the store on absence, which looked like a defence and was not — the
+`200` it returned carried an empty device list and zero quota, a shape this
+document names elsewhere, so the oracle survived in the body while the status
+code concealed it. Worse, a second oracle sat beside it untouched: any
+store-scoped path answered `404` for an unknown store while consuming no storage
+at all.
 
-Rate limits are per-IP and per-ID-hash, with a global cap on store creation per
-IP per hour.
+The bound is therefore not concealment but accounting. Every outcome that fails
+to resolve a store — `401`, `403`, `404` on a store-scoped path, and `409` on a
+creation attempt — increments one **server-wide** counter, and the guesser's
+request necessarily produces one of them. Per-IP limits cannot carry this,
+because an attacker chooses how many IPs to use and the reference deployment
+terminates TLS at a proxy, so the socket peer is loopback for everyone. A
+separate server-wide cap on store creations bounds stored rows rather than
+guessing; the two must not share a budget, or one honest first pairing spends
+the guessing allowance.
 
 ### Input validation
 
@@ -5888,11 +5916,16 @@ against my own call rather than a reviewer's.
 Two alternatives were considered and rejected, both recorded here because each
 looks reasonable until one detail is checked:
 
-- **Block at creation, warn at join.** There is no creation endpoint to hang it
-  on. `GET /v1/store` creates the store if absent, so "joining" a never-used
-  weak ID *is* creating it, and the server cannot tell the two apart. A client
-  could guess from local state, which makes the block depend on which device
-  the user happens to be holding.
+- **Block at creation, warn at join.** When this was ruled there was no creation
+  endpoint to hang it on: `GET /v1/store` created the store if absent, so
+  "joining" a never-used weak ID *was* creating it and the server could not tell
+  the two apart. **That objection has since expired.** The §5.2 split gives
+  creation its own call, so the point of choice now exists and a server-side
+  floor is buildable. The question was put to the maintainer again on that basis
+  and the advisory score was re-affirmed, so this alternative is now declined
+  rather than unavailable — a distinction worth keeping, because the next reader
+  will find the original reason false and should not read that as the ruling
+  having lapsed.
 - **Block everywhere, plus a compatibility rule pinning the estimator and its
   version.** This buys a version-negotiation mechanism the design does not have,
   and closes the lockout only until either side upgrades.
@@ -5994,6 +6027,62 @@ against a contract that was still being written**, so nothing was available to
 check it against. The plan now records the corrective delta explicitly rather
 than absorbing it, because a reconciliation described as a build is a
 reconciliation that will be estimated as one.
+
+##### The tenth review round: a bound that named a counter nothing reached
+
+> **A rate limit bounds an attack only if the attacker's request is one the "
+"limit counts.** Name the exact outcome a hostile request produces, and check "
+"that outcome is on the counter. §8 rested its enumeration arithmetic on the "
+"server-wide *failed-authentication* limit for twenty-odd rounds. But `401` was
+" "defined, in this same document's status table, as *malformed or missing "
+"credential* — a structural check. A guesser sends a perfectly well-formed "
+"four-word ID. It never produced a `401`, so it was never counted, and the "
+"figure the section published was arithmetic over a counter the attack did not "
+"touch.
+
+The review found one half of this. Verifying it found two more, and the " "pair
+is what makes it worth recording. `GET /v1/store` **created the store " "when
+absent**, so a wrong guess returned `200` — distinguishable from a hit " "only
+by an empty device list and zero quota, a shape named in three other " "places
+in the specification. And every store-scoped path answered `404` for an "
+"unknown store, so `GET /v1/manifests/{anything}` probed for free: no store "
+"created, no storage consumed, no counter touched. The section also cited "
+"“the global cap on store creation” as a second bound; that cap was " "specified
+nowhere, and the sentence citing it was its only mention in the " "document.
+
+**The structural point is that this was not a typo.** The property the "
+"round-8 strength ruling rested on — the server cannot distinguish creating "
+"from joining — is the *same* property that made guessing free. One fact was "
+"load-bearing in two places, cited as a reason in one and never examined as a "
+"risk in the other. A fact used as a justification tends to be read only in the
+" "direction that supports the conclusion it was recruited for.
+
+The maintainer chose to split creation onto `POST /v1/store` rather than " "add
+an unknown-store budget preserving the old arithmetic, or accept and " "document
+the exposure. I had recommended the budget, on the grounds that it " "changed no
+client behaviour; the split is the better answer because it removes " "the
+oracle instead of pricing it, and because it makes every failure to " "resolve a
+store a *counted* event, which is the property the bound needed all " "along.
+
+**The split then destroyed a leg of an earlier ruling, and the second-order "
+"lesson is there.** Round 8 declined a server-side strength floor partly "
+"because “the point of choice” was not locatable; `POST /v1/store` is " "exactly
+that point. The maintainer re-affirmed the advisory score anyway, so " "the rule
+is unchanged — but the *reason* recorded beside it had become false, " "and a
+rejected alternative whose stated objection has expired reads to the " "next
+person as a ruling that has lapsed. Both the specification and this " "document
+now say that the objection expired and the ruling was re-affirmed " "regardless.
+**When a change removes a premise, the rulings that cited that " "premise need
+re-derivation even when their conclusions survive intact** — " "a conclusion
+that outlives its argument is the kind nobody re-checks.
+
+Four of the round's other findings were the previous round's shape " "recurring:
+a status correction that reached §1 and not the checkpoint table " "or the four
+unit cards restating the same fact. That is the seventh time in " "this series.
+The durable form remains **a fix is not landed until it is landed " "in every
+document, and every section of every document, that states the " "claim** — and
+the sections that restate a fact are rarely the ones that cite " "it, so
+grepping the citation finds the wrong set.
 
 ## Open questions
 

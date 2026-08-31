@@ -26,7 +26,11 @@ client, server or network code has.**
 Schema **v25** is on `main` — the sync timestamp triple across eight tables,
 twenty columns, six entity-level hard deletes converted to tombstones, and every
 new column classified. Delivered by [#901] and [#903], closing [#898]. No sync
-client, no server, no network code exists; nothing reads `existence_at` yet.
+client, no server, no network code exists, and nothing reads `existence_at`
+**for a merge decision** yet. The qualifier is load-bearing:
+`storage/existence.dart` does read the column — it advances the stamp past the
+row's own current value — so the flat claim "nothing reads it" is false against
+the tree, and a reader checking it would find the opposite of what was meant.
 
 Landed since, each closing a repair issue this design filed: the
 **privacy-policy amendment** ([#1115], closing [#1109]) — both policy files now
@@ -201,12 +205,21 @@ Blocking has no safe home. The ID *is* the store address, so any component that
 refuses one refuses access to data. A server refusing is the obvious hazard,
 but a *client* is no better: joining a store means typing an existing ID, so a
 newer client with a marginally stricter estimator locks a user out of an ID an
-older client accepted. Nor can the server tell the two apart —
-`GET /v1/store` creates the store if absent, so creating and joining are one
-call. A strength heuristic has no canonical definition and cannot be made to
-agree with itself across versions, so the only placement that never locks a
-user out is none. A weak self-chosen ID is possible, warned about, bounded by
-the rate limits, and borne by the person who chose it. Maintainer's ruling.
+older client accepted. A strength heuristic has no canonical definition and
+cannot be made to agree with itself across versions, so the only placement that
+never locks a user out is none. A weak self-chosen ID is possible, warned about,
+bounded by the rate limits, and borne by the person who chose it. Maintainer's
+ruling.
+
+This argument originally carried a third leg: that the server could not tell
+creating from joining, because `GET /v1/store` created the store when absent, so
+there was no point of choice at which to refuse. That is no longer true — spec
+§5.2 splits creation onto `POST /v1/store` to close an enumeration oracle, and
+that endpoint is exactly the locatable point of choice the leg said did not
+exist. The ruling was put to the maintainer again on the narrower argument and
+re-affirmed. The re-derivation is mine: the surviving legs carry it alone, and
+the residual risk clause is true today in a way it was not when first written,
+because the budget that bounds it is now reachable at all.
 
 **The sync ID is a bearer credential.** Anyone holding it has full read and
 write access to the collection. This is deliberate: it is what makes the design
@@ -487,8 +500,27 @@ Case (3) is a data-loss hazard, and the epoch exists to close it.
 
 A device offline for 31 days reconnects holding a baseline that says "records X,
 Y, Z at these hashes". The server has since expired that sync ID, and another
-device has re-seeded it. A three-way merge would read "in my baseline, absent
-from the server" as *deletions* and remove them locally.
+device has re-seeded it. That baseline is now a lie: it claims to record what
+this device and the store last agreed on, and the store it agreed with no longer
+exists.
+
+**The hazard is not mass deletion.** An earlier draft of this section said a
+three-way merge would read "in my baseline, absent from the server" as deletions
+and remove the records locally. It would not: the merge table above resolves *in
+baseline, absent from the peer* as **unchanged, never a deletion**, and absence
+never means deletion anywhere in this design. Crediting the epoch with that
+outcome credited it with the absence rule's work, and left two independent
+controls each appearing to justify the other — the failure mode where weakening
+the wrong one later reads as safe.
+
+What the stale baseline actually corrupts is **classification**. Every merge
+decision is a comparison against a common ancestor, and a baseline from a
+previous incarnation is not an ancestor of anything now on the server. Records
+the user genuinely edited read as unchanged and are never uploaded; records
+untouched since the reset read as changed and are pushed over newer content; and
+conflict arbitration runs on pairs it has mis-sorted. The result is not one
+catastrophic event but a merge whose every branch was chosen from a false
+premise, which is harder to notice and impossible to unpick afterwards.
 
 So the server stamps an **opaque 128-bit random epoch** on a sync ID when it is
 created, regenerated whenever the ID is created afresh after expiry. Devices
@@ -827,9 +859,9 @@ remember the previous value for a sync ID *after* that ID has expired —
 retaining `syncId → lastEpoch` indefinitely. That is persistent data about a
 user beyond 30 days, specifically about IDs we promised to forget.
 
-Timestamp-based monotonicity avoids the persistence problem but leaks creation
-time, depends on the server clock never stepping backwards, and at second
-granularity two re-creations within one second produce identical epochs —
+Timestamp-based monotonicity avoids the persistence problem but leaks store
+creation time, depends on the server clock never stepping backwards, and at
+second granularity two re-creations within one second produce identical epochs —
 collision on exactly the axis where collision causes data loss.
 
 What ordering would buy is rollback detection. With union semantics and
@@ -1322,18 +1354,26 @@ makes self-hosting materially harder, which constraint 4 forbids.
   genuinely identical dances, but the user is not told it happened. Reporting a
   count afterwards ("merged 412 duplicates") is the mitigation, not a prompt.
 
-### Blocking prerequisite
+### Blocking prerequisite — satisfied by [#1115]
 
-**The published privacy policy contradicts this design.**
-`docs/dev/store-submission/privacy-policy.md` §2 and its mirror
-`site/privacy/index.html` both state that "the current release has no cloud
-sync", and both undertake to update the policy "before it ships". Both app store
-listings link to them. Both files must be amended together, with the effective
-date bumped, **before any real user's content leaves a device** — which is the
-beta, not the public release. "Before it ships" is too late: a beta tester's
-dances reach the server under a policy saying no server holds them. The
-execution plan binds this as rule S7. It is a prerequisite of shipping, not of
-this ADR.
+**The published privacy policy contradicted this design, and no longer does.**
+`docs/dev/store-submission/privacy-policy.md` and its mirror
+`site/privacy/index.html` both stated that "the current release has no cloud
+sync", and both undertook to update the policy "before it ships". Both app
+store listings link to them, and "before it ships" was the same too-late gate
+the execution plan rejects as rule S7: a beta tester's dances would have
+reached the server under a policy saying no server holds them.
+
+Neither claim survives in either file — neither now contains the string "cloud
+sync" at all — and both carry the operator-visibility and logged break-glass
+disclosures §8 requires, with the 30-day linkability bound and the
+structured-venue-field carve-out stated plainly.
+
+What remains is not a contradiction but a release-time step: the effective date
+must be bumped in the release that turns the feature on, **before any real
+user's content leaves a device** — which is the beta, not the public release.
+That is the execution plan's C7 gate. It is a prerequisite of shipping, not of
+this ADR, and it is no longer a blocking defect in a published document.
 
 ## Revisit triggers
 
