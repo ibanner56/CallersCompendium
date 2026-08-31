@@ -92,6 +92,18 @@ void main() {
     );
   });
 
+  testWidgets('new dance statuses render distinct icon and text pairs', (
+    tester,
+  ) async {
+    await pumpDanceChip(tester, DanceStatus.draft);
+    expect(find.text('Draft'), findsOneWidget);
+    expect(find.byIcon(Icons.edit_note_outlined), findsOneWidget);
+
+    await pumpDanceChip(tester, DanceStatus.variation);
+    expect(find.text('Variation'), findsOneWidget);
+    expect(find.byIcon(Icons.alt_route), findsOneWidget);
+  });
+
   testWidgets('DanceStatusChip and ProgramStatusChip share StatusChip', (
     tester,
   ) async {

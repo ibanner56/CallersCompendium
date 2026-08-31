@@ -51,6 +51,11 @@ void main() {
       expect(d.status, DanceStatus.active);
       expect(d.isDeleted, isFalse);
     });
+
+    test('includes draft and variation statuses', () {
+      final names = DanceStatus.values.map((status) => status.name);
+      expect(names, containsAll(['draft', 'variation']));
+    });
   });
 
   group('Dance.validate', () {

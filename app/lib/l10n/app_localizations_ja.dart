@@ -1301,6 +1301,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonDanceStatusBroken => '破損';
 
   @override
+  String get commonDanceStatusDraft => '下書き';
+
+  @override
+  String get commonDanceStatusVariation => 'バリエーション';
+
+  @override
   String get commonDanceLevelBeginner => 'ビギナー';
 
   @override

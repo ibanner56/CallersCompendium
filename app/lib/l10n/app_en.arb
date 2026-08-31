@@ -1697,6 +1697,14 @@
   "@commonDanceStatusBroken": {
     "description": "Dance status value: the dance is marked broken/unusable."
   },
+  "commonDanceStatusDraft": "Draft",
+  "@commonDanceStatusDraft": {
+    "description": "Dance status value: the dance is still being developed and is not finalized."
+  },
+  "commonDanceStatusVariation": "Variation",
+  "@commonDanceStatusVariation": {
+    "description": "Dance status value: the dance is a variation of another dance."
+  },
   "commonDanceLevelBeginner": "Beginner",
   "@commonDanceLevelBeginner": {
     "description": "Dance difficulty value: beginner level."

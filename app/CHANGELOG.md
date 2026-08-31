@@ -41,6 +41,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
   program builder without adding or importing them. Hold a result or dance slot
   for a temporary wide-screen preview, or use **View details** for a
   keyboard-accessible read-only preview.
+
+- **Dance statuses** — Draft and Variation are now available in the dance
+  editor, status filters, and status presentations.
   
 ### Changed
 

@@ -1356,6 +1356,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonDanceStatusBroken => 'Defect';
 
   @override
+  String get commonDanceStatusDraft => 'Concept';
+
+  @override
+  String get commonDanceStatusVariation => 'Variatie';
+
+  @override
   String get commonDanceLevelBeginner => 'Beginner';
 
   @override

@@ -164,12 +164,14 @@ icon+text by `program_status_chip.dart`; tokens add theme-driven color):
 - `statusFinalized` → secondary (green) + `check_circle_outline` "Finalized"
 - `statusPerformed` → tertiary + `event_available_outlined` "Performed"
 
-**`DanceStatus` — `{ active, deprecated, broken }`** (already icon+text in
+**`DanceStatus` — `{ active, deprecated, broken, draft, variation }`** (already icon+text in
 `dance_list_tile.dart`):
 
 - `statusActive` → no chip (default)
 - `statusDeprecated` → onSurfaceVariant + `history_toggle_off` "Deprecated"
 - `statusBroken` → error + `report_problem_outlined` "Broken"
+- `draft` → statusDeprecated + `edit_note_outlined` "Draft"
+- `variation` → statusDeprecated + `alt_route` "Variation"
 
 **Other semantic tokens:**
 

@@ -23,6 +23,7 @@ import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_theme_extension.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
@@ -1212,6 +1213,7 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final neutralStatusColor = AppThemeExtension.of(context).statusDeprecated;
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
@@ -1222,6 +1224,8 @@ class _StatusBanner extends StatelessWidget {
         Icons.check_circle_outline,
         theme.colorScheme.primary,
       ),
+      DanceStatus.draft => (Icons.edit_note_outlined, neutralStatusColor),
+      DanceStatus.variation => (Icons.alt_route, neutralStatusColor),
     };
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xs),

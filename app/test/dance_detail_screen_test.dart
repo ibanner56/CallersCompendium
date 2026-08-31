@@ -503,6 +503,28 @@ void main() {
     expect(find.text('Broken'), findsOneWidget);
   });
 
+  testWidgets('shows a banner for a draft dance', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'draft-dance', status: DanceStatus.draft),
+    );
+
+    await _pumpDetail(tester, repos, 'draft-dance');
+
+    expect(find.text('Draft'), findsOneWidget);
+  });
+
+  testWidgets('shows a banner for a variation dance', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(id: 'variation-dance', status: DanceStatus.variation),
+    );
+
+    await _pumpDetail(tester, repos, 'variation-dance');
+
+    expect(find.text('Variation'), findsOneWidget);
+  });
+
   testWidgets('shows provenance line', (tester) async {
     final repos = openTestRepositories();
     await repos.dances.create(

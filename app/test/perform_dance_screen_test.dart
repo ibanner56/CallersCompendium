@@ -375,6 +375,16 @@ void main() {
     expect(find.text('Broken'), findsOneWidget);
   });
 
+  testWidgets('shows banners for draft and variation dances', (tester) async {
+    for (final status in [DanceStatus.draft, DanceStatus.variation]) {
+      await _pumpPerform(tester, dance: _dance(status: status));
+      expect(
+        find.text(status.name == 'draft' ? 'Draft' : 'Variation'),
+        findsOneWidget,
+      );
+    }
+  });
+
   testWidgets('opens in the dark-stage high-contrast theme by default', (
     tester,
   ) async {

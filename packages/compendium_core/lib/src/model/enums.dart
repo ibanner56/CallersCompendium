@@ -6,7 +6,7 @@ enum DanceForm { contra, ecd, square }
 enum Progression { none, single, double, triple, quadruple, other }
 
 /// Lifecycle status of a dance (mirrors The Caller's Box vocabulary).
-enum DanceStatus { active, deprecated, broken }
+enum DanceStatus { active, deprecated, broken, draft, variation }
 
 /// Difficulty of a dance, as an **ordered** scale (mirrors CC's `Level`;
 /// enum index is the ordinal, encoding CC's `LevelNum` without a separate
