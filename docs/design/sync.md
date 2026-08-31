@@ -6033,14 +6033,18 @@ error surfaces as a merge conflict months later rather than as a review
 comment. W18's card asked for a `createTable` for a table that ships in schema
 v29.
 
-**And the shipped table has a column the spec forbids.** §3.2 holds that
+**And the shipped table had a column the spec forbids.** §3.2 holds that
 `normalisation_skips` stores "no name, only the address of a row", because
-retry re-derives the target from the live column. The shipped schema adds
-`target_value`, and `choreographer_repository.dart` populates it with
+retry re-derives the target from the live column. Schema v29 added
+`target_value`, and `choreographer_repository.dart` populated it with
 `targetValue: name` — a value the registry classifies elsewhere as
 `DpvTerm.name` / `DataSubject.thirdParty`. In `normalisation_skips` the same
-value is classified `nonPersonal` / `none`, noted as "local collision-repair
-bookkeeping".
+value was classified `nonPersonal` / `none`, noted as "local collision-repair
+bookkeeping". Filed as #1123 and **fixed on `main` by #1124**, which dropped
+the column in schema v30 rather than reclassifying it, resolving the contract
+violation and the misclassification together. The account is kept in the past
+tense because the lesson below is about how it went unnoticed, which the repair
+does not change.
 
 **The classification ratchet was green throughout, and correctly so.** It
 asserts every persisted field *has* an entry, not that the entry is *right*.

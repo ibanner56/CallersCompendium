@@ -250,9 +250,10 @@ and program content — which is precisely what the editor-draft keys held until
   same grouping to the **object keys inside a `shareable` settings value** and
   skips that settings key whole when two of its keys share a normalised target,
   and **rebuilds derived indexes if it wrote anything**; the
-  `normalisation_skips` table (§3.2) — which **exists on `main` in schema v29
-  and carries a fourth column, `target_value`, that §3.2 forbids**, so this is
-  a migration that drops a column, not a `createTable` — with its **retry on
+  `normalisation_skips` table (§3.2) — which **exists on `main` in schema v30
+  and no longer carries the `target_value` column that §3.2 forbids, dropped
+  by #1124**, so this is neither a `createTable` nor a column drop but a unit
+  building on a table that is already correct — with its **retry on
   each open judged by
   both halves of the grouping test** — recorded-row grouping by
   `(table, column, target)` *and* live occupancy — its **retirement of entries
@@ -316,9 +317,10 @@ and program content — which is precisely what the editor-draft keys held until
 
 **Most of this shipped in #1119 (closing #1111), and two parts of it shipped
 wrong.** The write-path choke point, the backfill, the collision grouping, the
-`normalisation_skips` table and the structural guards are on `main` at schema
-v29. What is left is corrective, and both items are contract violations rather
-than gaps:
+`normalisation_skips` table and the structural guards are on `main`, at schema
+v30 since #1124. What is left is corrective, and both items were contract
+violations rather than gaps — **the second has since been fixed on `main`, so
+only (1) remains open for this unit**:
 
 1. **The composition order is reversed.** `normalizeShareableText` is
    `sanitizeImportedText(nfc(value), allowLineBreaks: true)` — NFC first —
@@ -332,22 +334,25 @@ than gaps:
    backfill**, since rows repaired by the reversed composition may be stored
    decomposed — so the completion marker must be invalidated, not just the
    function corrected.
-2. **`target_value` must go, and its classification is wrong today.** §3.2
+2. **`target_value` had to go, and its classification was wrong.** §3.2
    holds that the table stores "no name, only the address of a row", and
-   requires retry to re-derive the target from the live column. The shipped
-   column stores the normalised value itself: `choreographer_repository.dart`
-   passes `targetValue: name`, and `choreographers.name` is classified
-   `DpvTerm.name` / `DataSubject.thirdParty` / `shareable`. The same value is
+   requires retry to re-derive the target from the live column. The v29 column
+   stored the normalised value itself: `choreographer_repository.dart`
+   passed `targetValue: name`, and `choreographers.name` is classified
+   `DpvTerm.name` / `DataSubject.thirdParty` / `shareable`. The same value was
    classified in `normalisation_skips` as `DpvTerm.nonPersonal` /
    `DataSubject.none`, with the note "Local collision-repair bookkeeping". A
    third party's name does not stop being a third party's name because it was
-   copied into a bookkeeping table. Dropping the column resolves both the
-   contract violation and the misclassification at once, which is why it is
-   preferred to reclassifying in place.
+   copied into a bookkeeping table. Dropping the column resolved both the
+   contract violation and the misclassification at once, which is why it was
+   preferred to reclassifying in place. **Filed as #1123, fixed on `main` by
+   #1124 in schema v30**, so this unit no longer carries the migration — it is
+   recorded here because the next such column will be found the same way.
 
 **The classification ratchet did not catch (2), and could not.** It asserts
 that every persisted field *has* an entry, not that the entry is *right* —
-`normalisation_skips.target_value` is present and green. Presence is
+`normalisation_skips.target_value` was present and green for as long as it
+existed. Presence is
 mechanisable; correctness of the subject axis is a judgement, which is why
 this repo's guidance asks for a stated reason in the `note` and why a note
 naming the table rather than the value is the tell.
