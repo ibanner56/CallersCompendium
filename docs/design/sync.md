@@ -5647,8 +5647,19 @@ with a dedupe review, for an operational event they did not cause).
 A Copilot review found that the archive decoder sanitises text on the way in
 while the archive encoder and every local write path do not, so the same
 characters that are stripped from an imported dance survive when typed into the
-editor. Verified: `sanitizeImportedText` has no caller under `storage/` or
-`app/lib/`, and `DanceRepository._upsert` does not invoke it.
+editor. That was verified against the tree at the time: `sanitizeImportedText`
+had no caller under `storage/` or `app/lib/`, and `DanceRepository._upsert` did
+not invoke it.
+
+**That gap is now closed in `main`, and the closure got the composition order
+backwards.** `normalizeShareableText` (`storage/shareable_text.dart`) is
+`sanitizeImportedText(nfc(value), allowLineBreaks: true)` — NFC first — which is
+precisely the order this design records below as the one that does not work. The
+finding is not a re-reading of the doc comment: running the shipped function on
+`e` + `U+200B` + `U+0301` returns `U+0065 U+0301`, so the canonicaliser emits
+text that is not NFC. Its guard test does not catch this because it places the
+zero-width space *after* the combining mark (`'Cafe\u0301\u200B\nnext'`),
+where NFC composes before the strip and the order cannot matter.
 
 Under sync that inconsistency stops being cosmetic. A zero-width space pasted
 from a web page produces a record whose hash differs from the one a peer
