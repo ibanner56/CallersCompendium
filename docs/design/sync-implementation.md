@@ -709,6 +709,13 @@ deletion silently reverts".
   nor `deviceScoped`, and no unit's card named them, so the coverage ratchet's
   "classified in the PR that adds it" rule had nothing to bind to. This is my
   assignment, not a ruling.
+
+  W5 MUST also add both keys to **`kBackupSettingsDenylist`** (spec §6.1). The
+  backup filter is opt-out — everything not denylisted is content a restore
+  replaces — so classifying them is not enough, and #923 settled that
+  non-`shareable` does not imply backup-excluded here. A restored
+  `sync_device_id` would give two devices one manifest; a restored `sync_id`
+  would put a bearer credential in a plaintext file.
 - **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
   only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
@@ -857,6 +864,15 @@ it is **not** true of every key the feature introduces. `sync_device_id` is
 both travel on every request, and a card that called them `deviceScoped` would
 classify the bearer credential as never-transmittable while the protocol
 requires it. Those two belong to W5, not here.
+
+**MUST NOT sync is only half of it: this unit's keys must also not travel in a
+backup** (spec §6.1). The two exclusions are enforced by different mechanisms —
+the sync side by classification, the backup side by `kBackupSettingsDenylist`,
+which is opt-out — so a key can satisfy the first and fail the second, and six
+of the eight existing `deviceScoped` keys are deliberately in backups. This
+unit MUST denylist `sync_enabled`, the endpoint and every other key it adds,
+and its enablement test MUST cover restore as well as first run: restoring a
+backup taken on a syncing device leaves sync off and makes no network call.
 
 #### W14 · A kind-agnostic review surface
 
@@ -1230,7 +1246,10 @@ the wire.
   travels in a request *path*, so the body-logging vector passes while it leaks
   by default through ordinary access logging, and §7.3's own reaping never
   reaches a log file. §3.3's `protocolIdentifier` rule 4 states the same
-  obligation for the same value.
+  obligation for the same value — with the caveat rule 4 now spells out, that
+  in `manifests.device_id` the bound is the *store's* lifetime and not the
+  device's, so any operator-facing retention statement this unit writes MUST
+  say that rather than imply a fixed per-device window.
 
 #### W16 · Operational readiness
 

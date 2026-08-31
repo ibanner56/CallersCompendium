@@ -275,13 +275,27 @@ devices one manifest. A `protocolIdentifier` value MUST:
    non-`shareable` classes;
 3. never be **applied** from a received record or envelope — a device's own
    identifier is minted once and only ever read from local storage; and
-4. carry a bounded, stated retention wherever the server durably records it,
-   including logs (§7.3).
+4. carry a stated retention bound wherever the server durably records it,
+   including logs (§7.3) — for `sync_device_id` that bound is the store's
+   lifetime rather than the device's, which the paragraph below states
+   plainly because it is weaker than it reads.
 
 Rule 3 is the one no other class expresses. `shareable` permits adoption and
 `deviceScoped` forbids it only by forbidding transmission outright, so a value
 that must travel *and* must never be adopted had no correct classification
 before this member existed.
+
+**Rule 4's bound is the store's lifetime, not the device's.** §7.3 reaps a
+store after 30 days of disuse and cascades its manifests, but `last_seen` is
+refreshed by *any* device, so a device that syncs once and vanishes keeps its
+identifier in `manifests.device_id` for as long as a sibling keeps the store
+alive — indefinitely, for a user who goes on syncing. Per-device manifest
+expiry would bound it per device, and is deliberately not specified: retiring a
+merely *dormant* device's manifest retires an alias it still needs, which
+`sync.md` records as the sharper of the two failures. The conforming statement
+is therefore that the identifier lives for the life of the store, with
+`DELETE /v1/manifests/{deviceId}` as the remedy for a device that is genuinely
+gone. A disclosure implying a fixed per-device window would be false.
 
 **`accessControlData` is a sixth `EgressClass`, added by this programme.** It
 covers a value whose transmission *is* the authorisation for the request
@@ -1690,6 +1704,24 @@ applied from a peer. Neither exception widens what a *record* may carry: both
 are forbidden from every blob, and a blanket rule that omitted them would
 classify the bearer credential as never-transmittable while the protocol
 requires it on every request.
+
+**Every key the feature introduces MUST also be excluded from the JSON
+backup.** `isBackupEligibleSettingKey` treats `kBackupSettingsDenylist` as the
+whole of the exclusion and everything else as content a restore replaces, so a
+key that is merely classified still travels. W5 and W13 MUST denylist each key
+they add, and a restore test MUST assert that restoring a backup taken on a
+syncing device leaves sync off, adopts no device ID, and stores no credential.
+
+This does **not** follow from the classifications above, and MUST NOT be
+justified that way. #923 ruled that "not `shareable`, therefore not in a
+backup" is false in this codebase: of the eight `deviceScoped` settings keys,
+six are deliberately backup-eligible. The reasons here are specific to these
+keys. A restored `sync_enabled` contradicts the first paragraph of this
+section, which requires sync be off until the user turns it on — consent given
+on one device is not consent on another. A restored `sync_device_id` is exactly
+the adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route
+no envelope check sees. A restored `sync_id` puts a bearer credential into a
+plaintext file users mail to themselves.
 
 **`sync_exclude_imports`** is one of those keys: a per-device toggle, default
 **off**, which trims what this installation publishes. It is `deviceScoped`
@@ -3506,6 +3538,11 @@ behaviour, and a test written to the outcome could not tell a bypassing writer
 from a recorded skip. What separates them is that the sanctioned path passed
 through the choke point and left a `normalisation_skips` entry behind; the bug
 did neither.
+
+**Configuration egress.** A backup taken on a syncing device restores with sync
+off, no adopted `sync_device_id` and no stored `sync_id` (mutation: drop the
+sync keys from `kBackupSettingsDenylist`, which silently opts the restoring
+device into the sender's store and gives two devices one manifest).
 
 **Classification.** Allow-list bijection over real `encodeArchive`-shaped
 output, never a hand-written key string. `deviceLocal` never serialised —
