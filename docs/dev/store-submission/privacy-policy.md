@@ -15,7 +15,7 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** August 28, 2026
+**Effective date:** August 31, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
@@ -30,6 +30,23 @@ Device Sync is optional. When you enable it, the app transfers selected
 shareable content — including choreography, programs, tags, and shareable
 settings — to a configured sync service for app functionality. This is
 **Other User Content** and is not linked to your identity.
+
+**Names of other people in your collection.** Your collection records the people
+credited in the dances and programs you call: choreographers, the authors of
+published sources, and the callers and bands billed on a program. Those names
+are personal data about people who do not use the app. We carry them because
+attribution is the reason the field exists — a dance without its choreographer
+is not usable, and the credit is already published wherever the dance or event
+is published.
+
+This follows established practice for published authorship. Library catalogues
+treat an author's name as personal data about that author and justify publishing
+it, rather than treating publication as making the data non-personal. See, for
+example, the [National Library of Scotland's privacy notice for catalogue
+records](https://www.nls.uk/privacy/catalogue-records/), which records
+name-authority data as personal data processed in the public interest, with a
+right of objection and a disclosed international transfer to the Library of
+Congress.
 
 We do not collect account or identity information, sell information, or use
 content for advertising or tracking. The app has:
@@ -55,6 +72,13 @@ Device Sync does not transfer structured venue street address, city, region,
 country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
 venue notes** are shareable, however, and can contain names or phone numbers;
 avoid putting private contact information there.
+
+Some fields never leave your device. A choreographer's email address and
+location, and a venue's street address, city, state or region, postal code,
+country and named contact people, are not sent to a sync service and are not
+included in shared content — they stay on the device where they were entered.
+Notes fields are shared, so a contact detail typed into a note travels with the
+note.
 
 You can export a complete backup to a single file (a plain, human-readable JSON
 file carrying a built-in SHA-256 integrity checksum that catches accidental
@@ -138,3 +162,7 @@ notes.
 Questions about this policy or the app's privacy practices:
 **compendium@contra.dance** — or open an issue at
 <https://github.com/ibanner56/CallersCompendium/issues>.
+
+Questions or objections about names in a collection should be directed to the
+person or organization controlling that collection. Questions about handling by
+a configured sync service should be directed to that service's operator.

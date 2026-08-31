@@ -77,7 +77,6 @@ class CustomFieldDefRepository {
           table: 'custom_field_defs',
           column: 'key',
           recordId: def.id,
-          targetValue: key,
         );
       }
       await applyUpsertExistence(

@@ -73,7 +73,6 @@ class ChoreographerRepository {
           table: 'choreographers',
           column: 'name',
           recordId: c.id,
-          targetValue: name,
         );
       }
       await applyUpsertExistence(

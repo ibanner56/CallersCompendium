@@ -437,6 +437,10 @@ can still fire.
   Repository writes now store NFC/sanitized shareable text, and the post-open
   pass backfills existing values without changing timestamp triples. The table
   is device-local and is not part of transfer or sync payloads.
+- v30 (issue #1123): removes the redundant normalized target snapshot from
+  `normalisation_skips`. Existing skip identities are preserved while the
+  target is re-derived from the live source row on each retry; no user content
+  or timestamps are changed.
 
 ## The delete model
 

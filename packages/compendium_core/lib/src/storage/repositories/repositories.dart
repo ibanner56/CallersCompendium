@@ -678,7 +678,6 @@ class CompendiumRepositories {
                 table: table,
                 column: column,
                 recordId: recordId,
-                targetValue: target,
               );
             }
             continue;
@@ -699,7 +698,6 @@ class CompendiumRepositories {
               recordId: rows
                   .firstWhere((r) => r.read<int>('_rowid') == rowId)
                   .read<String>('_record_id'),
-              targetValue: target,
             );
           } else {
             final raw = rows
@@ -736,7 +734,6 @@ class CompendiumRepositories {
             table: 'settings',
             column: 'value_json',
             recordId: key,
-            targetValue: error.normalizedKey,
           );
           continue;
         }

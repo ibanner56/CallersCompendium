@@ -69,6 +69,10 @@ String _normalizeDdl(String sql) {
   var out = sql.replaceAll(RegExp(r'["`\[\]]'), '');
   out = out.replaceAll(RegExp(r'\s+'), ' ').trim();
   out = out.replaceAll(RegExp(r'\s*([(),])\s*'), r'$1');
+  out = out.replaceAll(
+    RegExp(r'''tokenize\s*=\s*['"]?trigram['"]?'''),
+    'tokenize=trigram',
+  );
   return out;
 }
 
