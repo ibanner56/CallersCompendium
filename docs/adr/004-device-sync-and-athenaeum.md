@@ -142,9 +142,11 @@ and whether it may leave the device — enforced by CI ratchets and rendered to
 [data-classification.md](../dev/data-classification.md).
 
 **That registry is the precondition for this design.** Device Sync does not get its own
-allow-list; it reads `EgressClass` and carries exactly what is marked
-`shareable`. A field added without classification fails CI, so it can never
-reach the network by omission.
+allow-list; it reads `EgressClass`, and nothing outside `shareable` is
+serialised into a blob. A field added without classification fails CI, so it
+can never reach the network by omission. Protocol metadata is separate and
+travels under two classes this ADR adds below: `protocolIdentifier` for the
+device ID and `accessControlData` for the sync ID.
 
 ### Constraints
 
