@@ -3020,6 +3020,30 @@ thousand by exactly the factor their ID falls short. The bound is unchanged for
 every generated ID, which is the default and the overwhelming majority, and
 unchanged for any user-chosen ID that clears the warning.
 
+**Every figure above is per-store, and an attacker's win condition is not.** A
+guesser does not care *whose* store they find, so the operator-relevant question
+is the chance that **any** store is found in a year, and that scales linearly
+with how many live stores sit in the space being guessed. With `N` stores
+reachable at entropy `E`, the expected number of hits is `N × 2²⁹ / 2^E`. At the
+2⁴⁰ warned floor that is `N / 2048` — for 500 such stores, roughly a 22% chance
+of at least one being found in a year, which is not a residual risk in the sense
+the word usually carries.
+
+**The population that figure applies to is the part worth being precise about,
+because it is easy to overstate in either direction.** It is not the whole user
+base: it is the subset who overrode the pre-filled ID, chose their own, and
+landed near the floor. Every generated ID carries 2⁵², where the same arithmetic
+gives `N × 2⁻²³` — about six in a hundred thousand for 500 stores, and that is
+the default and the overwhelming majority. So the aggregate risk is governed
+almost entirely by how many users take the override, which is a number this
+design does not know and the server deliberately cannot measure.
+
+This does not change who bears the harm — it is still the person who chose the
+weak ID — but it does change what an operator should expect at scale, and the
+earlier per-store framing invited the reader to stop at "one in two thousand".
+Stating only the per-target odds understates a population risk by exactly the
+factor of the population.
+
 The per-IP limit still has a job, and §7.5 requirement 6 still exists for it:
 it stops a single actor consuming the whole server-wide failure budget, which
 is what keeps that budget a bound on *guessing* rather than a bound on how fast

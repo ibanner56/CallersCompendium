@@ -34,9 +34,12 @@ standing-invariant ratchets (#1118, closing #1110), and shareable-text
 normalisation on every write path with schema v29 (#1119, closing #1111). No
 client, server or network code exists. It keeps the properties the
 original non-goal was protecting: no user accounts, no sign-in, no sync-store
-content we host surviving 30 days of disuse, and no venue address or contact
-data ever reaching
-our infrastructure.
+content we host surviving 30 days of disuse, and no **structured** venue address
+or contact field ever reaching our infrastructure. The qualifier is
+load-bearing: `venues.notes` is classified `shareable` and does travel, so a
+contact detail typed into a free-form note travels with the note. ADR-004
+requires the app to say which fields stay local rather than promise that contact
+details do not move, and this line is held to the same standard.
 
 ## Completed phases
 

@@ -637,8 +637,12 @@ not be a per-record prompt — rather than a correctness one.
 
 **#1021 is no longer this unit's first act.** It was fixed on `main` by #1024
 while this plan was being written, so the red-run instruction that stood here
-does not apply. What remains is unaffected: #1024 repaired *comparison* in the
-import dedupe path, and nothing yet normalises a value that gets **stored**.
+does not apply. What remains is narrower than it was, and is no longer a first
+implementation: #1024 repaired *comparison* in the import dedupe path, and #1119
+then added `normalizeShareableText` on every repository write path, so stored
+values **are** normalised today. This unit's job is corrective — the shipped
+helper composes the two transforms in the order §4.6 rules out, and there is
+still no one-time backfill for rows written before it landed.
 
 ### Phase 2 — client foundation and server core, in parallel
 
@@ -1000,9 +1004,12 @@ what it protects.
   logged break-glass path exists with a stated 30-day linkability bound, and
   that structured venue address and contact fields do not travel while freeform
   venue notes do. That is this card's `Done when`, including the part a mere
-  retraction would not have satisfied. What remains is the release-time check
-  that the effective date is bumped in the release that turns the feature on —
-  which is C7's gate, not this unit's.
+  retraction would not have satisfied. What remains is the check that the
+  effective date is bumped in the release that turns the feature on. **That
+  gates C6, not C7** — C6 is the beta, and the beta is where real user content
+  first leaves a device, which is the event S7 orders the amendment ahead of. C7
+  re-checks it at public release, because the date must name the release that
+  actually ships.
 
   **The scope this card was written against no longer exists.** #1086 removed
   the absolute claims ("We have no servers that receive or hold your content,
@@ -1424,7 +1431,7 @@ cannot fail is not a checkpoint.
 | **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
 | **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact. |
 | **C5** | W11, W12 | **Server hardened.** §9 *Server* green; **`422` exercised over a blob carrying a non-`shareable` key, and an unknown `v` accepted**; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
-| **C6** | W9, W13, **C4 and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed** if any real user's content moves (S7). |
+| **C6** | W9, W13, **C4 and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed**, *and the policy's effective date must be bumped*, if any real user's content moves (S7) — the amendment text and the date that puts it in force are one prerequisite, not two. |
 | **C7** | W15, W16, **C6** | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
 
 C2 is the checkpoint most likely to be skipped and least advisable to skip. It
@@ -1456,6 +1463,16 @@ shipping to the public on the strength of a privacy-policy edit and an ops
 runbook. Numeric ordering is not authoritative in this table; the two paragraphs
 above exist precisely because it is not, and the same omission had already been
 made twice. My call, on the same footing as those.
+
+**Adding that edge immediately falsified something written in the same commit.**
+The privacy policy's effective-date bump had just been assigned to "C7's gate"
+while the ADR required it *before any real user's content leaves a device* — the
+beta. Once C7 depends on C6, C7 runs after the beta, so the prerequisite was
+scheduled after the event it exists to precede. Both fixes were correct in
+isolation and neither mentioned the other; the contradiction lives in the gap
+between them, which is a shape this document has recorded before. The bump now
+gates **C6**, with C7 re-checking it because the date must name the release that
+actually ships.
 
 **C6 needs exit criteria, because a beta with none cannot fail.** The ADR
 defines revisit triggers, and not one of them can fire against a checkpoint that

@@ -2602,13 +2602,17 @@ round 33 that was false as literally worded: #1024 added `nfc()` calls in
 `dedupe.dart` and `import_pipeline.dart`, and `unorm_dart` is a dependency of
 `compendium_core`. It remains true in the only sense the argument uses. Both
 call sites normalise a value being **compared** — a fold table and a
-choreographer matching key — and neither writes a normalised value back. Nothing
-in the storage layer, the models or `app` normalises a value that gets stored,
-and `app` does not depend on the package that could. So this is still new work
-on the write paths, and §4.1's one-time pass is still required. Narrowing the
-claim was the honest repair; deleting it would have removed the premise the
-whole rule rests on, and leaving it would have let a reader check one `grep` and
-discard the section.
+choreographer matching key — and neither writes a normalised value back.
+
+**That narrowed claim has since expired too, and the rule survives a second
+narrowing.** #1119 added `normalizeShareableText` in the storage layer and
+routed every repository write through it, so stored values are normalised today
+and the write-path half of this argument is satisfied. Two things it did not do
+keep §4.1 alive: it composes NFC and sanitisation in the order §4.6 rules out,
+and it repairs a row only when that row is next written — so the rows §4.1's
+one-time pass exists for, the ones never edited since import, are untouched by
+it. The pass is still required; what changed is that the work is now a
+correction to a shipped transform rather than a new one.
 
 **Correcting the rule was not the same as assigning the work, and I did only
 the first.** Round 31 fixed §4.1 and left the implementation plan saying "NFC
@@ -5579,9 +5583,11 @@ no discriminator at all, which is worse.
 
 ## Recorded limitations and operational prerequisites
 
-Held here rather than in issues: ADR-004 is still `Proposed`, and filing
-implementation-shaped issues against an unagreed design presumes the agreement.
-These become issues when the ADR is accepted. Nothing below is resolved.
+Held here rather than in issues while the design was under review. **ADR-004 is
+now `Accepted`**, so the bar these were held behind is gone and they become
+issues as the implementation units that own them are filed. Nothing below is
+resolved; what has changed is that filing them no longer presumes an agreement
+that had not been given.
 
 ### Dance dedupe runs only at fresh attach, so a dance can fork permanently
 

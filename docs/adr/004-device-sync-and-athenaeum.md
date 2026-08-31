@@ -1372,8 +1372,9 @@ structured-venue-field carve-out stated plainly.
 What remains is not a contradiction but a release-time step: the effective date
 must be bumped in the release that turns the feature on, **before any real
 user's content leaves a device** — which is the beta, not the public release.
-That is the execution plan's C7 gate. It is a prerequisite of shipping, not of
-this ADR, and it is no longer a blocking defect in a published document.
+That is the execution plan's **C6** gate, the checkpoint that defines the beta.
+It is a prerequisite of shipping, not of this ADR, and it is no longer a
+blocking defect in a published document.
 
 ## Revisit triggers
 
