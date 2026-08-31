@@ -688,8 +688,9 @@ deletion silently reverts".
   **once** as the shared definition W10 imports rather than reimplements, per
   contract 5; the **base64url credential encoding** applied unconditionally to
   every sync ID, which is what makes a non-English ID transmissible at all —
-  `dart:io` throws `FormatException` on a raw non-Latin-1 header value, so the
-  failure is a local exception rather than a rejected request; bearer auth that
+  `dart:io` throws `FormatException` on a raw header value carrying any code
+  unit outside ASCII 32–127 — `café` throws, not only CJK — so the failure is a
+  local exception rather than a rejected request; bearer auth that
   never puts the ID in a URL; and status handling — a **stale-epoch `409` from a
   manifest `PUT`** forces fresh attach, while a `409` from `POST /v1/store` is
   reported and stops and is never joined; `422` is surfaced and **never

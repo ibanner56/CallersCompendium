@@ -1241,11 +1241,18 @@ unchanged when nothing is stripped — and it is the write path plus the one-tim
 pass, not the inbound call, that makes that true.
 
 This closes a divergence that predates sync. Archive **decode** sanitises
-(`archive_codec.dart:980-1042`, and `_sanitizeFigureJson` at `:755-778`);
-archive **encode** does not; and local edits do not, since
-`DanceRepository._upsert` never calls it. So an imported dance is clean and
-the same text typed into the editor is not, which today shows up only as an
-inconsistency and under sync becomes an unresolvable conflict.
+(`archive_codec.dart:980-1042`, and `_sanitizeFigureJson` at `:755-778`) and
+archive **encode** does not, so an imported dance was clean and the same text
+typed into the editor was not.
+
+The write-path half of that gap has since closed, and this section's rule is
+what survives it. #1119 routes every repository write through
+`normalizeShareableText`, so `DanceRepository._upsert` does sanitise today.
+What remains is not the transform's absence but its **composition order** —
+that call is `sanitizeImportedText(nfc(value))`, the order ruled out above —
+together with the rows written before #1119 and the rows written since in that
+wrong order. No write path revisits either set, so both are the one-time
+pass's work rather than a second chokepoint's.
 
 Maintainer's ruling, 2026-08-28, on the scope question this raised: the
 sanitiser runs on **all** `shareable` text, not only the columns sync
@@ -1352,10 +1359,12 @@ scheme. It MUST NOT appear in a URL.
 grammar is ASCII-only, and §8 deliberately permits arbitrary code points in a
 word, so the identifier and the transport disagree by construction. This is not
 a mangling risk that degrades gracefully: `dart:io` raises `FormatException:
-Invalid HTTP header field value` when a header value carries a non-Latin-1 code
-unit, so a client sending a non-English ID **throws before the request is
-issued**. The user cannot sync at all, and the failure is local, so no server
-log records it.
+Invalid HTTP header field value` when a header value carries any code unit
+outside ASCII 32–127, tab excepted, so a client sending a non-English ID
+**throws before the request is issued**. The threshold is ASCII and not
+Latin-1, which matters because it makes the affected population larger than it
+looks: `café` throws exactly as `Δ` does. The user cannot sync at all, and the
+failure is local, so no server log records it.
 
 A client MUST therefore send, as the credential, the **base64url encoding
 (RFC 4648 §5, padding omitted) of the UTF-8 bytes of the §8-normalised sync
@@ -1917,6 +1926,13 @@ the resolution MUST be reported rather than applied, on the same terms as
 not invent a tie-break. §6.6 step 2 states the same obligation for the
 natural-key collision path, which reaches non-existence without consulting this
 comparison at all; both paths need it, and neither subsumes the other.
+
+This does not disturb the equal-`existenceAt` rule above, which resolves to the
+tombstone silently by design. That case is a genuine tie between two
+transitions each stamped against a real prior value; the guard addresses an
+*unequal* comparison against a creation stamp that was never floored, so the
+ordering it overturns carries no causal meaning to respect. §6.6 step 2 states
+the same carve-out for its copy of the guard.
 
 **The guard does not apply during a fresh attach (§6.2 step 5), and that is a
 deliberate exclusion rather than an oversight.** Its discriminator is the
@@ -3084,8 +3100,11 @@ the next paragraph that an attacker defeats a per-IP limit by distributing. At
 60 requests a minute per address, `M` addresses answer `3.15 × 10⁷ × M` guesses
 a year — `2³¹·⁶` at a hundred addresses, `2³⁴·⁹` at a thousand, and rising
 linearly with a number the attacker chooses rather than one the operator sets.
-The figure this section used to publish, `2²⁹`, is not a ceiling; it is what a
-single well-behaved client would achieve.
+The figure this section used to publish, `2²⁹`, is not a ceiling on guessing;
+it is the annual throughput of §5.4's server-wide budget of a thousand failed
+resolutions a minute — the number this subsection has just finished retiring as
+a bound. A single well-behaved client reaches `2²⁴·⁹`, sixteen times less, so
+the retired figure never described one.
 
 **So the enumeration bound rests on entropy, and on nothing else.** That is
 sufficient, and it is worth being precise about why. Against a generated

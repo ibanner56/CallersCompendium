@@ -6157,7 +6157,8 @@ That scoping is right and is kept. It also means the attacker's own saturation
 costs them nothing, so the real guess rate is the per-IP request rate times a
 number of addresses the attacker chooses: `2³¹·⁶` at a hundred addresses,
 `2³⁴·⁹` at a thousand, against a published ceiling of `2²⁹` that turns out to
-describe a single well-behaved client.
+describe the failure budget's own throughput — a thousand a minute — rather
+than any bound on the attacker. A single well-behaved client reaches `2²⁴·⁹`.
 
 **The bound now rests on entropy, which is the control that was doing the work
 all along.** A generated 2⁵² identifier survives ten thousand attacking
