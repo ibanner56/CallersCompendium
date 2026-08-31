@@ -93,15 +93,73 @@ void main() {
     expect(row.read<String>('value_json'), raw);
     final skip = await db
         .customSelect(
-          'SELECT target_value FROM normalisation_skips '
-          'WHERE table_name = ? AND record_id = ?',
+          'SELECT table_name, column_name, record_id '
+          'FROM normalisation_skips WHERE table_name = ? AND record_id = ?',
           variables: [
             const Variable<String>('settings'),
             const Variable<String>('custom_dialects'),
           ],
         )
         .getSingle();
-    expect(skip.read<String>('target_value'), 'café');
+    expect(skip.data, {
+      'table_name': 'settings',
+      'column_name': 'value_json',
+      'record_id': 'custom_dialects',
+    });
+  });
+
+  test('re-derives skipped natural-key targets from live values', () async {
+    await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
+      't1',
+      'cafe\u0301',
+    ]);
+    await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
+      't2',
+      'café',
+    ]);
+
+    await repos.ensureMigrated();
+
+    final skipped = await db
+        .customSelect(
+          'SELECT table_name, column_name, record_id FROM normalisation_skips '
+          'ORDER BY record_id',
+        )
+        .get();
+    expect(
+      [for (final row in skipped) row.data],
+      [
+        {'table_name': 'tags', 'column_name': 'name', 'record_id': 't1'},
+        {'table_name': 'tags', 'column_name': 'name', 'record_id': 't2'},
+      ],
+    );
+    final unchanged = await db
+        .customSelect('SELECT id, name FROM tags ORDER BY id')
+        .get();
+    expect(
+      [for (final row in unchanged) row.data],
+      [
+        {'id': 't1', 'name': 'cafe\u0301'},
+        {'id': 't2', 'name': 'café'},
+      ],
+    );
+
+    await db.customStatement('UPDATE tags SET name = ? WHERE id = ?', [
+      'resume\u0301',
+      't1',
+    ]);
+    await CompendiumRepositories(db, contraTaxonomy).ensureMigrated();
+
+    final rows = await db
+        .customSelect('SELECT id, name FROM tags ORDER BY id')
+        .get();
+    expect(
+      [for (final row in rows) row.data],
+      [
+        {'id': 't1', 'name': 'resumé'},
+        {'id': 't2', 'name': 'café'},
+      ],
+    );
   });
 
   test(

@@ -84,7 +84,6 @@ class TagRepository {
           table: 'tags',
           column: 'name',
           recordId: tag.id,
-          targetValue: name,
         );
       }
       await applyUpsertExistence(

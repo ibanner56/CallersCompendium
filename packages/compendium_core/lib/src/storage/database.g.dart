@@ -10948,23 +10948,11 @@ class $NormalisationSkipsTable extends NormalisationSkips
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _targetValueMeta = const VerificationMeta(
-    'targetValue',
-  );
-  @override
-  late final GeneratedColumn<String> targetValue = GeneratedColumn<String>(
-    'target_value',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   @override
   List<GeneratedColumn> get $columns => [
     tableNameValue,
     columnNameValue,
     recordId,
-    targetValue,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -11008,17 +10996,6 @@ class $NormalisationSkipsTable extends NormalisationSkips
     } else if (isInserting) {
       context.missing(_recordIdMeta);
     }
-    if (data.containsKey('target_value')) {
-      context.handle(
-        _targetValueMeta,
-        targetValue.isAcceptableOrUnknown(
-          data['target_value']!,
-          _targetValueMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_targetValueMeta);
-    }
     return context;
   }
 
@@ -11044,10 +11021,6 @@ class $NormalisationSkipsTable extends NormalisationSkips
         DriftSqlType.string,
         data['${effectivePrefix}record_id'],
       )!,
-      targetValue: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}target_value'],
-      )!,
     );
   }
 
@@ -11062,12 +11035,10 @@ class NormalisationSkipRow extends DataClass
   final String tableNameValue;
   final String columnNameValue;
   final String recordId;
-  final String targetValue;
   const NormalisationSkipRow({
     required this.tableNameValue,
     required this.columnNameValue,
     required this.recordId,
-    required this.targetValue,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -11075,7 +11046,6 @@ class NormalisationSkipRow extends DataClass
     map['table_name'] = Variable<String>(tableNameValue);
     map['column_name'] = Variable<String>(columnNameValue);
     map['record_id'] = Variable<String>(recordId);
-    map['target_value'] = Variable<String>(targetValue);
     return map;
   }
 
@@ -11084,7 +11054,6 @@ class NormalisationSkipRow extends DataClass
       tableNameValue: Value(tableNameValue),
       columnNameValue: Value(columnNameValue),
       recordId: Value(recordId),
-      targetValue: Value(targetValue),
     );
   }
 
@@ -11097,7 +11066,6 @@ class NormalisationSkipRow extends DataClass
       tableNameValue: serializer.fromJson<String>(json['tableNameValue']),
       columnNameValue: serializer.fromJson<String>(json['columnNameValue']),
       recordId: serializer.fromJson<String>(json['recordId']),
-      targetValue: serializer.fromJson<String>(json['targetValue']),
     );
   }
   @override
@@ -11107,7 +11075,6 @@ class NormalisationSkipRow extends DataClass
       'tableNameValue': serializer.toJson<String>(tableNameValue),
       'columnNameValue': serializer.toJson<String>(columnNameValue),
       'recordId': serializer.toJson<String>(recordId),
-      'targetValue': serializer.toJson<String>(targetValue),
     };
   }
 
@@ -11115,12 +11082,10 @@ class NormalisationSkipRow extends DataClass
     String? tableNameValue,
     String? columnNameValue,
     String? recordId,
-    String? targetValue,
   }) => NormalisationSkipRow(
     tableNameValue: tableNameValue ?? this.tableNameValue,
     columnNameValue: columnNameValue ?? this.columnNameValue,
     recordId: recordId ?? this.recordId,
-    targetValue: targetValue ?? this.targetValue,
   );
   NormalisationSkipRow copyWithCompanion(NormalisationSkipsCompanion data) {
     return NormalisationSkipRow(
@@ -11131,9 +11096,6 @@ class NormalisationSkipRow extends DataClass
           ? data.columnNameValue.value
           : this.columnNameValue,
       recordId: data.recordId.present ? data.recordId.value : this.recordId,
-      targetValue: data.targetValue.present
-          ? data.targetValue.value
-          : this.targetValue,
     );
   }
 
@@ -11142,23 +11104,20 @@ class NormalisationSkipRow extends DataClass
     return (StringBuffer('NormalisationSkipRow(')
           ..write('tableNameValue: $tableNameValue, ')
           ..write('columnNameValue: $columnNameValue, ')
-          ..write('recordId: $recordId, ')
-          ..write('targetValue: $targetValue')
+          ..write('recordId: $recordId')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(tableNameValue, columnNameValue, recordId, targetValue);
+  int get hashCode => Object.hash(tableNameValue, columnNameValue, recordId);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is NormalisationSkipRow &&
           other.tableNameValue == this.tableNameValue &&
           other.columnNameValue == this.columnNameValue &&
-          other.recordId == this.recordId &&
-          other.targetValue == this.targetValue);
+          other.recordId == this.recordId);
 }
 
 class NormalisationSkipsCompanion
@@ -11166,37 +11125,31 @@ class NormalisationSkipsCompanion
   final Value<String> tableNameValue;
   final Value<String> columnNameValue;
   final Value<String> recordId;
-  final Value<String> targetValue;
   final Value<int> rowid;
   const NormalisationSkipsCompanion({
     this.tableNameValue = const Value.absent(),
     this.columnNameValue = const Value.absent(),
     this.recordId = const Value.absent(),
-    this.targetValue = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   NormalisationSkipsCompanion.insert({
     required String tableNameValue,
     required String columnNameValue,
     required String recordId,
-    required String targetValue,
     this.rowid = const Value.absent(),
   }) : tableNameValue = Value(tableNameValue),
        columnNameValue = Value(columnNameValue),
-       recordId = Value(recordId),
-       targetValue = Value(targetValue);
+       recordId = Value(recordId);
   static Insertable<NormalisationSkipRow> custom({
     Expression<String>? tableNameValue,
     Expression<String>? columnNameValue,
     Expression<String>? recordId,
-    Expression<String>? targetValue,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (tableNameValue != null) 'table_name': tableNameValue,
       if (columnNameValue != null) 'column_name': columnNameValue,
       if (recordId != null) 'record_id': recordId,
-      if (targetValue != null) 'target_value': targetValue,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -11205,14 +11158,12 @@ class NormalisationSkipsCompanion
     Value<String>? tableNameValue,
     Value<String>? columnNameValue,
     Value<String>? recordId,
-    Value<String>? targetValue,
     Value<int>? rowid,
   }) {
     return NormalisationSkipsCompanion(
       tableNameValue: tableNameValue ?? this.tableNameValue,
       columnNameValue: columnNameValue ?? this.columnNameValue,
       recordId: recordId ?? this.recordId,
-      targetValue: targetValue ?? this.targetValue,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -11229,9 +11180,6 @@ class NormalisationSkipsCompanion
     if (recordId.present) {
       map['record_id'] = Variable<String>(recordId.value);
     }
-    if (targetValue.present) {
-      map['target_value'] = Variable<String>(targetValue.value);
-    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -11244,7 +11192,6 @@ class NormalisationSkipsCompanion
           ..write('tableNameValue: $tableNameValue, ')
           ..write('columnNameValue: $columnNameValue, ')
           ..write('recordId: $recordId, ')
-          ..write('targetValue: $targetValue, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -20116,7 +20063,6 @@ typedef $$NormalisationSkipsTableCreateCompanionBuilder =
       required String tableNameValue,
       required String columnNameValue,
       required String recordId,
-      required String targetValue,
       Value<int> rowid,
     });
 typedef $$NormalisationSkipsTableUpdateCompanionBuilder =
@@ -20124,7 +20070,6 @@ typedef $$NormalisationSkipsTableUpdateCompanionBuilder =
       Value<String> tableNameValue,
       Value<String> columnNameValue,
       Value<String> recordId,
-      Value<String> targetValue,
       Value<int> rowid,
     });
 
@@ -20149,11 +20094,6 @@ class $$NormalisationSkipsTableFilterComposer
 
   ColumnFilters<String> get recordId => $composableBuilder(
     column: $table.recordId,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get targetValue => $composableBuilder(
-    column: $table.targetValue,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -20181,11 +20121,6 @@ class $$NormalisationSkipsTableOrderingComposer
     column: $table.recordId,
     builder: (column) => ColumnOrderings(column),
   );
-
-  ColumnOrderings<String> get targetValue => $composableBuilder(
-    column: $table.targetValue,
-    builder: (column) => ColumnOrderings(column),
-  );
 }
 
 class $$NormalisationSkipsTableAnnotationComposer
@@ -20209,11 +20144,6 @@ class $$NormalisationSkipsTableAnnotationComposer
 
   GeneratedColumn<String> get recordId =>
       $composableBuilder(column: $table.recordId, builder: (column) => column);
-
-  GeneratedColumn<String> get targetValue => $composableBuilder(
-    column: $table.targetValue,
-    builder: (column) => column,
-  );
 }
 
 class $$NormalisationSkipsTableTableManager
@@ -20259,13 +20189,11 @@ class $$NormalisationSkipsTableTableManager
                 Value<String> tableNameValue = const Value.absent(),
                 Value<String> columnNameValue = const Value.absent(),
                 Value<String> recordId = const Value.absent(),
-                Value<String> targetValue = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => NormalisationSkipsCompanion(
                 tableNameValue: tableNameValue,
                 columnNameValue: columnNameValue,
                 recordId: recordId,
-                targetValue: targetValue,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -20273,13 +20201,11 @@ class $$NormalisationSkipsTableTableManager
                 required String tableNameValue,
                 required String columnNameValue,
                 required String recordId,
-                required String targetValue,
                 Value<int> rowid = const Value.absent(),
               }) => NormalisationSkipsCompanion.insert(
                 tableNameValue: tableNameValue,
                 columnNameValue: columnNameValue,
                 recordId: recordId,
-                targetValue: targetValue,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

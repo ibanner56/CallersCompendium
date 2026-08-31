@@ -35,6 +35,18 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Changed
+
+- **Privacy policy** — disclose that credited choreographers, authors, callers,
+  and bands can be personal data about third parties, while documenting the
+  configured sync service and local-only contact fields.
+
+### Data / Migrations
+
+- **Schema 29 → 30** — remove redundant normalization collision snapshots;
+  existing skip identities are retained automatically and no user content or
+  timestamps are changed.
+
 ## [0.2.0] - 2026-08-31
 
 ### Added

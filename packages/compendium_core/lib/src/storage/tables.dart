@@ -591,7 +591,6 @@ class NormalisationSkips extends Table {
   TextColumn get tableNameValue => text().named('table_name')();
   TextColumn get columnNameValue => text().named('column_name')();
   TextColumn get recordId => text()();
-  TextColumn get targetValue => text()();
 
   @override
   Set<Column> get primaryKey => {tableNameValue, columnNameValue, recordId};

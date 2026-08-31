@@ -236,11 +236,10 @@ Future<void> recordNormalisationSkip(
   required String table,
   required String column,
   required String recordId,
-  required String targetValue,
 }) => db.customStatement(
   'INSERT OR REPLACE INTO normalisation_skips '
-  '(table_name, column_name, record_id, target_value) VALUES (?, ?, ?, ?)',
-  [table, column, recordId, targetValue],
+  '(table_name, column_name, record_id) VALUES (?, ?, ?)',
+  [table, column, recordId],
 );
 
 /// The current on-disk schema version of [CompendiumDatabase].
@@ -249,7 +248,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 29;
+const int kCompendiumSchemaVersion = 30;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -712,6 +711,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       if (from < 29) {
         await m.createTable(normalisationSkips);
+      }
+      if (from >= 29 && from < 30) {
+        await m.alterTable(TableMigration(normalisationSkips));
       }
     },
     beforeOpen: (details) async {

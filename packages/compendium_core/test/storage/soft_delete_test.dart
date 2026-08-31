@@ -560,7 +560,8 @@ void main() {
       );
       final skip = await db
           .customSelect(
-            'SELECT target_value FROM normalisation_skips WHERE table_name = ? '
+            'SELECT table_name, column_name, record_id FROM normalisation_skips '
+            'WHERE table_name = ? '
             'AND column_name = ? AND record_id = ?',
             variables: [
               Variable.withString('tags'),
@@ -569,7 +570,11 @@ void main() {
             ],
           )
           .getSingle();
-      expect(skip.read<String>('target_value'), 'Easy');
+      expect(skip.data, {
+        'table_name': 'tags',
+        'column_name': 'name',
+        'record_id': 'T1',
+      });
     });
 
     test('renaming onto a LIVE name preserves the edited row', () async {

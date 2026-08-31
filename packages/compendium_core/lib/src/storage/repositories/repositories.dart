@@ -672,13 +672,12 @@ class CompendiumRepositories {
         for (final entry in targets.entries) {
           final group = entry.value;
           if (group.length > 1) {
-            for (final (_, recordId, target) in group) {
+            for (final (_, recordId, _) in group) {
               await recordNormalisationSkip(
                 db,
                 table: table,
                 column: column,
                 recordId: recordId,
-                targetValue: target,
               );
             }
             continue;
@@ -699,7 +698,6 @@ class CompendiumRepositories {
               recordId: rows
                   .firstWhere((r) => r.read<int>('_rowid') == rowId)
                   .read<String>('_record_id'),
-              targetValue: target,
             );
           } else {
             final raw = rows
@@ -730,13 +728,12 @@ class CompendiumRepositories {
           value = normalizeShareableJson(
             jsonDecode(row.read<String>('value_json')),
           );
-        } on ShareableJsonKeyCollision catch (error) {
+        } on ShareableJsonKeyCollision {
           await recordNormalisationSkip(
             db,
             table: 'settings',
             column: 'value_json',
             recordId: key,
-            targetValue: error.normalizedKey,
           );
           continue;
         }

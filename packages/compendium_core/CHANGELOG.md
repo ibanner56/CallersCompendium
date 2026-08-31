@@ -20,6 +20,12 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+### Changed
+
+- **Schema 29 → 30** — remove redundant normalization collision snapshots;
+  existing skip identities are retained while `recordNormalisationSkip` now
+  accepts only the identifying table, column, and record triple.
+
 ## [0.2.0] - 2026-08-31
 
 ### Added
