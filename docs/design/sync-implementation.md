@@ -637,8 +637,8 @@ not be a per-record prompt — rather than a correctness one.
 
 **#1021 is no longer this unit's first act.** It was fixed on `main` by #1024
 while this plan was being written, so the red-run instruction that stood here
-does not apply. What remains is unaffected: #1024 repaired *comparison* in the
-import dedupe path, and nothing yet normalises a value that gets **stored**.
+does not apply. #1024 repaired *comparison* in the import dedupe path; #1119
+subsequently normalised stored values, leaving W18's two corrective items above.
 
 ### Phase 2 — client foundation and server core, in parallel
 
