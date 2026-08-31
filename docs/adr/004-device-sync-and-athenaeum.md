@@ -225,6 +225,8 @@ design removes clocks from change detection, not from conflict resolution:
 | changed | changed | **direct conflict** → last-writer-wins on `updatedAt` |
 | absent, not in baseline | present | download (new elsewhere) |
 | present | absent, not in baseline | upload (new here) |
+| in baseline | absent from the peer's manifest | treat as unchanged — never a deletion |
+| absent locally, in baseline | present | download (the local purge forfeited its tombstone) |
 
 A remote version is accepted only when its `updatedAt` is **newer than the
 local record's**, not merely different from the baseline. Comparing hashes alone

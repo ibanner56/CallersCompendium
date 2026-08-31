@@ -624,6 +624,20 @@ deletion silently reverts".
   exception rather than a rejected request; bearer
   auth that never puts the ID in a URL; and status handling — `409` forces fresh
   attach, `422` is surfaced and **never retried**, `429` honours `Retry-After`.
+
+  W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
+  their classifications** — `accessControlData` and `protocolIdentifier` — and
+  therefore owns **adding those two members to `EgressClass`**. ADR-004 and spec
+  §3.3 specify both classes; neither is in the Dart enum, deliberately, because
+  a member with no registry entry is a member no ratchet exercises. Assigning
+  them here lands each member in the same change as its first entry, and keeps
+  both in one unit rather than splitting an enum edit across two.
+
+  That this needed saying at all is the point: those two keys are the only
+  persisted values in the feature whose classification is neither `shareable`
+  nor `deviceScoped`, and no unit's card named them, so the coverage ratchet's
+  "classified in the PR that adds it" rule had nothing to bind to. This is my
+  assignment, not a ruling.
 - **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
   only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
@@ -722,7 +736,12 @@ server to run against" as the point of it rather than a side effect.
   dance) and the hint's field-naming clause.
 
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
-feature whose configuration syncs is a loop.
+feature whose configuration syncs is a loop. That holds for this unit's keys;
+it is **not** true of every key the feature introduces. `sync_device_id` is
+`protocolIdentifier` and `sync_id` is `accessControlData` (spec §6.1, §3.3):
+both travel on every request, and a card that called them `deviceScoped` would
+classify the bearer credential as never-transmittable while the protocol
+requires it. Those two belong to W5, not here.
 
 #### W14 · A kind-agnostic review surface
 
@@ -893,7 +912,13 @@ the programme and the only one that can block a release on its own.
 - **Done when** the §9 *Merge* and *Existence* buckets are green, including
   ≥3-device convergence with interleaved edits, the equal-`updatedAt` tie being
   **reported rather than resolved**, and a bystander failing to resurrect a
-  tombstone. W6 carries the **merge** clause of *Cross-kind identity*: a dance
+  tombstone. Merge coverage is **total** over the baseline: a record present in
+  the baseline and missing from a peer's manifest survives, and one missing
+  locally with its baseline entry standing is downloaded back. Both mutations —
+  reading either absence as authoritative — pass every two-device steady-state
+  test, so the fixture must remove a peer's manifest (§5.3) or purge a
+  tombstone rather than merely stopping a device from syncing. W6 carries the
+  **merge** clause of *Cross-kind identity*: a dance
   and a program sharing an id are merged independently and neither is treated as
   the other's remote side. The inbound-apply half of *Classification* is also
   W6's: apply preserves `deviceLocal` columns, rejects present non-shareable

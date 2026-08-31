@@ -1666,6 +1666,35 @@ republishes, which is an ordinary upload and needs no special path.
    | absent from baseline, present locally | absent remotely | upload |
    | absent locally | absent from baseline, present remotely | download |
    | absent from baseline, present locally | absent from baseline, present remotely | resolve as `changed`/`changed` |
+   | `same` or `changed` | absent remotely | treat exactly as `same` — never a deletion |
+   | absent locally | `same` or `changed` | download |
+   | absent locally | absent remotely | nothing; drop the baseline entry |
+
+   The last three rows exist because the table is otherwise **not total** for a
+   record that *is* in the baseline. Rows five and six cover one-sided absence
+   only when the record is absent from the baseline, which silently implies a
+   distinction §4.5 says does not exist: absence from a manifest means the
+   record "was never known to that device" and MUST NOT be read as a deletion,
+   whether or not the baseline holds an entry. Both remaining combinations are
+   ordinary rather than exotic — a peer whose manifest was deleted (§5.3)
+   leaves every record it once carried baseline-present and remote-absent, and
+   purging a tombstone from Recently Deleted leaves one baseline-present and
+   locally absent.
+
+   Neither action is a new policy; both are forced by rules stated elsewhere,
+   which is exactly the condition under which two implementers diverge. A
+   remote that does not list the record supplies **no evidence**, so it cannot
+   move anything: it behaves as `same`, which leaves a locally `changed` record
+   uploading and an unchanged one alone. A record absent *locally* while its
+   baseline entry stands was hard-deleted here, and §3.1 permits that for a
+   published record only by **forfeiting** the tombstone guarantee — so the
+   peer's copy returning is the specified consequence of the forfeit, not a
+   resurrection bug.
+
+   The four combinations the table still omits are **unreachable**, and are
+   omitted deliberately: "absent from baseline" is a property of the single
+   shared baseline entry, so it cannot hold in one column while the other
+   column compares against that entry as `same` or `changed`.
 
    A quarantined record MUST be excluded from this table entirely.
 
@@ -2940,7 +2969,14 @@ same shareable settings key, whose id is the key itself, is the cheapest fixture
 (mutations: resolve it as unconditional upload; resolve it as unconditional
 download — each is one of the two one-sided rows read in isolation, and each
 leaves the two devices permanently disagreeing while both look correct in a
-single-device test).
+single-device test). A record **present in the baseline** and absent from a
+peer's manifest is left alone rather than deleted, and one absent locally while
+its baseline entry stands is downloaded back (mutations: treat the peer's
+absence as a tombstone, which deletes on every device that syncs with a peer
+whose manifest was removed; treat the local absence as authoritative, which
+silently swallows the record on the next pass). Both mutations pass every
+two-device steady-state test, because both require a record that *reached* the
+baseline before one side stopped listing it.
 
 **Existence.** A bystander does not resurrect a tombstone (mutation: drop the
 existence rule from the `same`/`changed` row). A **fresh attach** applies a

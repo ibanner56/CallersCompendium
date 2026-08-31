@@ -3940,6 +3940,9 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    | absent from baseline, present locally | absent remotely | upload (new here) |
    | absent locally | absent from baseline, present remotely | download (new elsewhere) |
    | absent from baseline, present locally | absent from baseline, present remotely | resolve as `changed`/`changed` |
+   | `same` or `changed` | absent remotely | treat as `same` — never a deletion |
+   | absent locally | `same` or `changed` | download (purge forfeited the tombstone) |
+   | absent locally | absent remotely | nothing; drop the baseline entry |
 
    **The last row was missing for twenty-nine review rounds**, and its absence
    is the most consequential defect this design has carried: the two rows above
