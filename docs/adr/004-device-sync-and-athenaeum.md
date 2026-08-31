@@ -20,12 +20,28 @@
 ## Implementation status
 
 **The schema migration shipped before this ADR was accepted. That was
-deliberate, and it is the only part that has shipped.**
+deliberate. Three prerequisite repairs have since shipped as well; no sync
+client, server or network code has.**
 
 Schema **v25** is on `main` — the sync timestamp triple across eight tables,
 twenty columns, six entity-level hard deletes converted to tombstones, and every
 new column classified. Delivered by [#901] and [#903], closing [#898]. No sync
 client, no server, no network code exists; nothing reads `existence_at` yet.
+
+Landed since, each closing a repair issue this design filed: the
+**privacy-policy amendment** ([#1115], closing [#1109]) — both policy files now
+carry the operator-visibility and logged break-glass disclosures §8 requires;
+the **standing-invariant ratchets** ([#1118], closing [#1110]) — the
+soft-delete join rule, I1/I2 over raw and typed writes, and the
+certificate-hatch scan; and **shareable-text normalisation on every write
+path** with schema **v29** ([#1119], closing [#1111]).
+
+The third landed with two defects against this design, recorded in the
+implementation plan under W18 rather than silently absorbed: it composes the
+two transforms in the order §4.6 rules out, and it persists a `target_value`
+column that §3.2 forbids and that is classified as non-personal while holding
+third-party names. Neither is a reason to unship it — the write paths are
+closed, which was the point — but both are corrective work the plan now owns.
 
 **Why it went first, ahead of acceptance.** Several kinds had to move from hard
 delete to soft delete, and that change needs a **hydration buffer**: time for
@@ -75,6 +91,12 @@ not merely about the code.
 [#898]: https://github.com/ibanner56/CallersCompendium/issues/898
 [#901]: https://github.com/ibanner56/CallersCompendium/pull/901
 [#903]: https://github.com/ibanner56/CallersCompendium/pull/903
+[#1109]: https://github.com/ibanner56/CallersCompendium/issues/1109
+[#1110]: https://github.com/ibanner56/CallersCompendium/issues/1110
+[#1111]: https://github.com/ibanner56/CallersCompendium/issues/1111
+[#1115]: https://github.com/ibanner56/CallersCompendium/pull/1115
+[#1118]: https://github.com/ibanner56/CallersCompendium/pull/1118
+[#1119]: https://github.com/ibanner56/CallersCompendium/pull/1119
 
 ## Context
 

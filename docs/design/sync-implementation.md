@@ -8,15 +8,31 @@
 ## 1. Status
 
 **ADR-004 is `Accepted`; S1's prerequisite is satisfied.** The maintainer's
-ruling is recorded in the ADR. Apart from the already-shipped schema migration,
-implementation remains unstarted.
+ruling is recorded in the ADR. **No sync client, server or network code
+exists**, but the statement "everything apart from the schema migration is
+unstarted" is no longer true, and treating it as true would schedule the
+creation of artefacts that are already on `main`.
 
-One unit has already shipped: the §3.1 schema migration, tracked as
+The §3.1 schema migration shipped first, tracked as
 [#898](https://github.com/ibanner56/CallersCompendium/issues/898) and delivered
 by PRs #901 and #903, ahead of the ADR and deliberately — see *What must be
-serialised*, **S6**. Everything else is unstarted. That unit shipped its
-*migration* cleanly but not its *invariant*: §3.1's soft-delete join rule was
-violated in `main` when **W17** was written, which is why W17 exists.
+serialised*, **S6**. That unit shipped its *migration* cleanly but not its
+*invariant*: §3.1's soft-delete join rule was violated in `main` when **W17**
+was written, which is why W17 exists.
+
+Three further pieces landed while this document was in review, each closing a
+repair issue raised by the review of this design:
+
+| Landed | Closes | Unit | State |
+| --- | --- | --- | --- |
+| #1115 | #1109 | **W15** | Substantially done. Both policy files carry the operator-visibility and logged break-glass disclosures §8 requires. |
+| #1118 | #1110 | **W17** | Partly done: the soft-delete join rule, I1/I2 over raw and typed writes, and the certificate-hatch scan. The write-path routing ratchet is still owed, and could not have landed — it asserts a choke point W18 builds. |
+| #1119 | #1111 | **W18** | Partly done, **and drifted**. See the card. |
+
+**W18's delta is corrective, not additive**, and that is the entry most likely
+to be misread. Its card below is written around what remains, which is a
+reconciliation of shipped code against a contract accepted after the code was
+merged — not the from-scratch build the earlier draft described.
 
 Three live defects found while reviewing this plan were filed rather than folded
 in, and all three have since been fixed on `main`: **#1016** (an archive
@@ -229,7 +245,10 @@ and program content — which is precisely what the editor-draft keys held until
   same grouping to the **object keys inside a `shareable` settings value** and
   skips that settings key whole when two of its keys share a normalised target,
   and **rebuilds derived indexes if it wrote anything**; the
-  `normalisation_skips` table (§3.2) with its **retry on each open judged by
+  `normalisation_skips` table (§3.2) — which **exists on `main` in schema v29
+  and carries a fourth column, `target_value`, that §3.2 forbids**, so this is
+  a migration that drops a column, not a `createTable` — with its **retry on
+  each open judged by
   both halves of the grouping test** — recorded-row grouping by
   `(table, column, target)` *and* live occupancy — its **retirement of entries
   whose row was hard-deleted**, which requires a **new lookup unfiltered by
@@ -289,6 +308,44 @@ and program content — which is precisely what the editor-draft keys held until
   grouping and `normalisation_skips`, so they are one unit: splitting them makes
   two passes over the same rows and gives one table two owning units, which is
   the ambiguity W4's card exists to avoid.
+
+**Most of this shipped in #1119 (closing #1111), and two parts of it shipped
+wrong.** The write-path choke point, the backfill, the collision grouping, the
+`normalisation_skips` table and the structural guards are on `main` at schema
+v29. What is left is corrective, and both items are contract violations rather
+than gaps:
+
+1. **The composition order is reversed.** `normalizeShareableText` is
+   `sanitizeImportedText(nfc(value), allowLineBreaks: true)` — NFC first —
+   which §4.6 records as the order that does not work. Verified by running the
+   shipped function rather than by reading its doc comment: on
+   `e` + `U+200B` + `U+0301` it returns `U+0065 U+0301`, so the canonicaliser
+   emits text that is not NFC. Its guard cannot catch this, because the test
+   input places the zero-width space *after* the combining mark
+   (`'Cafe\u0301\u200B\nnext'`), where NFC composes before the strip and the
+   order cannot matter. Fixing the order also requires **re-running the
+   backfill**, since rows repaired by the reversed composition may be stored
+   decomposed — so the completion marker must be invalidated, not just the
+   function corrected.
+2. **`target_value` must go, and its classification is wrong today.** §3.2
+   holds that the table stores "no name, only the address of a row", and
+   requires retry to re-derive the target from the live column. The shipped
+   column stores the normalised value itself: `choreographer_repository.dart`
+   passes `targetValue: name`, and `choreographers.name` is classified
+   `DpvTerm.name` / `DataSubject.thirdParty` / `shareable`. The same value is
+   classified in `normalisation_skips` as `DpvTerm.nonPersonal` /
+   `DataSubject.none`, with the note "Local collision-repair bookkeeping". A
+   third party's name does not stop being a third party's name because it was
+   copied into a bookkeeping table. Dropping the column resolves both the
+   contract violation and the misclassification at once, which is why it is
+   preferred to reclassifying in place.
+
+**The classification ratchet did not catch (2), and could not.** It asserts
+that every persisted field *has* an entry, not that the entry is *right* —
+`normalisation_skips.target_value` is present and green. Presence is
+mechanisable; correctness of the subject axis is a judgement, which is why
+this repo's guidance asks for a stated reason in the `note` and why a note
+naming the table rather than the value is the tell.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
   and **W17's write-path routing ratchet**, which asserts a property of the
   choke point this unit builds and therefore cannot be written first; otherwise
@@ -851,6 +908,16 @@ otherwise.
   watching CI go red — the arrangement W5's behavioural test passes. None is
   proved by adding a test beside the current code and observing it pass.
 
+  **Three of these landed in #1118 (closing #1110)**, as
+  `tools/ci/check_sync_invariants.py`: the soft-delete join rule, I1/I2 over
+  both raw-SQL and typed Drift writes, and the certificate-hatch scan. What
+  remains is the **write-path routing ratchet**, which is the one that could
+  not have landed with them — it asserts that every write reaches a choke point
+  W18 builds, which is exactly the narrow W18 edge this card's `Inherits`
+  already declares. The scope label earned its keep: without it this unit would
+  have been read as blocked in full behind a data migration three of its four
+  ratchets have nothing to do with.
+
   The two single-definition scans are the exception to this unit's pattern: they
   are gated by **no §9 bucket**, and deliberately. §9 is scoped to the rules the
   specification states normatively, and the specification requires the two sides
@@ -911,6 +978,16 @@ what it protects.
   false claim is not the same as making the true one, and §8 requires the
   latter: a policy merely silent about operator visibility still implies the
   store is opaque.
+
+  **Substantially delivered by #1119's sibling, #1115 (closing #1109).** Both
+  `docs/dev/store-submission/privacy-policy.md` and `site/privacy/index.html`
+  now state that the operator can read the plaintext synchronized store, that a
+  logged break-glass path exists with a stated 30-day linkability bound, and
+  that structured venue address and contact fields do not travel while freeform
+  venue notes do. That is this card's `Done when`, including the part a mere
+  retraction would not have satisfied. What remains is the release-time check
+  that the effective date is bumped in the release that turns the feature on —
+  which is C7's gate, not this unit's.
 
   **Scope reduced by #1086, which landed on `main` while this PR was open.** The
   absolute claims this unit was written against — "We have no servers that

@@ -5956,6 +5956,45 @@ known cost of that ratchet's shape. Until the ADR is itself walked, the check is
 manual: enumerate the ADR's user-visible promises and confirm each has a
 section.
 
+#### A design document goes stale in the direction nobody is watching
+
+Three of this design's own repair issues were implemented and merged while the
+design was still in review — #1115, #1118 and #1119, closing #1109, #1110 and
+#1111. Every status statement in the ADR, the roadmap and the plan still said
+that nothing beyond the schema migration had shipped, and each was written by
+someone watching the *design* change, not the tree.
+
+The failure mode is specific and worth naming: a plan that under-reports what
+exists schedules the creation of artefacts that are already there, and the
+error surfaces as a merge conflict months later rather than as a review
+comment. W18's card asked for a `createTable` for a table that ships in schema
+v29.
+
+**And the shipped table has a column the spec forbids.** §3.2 holds that
+`normalisation_skips` stores "no name, only the address of a row", because
+retry re-derives the target from the live column. The shipped schema adds
+`target_value`, and `choreographer_repository.dart` populates it with
+`targetValue: name` — a value the registry classifies elsewhere as
+`DpvTerm.name` / `DataSubject.thirdParty`. In `normalisation_skips` the same
+value is classified `nonPersonal` / `none`, noted as "local collision-repair
+bookkeeping".
+
+**The classification ratchet was green throughout, and correctly so.** It
+asserts every persisted field *has* an entry, not that the entry is *right*.
+Presence is mechanisable; the subject axis is a judgement. This is the
+strongest argument yet for the standing instruction to record *why* in the
+`note` — the note here describes the table the value sits in rather than the
+value itself, and that substitution is the visible tell of a classification
+derived from context instead of from content. A third party's name does not
+stop being a third party's name because it was copied into a bookkeeping table.
+
+Both defects landed in the same PR, and both are of the same family as the
+composition-order defect recorded above: **the implementation was merged
+against a contract that was still being written**, so nothing was available to
+check it against. The plan now records the corrective delta explicitly rather
+than absorbing it, because a reconciliation described as a build is a
+reconciliation that will be estimated as one.
+
 ## Open questions
 
 None outstanding at the design level.
