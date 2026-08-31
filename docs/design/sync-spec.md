@@ -308,7 +308,17 @@ classifying it as a protocol identifier would weaken the guarantee for
 4. never be written to any log, including request and access logs (§7.3, and
    proxy requirement 4); and
 5. be transmitted only to the configured endpoint's own origin, and never
-   carried across a redirect (§8).
+   carried to any other origin, including across a redirect (§8).
+
+Rule 5 is stated as an origin rule rather than a redirect ban because that is
+what §8 actually requires. §8 permits a redirect hop to be followed manually
+once every check passes, and the origin row of that table is the load-bearing
+one; a client that refuses cross-origin redirects outright is conforming but is
+not obliged to. The stronger-sounding "never carried across a redirect" would
+have contradicted the section it cites, and a reader resolving the conflict in
+its favour would write a test that a conforming client fails. What makes the
+absolute form nearly true in practice is a *server* obligation, not a client
+one: §7.5 requires `/v1` to refuse to emit redirects at all.
 
 Rules 3 and 4 are what no other class expresses. Every other class is a rule
 about whether a value **moves**; this one is additionally a rule about what the
@@ -1531,9 +1541,11 @@ The request-rate rows bound load. **The failed-authentication rows are the ones
 §8's enumeration bound rests on**, and the server-wide row is the load-bearing
 one: a per-IP limit alone is defeated by distributing the guessing, which is
 exactly what an attacker enumerating sync IDs would do. At 1,000 failures per
-minute the whole internet gets ~2²⁹ guesses a year against §8's 2⁴⁰ floor —
-about one in two thousand odds of finding *any* store, shared across all
-attackers at once — and ~2⁻²³ against the 2⁵² a generated ID carries. Without a
+minute the whole internet gets ~2²⁹ guesses a year against §8's 2⁴⁰ reference
+strength — about one in two thousand odds of finding *any* store, shared across
+all attackers at once — and ~2⁻²³ against the 2⁵² a generated ID carries. §8
+records why 2⁴⁰ is a warning threshold rather than a guaranteed floor, and what
+that costs the users who choose their own ID. Without a
 server-wide row the arithmetic has no bound to state, because the attacker
 chooses the number of IPs.
 
@@ -2341,6 +2353,39 @@ A client MUST therefore show a **persistent hint** on a venue whose
 Requirement 3 is why this is normative rather than a UI detail. The wrong
 wording here is not a worse hint; it is a privacy claim the app cannot keep.
 
+### 6.14 Pairing-time disclosures
+
+Four consequences of this design are user-visible, irreversible, and cannot be
+inferred from the interface. Each is recorded in ADR-004 as knowingly accepted,
+and each names a moment the user must be told. They are specified here because
+an obligation that lives only in the ADR is owned by no unit: the ownership
+matrix maps **spec sections** to units, so an ADR promise that never reached
+this document is invisible to it by construction. All four had that shape.
+
+1. **Sharing is not collaboration, and MUST be said at pairing time.** Two
+   people on one sync ID is permitted and falls out of the layout, but merging
+   is last-writer-wins with no attribution and no prompt (§6.3), so one of two
+   concurrent edits to the same record disappears with no trace. The client
+   MUST state this where a second person could be added, not in help text.
+2. **The sync ID is a bearer credential with no recovery and no revocation**,
+   and the pairing flow MUST say so. Losing it makes the store unreachable;
+   leaking it is remediable only by moving every device to a new ID. This
+   follows from there being no accounts (§8) and is not otherwise visible.
+3. **Sync is not backup, and the UI MUST say so wherever it reports success.**
+   A store is reaped after 30 days of disuse (§7.3), which makes it a relay
+   with a grace period. The file backup remains the recovery path. A green
+   "last synced" line is exactly what a user reads as "my data is safe", so the
+   disclosure belongs on the status surface and not only at pairing.
+4. **The client SHOULD warn as the disuse expiry approaches.** Reaching it is
+   safe and correct — the next device to connect fresh-attaches (§6.2) — but it
+   arrives as an unexplained dedupe review for a user who simply did not open
+   the app for five weeks.
+
+Requirements 1 to 3 are MUSTs because each states something the user cannot
+discover before the harm: a silently discarded edit, an unrecoverable
+credential, and a backup that is not one. Requirement 4 is a SHOULD because
+what it prevents is surprise, not loss.
+
 ## 7. Server conformance
 
 ### 7.1 Storage
@@ -2348,8 +2393,12 @@ wording here is not a worse hint; it is a privacy claim the app cannot keep.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
-  blobs/<id_key>/<aa>/<bb>/<hash>
+  blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>
 ```
+
+The `<epoch>` segment is required, for the reason given under *Epoch* below: it
+is what stops a late deletion of a reaped or wiped store removing blobs
+uploaded into its successor.
 
 `{deviceId}` MUST match `^[A-Za-z0-9_-]{1,64}$`, validated before it is used as
 a database key or any part of a filesystem path, on `GET`, `PUT` and `DELETE
@@ -2421,6 +2470,29 @@ still describes the store, and no device ever detects the reset.
 Store creation MUST be an atomic upsert on the `stores` primary key, and
 concurrent creators MUST both observe the **same** epoch — the loser of the
 race returns the winner's row rather than minting a second one.
+
+**Stored content MUST be namespaced by epoch, not by `id_key` alone.** The
+`id_key` is `HMAC-SHA256(pepper, syncID)` of an unchanging sync ID, so it is
+identical across every incarnation of a store, and a layout that keys blobs and
+manifests on it alone **reuses the same physical paths after every reset**. An
+atomic upsert on the `stores` row does not make the destruction of that content
+atomic with it. A `DELETE /v1/store`, or a sweep reaping the store (§7.3), can
+still be removing blobs when a concurrent `GET /v1/store` mints the next epoch
+and a device begins uploading into it — and the removal, walking paths it
+enumerated before the reset, deletes blobs belonging to the new incarnation.
+The interleaving needs no adversarial timing: the two `GET` cases named above
+are precisely "the next `GET` after `DELETE`" and "the next `GET` after the
+sweep", so the specification already lists the sequence as ordinary.
+
+Namespacing by epoch removes the race by construction rather than by ordering,
+which is what keeps §7's central property intact — the server takes no locks
+and serialises nothing. Nothing is shared across incarnations in any case: a
+reset forces every device to fresh-attach and re-upload, so a blob under the
+old epoch has no reader. Reclaiming a superseded epoch's subtree is therefore
+an unordered background job that can never touch live content. Requiring
+per-store serialisation across deletion and recreation instead would answer the
+same defect by introducing the locking the ADR names as a property it does not
+have.
 
 `409` has exactly one source: `PUT /v1/manifests/{deviceId}` where the
 manifest body's `epoch` (§4.5) does not equal the store's current epoch. The
@@ -2574,7 +2646,7 @@ behaviour of at least one common proxy violates it.
 | 3 | The proxy MUST NOT decompress request bodies. | §4 puts the decompression limit on the receiver, enforced streaming-abort style. Inflating at the proxy moves a security control to a component that does not implement it. |
 | 4 | The sync ID MUST NOT be written to any log. | Common log formats omit headers, so this holds by default and is lost the moment someone adds `%{Authorization}i` or `$http_authorization` to a debug format. §5.1 keeps the ID out of URLs for the same reason. |
 | 5 | The public listener MUST NOT serve `/v1` over plaintext HTTP. A plaintext request to `/v1` MUST be **refused**, never proxied and never redirected; other paths MAY redirect. The `https` origin SHOULD send `Strict-Transport-Security` with a `max-age` of at least six months, as browser-only defence in depth. | A vhost that owns `:80` for ACME HTTP-01 (which the reference deployment does — see ADR-004) will serve whatever its configuration reaches, and a `ProxyPass` written outside a vhost, or copied into both, silently exposes the API on both ports. Nothing in the response distinguishes the two. |
-| 6 | The **per-IP** rate limit MUST be enforced against the real client address — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against §8's entropy floor, while an honest shared-NAT user is still throttled. |
+| 6 | The **per-IP** rate limit MUST be enforced against the real client address — either by the proxy itself, or by the server reading a client-IP header the proxy is required to set. If the header route is taken, the proxy MUST **overwrite** any inbound value rather than append to it, and the server MUST accept the header only when the socket peer is loopback and MUST ignore it otherwise. | The server binds loopback, so its socket peer is the proxy on every request. A server that rate-limits by socket peer puts every user on earth in one bucket, and one active device can exhaust the limit for everybody. A server that trusts a forwarding header without the two conditions above is strictly worse than having no limit: an attacker sets a different value on every request and buys unlimited guesses against the small space §8 permits a user-chosen ID to occupy, while an honest shared-NAT user is still throttled. |
 
 A server behind a proxy that violates (1) or (2) is **not conforming**: it will
 reject valid requests. Violations of (3), (4), (5) or (6) are not visible in
@@ -2584,9 +2656,11 @@ taste.
 **(6) is the one that silently deletes a control §8 depends on.** §8 rests the
 enumeration bound on the per-IP limit specifically, having already established
 that the per-ID-hash limit never engages against a guesser — so if the per-IP
-limit degenerates to a single global bucket, the entropy floor is left carrying
-the whole argument alone. Nothing about that failure is observable: the limiter
-is present, configured and firing, and it is simply counting the wrong thing.
+limit degenerates to a single global bucket, the ID's own strength is left
+carrying the whole argument alone. Since §8's score only warns, that strength is
+a guarantee for a generated ID and nothing at all for a chosen one. Nothing
+about that failure is observable: the limiter is present, configured and firing,
+and it is simply counting the wrong thing.
 The reverse error is equally quiet, and worse: trusting an attacker-supplied
 `X-Forwarded-For` turns the limiter into a no-op for exactly the party it
 exists to stop, while continuing to throttle ordinary users.
@@ -2661,11 +2735,17 @@ redirects.
 ## 8. Security
 
 **Sync ID.** Format is four hyphen-separated words, enforced. A generated ID
-uses the EFF long wordlist. A user-chosen ID MUST clear a strength floor of
-~2⁴⁰ scored on the actual string, and four weak words MUST be rejected.
+uses the EFF long wordlist. A user-chosen ID is **scored** against a reference
+strength of ~2⁴⁰, and a client MUST warn when it falls below — but the score is
+**advisory everywhere and MUST NOT block**, on the client or the server. The
+score MUST be computed over the **normalised** ID of the rule below, not the
+string as typed: normalisation lowercases and applies NFC before the ID is
+hashed, so an estimator run on the raw string credits case and Unicode-form
+distinctions that collapse to the same credential, and reports a strength the
+user does not have.
 
-**The floor is enforced at the point of choice, on the client.** The server
-enforces only the *structural* rule and returns `403` for a violation of it:
+**Nothing rejects an ID for weakness.** The server enforces only the
+*structural* rule and returns `403` for a violation of it:
 
 | Rule | Value |
 | --- | --- |
@@ -2694,16 +2774,24 @@ an error, it gets a *different, empty store*, and it looks exactly like a sync
 that is working and has nothing to say. Every other disagreement in this section
 surfaces as a `403`.
 
-The server MUST NOT run its own strength estimator, because client and server
-would then both gate the same string on two implementations of a heuristic that
-has no canonical definition. The failure is asymmetric and the strict direction
-is the bad one: a server marginally stricter than the client rejects an ID the
-user has already adopted, and since the ID *is* the store address, the user is
-locked out of their own data with no recovery path and no way to tell the
-difference from an outage. A server marginally more permissive accepts a weak
-self-chosen ID whose residual risk is bounded by the per-IP and per-ID-hash
-rate limits below, and is borne by the person who chose it. Pinning a specific
-estimator and version would close the gap only until either side upgraded it.
+**No implementation blocks on the score, and the reason is not the one this
+section used to give.** The earlier rule put the floor on the client "at the
+point of choice", on the grounds that a *server* running a second, marginally
+stricter estimator would reject an ID the user had already adopted and lock
+them out of a store their own ID addresses. That asymmetry does not exist. A
+second device must **type** an existing ID, so a newer client with a stricter
+estimator rejects it before any request is made — the identical lockout,
+between client versions rather than between client and server. Nor can the
+server arbitrate: `GET /v1/store` creates the store if absent (§7.1), so
+creating and joining are the same call and are indistinguishable server-side,
+and "the point of choice" is not a boundary any implementation can locate.
+Since a heuristic with no canonical definition cannot be made to agree with
+itself across versions, and since the ID *is* the store address, the only
+placement that cannot lock a user out of their own data is none. A weak
+self-chosen ID is therefore possible; its residual risk is bounded by the
+rate limits below and is borne by the person who chose it, having been warned.
+This is the maintainer's ruling; the alternatives considered are in
+[sync.md](sync.md).
 
 **Transport.** TLS required except `localhost`/`127.0.0.1`, matched exactly as
 §5 specifies, with certificate chain and hostname verification mandatory and not
@@ -2756,20 +2844,30 @@ disclosed. A peer can write any `shareable` record; it cannot write
 `deviceLocal` or `deviceScoped` fields, because the receiver filters
 independently of the server.
 
-**Enumeration.** Guessing is bounded by the entropy floor stated at the top of
-this section, by the **server-wide failed-authentication limit** (§5.4), and by
-the global cap on store creation. The per-IP limits matter but are not what the
-bound rests on: an attacker enumerating sync IDs distributes the attempt, and
-chooses how many addresses to distribute it across, so any per-IP figure
-multiplies by a number the defender does not control. Only a server-wide limit
-on *failures* yields an arithmetic bound — ~2²⁹ guesses a year against a 2⁴⁰
-floor, ~2⁻²³ against the 2⁵² a generated ID carries. The **per-ID-hash** limit
+**Enumeration.** Guessing is bounded by the ID's own strength — guaranteed for a
+generated ID, warned about but not guaranteed for a chosen one — by the
+**server-wide failed-authentication limit** (§5.4), and by the global cap on
+store creation. The per-IP limits matter but are not what the bound rests on: an
+attacker enumerating sync IDs distributes the attempt, and chooses how many
+addresses to distribute it across, so any per-IP figure multiplies by a number
+the defender does not control. Only a server-wide limit on *failures* yields an
+arithmetic bound — ~2²⁹ guesses a year against a 2⁴⁰ reference, ~2⁻²³ against
+the 2⁵² a generated ID carries. The **per-ID-hash** limit
 is not part of this either: a guesser submits a different ID on every attempt,
 so it never sees the same `id_key` twice and that limiter never engages. It
 bounds abuse of a store the attacker already has the ID for, which is a
 different thing. The conclusion is unchanged at 2⁴⁰–2⁵² — this corrects which
 control is doing the work, so that weakening the wrong one later reads as safe
 when it is not.
+
+**2⁴⁰ is now the bottom of the *warned* range, not a guaranteed floor**, and
+the arithmetic must be read accordingly. The rate limit bounds the attacker at
+~2²⁹ guesses a year absolutely; what the ruling above changed is the size of
+the space that figure is measured against, for the subset of users who chose
+their own ID and dismissed the warning. Their odds are worse than one in two
+thousand by exactly the factor their ID falls short. The bound is unchanged for
+every generated ID, which is the default and the overwhelming majority, and
+unchanged for any user-chosen ID that clears the warning.
 
 The per-IP limit still has a job, and §7.5 requirement 6 still exists for it:
 it stops a single actor consuming the whole server-wide failure budget, which
@@ -3211,7 +3309,14 @@ exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
 Two stores upload a byte-identical blob and one is wiped; the survivor can still
 `GET` it (mutation: drop the `<id_key>` segment from the blob path — every other
 server test passes, because the damage is only observable from the second
-store). The same two stores hold **two** copies of those bytes, and a blob
+store). A store is wiped by `DELETE /v1/store` and immediately recreated by a
+`GET`, a blob is uploaded into the new incarnation, and the wipe's deferred
+filesystem cleanup is then allowed to run to completion: the new blob is still
+`GET`-able (mutation: drop the `<epoch>` segment from the blob path, so both
+incarnations share one subtree — every steady-state blob test passes, because
+the damage needs a reset, and the sweep's own reap path reproduces it without
+any client action at all). The same two stores hold **two** copies of those
+bytes, and a blob
 uploaded under one `id_key` is **not** served under the other — `GET
 /v1/blobs/{hash}` authorised for store B returns `404` for a hash only store A
 has uploaded, and `POST /v1/blobs/missing` reports it missing (mutation: serve
@@ -3281,7 +3386,15 @@ a venue whose `deviceLocal` fields are empty while sync is enabled, is derived
 rather than stored, and **names the local-only fields** rather than promising
 that contact details do not travel (mutation: assert the hint text does not
 claim contact details stay on the device — `venues.notes` is `shareable`, so
-that claim is false and the hint is where a user would read it).
+that claim is false and the hint is where a user would read it). The four
+**§6.14 pairing-time disclosures** are present: sharing is not collaboration,
+shown where a second person can be added; no recovery and no revocation, shown
+in the pairing flow; sync is not backup, shown wherever success is reported;
+and the approaching-expiry warning. The mutation for the first three is to move
+the text into help or onboarding — every screenshot test still passes, and the
+user who needed it at the moment of the decision never sees it. The mutation
+for the third specifically is to show it only at pairing: the status line
+reporting a successful sync is what a user reads as "my data is safe".
 
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
 one record without aborting the batch or escaping the isolate. **An interrupted
@@ -3366,6 +3479,14 @@ leaves the baseline unadvanced, rather than deleting it.
 The following are recorded as known and are not specified here:
 
 - Dance dedupe runs only at fresh attach, so a dance can fork permanently.
+- **A user-chosen sync ID may be weaker than the ~2⁴⁰ reference** (§8). The
+  strength score warns and blocks nowhere, so nothing enforces a lower bound on
+  a chosen ID. Every other placement was worse: any component that refuses an
+  ID refuses access to the store it addresses, and since `GET /v1/store`
+  creates on absence, the server cannot distinguish a first use from a join and
+  could not refuse selectively even if it wanted to. The residual risk is
+  bounded by §5.4's server-wide limit and borne by the user who dismissed the
+  warning. Generated IDs, which is the default, are unaffected at ~2⁵².
 - Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
   The divergence is reported bilaterally rather than resolved, because every
   available tie-break is non-convergent.

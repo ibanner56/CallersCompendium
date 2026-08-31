@@ -615,9 +615,10 @@ deletion silently reverts".
 - **Serves** §5.1, §5.2, §5.3 (client half), §8.
 - **Inherits** W3 (what it sends and receives).
 - **Produces** diceware generation over the EFF long wordlist; the client-side
-  strength floor; the structural rule and the **normalisation applied before the
-  HMAC** (trim → NFC → locale-independent lowercase), written **once** as the
-  shared definition W10 imports rather than reimplements, per contract 5; the
+  strength **warning**; the structural rule and the **normalisation applied
+  before the HMAC** (trim → NFC → locale-independent lowercase), written
+  **once** as the shared definition W10 imports rather than reimplements, per
+  contract 5; the
   **base64url credential encoding** applied unconditionally to every sync ID,
   which is what makes a non-English ID transmissible at all — `dart:io` throws
   `FormatException` on a raw non-Latin-1 header value, so the failure is a local
@@ -660,15 +661,23 @@ deletion silently reverts".
   is ever added — belongs to W17, not here; this unit owns only the behaviour,
   which a debug flag defaulting to off would satisfy.
 
-The strength floor is enforced here and **only** here. A server that re-runs it
-and is marginally stricter locks a user out of their own store, because the ID
-*is* the address.
+The strength score **warns and never blocks**, here or anywhere else, and is
+computed over the **normalised** ID rather than the string as typed — an
+estimator run on the raw form credits case and Unicode differences that
+normalisation collapses, and so reports a strength the credential does not
+have. Blocking has no safe home: the ID *is* the store address, joining means
+typing an existing one, and a newer client with a stricter estimator locks a
+user out of an ID an older client accepted, exactly as a stricter server would.
+`GET /v1/store` creates the store if absent, so the server cannot tell creating
+from joining and cannot arbitrate either. Maintainer's ruling; spec §8 carries
+the reasoning.
 
 #### W10 · Athenaeum core — storage, endpoints, limits
 
 - **Serves** §7.1, §5.1–§5.4 (server half), §8 (server half — the structural
   sync-ID rule and its `403`, and the prohibition on the server running its own
-  strength estimator).
+  strength estimator, which now follows from the score blocking nowhere at
+  all).
 - **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation and
   credential-encoding definitions only** (contract 5).
 
@@ -681,7 +690,12 @@ and is marginally stricter locks a user out of their own store, because the ID
   though nothing connected them. W2 is deliberately not an edge here: it
   arrives later, via W11, so it constrains that unit and not this one.
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
-  keying with versioned peppers; the store, manifest and blob endpoints; strong
+  keying, with the pepper in configuration and **no version scheme** — the spec
+  specifies none, and §10 records pepper rotation as an unresolved limitation
+  whose proposed answer is versioned lazy re-keying, so building versioning
+  here would implement a resolution the design has not adopted, with no schema
+  column and no conformance case behind it; the store, manifest and blob
+  endpoints; strong
   quoted `ETag` equal to the manifest content hash, with `If-None-Match`;
   permissive `Content-Type` handling; **base64url credential decoding that
   rejects malformed input with `401` rather than repairing it — never
@@ -702,7 +716,10 @@ and is marginally stricter locks a user out of their own store, because the ID
   an existing hash neither replaces the bytes nor refreshes `uploaded_at`. Plus
   the §8 server case: a structurally valid but *weak* user-chosen ID is
   **accepted** (mutation: re-run the client's estimator server-side, which is
-  the lockout).
+  the lockout). Blob and manifest paths are namespaced by **epoch** as well as
+  `id_key`, so a wipe or a sweep still deleting an old incarnation cannot
+  remove content uploaded into its successor (mutation: key on `id_key` alone
+  and interleave a `DELETE /v1/store` with the recreating `GET`).
 
 **This unit is numbered late and must be scheduled early.** It is the cheaper
 half of the programme and it is the *test fixture* for the expensive half: a
@@ -713,12 +730,13 @@ server to run against" as the point of it rather than a side effect.
 
 #### W13 · Settings blade, pairing, triggers and user-facing obligations
 
-- **Serves** §6.1, §6.12, §6.13.
+- **Serves** §6.1, §6.12, §6.13, §6.14.
 - **Inherits** W5 for the ID and endpoint types, and **W6 + W9 for the
   `sync_exclude_imports` filter alone** — that clause acts on the publish set
   and needs §6.9's citation closure, so it is the one part of this unit that
   cannot be built against a fake engine. The blade, pairing, triggers, status
-  surface and the §6.13 hint can, from C1 onward.
+  surface and the §6.13 hint can, from C1 onward. It also inherits **W8 for the
+  attach-completion report alone**.
 - **Produces** the top-level Settings blade; **off on every installation until
   the user turns it on, with no sync-related network call while off**; the
   pairing flow, which must work for a user reading an ID aloud over the phone;
@@ -727,13 +745,25 @@ server to run against" as the point of it rather than a side effect.
   **`sync_exclude_imports`** and the publish-set filter it drives, including the
   §6.9 citation closure that keeps a cited imported dance published and the
   upload-only scope that keeps it convergent; and the **partial-venue hint** of
-  §6.13, derived on read and naming the local-only fields.
-- **Unblocks** nothing. It is a leaf, which is what makes it safely parallel.
+  §6.13, derived on read and naming the local-only fields; and the four
+  **§6.14 pairing-time disclosures**, each at the moment it is about — sharing
+  is not collaboration where a second person can be added, no-recovery and
+  no-revocation in the pairing flow, not-a-backup wherever success is reported,
+  and the approaching-expiry warning.
+- **Unblocks** nothing. It is a leaf, which is what keeps it parallel with
+  everything except the two engine clauses it inherits.
+
+The W8 edge is narrow in the same sense as this document's other narrow edges:
+W8 produces the after-the-fact duplicate count and this unit owns the surface
+that shows it at the end of pairing, so the edge gates the report and not the
+blade. Without it the two halves of one screen are scheduled independently.
 - **Done when** the enablement test proves the no-network-call property, not
   merely that the toggle renders, **and** the §9 *User-visible sync obligations*
   bucket is green — both `sync_exclude_imports` clauses (a cited imported dance
   stays published; a second pass makes no further request for a peer's imported
-  dance) and the hint's field-naming clause.
+  dance), the hint's field-naming clause, and all four §6.14 disclosure
+  clauses — including that not-a-backup appears on the **status surface** and
+  not only in the pairing flow.
 
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop. That holds for this unit's keys;
@@ -993,7 +1023,11 @@ content conflict for W6's table rather than a reconciliation for this unit.
   excluded from candidacy entirely; `program_slots.dance_id` rewiring to the
   survivor; epoch and baseline persistence; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
-- **Unblocks** nothing.
+- **Unblocks** **W13's attach-completion report only**. The count is surfaced
+  at the end of pairing, and pairing is W13's. This is the "what the user is
+  told" contract the serialisation rules already name between these two units;
+  it needed to be an edge, not only a caution, because nothing else sequences
+  the producer ahead of the surface that renders it.
 - **Done when** the §9 *Dedupe* bucket is green, and so is the attach half of
   *Attach and restore* — epoch mismatch produces a fresh attach and never a
   deletion;
@@ -1098,9 +1132,9 @@ the wire.
   address on each request is still throttled**, which is the half that matters
   for §8 — a deployment trusting the header unconditionally passes the
   two-honest-clients check and buys an attacker unlimited attempts against the
-  entropy floor, so testing only the first mutation gates the capacity property
-  and not the security one; and each of the four operational prerequisites has
-  been *exercised*, not merely written:
+  ID's own strength, so testing only the first mutation gates the capacity
+  property and not the security one; and each of the four operational
+  prerequisites has been *exercised*, not merely written:
   - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each
     raise an alert that reaches a human, demonstrated on the running deployment.
   - **Retention proof** — a store left untouched past the disuse TTL is shown to
@@ -1157,6 +1191,7 @@ graph LR
   W6 --> W9[W9 quarantine + restore]
   W4 --> W14[W14 review surface]
   W14 --> W8
+  W8 -.attach report.-> W13
   W5 --> W13[W13 settings + pairing]
   W6 --> W13
   W9 -.exclude-imports.-> W13
@@ -1292,7 +1327,7 @@ cannot fail is not a checkpoint.
 | **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
 | **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact. |
 | **C5** | W11, W12 | **Server hardened.** §9 *Server* green; **`422` exercised over a blob carrying a non-`shareable` key, and an unknown `v` accepted**; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
-| **C6** | W9, W13, **and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed** if any real user's content moves (S7). |
+| **C6** | W9, W13, **C4 and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed** if any real user's content moves (S7). |
 | **C7** | W15, W16 | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
 
 C2 is the checkpoint most likely to be skipped and least advisable to skip. It
@@ -1308,6 +1343,14 @@ beta users on a server missing half of the "enforced at both ends" property the
 whole design is sold on — and the client-side half is the half that runs on a
 device an attacker's peer can write to. I added the ordering; it is my call, not
 a ruling, and I would not run a beta without it.
+
+**C4 is a prerequisite of C6 for the same reason, and was omitted the same
+way.** C6 gates the pairing surface, and the attach-completion report shown at
+the end of pairing is produced by W8, which C4 gates — so a C6 reached without
+C4 gates the surface while the thing it displays is still unbuilt. That C5 had
+to be added by hand is the precedent; leaving C4 implicit would have repeated
+it in the checkpoint immediately below the paragraph naming the problem. My
+call, on the same footing.
 
 **C6 needs exit criteria, because a beta with none cannot fail.** The ADR
 defines revisit triggers, and not one of them can fire against a checkpoint that
@@ -1330,7 +1373,8 @@ theoretical one.
   survivor selection, and the survivor's references are rewritten by W7's rules.
 - **W8 and W13** share a contract that lives in neither: **what the user is
   told.** The merge count, the reported ties and the skipped-record reports are
-  produced by W8 and rendered by W13. Different files, one contract.
+  produced by W8 and rendered by W13. Different files, one contract — now also
+  a declared edge, for the report specifically.
 - **W5 and W10 both implement sync-ID normalisation** (contract 5), in different
   units, in different languages' worth of code, scheduled in parallel from C1.
   They share no file. A disagreement produces no error at all: the same typed ID
@@ -1415,7 +1459,7 @@ is where the interesting code is.
 | §6.1 | W13 (including `sync_exclude_imports`: the publish-set filter, its citation closure and its upload-only scope) | §7.4 | W12 + W16 |
 | §6.2 | W8 | §7.5 | W16 |
 | §6.3 | W6 | §8 | W5 + W10 |
-| §6.13 | W13 (the partial-venue hint) | | |
+| §6.13 | W13 (the partial-venue hint) | §6.14 | W13 |
 
 §9 is **not** distributed by prose. An earlier draft claimed it was, while only
 six of its buckets were named by any unit — leaving *Existence*,

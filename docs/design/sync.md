@@ -547,7 +547,7 @@ transmitting it *is* the authorisation for the request carrying it:
 | --- | --- |
 | `sync_enabled` | Each installation opts in for itself. |
 | `sync_endpoint` | Syncing it would let one device silently redirect another. |
-| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but is never stored recoverably, never logged, never adopted, and never carried across a redirect. |
+| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but is never stored recoverably, never logged, never adopted, and never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. |
 | `sync_device_id` (`protocolIdentifier`) | Travels as a routing key, but is never *adopted*: two devices sharing an ID collide in the manifest namespace. |
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
@@ -3563,7 +3563,8 @@ derived into a storage key with **`HMAC-SHA256(pepper, syncID)`**, so the
 plaintext ID is never written to disk.
 
 **Why HMAC rather than a bare hash.** The sync ID is deliberately low-entropy —
-memorable by design, with a floor of ~2⁴⁰ for user-chosen IDs. Exhausting 2⁴⁰
+memorable by design, and a user-chosen one may sit at or below the ~2⁴⁰ the
+strength score merely warns about. Exhausting 2⁴⁰
 SHA-256 candidates is minutes on a commodity GPU, so a bare hash would let anyone
 with a stolen database recover working credentials. The pepper lives in server
 configuration, never in the database, so the database alone is useless.
@@ -4347,7 +4348,7 @@ registry as the client, so the allow-list is generated from one definition.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
-  blobs/<id_key>/<aa>/<bb>/<hash>
+  blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>
 ```
 
 Blobs are fanned out two levels to keep directory sizes sane. The `<id_key>`
@@ -4356,13 +4357,17 @@ resolve to one file, which is cross-store deduplication physically even though
 `blob_refs` is keyed per store — and it makes store-scoped GC impossible to
 implement correctly, since collecting on the first store's reference destroys
 another store's bytes. The spec states the consequence; this is why the segment
-exists.
+exists. The `<epoch>` segment beneath it was added later and for a different
+reason: without it a store's paths are reused after a wipe or a reap, and a
+deletion still walking the old subtree can remove blobs uploaded into the
+successor.
 
 **Every path that turns a caller-supplied hash into a filesystem path validates
 it against `^[0-9a-f]{64}$` first.** An earlier draft argued traversal-safety
 from the hash being "verified" — but verification happens on `PUT`, where the
 body is hashed. Everywhere else the hash is attacker-controlled path input
-fanned into `blobs/<id_key>/<aa>/<bb>/<hash>` with nothing checking it. The
+fanned into `blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` with nothing checking
+it. The
 guard belongs on every path, not on the one that happens to compute a hash.
 
 **Stating that as a list of methods got it wrong twice**, which is the argument
@@ -4676,21 +4681,23 @@ about making acquisition hard, not about limiting the blast radius:
   HMAC — because a disagreement there does not produce a `403`, it produces a
   second, empty store and a sync that reports success.
 
-  A **strength floor of ~2⁴⁰**, scored on the actual string, then rejects four
-  *weak* words that satisfy the pattern; that one is enforced **client-side, at
-  the point of choice**, and
-  the server deliberately does not re-run it. Estimating the strength of an
-  arbitrary string is a heuristic with no canonical definition, so a server
-  even slightly stricter than the client would reject an ID the user had
-  already adopted — and because the ID *is* the store address, that is a
-  lockout from their own data, indistinguishable from an outage. The permissive
-  direction costs a weak self-chosen ID whose residual risk is bounded by rate
-  limits and borne by the chooser. A warning alone would have stopped neither.
+  A **strength score against a reference ~2⁴⁰**, computed over the *normalised*
+  ID, then **warns** about four *weak* words that satisfy the pattern. It
+  blocks nowhere — client, server or otherwise. Estimating the strength of an
+  arbitrary string is a heuristic with no canonical definition, so any
+  component even slightly stricter than the one that accepted the ID rejects an
+  ID already adopted; and because the ID *is* the store address, that is a
+  lockout from the user's own data, indistinguishable from an outage. Scoring
+  the raw string rather than the normalised one is the same bug in miniature —
+  it credits case and Unicode differences that normalisation collapses before
+  the HMAC, and so reports strength the credential does not have. Maintainer's
+  ruling; the structural rule is what stops `isaac-banner-dances`.
 - The ID never appears in a URL, so it does not reach logs or `Referer`.
 - The server stores only `HMAC-SHA256(pepper, syncID)`, with the pepper in
   configuration rather than the database, so a stolen database yields no IDs. A
-  **bare** hash would not achieve this: at the ~2⁴⁰ floor, exhausting the space
-  is minutes of GPU time.
+  **bare** hash would not achieve this: at ~2⁴⁰ — which a chosen ID may sit
+  below, since the score only warns — exhausting the space is minutes of GPU
+  time.
 
 ### What a peer can do to another peer
 
@@ -5518,7 +5525,7 @@ Recorded so the reasoning is not re-litigated.
 | Question | Ruling |
 | --- | --- |
 | Settings merge granularity | Per-key blobs, plus an `updated_at` column on `settings` in **the sync migration**, stamping existing rows at migration time. |
-| Entropy floor | Format fixed at **four hyphen-separated words**; strength floor **~2⁴⁰** scored on the string. |
+| Entropy floor | Format fixed at **four hyphen-separated words**, enforced on both sides; strength scored against a reference **~2⁴⁰** over the *normalised* ID, **advisory everywhere — it warns and never blocks**. |
 | Imported dances | **Full sync.** Reference-and-refetch demoted to a revisit trigger. *Exclude imported dances* ships in v1. |
 | Operator visibility | Opaque by design, with a **logged break-glass path** for abuse, disclosed in the privacy policy. |
 | `programs.venue` label | Stays `shareable` — a label the user typed, and a program is meaningless without it. |
@@ -5528,7 +5535,7 @@ Recorded so the reasoning is not re-litigated.
 | Naming | **Athenaeum** — the earlier "Athanaeum" was a typo; DNS corrected and verified. |
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |
 | Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |
-| Identifier derivation | **`HMAC-SHA256(pepper, syncID)`**, server-side only — a bare hash is brute-forceable at the ~2⁴⁰ floor. No client-side change; the app's cryptography is unchanged. |
+| Identifier derivation | **`HMAC-SHA256(pepper, syncID)`**, server-side only — a bare hash is brute-forceable at ~2⁴⁰, and a chosen ID may sit below it. No client-side change; the app's cryptography is unchanged. |
 | Access-log retention | Identifier **nulled at 30 days**, timestamp retained — the linkable part expires, the non-linkable aggregate survives. |
 
 ### The settings migration has a one-time ordering effect
@@ -5849,6 +5856,94 @@ population, namely the set of documents, and it has an obvious positive
 control: run the pattern against the line you are about to fix and watch it
 match. If it does not match, the pattern is wrong and the zero everywhere else
 means nothing.
+
+#### The strength floor is advisory, and my asymmetry argument was half-right
+
+**Maintainer's ruling: the sync-ID strength score warns and never blocks.** The
+structural four-word rule still rejects `isaac-banner-dances` on both sides;
+strength is the chooser's risk, bounded by §5.4's server-wide limit.
+
+The interesting part is *why* the earlier design was wrong, because I had
+already reasoned about this and reached half the answer. The server-readiness
+round moved the floor from the server to the client, on the argument that a
+server marginally stricter than the client locks a user out of a store their own
+ID addresses. That argument is correct and **applies unchanged to the client**:
+joining a store means typing an ID that already exists, so a newer client with a
+stricter estimator locks the user out exactly as the server would. I corrected
+one half of an asymmetry and left the other half standing *and now
+load-bearing* — the round-44 lesson about checking the survivor, recurring
+against my own call rather than a reviewer's.
+
+Two alternatives were considered and rejected, both recorded here because each
+looks reasonable until one detail is checked:
+
+- **Block at creation, warn at join.** There is no creation endpoint to hang it
+  on. `GET /v1/store` creates the store if absent, so "joining" a never-used
+  weak ID *is* creating it, and the server cannot tell the two apart. A client
+  could guess from local state, which makes the block depend on which device
+  the user happens to be holding.
+- **Block everywhere, plus a compatibility rule pinning the estimator and its
+  version.** This buys a version-negotiation mechanism the design does not have,
+  and closes the lockout only until either side upgrades.
+
+**The consequence that must not be lost is the enumeration bound.** §8's
+arithmetic previously rested on every ID clearing ~2⁴⁰. It no longer does, so
+the figure was re-derived rather than patched: §5.4's limit bounds an attacker
+at ~2²⁹ guesses a year *absolutely*, and what changed is the size of the space
+that figure is measured against — for self-chosen IDs whose owner dismissed the
+warning, and for nothing else. The HMAC-versus-bare-hash argument moves the
+other way and is now *stronger*: a chosen ID may sit below 2⁴⁰, which makes the
+derived identifier the only thing between a leaked database and a working
+credential.
+
+The score is also now computed over the **normalised** ID. Scoring the raw
+string was the same bug in miniature — it credits case and Unicode distinctions
+that normalisation collapses before the HMAC, so it reports a strength the
+credential does not have, and the section defining the normalisation sat four
+paragraphs below the sentence ignoring it.
+
+#### Reusing a path across incarnations is a race a database cannot close
+
+Blobs were addressed as `<idKey>/blobs/<hash>`, and `idKey` is
+`HMAC-SHA256(pepper, syncID)` over an ID that never changes — so every
+incarnation of a store reused the same physical paths. Store creation was
+specified as an atomic upsert, which is atomic *in the database* and says
+nothing about the filesystem: a wipe or a sweep still walking the old subtree
+can delete blobs uploaded into the successor it never knew was created.
+
+The interleaving needed no invention. The specification already listed "the next
+`GET` after `DELETE /v1/store`" and "the next `GET` after the sweep reaped the
+store" as ordinary epoch-minting triggers, so the sequence was anticipated and
+only the overlap was not.
+
+Namespacing content by epoch removes the race by construction instead of by
+ordering, which is what preserves the server's central claim of taking no locks
+and serialising nothing. Per-store serialisation was the alternative and it
+contradicts that claim directly. Nothing is lost: an epoch reset forces every
+device to fresh-attach and re-upload, so a blob under a superseded epoch has no
+reader, and reclaiming that subtree is an unordered job that cannot touch live
+content. **The general form is that atomicity in one store does not extend to a
+second store the same operation touches** — the same shape as this design's
+earlier GC defect, where publication was non-atomic by deliberate design and the
+collector was written as though it were not.
+
+#### An ADR promise that never reached the spec is owned by nobody
+
+Four pairing-time disclosures — sharing is not collaboration, no recovery and
+no revocation, sync is not a backup, and warn as expiry approaches — were
+recorded in ADR-004 as things that "must be said at pairing time, not
+discovered", and reached neither the specification nor any unit's gate. A grep
+for their wording across the specification returned one unrelated hit.
+
+This is the third instance of one structural fact: **the ownership ratchet maps
+specification sections to units**, so an ADR promise with no specification
+section is invisible to it by construction, and the plan's claim that every
+implementable section is owned stays true while meaning less than it appears to.
+The two previous instances were ruled and fixed individually; recording it a
+third time is the point at which it stops being three incidents and becomes the
+known cost of that ratchet's shape. Until the ADR is itself walked, the check is
+manual: enumerate the ADR's user-visible promises and confirm each has a
+section.
 
 ## Open questions
 

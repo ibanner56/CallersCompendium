@@ -169,13 +169,22 @@ shape is the same, which makes it recognisable, speakable and typeable.
 
 A generated four-word ID from the EFF long wordlist carries ~2⁵² of entropy and
 is not guessable at any realistic online rate. A user-chosen one is a different
-matter, so two checks apply rather than one: the **format** (four words) rejects
-`isaac-banner-dances` structurally, and a **strength floor of ~2⁴⁰**, scored on
-the actual string, rejects four weak words that satisfy the pattern. A warning
-alone would not have stopped either. The format check is enforced on both the
-client and the server; the strength floor is enforced client-side at the point
-of choice only, because a server running a second, marginally stricter
-estimator would lock a user out of a store their own ID addresses.
+matter, so two checks apply rather than one, and they differ in force. The
+**format** (four words) is enforced on both the client and the server, and
+rejects `isaac-banner-dances` structurally. A **strength score** against a
+reference ~2⁴⁰, computed over the *normalised* ID, warns about four weak words
+that satisfy the pattern — but it is **advisory everywhere and blocks nowhere**.
+
+Blocking has no safe home. The ID *is* the store address, so any component that
+refuses one refuses access to data. A server refusing is the obvious hazard,
+but a *client* is no better: joining a store means typing an existing ID, so a
+newer client with a marginally stricter estimator locks a user out of an ID an
+older client accepted. Nor can the server tell the two apart —
+`GET /v1/store` creates the store if absent, so creating and joining are one
+call. A strength heuristic has no canonical definition and cannot be made to
+agree with itself across versions, so the only placement that never locks a
+user out is none. A weak self-chosen ID is possible, warned about, bounded by
+the rate limits, and borne by the person who chose it. Maintainer's ruling.
 
 **The sync ID is a bearer credential.** Anyone holding it has full read and
 write access to the collection. This is deliberate: it is what makes the design
@@ -186,9 +195,9 @@ lost and no revocation if it leaks.
 ### What the server holds
 
 ```
-<idKey>/epoch                     opaque 128-bit random value
-<idKey>/blobs/<content-hash>      one copy per distinct record, shared
-<idKey>/devices/<deviceId>.json   one manifest per device
+<idKey>/epoch                             opaque 128-bit random value
+<idKey>/<epoch>/blobs/<content-hash>      one copy per distinct record, shared
+<idKey>/<epoch>/devices/<deviceId>.json   one manifest per device
 ```
 
 `<idKey>` is `HMAC-SHA256(pepper, syncID)`, never the sync ID itself — see
@@ -523,7 +532,7 @@ and walkthrough snippets represent real work a user would hate to redo.
   construction while a sync ID may be user-chosen. It is the one class that
   constrains the **recipient** rather than only the movement: never stored
   recoverably (only `HMAC-SHA256(pepper, syncID)`), never logged, never adopted,
-  never carried across a redirect. The harm from a leaked credential is not that
+  never sent to any origin but the configured endpoint's. The harm is not that
   it travelled but that it was kept. Spec §3.3.
 - `derived` → never transmitted; rebuilt on arrival
 
@@ -774,8 +783,10 @@ and can contain personal data.
 Diceware is not a compromise between them — it is both properties at once:
 generated, it is high-entropy *and* memorable *and* speakable over the phone,
 which matters for a user pairing a device with no camera. Allowing an override
-respects users who want a memorable ID, and the entropy floor prevents the
-override from being a foot-gun.
+respects users who want a memorable ID, and the structural four-word rule stops
+the override from being an obvious foot-gun. It cannot stop a determined one:
+the strength score warns and does not block, so a user who insists on four weak
+words gets them.
 
 ### Why the epoch is random rather than monotonic
 
@@ -1254,9 +1265,13 @@ makes self-hosting materially harder, which constraint 4 forbids.
   credential in the clear, and a plaintext log would undo that while outliving
   the stores it describes.
 - **Identifiers are derived with HMAC, not a bare hash.** A bare SHA-256 of a
-  sync ID is weak *because the ID is deliberately low-entropy*: at the ~2⁴⁰ floor
-  for user-chosen IDs, exhausting the space is minutes of commodity GPU time, so
-  a stolen database would yield working credentials. Keys are therefore
+  sync ID is weak *because the ID is deliberately low-entropy*: at the ~2⁴⁰
+  reference strength for user-chosen IDs, exhausting the space is minutes of
+  commodity GPU time, so a stolen database would yield working credentials. The
+  ruling that the strength score only warns strengthens this argument rather
+  than weakening it — a user-chosen ID may sit *below* 2⁴⁰, so the derived
+  identifier is the only thing standing between a database leak and a working
+  credential. Keys are therefore
   `HMAC-SHA256(pepper, syncID)` with the pepper held in server configuration and
   never in the database. This is server-side only — the client computes no MAC
   and never holds the pepper. **Rotation is a store migration, not a config
