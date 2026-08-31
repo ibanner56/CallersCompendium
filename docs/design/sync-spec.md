@@ -1741,10 +1741,13 @@ republishes, which is an ordinary upload and needs no special path.
    from "deleted". An **explicit tombstone is not absence** — it is evidence,
    and existence disagreements resolve per §6.4 here exactly as in steady state,
    so a tombstone with the greater `existenceAt` MUST be applied and that
-   application is a deletion — with the single exception that §6.4's
-   baseline-absence guard MUST NOT fire here, because with no baseline every
-   record would satisfy it and no tombstone could ever be applied. §6.4 states
-   why that exclusion is the right trade. Earlier drafts said "no deletion
+   application is a deletion. The two baseline-absence guards are treated
+   differently here, and neither treatment is an oversight: **§6.4's MUST NOT
+   fire**, because with no baseline every record would satisfy it and no
+   tombstone could ever be applied, while **§6.6 step 2's fires as it always
+   does** and routes the pair to `review_queue` rather than suppressing the
+   deletion outright. Each section states why its own treatment is the right
+   trade. Earlier drafts said "no deletion
    occurs during a fresh attach", which contradicted §6.4's "on any path" and
    would license an implementation that discards valid tombstones on every
    attach — resurrecting, on the device that attached, every record any peer had
@@ -1925,7 +1928,11 @@ the resolution MUST be reported rather than applied, on the same terms as
 §6.3's equal-`updatedAt` divergence. Report and leave the local row in place; do
 not invent a tie-break. §6.6 step 2 states the same obligation for the
 natural-key collision path, which reaches non-existence without consulting this
-comparison at all; both paths need it, and neither subsumes the other.
+comparison at all; both paths need it, and neither subsumes the other. The
+obligation is shared but the **outcome is not**: §6.6 step 2 routes its pair to
+`review_queue`, because a natural-key collision names a specific counterpart
+the user can rule on. This path frequently has none — a settings key resolved
+against its own tombstone offers nothing to choose between — so it reports.
 
 This does not disturb the equal-`existenceAt` rule above, which resolves to the
 tombstone silently by design. That case is a genuine tie between two
@@ -2130,9 +2137,45 @@ pre-existing local rows and MUST NOT coalesce.
 **A record this device created and no peer has seen MUST NOT be reconciled out
 of existence silently.** Where step 2 resolves the survivor to non-existence
 and the losing local row is **absent from this device's baseline** — created
-here, never observed on any peer manifest — the resolution MUST be reported
-rather than applied, on the same terms as §6.3's equal-`updatedAt` divergence.
-Report and leave the local row in place; do not invent a tie-break.
+here, never observed on any peer manifest — the resolution MUST NOT be applied.
+The local row stays live and the pair MUST route to `review_queue`, carrying
+the live local row as `record_id`, the peer's tombstoned id as
+`counterpart_id`, and the tombstone as the candidate blob and hash. Do not
+invent a tie-break.
+
+**Queueing rather than reporting is what makes that outcome terminate, and the
+reason is the `UNIQUE` index.** None of the three natural keys is filtered on
+`deleted_at`, so a tombstone continues to occupy its name (§4.1). Leaving the
+live local row in place therefore does not merely decline to extend the peer's
+deletion — it leaves the peer's tombstone with nowhere to be stored, because
+the name it needs is held. §6.3 step 9 never advances the baseline for a record
+this device did not store, so a report alone would re-raise the identical pair
+on every pass for the life of the install, over a choice no report offers. A
+queue entry is where a pending *choice* belongs (§2), and a queued pair MUST
+NOT be re-resolved while pending (§6.10) — which is precisely the property a
+report lacks.
+
+The choice is genuine and only the user holds it: whether the name they created
+here is the record they deleted on the other device. **Merge** applies the
+resolution this guard suppressed — the tombstone wins the existence comparison
+and the local row goes. **Keep both** MUST rename the live local row *before*
+the tombstone is applied, freeing the natural key so both can be stored; a
+rename that would collide again re-queues under step 1's rule rather than
+renaming a second time. Either resolution converges, and the entry clears with
+it. `review_queue` clears with the baseline (§3.2), so an epoch reset discards
+a pair still pending — and then re-queues it, because the fresh attach that
+follows re-runs this guard against an empty baseline. The entry is therefore
+recoverable state rather than the only record of the conflict.
+
+**At a fresh attach this fires for every such pair, and that is why this copy
+of the guard needs no attach exclusion.** §6.4's copy takes one because its
+discriminator degenerates with an empty baseline into "never apply a tombstone"
+and it has no third outcome to fall back on. This copy does have one: with the
+queue as the destination, firing universally at attach costs a queue entry per
+natural-key collision instead of a suppressed deletion, and the user's library
+is not reshaped by a peer's deletions on the single pass where every local row
+looks locally created. §6.2 step 5 records the resulting split between the two
+guards.
 
 This is not the only existence decision that needs it. Creation is the one
 existence *write* exempt from the causal floor — §6.4's stamping table seeds
@@ -3497,11 +3540,21 @@ so a two-device fixture cannot distinguish the two derivations). A collided
 derived key lengthens to the full UUID in one step (mutation: lengthen
 progressively). A record created on a device whose clock is behind, colliding
 on the natural key with a tombstone a correctly-clocked peer stamped later in
-real time, is **reported and left in place**, never silently erased (mutation:
-apply the greater `existenceAt` without the baseline-absence check — the
-tombstone wins and the just-created record vanishes with no report). Both
+real time, is **queued for review and left in place**, never silently erased
+(mutation: apply the greater `existenceAt` without the baseline-absence check —
+the tombstone wins and the just-created record vanishes with no report). Both
 stamps MUST sit inside the acceptable window, so that the fixture proves the
-rule rather than §6.9's quarantine. Custom-field type mismatch does not crash
+rule rather than §6.9's quarantine. **The same collision at a fresh attach
+queues too, and the queue is what makes it terminate** — run the pass twice and
+assert one entry and no second raising (mutations: give this guard §6.4's
+attach exclusion, which deletes the locally created row on the one pass where
+every row is baseline-absent; or report instead of queueing, which re-raises
+the pair on every pass, because the live row holds the name the tombstone needs
+and §6.3 step 9 never advances the baseline for a record this device did not
+store). **Resolving "keep both" renames the live row before the tombstone is
+applied** (mutation: apply the tombstone without renaming — the `UNIQUE` index
+is not filtered on `deleted_at`, so the write fails and the resolution is
+lost). Custom-field type mismatch does not crash
 on read. Alias chains resolve transitively. Alias retention is content-bounded.
 Rewriting a reference bumps the referring record's `updated_at` and re-uploads
 it (mutation: rewrite in place — the content changed but no row did, so peers
@@ -3800,12 +3853,15 @@ The following are recorded as known and are not specified here:
 - Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
   The divergence is reported bilaterally rather than resolved, because every
   available tie-break is non-convergent.
-- **The baseline-absence guard diverges by design** (§6.4, §6.6 step 2). Where
-  it fires, the creating device reports and keeps its row while the deleting
+- **The baseline-absence guard diverges by design** (§6.4). Where §6.4's copy
+  fires, the creating device reports and keeps its row while the deleting
   device applies its own tombstone and reports nothing, so the two hold
   different states permanently until a human acts. That is the intended trade —
   a reported divergence in place of a silent loss — and it is structurally the
-  same accepted case as the equal-`updatedAt` entry above.
+  same accepted case as the equal-`updatedAt` entry above. **§6.6 step 2's copy
+  is deliberately not listed here.** It routes to `review_queue` instead of
+  reporting, so its divergence lasts until the user answers a question they
+  were actually asked, rather than until a human happens to notice a report.
 - **The guard's window can close before the competing tombstone arrives.** Its
   condition is absence from *this device's* baseline, and the baseline advances
   as soon as any peer is observed carrying the record's hash (§6.3 step 9). A

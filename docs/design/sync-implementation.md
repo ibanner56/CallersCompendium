@@ -863,9 +863,15 @@ requires it. Those two belong to W5, not here.
 - **Serves** the review-queue surface required by §3.2.
 - **Inherits** W4 (`review_queue` is the storage this reviews).
 - **Produces** a generic keep-both-or-merge list. **No per-kind editors are
-  required**, which is the scope control on this unit.
+  required**, which is the scope control on this unit. The one thing that is
+  not generic: for the three `UNIQUE` natural-key kinds, resolving **keep
+  both** MUST rename the surviving live row before the counterpart tombstone is
+  applied (§6.6 step 2). The index is not filtered on `deleted_at`, so without
+  the rename the resolution simply fails to write. That is a name prompt on an
+  otherwise kind-agnostic surface, not a per-kind editor.
 - **Unblocks** W8.
-- **Done when** a queued pair survives an app restart and can be resolved.
+- **Done when** a queued pair survives an app restart and can be resolved, and
+  a "keep both" resolution on a name collision leaves both rows stored.
 
 The existing `import_review_screen.dart` reviews **dances only**, and is driven
 by `ImportSession`, whose own doc comment says it is deliberately not persisted.
@@ -1149,10 +1155,14 @@ content conflict for W6's table rather than a reconciliation for this unit.
   closure across a pending hold; the three-peer case of deleter, pending holder
   and stale peer. It is also green on the *Existence* bucket's **fresh-attach
   exclusion** — a tombstone reached at attach applies rather than being held
-  back by the baseline-absence guard, which at attach has no baseline to
+  back by §6.4's baseline-absence guard, which at attach has no baseline to
   consult and would otherwise degenerate into *never apply a tombstone*, the
   resurrection defect §6.2 step 5 was rewritten to remove. The mutation is to
-  apply the guard uniformly, which passes every steady-state existence test.
+  apply **§6.4's** copy uniformly, which passes every steady-state existence
+  test. The exclusion is §6.4's alone: §6.6 step 2's copy fires at attach by
+  design, because it queues the pair for review instead of suppressing the
+  deletion, so a mutation that excludes it there is caught by W14's coverage
+  rather than here.
 
 Dedupe compares by reference to the shipped `normalizeTitle`, never a
 reimplementation. A second definition that agrees on lowercase ASCII and
@@ -1607,7 +1617,7 @@ buckets. Ownership is now explicit:
 | Soft-delete join coverage | **W17** |
 | Write-path invariants | **W17** (I1, I2 and I1's exception) + **W18** (the write-path normalisation and sanitisation clauses, and the inbound no-op vector) |
 | Classification | W2 (registry property test, including the allow-list bijection) + W6 (inbound apply) |
-| Reconciliation | W7 |
+| Reconciliation | W7 + **W14** (the baseline-absence pair is queued by W7, but "keep both" only completes when a resolution renames the live row, which is W14's surface) |
 | Dedupe | W8 |
 | Quarantine and repair | W9 |
 | Deletion | W7 |
