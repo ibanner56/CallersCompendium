@@ -54,6 +54,27 @@ void main() {
     expect(await repo.getById('v1'), v);
   });
 
+  test('normalizes venue provenance text on write', () async {
+    await repo.upsert(
+      Venue(
+        id: 'v1',
+        name: 'Imported Hall',
+        provenance: Provenance(
+          source: ProvenanceSource.json,
+          importedAt: DateTime.utc(2026),
+          permission: 'cafe\u0301',
+          license: 'line\u200B\nnext',
+          sourceVersion: 'v1\u0301',
+        ),
+      ),
+    );
+
+    final loaded = await repo.getById('v1');
+    expect(loaded!.provenance!.permission, 'café');
+    expect(loaded.provenance!.license, 'line\nnext');
+    expect(loaded.provenance!.sourceVersion, 'v1́');
+  });
+
   test('optional fields default to null', () async {
     await repo.upsert(Venue(id: 'v1', name: 'Minimal Hall'));
     final read = await repo.getById('v1');

@@ -2402,6 +2402,18 @@ abstract class AppLocalizations {
   /// **'Broken'**
   String get commonDanceStatusBroken;
 
+  /// Dance status value: the dance is still being developed and is not finalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get commonDanceStatusDraft;
+
+  /// Dance status value: the dance is a variation of another dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Variation'**
+  String get commonDanceStatusVariation;
+
   /// Dance difficulty value: beginner level.
   ///
   /// In en, this message translates to:
@@ -4049,6 +4061,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get commonClose;
+
+  /// No description provided for @viewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get viewDetails;
 
   /// Placeholder shown for the event date field when no date has been chosen.
   ///
@@ -6182,11 +6200,41 @@ abstract class AppLocalizations {
   /// **'\"{title}\" — pick one, or leave as a note'**
   String importReviewProgramAmbiguousLine(String title);
 
+  /// Heading above candidates for one ambiguous import input group. The user can pick one candidate or leave the whole group skipped.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{title}\" — pick one, or leave it skipped'**
+  String importReviewAmbiguousGroup(String title);
+
+  /// Compact author metadata shown under an import-review dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'By {author}'**
+  String importReviewMetadataAuthor(String author);
+
+  /// Compact formation metadata shown under an import-review dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'{formation}'**
+  String importReviewMetadataFormation(String formation);
+
+  /// Compact provenance/source metadata shown under an import-review dance title.
+  ///
+  /// In en, this message translates to:
+  /// **'From {source}'**
+  String importReviewMetadataSource(String source);
+
   /// Summary/group count of pasted titles that resolved to a dance available to import.
   ///
   /// In en, this message translates to:
   /// **'{count, plural, =1{1 to import} other{{count} to import}}'**
   String importReviewTitleListToImport(int count);
+
+  /// Summary count of pasted titles with multiple exact online matches that are shown in the grouped review.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 needs a choice} other{{count} need a choice}}'**
+  String importReviewTitleListAmbiguous(int count);
 
   /// Summary/group count of pasted titles the user already has. Shown as its own group because 'which of these do I already have?' is useful on its own and needs different follow-up from 'not found'.
   ///

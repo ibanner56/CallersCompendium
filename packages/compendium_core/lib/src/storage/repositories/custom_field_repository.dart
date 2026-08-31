@@ -7,6 +7,7 @@ import '../../model/custom_field.dart';
 import '../../model/enums.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 
 /// CRUD for [CustomFieldDef] rows (the user-defined field schema).
 ///
@@ -28,35 +29,57 @@ class CustomFieldDefRepository {
   Future<String> upsert(CustomFieldDef def, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final id =
-          await adoptTombstonedNaturalKey(
-            _db,
-            table: _db.customFieldDefs,
-            keyColumn: 'id',
-            naturalKeyColumn: 'key',
-            naturalKey: def.key,
-            incomingId: def.id,
-            joinTable: _db.customFieldValues,
-            joinColumn: 'field_id',
-          ) ??
-          def.id;
+      final key = normalizeShareableText(def.key);
+      final choices = def.choices
+          ?.map(normalizeShareableText)
+          .toList(growable: false);
+      final incumbent = await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.key.equals(key))).getSingleOrNull();
+      final current = await (_db.select(
+        _db.customFieldDefs,
+      )..where((t) => t.id.equals(def.id))).getSingleOrNull();
+      final collidingEdit =
+          current != null && incumbent != null && incumbent.id != def.id;
+      final id = collidingEdit
+          ? def.id
+          : await adoptTombstonedNaturalKey(
+                  _db,
+                  table: _db.customFieldDefs,
+                  keyColumn: 'id',
+                  naturalKeyColumn: 'key',
+                  naturalKey: key,
+                  incomingId: def.id,
+                  joinTable: _db.customFieldValues,
+                  joinColumn: 'field_id',
+                ) ??
+                def.id;
       await _db
           .into(_db.customFieldDefs)
           .insertOnConflictUpdate(
             CustomFieldDefsCompanion.insert(
               id: id,
-              key: def.key,
-              label: def.label,
+              key: collidingEdit
+                  ? current.key
+                  : normalizeShareableText(def.key),
+              label: normalizeShareableText(def.label),
               type: def.type,
-              choicesJson: Value(
-                def.choices == null ? null : jsonEncode(def.choices),
-              ),
+              choicesJson: Value(choices == null ? null : jsonEncode(choices)),
               showInList: Value(def.showInList),
               searchable: Value(def.searchable),
               shareable: Value(def.shareable),
               updatedAt: Value(now),
             ),
           );
+      if (collidingEdit) {
+        await recordNormalisationSkip(
+          _db,
+          table: 'custom_field_defs',
+          column: 'key',
+          recordId: def.id,
+          targetValue: key,
+        );
+      }
       await applyUpsertExistence(
         _db,
         table: _db.customFieldDefs,

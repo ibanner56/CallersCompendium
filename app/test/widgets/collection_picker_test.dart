@@ -58,6 +58,12 @@ Future<void> _pumpPicker(
   OnlineSearchService? callersBoxOnline,
   OnlineSearchService? contraDbOnline,
   Future<void> Function(String danceId)? onDanceImported,
+  void Function(String danceId)? onPreviewDanceStarted,
+  void Function(String danceId)? onPreviewDanceEnded,
+  void Function(String danceId)? onViewDanceDetails,
+  void Function(OnlineSearchResultRow result)? onPreviewOnlineStarted,
+  void Function(OnlineSearchResultRow result)? onPreviewOnlineEnded,
+  void Function(OnlineSearchResultRow result)? onViewOnlineDetails,
 }) async {
   enrichment ??= SearchEnrichment.empty;
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
@@ -83,6 +89,12 @@ Future<void> _pumpPicker(
             callersBoxOnline: callersBoxOnline,
             contraDbOnline: contraDbOnline,
             onDanceImported: onDanceImported,
+            onPreviewDanceStarted: onPreviewDanceStarted,
+            onPreviewDanceEnded: onPreviewDanceEnded,
+            onViewDanceDetails: onViewDanceDetails,
+            onPreviewOnlineStarted: onPreviewOnlineStarted,
+            onPreviewOnlineEnded: onPreviewOnlineEnded,
+            onViewOnlineDetails: onViewOnlineDetails,
           ),
         ),
       ),
@@ -198,6 +210,10 @@ Future<void> _openOnlineResult(
   void Function(String danceId) onAddDance, {
   PickerRowAction rowAction = PickerRowAction.add,
   Future<void> Function(String danceId)? onDanceImported,
+  void Function(OnlineSearchResultRow result)? onPreviewOnlineStarted,
+  void Function(OnlineSearchResultRow result)? onPreviewOnlineEnded,
+  void Function(OnlineSearchResultRow result)? onViewOnlineDetails,
+  bool tapResult = true,
 }) async {
   await _pumpPicker(
     tester,
@@ -207,6 +223,9 @@ Future<void> _openOnlineResult(
     enableOnlineSearch: true,
     callersBoxOnline: service,
     onDanceImported: onDanceImported,
+    onPreviewOnlineStarted: onPreviewOnlineStarted,
+    onPreviewOnlineEnded: onPreviewOnlineEnded,
+    onViewOnlineDetails: onViewOnlineDetails,
   );
   await tester.pumpAndSettle();
   await _tapVisible(
@@ -223,10 +242,12 @@ Future<void> _openOnlineResult(
   );
   await tester.pump(const Duration(milliseconds: 600));
   await tester.pumpAndSettle();
-  final result = find.byType(OnlineResultTile);
-  await tester.ensureVisible(result);
-  await tester.tap(result);
-  await tester.pump(const Duration(milliseconds: 500));
+  if (tapResult) {
+    final result = find.byType(OnlineResultTile);
+    await tester.ensureVisible(result);
+    await tester.tap(result);
+    await tester.pump(const Duration(milliseconds: 500));
+  }
 }
 
 /// Comfortably longer than the picker's own add-confirmation linger, so a pump
@@ -518,7 +539,8 @@ void main() {
     testWidgets('the tapped row shows a check, then reverts to the plus', (
       tester,
     ) async {
-      final repos = await reposWithTwoDances();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
       await _pumpPicker(tester, repos, onAddDance: (_) {});
       await tester.pumpAndSettle();
 
@@ -539,7 +561,8 @@ void main() {
     testWidgets('the confirming row keeps a tooltip naming the dance', (
       tester,
     ) async {
-      final repos = await reposWithTwoDances();
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
       await _pumpPicker(tester, repos, onAddDance: (_) {});
       await tester.pumpAndSettle();
 
@@ -628,6 +651,146 @@ void main() {
   });
 
   // --- rowAction (issue #964) -------------------------------------------------
+
+  testWidgets('saved preview ends only for its recognized holding pointer', (
+    tester,
+  ) async {
+    final started = <String>[];
+    final ended = <String>[];
+    final added = <String>[];
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      onPreviewDanceStarted: started.add,
+      onPreviewDanceEnded: ended.add,
+    );
+    await tester.pumpAndSettle();
+
+    final center = tester.getCenter(
+      find.byKey(const ValueKey('picker-tile-a')),
+    );
+
+    final tap = await tester.startGesture(center, pointer: 4);
+    await tap.up();
+    await tester.pump();
+    expect(started, isEmpty);
+    expect(ended, isEmpty);
+    expect(added, ['a']);
+    added.clear();
+
+    final scroll = await tester.startGesture(center, pointer: 3);
+    await scroll.moveBy(const Offset(0, -100));
+    await tester.pump(const Duration(milliseconds: 600));
+    await scroll.up();
+    await tester.pump();
+    expect(started, isEmpty);
+    expect(ended, isEmpty);
+
+    final gesture = await tester.startGesture(center);
+    final secondPointer = await tester.startGesture(center, pointer: 2);
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(started, ['a']);
+    expect(added, isEmpty);
+
+    await gesture.up();
+    await tester.pump();
+    expect(ended, isEmpty);
+
+    await secondPointer.cancel();
+    await tester.pump();
+    expect(ended, ['a']);
+    expect(added, isEmpty);
+  });
+
+  testWidgets('View details is a separate saved-result action', (tester) async {
+    final opened = <String>[];
+    final added = <String>[];
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: added.add,
+      onViewDanceDetails: opened.add,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('picker-details-a')));
+    expect(opened, ['a']);
+    expect(added, isEmpty);
+  });
+
+  testWidgets('online preview actions do not import the result', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final service = _DedupeOnlineService(OnlineImportKind.created);
+    final added = <String>[];
+    final started = <OnlineSearchResultRow>[];
+    final ended = <OnlineSearchResultRow>[];
+    final details = <OnlineSearchResultRow>[];
+    await _openOnlineResult(
+      tester,
+      repos,
+      service,
+      added.add,
+      onPreviewOnlineStarted: started.add,
+      onPreviewOnlineEnded: ended.add,
+      onViewOnlineDetails: details.add,
+      tapResult: false,
+    );
+
+    final result = find.byKey(
+      const ValueKey('picker-online-result-callersBox-remote'),
+    );
+    final gesture = await tester.startGesture(tester.getCenter(result));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(started.single.id, 'remote');
+    expect(service.importCalls, 0);
+    expect(added, isEmpty);
+
+    await gesture.up();
+    await tester.pump();
+    expect(ended.single.id, 'remote');
+    expect(service.importCalls, 0);
+    expect(added, isEmpty);
+
+    await tester.tap(
+      find.byKey(const ValueKey('picker-online-details-callersBox-remote')),
+    );
+    expect(details.single.id, 'remote');
+    expect(service.importCalls, 0);
+    expect(added, isEmpty);
+  });
+
+  testWidgets('disposing an active saved preview ends its lifecycle', (
+    tester,
+  ) async {
+    final started = <String>[];
+    final ended = <String>[];
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'a', title: 'Alpha Reel'));
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      onPreviewDanceStarted: started.add,
+      onPreviewDanceEnded: ended.add,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.startGesture(
+      tester.getCenter(find.byKey(const ValueKey('picker-tile-a'))),
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(started, ['a']);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(ended, ['a']);
+  });
 
   group('rowAction', () {
     // M5 (issue #964): the paired assertion matters as much as the replace

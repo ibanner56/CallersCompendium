@@ -689,16 +689,21 @@ collection loads apiece — and this is the same one-index-per-batch discipline
 
 #### Every pasted title is accounted for
 
-The review lists all three groups, because "six imported" alone cannot tell a
+The review lists all four groups, because "six imported" alone cannot tell a
 caller which of the other six she already owned and which the app could not find,
 and those need different follow-up:
 
 - **to import** — an ordinary review row with its dedupe verdict and actions;
+- **ambiguous online match** — multiple exact matches grouped under the pasted
+  title in the shared review screen; each candidate shows its author,
+  formation, and provenance, defaults to **Skip**, and at most one candidate
+  may be committed;
 - **already in your collection** — named with the matched dance's
   choreographer(s), since the local match is by title alone and two dances can
   share a title;
 - **not found** — carrying *which* way it missed (`noResults`, `noExactMatch`,
-  `multipleExactMatches`, `fetchError`, `lineTooLong`).
+  `fetchError`, `lineTooLong`). Multiple exact matches are no longer classified
+  as not found when at least one candidate preview succeeds.
 
 A paste with nothing importable deliberately does **not** fall through to the
 generic "no dances found" message: that answer is worth showing on its own.
@@ -715,12 +720,15 @@ reported rather than searched; blank-line drop; and case-insensitive
 de-duplication (first occurrence wins — unlike `parsePlaintextProgram`, which
 must keep repeats because a program may legitimately call a dance twice).
 
-An accepted paste therefore costs at most `2 × 100` requests, issued serially
-with progress and a cancel, and a per-title `on Exception` boundary means one
-unreachable dance becomes one `fetchError` row rather than an aborted batch. No
-new fetch path is introduced: the existing `buildCallersBoxSearchUrl` /
-`buildCallersBoxJsonUrl` host allowlist (#621, #766) still governs what is
-reachable.
+An accepted paste issues requests serially with progress and a cancel. A unique
+title costs one search plus one preview; an ambiguous title costs one search plus
+at most `kMaxAmbiguousCandidatesPerLine` (6) previews, so the worst-case bound
+is `kMaxTitleListTitles × (1 + kMaxAmbiguousCandidatesPerLine)` requests.
+Candidates beyond the six-item per-title cap are not fetched. A per-title
+`on Exception` boundary means one unreachable dance becomes one `fetchError` row
+rather than an aborted batch. No new fetch path is introduced: the existing
+`buildCallersBoxSearchUrl` / `buildCallersBoxJsonUrl` host allowlist (#621, #766)
+still governs what is reachable.
 
 ### Simultaneous-action fan-out (`meanwhile`) (#591/#572)
 - Two source dialects write simultaneous action on one line instead of

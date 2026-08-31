@@ -4,6 +4,9 @@ import 'package:drift/drift.dart';
 
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
+import '../../privacy/data_classification.dart';
+import '../../privacy/settings_registry.dart';
 
 /// Free-form key/value app settings (dialect choice, prefs, source URLs).
 /// Values are stored as JSON so callers can persist any JSON-encodable type.
@@ -66,13 +69,17 @@ class SettingsRepository {
   /// filtered straight back out of every read.
   Future<void> set(String key, Object? value, {DateTime? at}) {
     final now = resolveStamp(at);
+    final storedValue =
+        classifySettingsKey(key)?.egress == EgressClass.shareable
+        ? normalizeShareableJson(value)
+        : value;
     return _db.transaction(() async {
       await _db
           .into(_db.settings)
           .insertOnConflictUpdate(
             SettingsCompanion.insert(
               key: key,
-              valueJson: jsonEncode(value),
+              valueJson: jsonEncode(storedValue),
               updatedAt: Value(now),
             ),
           );

@@ -23,11 +23,13 @@ class OnlineResultTile extends StatelessWidget {
     super.key,
     required this.result,
     this.onTap,
+    this.onLongPress,
     this.selected = false,
   });
 
   final OnlineSearchResultRow result;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   /// Whether this row is the currently previewed result (split-pane highlight).
   final bool selected;
@@ -60,6 +62,7 @@ class OnlineResultTile extends StatelessWidget {
       ),
       isThreeLine: subtitleParts.isNotEmpty,
       onTap: onTap,
+      onLongPress: onLongPress,
     );
   }
 }

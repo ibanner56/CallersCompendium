@@ -6,6 +6,7 @@ import '../../model/provenance.dart';
 import '../../model/venue.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 import '../utc_datetime.dart';
 
 /// CRUD for [Venue] rows — the reusable venue entity many programs are held at.
@@ -33,6 +34,9 @@ class VenueRepository {
 
   final CompendiumDatabase _db;
 
+  static String? _normalize(String? value) =>
+      value == null ? null : normalizeShareableText(value);
+
   Future<void> upsert(Venue v, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
@@ -41,7 +45,7 @@ class VenueRepository {
           .insertOnConflictUpdate(
             VenuesCompanion.insert(
               id: v.id,
-              name: v.name,
+              name: normalizeShareableText(v.name),
               address1: Value(v.address1),
               address2: Value(v.address2),
               city: Value(v.city),
@@ -49,13 +53,13 @@ class VenueRepository {
               country: Value(v.country),
               postalCode: Value(v.postalCode),
               plus4: Value(v.plus4),
-              website: Value(v.website),
-              sponsor: Value(v.sponsor),
-              eventName: Value(v.eventName),
-              time: Value(v.time),
-              genericSchedule: Value(v.genericSchedule),
-              price: Value(v.price),
-              notes: Value(v.notes),
+              website: Value(_normalize(v.website)),
+              sponsor: Value(_normalize(v.sponsor)),
+              eventName: Value(_normalize(v.eventName)),
+              time: Value(_normalize(v.time)),
+              genericSchedule: Value(_normalize(v.genericSchedule)),
+              price: Value(_normalize(v.price)),
+              notes: Value(_normalize(v.notes)),
               contact1Name: Value(v.contact1Name),
               contact1Phone: Value(v.contact1Phone),
               contact1Email: Value(v.contact1Email),
@@ -88,11 +92,15 @@ class VenueRepository {
               VenueProvenanceCompanion.insert(
                 venueId: v.id,
                 source: prov.source,
-                externalId: Value(prov.externalId),
+                externalId: Value(
+                  prov.externalId == null
+                      ? null
+                      : normalizeShareableText(prov.externalId!),
+                ),
                 importedAt: prov.importedAt,
-                permission: Value(prov.permission),
-                license: Value(prov.license),
-                sourceVersion: Value(prov.sourceVersion),
+                permission: Value(_normalize(prov.permission)),
+                license: Value(_normalize(prov.license)),
+                sourceVersion: Value(_normalize(prov.sourceVersion)),
               ),
             );
       }
@@ -382,6 +390,7 @@ class VenueRepository {
   ) async {
     final rows =
         await (_db.select(_db.venueProvenance).join([
+              // sync-invariant-exception: soft-delete-join tombstone lookup intentionally reads deleted venues for exact restoration.
               innerJoin(
                 _db.venues,
                 _db.venues.id.equalsExp(_db.venueProvenance.venueId),

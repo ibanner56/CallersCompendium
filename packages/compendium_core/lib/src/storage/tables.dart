@@ -584,6 +584,19 @@ class Settings extends Table {
   Set<Column> get primaryKey => {key};
 }
 
+/// Durable records for unique natural-key values that could not yet be
+/// normalized because another row occupies the transformed value.
+@DataClassName('NormalisationSkipRow')
+class NormalisationSkips extends Table {
+  TextColumn get tableNameValue => text().named('table_name')();
+  TextColumn get columnNameValue => text().named('column_name')();
+  TextColumn get recordId => text()();
+  TextColumn get targetValue => text()();
+
+  @override
+  Set<Column> get primaryKey => {tableNameValue, columnNameValue, recordId};
+}
+
 // A `snapshots` table lived here until schema v21. It recorded the
 // last-imported snapshot per external source so the app could offer "update
 // available" prompts for a hosted CallersBox archive — a feature that was

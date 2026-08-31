@@ -90,7 +90,8 @@ need all of this for the eventual public release. Fill these in ASC → your app
   Linked to You → User Content → Other User Content → Used for App
   Functionality** — answers in
   [`listing-copy.md`](listing-copy.md#app-privacy-apple). This disclosure
-  anticipates the planned opt-in Device Sync; the current release has no sync.
+  is for the pre-Sync build. Update the answer before any beta where the
+  opt-in Device Sync can transfer selected content.
 - [x] **[Gate]** **Age rating** questionnaire completed → expected **4+**. Answers
   in [`listing-copy.md`](listing-copy.md#age--content-rating).
 - [x] **[Confirm]** **Sign-in not required** to review the app (there is no login).

@@ -23,6 +23,7 @@ import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
+import '../theme/app_theme_extension.dart';
 import '../utils/confirm_delete.dart';
 import '../utils/launch_external_url.dart';
 import '../utils/undo_snack_bar.dart';
@@ -65,6 +66,8 @@ class DanceDetailScreen extends StatefulWidget {
     this.onDeleted,
     this.onNavigateTo,
     this.onReimport,
+    this.readOnly = false,
+    this.onPreviewNavigate,
   }) : previewData = null,
        onImport = null;
 
@@ -82,7 +85,24 @@ class DanceDetailScreen extends StatefulWidget {
        onRestored = null,
        onDeleted = null,
        onNavigateTo = null,
-       onReimport = null;
+       onReimport = null,
+       readOnly = false,
+       onPreviewNavigate = null;
+
+  /// Read-only presentation for an online result. Unlike [preview], this
+  /// intentionally exposes neither an import nor any collection mutation.
+  const DanceDetailScreen.readOnlyPreview({
+    super.key,
+    required DanceDetailData data,
+    this.onPreviewNavigate,
+  }) : danceId = null,
+       previewData = data,
+       onImport = null,
+       onRestored = null,
+       onDeleted = null,
+       onNavigateTo = null,
+       onReimport = null,
+       readOnly = true;
 
   /// Id of the persisted dance to load, or `null` in preview mode (see
   /// [DanceDetailScreen.preview]).
@@ -96,6 +116,12 @@ class DanceDetailScreen extends StatefulWidget {
   /// preview mode; the caller performs the direct import (and its snackbar /
   /// collection refresh).
   final Future<void> Function()? onImport;
+
+  /// Hides every mutation affordance while retaining the detail body.
+  final bool readOnly;
+
+  /// Replaces this read-only preview with a linked saved dance preview.
+  final void Function(String danceId)? onPreviewNavigate;
 
   /// Optional callback invoked after a soft-delete is undone (restored).
   /// The Collection screen passes `() => _boot()` here so the list reloads.
@@ -158,6 +184,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Caller's Box result) rather than a saved one. Guards all collection-only
   /// behavior (loading, reload-on-setting-change, app-bar actions, delete/etc).
   bool get _isPreview => widget.previewData != null;
+
+  bool get _isReadOnly => widget.readOnly;
 
   /// The last-seen value of the "require mark-performed for calling history"
   /// setting (ROADMAP G.2). Tracked so [didChangeDependencies] can reload the
@@ -394,6 +422,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// The `bool` result is still consumed by the routes that pop into a list;
   /// this screen simply no longer needs it, so it is not awaited for its value.
   Future<void> _openDance(String danceId) async {
+    final onPreviewNavigate = widget.onPreviewNavigate;
+    if (onPreviewNavigate != null) {
+      onPreviewNavigate(danceId);
+      return;
+    }
     await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) =>
@@ -835,7 +868,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
               actions: [
-                if (!_isPreview && detail != null)
+                if (!_isPreview && !_isReadOnly && detail != null)
                   compact
                       ? _compactActions(context, detail)
                       : _fullActions(context, detail),
@@ -854,7 +887,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             // extended FAB (`docs/design/ux.md` §2/§3) rather than an AppBar action,
             // so opening the editor is consistent across the dance and program views.
             // In preview mode the same slot becomes an Import button.
-            floatingActionButton: detail == null
+            floatingActionButton: detail == null || _isReadOnly
                 ? null
                 : _isPreview
                 ? FloatingActionButton.extended(
@@ -983,7 +1016,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
               // wired for a saved dance (not an online preview) and only when
               // the app-level coordinator scope is present; otherwise the chips
               // stay non-interactive, preserving prior behaviour.
-              final filter = _isPreview
+              final filter = _isPreview || _isReadOnly
                   ? null
                   : CollectionFilterScope.maybeOf(context);
               return Wrap(
@@ -1115,7 +1148,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         // is NOT read from [detail]: it subscribes to the database directly
         // (issue #768), so a program-side write reaches it without this screen
         // reloading. See [CallingHistorySection] for the pattern.
-        if (!_isPreview)
+        if (!_isPreview && !_isReadOnly)
           CallingHistorySection(
             repositories: _repos,
             danceId: widget.danceId!,
@@ -1180,6 +1213,7 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final neutralStatusColor = AppThemeExtension.of(context).statusDeprecated;
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
@@ -1190,6 +1224,8 @@ class _StatusBanner extends StatelessWidget {
         Icons.check_circle_outline,
         theme.colorScheme.primary,
       ),
+      DanceStatus.draft => (Icons.edit_note_outlined, neutralStatusColor),
+      DanceStatus.variation => (Icons.alt_route, neutralStatusColor),
     };
     return Container(
       padding: const EdgeInsets.all(AppSpacing.xs),

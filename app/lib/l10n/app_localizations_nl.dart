@@ -1356,6 +1356,12 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonDanceStatusBroken => 'Defect';
 
   @override
+  String get commonDanceStatusDraft => 'Concept';
+
+  @override
+  String get commonDanceStatusVariation => 'Variatie';
+
+  @override
   String get commonDanceLevelBeginner => 'Beginner';
 
   @override
@@ -2437,6 +2443,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get commonClose => 'Sluiten';
+
+  @override
+  String get viewDetails => 'Details bekijken';
 
   @override
   String get programsNoDateSet => 'Geen datum ingesteld';
@@ -3949,12 +3958,43 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String importReviewAmbiguousGroup(String title) {
+    return '„$title” — kies er één of sla alles over';
+  }
+
+  @override
+  String importReviewMetadataAuthor(String author) {
+    return 'Door $author';
+  }
+
+  @override
+  String importReviewMetadataFormation(String formation) {
+    return '$formation';
+  }
+
+  @override
+  String importReviewMetadataSource(String source) {
+    return 'Van $source';
+  }
+
+  @override
   String importReviewTitleListToImport(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: '$count te importeren',
       one: '1 te importeren',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListAmbiguous(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count vereisen een keuze',
+      one: '1 vereist een keuze',
     );
     return '$_temp0';
   }

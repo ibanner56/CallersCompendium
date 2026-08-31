@@ -26,6 +26,7 @@ import '../../taxonomy/param_types.dart';
 import '../../taxonomy/taxonomy.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 import '../tables.dart';
 import '../utc_datetime.dart';
 import 'custom_field_repository.dart';
@@ -265,16 +266,28 @@ class DanceRepository {
         .insertOnConflictUpdate(
           DancesCompanion.insert(
             id: normalisedDance.id,
-            title: normalisedDance.title,
+            title: normalizeShareableText(normalisedDance.title),
             form: normalisedDance.form,
             formationShape: normalisedDance.formation.shape,
-            formationDetail: Value(normalisedDance.formation.detail),
+            formationDetail: Value(
+              normalisedDance.formation.detail == null
+                  ? null
+                  : normalizeShareableText(normalisedDance.formation.detail!),
+            ),
             progression: normalisedDance.progression,
             phraseStructure: Value(normalisedDance.phraseStructure.raw),
-            figuresJson: Value(encodeFigures(normalisedDance.figures)),
-            hook: Value(normalisedDance.hook),
-            callingNotes: Value(normalisedDance.callingNotes),
-            walkthrough: Value(normalisedDance.walkthrough),
+            figuresJson: Value(
+              normalizeShareableJsonText(
+                encodeFigures(normalisedDance.figures),
+              ),
+            ),
+            hook: Value(normalizeShareableText(normalisedDance.hook)),
+            callingNotes: Value(
+              normalizeShareableText(normalisedDance.callingNotes),
+            ),
+            walkthrough: Value(
+              normalizeShareableText(normalisedDance.walkthrough),
+            ),
             status: normalisedDance.status,
             level: Value(dance.level),
             mixedLevel: Value(dance.mixedLevel),
@@ -282,7 +295,9 @@ class DanceRepository {
             rating: Value(dance.rating),
             composedOn: Value(dance.composedOn?.serialize()),
             revisedOn: Value(dance.revisedOn?.serialize()),
-            tunesJson: Value(jsonEncode(dance.tunes)),
+            tunesJson: Value(
+              normalizeShareableJsonText(jsonEncode(dance.tunes)),
+            ),
             createdAt: dance.createdAt,
             updatedAt: dance.updatedAt,
             deletedAt: Value(dance.deletedAt),
@@ -330,9 +345,13 @@ class DanceRepository {
               id: link.id,
               danceId: dance.id,
               kind: link.kind,
-              url: Value(link.url),
+              url: Value(
+                link.url == null ? null : normalizeShareableText(link.url!),
+              ),
               targetDanceId: Value(link.targetDanceId),
-              label: Value(link.label),
+              label: Value(
+                link.label == null ? null : normalizeShareableText(link.label!),
+              ),
             ),
           );
     }
@@ -348,8 +367,16 @@ class DanceRepository {
             DanceSourcesCompanion.insert(
               danceId: dance.id,
               sourceId: citation.sourceId,
-              page: Value(citation.page),
-              number: Value(citation.number),
+              page: Value(
+                citation.page == null
+                    ? null
+                    : normalizeShareableText(citation.page!),
+              ),
+              number: Value(
+                citation.number == null
+                    ? null
+                    : normalizeShareableText(citation.number!),
+              ),
               position: i,
             ),
           );
@@ -375,14 +402,16 @@ class DanceRepository {
           '"${value.fieldId}" whose stored definition is corrupt',
         );
       }
-      final (text, num) = encodeCustomFieldValue(value, fieldDef);
+      final (rawText, num) = encodeCustomFieldValue(value, fieldDef);
       await _db
           .into(_db.customFieldValues)
           .insert(
             CustomFieldValuesCompanion.insert(
               danceId: dance.id,
               fieldId: value.fieldId,
-              valueText: Value(text),
+              valueText: Value(
+                rawText == null ? null : normalizeShareableText(rawText),
+              ),
               valueNum: Value(num),
             ),
           );
@@ -399,11 +428,27 @@ class DanceRepository {
             ProvenanceCompanion.insert(
               danceId: dance.id,
               source: prov.source,
-              externalId: Value(prov.externalId),
+              externalId: Value(
+                prov.externalId == null
+                    ? null
+                    : normalizeShareableText(prov.externalId!),
+              ),
               importedAt: prov.importedAt,
-              permission: Value(prov.permission),
-              license: Value(prov.license),
-              sourceVersion: Value(prov.sourceVersion),
+              permission: Value(
+                prov.permission == null
+                    ? null
+                    : normalizeShareableText(prov.permission!),
+              ),
+              license: Value(
+                prov.license == null
+                    ? null
+                    : normalizeShareableText(prov.license!),
+              ),
+              sourceVersion: Value(
+                prov.sourceVersion == null
+                    ? null
+                    : normalizeShareableText(prov.sourceVersion!),
+              ),
             ),
           );
     }
@@ -970,6 +1015,7 @@ class DanceRepository {
     if (toPurge.isEmpty) return;
     for (final d in toPurge) {
       await _db.customUpdate(
+        // sync-invariant-exclusion: maintenance-cleanup is idempotent; not a sync record edit.
         'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
         'WHERE dance_id = ? AND text IS NULL',
         variables: [Variable<String>(d.title), Variable<String>(d.id)],

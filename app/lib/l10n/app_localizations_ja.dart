@@ -1301,6 +1301,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonDanceStatusBroken => '破損';
 
   @override
+  String get commonDanceStatusDraft => '下書き';
+
+  @override
+  String get commonDanceStatusVariation => 'バリエーション';
+
+  @override
   String get commonDanceLevelBeginner => 'ビギナー';
 
   @override
@@ -2344,6 +2350,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get commonClose => '閉じる';
+
+  @override
+  String get viewDetails => '詳細を表示';
 
   @override
   String get programsNoDateSet => '日付未設定';
@@ -3795,11 +3804,42 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String importReviewAmbiguousGroup(String title) {
+    return '「$title」 — 1つ選ぶか、スキップしてください';
+  }
+
+  @override
+  String importReviewMetadataAuthor(String author) {
+    return '作者: $author';
+  }
+
+  @override
+  String importReviewMetadataFormation(String formation) {
+    return '$formation';
+  }
+
+  @override
+  String importReviewMetadataSource(String source) {
+    return '$source から';
+  }
+
+  @override
   String importReviewTitleListToImport(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
       locale: localeName,
       other: 'インポート可能$count件',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String importReviewTitleListAmbiguous(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count件は選択が必要',
+      one: '1件は選択が必要',
     );
     return '$_temp0';
   }

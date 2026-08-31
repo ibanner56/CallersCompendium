@@ -15,22 +15,21 @@
 
 ## Privacy Policy for Caller's Compendium
 
-**Effective date:** August 26, 2026
+**Effective date:** August 28, 2026
 
 Caller's Compendium ("the app") is a free, open-source, local-first application
 for dance callers, developed by Isaac Banner ("we," "us"). This policy explains
-what data the app does and does not handle. The short version: **the current
-release has no accounts or tracking and keeps your content on your device.** We
-have submitted an App Store privacy disclosure for a planned, optional Device
-Sync; this policy explains its status below.
+what data the app does and does not handle. The short version: **the app has no
+accounts or tracking and keeps your collection on your device.** Optional Device
+Sync can also store selected shareable content on a configured sync service for
+app functionality; it is not linked to your identity.
 
 ### 1. Data we collect
 
-**The current release does not collect your content.** Device Sync is planned but
-is not available in the current release. The App Store disclosure anticipates
-that feature: if it is released and you choose to enable it, the app will
-transfer selected **Other User Content** to a configured sync service for app
-functionality. That content will not be linked to your identity.
+Device Sync is optional. When you enable it, the app transfers selected
+shareable content — including choreography, programs, tags, and shareable
+settings — to a configured sync service for app functionality. This is
+**Other User Content** and is not linked to your identity.
 
 We do not collect account or identity information, sell information, or use
 content for advertising or tracking. The app has:
@@ -44,12 +43,18 @@ content for advertising or tracking. The app has:
 
 Everything you create in the app — your dance collection, programs, custom fields,
 dialects, themes, and settings — is stored **locally on your device**. It is under
-your control. The current release has no cloud sync.
+your control. If you enable Device Sync, selected shareable content is also
+stored by the sync service you configure so it can be synchronized.
 
-If Device Sync becomes available and you choose to enable it, selected content
-will also be stored by the sync service you configure so it can be synchronized.
-We will update this policy with the feature's implemented data handling before it
-ships.
+The service operator can read the plaintext synchronized store if they choose to.
+A break-glass access path exists for abuse investigations, and every use is
+logged. The derived sync ID in that log remains linkable for 30 days of
+inactivity; after that it becomes a timestamp-only aggregate row.
+
+Device Sync does not transfer structured venue street address, city, region,
+country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
+venue notes** are shareable, however, and can contain names or phone numbers;
+avoid putting private contact information there.
 
 You can export a complete backup to a single file (a plain, human-readable JSON
 file carrying a built-in SHA-256 integrity checksum that catches accidental
@@ -59,8 +64,8 @@ are created and kept by you; we never receive them.
 
 ### 3. Network connections the app makes
 
-The current release works fully offline. When it contacts the internet, it does
-so only in the cases and for the purposes described below:
+The app works fully offline when Device Sync is disabled. When it contacts the
+internet, it does so only in the cases and for the purposes described below:
 
 - **Published collections you choose to browse or import.** The app fetches the
   catalog and archives of developer-published dance collections so you can review
@@ -76,9 +81,8 @@ so only in the cases and for the purposes described below:
   **off by default** and only runs if you turn it on in Settings. It downloads
   version information only; it does not send us any information about you or your
   data.
-- **Device Sync (planned).** The current release does not provide Device Sync. If
-  it is released, it will contact the configured sync service only after you opt
-  in, to synchronize selected content for app functionality.
+- **Optional Device Sync.** When you enable it, the app contacts the configured
+  sync service to synchronize selected shareable content for app functionality.
 
 As with any internet request, a service the app contacts can see your device's IP
 address and standard request information, as is technically necessary to deliver
@@ -105,14 +109,17 @@ knowingly collect personal information from children.
 
 ### 7. Your control over your data
 
-Because all your data is local, you are always in control:
+Your local data remains under your control:
 
 - Delete individual items in the app, or uninstall the app to remove its local
   data from your device.
 - Export a backup at any time to keep or move your data yourself.
+- Disable Device Sync when you no longer want the app to synchronize selected
+  content.
 
-We hold no copy of your data, so there is nothing for you to request from us and
-nothing for us to delete on our end.
+When Device Sync is enabled, the configured sync service holds the selected
+content. The access log's linkable derived sync ID expires after 30 days of
+inactivity; it retains a timestamp-only aggregate row after that.
 
 ### 8. Open source
 

@@ -224,13 +224,32 @@ const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
 const String compactDosidoSeesawCanonicalRebuildDoneKey =
     '__compact_dosido_seesaw_canonical_rebuild_done__';
 
+/// Settings marker containing the exact natural-key normalization scope that
+/// has been backfilled successfully.
+const String shareableTextNormalisationScopeKey =
+    '__shareable_text_normalisation_scope__';
+
+/// Records a unique natural-key value that could not yet be normalized because
+/// another row occupies the normalized value.
+Future<void> recordNormalisationSkip(
+  CompendiumDatabase db, {
+  required String table,
+  required String column,
+  required String recordId,
+  required String targetValue,
+}) => db.customStatement(
+  'INSERT OR REPLACE INTO normalisation_skips '
+  '(table_name, column_name, record_id, target_value) VALUES (?, ?, ?, ?)',
+  [table, column, recordId, targetValue],
+);
+
 /// The current on-disk schema version of [CompendiumDatabase].
 ///
 /// Exposed as a top-level constant (in addition to the [CompendiumDatabase.
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 28;
+const int kCompendiumSchemaVersion = 29;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -313,6 +332,7 @@ const int kMinSupportedSchemaVersion = 20;
     Venues,
     VenueProvenance,
     CollectionImportEvents,
+    NormalisationSkips,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -651,6 +671,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'venues',
         ]) {
           await customStatement(
+            // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
             'UPDATE $table SET updated_at = ?, '
             'existence_at = COALESCE(deleted_at, ?)',
             [t0, t0],
@@ -688,6 +709,9 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
           [derivedRebuildRequiredKey, 'true'],
         );
+      }
+      if (from < 29) {
+        await m.createTable(normalisationSkips);
       }
     },
     beforeOpen: (details) async {

@@ -59,6 +59,14 @@ Color programStatusColor(ProgramStatus status, ThemeData theme) {
     icon: Icons.report_problem_outlined,
     label: danceStatusLabel(l10n, DanceStatus.broken),
   ),
+  DanceStatus.draft => (
+    icon: Icons.edit_note_outlined,
+    label: danceStatusLabel(l10n, DanceStatus.draft),
+  ),
+  DanceStatus.variation => (
+    icon: Icons.alt_route,
+    label: danceStatusLabel(l10n, DanceStatus.variation),
+  ),
 };
 
 /// The §2 semantic color for a [DanceStatus], read from [AppThemeExtension]
@@ -73,6 +81,8 @@ Color danceStatusColor(DanceStatus status, ThemeData theme) {
     DanceStatus.active => fallback,
     DanceStatus.deprecated => ext?.statusDeprecated ?? fallback,
     DanceStatus.broken => ext?.statusBroken ?? fallback,
+    DanceStatus.draft => ext?.statusDeprecated ?? fallback,
+    DanceStatus.variation => ext?.statusDeprecated ?? fallback,
   };
 }
 

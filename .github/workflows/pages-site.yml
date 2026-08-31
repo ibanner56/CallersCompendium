@@ -64,6 +64,7 @@ jobs:
           python3 tools/release/test_publish_pages_site.py
           python3 tools/site/test_markdown_to_html.py
           python3 tools/site/test_render_user_docs.py
+          python3 tools/site/test_privacy_policy.py
 
       # Stage the complete site (site/ + guides rendered from docs/user/).
       # Fails on a broken on-site link, so a bad cross-reference never ships.

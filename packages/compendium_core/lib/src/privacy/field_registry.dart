@@ -27,6 +27,7 @@ const _key = DataClassification(
   term: DpvTerm.nonPersonal,
   subject: DataSubject.none,
   egress: EgressClass.shareable,
+  isIdentity: true,
   note:
       'Opaque identifier; meaningless alone, required for relational integrity '
       'across a transfer.',
@@ -75,6 +76,16 @@ const _existenceStamp = DataClassification(
       'Existence-transition stamp. A bare timestamp with no data subject; must '
       'travel or a receiver cannot decide which of two disagreeing copies is '
       'the later existence decision, and deletions resurrect. Added in #898.',
+);
+
+/// Local repair bookkeeping. It identifies rows whose shareable natural key
+/// could not yet be rewritten; it is not user content and has no meaning on
+/// another device.
+const _normalisationRepairState = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.deviceScoped,
+  note: 'Local collision-repair bookkeeping; never exported or synchronized.',
 );
 
 /// A soft-delete tombstone (`deleted_at`) on a kind that gained one in schema
@@ -514,6 +525,10 @@ final Map<String, DataClassification> fieldClassifications = {
   'settings.updated_at': _recordStamp,
   'settings.deleted_at': _tombstone,
   'settings.existence_at': _existenceStamp,
+  'normalisation_skips.table_name': _normalisationRepairState,
+  'normalisation_skips.column_name': _normalisationRepairState,
+  'normalisation_skips.record_id': _normalisationRepairState,
+  'normalisation_skips.target_value': _normalisationRepairState,
 };
 
 const _contactStreet = DataClassification(

@@ -1528,6 +1528,14 @@
   "@commonDanceStatusBroken": {
     "x-sourceSha256": "cab6a859fda3243ec15a665bdaa8c94bc9e0e6cc0e662c318813d3dc86cf9b0b"
   },
+  "commonDanceStatusDraft": "Concept",
+  "@commonDanceStatusDraft": {
+    "x-sourceSha256": "ebf12ef47cf575b3ba9a3cc019c5310146fdac88f6d1be6618d6e91158c2f174"
+  },
+  "commonDanceStatusVariation": "Variatie",
+  "@commonDanceStatusVariation": {
+    "x-sourceSha256": "8dc605f468e5eca3e2f7ac6ad049c18c2eccd08e22acddfcb86933fa8456276c"
+  },
   "commonDanceLevelBeginner": "Beginner",
   "@commonDanceLevelBeginner": {
     "x-sourceSha256": "c865ebb3052c863b4aea0f38f327e5522d9da1516fb3ac5d9d6b77e50cc74dc8"
@@ -2623,6 +2631,10 @@
   "commonClose": "Sluiten",
   "@commonClose": {
     "x-sourceSha256": "7d9eb7acb13e24625c404401d8e88b2350e32162455885f18276cf802f7701ed"
+  },
+  "viewDetails": "Details bekijken",
+  "@viewDetails": {
+    "x-sourceSha256": "d1bf045bb524dae5b02c471c230958bcd1bf232d7a49367b1cdf977855a06b41"
   },
   "programsNoDateSet": "Geen datum ingesteld",
   "@programsNoDateSet": {
@@ -4028,9 +4040,29 @@
   "@importReviewProgramAmbiguousLine": {
     "x-sourceSha256": "64f34196c48ede648b27e75c39bed0c16801a40f9a1027866ea97720f66a2952"
   },
+  "importReviewAmbiguousGroup": "„{title}” — kies er één of sla alles over",
+  "@importReviewAmbiguousGroup": {
+    "x-sourceSha256": "bc31d7d6dd0c16b79cc7003485e095b8ddec6cabfa6cea2720b9b670459ab113"
+  },
+  "importReviewMetadataAuthor": "Door {author}",
+  "@importReviewMetadataAuthor": {
+    "x-sourceSha256": "c63374c54075c2ecffba6bcf2f66b9b829822e5ef9dd82d4fa9033583317fece"
+  },
+  "importReviewMetadataFormation": "{formation}",
+  "@importReviewMetadataFormation": {
+    "x-sourceSha256": "2cf85de09de252ffc700591fcb6a1a61a84a7ff392d4d99f59cf599647bee48f"
+  },
+  "importReviewMetadataSource": "Van {source}",
+  "@importReviewMetadataSource": {
+    "x-sourceSha256": "f8cd93f784e1604a9602292564fd69fc104ba62b0a0c595a327d6ecaa7e570e0"
+  },
   "importReviewTitleListToImport": "{count, plural, =1{1 te importeren} other{{count} te importeren}}",
   "@importReviewTitleListToImport": {
     "x-sourceSha256": "ed5d8c84d3679287fd91967f4079a251a82ce8eb09368aedb5721b0bba80d1c4"
+  },
+  "importReviewTitleListAmbiguous": "{count, plural, =1{1 vereist een keuze} other{{count} vereisen een keuze}}",
+  "@importReviewTitleListAmbiguous": {
+    "x-sourceSha256": "8230a822286c32eb258d0ddcd3096a7404f6800f78a3ed9db0f147ffdc7949d4"
   },
   "importReviewTitleListOwned": "{count, plural, =1{1 al in je collectie} other{{count} al in je collectie}}",
   "@importReviewTitleListOwned": {

@@ -49,7 +49,10 @@ baseline is AA:
 - Drag-and-drop (program reordering) must have a non-drag alternative
   (WCAG 2.5.7): move up/down buttons or cut/paste reordering.
 - Touch targets ≥ 24×24 px minimum, 44×44 pt preferred on touch surfaces.
-- No time-based interactions anywhere.
+- No time-based interactions as the only route to an action. A sustained primary
+  press may be an optional shortcut only when a visible, keyboard-operable,
+  non-timed equivalent provides the same capability; Program **View details**
+  previews are the explicit exception.
 
 ### Understandable
 - Consistent navigation and terminology across screens; user's dialect applied

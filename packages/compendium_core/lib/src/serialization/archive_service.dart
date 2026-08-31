@@ -3,6 +3,7 @@ import '../model/dance.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/venue_repository.dart';
+import '../storage/database.dart';
 import 'compendium_archive.dart';
 
 /// Reads the entire core-persisted collection into a [CompendiumArchive] for
@@ -361,6 +362,10 @@ class ArchiveRestorer {
     await db.delete(db.choreographers).go();
     await db.delete(db.publishedSources).go();
     await db.delete(db.venues).go();
+    await db.customStatement('DELETE FROM normalisation_skips');
+    await db.customStatement('DELETE FROM settings WHERE key = ?', [
+      shareableTextNormalisationScopeKey,
+    ]);
   }
 
   Future<void> _guard(

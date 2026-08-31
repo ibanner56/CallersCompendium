@@ -26,6 +26,28 @@ void main() {
     });
   });
 
+  test('normalizes recursively for shareable settings', () async {
+    await repo.set('custom_dialects', {
+      'cafe\u0301': 'line\u200B\nnext',
+      'nested': ['cafe\u0301'],
+    });
+    expect(await repo.get('custom_dialects'), {
+      'café': 'line\nnext',
+      'nested': ['café'],
+    });
+  });
+
+  test('rejects colliding normalized object keys without writing', () async {
+    expect(
+      () => repo.set('custom_dialects', {
+        'café': 'first',
+        'cafe\u0301': 'second',
+      }),
+      throwsA(isA<ShareableJsonKeyCollision>()),
+    );
+    expect(await repo.get('custom_dialects'), isNull);
+  });
+
   test('returns null for an unset key', () async {
     expect(await repo.get('nope'), isNull);
     expect(await repo.contains('nope'), isFalse);

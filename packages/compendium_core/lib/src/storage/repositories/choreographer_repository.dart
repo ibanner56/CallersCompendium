@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../../model/choreographer.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 
 /// CRUD for [Choreographer] rows. "Traditional"/"Unknown" are real rows the
 /// app seeds on first launch, not magic sentinel values — this repository
@@ -24,32 +25,57 @@ class ChoreographerRepository {
   Future<String> upsert(Choreographer c, {DateTime? at}) {
     final now = resolveStamp(at);
     return _db.transaction(() async {
-      final id =
-          await adoptTombstonedNaturalKey(
-            _db,
-            table: _db.choreographers,
-            keyColumn: 'id',
-            naturalKeyColumn: 'name',
-            naturalKey: c.name,
-            incomingId: c.id,
-            joinTable: _db.danceAuthors,
-            joinColumn: 'choreographer_id',
-          ) ??
-          c.id;
+      final name = normalizeShareableText(c.name);
+      final incumbent = await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.name.equals(name))).getSingleOrNull();
+      final current = await (_db.select(
+        _db.choreographers,
+      )..where((t) => t.id.equals(c.id))).getSingleOrNull();
+      final collidingEdit =
+          current != null && incumbent != null && incumbent.id != c.id;
+      final id = collidingEdit
+          ? c.id
+          : await adoptTombstonedNaturalKey(
+                  _db,
+                  table: _db.choreographers,
+                  keyColumn: 'id',
+                  naturalKeyColumn: 'name',
+                  naturalKey: name,
+                  incomingId: c.id,
+                  joinTable: _db.danceAuthors,
+                  joinColumn: 'choreographer_id',
+                ) ??
+                c.id;
       await _db
           .into(_db.choreographers)
           .insertOnConflictUpdate(
             ChoreographersCompanion.insert(
               id: id,
-              name: c.name,
-              website: Value(c.website),
-              notes: Value(c.notes),
+              name: collidingEdit
+                  ? current.name
+                  : normalizeShareableText(c.name),
+              website: Value(
+                c.website == null ? null : normalizeShareableText(c.website!),
+              ),
+              notes: Value(
+                c.notes == null ? null : normalizeShareableText(c.notes!),
+              ),
               email: Value(c.email),
               location: Value(c.location),
               deceased: Value(c.deceased),
               updatedAt: Value(now),
             ),
           );
+      if (collidingEdit) {
+        await recordNormalisationSkip(
+          _db,
+          table: 'choreographers',
+          column: 'name',
+          recordId: c.id,
+          targetValue: name,
+        );
+      }
       await applyUpsertExistence(
         _db,
         table: _db.choreographers,

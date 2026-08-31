@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 import '../../model/published_source.dart';
 import '../database.dart';
 import '../existence.dart';
+import '../shareable_text.dart';
 
 /// CRUD for [PublishedSource] rows — the reusable bibliographic entity many
 /// dances cite. Mirrors `ChoreographerRepository`: editing a source's metadata
@@ -25,11 +26,15 @@ class PublishedSourceRepository {
           .insertOnConflictUpdate(
             PublishedSourcesCompanion.insert(
               id: s.id,
-              title: s.title,
-              author: Value(s.author),
+              title: normalizeShareableText(s.title),
+              author: Value(
+                s.author == null ? null : normalizeShareableText(s.author!),
+              ),
               year: Value(s.year),
-              url: Value(s.url),
-              notes: Value(s.notes),
+              url: Value(s.url == null ? null : normalizeShareableText(s.url!)),
+              notes: Value(
+                s.notes == null ? null : normalizeShareableText(s.notes!),
+              ),
               updatedAt: Value(now),
             ),
           );
