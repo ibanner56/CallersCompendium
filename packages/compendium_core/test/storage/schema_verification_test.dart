@@ -69,6 +69,12 @@ String _normalizeDdl(String sql) {
   var out = sql.replaceAll(RegExp(r'["`\[\]]'), '');
   out = out.replaceAll(RegExp(r'\s+'), ' ').trim();
   out = out.replaceAll(RegExp(r'\s*([(),])\s*'), r'$1');
+  // Historical schema helpers render this FTS5 tokenizer with double quotes,
+  // while database.dart uses single quotes; SQLite resolves both identically.
+  out = out.replaceAll(
+    RegExp(r'''tokenize\s*=\s*['"]?trigram['"]?'''),
+    'tokenize=trigram',
+  );
   return out;
 }
 

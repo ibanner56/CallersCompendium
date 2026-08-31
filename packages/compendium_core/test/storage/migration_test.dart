@@ -25,9 +25,11 @@ import 'package:compendium_core/src/storage/database.dart'
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
+import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'package:test/test.dart';
 
 import '../test_package_root.dart';
+import 'generated/schema.dart';
 
 void main() {
   group('re-homed migration-agnostic tests (from the retired v11 group)', () {
@@ -1413,6 +1415,53 @@ void main() {
           )
           .get();
       expect(marker, isEmpty);
+    });
+  });
+
+  group('v29 -> v30 upgrade (normalisation skip minimization)', () {
+    test('drops target snapshots while preserving skip identities', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        29,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.customStatement(
+        'INSERT INTO normalisation_skips '
+        '(table_name, column_name, record_id, target_value) VALUES (?, ?, ?, ?)',
+        ['tags', 'name', 't1', 'café'],
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      final columns = await db
+          .customSelect(
+            "SELECT name FROM pragma_table_info('normalisation_skips')",
+          )
+          .get();
+      expect(
+        [for (final row in columns) row.read<String>('name')],
+        ['table_name', 'column_name', 'record_id'],
+      );
+      final rows = await db
+          .customSelect(
+            'SELECT table_name, column_name, record_id FROM '
+            'normalisation_skips',
+          )
+          .get();
+      expect(rows.single.data, {
+        'table_name': 'tags',
+        'column_name': 'name',
+        'record_id': 't1',
+      });
     });
   });
 }

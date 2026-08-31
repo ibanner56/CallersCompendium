@@ -531,7 +531,6 @@ final Map<String, DataClassification> fieldClassifications = {
   'normalisation_skips.table_name': _normalisationRepairState,
   'normalisation_skips.column_name': _normalisationRepairState,
   'normalisation_skips.record_id': _normalisationRepairState,
-  'normalisation_skips.target_value': _normalisationRepairState,
 };
 
 const _contactStreet = DataClassification(
