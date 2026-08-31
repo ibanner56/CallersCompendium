@@ -3,7 +3,7 @@ description: >-
   Pure-Dart domain core for Caller's Compendium: domain model, figure
   taxonomy, dialect engine, and import parsers. No Flutter dependencies
   (see ADR-001).
-version: 0.1.3
+version: 0.2.0
 publish_to: none
 repository: https://github.com/ibanner56/CallersCompendium
 resolution: workspace

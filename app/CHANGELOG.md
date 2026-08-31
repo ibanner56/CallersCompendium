@@ -35,6 +35,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-31
+
 ### Added
 
 - **Program dance previews** — inspect saved or online dance details from the
@@ -78,6 +80,12 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - **Windows shutdown** — closing the app now completes Flutter's native window
   teardown before the runner releases COM resources, preventing a crash on exit.
+
+### Data / Migrations
+
+- **Schema 28 → 29** — add the `normalisation_skips` table so collisions found
+  during shareable-text normalization are recorded safely for later retry
+  without losing existing data.
 
 ## [0.1.3] - 2026-08-26
 
