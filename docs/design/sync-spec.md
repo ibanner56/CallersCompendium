@@ -3154,7 +3154,7 @@ the ruling above leaves in place is the size of the space the guessing runs
 against, and for the subset of users who chose their own ID and dismissed the
 warning that space is small enough for a distributed guesser to cover. Their
 exposure is worse than a generated ID's by the full ratio of the two spaces —
-about twelve orders of magnitude at the reference — which is why this section
+about 4,096-fold (3.6 orders of magnitude) at the reference — which is why this section
 states their odds in expected findings per year rather than as a factor. The
 position is unchanged for every generated ID, which is the default and the
 overwhelming majority, and for any user-chosen ID that clears the warning.
