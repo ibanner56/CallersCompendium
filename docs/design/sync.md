@@ -6055,59 +6055,59 @@ reconciliation that will be estimated as one.
 
 ##### The tenth review round: a bound that named a counter nothing reached
 
-> **A rate limit bounds an attack only if the attacker's request is one the "
-"limit counts.** Name the exact outcome a hostile request produces, and check "
-"that outcome is on the counter. §8 rested its enumeration arithmetic on the "
-"server-wide *failed-authentication* limit for twenty-odd rounds. But `401` was
-" "defined, in this same document's status table, as *malformed or missing "
-"credential* — a structural check. A guesser sends a perfectly well-formed "
-"four-word ID. It never produced a `401`, so it was never counted, and the "
-"figure the section published was arithmetic over a counter the attack did not "
-"touch.
+> **A rate limit bounds an attack only if the attacker's request is one the
+> limit counts.** Name the exact outcome a hostile request produces, and check
+> that outcome is on the counter. §8 rested its enumeration arithmetic on the
+> server-wide *failed-authentication* limit for twenty-odd rounds. But `401`
+> was defined, in this same document's status table, as *malformed or missing
+> credential* — a structural check. A guesser sends a perfectly well-formed
+> four-word ID. It never produced a `401`, so it was never counted, and the
+> figure the section published was arithmetic over a counter the attack did
+> not touch.
 
-The review found one half of this. Verifying it found two more, and the " "pair
-is what makes it worth recording. `GET /v1/store` **created the store " "when
-absent**, so a wrong guess returned `200` — distinguishable from a hit " "only
-by an empty device list and zero quota, a shape named in three other " "places
-in the specification. And every store-scoped path answered `404` for an "
-"unknown store, so `GET /v1/manifests/{anything}` probed for free: no store "
-"created, no storage consumed, no counter touched. The section also cited "
-"“the global cap on store creation” as a second bound; that cap was " "specified
-nowhere, and the sentence citing it was its only mention in the " "document.
+The review found one half of this. Verifying it found two more, and the pair
+is what makes it worth recording. `GET /v1/store` **created the store when
+absent**, so a wrong guess returned `200` — distinguishable from a hit only by
+an empty device list and zero quota, a shape named in three other places in
+the specification. And every store-scoped path answered `404` for an unknown
+store, so `GET /v1/manifests/{anything}` probed for free: no store created, no
+storage consumed, no counter touched. The section also cited “the global cap
+on store creation” as a second bound; that cap was specified nowhere, and the
+sentence citing it was its only mention in the document.
 
-**The structural point is that this was not a typo.** The property the "
-"round-8 strength ruling rested on — the server cannot distinguish creating "
-"from joining — is the *same* property that made guessing free. One fact was "
-"load-bearing in two places, cited as a reason in one and never examined as a "
-"risk in the other. A fact used as a justification tends to be read only in the
-" "direction that supports the conclusion it was recruited for.
+**The structural point is that this was not a typo.** The property the round-8
+strength ruling rested on — the server cannot distinguish creating from
+joining — is the *same* property that made guessing free. One fact was
+load-bearing in two places, cited as a reason in one and never examined as a
+risk in the other. A fact used as a justification tends to be read only in the
+direction that supports the conclusion it was recruited for.
 
-The maintainer chose to split creation onto `POST /v1/store` rather than " "add
-an unknown-store budget preserving the old arithmetic, or accept and " "document
-the exposure. I had recommended the budget, on the grounds that it " "changed no
-client behaviour; the split is the better answer because it removes " "the
-oracle instead of pricing it, and because it makes every failure to " "resolve a
-store a *counted* event, which is the property the bound needed all " "along.
+The maintainer chose to split creation onto `POST /v1/store` rather than add
+an unknown-store budget preserving the old arithmetic, or accept and document
+the exposure. I had recommended the budget, on the grounds that it changed no
+client behaviour; the split is the better answer because it removes the oracle
+instead of pricing it, and because it makes every failure to resolve a store a
+*counted* event, which is the property the bound needed all along.
 
-**The split then destroyed a leg of an earlier ruling, and the second-order "
-"lesson is there.** Round 8 declined a server-side strength floor partly "
-"because “the point of choice” was not locatable; `POST /v1/store` is " "exactly
-that point. The maintainer re-affirmed the advisory score anyway, so " "the rule
-is unchanged — but the *reason* recorded beside it had become false, " "and a
-rejected alternative whose stated objection has expired reads to the " "next
-person as a ruling that has lapsed. Both the specification and this " "document
-now say that the objection expired and the ruling was re-affirmed " "regardless.
-**When a change removes a premise, the rulings that cited that " "premise need
-re-derivation even when their conclusions survive intact** — " "a conclusion
-that outlives its argument is the kind nobody re-checks.
+**The split then destroyed a leg of an earlier ruling, and the second-order
+lesson is there.** Round 8 declined a server-side strength floor partly
+because “the point of choice” was not locatable; `POST /v1/store` is exactly
+that point. The maintainer re-affirmed the advisory score anyway, so the rule
+is unchanged — but the *reason* recorded beside it had become false, and a
+rejected alternative whose stated objection has expired reads to the next
+person as a ruling that has lapsed. Both the specification and this document
+now say that the objection expired and the ruling was re-affirmed regardless.
+**When a change removes a premise, the rulings that cited that premise need
+re-derivation even when their conclusions survive intact** — a conclusion that
+outlives its argument is the kind nobody re-checks.
 
-Four of the round's other findings were the previous round's shape " "recurring:
-a status correction that reached §1 and not the checkpoint table " "or the four
-unit cards restating the same fact. That is the seventh time in " "this series.
-The durable form remains **a fix is not landed until it is landed " "in every
-document, and every section of every document, that states the " "claim** — and
-the sections that restate a fact are rarely the ones that cite " "it, so
-grepping the citation finds the wrong set.
+Four of the round's other findings were the previous round's shape recurring:
+a status correction that reached §1 and not the checkpoint table or the four
+unit cards restating the same fact. That is the seventh time in this series.
+The durable form remains **a fix is not landed until it is landed in every
+document, and every section of every document, that states the claim** — and
+the sections that restate a fact are rarely the ones that cite it, so grepping
+the citation finds the wrong set.
 
 ##### A sweep reporting "each judged in context" is an exclusion claim
 
