@@ -3689,10 +3689,11 @@ is the correct action whether the store expired or never existed. Distinguishing
 the two would buy the client nothing and would cost the server exactly the
 persistent record the first objection rules out.
 
-So: the other endpoints return `404` when the store is absent, indistinguishable
-from a missing blob, and the client recovers by calling `GET /v1/store`, which
-creates it and returns a fresh epoch. Reset detection is the epoch's job alone,
-and the epoch needs no server memory to do it.
+So: the other endpoints return `404` when either the store or the requested
+resource is absent, and the client recovers by calling `GET /v1/store` to
+distinguish those cases. If that GET also returns `404`, a steady-state client
+re-creates the store with `POST /v1/store`, which returns a fresh epoch; the
+pairing path reports the missing store instead.
 
 `422` should never occur in normal operation. It fires only when a client bug
 would otherwise put a venue address on our infrastructure, so it is a **loud**
