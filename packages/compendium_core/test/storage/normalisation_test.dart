@@ -133,6 +133,16 @@ void main() {
         {'table_name': 'tags', 'column_name': 'name', 'record_id': 't2'},
       ],
     );
+    final unchanged = await db
+        .customSelect('SELECT id, name FROM tags ORDER BY id')
+        .get();
+    expect(
+      [for (final row in unchanged) row.data],
+      [
+        {'id': 't1', 'name': 'cafe\u0301'},
+        {'id': 't2', 'name': 'café'},
+      ],
+    );
 
     await db.customStatement('UPDATE tags SET name = ? WHERE id = ?', [
       'resume\u0301',
