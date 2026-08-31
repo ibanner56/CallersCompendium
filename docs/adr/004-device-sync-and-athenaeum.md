@@ -44,12 +44,10 @@ soft-delete join rule, I1/I2 over raw and typed writes, and the
 certificate-hatch scan; and **shareable-text normalisation on every write
 path** with schema **v29** ([#1119], closing [#1111]).
 
-The third landed with two defects against this design, recorded in the
-implementation plan under W18 rather than silently absorbed: it composes the
-two transforms in the order §4.6 rules out, and it persists a `target_value`
-column that §3.2 forbids and that is classified as non-personal while holding
-third-party names. Neither is a reason to unship it — the write paths are
-closed, which was the point — but both are corrective work the plan now owns.
+The third landed with two defects against this design. One has since been
+fixed: [#1124](https://github.com/ibanner56/CallersCompendium/pull/1124)
+removed `normalisation_skips.target_value` in schema v30. The reversed
+sanitisation/NFC composition remains corrective work owned by W18.
 
 **Why it went first, ahead of acceptance.** Several kinds had to move from hard
 delete to soft delete, and that change needs a **hydration buffer**: time for
