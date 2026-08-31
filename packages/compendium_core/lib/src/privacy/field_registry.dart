@@ -189,7 +189,10 @@ final Map<String, DataClassification> fieldClassifications = {
     note:
         'Personal data about a third party, shareable deliberately: '
         'authorship credit is the reason the field exists, and it is already '
-        'published wherever the dance is published.',
+        'published wherever the dance is published. Publication is why we may '
+        'carry it, not a reason it stops being personal data — the same '
+        'position library catalogues take on author names. See "Decisions on '
+        'record" in docs/dev/data-classification.md for the citation.',
   ),
   'choreographers.website': const DataClassification(
     term: DpvTerm.websiteUrl,
