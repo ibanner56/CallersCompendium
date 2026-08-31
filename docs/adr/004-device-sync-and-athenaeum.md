@@ -15,7 +15,11 @@
   [docs/design/sync-implementation.md](../design/sync-implementation.md) — the
   work broken into units, their dependency order, and the checkpoints between.
   A schedule, not a contract; it binds nothing a conforming implementation does.
-  Nothing in it may start before this ADR is accepted.
+  Nothing in it may start before this ADR is accepted, **with one recorded
+  exception**: W0, the v25 schema migration, shipped deliberately ahead of
+  acceptance because its soft-delete columns must hydrate across a user's
+  devices before any sync code depends on them. *Implementation status* below
+  records that, and the three repairs that have landed since.
 
 ## Implementation status
 
@@ -208,8 +212,15 @@ newer client with a marginally stricter estimator locks a user out of an ID an
 older client accepted. A strength heuristic has no canonical definition and
 cannot be made to agree with itself across versions, so the only placement that
 never locks a user out is none. A weak self-chosen ID is possible, warned about,
-bounded by the rate limits, and borne by the person who chose it. Maintainer's
-ruling.
+and borne by the person who chose it. It is **not** bounded by the rate limits:
+a saturated failure budget refuses a wrong guess with a `429`, which tells the
+guesser the same thing a `404` would, so the budget throttles the label and not
+the information. Spec §8 rests the enumeration argument on identifier entropy
+instead, and states the override's cost as expected findings per year — about
+1.4 a year against five hundred stores at the warned 2⁴⁰ reference from a
+hundred attacking addresses, against 0.035 at the generated 2⁵² from ten
+thousand. Maintainer's ruling, put a third time on those corrected numbers and
+kept: the floor stays advisory and the cost is disclosed.
 
 This argument originally carried a third leg: that the server could not tell
 creating from joining, because `GET /v1/store` created the store when absent, so
@@ -633,11 +644,18 @@ revisit trigger, not as an open choice.
 a new top-level `server/` package in this repository with a path dependency on
 `compendium_core`.
 
-Sharing the package is the point. The server reads the **same
-`fieldClassifications` registry** as the client and **rejects any upload
-containing a device-local field**, from one source of truth with no second list
-to drift. "We never store venue addresses" stops being an intention the client
-is trusted to honour and becomes something both ends enforce.
+Sharing the package is the point. The server reads the **same classification
+registries** as the client and **rejects any upload containing a device-local
+field**, from one source of truth with no second list to drift. There are two
+registries and the server needs both: `fieldClassifications` covers table
+columns, while settings — one of the synced record kinds — are resolved by
+`classifySettingsKey` against `settingsClassifications` and
+`settingsPrefixClassifications`, because a settings key can be constructed at
+runtime and cannot always be named exactly. A server allow-list generated from
+the column registry alone would have no verdict for any settings record, and the
+natural failure is to pass them all. "We never store venue addresses" stops
+being an intention the client is trusted to honour and becomes something both
+ends enforce.
 
 The check is an **allow-list generated from the registry**, rejecting any key not
 classified `shareable` for that kind. An earlier draft used a deny-list of

@@ -1593,17 +1593,20 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | **Failed store resolutions**, server-wide | 1,000/minute |
 | Store creations (`201` from `POST /v1/store`), server-wide | 60/minute |
 
-The request-rate rows bound load. **The failed-store-resolution rows are the
-ones §8's enumeration bound rests on**, and the server-wide row is the
-load-bearing one: a per-IP limit alone is defeated by distributing the guessing,
-which is exactly what an attacker enumerating sync IDs would do. At 1,000
-failures per minute the whole internet gets ~2²⁹ guesses a year against §8's 2⁴⁰
-reference strength — about one in two thousand odds of finding *any* store,
-shared across all attackers at once — and ~2⁻²³ against the 2⁵² a generated ID
-carries. §8 records why 2⁴⁰ is a warning threshold rather than a guaranteed
-floor, and what that costs the users who choose their own ID. Without a
-server-wide row the arithmetic has no bound to state, because the attacker
-chooses the number of IPs.
+The request-rate rows bound load. The failed-store-resolution rows raise the
+cost of casual probing and make an enumeration attempt visible in the operator's
+metrics, and the server-wide row keeps a distributed prober from consuming the
+service — a per-IP limit alone is defeated by distributing the guessing, which
+is exactly what an attacker enumerating sync IDs would do.
+
+**They are not §8's enumeration bound, and an earlier version of this
+specification said they were.** Because the saturated server must keep serving
+requests that resolve — see the rule below, which is right — a throttled
+response answers the sender's question as well as an untruncated one would: a
+`429` means "would have failed" and a `200` still means "found". Throttling the
+label leaves the information intact, so the budget cannot bound guessing and §8
+now rests that argument on identifier entropy instead. The rows below stay
+because their other jobs are real.
 
 **A failed store resolution is any response that tells the sender whether a
 store exists when they had not already shown they knew.** Exactly four outcomes
@@ -1642,11 +1645,15 @@ failures rather than requests, and is global rather than per-IP. An operator may
 tune the numbers, but §8's bound is only as strong as the server-wide failure
 limit, so lowering that row is a security change and not a capacity one.
 
-A server-wide failure limit would be a denial-of-service vector if it could
-lock out honest users, so it MUST be scoped to requests that *fail*: while it is
+A server-wide failure limit would be a denial-of-service vector if it could lock
+out honest users, so it MUST be scoped to requests that *fail*: while it is
 saturated the server MUST continue to serve correctly-authenticated requests
 normally, and reject only those that would have produced one of the four
-outcomes above anyway. A user holding a valid sync ID for an existing store is
+outcomes above anyway. This is the rule that stops the budget from bounding
+guessing — a refused guess is still an answered guess — and it is kept anyway,
+because the alternative hands every attacker a total outage for the price of
+saturating the budget, and because §8 no longer asks the budget to carry a bound
+it cannot carry. A user holding a valid sync ID for an existing store is
 therefore never affected by another party's guessing: every request they make
 resolves. A user mistyping an ID sees a `429` instead of a `404` — a worse
 message for the same outcome. A user creating their *first* store while the
@@ -2902,8 +2909,9 @@ client versions rather than between client and server. Since a heuristic with no
 canonical definition cannot be made to agree with itself across versions, and
 since the ID *is* the store address, the only placement that cannot lock a user
 out of their own data is none. A weak self-chosen ID is therefore possible; its
-residual risk is bounded by the rate limits in §5.4 and is borne by the person
-who chose it, having been warned.
+residual risk is **not** bounded by the rate limits — see the enumeration
+subsection below, which retired that claim — and is borne by the person who
+chose it, having been warned in those terms.
 
 **One leg of that argument has since been removed, and the ruling was
 re-affirmed without it.** The original also held that the server *cannot*
@@ -2918,13 +2926,17 @@ The maintainer re-affirmed the advisory rule anyway, and the re-derivation is
 mine. It stands on two grounds. The surviving legs are sufficient on their own:
 a cross-version estimator disagreement still locks a user out at the client,
 which is where the harm was located, and no server-side placement repairs that.
-And the control that was *supposed* to carry this risk now actually carries it —
-§5.4's budget was unreachable by an enumerating attacker before the split and
-bounds ~2²⁹ guesses a year after it, so "bounded by the rate limits and borne by
-the person who chose it" is a true statement today and was not when the ruling
-was first made. Blocking at creation would buy a refusal path for a risk that is
-disclosed, bounded and voluntary. The alternatives considered, in both rounds,
-are in [sync.md](sync.md).
+The re-affirmation did rest on one claim that has since failed: that §5.4's
+budget, unreachable by an enumerating attacker before the split, bounded the
+residual risk after it. It does not — a throttled guess is an answered guess —
+so "bounded by the rate limits" was never true, before the split or after. The
+ruling was put a third time on the corrected arithmetic and **kept**: the floor
+stays advisory, §8 rests the enumeration argument on entropy, and the cost of
+overriding the generated identifier is stated in expected-findings-per-year
+rather than as a warning a user can read as cosmetic. Blocking at creation would
+buy a refusal path for a risk that is disclosed, quantified and voluntary, at
+the price of a lockout with no recovery. The alternatives considered, in all
+three rounds, are in [sync.md](sync.md).
 
 **Transport.** TLS required except `localhost`/`127.0.0.1`, matched exactly as
 §5 specifies, with certificate chain and hostname verification mandatory and not
@@ -2979,12 +2991,15 @@ independently of the server.
 
 **Enumeration.** Guessing is bounded by the ID's own strength — guaranteed for a
 generated ID, warned about but not guaranteed for a chosen one — and by the
-**server-wide failed-store-resolution limit** (§5.4). The per-IP limits matter
-but are not what the bound rests on: an attacker enumerating sync IDs
-distributes the attempt, and chooses how many addresses to distribute it across,
-so any per-IP figure multiplies by a number the defender does not control. Only
-a server-wide limit on *failures* yields an arithmetic bound — ~2²⁹ guesses a
-year against a 2⁴⁰ reference, ~2⁻²³ against the 2⁵² a generated ID carries. The
+**identifier entropy**. No rate limit carries it. An attacker enumerating sync
+IDs distributes the attempt and chooses how many addresses to distribute it
+across, so any per-IP figure multiplies by a number the defender does not
+control; and the server-wide failure budget, which an earlier version of this
+section named as the bound, throttles only the *label* on the answer — a `429`
+and a `404` are equally informative to a guesser. What remains is the size of
+the space, which is why the default identifier is generated and why 2⁵² is the
+number that matters. The
+
 **per-ID-hash** limit is not part of this either: a guesser submits a different
 ID on every attempt, so it never sees the same `id_key` twice and that limiter
 never engages. It bounds abuse of a store the attacker already has the ID for,
@@ -3011,51 +3026,75 @@ Both corrections exist so that weakening the wrong control later cannot read as
 safe. A reviewer asking whether this bound holds should check one thing before
 anything else — that the enumerating request still produces a counted outcome.
 
-**2⁴⁰ is now the bottom of the *warned* range, not a guaranteed floor**, and
-the arithmetic must be read accordingly. The rate limit bounds the attacker at
-~2²⁹ guesses a year absolutely; what the ruling above changed is the size of
-the space that figure is measured against, for the subset of users who chose
-their own ID and dismissed the warning. Their odds are worse than one in two
-thousand by exactly the factor their ID falls short. The bound is unchanged for
-every generated ID, which is the default and the overwhelming majority, and
-unchanged for any user-chosen ID that clears the warning.
+**2⁴⁰ is the bottom of the *warned* range, not a guaranteed floor**, and the
+arithmetic must be read accordingly. Nothing bounds the attacker's *rate*: what
+the ruling above leaves in place is the size of the space the guessing runs
+against, and for the subset of users who chose their own ID and dismissed the
+warning that space is small enough for a distributed guesser to cover. Their
+exposure is worse than a generated ID's by the full ratio of the two spaces —
+about twelve orders of magnitude at the reference — which is why this section
+states their odds in expected findings per year rather than as a factor. The
+position is unchanged for every generated ID, which is the default and the
+overwhelming majority, and for any user-chosen ID that clears the warning.
 
-**Every figure above is per-store, and an attacker's win condition is not.** A
-guesser does not care *whose* store they find, so the operator-relevant question
-is the chance that **any** store is found in a year, and that scales linearly
-with how many live stores sit in the space being guessed. With `N` stores
-reachable at entropy `E`, the expected number of hits is `N × 2²⁹ / 2^E`. At the
-2⁴⁰ warned floor that is `N / 2048` — for 500 such stores, roughly a 22% chance
-of at least one being found in a year, which is not a residual risk in the sense
-the word usually carries.
+**The failure budget does not bound guessing, and an earlier version of this
+section rested the whole argument on it.** §5.4 requires that while the
+server-wide failure limit is saturated the server keeps serving requests that
+resolve an existing store, refusing only those that would have failed anyway.
+That rule is correct — the alternative is a total outage any attacker can buy
+for a thousand requests a minute — but it means a throttled response is *itself*
+an answer. A `429` tells the sender "this would have failed", which is exactly
+what a `404` tells them; a `200` still says "found". The budget throttles the
+**label** and not the **information**, so saturating it costs an attacker
+nothing.
 
-**The population that figure applies to is the part worth being precise about,
-because it is easy to overstate in either direction.** It is not the whole user
-base: it is the subset who overrode the pre-filled ID, chose their own, and
-landed near the floor. Every generated ID carries 2⁵², where the same arithmetic
-gives `N × 2⁻²³` — about six in a hundred thousand for 500 stores, and that is
-the default and the overwhelming majority. So the aggregate risk is governed
-almost entirely by how many users take the override, which is a number this
-design does not know and the server deliberately cannot measure.
+What survives as a bound is the per-IP request rate, and §5.4 already says in
+the next paragraph that an attacker defeats a per-IP limit by distributing. At
+60 requests a minute per address, `M` addresses answer `3.15 × 10⁷ × M` guesses
+a year — `2³¹·⁶` at a hundred addresses, `2³⁴·⁹` at a thousand, and rising
+linearly with a number the attacker chooses rather than one the operator sets.
+The figure this section used to publish, `2²⁹`, is not a ceiling; it is what a
+single well-behaved client would achieve.
 
-This does not change who bears the harm — it is still the person who chose the
-weak ID — but it does change what an operator should expect at scale, and the
-earlier per-store framing invited the reader to stop at "one in two thousand".
-Stating only the per-target odds understates a population risk by exactly the
-factor of the population.
+**So the enumeration bound rests on entropy, and on nothing else.** That is
+sufficient, and it is worth being precise about why. Against a generated
+identifier the expected number of stores found in a year is `N × 3.15 × 10⁷ × M
+/ 2⁵²`: for five hundred stores and ten thousand attacking addresses — two
+orders of magnitude more than is needed to saturate the failure budget — that is
+about **0.035**, and every further order of magnitude of attacker costs the
+defender nothing, because 2⁵² is not a number a distributed guesser reaches. The
+default is safe by construction rather than by throttling.
 
-The per-IP limit still has a job, and §7.5 requirement 6 still exists for it:
-it stops a single actor consuming the whole server-wide failure budget, which
-is what keeps that budget a bound on *guessing* rather than a bound on how fast
-one attacker can deny the limit to everyone else. Both are required; they fail
-differently.
+**A user who overrides the pre-filled identifier gives that up, and the same
+arithmetic says so plainly.** At the ~2⁴⁰ reference the strength meter warns
+about, the same five hundred stores and a hundred attacking addresses give
+roughly **1.4** expected findings a year, and a thousand addresses give **14**.
+There is no rate limit standing behind that number and this specification does
+not pretend there is one. The strength score remains advisory (§8's ruling), so
+this is a cost a user can choose to accept; what the design owes them is that
+the choice is stated in those terms rather than as a warning they can read as
+cosmetic.
 
-The reference deployment terminates TLS at a proxy and
-binds the server to loopback, so the server's socket peer is `127.0.0.1` on
-every request from every user in the world. A limiter keyed on it is a single
-global bucket, and the per-IP half of this section's argument would be resting
-on a control that
-has no per-client meaning at all — while still appearing configured, firing and
+**The rate limits keep their other jobs.** The request-rate rows bound load. The
+failure rows raise the cost of casual probing, keep a single client from
+consuming the service, and make an enumeration attempt visible in the operator's
+metrics rather than silent — which is worth having, and is why §5.4 is
+unchanged. What they must not do is carry a security bound they cannot support:
+this section made that mistake once, and the correction is recorded here rather
+than in the commit log because the wrong version was specific, quantified, and
+read as rigorous.
+
+The per-IP limit still has a job, and §7.5 requirement 6 still exists for it: it
+stops a single actor consuming the whole server-wide failure budget, and so
+keeps that budget a usable load and visibility control rather than one an
+attacker can hold saturated at will. It does not make the budget a bound on
+guessing; nothing does.
+
+The reference deployment terminates TLS at a proxy and binds the server to
+loopback, so the server's socket peer is `127.0.0.1` on every request from every
+user in the world. A limiter keyed on it is a single global bucket, and the
+per-IP half of this section's argument would be resting on a control that has no
+per-client meaning at all — while still appearing configured, firing and
 correct. The deployment topology deletes the control silently, so the control
 must be specified against the topology rather than against the socket.
 
@@ -3543,8 +3582,11 @@ UTF-8, is rejected `401`** (mutation: decode with `U+FFFD` substitution, then
 assert two distinct sync IDs differing only in an invalid byte do not resolve to
 one store). **While the server-wide failure limit is saturated, a request that
 resolves an existing store still succeeds** (mutation: apply the limit to all
-requests, which converts a guessing bound into a total outage any attacker can
-trigger).
+requests,
+which converts a nuisance control into a total outage any attacker can trigger).
+This vector protects availability, not secrecy: a `429` and a `404` are equally
+informative to a guesser, which is why §8 rests its enumeration argument on
+identifier entropy rather than on this budget.
 
 **Creation is separable from lookup, and both halves of the enumeration
 oracle are closed**

@@ -15,10 +15,15 @@
 > If the ADR and this document disagree, the ADR wins. If the specification and
 > this document disagree, that is a defect in one of them.
 
-**Status: design rationale. Only the schema migration is built** — v25, shipped
-early so its soft-delete columns hydrate across devices before sync code depends
-on them (see ADR-004, *Implementation status*). Everything else here is unbuilt:
-no client, no server, no network code.
+**Status: design rationale. ADR-004 is `Accepted`; the protocol itself is
+unbuilt** — no client, no server, no network code. What is built is the
+groundwork this design filed as repair issues and `main` has since closed: the
+v25 schema migration (shipped early so its soft-delete columns hydrate across
+devices before sync code depends on them), the privacy-policy amendment
+(#1115), the standing-invariant ratchets (#1118), and shareable-text
+normalisation on every write path at schema v29 (#1119). ADR-004's
+*Implementation status* is the authoritative list; if this line and that section
+disagree, that section wins.
 
 ## Vocabulary
 
@@ -5937,11 +5942,16 @@ looks reasonable until one detail is checked:
   and closes the lockout only until either side upgrades.
 
 **The consequence that must not be lost is the enumeration bound.** §8's
-arithmetic previously rested on every ID clearing ~2⁴⁰. It no longer does, so
-the figure was re-derived rather than patched: §5.4's limit bounds an attacker
-at ~2²⁹ guesses a year *absolutely*, and what changed is the size of the space
-that figure is measured against — for self-chosen IDs whose owner dismissed the
-warning, and for nothing else. The HMAC-versus-bare-hash argument moves the
+arithmetic previously rested on every ID clearing ~2⁴⁰, and then on §5.4's
+failure budget bounding an attacker at ~2²⁹ guesses a year. **Both premises
+failed, in that order**, and the second failure is the instructive one: the
+budget must keep serving requests that resolve while it is saturated, or any
+attacker buys a total outage for a thousand requests a minute — and that rule
+makes a `429` as informative as a `404`. A refused guess is an answered guess.
+The bound now rests on entropy alone, which is sufficient for the generated
+identifier by twelve orders of magnitude and insufficient for a self-chosen one,
+and the design says so in expected findings per year. The HMAC-versus-bare-hash
+argument moves the
 other way and is now *stronger*: a chosen ID may sit below 2⁴⁰, which makes the
 derived identifier the only thing between a leaked database and a working
 credential.
@@ -6089,6 +6099,49 @@ The durable form remains **a fix is not landed until it is landed " "in every
 document, and every section of every document, that states the " "claim** — and
 the sections that restate a fact are rarely the ones that cite " "it, so
 grepping the citation finds the wrong set.
+
+##### A rate limit that refuses a guess has still answered it
+
+> Throttling the **label** on a response does not throttle the > **information**
+in it. If a saturated limiter returns `429` where it would > have returned
+`404`, a guesser reads both as "not mine" and continues at full > speed; the
+only thing the budget bounds is how many of the misses are > spelled correctly.
+
+This design published a quantified enumeration bound — ~2²⁹ guesses a year —
+resting on a server-wide limit on *failed* store resolutions. The limit is
+scoped to failures on purpose, because a limiter that refuses everything while
+saturated hands any attacker a total outage for a thousand requests a minute.
+That scoping is right and is kept. It also means the attacker's own saturation
+costs them nothing, so the real guess rate is the per-IP request rate times a
+number of addresses the attacker chooses: `2³¹·⁶` at a hundred addresses,
+`2³⁴·⁹` at a thousand, against a published ceiling of `2²⁹` that turns out to
+describe a single well-behaved client.
+
+**The bound now rests on entropy, which is the control that was doing the work
+all along.** A generated 2⁵² identifier survives ten thousand attacking
+addresses with about 0.035 expected findings a year across five hundred stores;
+the ~2⁴⁰ reference a self-chosen identifier may sit at gives roughly 1.4 a year
+from a hundred addresses. The maintainer kept the strength floor advisory on
+those corrected numbers, so what the design owes the user who overrides the
+default is the cost in those terms rather than a warning they can read as
+cosmetic.
+
+**The lesson is one step past round ten's, and the two together are the general
+form.** Round ten found that a rate limit bounds an attack only if the
+attacker's request is one the limit *counts* — the enumerating `GET` was
+producing a `200` and incrementing nothing. This round found that counting is
+not sufficient either: the limit must also **deny the attacker the answer** when
+it fires. Both times the arithmetic was specific, quantified, and read as
+rigorous, and both times the defect was in whether the counter stood between the
+attacker and what they came for — which is not a question the arithmetic can
+raise about itself.
+
+It is also the second time a control has been credited with a job it could not
+do because the sentence naming it was never read against the rule three sections
+away that governs how it behaves under load. The failure-scoping rule and the
+enumeration bound were both correct in isolation and were written to different
+audiences: one to an operator worried about availability, one to a reviewer
+worried about guessing. Neither cited the other.
 
 ## Open questions
 
