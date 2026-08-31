@@ -14,7 +14,7 @@ import 'package:flutter/material.dart';
 ///
 /// Keyed to the real domain enums:
 /// - `ProgramStatus { draft, finalized, performed }`
-/// - `DanceStatus { active, deprecated, broken }`
+/// - `DanceStatus { active, deprecated, broken, draft, variation }`
 @immutable
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   const AppThemeExtension({
@@ -37,7 +37,8 @@ class AppThemeExtension extends ThemeExtension<AppThemeExtension> {
   final Color statusFinalized;
   final Color statusPerformed;
 
-  // DanceStatus tokens (active renders no chip → no token needed).
+  // DanceStatus tokens (active renders no chip; draft and variation reuse the
+  // neutral deprecated token).
   final Color statusDeprecated;
   final Color statusBroken;
 

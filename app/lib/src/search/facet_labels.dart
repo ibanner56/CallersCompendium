@@ -53,6 +53,8 @@ String danceStatusLabel(AppLocalizations l10n, DanceStatus s) => switch (s) {
   DanceStatus.active => l10n.commonDanceStatusActive,
   DanceStatus.deprecated => l10n.commonDanceStatusDeprecated,
   DanceStatus.broken => l10n.commonDanceStatusBroken,
+  DanceStatus.draft => l10n.commonDanceStatusDraft,
+  DanceStatus.variation => l10n.commonDanceStatusVariation,
 };
 
 /// Human-readable label for a difficulty [DanceLevel] (app UI string, not a

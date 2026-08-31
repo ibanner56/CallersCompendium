@@ -1,4 +1,5 @@
 import 'package:compendium_app/l10n/app_localizations.dart';
+import 'package:compendium_app/src/search/facet_labels.dart';
 import 'package:compendium_app/src/widgets/program_status_labels.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +36,8 @@ void main() {
     expect(programStatusLabel(l10n, ProgramStatus.draft), 'Draft');
     expect(programStatusLabel(l10n, ProgramStatus.finalized), 'Finalized');
     expect(programStatusLabel(l10n, ProgramStatus.performed), 'Performed');
+    expect(danceStatusLabel(l10n, DanceStatus.draft), 'Draft');
+    expect(danceStatusLabel(l10n, DanceStatus.variation), 'Variation');
 
     // ICU plural: singular vs. other.
     expect(l10n.performAlternatesCount(1), '1 alternate');

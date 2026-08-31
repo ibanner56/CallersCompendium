@@ -2402,6 +2402,18 @@ abstract class AppLocalizations {
   /// **'Broken'**
   String get commonDanceStatusBroken;
 
+  /// Dance status value: the dance is still being developed and is not finalized.
+  ///
+  /// In en, this message translates to:
+  /// **'Draft'**
+  String get commonDanceStatusDraft;
+
+  /// Dance status value: the dance is a variation of another dance.
+  ///
+  /// In en, this message translates to:
+  /// **'Variation'**
+  String get commonDanceStatusVariation;
+
   /// Dance difficulty value: beginner level.
   ///
   /// In en, this message translates to:

@@ -20,6 +20,7 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+- Add Draft and Variation values to the persisted `DanceStatus` enum.
 - Normalize shareable text to Unicode NFC and remove unsafe controls at all
   repository write boundaries, with collision-safe existing-data backfill.
 

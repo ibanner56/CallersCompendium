@@ -346,6 +346,30 @@ void main() {
       expect(pProv.sourceVersion, '2.3');
     });
 
+    test('round-trips the added dance statuses by name', () {
+      for (final name in ['draft', 'variation']) {
+        final status = DanceStatus.values.firstWhere((s) => s.name == name);
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026),
+          dances: [
+            Dance(
+              id: name,
+              title: name,
+              status: status,
+              createdAt: DateTime.utc(2026),
+              updatedAt: DateTime.utc(2026),
+            ),
+          ],
+        );
+
+        final encoded = encodeArchive(archive);
+        final decoded = decodeArchive(encoded);
+        expect(decoded.hasErrors, isFalse);
+        expect(decoded.archive.dances.single.status.name, name);
+        expect(encodeArchive(decoded.archive), encoded);
+      }
+    });
+
     test('composite phrase structures survive archive round-trips', () {
       final archive = CompendiumArchive(
         exportedAt: DateTime.utc(2026),

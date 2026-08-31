@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_theme.dart';
+import '../theme/app_theme_extension.dart';
 import '../theme/app_typography.dart';
 import '../theme/set_list_accents.dart';
 import '../widgets/formation_color_badge.dart';
@@ -1213,6 +1214,7 @@ class _StatusBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
+    final neutralStatusColor = AppThemeExtension.of(context).statusDeprecated;
     final (icon, color) = switch (status) {
       DanceStatus.broken => (Icons.error_outline, theme.colorScheme.error),
       DanceStatus.deprecated => (
@@ -1223,6 +1225,8 @@ class _StatusBanner extends StatelessWidget {
         Icons.check_circle_outline,
         theme.colorScheme.primary,
       ),
+      DanceStatus.draft => (Icons.edit_note_outlined, neutralStatusColor),
+      DanceStatus.variation => (Icons.alt_route, neutralStatusColor),
     };
     final style = theme.textTheme.titleLarge?.copyWith(
       fontWeight: FontWeight.w600,
