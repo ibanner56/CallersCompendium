@@ -505,7 +505,9 @@ void main() {
 
   testWidgets('shows a banner for a draft dance', (tester) async {
     final repos = openTestRepositories();
-    await repos.dances.create(_dance(id: 'draft-dance', status: DanceStatus.draft));
+    await repos.dances.create(
+      _dance(id: 'draft-dance', status: DanceStatus.draft),
+    );
 
     await _pumpDetail(tester, repos, 'draft-dance');
 
