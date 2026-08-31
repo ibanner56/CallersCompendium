@@ -11,6 +11,7 @@ rendering.
 | What are the rules for working in this repo as an agent? | [`AGENTS.md`](../../AGENTS.md) (resident) and the chapters in [agents/](agents/) |
 | Why is my session so expensive? | [agents/session-cost.md](agents/session-cost.md); `python3 tools/ci/report_comment_weight.py` for per-read comment bytes |
 | How do I request/read a review, or merge safely? | [agents/code-review.md](agents/code-review.md), [agents/merging.md](agents/merging.md) |
+| What does reviewing a design here keep catching? | [design-review.md](design-review.md) — the habits, and the findings they came from |
 | Why does this rule exist? | [agents/incidents.md](agents/incidents.md) |
 | How do I contribute / set up the toolchain? | [`CONTRIBUTING.md`](../../CONTRIBUTING.md) |
 | What is planned, and what is done? | [`docs/ROADMAP.md`](../ROADMAP.md) (open work), [`docs/ROADMAP-archive.md`](../ROADMAP-archive.md) (completed phases) |
