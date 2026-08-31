@@ -1436,18 +1436,10 @@ cannot recover from.
 - **S6 · W0 stays early.** Already satisfied, and the gap it opened is doing
   work — see W0.
 - **S7 · W15 lands before *any real user's content leaves a device*, which is
-  C6, not C7.** Both published policy documents —
-  `docs/dev/store-submission/privacy-policy.md` and its mirror
-  `site/privacy/index.html` — say "The current release has no cloud sync", and
-  promise an update "before it ships". Both app-store listings link to them.
-  Until #1086 they made the stronger claim that no server receives or holds
-  content at all; that is gone, but "before it ships" restates the very gate
-  this rule rejects. A beta running against that text means real dances,
-  programs and venue notes on project infrastructure while a store-linked
-  statement says it cannot happen. S5 was written as though C7 were the first
-  moment content moves; C6 is. This is the cheapest item in the whole plan and
-  the only one whose blast radius is outside the repository, which is a bad
-  combination to get wrong.
+  C6, not C7.** #1115 has already amended both published policy documents with
+  the required Device Sync disclosures. The remaining release-time obligation
+  is to bump their effective date before beta content first leaves a device;
+  C7 re-checks that date for the public release.
 - **S8 · The C1 contract freeze needs an amendment path, not just a freeze.**
   Frozen does not mean immutable — a defect found at C4 in the manifest schema
   has to be fixable. What it means is that a change after C1 is an *event*: it
