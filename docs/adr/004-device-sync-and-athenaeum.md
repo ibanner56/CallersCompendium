@@ -738,17 +738,17 @@ requirements, not deployment taste, and each has a concrete failure mode:
 - **The per-IP rate limit must see the real client address.** The server binds
   loopback, so its socket peer is the proxy on *every* request. A server that
   limits by socket peer therefore puts every user on earth in one bucket, where
-  one active device can exhaust the limit for everybody — and §8 rests the whole
-  enumeration bound on this limit specifically, the per-ID-hash limit having
-  already been shown never to engage against a guesser. Either the proxy
-  enforces the limit itself, or the server reads a client-IP header the proxy is
-  required to set. If the header route is taken the proxy MUST **overwrite** any
-  inbound value rather than append, and the server MUST accept the header only
-  when the socket peer is loopback: trusting a spoofable forwarding header is
-  strictly worse than having no limit at all, because an attacker sets a fresh
-  value per request and buys unlimited guesses while an honest shared-NAT user
-  is still throttled. Both failure directions are silent. See spec §7.5,
-  requirement 6.
+  one active device can exhaust the limit for everybody. This requirement
+  protects capacity and the visibility of an attack in progress; it does **not**
+  carry §8's enumeration bound, which rests on identifier entropy alone, because
+  a limit that sheds a guess has still answered it. Either the proxy enforces
+  the limit itself, or the server reads a client-IP header the proxy is required
+  to set. If the header route is taken the proxy MUST **overwrite** any inbound
+  value rather than append, and the server MUST accept the header only when the
+  socket peer is loopback: trusting a spoofable forwarding header is strictly
+  worse than having no limit at all, because an attacker sets a fresh value per
+  request and buys unlimited guesses while an honest shared-NAT user is still
+  throttled. Both failure directions are silent. See spec §7.5, requirement 6.
 
 **On the backend port.** `127.0.0.1:33333` sits inside Linux's default ephemeral
 range (`32768–60999`), so the kernel may transiently assign it as an outbound

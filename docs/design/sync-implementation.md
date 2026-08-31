@@ -639,10 +639,12 @@ not be a per-record prompt — rather than a correctness one.
 while this plan was being written, so the red-run instruction that stood here
 does not apply. What remains is narrower than it was, and is no longer a first
 implementation: #1024 repaired *comparison* in the import dedupe path, and #1119
-then added `normalizeShareableText` on every repository write path, so stored
-values **are** normalised today. This unit's job is corrective — the shipped
-helper composes the two transforms in the order §4.6 rules out, and there is
-still no one-time backfill for rows written before it landed.
+then added `normalizeShareableText` on every repository write path **and the
+one-time backfill**, so stored values **are** normalised today. This unit's job
+is corrective: the shipped helper composes the two transforms in the order §4.6
+rules out, so the backfill must be *re-run* — its completion marker invalidated,
+as this card's opening requires — rather than written. Scheduling a new backfill
+instead would leave the marker standing and repair nothing.
 
 ### Phase 2 — client foundation and server core, in parallel
 
@@ -684,13 +686,14 @@ deletion silently reverts".
   strength **warning**; the structural rule and the **normalisation applied
   before the HMAC** (trim → NFC → locale-independent lowercase), written
   **once** as the shared definition W10 imports rather than reimplements, per
-  contract 5; the
-  **base64url credential encoding** applied unconditionally to every sync ID,
-  which is what makes a non-English ID transmissible at all — `dart:io` throws
-  `FormatException` on a raw non-Latin-1 header value, so the failure is a local
-  exception rather than a rejected request; bearer
-  auth that never puts the ID in a URL; and status handling — `409` forces fresh
-  attach, `422` is surfaced and **never retried**, `429` honours `Retry-After`.
+  contract 5; the **base64url credential encoding** applied unconditionally to
+  every sync ID, which is what makes a non-English ID transmissible at all —
+  `dart:io` throws `FormatException` on a raw non-Latin-1 header value, so the
+  failure is a local exception rather than a rejected request; bearer auth that
+  never puts the ID in a URL; and status handling — a **stale-epoch `409` from a
+  manifest `PUT`** forces fresh attach, while a `409` from `POST /v1/store` is
+  reported and stops and is never joined; `422` is surfaced and **never
+  retried**; `429` honours `Retry-After`.
 
   W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
   their classifications** — `accessControlData` and `protocolIdentifier` — and
@@ -768,13 +771,15 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   decoding that rejects malformed input with `401` rather than repairing it —
   never `U+FFFD` substitution, which maps distinct IDs onto one store**; **the
   failed store-resolution limits, per-IP and server-wide**, counting all four of
-  §5.4's outcomes rather than `401` alone — the server-wide one is what §8's
-  enumeration bound actually rests on, and counting only `401` leaves a
+  §5.4's outcomes rather than `401` alone — counting only `401` leaves a
   structurally valid guess costing nothing — scoped so that a request resolving
-  an existing store still succeeds while the budget is saturated; the **separate
-  server-wide cap on store creations**, which bounds stored rows rather than
-  guessing and must not share the failure budget; and **every limit enforced
-  before allocation**, streaming-abort style.
+  an existing store still succeeds while the budget is saturated. **Neither
+  limit is §8's enumeration bound, and W10 MUST NOT be tested as though it
+  were**: that scoping is exactly what makes a shed guess an answered guess, so
+  the limits buy visibility and load control while entropy carries the bound;
+  the **separate server-wide cap on store creations**, which bounds stored rows
+  rather than guessing and must not share the failure budget; and **every limit
+  enforced before allocation**, streaming-abort style.
 - **Unblocks** W11, W12, W16 — and, critically, **W6**.
 - **Done when** the loopback round trip at **C2** passes, and the
   store-lifecycle half of §9 *Client isolate and robustness* is green, together
@@ -786,16 +791,19 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   creators observe one epoch; a stale-epoch manifest `PUT` is `409` and does not
   land; a blob `PUT` not hashing to its path segment is rejected, and a `PUT` to
   an existing hash neither replaces the bytes nor refreshes `uploaded_at`. The
-  budget cases are part of this gate rather than W12's, because the counter is
-  what §8's bound rests on: all four failure outcomes increment it, successes do
-  not, and creation is capped separately. Plus the §8 server case: a
-  structurally valid but *weak* user-chosen ID is **accepted** (mutation: re-run
-  the client's estimator server-side, which is the lockout — and note the split
-  makes this mutation *buildable*, where previously it had no endpoint to live
-  on). Blob and manifest paths are namespaced by **epoch** as well as `id_key`,
-  so a wipe or a sweep still deleting an old incarnation cannot remove content
-  uploaded into its successor (mutation: key on `id_key` alone and interleave a
-  `DELETE /v1/store` with the recreating `POST`).
+  budget cases are part of this gate rather than W12's, because the counting
+  rule is a protocol obligation rather than an operational tuning knob: all four
+  failure outcomes increment the counter, successes do not, and creation is
+  capped separately. They are not §8's bound — §8 rests on entropy — but a
+  counter that misses three of the four outcomes stops showing an attack in
+  progress. Plus the §8 server case: a structurally valid but *weak* user-chosen
+  ID is **accepted** (mutation: re-run the client's estimator server-side, which
+  is the lockout — and note the split makes this mutation *buildable*, where
+  previously it had no endpoint to live on). Blob and manifest paths are
+  namespaced by **epoch** as well as `id_key`, so a wipe or a sweep still
+  deleting an old incarnation cannot remove content uploaded into its successor
+  (mutation: key on `id_key` alone and interleave a `DELETE /v1/store` with the
+  recreating `POST`).
 
 **This unit is numbered late and must be scheduled early.** It is the cheaper
 half of the programme and it is the *test fixture* for the expensive half: a
@@ -1603,7 +1611,7 @@ buckets. Ownership is now explicit:
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, since §8's bound is a property of the deployment) |
+| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
 | User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses and the partial-venue hint) |
 | Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
 

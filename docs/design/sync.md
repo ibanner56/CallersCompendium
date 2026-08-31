@@ -3660,7 +3660,7 @@ buys nothing and creates one more way for a conforming client to be turned away.
 | `401` | Missing or malformed `Authorization`. |
 | `403` | Sync ID fails the structural rule — four hyphen-separated words (see Security). |
 | `404` | No such blob, manifest or device. |
-| `409` | **Epoch mismatch** — the client's epoch is not the store's. |
+| `409` | **Epoch mismatch** on a manifest `PUT`, *or* `POST /v1/store` against an ID that already has one. Only the first is a fresh-attach trigger. |
 | `413` | Payload exceeds a cap. |
 | `415` | Unsupported `Content-Type` (optional; see below). |
 | `422` | **Payload rejected by the allow-list** — a key not classified `shareable` for that kind was present. |
@@ -3722,9 +3722,9 @@ sync ID entirely, so re-enabling is a fresh attach.
    store has that ID — almost always a typo — and is reported, never silently
    created.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
-   detach, and on `409`. Detaching **forgets the sync ID entirely**: no
-   list of previously-attached IDs is kept, so re-attaching cannot resurrect a
-   stale baseline.
+   detach, and on `409`. Detaching **forgets the sync ID entirely**: no list of
+   previously-attached IDs is kept, so re-attaching cannot resurrect a stale
+   baseline.
 4. Upload every local record; download every remote record. **Inbound rejection
    applies here as in steady state** — a blob whose `existenceAt` or `updatedAt`
    is out of window is refused and reported, rather than admitted because this is
@@ -4748,15 +4748,21 @@ code concealed it. Worse, a second oracle sat beside it untouched: any
 store-scoped path answered `404` for an unknown store while consuming no storage
 at all.
 
-The bound is therefore not concealment but accounting. Every outcome that fails
-to resolve a store — `401`, `403`, `404` on a store-scoped path, and `409` on a
-creation attempt — increments one **server-wide** counter, and the guesser's
-request necessarily produces one of them. Per-IP limits cannot carry this,
-because an attacker chooses how many IPs to use and the reference deployment
-terminates TLS at a proxy, so the socket peer is loopback for everyone. A
-separate server-wide cap on store creations bounds stored rows rather than
-guessing; the two must not share a budget, or one honest first pairing spends
-the guessing allowance.
+That accounting is not the bound, though an earlier version of this section said
+it was. Every outcome that fails to resolve a store — `401`, `403`, `404` on a
+store-scoped path, and `409` on a creation attempt — increments one
+**server-wide** counter, and the guesser's request necessarily produces one of
+them; what that buys is visibility and load control. Per-IP limits cannot carry
+a bound, because an attacker chooses how many IPs to use and the reference
+deployment terminates TLS at a proxy, so the socket peer is loopback for
+everyone. The server-wide counter cannot carry one either, for a different
+reason found later: it must keep serving requests that resolve while it is
+saturated, or a thousand requests a minute buys a total outage — so a shed guess
+is refused and *answered* in the same breath, and a `429` tells a guesser
+exactly what a `404` would. The bound is identifier entropy alone. A separate
+server-wide cap on store creations bounds stored rows rather than guessing; the
+two must not share a budget, or one honest first pairing spends the guessing
+allowance.
 
 ### Input validation
 
@@ -5911,7 +5917,9 @@ means nothing.
 
 **Maintainer's ruling: the sync-ID strength score warns and never blocks.** The
 structural four-word rule still rejects `isaac-banner-dances` on both sides;
-strength is the chooser's risk, bounded by §5.4's server-wide limit.
+strength is the chooser's risk, and it is bounded by the size of the space
+alone. §5.4's limits do not bound it — that premise was corrected later, and the
+ruling was put a third time on the corrected arithmetic and kept.
 
 The interesting part is *why* the earlier design was wrong, because I had
 already reasoned about this and reached half the answer. The server-readiness
@@ -6100,12 +6108,46 @@ document, and every section of every document, that states the " "claim** — an
 the sections that restate a fact are rarely the ones that cite " "it, so
 grepping the citation finds the wrong set.
 
+##### A sweep reporting "each judged in context" is an exclusion claim
+
+> A sweep that ends "I found N sites and judged each in context" asserts that
+> there is no N+1. That is an exclusion, and an exclusion is only checkable
+> against its population — which is every occurrence of the property, not the
+> occurrences the sweep happened to reach.
+
+The enumeration bound was retired one round and the retirement was swept for.
+The commit message said seven sites, each judged in context. The next review
+found ten more, and a sweep run afterwards for the *property* rather than the
+sentence found two beyond those — one of them a paragraph whose first sentence
+asserted the retired claim and whose third sentence was the correction, written
+into it by that same sweep.
+
+The habit that would have caught it was already written down two rounds earlier,
+for scans over line breaks: an assertion of absence has to be run against a
+population, and a positive control has to fire before the zero means anything.
+It did not transfer, because a prose sweep does not look like a scan. There is
+no `grep` to write a positive control for, so the count reads as an observation
+rather than as a claim — and the check that does the work is enumerating the
+property first, then asking which occurrences the search terms could not have
+reached.
+
+**The specific trap is that a retired claim survives in paraphrase.** The seven
+found sites all contained the phrase the retirement replaced. The twelve missed
+ones said the same thing in the vocabulary of wherever they sat: a checkpoint
+gate calling the counter "what §8's bound rests on", a conformance rationale
+calling a proxy requirement "a control §8 depends on", a unit card explaining
+which of two limits the bound "actually rests on". Grepping the retired wording
+finds the places that quote it; only grepping the *property* finds the places
+that assert it.
+
+
 ##### A rate limit that refuses a guess has still answered it
 
-> Throttling the **label** on a response does not throttle the > **information**
-in it. If a saturated limiter returns `429` where it would > have returned
-`404`, a guesser reads both as "not mine" and continues at full > speed; the
-only thing the budget bounds is how many of the misses are > spelled correctly.
+> Throttling the **label** on a response does not throttle the **information**
+> in it. If a saturated limiter returns `429` where it would have returned
+> `404`, a guesser reads both as "not mine" and continues at full speed; the
+> only thing the budget bounds is how many of the misses are spelled
+> correctly.
 
 This design published a quantified enumeration bound — ~2²⁹ guesses a year —
 resting on a server-wide limit on *failed* store resolutions. The limit is

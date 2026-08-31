@@ -332,7 +332,8 @@ rediscovering them.
 
 Neither `protocolIdentifier` nor `accessControlData` is added to the Dart
 `EgressClass` enum by this design. Both are specified here and land with their
-first registry entry, when W2 and W4 first classify a sync settings key: an enum
+first registry entry, which is **W5**'s: W5 owns `sync_id` and `sync_device_id`
+as persisted settings keys and therefore owns their classifications. An enum
 member with no entries is not exercised by the registry ratchets, so adding it
 early buys nothing and risks a member nothing checks.
 
@@ -1463,8 +1464,10 @@ endpoint then manufactures a store and reports success. Wrong guesses became
 successful creations, distinguishable from hits only by an empty `devices` list,
 and §8's enumeration bound rested on a failed-authentication counter that
 guessing never incremented. Splitting creation out is what makes a wrong guess
-observable to the server as a failure, and §5.4's budget is what turns that
-observation into the bound §8 states.
+observable to the server as a failure at all, which is what §5.4's budget
+accounts for. That accounting is a load and visibility control and not the
+bound: §8 rests the enumeration bound on identifier entropy alone, because a
+refused guess is still an answered guess.
 
 It also removes a silent client-side failure this specification otherwise works
 hard to prevent. Under the merged call a mistyped ID produced a *different,
@@ -1642,8 +1645,10 @@ budget as an attack.
 These specific values are my choice, not a derivation from anything in the
 design; what is derived is the *shape* — that the limit which matters counts
 failures rather than requests, and is global rather than per-IP. An operator may
-tune the numbers, but §8's bound is only as strong as the server-wide failure
-limit, so lowering that row is a security change and not a capacity one.
+tune the numbers. Lowering the server-wide row costs visibility and load
+headroom; it does not weaken §8's bound, which rests on identifier entropy
+alone. A saturated limit still answers every guess it refuses, so it never
+bounded guessing to begin with.
 
 A server-wide failure limit would be a denial-of-service vector if it could lock
 out honest users, so it MUST be scoped to requests that *fail*: while it is
@@ -2206,9 +2211,24 @@ repository `upsert` path, which writes every column:
 **Sender/receiver contract.** The sender emits explicit `null` for an empty
 `shareable` field and omits only non-`shareable` fields. The receiver MUST
 independently consult the registry to decide which absences mean *preserve*, and
-MUST drop any inbound key not classified `shareable` for that kind and nesting
-context. For `kind: "setting"` the receiver MUST additionally look the record id
-up in `settingsClassifications` and refuse anything not `shareable`.
+MUST **refuse the whole record** — one record skipped, batch intact, local state
+unchanged, reported as in §6.9 — if it carries any key not classified
+`shareable` for that kind and nesting context. For `kind: "setting"` the
+receiver MUST additionally look the record id up in `settingsClassifications`
+and refuse anything not `shareable`.
+
+Refusing rather than dropping the offending key is what keeps the hash
+meaningful. Dropping it changes the content before it is stored, so this
+device's serialisation no longer hashes to the blob the peer advertises and §6.3
+step 9 never advances the baseline for that record. What follows is an
+equal-`updatedAt` tie — the receiver copies the envelope stamp — which §6.3
+declines to resolve and requires reported on every pass, over a field the user
+cannot see or edit because their own build does not classify it. Failing closed
+is also the argument the ADR already makes for preferring an allow-list to a
+deny-list on the server, and it applies unchanged here: an unrecognised key
+cannot be distinguished from a newer peer's legitimate field, so storing a
+truncated copy is the one outcome that is silently wrong rather than loudly
+refused.
 
 **Ordering**, within the transaction:
 
@@ -2543,29 +2563,31 @@ CREATE TABLE stores (
   bytes_used  INTEGER NOT NULL
 );
 CREATE TABLE manifests (
-  id_key TEXT NOT NULL, device_id TEXT NOT NULL,
+  id_key TEXT NOT NULL, epoch TEXT NOT NULL, device_id TEXT NOT NULL,
   etag TEXT NOT NULL, written_at INTEGER NOT NULL, body BLOB NOT NULL,
-  PRIMARY KEY (id_key, device_id)
+  PRIMARY KEY (id_key, epoch, device_id)
 );
 CREATE TABLE blob_refs (
-  id_key TEXT NOT NULL, hash TEXT NOT NULL, size INTEGER NOT NULL,
-  uploaded_at INTEGER NOT NULL,
-  PRIMARY KEY (id_key, hash)
+  id_key TEXT NOT NULL, epoch TEXT NOT NULL, hash TEXT NOT NULL,
+  size INTEGER NOT NULL, uploaded_at INTEGER NOT NULL,
+  PRIMARY KEY (id_key, epoch, hash)
 );
 ```
 
-Blobs MUST be namespaced per store, on disk as well as in `blob_refs`.
-Cross-store deduplication is a privacy leak and MUST NOT be implemented. The
-`<id_key>` segment in the layout above is what makes that true physically:
-without it, two stores holding a byte-identical blob — trivially common for a
-shared program, a tag name, or the same distributed dance — resolve to one file,
-which *is* cross-store deduplication however the database is keyed. GC and
-`DELETE /v1/store` (§7.3) MUST operate strictly within one store's own subtree,
-and with a shared file they cannot: collecting when the first store's reference
-goes destroys bytes another store still references, and collecting only when no
-store references the hash is the forbidden deduplication and leaves a wiped
-store's content on disk, against the promise §7.3 makes for `DELETE`. The cost
-of namespacing is one copy per store of a blob that would otherwise be shared,
+Blobs MUST be namespaced per store **and per epoch**, on disk as well as in
+`blob_refs`; the `epoch` columns above are that namespacing in the database, and
+the rule below states why the epoch half is load-bearing. Cross-store
+deduplication is a privacy leak and MUST NOT be implemented. The `<id_key>`
+segment in the layout above is what makes that true physically: without it, two
+stores holding a byte-identical blob — trivially common for a shared program, a
+tag name, or the same distributed dance — resolve to one file, which *is*
+cross-store deduplication however the database is keyed. GC and `DELETE
+/v1/store` (§7.3) MUST operate strictly within one store's own subtree, and with
+a shared file they cannot: collecting when the first store's reference goes
+destroys bytes another store still references, and collecting only when no store
+references the hash is the forbidden deduplication and leaves a wiped store's
+content on disk, against the promise §7.3 makes for `DELETE`. The cost of
+namespacing is one copy per store of a blob that would otherwise be shared,
 which the 250 MB per-store cap already bounds.
 
 The server MUST NOT merge, lock, or interpret record content beyond §7.2.
@@ -2614,12 +2636,16 @@ per-store serialisation across deletion and recreation instead would answer the
 same defect by introducing the locking the ADR names as a property it does not
 have.
 
-`409` has exactly one source: `PUT /v1/manifests/{deviceId}` where the
-manifest body's `epoch` (§4.5) does not equal the store's current epoch. The
-server MUST reject that request and MUST NOT store the manifest. No other
-endpoint emits `409`; blob uploads are content-addressed and store-scoped, so a
-blob written under a stale epoch is left unreferenced and is collected by §7.3
-once its grace period lapses, rather than being rejected.
+`409` has exactly two sources and they do not mean the same thing. `PUT
+/v1/manifests/{deviceId}` returns it where the manifest body's `epoch` (§4.5)
+does not equal the store's current epoch; the server MUST reject that request
+and MUST NOT store the manifest. `POST /v1/store` returns it against an `id_key`
+that already has a store (§5.2), and that one MUST NOT mint an epoch or disturb
+the existing store. Only the first means *the store was reset under you*, and
+only the first is a fresh-attach trigger (§6.2 step 3). No other endpoint emits
+`409`: blob uploads are content-addressed and store-scoped, so a blob written
+under a stale epoch is left unreferenced and is collected by §7.3 once its grace
+period lapses, rather than being rejected.
 
 ### 7.2 Allow-list validation
 
@@ -2773,17 +2799,18 @@ reject valid requests. Violations of (3), (4), (5) or (6) are not visible in
 behaviour at all, which is why they are stated rather than left to deployment
 taste.
 
-**(6) is the one that silently deletes a control §8 depends on.** §8 rests the
-enumeration bound on the per-IP limit specifically, having already established
-that the per-ID-hash limit never engages against a guesser — so if the per-IP
-limit degenerates to a single global bucket, the ID's own strength is left
-carrying the whole argument alone. Since §8's score only warns, that strength is
-a guarantee for a generated ID and nothing at all for a chosen one. Nothing
-about that failure is observable: the limiter is present, configured and firing,
-and it is simply counting the wrong thing.
-The reverse error is equally quiet, and worse: trusting an attacker-supplied
-`X-Forwarded-For` turns the limiter into a no-op for exactly the party it
-exists to stop, while continuing to throttle ordinary users.
+**(6) is the one that silently deletes a working control.** The per-ID-hash
+limit never engages against a guesser, who presents a different hash each time,
+so the per-IP limit is the only one that sees a guessing campaign at all — and a
+per-IP limit that degenerates to a single global bucket throttles honest users
+while leaving a distributed attacker untouched. It does not weaken §8's bound,
+which rests on identifier entropy alone and never rested on this limit; what it
+costs is capacity and the visibility of an attack in progress. Nothing about
+that failure is observable: the limiter is present, configured and firing, and
+it is simply counting the wrong thing. The reverse error is equally quiet, and
+worse: trusting an attacker-supplied `X-Forwarded-For` turns the limiter into a
+no-op for exactly the party it exists to stop, while continuing to throttle
+ordinary users.
 
 **(5) is the one this specification cannot rely on the client to cover.** Every
 other transport rule here is enforced twice — §8 already requires a conforming
@@ -3019,12 +3046,16 @@ an attacker did. §5.4 now counts all four resolution outcomes, including the
 global creation cap that this section used to cite is specified rather than
 merely named.
 
-The conclusion is unchanged at 2⁴⁰–2⁵². What has changed twice is *which control
-does the work*: first from the per-IP limit to the server-wide one, then from a
-counter of authentication failures to a counter of store-resolution failures.
-Both corrections exist so that weakening the wrong control later cannot read as
-safe. A reviewer asking whether this bound holds should check one thing before
-anything else — that the enumerating request still produces a counted outcome.
+The conclusion is unchanged at 2⁴⁰–2⁵². What has changed three times is *which
+control does the work*: first from the per-IP limit to the server-wide one, then
+from a counter of authentication failures to a counter of store-resolution
+failures, and finally away from counting altogether. Each correction exists so
+that weakening the wrong control later cannot read as safe. The check a reviewer
+should run before any other is **not** whether the enumerating request produces
+a counted outcome — it does, and that turned out to be insufficient. It is
+whether a refused guess is still an *answered* guess: a limit that sheds a
+request while still distinguishing it from a hit has throttled the attacker's
+rate and told them what they asked.
 
 **2⁴⁰ is the bottom of the *warned* range, not a guaranteed floor**, and the
 arithmetic must be read accordingly. Nothing bounds the attacker's *rate*: what
@@ -3509,6 +3540,13 @@ attach runs **does not re-enter attach** when the epoch changed underneath it:
 it stops without publishing and the next trigger performs the fresh attach
 (mutation: recurse, and assert boundedness against a store re-created on every
 `POST /v1/store`).
+**A create answered `409` reports and stops**: the client neither joins the
+existing store nor discards a baseline it does not hold, and only a stale-epoch
+`409` from `PUT /v1/manifests/{deviceId}` triggers fresh attach (mutation: treat
+any `409` as the reset signal — every epoch-mismatch test still passes, because
+all of them arrive through the manifest `PUT`, and the damage needs a *create*
+against an ID already in use, which is exactly the silent join §6.2 step 2
+exists to prevent).
 
 **Server.** Each cap rejected at the boundary, not after allocation. A sync ID
 one code point over the word bound is rejected `403`, and one at the bound is
@@ -3526,7 +3564,8 @@ server test passes, because the damage is only observable from the second
 store). A store is wiped by `DELETE /v1/store` and immediately recreated by a
 `GET`, a blob is uploaded into the new incarnation, and the wipe's deferred
 filesystem cleanup is then allowed to run to completion: the new blob is still
-`GET`-able (mutation: drop the `<epoch>` segment from the blob path, so both
+`GET`-able (mutation: drop the `<epoch>` segment from the blob path, or
+the `epoch` column from the `blob_refs` and `manifests` keys, so both
 incarnations share one subtree — every steady-state blob test passes, because
 the damage needs a reset, and the sweep's own reap path reproduces it without
 any client action at all). The same two stores hold **two** copies of those
@@ -3727,15 +3766,18 @@ The following are recorded as known and are not specified here:
 - Dance dedupe runs only at fresh attach, so a dance can fork permanently.
 - **A user-chosen sync ID may be weaker than the ~2⁴⁰ reference** (§8). The
   strength score warns and blocks nowhere, so nothing enforces a lower bound on
-  a chosen ID. Client-side placement was worse: any component that refuses an
-  ID refuses access to the store it addresses, and a cross-version estimator
+  a chosen ID. Client-side placement was worse: any component that refuses an ID
+  refuses access to the store it addresses, and a cross-version estimator
   disagreement locks a user out of data their own ID names. Server-side
   placement is now *possible* — §5.2's `POST /v1/store` is a locatable point of
   choice, which it was not when this limitation was written — and was declined
-  on re-affirmation rather than being unavailable; §8 records the
-  re-derivation. The residual risk is bounded by §5.4's server-wide limit and
-  borne by the user who dismissed the warning. Generated IDs, which is the
-  default, are unaffected at ~2⁵².
+  on re-affirmation rather than being unavailable; §8 records the re-derivation.
+  The residual risk rests on identifier entropy alone and is borne by the user
+  who dismissed the warning; §5.4's limits do not bound it, because a refused
+  guess remains an answered one. At the ~2⁴⁰ bottom of the warned range that is
+  on the order of one expected finding per year against 500 stores from a
+  hundred attacking addresses, and ten times that from a thousand. Generated
+  IDs, which is the default, are unaffected at ~2⁵².
 - Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
   The divergence is reported bilaterally rather than resolved, because every
   available tie-break is non-convergent.
