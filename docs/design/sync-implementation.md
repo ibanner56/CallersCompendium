@@ -768,7 +768,11 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   though nothing connected them. W2 is deliberately not an edge here: it
   arrives later, via W11, so it constrains that unit and not this one.
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
-  keying, with the pepper in configuration and **no version scheme** — the spec
+  keying, with the pepper in configuration, **generated per deployment at 256
+  bits or more from a CSPRNG, with no built-in or default value and a refusal
+  to start when it is unset** — a shipped constant is public in a self-hostable
+  server and reduces the key to the bare hash §8's advisory strength ruling
+  assumes it is not — and **no version scheme** — the spec
   specifies none, and §10 records pepper rotation as an unresolved limitation
   whose proposed answer is versioned lazy re-keying, so building versioning here
   would implement a resolution the design has not adopted, with no schema column

@@ -1409,6 +1409,22 @@ two stores and report no error at all. The pepper MUST live in server
 configuration and MUST NOT be stored in the database. This is server-side only;
 the client computes no MAC and MUST NOT hold the pepper.
 
+The pepper MUST be at least 256 bits from a cryptographically secure random
+source, generated per deployment. A server MUST NOT ship a built-in, default or
+example pepper, and MUST refuse to start when none is configured rather than
+substituting one.
+
+**That is a conformance requirement rather than a deployment note, because the
+pepper is the only barrier between a stolen database and offline recovery of a
+sync ID.** §8 deliberately permits a user-chosen ID below the ~2⁴⁰ reference
+strength — the score warns and MUST NOT block — so the design's own tolerance
+for a weak identifier is underwritten by this derivation and nothing else. A
+pepper that is constant across deployments is public by construction in a
+server anyone can self-host, which collapses the storage key back to the bare
+hash that §8's advisory ruling assumes it is not. Stating where the pepper
+lives without stating what it must be leaves that ruling resting on a value a
+conforming server is free to hardcode.
+
 **Content types.** Every request and response body in §5.2 is JSON except a blob
 body, which is opaque octets. A client MUST send `application/json` on a JSON
 request body and `application/octet-stream` on a blob `PUT`. A server MUST
@@ -2470,6 +2486,20 @@ collections the equality test ignores are unioned; `program_slots.dance_id` MUST
 be rewired to the survivor; scalars `_choreographyEquals` does not compare
 (`walkthrough`, `rating`, `status`, `composedOn`, `revisedOn`) resolve by
 last-writer-wins. Dance merges write `id_aliases` entries.
+
+Where `updatedAt` is **equal** and such a scalar differs, the survivor's value
+MUST be taken. This is the one place the survivor's values win, and it does not
+reopen the rule above: at a tie there is no more-recently-edited copy to
+prefer, so nothing is lost by falling back to the ordering the merge already
+uses, while "keep local" and "take remote" are the same non-convergent pair
+§6.3 rejects. **Unlike §6.3 this path cannot report the tie and leave both
+bodies in place**, because the merge has already collapsed two rows into one;
+declining to choose here would leave two devices holding different bodies under
+a single surviving id, which is the divergence §6.3's reporting duty exists to
+prevent rather than an instance of it. One tick is one second (§2), so the tie
+is reachable in ordinary use: two devices that separately entered or imported
+the same dance carry different UUIDs, and their last edits need only land in
+the same second.
 
 Everything else `DedupeIndex` flags is deferred to `review_queue`. Queuing MUST
 be idempotent under the canonical tie-break ordering, MUST carry an immutable
@@ -3619,7 +3649,10 @@ it). `program_slots.dance_id` is rewired to the survivor (mutation: leave it
 pointing at the merged-away id). The uncompared scalars — `walkthrough`,
 `rating`, `status`, `composedOn`, `revisedOn` — resolve by last-writer-wins
 rather than following the tie-break survivor (mutation: take the survivor's
-values, which loses whichever copy was edited more recently). Two clients agree
+values, which loses whichever copy was edited more recently), and an equal
+`updatedAt` takes the survivor's after all (mutation: keep the local value,
+which leaves two devices holding different bodies under one surviving id). Two
+clients agree
 on a normalized-title match across NFC/NFD, case, internal whitespace,
 punctuation, folded diacritics and a leading article (mutation: compare raw
 titles; and separately, implement the four-step paraphrase this spec used to
@@ -3903,9 +3936,13 @@ The following are recorded as known and are not specified here:
   on the order of one expected finding per year against 500 stores from a
   hundred attacking addresses, and ten times that from a thousand. Generated
   IDs, which is the default, are unaffected at ~2⁵².
-- Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
-  The divergence is reported bilaterally rather than resolved, because every
-  available tie-break is non-convergent.
+- Equal `updatedAt` with differing bodies does not converge on the paths that
+  compare one record against its own counterpart (§6.2 step 5, §6.3). The
+  divergence is reported bilaterally rather than resolved, because every
+  tie-break available *there* is non-convergent. §6.10's dance merge is not an
+  exception: having already collapsed two rows into one, it has the surviving
+  UUID to order by, and takes that row's value. These paths differ in what they
+  can still decline to do, not in how they read a clock.
 - **The baseline-absence guard diverges by design** (§6.4). Where §6.4's copy
   fires, the creating device reports and keeps its row while the deleting
   device applies its own tombstone and reports nothing, so the two hold

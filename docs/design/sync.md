@@ -3576,7 +3576,12 @@ memorable by design, and a user-chosen one may sit at or below the ~2⁴⁰ the
 strength score merely warns about. Exhausting 2⁴⁰
 SHA-256 candidates is minutes on a commodity GPU, so a bare hash would let anyone
 with a stolen database recover working credentials. The pepper lives in server
-configuration, never in the database, so the database alone is useless.
+configuration, never in the database, so the database alone is useless — but
+only if the pepper is itself unguessable, which is why the specification
+requires it to be generated per deployment and forbids a shipped default. A
+constant baked into a server anyone can self-host is not a secret, and a
+database stolen from such a deployment is exactly as useful as one keyed by a
+bare hash.
 
 This is **server-side only**. The client sends the sync ID over TLS and computes
 no MAC; it neither needs nor should hold the pepper, since the entire value of
