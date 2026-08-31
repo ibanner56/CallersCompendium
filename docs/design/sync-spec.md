@@ -1713,10 +1713,13 @@ they add, and a restore test MUST assert that restoring a backup taken on a
 syncing device leaves sync off, adopts no device ID, and stores no credential.
 
 This does **not** follow from the classifications above, and MUST NOT be
-justified that way. #923 ruled that "not `shareable`, therefore not in a
-backup" is false in this codebase: of the eight `deviceScoped` settings keys,
-six are deliberately backup-eligible. The reasons here are specific to these
-keys. A restored `sync_enabled` contradicts the first paragraph of this
+justified that way. The backup filter is not derived from `EgressClass` and
+#923 ruled that it should not be, so "not `shareable`, therefore not in a
+backup" is not a rule this codebase enforces: several `deviceScoped` settings
+keys are carried in backups today. Whether that is itself a defect is a
+question about the app's existing settings, not about this protocol, and it is
+not settled here — either way it cannot be leaned on. The reasons are specific
+to these keys. A restored `sync_enabled` contradicts the first paragraph of this
 section, which requires sync be off until the user turns it on — consent given
 on one device is not consent on another. A restored `sync_device_id` is exactly
 the adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route
@@ -3154,7 +3157,8 @@ the ruling above leaves in place is the size of the space the guessing runs
 against, and for the subset of users who chose their own ID and dismissed the
 warning that space is small enough for a distributed guesser to cover. Their
 exposure is worse than a generated ID's by the full ratio of the two spaces —
-about 4,096-fold (3.6 orders of magnitude) at the reference — which is why this section
+2⁵²/2⁴⁰, a factor of 4,096, or about 3.6 decimal orders of magnitude at the
+reference — which is why this section
 states their odds in expected findings per year rather than as a factor. The
 position is unchanged for every generated ID, which is the default and the
 overwhelming majority, and for any user-chosen ID that clears the warning.
@@ -3195,7 +3199,19 @@ arithmetic says so plainly.** At the ~2⁴⁰ reference the strength meter warns
 about, the same five hundred stores and a hundred attacking addresses give
 roughly **1.4** expected findings a year, and a thousand addresses give **14**.
 There is no rate limit standing behind that number and this specification does
-not pretend there is one. The strength score remains advisory (§8's ruling), so
+not pretend there is one.
+
+**Those two figures assume uniform draws from a 2⁴⁰ space, which is the
+optimistic case.** The strength meter scores a guess-rank estimate, not an
+entropy distribution, and human-chosen identifiers are skewed: a guesser who
+orders candidates by likelihood finds the early ones sooner than uniform
+sampling predicts. So 1.4 and 14 are a **floor** on the cost of overriding, not
+a forecast of it, and they describe an identifier at the reference rather than
+the population of everyone who dismissed the warning. Modelling that population
+would not change what the design owes the user, which is why this section
+states the reference case and labels it.
+
+The strength score remains advisory (§8's ruling), so
 this is a cost a user can choose to accept; what the design owes them is that
 the choice is stated in those terms rather than as a warning they can read as
 cosmetic.

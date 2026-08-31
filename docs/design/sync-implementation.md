@@ -868,11 +868,11 @@ requires it. Those two belong to W5, not here.
 **MUST NOT sync is only half of it: this unit's keys must also not travel in a
 backup** (spec §6.1). The two exclusions are enforced by different mechanisms —
 the sync side by classification, the backup side by `kBackupSettingsDenylist`,
-which is opt-out — so a key can satisfy the first and fail the second, and six
-of the eight existing `deviceScoped` keys are deliberately in backups. This
-unit MUST denylist `sync_enabled`, the endpoint and every other key it adds,
-and its enablement test MUST cover restore as well as first run: restoring a
-backup taken on a syncing device leaves sync off and makes no network call.
+which is opt-out and is deliberately not derived from `EgressClass` (#923) — so
+a key can satisfy the first and fail the second. This unit MUST denylist
+`sync_enabled`, the endpoint and every other key it adds, and its enablement
+test MUST cover restore as well as first run: restoring a backup taken on a
+syncing device leaves sync off and makes no network call.
 
 #### W14 · A kind-agnostic review surface
 

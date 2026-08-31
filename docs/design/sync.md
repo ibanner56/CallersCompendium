@@ -5957,7 +5957,8 @@ budget must keep serving requests that resolve while it is saturated, or any
 attacker buys a total outage for a thousand requests a minute — and that rule
 makes a `429` as informative as a `404`. A refused guess is an answered guess.
 The bound now rests on entropy alone, which is sufficient for the generated
-identifier by twelve orders of magnitude and insufficient for a self-chosen one,
+identifier by a factor of 2¹² — 4,096, about 3.6 decimal orders of magnitude —
+and insufficient for a self-chosen one,
 and the design says so in expected findings per year. The HMAC-versus-bare-hash
 argument moves the
 other way and is now *stronger*: a chosen ID may sit below 2⁴⁰, which makes the
