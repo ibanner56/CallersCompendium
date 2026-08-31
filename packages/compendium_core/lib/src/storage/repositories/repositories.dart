@@ -672,7 +672,7 @@ class CompendiumRepositories {
         for (final entry in targets.entries) {
           final group = entry.value;
           if (group.length > 1) {
-            for (final (_, recordId, target) in group) {
+            for (final (_, recordId, _) in group) {
               await recordNormalisationSkip(
                 db,
                 table: table,
@@ -728,7 +728,7 @@ class CompendiumRepositories {
           value = normalizeShareableJson(
             jsonDecode(row.read<String>('value_json')),
           );
-        } on ShareableJsonKeyCollision catch (error) {
+        } on ShareableJsonKeyCollision {
           await recordNormalisationSkip(
             db,
             table: 'settings',
