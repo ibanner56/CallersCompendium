@@ -729,11 +729,19 @@ trivially self-hostable. It loses on two points:
 
 - **Git is designed never to forget, and this feature's entire purpose is a hard
   privacy boundary.** If a device-local field ever reaches the store — a
-  classification bug, a bad merge — snapshots self-heal, because the next upload
-  simply does not contain it. In git it is permanent in the object store of
-  every clone, and removing it means rewriting history everywhere. Building our
-  strictest privacy guarantee on a substrate engineered to make deletion hard is
-  the wrong foundation.
+  classification bug, a bad merge — snapshots recover, because the next upload
+  simply does not contain it and the offending blob becomes unreferenced. That
+  recovery is not automatic in every topology: a blob is reachable while *any*
+  manifest for its store references it (spec §7.3), and a manifest has no
+  lifetime of its own inside an active store, so a device that syncs once and is
+  never used again pins the blob it named until the whole store reaches its
+  30-day disuse TTL or the user wipes it. Bounded and operator-clearable, then,
+  rather than self-healing. In git it is permanent in the object store of
+  every clone, and removing it means rewriting history everywhere — one server
+  the operator controls against every clone anyone ever made is still the
+  decisive difference, and it is the reason this point survives its own
+  correction. Building our strictest privacy guarantee on a substrate engineered
+  to make deletion hard is the wrong foundation.
 - **Git merges text line-by-line.** Our records are structured. A three-way merge
   of two edited JSON documents produces conflict markers, which is a corrupt
   document; avoiding that means a custom merge driver that implements per-record

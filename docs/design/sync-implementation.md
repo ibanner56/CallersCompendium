@@ -65,8 +65,15 @@ assumption about one of these six:
 4. **The two non-content-addressed JSON shapes** — `GET /v1/store` and
    `POST /v1/blobs/missing` (§5.2). These are the endpoints nothing *forced*
    into a schema, which is exactly why they were the last to get one.
-5. **Sync-ID normalisation** (§5.1, §8). Trim → NFC → locale-independent
-   lowercase, applied identically by client and server before the HMAC. The
+5. **Sync-ID normalisation and credential encoding** (§5.1, §8). Trim → NFC →
+   locale-independent
+   lowercase, applied identically by client and server before the HMAC — and
+   then, on the wire, **base64url of the normalised UTF-8 bytes, unconditionally
+   and with padding omitted**, because §8 permits code points RFC 6750's
+   `b64token` grammar forbids and `dart:io` throws rather than sending them.
+   Encoder and decoder are two halves of one contract for the same reason the
+   normalisation is: they are split across W5 and W10, and a disagreement
+   resolves one typed ID to two storage keys with no error on either side. The
    plan schedules **W5 and W10 in parallel from C1**, which absent a contract
    is two units independently implementing one algorithm with no file overlap
    — the exact configuration contracts exist to catch. The spec calls the
@@ -274,12 +281,18 @@ and program content — which is precisely what the editor-draft keys held until
   **constants declared once and imported at all four sites**, which must be
   created — the registry's identifiers are inline map keys today; and a
   **structural** ratchet asserting that write paths route through the choke
-  point. The two transforms share the choke point, the backfill, the collision
+  point — **written here and owned by W17 thereafter** (see the parallelism
+  hazards): it asserts a standing property over every write path built after
+  this unit, and W18 closes once its backfill has run, so leaving the ratchet
+  with W18 parks a perpetual obligation on a unit that ends. The two transforms
+  share the choke point, the backfill, the collision
   grouping and `normalisation_skips`, so they are one unit: splitting them makes
   two passes over the same rows and gives one table two owning units, which is
   the ambiguity W4's card exists to avoid.
 - **Unblocks** W9's restore half (which must clear the state this unit owns),
-  and otherwise nothing directly, but it **gates C1**: the *Wire format*
+  and **W17's write-path routing ratchet**, which asserts a property of the
+  choke point this unit builds and therefore cannot be written first; otherwise
+  nothing directly, but it **gates C1**: the *Wire format*
   bucket's locally-created-NFD vector, pre-existing-row vector, collision,
   idempotence and derived-rebuild clauses are all its, as is the write-path
   clause in *Write-path invariants*.
@@ -604,26 +617,34 @@ deletion silently reverts".
 - **Produces** diceware generation over the EFF long wordlist; the client-side
   strength floor; the structural rule and the **normalisation applied before the
   HMAC** (trim → NFC → locale-independent lowercase), written **once** as the
-  shared definition W10 imports rather than reimplements, per contract 5; bearer
+  shared definition W10 imports rather than reimplements, per contract 5; the
+  **base64url credential encoding** applied unconditionally to every sync ID,
+  which is what makes a non-English ID transmissible at all — `dart:io` throws
+  `FormatException` on a raw non-Latin-1 header value, so the failure is a local
+  exception rather than a rejected request; bearer
   auth that never puts the ID in a URL; and status handling — `409` forces fresh
   attach, `422` is surfaced and **never retried**, `429` honours `Retry-After`.
 - **Unblocks** W6, W8, W13, and **W10 for the sync-ID normalisation definition
   only** (contract 5).
 - **Done when** the ID bound cases pass (one code point over rejected, at the
   bound accepted), a client/server `id_key` agreement test passes under
-  differing whitespace and Unicode form, **and a `302` to a foreign https host
-  is refused with no credentialed request issued**, as are a server presenting
-  an untrusted certificate, a `localhost`-prefixed public host such as
-  `localhost.example.com`, **and the loopback addresses `http://[::1]` and
-  `http://127.0.0.2`** (§9 *Client isolate and robustness*). Those last two are
-  separate cases on purpose: a prefix test and a loopback-*range* test are
-  different wrong implementations, and each passes the other's test. Certificate
-  verification MUST have no disable switch, and the loopback exemption MUST be
-  an exact host match — both are rules about who is on the other end of the
-  connection, which the scheme string does not constrain. The *standing* half of
-  the certificate rule — that no escape hatch is ever added — belongs to W17,
-  not here; this unit owns only the behaviour, which a debug flag defaulting to
-  off would satisfy.
+  differing whitespace and Unicode form, **a non-ASCII sync ID produces a
+  request that is actually issued** — asserted on the request, not on sync
+  succeeding, since the naive implementation throws before the socket is touched
+  — **and an all-ASCII ID and the base64url of that same ID resolve to two
+  different stores**, which is what pins the encoding as unconditional, **and a
+  `302` to a foreign https host is refused with no credentialed request
+  issued**, as are a server presenting an untrusted certificate, a
+  `localhost`-prefixed public host such as `localhost.example.com`, **and the
+  loopback addresses `http://[::1]` and `http://127.0.0.2`** (§9 *Client isolate
+  and robustness*). Those last two are separate cases on purpose: a prefix test
+  and a loopback-*range* test are different wrong implementations, and each
+  passes the other's test. Certificate verification MUST have no disable switch,
+  and the loopback exemption MUST be an exact host match — both are rules about
+  who is on the other end of the connection, which the scheme string does not
+  constrain. The *standing* half of the certificate rule — that no escape hatch
+  is ever added — belongs to W17, not here; this unit owns only the behaviour,
+  which a debug flag defaulting to off would satisfy.
 
 The strength floor is enforced here and **only** here. A server that re-runs it
 and is marginally stricter locks a user out of their own store, because the ID
@@ -634,8 +655,8 @@ and is marginally stricter locks a user out of their own store, because the ID
 - **Serves** §7.1, §5.1–§5.4 (server half), §8 (server half — the structural
   sync-ID rule and its `403`, and the prohibition on the server running its own
   strength estimator).
-- **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation definition
-  only** (contract 5).
+- **Inherits** W3 (schemas), and **W5 for the sync-ID normalisation and
+  credential-encoding definitions only** (contract 5).
 
   That second edge is narrow by design — it gates the `id_key` derivation and
   nothing else, so the rest of this unit still runs beside W5 from C1, exactly
@@ -648,7 +669,13 @@ and is marginally stricter locks a user out of their own store, because the ID
 - **Produces** the Dart + `shelf` service; `HMAC-SHA256(pepper, syncID)` storage
   keying with versioned peppers; the store, manifest and blob endpoints; strong
   quoted `ETag` equal to the manifest content hash, with `If-None-Match`;
-  permissive `Content-Type` handling; and **every limit enforced before
+  permissive `Content-Type` handling; **base64url credential decoding that
+  rejects malformed input with `401` rather than repairing it — never
+  `U+FFFD` substitution, which maps distinct IDs onto one store**; the
+  **failed-authentication limits, per-IP and server-wide**, the server-wide one
+  being what §8's enumeration bound actually rests on, scoped so that a
+  correctly-authenticated request still succeeds while it is saturated; and
+  **every limit enforced before
   allocation**, streaming-abort style.
 - **Unblocks** W11, W12, W16 — and, critically, **W6**.
 - **Done when** the loopback round trip at **C2** passes, and the
@@ -718,8 +745,16 @@ otherwise.
 - **Serves** the enforcement of §3.1's join rule, §6.5's **I1**/**I2**, and §5's
   ban on any certificate-validation escape hatch — the properties that are not
   behaviours of any one unit.
-- **Inherits** W0 (the soft-delete columns exist). Independent of everything
-  else, and can start the moment the ADR is accepted.
+- **Inherits** W0 (the soft-delete columns exist), and — **for the write-path
+  routing ratchet only** — W18, which builds the choke point that ratchet
+  asserts every write reaches. Independent of everything else, and its other
+  ratchets can start the moment the ADR is accepted.
+
+  The scope label is doing real work: without it this card would either
+  contradict itself — claiming independence while owning a gate that cannot be
+  written before W18 — or overstate the edge, parking W17's certificate and
+  single-definition scans behind a data migration they have nothing to do with.
+  Same shape as W9's *restore half only* and W10's *sync-ID rule only*.
 - **Produces** a CI ratchet enumerating every read that joins through to a
   soft-deletable parent and asserting the `deleted_at IS NULL` filter; a ratchet
   for I1/I2 over write paths; and a source scan asserting that no
@@ -729,8 +764,23 @@ otherwise.
   same comment-stripping as `app/test/data/settings_classification_test.dart`
   (`:64`–`:73`, `:85`–`:102`); and two **single-definition** source scans, one
   asserting that sync-ID normalisation (contract 5) exists once and is imported
-  by both W5 and W10, the other that `normalizeTitle` (contract 6) has exactly
-  one definition. **The fix for #1016 is inherited, not owed** — #1018 closed
+  by both W5 and W10, the other that `normalizeTitle` (contract 6) is the only
+  title-normalising definition in the tree **and that every sync call site
+  reaches it by import** — counting declarations of the name `normalizeTitle`
+  is not sufficient and MUST NOT be what the scan asserts. A second
+  implementation is introduced under a *different* name, so a copy called
+  `_normalizeTitleForSync` leaves the count at one and the scan green while
+  contract 6 is broken; that is the state the scan exists to detect, and the
+  name-counting form cannot fail in it. Scan for the behaviour — additional
+  definitions performing title normalisation, and call sites reaching one
+  without importing the shared definition — on the same footing as the
+  contract-5 scan beside it, which already binds the call path rather than the
+  name. **W18's write-path routing ratchet is also W17's** once written: it
+  asserts that every path populating a `shareable` string routes through the
+  normalisation choke point, which is a standing property over write paths that
+  do not exist yet, and W18 closes when its backfill completes. W18 writes it;
+  W17 owns it and keeps asserting it. **The fix for #1016 is inherited, not
+  owed** — #1018 closed
   the instance on `main`, leaving W17 the class.
 - **Unblocks** nothing — no unit must wait for it.
 
@@ -848,6 +898,12 @@ the programme and the only one that can block a release on its own.
   the other's remote side. The inbound-apply half of *Classification* is also
   W6's: apply preserves `deviceLocal` columns, rejects present non-shareable
   keys by their **wire** spelling, and refuses a peer's `deviceScoped` setting.
+  **Both spec-only egress classes are covered by that half**: a peer-supplied
+  `sync_device_id` (`protocolIdentifier`) and a peer-supplied `sync_id`
+  (`accessControlData`) are never applied from a received record or envelope.
+  Their non-adoption vectors are **receive-only**, which is why they need naming
+  here — the send side never emits either value, so every serialisation test in
+  the suite passes against an implementation that adopts both.
   The isolate half of *Client isolate and robustness* lands here too — a
   malformed date rejects one record without aborting the batch or escaping the
   isolate; **an interrupted pass leaves no partial apply**, which is §6.7's
@@ -855,7 +911,17 @@ the programme and the only one that can block a release on its own.
   failed pass leaves local data untouched, since a failure between steps 7 and 8
   keeps the applied content and leaves the baseline unadvanced; and **a blob
   `GET` returning `404` skips and reports the record and leaves the baseline
-  unadvanced** rather than deleting it (§6.3 step 6).
+  unadvanced** rather than deleting it (§6.3 step 6), **and a blob whose
+  envelope declares a different `(kind, id)` than the manifest entry it was
+  fetched under is skipped and reported rather than applied under either
+  identity** — the hash still verifies in that case, so no content-addressing
+  test distinguishes it. The *Existence* bucket's **general baseline-absence
+  guard** is green here too: a record absent from this device's baseline does
+  not have its existence decided by a bare `existenceAt` comparison on any path
+  reaching §6.4, settings included. The mutation is to place the guard only on
+  §6.6's UUID-collision path, which §6.6 explicitly excludes settings from — so
+  every dance, tag and choreographer test passes while a settings existence
+  decision is unguarded.
 
 I1 and I2 are normative constraints on *every* new write path in the app, not
 just sync's. I1 is easy to violate innocently, because a record's serialised
@@ -909,7 +975,12 @@ content conflict for W6's table rather than a reconciliation for this unit.
   union and silent merge; an equal-`updatedAt` fresh-attach tie reported rather
   than swallowed *and* reported again on the next steady pass; referential
   closure across a pending hold; the three-peer case of deleter, pending holder
-  and stale peer.
+  and stale peer. It is also green on the *Existence* bucket's **fresh-attach
+  exclusion** — a tombstone reached at attach applies rather than being held
+  back by the baseline-absence guard, which at attach has no baseline to
+  consult and would otherwise degenerate into *never apply a tombstone*, the
+  resurrection defect §6.2 step 5 was rewritten to remove. The mutation is to
+  apply the guard uniformly, which passes every steady-state existence test.
 
 Dedupe compares by reference to the shipped `normalizeTitle`, never a
 reimplementation. A second definition that agrees on lowercase ASCII and
@@ -971,7 +1042,13 @@ the wire.
 - **Unblocks** W16.
 - **Done when** the §9 *Server* bucket is green, including the mutation that
   applies the age bound to `DELETE` — under which the user's only immediate
-  remedy for a full store silently does nothing.
+  remedy for a full store silently does nothing — **and the log vectors: no
+  line contains a raw `{deviceId}`, and any log recording one carries a stated
+  retention bound** (§7.3). That clause is easy to lose because the identifier
+  travels in a request *path*, so the body-logging vector passes while it leaks
+  by default through ordinary access logging, and §7.3's own reaping never
+  reaches a log file. §3.3's `protocolIdentifier` rule 4 states the same
+  obligation for the same value.
 
 #### W16 · Operational readiness
 
@@ -992,7 +1069,12 @@ the wire.
   deployment is refused — never redirected, never proxied**; **the per-IP limit
   is shown to separate two clients arriving through the proxy from different
   addresses**, which is the only check that distinguishes a working limiter from
-  one counting `127.0.0.1`; and each of the four operational prerequisites has
+  one counting `127.0.0.1`; **and a run of guesses bearing a different forwarded
+  address on each request is still throttled**, which is the half that matters
+  for §8 — a deployment trusting the header unconditionally passes the
+  two-honest-clients check and buys an attacker unlimited attempts against the
+  entropy floor, so testing only the first mutation gates the capacity property
+  and not the security one; and each of the four operational prerequisites has
   been *exercised*, not merely written:
   - **Alerting** — a synthetic quota exhaustion and a synthetic GC failure each
     raise an alert that reaches a human, demonstrated on the running deployment.
@@ -1059,6 +1141,7 @@ graph LR
   W0 --> W17
   W1 --> W18[W18 NFC across<br/>write paths]
   W18 -.restore half.-> W9
+  W18 -.routing ratchet.-> W17
 ```
 
 **The graph is a reading aid, not the authoritative edge list.** It omits edges
@@ -1254,7 +1337,14 @@ theoretical one.
 - **W18 and every unit that writes a `shareable` string.** W18's ratchet asserts
   new write paths normalise. Any unit that adds a write path after W18 lands
   inherits that obligation, and any that lands *first* will need revisiting —
-  the same standing-property problem W17 exists for.
+  the same standing-property problem W17 exists for. **So the ratchet itself
+  belongs to W17, not to W18**, and is assigned there: W18 closes once the
+  backfill has run and its rows are normalised, while the obligation it creates
+  outlives it and constrains every write path built afterwards. Leaving a
+  standing property with a unit that closes is exactly the gap W17 was created
+  to remove, and this document had named the hazard here without acting on it.
+  W18 still *writes* the scan — it is the unit with the context — but W17 owns
+  it thereafter and it is W17's gate that keeps asserting it.
 - **Any unit adding a `shareable` field while the server is unreleased** trips
   S3 and produces `422` for real users.
 - **`app/CHANGELOG.md`.** Two individually mergeable PRs editing the same
@@ -1310,10 +1400,10 @@ buckets. Ownership is now explicit:
 
 | §9 bucket | Owning unit(s) |
 | --- | --- |
-| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) |
+| Wire format | W1 + **W18** (every normalisation clause: both form vectors, the collision, idempotence and derived-rebuild clauses) + **W5** (the client half of the base64url credential encoding, including the unconditional-encoding vector) + **W10** (the server half — decode, and `401` on malformed input) |
 | Cross-kind identity | **W1** (the manifest's kind nesting) + **W4** (the baseline's `kind` column) + **W6** (the merge keeping two same-id records of different kinds apart) |
 | Merge | W6 |
-| Existence | W6 |
+| Existence | W6 (the general baseline-absence guard on §6.4) + **W8** (the fresh-attach exclusion, which is §6.2's clause and cannot be asserted by a unit that never attaches) |
 | Soft-delete join coverage | **W17** |
 | Write-path invariants | **W17** (I1, I2 and I1's exception) + **W18** (the write-path normalisation and sanitisation clauses, and the inbound no-op vector) |
 | Classification | W2 (registry property test, including the allow-list bijection) + W6 (inbound apply) |
@@ -1322,7 +1412,7 @@ buckets. Ownership is now explicit:
 | Quarantine and repair | W9 |
 | Deletion | W7 |
 | Attach and restore | W8 (attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, and the `{deviceId}`/`{hash}` format clauses) + **W12** (the `DELETE` grace-window clause and the no-logging clause) + **W16** (the plaintext-refusal clause and the per-IP-rate-limit clause, both checked against the running configuration) |
+| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, and the saturated-limit clause — a valid credential still succeeds while the server-wide failure limit is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause and the rate-limit clauses, both checked against the running configuration) |
 | User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses and the partial-venue hint) |
 | Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
 

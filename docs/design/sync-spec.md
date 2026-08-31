@@ -291,8 +291,9 @@ by any route, and this one rides an `Authorization` header on every request. It
 is not `protocolIdentifier` either, and the distinction is the reason the sixth
 member exists rather than a second tenant of the fifth: rule 1 of that class
 requires the value be derived from nothing and carry no user data by
-construction, while §8 permits a **user-chosen** sync ID of one to thirty-two
-arbitrary code points. A user-chosen ID can carry personal content, so
+construction, while §8 permits a **user-chosen** sync ID of four words, each one
+to thirty-two code points and otherwise unrestricted apart from whitespace,
+control characters and `U+002D`. A user-chosen ID can carry personal content, so
 classifying it as a protocol identifier would weaken the guarantee for
 `sync_device_id`, which is the value that class exists to protect. An
 `accessControlData` value MUST:
@@ -303,7 +304,7 @@ classifying it as a protocol identifier would weaken the guarantee for
    is entered or generated locally and only ever read from local storage;
 3. never be durably recorded by the server, or by any proxy in front of it, in a
    form from which the value can be recovered — only an irreversible derivation
-   may be stored (§7.1 requires `HMAC-SHA256(pepper, syncID)`);
+   may be stored (§5.1 requires `HMAC-SHA256(pepper, syncID)`);
 4. never be written to any log, including request and access logs (§7.3, and
    proxy requirement 4); and
 5. be transmitted only to the configured endpoint's own origin, and never
@@ -1129,7 +1130,7 @@ which is what keeps editor-draft churn from accruing unbounded tombstones.
   "deviceId": "b31f...",
   "epoch": "9c4a...",
   "writtenAt": "2026-08-03T04:11:22.000Z",
-    "records": {
+  "records": {
     "dance": {
       "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11": "e3b0c442..."
     },
@@ -1334,7 +1335,38 @@ same total, unrecoverable disclosure that a plaintext request would be.
 ### 5.1 Authentication
 
 The sync ID travels in the `Authorization` request header using the `Bearer`
-scheme, with the sync ID as the credential. It MUST NOT appear in a URL.
+scheme. It MUST NOT appear in a URL.
+
+**The sync ID is not the credential; its encoding is.** RFC 6750's `b64token`
+grammar is ASCII-only, and §8 deliberately permits arbitrary code points in a
+word, so the identifier and the transport disagree by construction. This is not
+a mangling risk that degrades gracefully: `dart:io` raises `FormatException:
+Invalid HTTP header field value` when a header value carries a non-Latin-1 code
+unit, so a client sending a non-English ID **throws before the request is
+issued**. The user cannot sync at all, and the failure is local, so no server
+log records it.
+
+A client MUST therefore send, as the credential, the **base64url encoding
+(RFC 4648 §5, padding omitted) of the UTF-8 bytes of the §8-normalised sync
+ID**. A server MUST base64url-decode the credential, decode those bytes as
+UTF-8, normalise per §8, and derive the storage key from the result. A
+credential that is not valid base64url, or whose bytes are not well-formed
+UTF-8, MUST be rejected with `401` — never repaired, and in particular never
+decoded with `U+FFFD` substitution, which would map distinct IDs onto one store
+by the mechanism §4.1 rejects for record content.
+
+**The encoding MUST be unconditional — applied to every sync ID, ASCII or
+not.** Encoding only when a character requires it makes the credential
+ambiguous: the server receiving `Y2FmZQ` cannot tell the encoding of `cafe`
+from the literal ASCII ID `Y2FmZQ`, and either reading is a legal ID under §8.
+Whichever way it guesses, some pair of users share a store or one user's ID
+resolves to two — the same one-typed-ID-two-stores failure this section already
+warns about, arriving through a different door.
+
+Because the encoding is applied *after* normalisation and unwound *before* the
+HMAC, the storage key is a function of the normalised ID alone. The encoding
+changes what travels, not what anything is stored under, so §8's normalisation
+rules and contract 5's single shared definition continue to govern unchanged.
 
 The server MUST derive a storage key as `HMAC-SHA256(pepper, syncID)` and MUST
 NOT persist the plaintext sync ID. The sync ID is normalised first, exactly as
@@ -1490,7 +1522,34 @@ Every limit MUST be enforced before allocation, streaming-abort style.
 | Hashes per `POST /v1/blobs/missing` request | 10,000 |
 | JSON parse depth | 32 |
 | Decompressed size of a `Content-Encoding: gzip` body (§4) | 10× compressed, cap 32 MB |
-| Request rate | per-IP and per-store |
+| Request rate, per client IP | 60/minute, burst 120 |
+| Request rate, per store (`id_key`) | 600/minute |
+| **Failed** authentications, per client IP | 10/minute, burst 20 |
+| **Failed** authentications, server-wide | 1,000/minute |
+
+The request-rate rows bound load. **The failed-authentication rows are the ones
+§8's enumeration bound rests on**, and the server-wide row is the load-bearing
+one: a per-IP limit alone is defeated by distributing the guessing, which is
+exactly what an attacker enumerating sync IDs would do. At 1,000 failures per
+minute the whole internet gets ~2²⁹ guesses a year against §8's 2⁴⁰ floor —
+about one in two thousand odds of finding *any* store, shared across all
+attackers at once — and ~2⁻²³ against the 2⁵² a generated ID carries. Without a
+server-wide row the arithmetic has no bound to state, because the attacker
+chooses the number of IPs.
+
+These specific values are my choice, not a derivation from anything in the
+design; what is derived is the *shape* — that the limit which matters counts
+failures rather than requests, and is global rather than per-IP. An operator may
+tune the numbers, but §8's bound is only as strong as the server-wide failure
+limit, so lowering that row is a security change and not a capacity one.
+
+A server-wide failure limit would be a denial-of-service vector if it could
+lock out honest users, so it MUST be scoped to requests that *fail*: while it is
+saturated the server MUST continue to serve correctly-authenticated requests
+normally, and reject only those that would have produced `401` anyway. A user
+holding a valid sync ID is therefore never affected by another party's guessing,
+and a user mistyping an ID sees a `429` instead of a `401` — a worse message for
+the same outcome.
 
 ## 6. Client conformance
 
@@ -1501,8 +1560,12 @@ An unconfigured app MUST make no sync-related network call. It gets its own
 top-level Settings blade.
 
 Every settings key Device Sync introduces is `deviceScoped` and MUST NOT sync,
-with one exception: `sync_device_id` is `protocolIdentifier` (§3.3). It travels
-on every request and MUST NEVER be applied from a peer.
+with two exceptions: `sync_device_id` is `protocolIdentifier` and `sync_id` is
+`accessControlData` (§3.3). Both travel on every request and MUST NEVER be
+applied from a peer. Neither exception widens what a *record* may carry: both
+are forbidden from every blob, and a blanket rule that omitted them would
+classify the bearer credential as never-transmittable while the protocol
+requires it on every request.
 
 **`sync_exclude_imports`** is one of those keys: a per-device toggle, default
 **off**, which trims what this installation publishes. It is `deviceScoped`
@@ -1548,20 +1611,23 @@ republishes, which is an ordinary upload and needs no special path.
    from "deleted". An **explicit tombstone is not absence** — it is evidence,
    and existence disagreements resolve per §6.4 here exactly as in steady state,
    so a tombstone with the greater `existenceAt` MUST be applied and that
-   application is a deletion. Earlier drafts said "no deletion occurs during a
-   fresh attach", which contradicted §6.4's "on any path" and would license an
-   implementation that discards valid tombstones on every attach — resurrecting,
-   on the device that attached, every record any peer had deleted. Where two
-   peers advertise the same id with different content, the higher `updatedAt`
-   wins. Where the two `updatedAt` values are **equal** and the bodies differ,
-   §6.3's tie treatment applies here too: neither body wins, the local one is
-   left in place, and the divergence MUST be reported. Step 6 then persists that
-   local body's hash as the baseline, so the record presents as `same`/`changed`
-   on every later pass and carries §6.3's reporting duty from then on. What a
-   fresh attach MUST NOT do is apply one body over the other silently. The two
-   devices do not converge either way — that is why this sits in §10 — so the
-   report is the whole of the requirement, and suppressing it is the whole of
-   the harm.
+   application is a deletion — with the single exception that §6.4's
+   baseline-absence guard MUST NOT fire here, because with no baseline every
+   record would satisfy it and no tombstone could ever be applied. §6.4 states
+   why that exclusion is the right trade. Earlier drafts said "no deletion
+   occurs during a fresh attach", which contradicted §6.4's "on any path" and
+   would license an implementation that discards valid tombstones on every
+   attach — resurrecting, on the device that attached, every record any peer had
+   deleted. Where two peers advertise the same id with different content, the
+   higher `updatedAt` wins. Where the two `updatedAt` values are **equal** and
+   the bodies differ, §6.3's tie treatment applies here too: neither body wins,
+   the local one is left in place, and the divergence MUST be reported. Step 6
+   then persists that local body's hash as the baseline, so the record presents
+   as `same`/`changed` on every later pass and carries §6.3's reporting duty
+   from then on. What a fresh attach MUST NOT do is apply one body over the
+   other silently. The two devices do not converge either way — that is why this
+   sits in §10 — so the report is the whole of the requirement, and suppressing
+   it is the whole of the harm.
 6. Persist the epoch and the resulting manifest as the new baseline. Quarantine
    and repair run **after** this, never during the union.
 7. **Immediately run one steady-state pass (§6.3).** Attach itself publishes
@@ -1642,7 +1708,20 @@ republishes, which is an ordinary upload and needs no special path.
    With N peers, evaluate against all and take the newest `updatedAt`.
 5. `POST /v1/blobs/missing`; `PUT` only what is missing.
 6. `GET /v1/blobs/{hash}` for each needed hash. The client MUST verify the hash
-   before applying. A `404` here MUST be treated as an **unresolved reference**
+   before applying, and MUST verify that the decoded envelope's `kind` and `id`
+   are exactly the pair the fetched manifest entry was filed under (§4.5).
+   A blob whose envelope declares a different identity MUST be skipped and
+   reported, never applied under either identity. Hash verification alone does
+   not establish this: the hash proves the bytes are the bytes that were
+   uploaded, and says nothing about *which* record the manifest claimed they
+   were. A manifest is peer-supplied, and §9 of the ADR makes two people
+   sharing one sync ID an accepted configuration, so a manifest that files
+   record `Y`'s blob under record `X` is reachable without positing a hostile
+   peer at all — a partially-applied restore is enough. Applying it under the
+   manifest's identity stores one record's body under another's id; applying it
+   under the envelope's identity mutates a record the manifest never named while
+   step 9 advances the baseline for the one it did.
+   A `404` here MUST be treated as an **unresolved reference**
    — skip the record and report it (§6.7) — and MUST NOT be treated as a
    deletion, since absence never deletes (§6.8) and the peer's manifest still
    asserts the record exists. The record MUST NOT advance in the baseline, so
@@ -1674,6 +1753,42 @@ When two copies disagree about whether a record exists, **the greater
 `existenceAt` wins**, and its `deletedAt` says which state that is. Equal values
 resolve to the tombstone. `updatedAt` MUST NOT participate in this decision, on
 any path.
+
+**A record this device created and no peer has seen MUST NOT be resolved out of
+existence silently, on any path that reaches this rule.** Where the comparison
+above would resolve a local row to non-existence and that row is **absent from
+this device's baseline** — created here, never observed on any peer manifest —
+the resolution MUST be reported rather than applied, on the same terms as
+§6.3's equal-`updatedAt` divergence. Report and leave the local row in place; do
+not invent a tie-break. §6.6 step 2 states the same obligation for the
+natural-key collision path, which reaches non-existence without consulting this
+comparison at all; both paths need it, and neither subsumes the other.
+
+**The guard does not apply during a fresh attach (§6.2 step 5), and that is a
+deliberate exclusion rather than an oversight.** Its discriminator is the
+baseline, and an attach has no baseline — so every record would satisfy the
+condition, the guard would degenerate into "never apply a tombstone", and that
+is precisely the resurrection defect §6.2 step 5 was rewritten to remove. The
+trade is stated rather than hidden: at fresh attach a valid tombstone is applied
+even though the losing local row may be an unconfirmed local creation, because
+the failure it avoids is unbounded — every record any peer ever deleted, coming
+back on every attach — while the one it accepts is bounded to rows whose
+creation stamp lost to a tombstone inside §6.9's window. Fresh attach's own
+protection is different in kind and is stated where it belongs: absence never
+deletes, and only an explicit tombstone is evidence.
+
+The guard is needed because **creation is the one existence *write* exempt from
+the causal floor**: §6.4's stamping table seeds `existenceAt` from the plain
+clock, there being no prior value to supersede. Every existence *decision* that
+consumes such a stamp therefore needs the guard, whatever kind it is deciding
+about and whichever section routes it. Settings make this concrete and are the
+easiest case to hit rather than an exotic one: a settings record's id *is* its
+natural key (§4.4), so §6.6 routes settings here explicitly, and no UUID
+collision is required to reach the loss. A device whose clock is behind sets a
+shareable key for the first time, stamps it below a tombstone a
+correctly-clocked peer wrote earlier in real time, and — both stamps sitting
+inside §6.9's window, so nothing is quarantined — the just-set preference
+reverts with nothing reported.
 
 An implementation MUST NOT assume `existenceAt == deletedAt` on a tombstone.
 The two are related only in that a tombstone carries both: a deletion stamps
@@ -1849,9 +1964,12 @@ here, never observed on any peer manifest — the resolution MUST be reported
 rather than applied, on the same terms as §6.3's equal-`updatedAt` divergence.
 Report and leave the local row in place; do not invent a tie-break.
 
-This is the one existence decision that needs it, because creation is the one
-existence write exempt from the causal floor: §6.4's stamping table seeds
-`existenceAt` from the plain clock, there being no prior value to supersede. A
+This is not the only existence decision that needs it. Creation is the one
+existence *write* exempt from the causal floor — §6.4's stamping table seeds
+`existenceAt` from the plain clock, there being no prior value to supersede — so
+every decision that consumes such a stamp needs the guard, including the
+`existenceAt` comparison in §6.4 that this section routes settings to. §6.4
+states the same obligation for that path. A
 device whose clock is behind therefore stamps a record it creates *now* below a
 tombstone a correctly-clocked peer stamped **earlier** in real time, for a
 different UUID on the same natural key. Nothing else catches it. Both values
@@ -2610,19 +2728,31 @@ disclosed. A peer can write any `shareable` record; it cannot write
 independently of the server.
 
 **Enumeration.** Guessing is bounded by the entropy floor stated at the top of
-this section, by the **per-IP** rate limit, and by the global cap on store
-creation. The **per-ID-hash** limit is not part of this: a guesser submits a
-different ID on every attempt, so it never sees the same `id_key` twice and that
-limiter never engages. It bounds abuse of a store the attacker already has the
-ID for, which is a different thing. The conclusion is unchanged at 2⁴⁰–2⁵² —
-this corrects which control is doing the work, so that weakening the wrong one
-later reads as safe when it is not.
+this section, by the **server-wide failed-authentication limit** (§5.4), and by
+the global cap on store creation. The per-IP limits matter but are not what the
+bound rests on: an attacker enumerating sync IDs distributes the attempt, and
+chooses how many addresses to distribute it across, so any per-IP figure
+multiplies by a number the defender does not control. Only a server-wide limit
+on *failures* yields an arithmetic bound — ~2²⁹ guesses a year against a 2⁴⁰
+floor, ~2⁻²³ against the 2⁵² a generated ID carries. The **per-ID-hash** limit
+is not part of this either: a guesser submits a different ID on every attempt,
+so it never sees the same `id_key` twice and that limiter never engages. It
+bounds abuse of a store the attacker already has the ID for, which is a
+different thing. The conclusion is unchanged at 2⁴⁰–2⁵² — this corrects which
+control is doing the work, so that weakening the wrong one later reads as safe
+when it is not.
 
-That the load-bearing control is the *per-IP* limit is exactly why §7.5
-requirement 6 exists. The reference deployment terminates TLS at a proxy and
+The per-IP limit still has a job, and §7.5 requirement 6 still exists for it:
+it stops a single actor consuming the whole server-wide failure budget, which
+is what keeps that budget a bound on *guessing* rather than a bound on how fast
+one attacker can deny the limit to everyone else. Both are required; they fail
+differently.
+
+The reference deployment terminates TLS at a proxy and
 binds the server to loopback, so the server's socket peer is `127.0.0.1` on
 every request from every user in the world. A limiter keyed on it is a single
-global bucket, and this paragraph's bound would be resting on a control that
+global bucket, and the per-IP half of this section's argument would be resting
+on a control that
 has no per-client meaning at all — while still appearing configured, firing and
 correct. The deployment topology deletes the control silently, so the control
 must be specified against the topology rather than against the socket.
@@ -2718,7 +2848,15 @@ nothing else reads it, so the generic pre-check never performs the owed
 rebuild). **A crash between a *retry* write and its rebuild leaves search
 matching that row** (mutation: set the rebuild-owed flag only on the one-time
 pass — retry writes the repaired row, dies before the rebuild, and its next
-rescan finds nothing to write and is forbidden from rebuilding).
+rescan finds nothing to write and is forbidden from rebuilding). **A sync ID
+containing non-ASCII code points produces a request that is actually issued, and
+its `Authorization` credential is the base64url of the normalised UTF-8 bytes**
+(mutations: send the raw ID — on `dart:io` the client throws
+`FormatException` before the socket is touched, so the test must assert a
+request was *issued*, not merely that sync failed; encode only when a character
+requires it, then assert an all-ASCII ID and the base64url of that same ID
+resolve to two different stores, which is the ambiguity the unconditional rule
+exists to remove).
 **Reclassifying a column out of `shareable` and back in re-runs the pass**
 (mutation: test the live set for containment in the recorded set rather than
 inequality — the removal contracts nothing, so the re-entry is contained and
@@ -2785,7 +2923,12 @@ share one id round-trips both, and both survive a full pass on a second device
 passes, because the collision needs two kinds and the fixtures generate distinct
 UUIDs; build the fixture by restoring an archive that sets the two ids equal,
 which `archive_service.dart:202` permits). The baseline keeps the two apart on
-the same terms.
+the same terms. **A blob whose envelope declares a different `(kind, id)` than
+the manifest entry it was fetched under is skipped and reported, never applied
+under either identity** (mutation: verify the hash and apply — the hash still
+matches, because it is the hash of the bytes that were uploaded and says nothing
+about which record the manifest filed them under, so every content-addressing
+test passes while one record's body lands under another's id).
 
 **Merge.** Every row of the table, both directions. A stale peer does not roll
 back newer data (mutation: remove the `updatedAt` comparison). Equal `updatedAt`
@@ -2815,6 +2958,21 @@ strength of its having won existence** — three peers where the greatest
 the persisted body is the `updatedAt` winner's (mutation: adopt the existence
 winner's body, which §6.4 notes is the ordinary case rather than the exotic one
 once there are three or more peers, and so silently discards the newer edit).
+**A locally-created record that no peer has observed is not resolved out of
+existence silently, on the §6.4 path as well as the §6.6 one** — build it with a
+**settings key**, whose id *is* its natural key, so §6.6 routes it to §6.4 and
+no UUID collision is involved: a device whose clock is behind sets a shareable
+key for the first time while a correctly-clocked peer holds a tombstone for it
+stamped later in real time but greater in value, both inside §6.9's window.
+Assert the resolution is reported and the local row survives (mutation: place
+the guard only in §6.6 step 2 — every natural-key test still passes, and the
+settings case, which is the easiest of the four to hit, reverts silently).
+**At a fresh attach the guard does not fire: a peer tombstone with the greater
+`existenceAt` is applied even though no baseline exists** (mutation: let the
+guard run at attach — with no baseline every record satisfies its condition, so
+nothing is ever deleted and the device resurrects everything its peers removed,
+which the existing fresh-attach vector above catches only for the records it
+happens to seed).
 
 **Soft-delete join coverage.** §3.1's rule that every read joining through to a
 soft-deletable parent filters `parent.deleted_at IS NULL` MUST be enforced by a
@@ -3061,7 +3219,17 @@ loopback proxy are limited separately, and a client-IP header arriving from a
 unconditionally, then assert that 1,000 guesses bearing 1,000 distinct forwarded
 addresses are still throttled — the socket-peer mutation is the complementary
 one, and is caught by asserting two honest clients are *not* throttled
-together).
+together). **No log line contains a raw `{deviceId}`, and any log that records
+one carries a stated retention bound** (mutation: log the request path
+verbatim — the body-logging vector above still passes, because the identifier is
+in the path and never in a body, and §7.3's own reaping never reaches it). **A
+credential that is not valid base64url, or whose bytes are not well-formed
+UTF-8, is rejected `401`** (mutation: decode with `U+FFFD` substitution, then
+assert two distinct sync IDs differing only in an invalid byte do not resolve to
+one store). **While the server-wide failure limit is saturated, a
+correctly-authenticated request still succeeds** (mutation: apply the limit to
+all requests, which converts a guessing bound into a total outage any attacker
+can trigger).
 
 **User-visible sync obligations.** With `sync_exclude_imports` on, an imported
 dance that no published record cites is absent from this device's manifest,
@@ -3165,6 +3333,27 @@ The following are recorded as known and are not specified here:
 - Equal `updatedAt` with differing bodies does not converge (§6.2 step 5, §6.3).
   The divergence is reported bilaterally rather than resolved, because every
   available tie-break is non-convergent.
+- **The baseline-absence guard diverges by design** (§6.4, §6.6 step 2). Where
+  it fires, the creating device reports and keeps its row while the deleting
+  device applies its own tombstone and reports nothing, so the two hold
+  different states permanently until a human acts. That is the intended trade —
+  a reported divergence in place of a silent loss — and it is structurally the
+  same accepted case as the equal-`updatedAt` entry above.
+- **The guard's window can close before the competing tombstone arrives.** Its
+  condition is absence from *this device's* baseline, and the baseline advances
+  as soon as any peer is observed carrying the record's hash (§6.3 step 9). A
+  third device that merely holds the record *live* therefore discharges the
+  condition while establishing nothing about the deletion, and a peer holding
+  the competing tombstone that syncs afterwards is resolved silently — the
+  original defect, one pass later, in a three-or-more-device topology. The
+  narrower conditions that would close it are not available from the structures
+  this design has: the baseline stores a content hash, not whether the peer
+  carrying it held the record live or deleted. Closing it properly means
+  flooring creation against a per-device monotonic high-water mark — a hybrid
+  logical clock in all but name, which is a larger change than this deferral
+  and belongs to whoever revisits §6.4's stamping table. Recorded rather than
+  quietly scoped around: the guard covers the two-device case and the first pass
+  of the general one, and does not cover this.
 - Pepper rotation is impossible for inactive stores as specified.
 - The `T₀` backfill is per-device and can resurrect some pre-migration
   deletions; accepted for beta.

@@ -3578,7 +3578,7 @@ client's cryptography is therefore unchanged from what the app ships today.
 | Method | Path | Purpose |
 | --- | --- | --- |
 | `GET` | `/v1/store` | Store metadata: epoch, device list, quota usage. Creates the store if absent. |
-| `DELETE` | `/v1/store` | Detach-and-wipe. Deletes everything under the sync ID. |
+| `DELETE` | `/v1/store` | Wipe store (destructive). Not what detach does. |
 | `GET` | `/v1/manifests/{deviceId}` | Fetch one device's manifest. `ETag` / `If-None-Match`. |
 | `PUT` | `/v1/manifests/{deviceId}` | Publish this device's manifest. |
 | `GET` | `/v1/blobs/{hash}` | Fetch one blob. Immutable; long `Cache-Control`. |
@@ -5748,6 +5748,104 @@ The picture carries one arrow that is deliberately not a dependency,
 W6 starts, and the legend now says so; the previous round's description of
 dotted arrows as narrow *dependencies* was written without checking all three
 against it.
+
+#### A fix and the clause that places it are two different artefacts
+
+The baseline-absence guard added in this round was correct, and the reasoning
+printed beside it was correct. What was wrong was the sentence justifying
+**where** it went. §6.6 introduced it with "this is the one existence decision
+that needs it, because creation is the one existence write exempt from the
+causal floor". The second half is true of every record kind. The first half is
+false, and false *because* §6.6 opens by excluding settings from its own scope
+— so the clause contained its own refutation two sentences apart.
+
+Settings existence therefore routed to §6.4, which had no guard at all. That is
+not an exotic corner: §4.4 makes a settings key its own record id, so reaching
+it needs no UUID collision, no third device and no clock skew. It is the
+*easiest* path to the defect, not the hardest.
+
+This design has already recorded that an elaboration can be wrong where the
+decision is right. A scoping clause is the sharper case, because it is not
+elaboration: it decides which callers the rule reaches, which makes it
+executable text. It gets written last, in the register of a summary, and it is
+read as a restatement of the fix rather than as new work. The check is to take
+the scoping sentence alone, enumerate the paths that reach the rule, and
+confirm each is either covered or deliberately excluded.
+
+#### The fix for one finding created the next one, one section away
+
+Placing that guard on §6.4 was right, and it would have broken fresh attach.
+§6.2 step 5 routes attach-time existence decisions through §6.4, and an
+attaching device has **no baseline** — so the guard's condition holds for every
+record and the rule degenerates into *never apply a tombstone*. That is
+precisely the resurrection defect §6.2 step 5 had already been rewritten to
+remove.
+
+No review said so. It surfaced from the only question that finds this class:
+**which callers reach the rule I just changed, and what is true of them that
+was not true of the caller I had in mind?** The answer named the one caller for
+which the guard's premise is vacuous.
+
+Both halves are now explicit — the exclusion in §6.4 and the matching clause in
+§6.2 step 5 — with the trade stated rather than implied: unbounded resurrection
+is refused, bounded loss is accepted.
+
+#### A scan that counts a name cannot fail in the state it detects
+
+The plan's contract-6 scan asserted that `normalizeTitle` "has exactly one
+definition". The drift it exists to catch arrives as a **second implementation
+under a different name** — `_normalizeTitleForSync` — at which point the number
+of definitions called `normalizeTitle` is still one and the scan is still
+green. It is green in exactly the state it was written to detect.
+
+The contract-5 scan beside it does not have this defect: it binds the *call
+path*, asserting every sync call site reaches the shared definition by import.
+The two were written in the same commit and only one got the property, which is
+the useful detail — proximity to a correct example is not inheritance of it.
+
+The scan now asserts that `normalizeTitle` is the only title-normalising
+definition **and** that every sync call site reaches it, and it forbids the
+name-counting form explicitly. The repository-wide rule is already *prove a
+guard test can fail*; the specific trap is that a name is the easiest thing to
+count and almost never the property being relied on.
+
+#### "Encode only when necessary" makes the receiver guess
+
+§8 permits sync IDs containing code points that cannot travel as a bearer
+credential: RFC 6750's `b64token` grammar is ASCII-only, and `dart:io` raises
+before the socket is touched rather than sending them. The ruling was to keep
+non-ASCII IDs and encode the credential as base64url of the normalised UTF-8
+bytes.
+
+The part the ruling did not have to state, and the part that makes it work, is
+that the encoding is **unconditional**. A server receiving `Y2FmZQ` under a
+conditional rule cannot distinguish the encoding of `cafe` from the literal
+ASCII ID `Y2FmZQ`, and both are legal under §8. Either guess makes some pair of
+users share a store or splits one user across two — the one-typed-ID-two-stores
+failure §5.1 already exists to warn about.
+
+The general form: a transform applied "only when needed" moves the question of
+whether it was applied onto the receiver, who has strictly less information
+than the sender. Where the receiver cannot recover that bit, the transform must
+be total. The cost is one wire format nobody can read by eye; the alternative
+is a silent, permanent partition of two users' data.
+
+#### A grep that finds nothing is an exclusion, and needs its population
+
+The `DELETE /v1/store` row in this document was the fourth statement of a claim
+the other three documents had already corrected — and the commit that fixed the
+third asserted that a grep had found no other instance. That assertion was
+wrong. It is the sixth false absence in this review's history, and the panel
+disclosed one of its own in the same round: a "remote untouched" claim derived
+from an unpaginated `gh` listing.
+
+The rule is already written down here — an exclusion is checkable only against
+its population, so a scan reporting zero must first be run against a case known
+to be present. What was missing is that a cross-document claim sweep *has* a
+population, namely the set of documents, and it has an obvious positive
+control: run the pattern against the line you are about to fix and watch it
+match. If it does not match, the pattern is wrong and the zero everywhere else
+means nothing.
 
 ## Open questions
 
