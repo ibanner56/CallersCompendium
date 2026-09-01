@@ -14,7 +14,7 @@ SYNC_WORKFLOW = ROOT / ".github" / "workflows" / "device-sync-tracking.yml"
 
 def job(workflow: str, job_id: str) -> str:
     match = re.search(
-        rf"^  {re.escape(job_id)}:\n(?P<body>.*?)(?=^  [a-z][a-z0-9-]*:\n|\Z)",
+        rf"^  {re.escape(job_id)}:\n(?P<body>.*?)(?=^  [a-z][a-z0-9_-]*:\n|\Z)",
         workflow,
         flags=re.MULTILINE | re.DOTALL,
     )
@@ -30,6 +30,19 @@ def trigger(workflow: str, event: str) -> str:
     )
     assert match, f"missing {event} trigger"
     return match.group(0)
+
+
+def test_job_stops_at_underscore_job_id() -> None:
+    workflow = """jobs:
+  first:
+    name: First job
+  next_job:
+    name: Next job
+"""
+    first = job(workflow, "first")
+    assert "name: First job" in first
+    assert "next_job:" not in first
+    assert "name: Next job" not in first
 
 
 def test_ci_runs_for_all_pull_request_updates() -> None:
