@@ -444,6 +444,10 @@ can still fire.
   `normalisation_skips`. Existing skip identities are preserved while the
   target is re-derived from the live source row on each retry; no user content
   or timestamps are changed.
+- v31 (issue #1130): adds `dance_links.transitive`, a boolean marker for
+  related-dance links that participate in editor-managed transitive groups.
+  Existing links default to `false`, preserving ordinary pairwise behavior;
+  import paths remain directional and do not invoke group reconciliation.
 
 ## The delete model
 

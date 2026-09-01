@@ -373,6 +373,11 @@ class DanceLinks extends Table {
       text().nullable().references(Dances, #id, onDelete: KeyAction.setNull)();
   TextColumn get label => text().nullable()();
 
+  /// Whether this related-dance link participates in a transitive group.
+  /// Defaults to false so existing links retain pairwise behavior. Added in
+  /// schema v31 (issue #1130).
+  BoolColumn get transitive => boolean().withDefault(const Constant(false))();
+
   @override
   Set<Column> get primaryKey => {id};
 }

@@ -379,5 +379,30 @@ void main() {
       expect(a, b);
       expect(a.toString(), contains('phrase_overflow'));
     });
+
+    test('transitive is related-dance-only and part of equality', () {
+      final link = DanceLink(
+        id: 'l1',
+        kind: LinkKind.relatedDance,
+        targetDanceId: 'd2',
+        transitive: true,
+      );
+      expect(link.transitive, isTrue);
+      expect(
+        link,
+        isNot(
+          DanceLink(id: 'l1', kind: LinkKind.relatedDance, targetDanceId: 'd2'),
+        ),
+      );
+      expect(
+        () => DanceLink(
+          id: 'l1',
+          kind: LinkKind.video,
+          url: 'https://example.test',
+          transitive: true,
+        ),
+        throwsArgumentError,
+      );
+    });
   });
 }

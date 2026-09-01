@@ -177,6 +177,7 @@ void main() {
             kind: LinkKind.relatedDance,
             targetDanceId: 'dance-2',
             label: 'similar figure',
+            transitive: true,
           ),
         ],
       );
@@ -185,6 +186,7 @@ void main() {
       expect(loaded!.links, hasLength(2));
       expect(loaded.links.first.url, 'https://x.example');
       expect(loaded.links.last.targetDanceId, 'dance-2');
+      expect(loaded.links.last.transitive, isTrue);
     });
 
     test('round-trips source citations in position order', () async {

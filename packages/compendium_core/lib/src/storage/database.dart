@@ -248,7 +248,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 30;
+const int kCompendiumSchemaVersion = 31;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -714,6 +714,11 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       if (from >= 29 && from < 30) {
         await m.alterTable(TableMigration(normalisationSkips));
+      }
+      if (from < 31) {
+        // Issue #1130: mark related-dance links that participate in a
+        // transitive group. Existing links remain ordinary pairwise links.
+        await m.addColumn(danceLinks, danceLinks.transitive);
       }
     },
     beforeOpen: (details) async {

@@ -5120,6 +5120,13 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorTypeToSearchHint => 'Zum Suchen eingeben…';
 
   @override
+  String get danceEditorTransitiveGroup => 'In verwandte-Tanzgruppe aufnehmen';
+
+  @override
+  String get danceEditorTransitiveGroupHint =>
+      'Alle Tänze in dieser Gruppe werden miteinander verknüpft.';
+
+  @override
   String danceEditorEditItemTooltip(String item) {
     return '$item bearbeiten';
   }

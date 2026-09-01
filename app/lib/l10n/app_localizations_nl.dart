@@ -5092,6 +5092,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorTypeToSearchHint => 'Typ om te zoeken…';
 
   @override
+  String get danceEditorTransitiveGroup =>
+      'Opnemen in groep gerelateerde dansen';
+
+  @override
+  String get danceEditorTransitiveGroupHint =>
+      'Alle dansen in deze groep worden met elkaar verbonden.';
+
+  @override
   String danceEditorEditItemTooltip(String item) {
     return '$item bewerken';
   }

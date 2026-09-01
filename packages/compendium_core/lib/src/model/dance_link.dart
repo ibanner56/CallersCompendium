@@ -7,6 +7,7 @@ import 'enums.dart';
 ///
 /// Invariant: exactly the right target for its [kind] — [relatedDance] links
 /// carry [targetDanceId]; all others carry [url]. At least one must be set.
+/// Only related-dance links may be [transitive].
 @immutable
 class DanceLink {
   DanceLink({
@@ -15,6 +16,7 @@ class DanceLink {
     this.url,
     this.targetDanceId,
     this.label,
+    this.transitive = false,
   }) {
     if (kind == LinkKind.relatedDance) {
       if (targetDanceId == null) {
@@ -26,6 +28,11 @@ class DanceLink {
       if (url != null) {
         throw ArgumentError('relatedDance links must not carry a url', 'url');
       }
+    } else if (transitive) {
+      throw ArgumentError(
+        '${kind.name} links must not be transitive',
+        'transitive',
+      );
     } else {
       if (url == null || url!.trim().isEmpty) {
         throw ArgumentError('${kind.name} links require a url', 'url');
@@ -44,6 +51,7 @@ class DanceLink {
   final String? url;
   final String? targetDanceId;
   final String? label;
+  final bool transitive;
 
   @override
   bool operator ==(Object other) =>
@@ -52,8 +60,10 @@ class DanceLink {
       other.kind == kind &&
       other.url == url &&
       other.targetDanceId == targetDanceId &&
-      other.label == label;
+      other.label == label &&
+      other.transitive == transitive;
 
   @override
-  int get hashCode => Object.hash(id, kind, url, targetDanceId, label);
+  int get hashCode =>
+      Object.hash(id, kind, url, targetDanceId, label, transitive);
 }

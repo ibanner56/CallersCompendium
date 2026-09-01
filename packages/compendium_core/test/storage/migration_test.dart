@@ -1464,6 +1464,46 @@ void main() {
       });
     });
   });
+
+  group('v30 -> v31 upgrade (transitive related-dance links)', () {
+    test('adds a false-by-default transitive marker', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        30,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.customStatement(
+        'INSERT INTO dance_links '
+        '(id, dance_id, kind, target_dance_id, label) VALUES (?, ?, ?, ?, ?)',
+        ['link-1', 'dance-1', 'relatedDance', 'dance-2', 'legacy note'],
+      );
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      final columns = await db
+          .customSelect("SELECT name FROM pragma_table_info('dance_links')")
+          .get();
+      expect([
+        for (final row in columns) row.read<String>('name'),
+      ], contains('transitive'));
+      final row = await db
+          .customSelect(
+            'SELECT transitive FROM dance_links WHERE id = ?',
+            variables: [Variable.withString('link-1')],
+          )
+          .getSingle();
+      expect(row.read<int>('transitive'), 0);
+    });
+  });
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

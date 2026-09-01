@@ -109,7 +109,12 @@ CompendiumArchive _sampleArchive() {
         url: 'https://youtu.be/x',
         label: 'demo',
       ),
-      DanceLink(id: 'l2', kind: LinkKind.relatedDance, targetDanceId: 'd2'),
+      DanceLink(
+        id: 'l2',
+        kind: LinkKind.relatedDance,
+        targetDanceId: 'd2',
+        transitive: true,
+      ),
       DanceLink(id: 'l3', kind: LinkKind.source, url: 'https://src.example'),
     ],
     sourceCitations: [
@@ -312,6 +317,7 @@ void main() {
         LinkKind.source,
       ]);
       expect(d1.links[1].targetDanceId, 'd2');
+      expect(d1.links[1].transitive, isTrue);
       expect(d1.sourceCitations.first.page, '12-14');
       expect(d1.composedOn, PartialDate(1989));
       expect(d1.revisedOn, PartialDate(2004, 3, 15));

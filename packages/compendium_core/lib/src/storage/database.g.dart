@@ -6012,6 +6012,21 @@ class $DanceLinksTable extends DanceLinks
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _transitiveMeta = const VerificationMeta(
+    'transitive',
+  );
+  @override
+  late final GeneratedColumn<bool> transitive = GeneratedColumn<bool>(
+    'transitive',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("transitive" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -6020,6 +6035,7 @@ class $DanceLinksTable extends DanceLinks
     url,
     targetDanceId,
     label,
+    transitive,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -6067,6 +6083,12 @@ class $DanceLinksTable extends DanceLinks
         label.isAcceptableOrUnknown(data['label']!, _labelMeta),
       );
     }
+    if (data.containsKey('transitive')) {
+      context.handle(
+        _transitiveMeta,
+        transitive.isAcceptableOrUnknown(data['transitive']!, _transitiveMeta),
+      );
+    }
     return context;
   }
 
@@ -6102,6 +6124,10 @@ class $DanceLinksTable extends DanceLinks
         DriftSqlType.string,
         data['${effectivePrefix}label'],
       ),
+      transitive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}transitive'],
+      )!,
     );
   }
 
@@ -6121,6 +6147,11 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
   final String? url;
   final String? targetDanceId;
   final String? label;
+
+  /// Whether this related-dance link participates in a transitive group.
+  /// Defaults to false so existing links retain pairwise behavior. Added in
+  /// schema v31 (issue #1130).
+  final bool transitive;
   const DanceLinkRow({
     required this.id,
     required this.danceId,
@@ -6128,6 +6159,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
     this.url,
     this.targetDanceId,
     this.label,
+    required this.transitive,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -6148,6 +6180,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
     if (!nullToAbsent || label != null) {
       map['label'] = Variable<String>(label);
     }
+    map['transitive'] = Variable<bool>(transitive);
     return map;
   }
 
@@ -6163,6 +6196,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
       label: label == null && nullToAbsent
           ? const Value.absent()
           : Value(label),
+      transitive: Value(transitive),
     );
   }
 
@@ -6180,6 +6214,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
       url: serializer.fromJson<String?>(json['url']),
       targetDanceId: serializer.fromJson<String?>(json['targetDanceId']),
       label: serializer.fromJson<String?>(json['label']),
+      transitive: serializer.fromJson<bool>(json['transitive']),
     );
   }
   @override
@@ -6194,6 +6229,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
       'url': serializer.toJson<String?>(url),
       'targetDanceId': serializer.toJson<String?>(targetDanceId),
       'label': serializer.toJson<String?>(label),
+      'transitive': serializer.toJson<bool>(transitive),
     };
   }
 
@@ -6204,6 +6240,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
     Value<String?> url = const Value.absent(),
     Value<String?> targetDanceId = const Value.absent(),
     Value<String?> label = const Value.absent(),
+    bool? transitive,
   }) => DanceLinkRow(
     id: id ?? this.id,
     danceId: danceId ?? this.danceId,
@@ -6213,6 +6250,7 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
         ? targetDanceId.value
         : this.targetDanceId,
     label: label.present ? label.value : this.label,
+    transitive: transitive ?? this.transitive,
   );
   DanceLinkRow copyWithCompanion(DanceLinksCompanion data) {
     return DanceLinkRow(
@@ -6224,6 +6262,9 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
           ? data.targetDanceId.value
           : this.targetDanceId,
       label: data.label.present ? data.label.value : this.label,
+      transitive: data.transitive.present
+          ? data.transitive.value
+          : this.transitive,
     );
   }
 
@@ -6235,13 +6276,15 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
           ..write('kind: $kind, ')
           ..write('url: $url, ')
           ..write('targetDanceId: $targetDanceId, ')
-          ..write('label: $label')
+          ..write('label: $label, ')
+          ..write('transitive: $transitive')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, danceId, kind, url, targetDanceId, label);
+  int get hashCode =>
+      Object.hash(id, danceId, kind, url, targetDanceId, label, transitive);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6251,7 +6294,8 @@ class DanceLinkRow extends DataClass implements Insertable<DanceLinkRow> {
           other.kind == this.kind &&
           other.url == this.url &&
           other.targetDanceId == this.targetDanceId &&
-          other.label == this.label);
+          other.label == this.label &&
+          other.transitive == this.transitive);
 }
 
 class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
@@ -6261,6 +6305,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
   final Value<String?> url;
   final Value<String?> targetDanceId;
   final Value<String?> label;
+  final Value<bool> transitive;
   final Value<int> rowid;
   const DanceLinksCompanion({
     this.id = const Value.absent(),
@@ -6269,6 +6314,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
     this.url = const Value.absent(),
     this.targetDanceId = const Value.absent(),
     this.label = const Value.absent(),
+    this.transitive = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DanceLinksCompanion.insert({
@@ -6278,6 +6324,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
     this.url = const Value.absent(),
     this.targetDanceId = const Value.absent(),
     this.label = const Value.absent(),
+    this.transitive = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        danceId = Value(danceId),
@@ -6289,6 +6336,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
     Expression<String>? url,
     Expression<String>? targetDanceId,
     Expression<String>? label,
+    Expression<bool>? transitive,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -6298,6 +6346,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
       if (url != null) 'url': url,
       if (targetDanceId != null) 'target_dance_id': targetDanceId,
       if (label != null) 'label': label,
+      if (transitive != null) 'transitive': transitive,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -6309,6 +6358,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
     Value<String?>? url,
     Value<String?>? targetDanceId,
     Value<String?>? label,
+    Value<bool>? transitive,
     Value<int>? rowid,
   }) {
     return DanceLinksCompanion(
@@ -6318,6 +6368,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
       url: url ?? this.url,
       targetDanceId: targetDanceId ?? this.targetDanceId,
       label: label ?? this.label,
+      transitive: transitive ?? this.transitive,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -6345,6 +6396,9 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
     if (label.present) {
       map['label'] = Variable<String>(label.value);
     }
+    if (transitive.present) {
+      map['transitive'] = Variable<bool>(transitive.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -6360,6 +6414,7 @@ class DanceLinksCompanion extends UpdateCompanion<DanceLinkRow> {
           ..write('url: $url, ')
           ..write('targetDanceId: $targetDanceId, ')
           ..write('label: $label, ')
+          ..write('transitive: $transitive, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -16609,6 +16664,7 @@ typedef $$DanceLinksTableCreateCompanionBuilder =
       Value<String?> url,
       Value<String?> targetDanceId,
       Value<String?> label,
+      Value<bool> transitive,
       Value<int> rowid,
     });
 typedef $$DanceLinksTableUpdateCompanionBuilder =
@@ -16619,6 +16675,7 @@ typedef $$DanceLinksTableUpdateCompanionBuilder =
       Value<String?> url,
       Value<String?> targetDanceId,
       Value<String?> label,
+      Value<bool> transitive,
       Value<int> rowid,
     });
 
@@ -16689,6 +16746,11 @@ class $$DanceLinksTableFilterComposer
 
   ColumnFilters<String> get label => $composableBuilder(
     column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get transitive => $composableBuilder(
+    column: $table.transitive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16768,6 +16830,11 @@ class $$DanceLinksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get transitive => $composableBuilder(
+    column: $table.transitive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$DancesTableOrderingComposer get danceId {
     final $$DancesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -16835,6 +16902,11 @@ class $$DanceLinksTableAnnotationComposer
 
   GeneratedColumn<String> get label =>
       $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<bool> get transitive => $composableBuilder(
+    column: $table.transitive,
+    builder: (column) => column,
+  );
 
   $$DancesTableAnnotationComposer get danceId {
     final $$DancesTableAnnotationComposer composer = $composerBuilder(
@@ -16917,6 +16989,7 @@ class $$DanceLinksTableTableManager
                 Value<String?> url = const Value.absent(),
                 Value<String?> targetDanceId = const Value.absent(),
                 Value<String?> label = const Value.absent(),
+                Value<bool> transitive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DanceLinksCompanion(
                 id: id,
@@ -16925,6 +16998,7 @@ class $$DanceLinksTableTableManager
                 url: url,
                 targetDanceId: targetDanceId,
                 label: label,
+                transitive: transitive,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -16935,6 +17009,7 @@ class $$DanceLinksTableTableManager
                 Value<String?> url = const Value.absent(),
                 Value<String?> targetDanceId = const Value.absent(),
                 Value<String?> label = const Value.absent(),
+                Value<bool> transitive = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DanceLinksCompanion.insert(
                 id: id,
@@ -16943,6 +17018,7 @@ class $$DanceLinksTableTableManager
                 url: url,
                 targetDanceId: targetDanceId,
                 label: label,
+                transitive: transitive,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

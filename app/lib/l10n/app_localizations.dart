@@ -7848,6 +7848,18 @@ abstract class AppLocalizations {
   /// **'Type to search…'**
   String get danceEditorTypeToSearchHint;
 
+  /// Checkbox label for making a related-dance link part of a transitive group.
+  ///
+  /// In en, this message translates to:
+  /// **'Include in related-dance group'**
+  String get danceEditorTransitiveGroup;
+
+  /// Supporting text for the transitive related-dance group checkbox.
+  ///
+  /// In en, this message translates to:
+  /// **'All dances in this group will be linked together.'**
+  String get danceEditorTransitiveGroupHint;
+
   /// Tooltip for editing an existing shared item from a chip.
   ///
   /// In en, this message translates to:

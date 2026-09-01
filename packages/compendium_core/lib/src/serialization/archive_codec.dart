@@ -218,6 +218,7 @@ Map<String, Object?> _danceLinkToJson(DanceLink l) => {
   if (l.url != null) 'url': l.url,
   if (l.targetDanceId != null) 'targetDanceId': l.targetDanceId,
   if (l.label != null) 'label': l.label,
+  if (l.transitive) 'transitive': true,
 };
 
 Map<String, Object?> _sourceCitationToJson(SourceCitation s) => {
@@ -838,6 +839,7 @@ List<DanceLink> _danceLinksFromJson(Object? raw) {
           url: _strOrNull(m, 'url'),
           targetDanceId: _strOrNull(m, 'targetDanceId'),
           label: _strOrNull(m, 'label'),
+          transitive: _boolOr(m, 'transitive', false),
         );
       }(),
   ];

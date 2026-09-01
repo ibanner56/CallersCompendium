@@ -4882,6 +4882,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorTypeToSearchHint => '検索するには入力…';
 
   @override
+  String get danceEditorTransitiveGroup => '関連ダンスグループに含める';
+
+  @override
+  String get danceEditorTransitiveGroupHint => 'このグループのすべてのダンスを相互にリンクします。';
+
+  @override
   String danceEditorEditItemTooltip(String item) {
     return '$itemを編集';
   }

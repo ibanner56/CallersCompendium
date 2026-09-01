@@ -47,12 +47,17 @@ from that tag, so new entries need no visible or manually maintained suffix.
   for the Updates section.
 - **Related dance links** — manually saved relationships now stay synchronized
   in both directions, including retargeting and removal.
+- **Transitive related-dance groups** — optionally keep a related-dance group
+  synchronized across all of its members, with group-wide removal that
+  preserves unrelated ordinary links.
 
 ### Data / Migrations
 
 - **Schema 29 → 30** — remove redundant normalization collision snapshots;
   existing skip identities are retained automatically and no user content or
   timestamps are changed.
+- **Schema 30 → 31** — add an optional transitive marker to related-dance links;
+  existing links remain ordinary by default.
 
 ## [0.2.0] - 2026-08-31
 
