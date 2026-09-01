@@ -906,6 +906,8 @@ class CompendiumRepositories {
         // Rewrite only the figures_json column — nothing else about the dance
         // changes, and a full _upsert would needlessly rebuild derived rows
         // per dance (the bulk rebuild at the end is cheaper).
+        // normalization-structure-exempt: derived maintenance writes encoded
+        // figures already produced from the canonical dance model.
         await db.customUpdate(
           // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
           'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
@@ -1005,6 +1007,8 @@ class CompendiumRepositories {
       // Rewrite only the figures_json column — nothing else about the dance
       // changes, and a full _upsert would needlessly rebuild derived rows per
       // dance (the bulk rebuild below is cheaper).
+      // normalization-structure-exempt: derived maintenance writes encoded
+      // figures already produced from the canonical dance model.
       await db.customUpdate(
         // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
@@ -1212,6 +1216,8 @@ class CompendiumRepositories {
           // dance changes, and a full _upsert would needlessly rebuild
           // derived rows per dance (the bulk rebuild at the end is
           // cheaper).
+          // normalization-structure-exempt: derived maintenance writes encoded
+          // figures already produced from the canonical dance model.
           await db.customUpdate(
             // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
             'UPDATE ${db.dances.actualTableName} SET figures_json = ? '

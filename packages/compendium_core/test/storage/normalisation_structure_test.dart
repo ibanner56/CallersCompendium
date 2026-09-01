@@ -41,22 +41,7 @@ void main() {
       addTearDown(db.close);
       final fields = _discoverShareableFields(root, db);
       expect(fields['ProgramSlotsCompanion'], contains('text_'));
-      final repositoryRoot = Directory(
-        p.join(root, 'lib', 'src', 'storage', 'repositories'),
-      );
-
-      final violations = <String>[];
-      for (final entity
-          in repositoryRoot.listSync(recursive: true).whereType<File>()) {
-        if (!entity.path.endsWith('.dart')) continue;
-        violations.addAll(
-          _unwrappedShareableCalls(
-            entity.readAsStringSync(),
-            fields,
-            sourceName: p.relative(entity.path, from: root),
-          ),
-        );
-      }
+      final violations = _repositoryViolations(root, fields);
       expect(violations, isEmpty);
 
       final settings = File(
@@ -102,11 +87,7 @@ void save(String value) {
 }
 ''');
 
-      final violations = _unwrappedShareableCalls(
-        writer.readAsStringSync(),
-        fields,
-        sourceName: p.relative(writer.path, from: tempRoot.path),
-      );
+      final violations = _repositoryViolations(tempRoot.path, fields);
       expect(
         violations,
         contains(contains('future_repository.dart: DancesCompanion.title')),
@@ -128,17 +109,31 @@ DancesCompanion(title: Value(value));
     expect(_unwrappedShareableCalls(source, fields), hasLength(2));
   });
 
-  test('detects an unwrapped raw SQL shareable write', () {
+  test('detects an unwrapped table-manager write', () {
     const source = '''
-await db.customUpdate('UPDATE dances SET title = ? WHERE id = ?');
-await db.customUpdate('UPDATE \$table SET title = ? WHERE id = ?');
+await db.managers.dances.create((o) => o(title: value));
 ''';
     final fields = <String, Map<String, Set<String>>>{
       'DancesCompanion': {
         'title': {'normalizeShareableText'},
       },
     };
-    expect(_unwrappedShareableCalls(source, fields), hasLength(2));
+    expect(_unwrappedShareableCalls(source, fields), hasLength(1));
+  });
+
+  test('detects an unwrapped raw SQL shareable write', () {
+    const source = '''
+await db.customUpdate('UPDATE dances SET title = ? WHERE id = ?');
+await db.customUpdate('UPDATE \$table SET title = ? WHERE id = ?');
+final sql = 'UPDATE dances SET title = ? WHERE id = ?';
+await db.customInsert(sql);
+''';
+    final fields = <String, Map<String, Set<String>>>{
+      'DancesCompanion': {
+        'title': {'normalizeShareableText'},
+      },
+    };
+    expect(_unwrappedShareableCalls(source, fields), hasLength(3));
   });
 
   test('does not trust an unrelated normalized local', () {
@@ -190,6 +185,25 @@ _ShareableFields _discoverShareableFields(String root, CompendiumDatabase db) {
   return fields;
 }
 
+List<String> _repositoryViolations(String root, _ShareableFields fields) {
+  final repositoryRoot = Directory(
+    p.join(root, 'lib', 'src', 'storage', 'repositories'),
+  );
+  final violations = <String>[];
+  for (final entity
+      in repositoryRoot.listSync(recursive: true).whereType<File>()) {
+    if (!entity.path.endsWith('.dart')) continue;
+    violations.addAll(
+      _unwrappedShareableCalls(
+        entity.readAsStringSync(),
+        fields,
+        sourceName: p.relative(entity.path, from: root),
+      ),
+    );
+  }
+  return violations;
+}
+
 Map<String, String> _readColumnAliases(String source) {
   final aliases = <String, String>{};
   final classes = RegExp(
@@ -235,24 +249,54 @@ List<String> _unwrappedShareableCalls(
     }
   }
 
-  final rawWrites = [
-    ...RegExp(
-      r"(?:customUpdate|customStatement)\(\s*'(.*?)'",
-      caseSensitive: false,
-      dotAll: true,
-    ).allMatches(source),
-    ...RegExp(
-      r'''(?:customUpdate|customStatement)\(\s*"(.*?)"''',
-      caseSensitive: false,
-      dotAll: true,
-    ).allMatches(source),
-  ];
-  for (final match in rawWrites) {
-    final sql = match.group(1)!;
+  final managerCalls = RegExp(
+    r'\bmanagers\.([a-z]\w*)\.(?:create|replace|update)\(',
+  );
+  for (final match in managerCalls.allMatches(source)) {
+    final companion = '${_pascalCase(match.group(1)!)}Companion';
+    final expected = fields[companion];
+    if (expected == null) continue;
+    final call = _callBody(source, match.end - 1);
+    for (final entry in expected.entries) {
+      final argument = _argumentBody(call, entry.key);
+      if (argument == null) continue;
+      if (!entry.value.any(argument.contains)) {
+        violations.add('$sourceName: $companion.${entry.key}');
+      }
+    }
+  }
+
+  final rawCalls = RegExp(
+    r'\b(?:customUpdate|customInsert|customStatement)\s*\(',
+  );
+  for (final match in rawCalls.allMatches(source)) {
+    final call = _callBody(source, match.end - 1);
+    final firstArgument = _firstArgumentBody(call);
+    final sqlArgument = firstArgument == null
+        ? null
+        : firstArgument.replaceFirst(
+            RegExp(r'^\s*(?:(?://[^\n]*\n)|(?:/\*.*?\*/))*', dotAll: true),
+            '',
+          );
+    if (sqlArgument == null ||
+        (!sqlArgument.trimLeft().startsWith("'") &&
+            !sqlArgument.trimLeft().startsWith('"'))) {
+      if (!_hasRawWriteException(source, match.start)) {
+        violations.add('$sourceName: raw write with nonliteral SQL');
+      }
+      continue;
+    }
+    final sql = sqlArgument.trim();
+    final sqlText =
+        sql.length >= 2 &&
+            ((sql.startsWith("'") && sql.endsWith("'")) ||
+                (sql.startsWith('"') && sql.endsWith('"')))
+        ? sql.substring(1, sql.length - 1)
+        : sql;
     if (!RegExp(
       r'^\s*(?:insert\s+into|update)\b',
       caseSensitive: false,
-    ).hasMatch(sql)) {
+    ).hasMatch(sqlText)) {
       continue;
     }
     for (final entry in fields.entries) {
@@ -260,24 +304,59 @@ List<String> _unwrappedShareableCalls(
       for (final field in entry.value.keys) {
         final sqlField = _snakeCase(field.replaceFirst(RegExp(r'_+$'), ''));
         if (RegExp(
-          '\\b$table\\b[\\s\\S]*\\b$sqlField\\b',
-          caseSensitive: false,
-        ).hasMatch(sql)) {
+              '\\b$table\\b[\\s\\S]*\\b$sqlField\\b',
+              caseSensitive: false,
+            ).hasMatch(sqlText) &&
+            !_hasRawWriteException(source, match.start)) {
           violations.add('$sourceName: raw $table.$sqlField');
         }
-        if (sql.contains(r'$') &&
-            RegExp('\\b$sqlField\\s*=', caseSensitive: false).hasMatch(sql) &&
+        if (sqlText.contains(r'$') &&
+            RegExp(
+              '\\b$sqlField\\s*=',
+              caseSensitive: false,
+            ).hasMatch(sqlText) &&
             !_hasRawWriteException(source, match.start)) {
           violations.add('$sourceName: raw dynamic $sqlField');
         }
       }
     }
-    if (sql.contains(r'$column') &&
+    if (sqlText.contains(r'$column') &&
         !_hasRawWriteException(source, match.start)) {
       violations.add('$sourceName: raw dynamic shareable field');
     }
   }
   return violations;
+}
+
+String? _firstArgumentBody(String call) {
+  final valueStart = call.indexOf('(') + 1;
+  var depth = 0;
+  var quote = '';
+  var escaped = false;
+  for (var i = valueStart; i < call.length; i++) {
+    final char = call[i];
+    if (quote.isNotEmpty) {
+      if (escaped) {
+        escaped = false;
+      } else if (char == r'\') {
+        escaped = true;
+      } else if (char == quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (char == "'" || char == '"') {
+      quote = char;
+    } else if ('([{'.contains(char)) {
+      depth++;
+    } else if (')]}'.contains(char)) {
+      if (depth == 0) return call.substring(valueStart, i);
+      depth--;
+    } else if (char == ',' && depth == 0) {
+      return call.substring(valueStart, i);
+    }
+  }
+  return null;
 }
 
 bool _hasRawWriteException(String source, int offset) {
