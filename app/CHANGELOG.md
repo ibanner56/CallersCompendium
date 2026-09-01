@@ -35,6 +35,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-01
+
 ### Changed
 
 - **Privacy policy** — disclose that credited choreographers, authors, callers,
