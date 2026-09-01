@@ -124,8 +124,8 @@ form, browse downloads on the
 [project site](https://ibanner56.github.io/CallersCompendium/), or file a report
 from the
 [issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose) —
-the **Bug report**, **Feature request**, **General feedback**, **Beta check-in**,
-and **Import source problem** forms are all live there — or start a conversation in
+the **Bug report**, **Feature request**, and **General feedback** forms are all
+live there — or start a conversation in
 [Discussions](https://github.com/ibanner56/CallersCompendium/discussions).
 
 ## Supporting

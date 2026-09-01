@@ -102,7 +102,9 @@ backbone testers watch to see their report move:
 3. `status: confirmed` — reproduced and accepted as valid.
 4. `status: in-progress` — actively being worked on.
 5. `status: fixed-pending-release` — fixed on `main`, waiting for a release to ship
-   it. (During the beta this is common, since fixes queue up between builds.)
+   it. (During the beta this is common, since fixes queue up between builds.) When a
+   merged pull request explicitly closes an issue, automation assigns this status and
+   removes its prior non-terminal status.
 6. `status: wont-fix` — valid, but a decision was made not to address it. Explain
    why in a comment before closing.
 

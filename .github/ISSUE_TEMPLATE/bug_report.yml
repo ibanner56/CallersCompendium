@@ -51,18 +51,18 @@ body:
     id: app-version
     attributes:
       label: App version
-      description: "Find it in Settings ▸ About; otherwise it's 0.3.0."
+      description: Find it in Settings ▸ About.
       value: "0.3.0"
     validations:
       required: true
   - type: textarea
     id: dance-data
     attributes:
-      label: Dance data involved (if notation-related)
+      label: Dance source or ID (if a specific dance is involved)
       description: >-
-        If the bug involves a specific dance, include its source (book, site,
-        Caller's Box ID) or paste the figures so we can reproduce it. Please
-        redact anything personal or private.
+        Include the source (book, site, or Caller's Box ID) or figures only
+        when this concerns a specific dance. Please redact anything personal
+        or private.
     validations:
       required: false
   - type: checkboxes

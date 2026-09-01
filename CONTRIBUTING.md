@@ -391,10 +391,9 @@ telemetry**, so nothing is ever collected automatically. You decide what to shar
   centered on calling a real dance from **Perform mode**.
 - **Filing something?** The
   [new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose)
-  now carries the full set of forms: **Bug report** and **Feature request**,
-  the beta-specific **General feedback** (rough edges), **Beta check-in** (how a
-  session or gig went), and **Import source problem** (a dance imported wrong),
-  plus a **Join the beta** signup. For open-ended ideas, start a
+  carries **Bug report**, **Feature request**, **General feedback** (including
+  beta-session impressions), and **Join the beta** signup forms. For open-ended
+  ideas, start a
   [Discussion](https://github.com/ibanner56/CallersCompendium/discussions).
 - **Curious what happens next?** Maintainers sort every report using the
   [triage rubric](docs/beta/triage-rubric.md), which maps to the label taxonomy in

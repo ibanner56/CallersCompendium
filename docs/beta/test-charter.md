@@ -24,9 +24,8 @@ event. For each session:
    that felt slow, confusing, or wrong. A note like "couldn't find where to add an
    alt" is plenty.
 4. **Report back** using the channels in the [beta guide](./beta-guide.md#how-to-give-feedback):
-   the **Bug report** form (always available) for anything broken, plus the **Beta
-   check-in** form for how a session went overall and **General feedback** for
-   awkward moments as those beta forms roll out. A
+   the **Bug report** form (always available) for anything broken, or **General
+   feedback** for how a session went overall and for awkward moments. A
    [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) always
    works too.
 
@@ -106,7 +105,7 @@ ideally **at a real dance**, but a full living-room rehearsal counts too.
 > reach for that was not there?
 
 This is the highest-value session there is. If you have a gig coming up, this is
-your charter — and the **Beta check-in** form afterward is exactly for this.
+your charter — and **General feedback** afterward is exactly for this.
 
 ### Charter 5 — Switch the app into your own words (dialect)
 
@@ -138,8 +137,8 @@ your charter — and the **Beta check-in** form afterward is exactly for this.
 > dances, programs, custom fields, dialects? A clean round-trip is what makes the
 > app trustworthy, so tell us about any gap.
 >
-> If a dance imports **wrong**, that is exactly what the **Import source problem**
-> form is for — include the source or ID.
+> If a dance imports **wrong**, report it as a **Bug report** and include the
+> source or ID.
 
 ## What to send us
 
@@ -155,8 +154,8 @@ include:
   if it is notation-related.
 
 Send it through the [feedback channels](./beta-guide.md#how-to-give-feedback): the
-**Beta check-in** form for the session overall, **Bug report** for defects,
-**General feedback** for rough edges, or a
+**General feedback** form for the session overall and rough edges, **Bug report**
+for defects, or a
 [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) if you
 just want to talk it through.
 

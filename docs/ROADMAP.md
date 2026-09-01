@@ -239,7 +239,7 @@ implementation notes and deviations against each item — is in
     - Beta-program page — tracked under 7.3.
 - [ ] 7.3 Beta program with real callers; feedback triage
   - **Delivered**
-    - Triage label taxonomy (`.github/labels.yml` + `label-sync.yml`) and structured issue forms — general feedback, import-source problem, beta check-in, a **beta signup / "Join the beta"** form (#413), plus revised bug/feature reports — with a Discussions + private-email contact config (#221).
+    - Triage label taxonomy (`.github/labels.yml` + `label-sync.yml`) and structured issue forms — general feedback, a **beta signup / "Join the beta"** form (#413), plus revised bug/feature reports — with a Discussions + private-email contact config (#221).
     - Beta docs: [beta guide](beta/beta-guide.md), [test charter](beta/test-charter.md), [triage rubric](beta/triage-rubric.md) (#227); a [beta-recruitment plan](product/beta-recruitment.md); and CONTRIBUTING/README feedback hooks.
     - **GitHub Discussions is enabled** (with categories), so the contact/community links resolve.
   - **Resolved (maintainer ops)**

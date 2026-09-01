@@ -29,26 +29,31 @@ body:
       description: Pick the closest area (a triager will confirm the matching area label).
       options:
         - "Collection (area: collection)"
+        - "Dance entry (area: dance_entry)"
         - "Programs (area: programs)"
         - "Perform (area: perform)"
         - "Dialect (area: dialect)"
+        - "Taxonomy (area: taxonomy)"
         - "Import (area: import)"
         - "Search (area: search)"
         - "Settings (area: settings)"
         - "Packaging (area: packaging)"
         - "Accessibility (area: a11y)"
         - "Docs (area: docs)"
+        - "Not sure (triage will route it)"
     validations:
       required: false
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
+      label: Constraints or alternatives (optional)
+      description: Share these only if you considered a different approach.
     validations:
       required: false
-  - type: checkboxes
-    id: scope
+  - type: textarea
+    id: related-work
     attributes:
-      label: Scope check
-      options:
-        - label: I checked the roadmap (docs/ROADMAP.md) and this isn't already planned
+      label: Related issue, roadmap item, or discussion (optional)
+      description: Link anything relevant if you already know it; triage will check for duplicates and planned work.
+    validations:
+      required: false
