@@ -9,8 +9,8 @@ body:
         Thanks for wanting to help test Caller's Compendium! This is a one-time
         signup so we know who's testing and can line up the right builds (plus
         TestFlight invites for iOS/iPadOS and Google Play closed-test invites for
-        Android). Already signed up and want to share how a build held up? Use the
-        **Beta check-in** form instead.
+        Android). Already signed up and want to share how a build held up? Use
+        **General feedback** or a **Bug report** instead.
   - type: markdown
     attributes:
       value: >-

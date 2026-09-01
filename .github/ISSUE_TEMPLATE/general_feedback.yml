@@ -12,6 +12,11 @@ body:
   - type: markdown
     attributes:
       value: >-
+        Please keep each report to one rough edge. List separate concerns as
+        bullets; triage may split them into separate tickets.
+  - type: markdown
+    attributes:
+      value: >-
         **Privacy:** Caller's Compendium is local-first and collects no
         telemetry — nothing is gathered automatically, so everything here is
         only what you choose to type. Please don't paste personal or identifying
@@ -50,6 +55,15 @@ body:
     attributes:
       label: Any suggestion? (optional)
       description: If you have an idea for how it could be better, we'd love to hear it.
+    validations:
+      required: false
+  - type: textarea
+    id: concrete-example
+    attributes:
+      label: One concrete example (optional)
+      description: >-
+        When relevant, share a dance source or ID, URL, screenshot, or brief
+        example that shows the rough edge.
     validations:
       required: false
   - type: checkboxes

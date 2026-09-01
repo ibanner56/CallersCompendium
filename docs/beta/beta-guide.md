@@ -133,25 +133,20 @@ has no telemetry** and never phones home. You choose what to send and when.
 
 Pick the channel that fits:
 
-- **Beta check-in** — after a dance or a session with the app, use the **Beta
-  check-in** issue form to tell us how it went overall, even if nothing broke.
-  These impressions are gold.
 - **Bug report** — something is broken or wrong? Use the **Bug report** form.
   Include your platform and, for anything notation-related, the dance's source so
   we can reproduce it.
-- **General feedback** — confusing wording, an awkward workflow, a "why does it do
-  *that*?" — the **General feedback** form is the catch-all.
-- **Import source problem** — if a dance imports wrong, the **Import source
-  problem** form captures the source and what came through.
+- **General feedback** — after a dance or a session with the app, share what
+  worked, what felt awkward, or a "why does it do *that*?" moment. These
+  impressions are gold.
 - **Ideas and open-ended talk** belong in
   [Discussions](https://github.com/ibanner56/CallersCompendium/discussions), where
   we can chat before anything becomes a formal request.
 
 All of the issue forms live on the
 [new-issue chooser](https://github.com/ibanner56/CallersCompendium/issues/new/choose):
-**Bug report**, **Feature request**, **General feedback**, **Beta check-in**,
-**Import source problem**, and **Join the beta** are all available there now. Not
-sure which to pick? Start a
+**Bug report**, **Feature request**, **General feedback**, and **Join the beta**
+are all available there now. Not sure which to pick? Start a
 [Discussion](https://github.com/ibanner56/CallersCompendium/discussions) — we will
 sort it out together. Once you file something, a maintainer sorts it using the
 [triage rubric](./triage-rubric.md), so you can see how reports move from "just

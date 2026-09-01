@@ -1,0 +1,98 @@
+# Mark issues closed by a merged main PR as awaiting release. Terminal closure
+# reasons remain maintainer decisions and are deliberately never overwritten.
+name: Set fixed-pending-release status
+
+on:
+  pull_request_target:
+    types: [closed]
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  set-status:
+    if: >-
+      github.repository == 'ibanner56/CallersCompendium' &&
+      github.event.pull_request.merged &&
+      github.event.pull_request.base.ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const terminalStatuses = new Set([
+              'status: duplicate',
+              'status: wont-fix',
+            ]);
+            const targetStatus = 'status: fixed-pending-release';
+            let cursor = null;
+
+            do {
+              const result = await github.graphql(
+                `query closingIssues(
+                  $owner: String!,
+                  $repo: String!,
+                  $number: Int!,
+                  $cursor: String
+                ) {
+                  repository(owner: $owner, name: $repo) {
+                    pullRequest(number: $number) {
+                      closingIssuesReferences(first: 100, after: $cursor) {
+                        nodes {
+                          number
+                          labels(first: 100) {
+                            nodes { name }
+                          }
+                        }
+                        pageInfo {
+                          hasNextPage
+                          endCursor
+                        }
+                      }
+                    }
+                  }
+                }`,
+                {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  number: context.payload.pull_request.number,
+                  cursor,
+                },
+              );
+
+              const closingIssues =
+                result.repository.pullRequest.closingIssuesReferences;
+              for (const issue of closingIssues.nodes) {
+                const statuses = issue.labels.nodes
+                  .map(({name}) => name)
+                  .filter((name) => name.startsWith('status: '));
+
+                if (statuses.some((status) => terminalStatuses.has(status))) {
+                  core.info(
+                    `Leaving #${issue.number} terminal status unchanged: ${statuses.join(', ')}`,
+                  );
+                  continue;
+                }
+
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  labels: [targetStatus],
+                });
+                for (const status of statuses) {
+                  if (status !== targetStatus) {
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: issue.number,
+                      name: status,
+                    });
+                  }
+                }
+              }
+
+              cursor = closingIssues.pageInfo.hasNextPage
+                ? closingIssues.pageInfo.endCursor
+                : null;
+            } while (cursor);
