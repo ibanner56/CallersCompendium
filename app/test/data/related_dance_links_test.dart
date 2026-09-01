@@ -1,5 +1,7 @@
 import 'package:compendium_app/src/data/related_dance_links.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -451,6 +453,49 @@ void main() {
     expect((await repos.dances.getById('a'))!.links, isEmpty);
   });
 
+  test('preserves reciprocal metadata when unmarking a direct pair', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'source'));
+    await repos.dances.create(_dance(id: 'target'));
+    await repos.dances.update(
+      _dance(
+        id: 'source',
+        links: [
+          _related(
+            'source-link',
+            'target',
+            label: 'source note',
+            transitive: true,
+          ),
+        ],
+      ),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'target',
+        links: [
+          _related(
+            'target-link',
+            'source',
+            label: 'target note',
+            transitive: true,
+          ),
+        ],
+      ),
+    );
+    final original = await repos.dances.getById('source');
+    final updated = original!.copyWith(
+      links: [_related('source-link', 'target', label: 'source note')],
+    );
+
+    await saveDanceWithRelatedLinks(repos, dance: updated, original: original);
+
+    final reciprocal = (await repos.dances.getById('target'))!.links.single;
+    expect(reciprocal.id, 'target-link');
+    expect(reciprocal.label, 'target note');
+    expect(reciprocal.transitive, isFalse);
+  });
+
   test('can detach an old group and create a new group in one save', () async {
     final repos = openTestRepositories();
     for (final id in ['a', 'b', 'c', 'd']) {
@@ -571,4 +616,124 @@ void main() {
     );
     expect((await repos.dances.getById('d0'))!.title, 'Dance');
   });
+
+  test('bounds high-fan-out discovery before loading every neighbor', () async {
+    final capture = _RelatedDanceQueryCapture();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(capture),
+      ),
+      contraTaxonomy,
+    );
+    for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) {
+      await repos.dances.create(_dance(id: 'neighbor-$i'));
+    }
+    await repos.dances.create(
+      _dance(
+        id: 'center',
+        links: [
+          for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++)
+            _related('center-$i', 'neighbor-$i', transitive: true),
+        ],
+      ),
+    );
+    final original = await repos.dances.getById('center');
+    capture.reset();
+
+    await expectLater(
+      saveDanceWithRelatedLinks(
+        repos,
+        dance: original!.copyWith(title: 'Should not save'),
+        original: original,
+      ),
+      throwsA(
+        isA<RelatedDanceLinkSaveException>().having(
+          (e) => e.reason,
+          'reason',
+          'group-too-large',
+        ),
+      ),
+    );
+    expect(
+      capture.danceSelects,
+      lessThanOrEqualTo(kMaxTransitiveDanceGroupSize),
+    );
+  });
+
+  test('bounds high-fan-out incoming discovery queries', () async {
+    final capture = _RelatedDanceQueryCapture();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(capture),
+      ),
+      contraTaxonomy,
+    );
+    await repos.dances.create(_dance(id: 'center'));
+    await repos.dances.create(
+      _dance(
+        id: 'source',
+        links: [_related('source-center', 'center', transitive: true)],
+      ),
+    );
+    for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) {
+      await repos.dances.create(_dance(id: 'owner-$i'));
+      await repos.dances.update(
+        _dance(
+          id: 'owner-$i',
+          links: [_related('owner-$i-center', 'center', transitive: true)],
+        ),
+      );
+    }
+    final original = await repos.dances.getById('source');
+    capture.reset();
+
+    await expectLater(
+      saveDanceWithRelatedLinks(
+        repos,
+        dance: original!.copyWith(title: 'Should not save'),
+        original: original,
+      ),
+      throwsA(
+        isA<RelatedDanceLinkSaveException>().having(
+          (e) => e.reason,
+          'reason',
+          'group-too-large',
+        ),
+      ),
+    );
+    expect(capture.incomingLinkQueries, isNotEmpty);
+    expect(
+      capture.incomingLinkQueries.every(
+        (statement) => statement.toLowerCase().contains('limit ?'),
+      ),
+      isTrue,
+    );
+  });
+}
+
+class _RelatedDanceQueryCapture extends drift.QueryInterceptor {
+  int danceSelects = 0;
+  final incomingLinkQueries = <String>[];
+
+  void reset() {
+    danceSelects = 0;
+    incomingLinkQueries.clear();
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    if (statement.toLowerCase().contains('from dances')) {
+      danceSelects++;
+    }
+    final lowerStatement = statement.toLowerCase();
+    if (lowerStatement.contains('from dance_links') &&
+        lowerStatement.contains('target_dance_id')) {
+      incomingLinkQueries.add(statement);
+    }
+    return super.runSelect(executor, statement, args);
+  }
 }

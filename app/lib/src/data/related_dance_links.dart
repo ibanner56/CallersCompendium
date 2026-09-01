@@ -38,15 +38,22 @@ Future<void> saveDanceWithRelatedLinks(
       required List<DanceLink> sourceLinks,
     }) async {
       final visited = <String>{};
+      final scheduled = <String>{seed};
       final queue = <String>[seed];
-      while (queue.isNotEmpty) {
-        final id = queue.removeLast();
-        if (!visited.add(id)) continue;
-        if (visited.length > kMaxTransitiveDanceGroupSize) {
+
+      void schedule(String id) {
+        if (!scheduled.add(id)) return;
+        if (scheduled.length > kMaxTransitiveDanceGroupSize) {
           throw RelatedDanceLinkSaveException.groupTooLarge(
             kMaxTransitiveDanceGroupSize,
           );
         }
+        queue.add(id);
+      }
+
+      while (queue.isNotEmpty) {
+        final id = queue.removeLast();
+        if (!visited.add(id)) continue;
 
         final node = id == dance.id
             ? dance.copyWith(links: sourceLinks)
@@ -62,14 +69,26 @@ Future<void> saveDanceWithRelatedLinks(
             continue;
           }
           final target = await load(link.targetDanceId!);
-          if (target != null && !target.isDeleted) queue.add(target.id);
+          if (target != null && !target.isDeleted) schedule(target.id);
         }
 
+        final remainingCapacity =
+            kMaxTransitiveDanceGroupSize - scheduled.length;
+        final scheduledVariables = [
+          for (final scheduledId in scheduled) Variable.withString(scheduledId),
+        ];
+        final placeholders = List.filled(scheduled.length, '?').join(', ');
         final incoming = await repos.db
             .customSelect(
-              'SELECT dance_id FROM dance_links '
-              'WHERE target_dance_id = ? AND transitive = 1',
-              variables: [Variable.withString(id)],
+              'SELECT DISTINCT dance_id FROM dance_links '
+              'WHERE target_dance_id = ? AND transitive = 1 '
+              'AND dance_id NOT IN ($placeholders) '
+              'LIMIT ?',
+              variables: [
+                Variable.withString(id),
+                ...scheduledVariables,
+                Variable.withInt(remainingCapacity + 1),
+              ],
             )
             .get();
         for (final row in incoming) {
@@ -86,7 +105,7 @@ Future<void> saveDanceWithRelatedLinks(
                 link.kind == LinkKind.relatedDance &&
                 link.targetDanceId == id,
           )) {
-            queue.add(owner.id);
+            schedule(owner.id);
           }
         }
       }
@@ -118,7 +137,14 @@ Future<void> saveDanceWithRelatedLinks(
 
     var sourceLinks = dance.links;
     if (detached.contains(dance.id)) {
-      sourceLinks = _removeTransitiveLinksWithin(sourceLinks, detached);
+      sourceLinks = _removeTransitiveLinksWithin(
+        sourceLinks,
+        detached,
+        preserveAsOrdinaryTargets: {
+          for (final entry in after.entries)
+            if (!entry.value.any((link) => link.transitive)) entry.key,
+        },
+      );
     }
     pendingLinks[dance.id] = sourceLinks;
     final nextSource = dance.copyWith(links: sourceLinks);
@@ -128,7 +154,15 @@ Future<void> saveDanceWithRelatedLinks(
       for (final id in group) {
         final node = await load(id);
         if (node == null) continue;
-        final links = _removeTransitiveLinksWithin(node.links, group);
+        final links = _removeTransitiveLinksWithin(
+          node.links,
+          group,
+          preserveAsOrdinaryTargets: {
+            if (id != dance.id &&
+                after[id]?.any((link) => !link.transitive) == true)
+              dance.id,
+          },
+        );
         pendingLinks[id] = links;
         if (!_sameLinks(node.links, links)) {
           next[id] = node.copyWith(links: links, updatedAt: dance.updatedAt);
@@ -250,14 +284,23 @@ Map<String, List<DanceLink>> _relatedLinksByTarget(List<DanceLink>? links) {
 
 List<DanceLink> _removeTransitiveLinksWithin(
   List<DanceLink> links,
-  Set<String> group,
-) => [
+  Set<String> group, {
+  Set<String> preserveAsOrdinaryTargets = const {},
+}) => [
   for (final link in links)
-    if (!(link.kind == LinkKind.relatedDance &&
-        link.transitive &&
-        link.targetDanceId != null &&
-        group.contains(link.targetDanceId)))
-      link,
+    if (link.kind != LinkKind.relatedDance ||
+        !link.transitive ||
+        link.targetDanceId == null ||
+        !group.contains(link.targetDanceId))
+      link
+    else if (preserveAsOrdinaryTargets.contains(link.targetDanceId))
+      DanceLink(
+        id: link.id,
+        kind: link.kind,
+        url: link.url,
+        targetDanceId: link.targetDanceId,
+        label: link.label,
+      ),
 ];
 
 List<DanceLink> _ensureRelatedLink(
