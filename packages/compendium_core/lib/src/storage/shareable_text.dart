@@ -17,10 +17,11 @@ class ShareableJsonKeyCollision implements Exception {
 
 /// Canonicalizes text before it crosses a shareable persistence boundary.
 ///
-/// NFC is applied before sanitizing so canonically equivalent input has one
-/// stored representation while invisible/control characters are removed.
+/// Invisible/control characters are removed before NFC so canonically equivalent
+/// input has one stored representation after the removed characters no longer
+/// interrupt combining sequences.
 String normalizeShareableText(String value) =>
-    sanitizeImportedText(nfc(value), allowLineBreaks: true);
+    nfc(sanitizeImportedText(value, allowLineBreaks: true));
 
 /// Recursively canonicalizes JSON-compatible values, including object keys.
 Object? normalizeShareableJson(Object? value) {

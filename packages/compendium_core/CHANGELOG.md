@@ -27,6 +27,9 @@ core version. They are left that way deliberately — do not renumber them.
 - **Schema 29 → 30** — remove redundant normalization collision snapshots;
   existing skip identities are retained while `recordNormalisationSkip` now
   accepts only the identifying table, column, and record triple.
+- **Shareable text normalization** — sanitize before NFC composition and
+  re-run the existing-data repair sweep when the normalization algorithm
+  changes.
 
 ## [0.2.0] - 2026-08-31
 
