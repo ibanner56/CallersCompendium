@@ -14,6 +14,8 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/update/update_controller.dart';
+import 'package:compendium_app/src/update/update_scope.dart';
 import 'package:compendium_app/src/widgets/section_header.dart';
 
 import '../support/test_repositories.dart';
@@ -75,6 +77,8 @@ _pumpSettings(
   final trackHistoryForAllCallersNotifier = ValueNotifier<bool>(
     initialTrackHistoryForAllCallers,
   );
+  final updateController = UpdateController(repos.settings);
+  await updateController.load();
 
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -88,6 +92,7 @@ _pumpSettings(
   addTearDown(requirePerformedNotifier.dispose);
   addTearDown(sortIgnoreArticlesNotifier.dispose);
   addTearDown(trackHistoryForAllCallersNotifier.dispose);
+  addTearDown(updateController.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -109,7 +114,10 @@ _pumpSettings(
                     notifier: trackHistoryForAllCallersNotifier,
                     child: SortIgnoreArticlesScope(
                       notifier: sortIgnoreArticlesNotifier,
-                      child: child!,
+                      child: UpdateScope(
+                        controller: updateController,
+                        child: child!,
+                      ),
                     ),
                   ),
                 ),
@@ -976,6 +984,13 @@ void main() {
         ),
         findsOneWidget,
       );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('settings-nav-updates')),
+          matching: find.byIcon(Icons.update_outlined),
+        ),
+        findsOneWidget,
+      );
 
       await tester.binding.setSurfaceSize(const Size(1000, 2600));
       await tester.pumpAndSettle();
@@ -1003,6 +1018,15 @@ void main() {
           of: experimental,
           matching: find.byIcon(Icons.psychology),
         ),
+        findsOneWidget,
+      );
+
+      final updates = find.byKey(const ValueKey('settings-nav-updates'));
+      await tester.tap(updates);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(of: updates, matching: find.byIcon(Icons.update)),
         findsOneWidget,
       );
     });

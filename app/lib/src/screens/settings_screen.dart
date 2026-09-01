@@ -101,7 +101,7 @@ enum _SettingsSection {
   dialect(Icons.groups_outlined, Icons.groups),
   regional(Icons.translate_outlined, Icons.translate),
   defaults(Icons.settings_suggest_outlined, Icons.settings_suggest),
-  updates(Icons.system_update_alt_outlined, Icons.system_update_alt),
+  updates(Icons.update_outlined, Icons.update),
   diagnostics(Icons.bug_report_outlined, Icons.bug_report),
   experimental(Icons.psychology_outlined, Icons.psychology),
   about(Icons.info_outline, Icons.info);

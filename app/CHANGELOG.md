@@ -41,6 +41,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
   and bands can be personal data about third parties, while documenting the
   configured sync service and local-only contact fields.
 
+### Fixed
+
+- **Windows Settings navigation** — use an update icon that renders correctly
+  for the Updates section.
+
 ### Data / Migrations
 
 - **Schema 29 → 30** — remove redundant normalization collision snapshots;
