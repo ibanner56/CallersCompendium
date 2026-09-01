@@ -41,8 +41,8 @@ jobs:
       # commits, each individually justified, none budgeted against — and the
       # cost is paid per turn, per session. This makes an addition displace
       # something rather than append to it. The same check also runs in
-      # agent-context.yml, because ci.yml skips entirely for Markdown-only
-      # changes and these are all Markdown files.
+      # agent-context.yml, because ci.yml skips this reusable job for
+      # Markdown-only changes and these are all Markdown files.
       - name: Test the agent-context budget ratchet
         run: python3 tools/ci/test_check_agent_context_budget.py
       - name: Guard resident agent context (byte budget)
@@ -122,7 +122,8 @@ jobs:
       - name: Test the CHANGELOG promotion gate
         run: python3 tools/ci/test_check_changelog_promoted.py
       # The structure gate itself runs in changelog-structure.yml, because
-      # ci.yml skips Markdown-only PRs and both changelogs are Markdown. Its
+      # ci.yml skips this reusable job for Markdown-only PRs and both
+      # changelogs are Markdown. Its
       # suite is pure-stdlib and trigger-agnostic, so it also runs here with the
       # other tool suites — a code PR that changes the gate but no changelog
       # would otherwise not exercise it at all.
@@ -199,9 +200,9 @@ jobs:
       # renderer treats its Markdown as untrusted, so its escaping and
       # href-allow-list contract is security-relevant and gets a PR gate here.
       # NOTE: the *render + link integrity* check deliberately lives in
-      # docs-bundle-check.yml instead, because ci.yml (which calls this
-      # workflow) has `paths-ignore: '**.md'` and so skips entirely on a
-      # Markdown-only PR — exactly the PR most likely to break a guide.
+      # docs-bundle-check.yml instead, because ci.yml skips this reusable
+      # workflow on a Markdown-only PR — exactly the PR most likely to break
+      # a guide.
       - name: Test the in-app user-docs sync checker
         run: python3 tools/ci/test_sync_user_docs.py
       - name: Test the hosted user-guide renderer (escaping / links / anchors)
