@@ -79,6 +79,17 @@ STEPS: tuple[Step, ...] = (
         ),
     ),
     Step(
+        "device-sync-tracking",
+        "ADR-004 work units, dependencies, evidence, and Project projection",
+        (
+            py("tools/tracking/test_validate.py"),
+            py("tools/tracking/test_validate_pr.py"),
+            py("tools/tracking/test_sync_project.py"),
+            py("tools/tracking/test_workflow_integration.py"),
+            py("tools/tracking/validate.py"),
+        ),
+    ),
+    Step(
         "pr-gates",
         "the merge-readiness gate script itself still works",
         (py("tools/ci/test_check_pr_review_gates.py"),),

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W11",
+  "title": "Server-side allow-list validation",
+  "phase": 4,
+  "sequence": 51,
+  "summary": "Enforce the same generated privacy allow-list at the remote service boundary.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W11 · Server-side allow-list validation"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "7.2 Allow-list validation"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W2",
+    "ADR-004/W10"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C5"
+  ],
+  "produces": [
+    "Server validation against the generated shareable-field mapping",
+    "Version-tolerant envelope validation"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Non-shareable keys receive 422.",
+      "Client and server consume the same generated mapping.",
+      "An unknown envelope version is not rejected solely because its version is new."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

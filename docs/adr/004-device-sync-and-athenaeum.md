@@ -497,13 +497,19 @@ lifting it somewhere shared) is an implementation detail for the sync issue, but
 sync must call *that* function rather than reimplement the comparison, or the
 two definitions of "the same dance" will drift.
 
-**Three distinct events produce a fresh attach, and all three behave
-identically:**
+**Three distinct events produce a fresh attach, and all three use the same
+union, dedupe and baseline algorithm once any required user decision has been
+made:**
 
 1. A device attaches to a sync ID for the first time.
 2. A device that had detached re-attaches. **Detaching forgets the sync ID
    entirely** — there is no memory of previously-attached IDs.
-3. The sync ID expired server-side and someone reconnects.
+3. A previously used sync ID no longer exists server-side and the user confirms
+   creation of a replacement.
+
+The third event is not automatic. The server deliberately cannot distinguish a
+store reaped after inactivity from one removed by an operator, so the client
+explains both possibilities and asks before it issues `POST /v1/store`.
 
 ### The epoch
 
@@ -534,7 +540,8 @@ catastrophic event but a merge whose every branch was chosen from a false
 premise, which is harder to notice and impossible to unpick afterwards.
 
 So the server stamps an **opaque 128-bit random epoch** on a sync ID when it is
-created, regenerated whenever the ID is created afresh after expiry. Devices
+created, regenerated whenever the user creates a replacement after the previous
+store disappeared. Devices
 store it alongside their baseline. **Epoch mismatch means the store was reset:
 the device discards its baseline and performs a fresh attach.**
 
@@ -548,11 +555,14 @@ Rationale.
 ### Retention
 
 **A sync ID that no device has used for 30 days is dropped in its entirety** —
-epoch, manifests and blobs. The next device to connect performs a fresh attach,
-and the first to do so seeds the store — which works only because an attach ends
-by running one steady-state pass (spec §6.2 step 7). Attach itself publishes no
-manifest, so without that step the seeding device would be invisible to peers
-and the blobs it uploaded would be collected as unreferenced.
+epoch, manifests and blobs. The next previously connected device explains that
+the store no longer exists and may have expired through inactivity or been
+removed, then asks whether to create a replacement. Only confirmation issues the
+`POST` and begins a fresh attach. The first confirming device seeds the store —
+which works only because an attach ends by running one steady-state pass (spec
+§6.2 step 7). Attach itself publishes no manifest, so without that step the
+seeding device would be invisible to peers and the blobs it uploaded would be
+collected as unreferenced.
 
 Two paths, together covering every case without us processing a request by hand:
 
@@ -943,9 +953,11 @@ makes self-hosting materially harder, which constraint 4 forbids.
 - **Device Sync is not backup.** With a 30-day-of-disuse TTL the store is a relay with
   a grace period, not an archive. The file backup remains the recovery path and the UI
   must say so.
-- **30 days of disuse is a liveness requirement on the user.** A caller who does not open
-  the app for five weeks returns to a fresh attach and a dedupe review —
-  correct and safe, but surprising. The UI should warn as expiry approaches.
+- **30 days of disuse is a liveness requirement on the user.** A caller who does
+  not open the app for five weeks is told that the store no longer exists and
+  may have expired or been removed, and chooses whether to create a replacement.
+  Confirmation leads to a fresh attach and possibly a dedupe review; declining
+  makes no creation request. The UI should also warn as expiry approaches.
 - **Venues sync partially**, and correct behaviour looks like data loss.
   Mitigated by a persistent hint, not eliminated.
 - **We now operate infrastructure**, with the uptime, abuse and cost that

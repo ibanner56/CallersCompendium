@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W12",
+  "title": "TTL, garbage collection and the break-glass log",
+  "phase": 4,
+  "sequence": 52,
+  "summary": "Implement retention, reclamation, immediate wipe, quotas, and privacy-safe operational access records.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W12 · TTL, garbage collection and the break-glass log"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "7.3 TTL and garbage collection"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "7.4 Break-glass access log"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W10"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C5"
+  ],
+  "produces": [
+    "Reachability garbage collection and upload grace period",
+    "Immediate whole-store deletion",
+    "Storage quotas and 507 handling",
+    "Privacy-safe break-glass access log"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Reachability collection honors the upload grace window.",
+      "DELETE has no grace period and removes the store immediately.",
+      "Raw device IDs never appear in logs.",
+      "Retention statements match observed service behavior."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

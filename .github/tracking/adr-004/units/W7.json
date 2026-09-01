@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W7",
+  "title": "Deletion, tombstones and collision reconciliation",
+  "phase": 3,
+  "sequence": 80,
+  "summary": "Carry deletions safely and reconcile identity collisions without resurrecting or silently discarding records.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W7 · Deletion, tombstones and collision reconciliation"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.6 Collision reconciliation"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.8 Deletion and pending tombstones"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W4",
+    "ADR-004/W6"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C4"
+  ],
+  "produces": [
+    "Pending-deletion and tombstone publication lifecycle",
+    "Natural-key reconciliation and ID aliases",
+    "Reference rewrites with timestamp updates"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Absence alone never deletes a record.",
+      "Reset preserves pending deletions.",
+      "Published records produce tombstones.",
+      "Detach and reattach cannot resurrect a deleted record.",
+      "Reconciliation rewrites every affected reference safely."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

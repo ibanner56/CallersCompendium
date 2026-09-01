@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W15",
+  "title": "Privacy-policy amendment",
+  "phase": 2,
+  "sequence": 45,
+  "summary": "Keep both privacy-policy copies truthful and make their effective date precede the first beta transfer.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W15 · Privacy-policy amendment"
+    },
+    {
+      "path": "docs/adr/004-device-sync-and-athenaeum.md",
+      "heading": "Blocking prerequisite — satisfied by [#1115]"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C6",
+    "C7"
+  ],
+  "produces": [
+    "Matching app-submission and website policy disclosures",
+    "An effective date valid before beta data transfer"
+  ],
+  "pullRequests": [
+    1115
+  ],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Both policy copies affirmatively disclose operator-visible plaintext and break-glass access.",
+      "The obsolete no-cloud claim is absent.",
+      "The effective date is rechecked and in force before any real beta content leaves a device."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

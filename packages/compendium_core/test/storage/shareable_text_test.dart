@@ -9,6 +9,10 @@ void main() {
     },
   );
 
+  test('removes invisible characters before composing NFC', () {
+    expect(normalizeShareableText('e\u200B\u0301'), 'é');
+  });
+
   test('normalizes nested JSON values and object keys', () {
     expect(
       normalizeShareableJson({

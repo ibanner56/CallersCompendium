@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W2",
+  "title": "The generated allow-list",
+  "phase": 1,
+  "sequence": 20,
+  "summary": "Generate the exact registry-to-wire allow-list so non-shareable data fails closed.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W2 · The generated allow-list"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "3.3 Classification dependency"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W0"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Generated field and settings mapping from the privacy registries",
+    "Prefix-aware settings classification",
+    "Shared client and server allow-list artifact"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "A non-vacuous property test proves a bijection between registry entries and real codecs.",
+      "No device-local field can be serialized.",
+      "Unknown classifications fail closed."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

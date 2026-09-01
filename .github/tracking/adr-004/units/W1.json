@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W1",
+  "title": "Canonical JSON and the content hash",
+  "phase": 1,
+  "sequence": 10,
+  "summary": "Define the byte-for-byte canonical representation and content identity shared by clients and the service.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W1 · Canonical JSON and the content hash"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "4.1 Canonical JSON"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "4.2 Content hash"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W0"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "RFC 8785 canonical JSON encoder",
+    "SHA-256 content hash",
+    "Shared normalization primitive and independent golden corpus"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Independent encoders agree on the complete wire corpus.",
+      "Non-finite numbers and unpaired surrogates are rejected before encoding.",
+      "Manifest identity remains nested by record kind."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

@@ -1,11 +1,31 @@
 import 'dart:convert';
 
 import 'package:compendium_core/compendium_core.dart';
-import 'package:drift/drift.dart' show Variable;
+import 'package:drift/drift.dart' show DriftSqlType, Variable;
 import 'package:test/test.dart';
 
 import 'fixtures.dart';
 import 'test_database.dart';
+
+Future<String> _preFixNormalisationScope(CompendiumDatabase db) async {
+  final columns = <String>[];
+  for (final table in db.allTables) {
+    final primaryKeys = table.$primaryKey.map((column) => column.name).toSet();
+    for (final column in table.$columns) {
+      final classification =
+          fieldClassifications['${table.actualTableName}.${column.name}'];
+      if (column.type != DriftSqlType.string ||
+          classification?.egress != EgressClass.shareable ||
+          classification!.isIdentity ||
+          primaryKeys.contains(column.name)) {
+        continue;
+      }
+      columns.add('${table.actualTableName}.${column.name}');
+    }
+  }
+  columns.sort();
+  return jsonEncode(columns);
+}
 
 void main() {
   late CompendiumDatabase db;
@@ -56,6 +76,67 @@ void main() {
         .getSingle();
     expect(row.read<String>('id'), 'id\u0301');
   });
+
+  test(
+    'corrected normalization reruns when the pre-fix scope marker is present',
+    () async {
+      final oldUpdatedAt = DateTime.utc(2026, 1, 2, 3, 4, 5);
+      await repos.dances.create(
+        sampleDance(
+          id: 'd1',
+          title: 'Original',
+          createdAt: oldUpdatedAt,
+          updatedAt: oldUpdatedAt,
+        ),
+      );
+      final before = await db
+          .customSelect(
+            'SELECT updated_at, existence_at, deleted_at FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      await db.customStatement('UPDATE dances SET title = ? WHERE id = ?', [
+        'e\u200B\u0301',
+        'd1',
+      ]);
+
+      await db.customStatement(
+        'INSERT INTO settings (key, value_json) VALUES (?, ?)',
+        [
+          shareableTextNormalisationScopeKey,
+          await _preFixNormalisationScope(db),
+        ],
+      );
+
+      await repos.ensureMigrated();
+
+      final row = await db
+          .customSelect(
+            'SELECT title, updated_at, existence_at, deleted_at '
+            'FROM dances WHERE id = ?',
+            variables: [const Variable<String>('d1')],
+          )
+          .getSingle();
+      expect(row.read<String>('title'), 'é');
+      expect(row.data['updated_at'], before.data['updated_at']);
+      expect(row.data['existence_at'], before.data['existence_at']);
+      expect(row.data['deleted_at'], before.data['deleted_at']);
+
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              const Variable<String>(shareableTextNormalisationScopeKey),
+            ],
+          )
+          .getSingle();
+      expect(
+        marker.read<String>('value_json'),
+        isNot(await _preFixNormalisationScope(db)),
+      );
+      expect(marker.read<String>('value_json'), contains('"version":2'));
+    },
+  );
 
   test('backfill repairs tombstoned shareable settings', () async {
     await db.customStatement(
@@ -292,6 +373,7 @@ class _FailingOnceNormalisationRepositories extends CompendiumRepositories {
       _failed = true;
       throw StateError('injected rebuild failure');
     }
+
     return super.runDerivedRebuild(onProgress: onProgress);
   }
 }
