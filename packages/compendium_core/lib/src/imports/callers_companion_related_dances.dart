@@ -64,11 +64,11 @@ class CcRelatedDanceLinksResult {
 ///
 /// **Directional only** (issue #688 decision): each `Dance_Related` row
 /// produces exactly one directed link, on the SOURCE dance, pointing at the
-/// target. Nothing here synthesizes a reverse link — `RelatedDancesEditor`/
-/// `DanceLink` are directional per-dance with no auto-mirroring anywhere in
-/// the app, so if CC's real data mirrors relationships as two rows, importing
-/// each row independently already reproduces that bidirectional *display*
-/// without any special-casing.
+/// target. Nothing here synthesizes a reverse link. The manual editor has a
+/// separate app-layer save path that mirrors links for user edits; imports stay
+/// directional so if CC's real data mirrors relationships as two rows,
+/// importing each row independently already reproduces that bidirectional
+/// *display* without any special-casing.
 ///
 /// **Parse-never-fails, fail-closed-on-injection:** a pair whose source or
 /// target CC id did not resolve to a committed dance (not imported this

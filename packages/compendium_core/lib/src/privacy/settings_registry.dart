@@ -35,6 +35,19 @@ const _installState = DataClassification(
       'device would be wrong rather than merely useless.',
 );
 
+/// Non-shareable settings that are intentionally retained in user-controlled
+/// local backups. They remain excluded from project-operated infrastructure,
+/// but unlike [_installState] their egress classification permits that backup
+/// route.
+const _backupLocalState = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.deviceLocal,
+  note:
+      'Non-shareable installation state intentionally retained in a '
+      'user-controlled local backup, but not sent to project infrastructure.',
+);
+
 /// Classification for every settings key. See the file doc comment.
 final Map<String, DataClassification> settingsClassifications = {
   // -- User-authored content ------------------------------------------------
@@ -127,10 +140,11 @@ final Map<String, DataClassification> settingsClassifications = {
   'perform_text_scale': const DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.appUser,
-    egress: EgressClass.deviceScoped,
+    egress: EgressClass.deviceLocal,
     note:
         'Tuned to the screen it was set on. A scale chosen for a phone held at '
-        "arm's length is wrong on a laptop driving a projector.",
+        "arm's length is wrong on a laptop driving a projector, but it may "
+        'travel in a user-controlled local backup.',
   ),
   'require_performed_for_history': _preference,
   'track_history_for_all_callers': _preference,
@@ -138,15 +152,15 @@ final Map<String, DataClassification> settingsClassifications = {
   // -- Installation state ---------------------------------------------------
   'window_frame': _installState,
   'last_backup_at': _installState,
-  'seed.initialCollection.completed': _installState,
+  'seed.initialCollection.completed': _backupLocalState,
   // Records that the one-time custom-field sharing disclosure was shown on
   // this device. A boolean latch; contains no personal data.
-  'custom_fields.sharing.disclosed': _installState,
-  'update_auto_check': _installState,
-  'update_beta_channel': _installState,
-  'update_dismissed_version': _installState,
+  'custom_fields.sharing.disclosed': _backupLocalState,
+  'update_auto_check': _backupLocalState,
+  'update_beta_channel': _backupLocalState,
+  'update_dismissed_version': _backupLocalState,
   'backup_reminder_cadence': _preference,
-  '__shareable_text_normalisation_scope__': _installState,
+  '__shareable_text_normalisation_scope__': _backupLocalState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

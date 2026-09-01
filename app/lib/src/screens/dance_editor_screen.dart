@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/repositories_scope.dart';
+import '../data/related_dance_links.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../search/dance_editor_reference_data.dart';
@@ -349,11 +350,11 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     setState(() => _saving = true);
     try {
       final dance = _controller.buildDance();
-      if (_controller.isExistingDance) {
-        await _repos.dances.update(dance);
-      } else {
-        await _repos.dances.create(dance);
-      }
+      await saveDanceWithRelatedLinks(
+        _repos,
+        dance: dance,
+        original: _controller.original,
+      );
       // Clear the autosave draft — work is now committed.
       await _controller.clearDraft();
       _controller.markSaved();

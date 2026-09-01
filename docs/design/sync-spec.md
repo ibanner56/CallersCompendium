@@ -1731,15 +1731,16 @@ syncing device leaves sync off, adopts no device ID, and stores no credential.
 This does **not** follow from the classifications above, and MUST NOT be
 justified that way. The backup filter is not derived from `EgressClass` and
 #923 ruled that it should not be, so "not `shareable`, therefore not in a
-backup" is not a rule this codebase enforces: several `deviceScoped` settings
-keys are carried in backups today. Whether that is itself a defect is a
-question about the app's existing settings, not about this protocol, and it is
-not settled here — either way it cannot be leaned on. The reasons are specific
-to these keys. A restored `sync_enabled` contradicts the first paragraph of this
-section, which requires sync be off until the user turns it on — consent given
-on one device is not consent on another. A restored `sync_device_id` is exactly
-the adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route
-no envelope check sees. A restored `sync_id` puts a bearer credential into a
+backup" is not a rule this codebase enforces. `deviceLocal` explicitly permits
+a user-controlled local backup, while the exact settings that remain
+`deviceScoped` (`window_frame` and `last_backup_at`) are denylisted. The
+protocol's backup exclusions therefore remain key-specific: a newly introduced
+sync setting must be added explicitly rather than relying on its classification.
+A restored `sync_enabled` contradicts the first paragraph of this section,
+which requires sync be off until the user turns it on — consent given on one
+device is not consent on another. A restored `sync_device_id` is exactly the
+adoption §3.3 rule 3 forbids, and hands two devices one manifest by a route no
+envelope check sees. A restored `sync_id` puts a bearer credential into a
 plaintext file users mail to themselves.
 
 **`sync_exclude_imports`** is one of those keys: a per-device toggle, default
