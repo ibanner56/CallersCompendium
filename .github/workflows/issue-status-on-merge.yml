@@ -3,9 +3,8 @@
 name: Set fixed-pending-release status
 
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
-
 permissions:
   issues: write
   pull-requests: read
