@@ -45,6 +45,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - **Windows Settings navigation** — use an update icon that renders correctly
   for the Updates section.
+- **Related dance links** — manually saved relationships now stay synchronized
+  in both directions, including retargeting and removal.
 
 ### Data / Migrations
 
