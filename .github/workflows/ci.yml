@@ -8,10 +8,10 @@ name: CI
 
 # Markdown-only changes do not need the costly Flutter checks or platform
 # builds. Pull requests still start this workflow, though: `Merge gate` is a
-# required status and must report for every PR. `classify` skips the expensive
-# jobs only after comparing the PR merge base and head; `Merge gate` then verifies
-# that the skipped result was expected. Pushes retain the path filter because
-# they do not provide the required PR status.
+# required status and must report for every PR. For a synchronized PR update,
+# `classify` checks only the new range when the previous head has a successful
+# Merge gate; otherwise it conservatively checks the whole PR diff. Pushes retain
+# the path filter because they do not provide the required PR status.
 on:
   push:
     branches: [main]
@@ -29,18 +29,21 @@ concurrency:
 # Least privilege: CI only reads the checked-out code.
 permissions:
   contents: read
+  checks: read
 
 jobs:
-  # Match the former paths-ignore rule exactly, but do it inside a PR workflow
-  # so the required final gate always exists. Diff from the merge base so base
-  # branch changes do not affect the PR's classification. --no-renames makes a
-  # code-to-Markdown rename count as code-changing rather than hiding the
-  # removed code path.
+  # Keep the required final gate present for every PR, while selecting work from
+  # either the full PR diff or a validated incremental update. --no-renames
+  # makes a code-to-Markdown rename count as code-changing rather than hiding
+  # the removed code path.
   classify:
     name: Classify changes
     runs-on: ubuntu-latest
     outputs:
-      code_changed: ${{ steps.classify.outputs.code_changed }}
+      validation_changed: ${{ steps.classify.outputs.validation_changed }}
+      core_tests_changed: ${{ steps.classify.outputs.core_tests_changed }}
+      app_tests_changed: ${{ steps.classify.outputs.app_tests_changed }}
+      builds_changed: ${{ steps.classify.outputs.builds_changed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name == 'pull_request'
@@ -51,22 +54,32 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
             # The retained push path filter already excludes Markdown-only pushes.
-            echo 'code_changed=true' >> "$GITHUB_OUTPUT"
+            {
+              echo 'validation_changed=true'
+              echo 'core_tests_changed=true'
+              echo 'app_tests_changed=true'
+              echo 'builds_changed=true'
+            } >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
             echo '::error::Pull request base or head SHA is unavailable.'
             exit 1
           fi
-          python3 - "$BASE_SHA" "$HEAD_SHA" <<'PY'
+          python3 - "$BASE_SHA" "$HEAD_SHA" "$BEFORE_SHA" <<'PY'
+          import json
           import os
           import subprocess
           import sys
+          from urllib.error import HTTPError, URLError
+          from urllib.request import Request, urlopen
 
-          base, head = sys.argv[1:]
+          base, head, before = sys.argv[1:]
           for label, ref in (
               ('Pull request base', base),
               ('Pull request head', head),
@@ -81,6 +94,61 @@ jobs:
                   print(f'::error::{label} SHA does not resolve: {detail}')
                   raise SystemExit(1)
 
+          def prior_merge_gate_succeeded(sha):
+              token = os.environ.get('GITHUB_TOKEN')
+              repository = os.environ.get('GITHUB_REPOSITORY')
+              if not token or not repository:
+                  print(
+                      '::notice::Cannot confirm the previous Merge gate; '
+                      'checking the full pull request diff.'
+                  )
+                  return False
+              request = Request(
+                  f'https://api.github.com/repos/{repository}/commits/{sha}/check-runs'
+                  '?check_name=Merge%20gate',
+                  headers={
+                      'Accept': 'application/vnd.github+json',
+                      'Authorization': f'Bearer {token}',
+                      'X-GitHub-Api-Version': '2022-11-28',
+                  },
+              )
+              try:
+                  with urlopen(request, timeout=10) as response:
+                      check_runs = json.load(response)['check_runs']
+              except (HTTPError, URLError, KeyError, json.JSONDecodeError) as error:
+                  print(
+                      '::notice::Cannot confirm the previous Merge gate '
+                      f'({error}); checking the full pull request diff.'
+                  )
+                  return False
+              return any(
+                  check_run.get('name') == 'Merge gate'
+                  and check_run.get('status') == 'completed'
+                  and check_run.get('conclusion') == 'success'
+                  and (check_run.get('app') or {}).get('slug') == 'github-actions'
+                  for check_run in check_runs
+              )
+
+          diff_range = f'{base}...{head}'
+          if before and before != head:
+              before_resolved = subprocess.run(
+                  ['git', 'rev-parse', '--verify', '--quiet', f'{before}^{{commit}}'],
+                  capture_output=True,
+                  check=False,
+              )
+              is_ancestor = subprocess.run(
+                  ['git', 'merge-base', '--is-ancestor', before, head],
+                  capture_output=True,
+                  check=False,
+              )
+              if (
+                  before_resolved.returncode == 0
+                  and is_ancestor.returncode == 0
+                  and prior_merge_gate_succeeded(before)
+              ):
+                  diff_range = f'{before}..{head}'
+                  print('Classifying only changes since the successful previous Merge gate.')
+
           result = subprocess.run(
               [
                   'git',
@@ -88,7 +156,7 @@ jobs:
                   '--no-renames',
                   '--name-only',
                   '-z',
-                  f'{base}...{head}',
+                  diff_range,
               ],
               capture_output=True,
               check=False,
@@ -102,30 +170,64 @@ jobs:
           if not paths:
               print(
                   '::error::Pull request has no changed paths; refusing to '
-                  'classify it as Markdown-only.'
+                  'skip validation.'
               )
               raise SystemExit(1)
 
-          code_changed = any(not path.endswith(b'.md') for path in paths)
+          shared_runtime_paths = {
+              b'.fvmrc',
+              b'pubspec.yaml',
+              b'pubspec.lock',
+              b'analysis_options.yaml',
+              b'.github/workflows/_checks.yml',
+          }
+          core_test_driver_paths = {
+              b'tools/ci/run_core_tests_with_coverage.py',
+              b'tools/ci/check_core_coverage.py',
+              b'tools/ci/check_core_flutter_free.py',
+          }
+          validation_changed = any(not path.endswith(b'.md') for path in paths)
+          core_tests_changed = validation_changed and any(
+              path.startswith(b'packages/compendium_core/')
+              or path in shared_runtime_paths
+              or path in core_test_driver_paths
+              for path in paths
+          )
+          app_tests_changed = validation_changed and any(
+              path.startswith(b'app/')
+              or path.startswith(b'packages/compendium_core/')
+              or path in shared_runtime_paths
+              for path in paths
+          )
+          builds_changed = app_tests_changed
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write(f'code_changed={str(code_changed).lower()}\n')
+              for name, value in (
+                  ('validation_changed', validation_changed),
+                  ('core_tests_changed', core_tests_changed),
+                  ('app_tests_changed', app_tests_changed),
+                  ('builds_changed', builds_changed),
+              ):
+                  output.write(f'{name}={str(value).lower()}\n')
           PY
 
   checks:
-    # Delegate to the reusable checks workflow so the same lint/test/guard
+    # Delegate to the reusable checks workflow so the same validation/test/guard
     # definitions single-source both this PR gate and the future release
     # path (ADR-002). The event triggers, push path filter, and concurrency
     # stay here on the caller; the PR-only schema-guard and the build matrix
     # intentionally remain below (see notes on each).
     needs: classify
-    if: needs.classify.outputs.code_changed == 'true'
+    if: needs.classify.outputs.validation_changed == 'true'
     uses: ./.github/workflows/_checks.yml
+    with:
+      run_core_tests: ${{ needs.classify.outputs.core_tests_changed == 'true' }}
+      run_app_tests: ${{ needs.classify.outputs.app_tests_changed == 'true' }}
 
   build:
     name: Build (${{ matrix.target }})
     needs: [classify, checks]
     if: >-
-      needs.classify.outputs.code_changed == 'true' &&
+      needs.classify.outputs.builds_changed == 'true' &&
       needs.checks.result == 'success'
     strategy:
       fail-fast: false
@@ -234,7 +336,8 @@ jobs:
       - name: Verify required job results
         env:
           CLASSIFY_RESULT: ${{ needs.classify.result }}
-          CODE_CHANGED: ${{ needs.classify.outputs.code_changed }}
+          VALIDATION_CHANGED: ${{ needs.classify.outputs.validation_changed }}
+          BUILDS_CHANGED: ${{ needs.classify.outputs.builds_changed }}
           CHECKS_RESULT: ${{ needs.checks.result }}
           BUILD_RESULT: ${{ needs.build.result }}
           SCHEMA_GUARD_RESULT: ${{ needs.schema-guard.result }}
@@ -261,17 +364,24 @@ jobs:
           require_success 'Schema migration gate' "$SCHEMA_GUARD_RESULT"
           require_success 'Device Sync tracking gate' "$TRACKING_GATE_RESULT"
 
-          case "$CODE_CHANGED" in
+          case "$VALIDATION_CHANGED" in
             true)
-              require_success 'Format, analyze, test' "$CHECKS_RESULT"
-              require_success 'Platform builds' "$BUILD_RESULT"
+              require_success 'Validation checks' "$CHECKS_RESULT"
               ;;
             false)
-              require_skipped 'Format, analyze, test' "$CHECKS_RESULT"
-              require_skipped 'Platform builds' "$BUILD_RESULT"
+              require_skipped 'Validation checks' "$CHECKS_RESULT"
               ;;
             *)
-              echo "::error::Classify changes produced invalid code_changed output '$CODE_CHANGED'."
+              echo "::error::Classify changes produced invalid validation_changed output '$VALIDATION_CHANGED'."
+              failed=1
+              ;;
+          esac
+
+          case "$BUILDS_CHANGED" in
+            true) require_success 'Platform builds' "$BUILD_RESULT" ;;
+            false) require_skipped 'Platform builds' "$BUILD_RESULT" ;;
+            *)
+              echo "::error::Classify changes produced invalid builds_changed output '$BUILDS_CHANGED'."
               failed=1
               ;;
           esac
