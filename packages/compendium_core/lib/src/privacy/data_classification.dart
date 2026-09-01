@@ -153,12 +153,24 @@ enum EgressClass {
   /// a local backup file they control.
   deviceLocal,
 
-  /// Never transmitted, because it is meaningless or actively wrong on another
-  /// device — a window position, a per-device marker. Distinct from
-  /// [deviceLocal]: that is withheld because of what it *contains*, this
-  /// because of what it *means*. The difference is behavioural, not editorial —
-  /// [deviceLocal] data may still move by a direct device-to-device transfer,
-  /// while this must not travel by any route at all.
+  /// Never transmitted by any route, because the value is meaningless or
+  /// actively wrong on another device — a window position, a per-device marker,
+  /// a per-installation key.
+  ///
+  /// Distinct from [deviceLocal]: that is withheld because of what it
+  /// *contains*, this because of what it *means*. The difference is
+  /// behavioural, not editorial — [deviceLocal] data may still move by a direct
+  /// device-to-device transfer, while this must not travel by any route at all.
+  ///
+  /// **"Any route" is absolute, and deliberately so.** An identifier a protocol
+  /// must put on the wire in order to function is therefore *not* this class,
+  /// however device-specific it is. A draft of Device Sync read "transmitted"
+  /// as "transmitted as record content" so that a sync device ID could be
+  /// `deviceScoped` and still travel in a request path; that was rejected,
+  /// because it makes egress depend on which part of a request a value lands in
+  /// rather than on the classification, and because the ruling on #923 turns on
+  /// the absolute reading. Such an identifier takes a class of its own —
+  /// see `docs/design/sync.md`.
   deviceScoped,
 
   /// Never transmitted at all. Rebuildable from other fields on arrival, so

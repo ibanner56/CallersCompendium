@@ -408,8 +408,11 @@ can still fire.
   `VenueRepository`, `SettingsRepository`) to tombstones, so a deletion
   leaves something a peer can learn from; the `hardDelete` import-undo paths
   stay hard, because a rollback must leave nothing to publish. No figure
-  index is touched; no derived rebuild is required. Behaviour-preserving
-  from the user's point of view: nothing reads `existence_at` yet.
+  index is touched; no derived rebuild is required. Behaviour-preserving from
+  the user's point of view: nothing reads `existence_at` for a merge decision
+  yet. The stamping helper in `storage/existence.dart` does read it, to
+  advance a tie causally — see the note below, which corrects the flat form of
+  this claim.
 - v26 (issue #899): provenance-based venue dedupe for shared bundles. Adds
   one brand-new table, `venue_provenance` (one row per imported venue,
   keyed on the venue id, mirroring `provenance` and `program_provenance`).
@@ -466,8 +469,11 @@ favour of the tombstone. One tick is one **second**, because drift stores
 `DateTime` as unix seconds; a smaller increment would round away and the stamp
 would tie. See `lib/src/storage/existence.dart`.
 
-Nothing reads `existence_at` yet. It exists for Device Sync (ADR-004), which is
-not implemented; the migration that adds it is deliberately behaviour-preserving.
+Nothing reads `existence_at` *for a merge decision* yet. The causal advance
+described just above does read it, so the flat claim "nothing reads it" is
+false against the file this paragraph points at. It exists for Device Sync
+(ADR-004), which is not implemented; the migration that adds it is deliberately
+behaviour-preserving.
 
 **Deletion is a tombstone, with two named exceptions.** Deleting an entity
 writes `deleted_at` and leaves the row on disk, so the deletion is something a
