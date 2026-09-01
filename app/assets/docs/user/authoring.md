@@ -217,6 +217,11 @@ updates the default used everywhere.
 | **Related dances** | Cross-references to other dances, each with an optional note |
 | **Custom fields** | Any fields you have defined — see [Collection & search](./collection.md#make-your-own-fields) |
 
+For a related dance that belongs to the same **transitive group**, turn on
+**Transitive group**. The app keeps every dance in that group connected to every
+other member. Removing a transitive link detaches the whole group, while ordinary
+related-dance links outside it are left alone.
+
 If the editor spots wording it considers discouraged, it collects it under
 **Warnings** with the term named. Nothing is blocked; it is there so you can
 decide.
