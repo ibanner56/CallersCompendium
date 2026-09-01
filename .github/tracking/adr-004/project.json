@@ -216,6 +216,13 @@
   ],
   "decisions": [
     {
+      "id": "normalization-primitive-ownership",
+      "decision": "W18 depends on W0 and owns the shared normalization primitive; future W1 canonical JSON work reuses that delivered primitive.",
+      "effect": "Phase 1 orders W18 before W1, W18 inherits the migrated storage foundation, and W1 no longer blocks W18.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
       "id": "service-first",
       "decision": "Build and deploy the remote service as early as the shared compendium_core and wire contracts permit.",
       "effect": "After C1, land the shared W5 credential definition needed by W10, then prioritize W10 and a live test endpoint before W6 client-engine development.",

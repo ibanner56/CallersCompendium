@@ -4932,7 +4932,7 @@ editor. That was verified against the tree at the time: `sanitizeImportedText`
 had no caller under `storage/` or `app/lib/`, and `DanceRepository._upsert` did
 not invoke it.
 
-**That gap is now closed in `main`, and #1131 corrected the composition order
+**That gap is now closed in `main`, and #1137 corrected the composition order
 used by the closure.** `normalizeShareableText` (`storage/shareable_text.dart`)
 now applies `NFC(sanitizeImportedText(value))`. The regression vector `e` +
 `U+200B` + `U+0301` therefore becomes `U+00E9`, rather than the decomposed
