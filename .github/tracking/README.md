@@ -42,6 +42,10 @@ stage.
 dependency that permits early or parallel work but must finish before this unit
 can be declared complete.
 
+`project.json` defines which units gate each checkpoint. A unit's `checkpoints`
+array mirrors that relation for card rendering; validation rejects drift in
+either direction.
+
 ## Pull request identity
 
 An implementation PR owns exactly one work unit. A unit may have several PRs.

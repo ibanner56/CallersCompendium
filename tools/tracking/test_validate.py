@@ -25,6 +25,7 @@ def unit(
     pull_requests: list[int] | None = None,
     complete: bool = False,
     evidence: list[str] | None = None,
+    checkpoints: list[str] | None = None,
 ) -> dict[str, object]:
     return {
         "schemaVersion": 1,
@@ -41,7 +42,7 @@ def unit(
         ],
         "dependsOn": depends_on or [],
         "completionDependsOn": [],
-        "checkpoints": ["C0"],
+        "checkpoints": ["C0"] if checkpoints is None else checkpoints,
         "produces": [f"Artifact {number}"],
         "pullRequests": pull_requests or [],
         "hold": None,
@@ -94,7 +95,10 @@ def build_repo(tmp: Path) -> Path:
     )
     units = repo / ".github" / "tracking" / "adr-004" / "units"
     write_json(units / "W0.json", unit(0, pull_requests=[10], complete=True, evidence=["PR #10"]))
-    write_json(units / "W1.json", unit(1, depends_on=["ADR-004/W0"]))
+    write_json(
+        units / "W1.json",
+        unit(1, depends_on=["ADR-004/W0"], checkpoints=[]),
+    )
     return repo
 
 
@@ -194,6 +198,44 @@ def test_derived_status_field_is_rejected() -> None:
         result = run(repo)
         assert result.returncode == 1
         assert "unknown key status" in result.stdout
+
+
+def test_invalid_dependency_type_reports_error_without_crashing() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = build_repo(Path(tmp))
+        path = repo / ".github" / "tracking" / "adr-004" / "units" / "W1.json"
+        value = json.loads(path.read_text(encoding="utf-8"))
+        value["dependsOn"] = "ADR-004/W0"
+        write_json(path, value)
+        result = run(repo)
+        assert result.returncode == 1
+        assert ".dependsOn: must be a list" in result.stdout
+        assert "Traceback" not in result.stderr
+
+
+def test_invalid_completion_type_reports_error_without_crashing() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = build_repo(Path(tmp))
+        path = repo / ".github" / "tracking" / "adr-004" / "units" / "W1.json"
+        value = json.loads(path.read_text(encoding="utf-8"))
+        value["completion"] = "done"
+        write_json(path, value)
+        result = run(repo)
+        assert result.returncode == 1
+        assert ".completion: must be an object" in result.stdout
+        assert "Traceback" not in result.stderr
+
+
+def test_unit_checkpoint_membership_must_match_project_gate() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = build_repo(Path(tmp))
+        path = repo / ".github" / "tracking" / "adr-004" / "units" / "W1.json"
+        value = json.loads(path.read_text(encoding="utf-8"))
+        value["checkpoints"] = ["C0"]
+        write_json(path, value)
+        result = run(repo)
+        assert result.returncode == 1
+        assert "checkpoint membership does not match project gates" in result.stdout
 
 
 def test_missing_source_heading_fails() -> None:

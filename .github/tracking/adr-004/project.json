@@ -75,6 +75,7 @@
         "ADR-004/W1",
         "ADR-004/W2",
         "ADR-004/W3",
+        "ADR-004/W17",
         "ADR-004/W18"
       ],
       "dependsOnCheckpoints": [
@@ -250,16 +251,9 @@
       "decidedOn": "2026-09-01"
     },
     {
-      "id": "privacy-before-beta",
-      "decision": "The amended privacy policy and its effective date must be in force before real beta content leaves a device.",
-      "effect": "W15 and the effective-date check gate C6, not only public release.",
-      "decidedBy": "ibanner56",
-      "decidedOn": "2026-09-01"
-    },
-    {
-      "id": "server-before-client",
-      "decision": "Deploy the compatible server before distributing a client that can use it.",
-      "effect": "The beta and public release gates both verify server-first ordering.",
+      "id": "repository-backed-tracking",
+      "decision": "Track Device Sync implementation without GitHub Issues, using repository work-unit records as the source of truth and a GitHub Project as the generated view.",
+      "effect": "Implementation work is represented by ADR-004 work units and their pull requests; the Project is reconciled from merged repository state.",
       "decidedBy": "ibanner56",
       "decidedOn": "2026-09-01"
     }

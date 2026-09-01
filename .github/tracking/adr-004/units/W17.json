@@ -26,7 +26,6 @@
     "ADR-004/W18"
   ],
   "checkpoints": [
-    "C0",
     "C1"
   ],
   "produces": [

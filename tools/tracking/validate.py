@@ -466,33 +466,81 @@ class Validator:
         for extra in sorted(actual - expected):
             self.error("project.json", f"unexpected work unit exists: {extra}")
 
+        def unit_dependencies(unit: dict[str, Any]) -> list[str]:
+            dependencies: list[str] = []
+            for key in ("dependsOn", "completionDependsOn"):
+                value = unit.get(key)
+                if isinstance(value, list):
+                    dependencies.extend(
+                        dependency
+                        for dependency in value
+                        if isinstance(dependency, str)
+                    )
+            return dependencies
+
+        def unit_is_complete(unit: dict[str, Any]) -> bool:
+            completion = unit.get("completion")
+            return (
+                isinstance(completion, dict)
+                and completion.get("complete") is True
+            )
+
         for unit_id, unit in units.items():
-            for dependency in (
-                unit.get("dependsOn", []) + unit.get("completionDependsOn", [])
-            ):
+            for dependency in unit_dependencies(unit):
                 if dependency not in units:
                     self.error(unit_id, f"unknown dependency {dependency}")
-            if unit.get("completion", {}).get("complete"):
-                for dependency in (
-                    unit.get("dependsOn", []) + unit.get("completionDependsOn", [])
-                ):
+            if unit_is_complete(unit):
+                for dependency in unit_dependencies(unit):
                     if (
                         dependency in units
-                        and not units[dependency].get("completion", {}).get("complete")
+                        and not unit_is_complete(units[dependency])
                     ):
                         self.error(
                             unit_id,
                             f"cannot complete before dependency {dependency}",
                         )
-        for checkpoint in project.get("checkpoints", []):
+        checkpoint_units: dict[str, set[str]] = {}
+        checkpoints_value = project.get("checkpoints")
+        checkpoints = checkpoints_value if isinstance(checkpoints_value, list) else []
+        for checkpoint in checkpoints:
             if not isinstance(checkpoint, dict):
                 continue
-            for dependency in checkpoint.get("dependsOnUnits", []):
+            checkpoint_id = checkpoint.get("id")
+            dependencies_value = checkpoint.get("dependsOnUnits")
+            dependencies = (
+                dependencies_value if isinstance(dependencies_value, list) else []
+            )
+            valid_dependencies = {
+                dependency
+                for dependency in dependencies
+                if isinstance(dependency, str)
+            }
+            if isinstance(checkpoint_id, str):
+                checkpoint_units[checkpoint_id] = valid_dependencies
+            for dependency in valid_dependencies:
                 if dependency not in units:
                     self.error(
                         f"checkpoint {checkpoint.get('id', '?')}",
                         f"unknown unit dependency {dependency}",
                     )
+        for unit_id, unit in units.items():
+            declared_value = unit.get("checkpoints")
+            if not isinstance(declared_value, list) or any(
+                not isinstance(checkpoint, str) for checkpoint in declared_value
+            ):
+                continue
+            declared = set(declared_value)
+            gated_by = {
+                checkpoint_id
+                for checkpoint_id, dependencies in checkpoint_units.items()
+                if unit_id in dependencies
+            }
+            if declared != gated_by:
+                self.error(
+                    unit_id,
+                    "checkpoint membership does not match project gates: "
+                    f"declared {sorted(declared)}, expected {sorted(gated_by)}",
+                )
 
         visiting: list[str] = []
         visited: set[str] = set()
@@ -505,11 +553,7 @@ class Validator:
                 self.error("dependencies", f"dependency cycle: {' -> '.join(cycle)}")
                 return
             visiting.append(unit_id)
-            dependencies = (
-                units[unit_id].get("dependsOn", [])
-                + units[unit_id].get("completionDependsOn", [])
-            )
-            for dependency in dependencies:
+            for dependency in unit_dependencies(units[unit_id]):
                 if dependency in units:
                     visit(dependency)
             visiting.pop()
