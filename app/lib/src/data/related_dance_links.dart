@@ -82,6 +82,7 @@ Future<void> saveDanceWithRelatedLinks(
             .customSelect(
               'SELECT DISTINCT dance_id FROM dance_links '
               'WHERE target_dance_id = ? AND transitive = 1 '
+              "AND kind = 'relatedDance' "
               'AND dance_id NOT IN ($placeholders) '
               'LIMIT ?',
               variables: [

@@ -36,10 +36,11 @@ Each dump is taken from a **real database file**, not from static analysis of
 * The head dump comes from a database created on the spot by
   `tool/write_head_database.dart`.
 
-That matters because five entities in this schema are created by raw
+That matters because six entities in this schema are created by raw
 `customStatement` DDL rather than being drift-managed — the `dance_fts` FTS5
-virtual table and the four lookup indices `dance_figures_move_section`,
-`dance_links_dance_id`, `programs_venue_id` and `program_slots_dance_id`. A
+virtual table and the five lookup indices `dance_figures_move_section`,
+`dance_links_dance_id`, `dance_links_target_transitive`, `programs_venue_id`
+and `program_slots_dance_id`. A
 dump taken from Dart source contains none of them, which would leave exactly
 the entities that are maintained by hand in two places (`onCreate` **and** an
 upgrade step) outside the verification. Dumping databases keeps them in scope,

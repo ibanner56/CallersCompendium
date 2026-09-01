@@ -2443,6 +2443,10 @@ class DatabaseAtV31 extends GeneratedDatabase {
     'dance_links_dance_id',
     'CREATE INDEX dance_links_dance_id ON dance_links (dance_id)',
   );
+  late final Index danceLinksTargetTransitive = Index(
+    'dance_links_target_transitive',
+    'CREATE INDEX dance_links_target_transitive ON dance_links (target_dance_id, transitive, kind, dance_id)',
+  );
   late final Index programsVenueId = Index(
     'programs_venue_id',
     'CREATE INDEX programs_venue_id ON programs (venue_id)',
@@ -2480,6 +2484,7 @@ class DatabaseAtV31 extends GeneratedDatabase {
     danceSubstringFts,
     danceFiguresMoveSection,
     danceLinksDanceId,
+    danceLinksTargetTransitive,
     programsVenueId,
     programSlotsDanceId,
   ];

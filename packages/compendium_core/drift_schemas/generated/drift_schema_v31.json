@@ -2570,6 +2570,20 @@
     {
       "id": 24,
       "references": [
+        10
+      ],
+      "type": "index",
+      "data": {
+        "on": 10,
+        "name": "dance_links_target_transitive",
+        "sql": "CREATE INDEX dance_links_target_transitive ON dance_links(target_dance_id, transitive, kind, dance_id);",
+        "unique": false,
+        "columns": []
+      }
+    },
+    {
+      "id": 25,
+      "references": [
         4
       ],
       "type": "index",
@@ -2582,7 +2596,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 26,
       "references": [
         5
       ],
