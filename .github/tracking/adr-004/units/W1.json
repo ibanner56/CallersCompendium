@@ -3,7 +3,7 @@
   "id": "ADR-004/W1",
   "title": "Canonical JSON and the content hash",
   "phase": 1,
-  "sequence": 10,
+  "sequence": 20,
   "summary": "Define the byte-for-byte canonical representation and content identity shared by clients and the service.",
   "specReferences": [
     {
@@ -20,7 +20,7 @@
     }
   ],
   "dependsOn": [
-    "ADR-004/W0"
+    "ADR-004/W18"
   ],
   "completionDependsOn": [],
   "checkpoints": [
@@ -29,7 +29,7 @@
   "produces": [
     "RFC 8785 canonical JSON encoder",
     "SHA-256 content hash",
-    "Shared normalization primitive and independent golden corpus"
+    "Independent golden corpus reusing W18's shared normalization primitive"
   ],
   "pullRequests": [],
   "hold": null,

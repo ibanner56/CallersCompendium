@@ -27,12 +27,12 @@ repair issue raised by the review of this design:
 | --- | --- | --- | --- |
 | #1115 | #1109 | **W15** | Substantially done. Both policy files carry the operator-visibility and logged break-glass disclosures §8 requires. |
 | #1118 | #1110 | **W17** | Partly done: the soft-delete join rule, I1/I2 over raw and typed writes, and the certificate-hatch scan. The write-path routing ratchet is still owed, and could not have landed — it asserts a choke point W18 builds. |
-| #1119 | #1111 | **W18** | Partly done, **and drifted**. See the card. |
+| #1119, #1124, #1137 | #1111, #1123 | **W18** | Implementation delivered; repository-backed tracking deliberately remains incomplete pending the separate human completion decision. |
 
-**W18's delta is corrective, not additive**, and that is the entry most likely
-to be misread. Its card below is written around what remains, which is a
-reconciliation of shipped code against a contract accepted after the code was
-merged — not the from-scratch build the earlier draft described.
+**W18's final delta was corrective, not additive**, and that is the entry most
+likely to be misread. Its card below records the delivered implementation and
+the contract it satisfies. Repository-backed completion remains a separate
+human decision rather than an inference from merged code.
 
 Three live defects found while reviewing this plan were filed rather than folded
 in, and all three have since been fixed on `main`: **#1016** (an archive
@@ -142,14 +142,14 @@ schedule, not slack in it.
 #### W1 · Canonical JSON and the content hash
 
 - **Serves** §4.1, §4.2.
-- **Inherits** nothing. This is the root of the graph.
+- **Inherits** W18's shared normalisation primitive and normalised-storage
+  invariant. W18 in turn inherits W0's migrated storage foundation.
 - **Produces** an RFC 8785 (JCS) canonicaliser; SHA-256 content hashing;
-  **adoption of `unorm_dart`** as the NFC primitive, promoted to a dependency of
-  `app` and re-exported so write paths outside `compendium_core` can reach it;
   rejection of NaN and ±Infinity; rejection of unpaired surrogates **checked on
   the string before encoding**; and the **golden vector corpus** that every
-  later unit tests against.
-- **Unblocks** W3 and W18, and transitively everything below them.
+  later unit tests against, reusing W18's normalisation primitive rather than
+  defining another one.
+- **Unblocks** W3 and transitively everything below it.
 - **Done when** the §9 *Wire format* bucket is green **except** the
   normalisation clauses W18 owns, including the imported RFC 8785 conformance
   vectors, a fractional `custom_field_values.value_num` agreeing across two
@@ -158,36 +158,15 @@ schedule, not slack in it.
   clause of *Cross-kind identity*: the manifest is keyed kind-then-id, and a
   fixture holding a dance and a program with the same id round-trips both.
 
-W1 exposes the normalisation primitive; it does **not** normalise. The
-serialiser emits the string **as stored**, and that is a decision rather than an
-omission. A serialiser that normalised defensively on the way out would make the
-wire bytes converge while the local database stayed NFD — so the locally-created
-NFD test would pass, the write-path ratchet would have nothing to catch, and
-§6.10's dedupe, which reads *stored* values, would keep failing. The defect
-would survive in the one place it is most expensive to find. Emitting stored
-bytes is
-what makes §4.1's one-time pass necessary, and necessary is what makes it get
-written.
-
-Applying normalisation across the app's write paths, and repairing rows already
-stored, is therefore W18 — kept separate so that W1, the root of the serial
-phase, does not grow a data migration. W18 is named on W1's **Unblocks** field
-rather than left to "transitively everything", because it takes the primitive
-from W1 and nothing else: it hangs directly off the root and is not reachable
-through W3, so a reader tracing the chain forward from W3 never arrives at it.
-
-The primitive itself is now mostly a packaging job rather than an
-implementation, and the storage half of it has already shipped — wrongly.
-`unorm_dart` is a dependency of `compendium_core`, and `nfc()` now has **three**
-call sites. Two are comparison-only: `_foldDiacritics` in `dedupe.dart` and
-`_normalizeName` in `import_pipeline.dart`, neither reachable from `app`, which
-does not depend on the package and cannot see `nfc` through the barrel.
-
-The third is `normalizeShareableText` in `storage/shareable_text.dart`, which
-#1119 put on every repository write path. So the claim this card was written
-against — that nothing normalises a value that gets **stored** — is no longer
-true. What W18 owes is therefore a correction, not a first implementation: that
-call composes the two transforms in the order §4.6 rules out. See W18.
+W1 consumes rather than owns the normalisation primitive. W18 delivered and
+exported `normalizeShareableText`; W1's canonical corpus and conformance work
+reuse that shared definition, while the serialiser still emits each string
+**as stored**. A serialiser that normalised defensively on the way out would make
+the wire bytes converge while the local database stayed NFD — so the
+locally-created NFD test would pass, the write-path ratchet would have nothing
+to catch, and §6.10's dedupe, which reads *stored* values, would keep failing.
+Emitting stored bytes preserves the value of W18's already-delivered write-path
+and backfill guarantees rather than creating a competing normalisation layer.
 
 The golden corpus is the real deliverable. Code can be rewritten; the corpus is
 what makes a rewrite safe, and what lets the server be built by someone who
@@ -233,10 +212,9 @@ and program content — which is precisely what the editor-draft keys held until
 
 - **Serves** §4.1 and §4.6 (each transform's every-write-path rule, and the
   one-time pass they share), and the NFC precondition §6.10 depends on.
-- **Inherits** W1's normalisation primitive. Nothing else — it touches no sync
-  machinery, so W1 is its only gate and it runs beside the sync programme
-  rather than after it.
-- **Produces** NFC normalisation **and `sanitizeImportedText` with
+- **Inherits** W0's migrated storage foundation. It touches no sync machinery.
+- **Produces** the shared `normalizeShareableText` primitive — NFC
+  normalisation composed with **`sanitizeImportedText` using
   `allowLineBreaks: true`** applied at every path that populates a `shareable`
   string, composed in the order §4.6 fixes — **sanitise, then NFC**, since the
   two do not commute and NFC-first leaves text decomposed — implemented at the
@@ -318,11 +296,11 @@ and program content — which is precisely what the editor-draft keys held until
 **Most of this shipped in #1119 (closing #1111), and two parts of it shipped
 wrong.** The write-path choke point, the backfill, the collision grouping, the
 `normalisation_skips` table and the structural guards are on `main`, at schema
-v30 since #1124. #1131 corrected the remaining composition-order violation and
+v30 since #1124. #1137 corrected the remaining composition-order violation and
 versioned the repair marker so existing rows are revisited:
 
-1. **The composition order is reversed.** `normalizeShareableText` is
-   now applies `NFC(sanitizeImportedText(value))`, the order specified in §4.6.
+1. **The composition order was reversed.** `normalizeShareableText` now applies
+   `NFC(sanitizeImportedText(value))`, the order specified in §4.6.
    The regression vector `e` + `U+200B` + `U+0301` becomes `U+00E9`, and the
    algorithm-versioned completion marker reruns the backfill for rows repaired
    by the former implementation.
@@ -348,7 +326,9 @@ existed. Presence is
 mechanisable; correctness of the subject axis is a judgement, which is why
 this repo's guidance asks for a stated reason in the `note` and why a note
 naming the table rather than the value is the tell.
-- **Unblocks** W9's restore half (which must clear the state this unit owns),
+- **Unblocks** W1's canonical JSON and content-hash work, which reuses the
+  shared normalisation primitive; W9's restore half (which must clear the state
+  this unit owns),
   and **W17's write-path routing ratchet**, which asserts a property of the
   choke point this unit builds and therefore cannot be written first; otherwise
   nothing directly, but it **gates C1**: the *Wire format*
@@ -1336,7 +1316,9 @@ port always has a live listener on it.
 ```mermaid
 graph LR
   W0[W0 migration<br/>SHIPPED] --> W4[W4 sync-local tables]
-  W1[W1 canonical JSON] --> W3[W3 codecs]
+  W0 --> W18[W18 NFC across<br/>write paths]
+  W18 --> W1[W1 canonical JSON]
+  W1 --> W3[W3 codecs]
   W2[W2 allow-list gen] --> W3
   W2 --> W11[W11 server validation]
   W3 --> W5[W5 sync ID + HTTP]
@@ -1360,7 +1342,6 @@ graph LR
   W15[W15 privacy policy<br/>fully parallel]
   W17[W17 standing-invariant<br/>ratchets] -.constrains.-> W6
   W0 --> W17
-  W1 --> W18[W18 NFC across<br/>write paths]
   W18 -.restore half.-> W9
   W18 -.routing ratchet.-> W17
 ```
@@ -1376,25 +1357,13 @@ bind what W6 may do without gating when W6 starts. The **Inherits** and
 **Unblocks** fields on each unit are authoritative; where they and this picture
 disagree, they win.
 
-**The critical path is W1 → W3 → W5 → W6 → W7 → W8**, with the caveat that it
-is a judgement rather than a derivation: W2 also gates W3, and no unit here
-carries a duration estimate, so nothing in this document *proves* the W1 leg is
-the long one. It is my expectation, from W1 carrying the golden corpus and W2
-being a generator over a registry that already exists. If W2 turns out to be the
-longer leg, the path runs through it instead and nothing else about the plan
-changes.
-
-**W18 is the third candidate, and by textual weight the largest single unit
-here**: a data migration over user rows, a new persistent table with its own
-retry and retirement rules, a choke-point refactor across three repositories, a
-new unfiltered lookup in each of them, and several structural ratchets. It gates
-C1 exactly as W1 and W2 do. I left it out of the leg above because it inherits
-only W1's normalisation primitive and then runs entirely in app code the rest of
-the programme does not touch, so it can start almost immediately and absorb
-slack the W1 → W3 → W5 → W6 → W8 chain cannot — but that is an argument about
-*when it can start*, not about how long it takes, and the two coincide only if
-it finishes before W1 does. If it does not, C1 waits on W18 and the leg above is
-the wrong one. Naming it here so the judgement is visible rather than absent.
+**The dependency path is W0 → W18 → W1 → W3 → W5 → W6 → W7 → W8**, with the
+caveat that W18's implementation is already delivered and only its separate
+repository-backed completion decision remains. For future implementation work,
+the active critical-path candidate therefore starts at W1. W2 also gates W3,
+and no remaining unit carries a duration estimate, so nothing in this document
+proves the W1 leg is longer than W2. If W2 turns out to be the longer leg, the
+future path runs through it instead and nothing else about the plan changes.
 
 Everything else has slack, and the slack is worth spending deliberately:
 
@@ -1410,14 +1379,14 @@ Everything else has slack, and the slack is worth spending deliberately:
 - **W17 runs first, or as near to first as anything does.** It is independent of
   every other unit and protects an invariant that decays under ordinary feature
   work. Building it late means building it after the decay it exists to catch.
-- **W18 runs from W1 and must finish before C1.** It inherits only the
-  normalisation primitive, then works entirely in app code the rest of the
-  programme does not touch, so it parallelises cleanly against W2 and W3. It is
-  easy to mistake for deferrable because nothing *inherits* from it — but C1
-  freezes the wire format, and most of the *Wire format* clauses are its. Treat
-  the backfill as a **migration**: it is the first work in the programme to
-  rewrite stored user rows, and it should be reviewed by whoever reviews schema
-  changes rather than by whoever reviews sync.
+- **W18 runs from W0 and must finish before W1 can start.** It owns the shared
+  normalisation primitive and works entirely in app storage code; W1 reuses
+  that primitive for canonical JSON conformance rather than defining one.
+  W18 also gates C1 directly because most of the normalisation clauses in the
+  *Wire format* bucket are its. Treat its backfill as a **migration**: it is the
+  first work in the programme to rewrite stored user rows, and it should be
+  reviewed by whoever reviews schema changes rather than by whoever reviews
+  sync.
 - **W11, W12 and W16 follow W10** and are independent of the entire client
   engine — but **C5 must precede C6**, so they are not deferrable past beta.
 

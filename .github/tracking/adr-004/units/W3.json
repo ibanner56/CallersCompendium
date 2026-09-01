@@ -3,7 +3,7 @@
   "id": "ADR-004/W3",
   "title": "Blob, settings-record and manifest codecs",
   "phase": 1,
-  "sequence": 30,
+  "sequence": 40,
   "summary": "Implement the shared record, settings, and manifest wire codecs over the canonical format.",
   "specReferences": [
     {
