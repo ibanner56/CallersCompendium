@@ -131,13 +131,14 @@ DancesCompanion(title: Value(value));
   test('detects an unwrapped raw SQL shareable write', () {
     const source = '''
 await db.customUpdate('UPDATE dances SET title = ? WHERE id = ?');
+await db.customUpdate('UPDATE \$table SET title = ? WHERE id = ?');
 ''';
     final fields = <String, Map<String, Set<String>>>{
       'DancesCompanion': {
         'title': {'normalizeShareableText'},
       },
     };
-    expect(_unwrappedShareableCalls(source, fields), hasLength(1));
+    expect(_unwrappedShareableCalls(source, fields), hasLength(2));
   });
 
   test('does not trust an unrelated normalized local', () {
@@ -263,6 +264,11 @@ List<String> _unwrappedShareableCalls(
           caseSensitive: false,
         ).hasMatch(sql)) {
           violations.add('$sourceName: raw $table.$sqlField');
+        }
+        if (sql.contains(r'$') &&
+            RegExp('\\b$sqlField\\s*=', caseSensitive: false).hasMatch(sql) &&
+            !_hasRawWriteException(source, match.start)) {
+          violations.add('$sourceName: raw dynamic $sqlField');
         }
       }
     }
