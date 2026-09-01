@@ -1302,6 +1302,16 @@ void main() {
     expect(created.links, hasLength(1));
     expect(created.links.single.kind, LinkKind.relatedDance);
     expect(created.links.single.targetDanceId, 'target');
+
+    final target = await repos.dances.getById('target');
+    expect(
+      target!.links,
+      contains(
+        isA<DanceLink>()
+            .having((l) => l.kind, 'kind', LinkKind.relatedDance)
+            .having((l) => l.targetDanceId, 'targetDanceId', created.id),
+      ),
+    );
   });
 
   testWidgets('relatedDance: note round-trips as the link label', (
@@ -1420,6 +1430,17 @@ void main() {
         ],
       ),
     );
+    await repos.dances.update(
+      (await repos.dances.getById('target'))!.copyWith(
+        links: [
+          DanceLink(
+            id: 'target-reverse',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'd1',
+          ),
+        ],
+      ),
+    );
     await _pumpEditor(tester, repos, danceId: 'd1');
 
     await _expandMoreDetails(tester);
@@ -1439,6 +1460,7 @@ void main() {
 
     final saved = await repos.dances.getById('d1');
     expect(saved!.links, isEmpty);
+    expect((await repos.dances.getById('target'))!.links, isEmpty);
   });
 
   testWidgets('relatedDance: picker excludes the dance being edited', (
