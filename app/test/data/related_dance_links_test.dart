@@ -625,19 +625,26 @@ void main() {
       ),
       contraTaxonomy,
     );
+    await repos.dances.create(_dance(id: 'anchor'));
     for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) {
       await repos.dances.create(_dance(id: 'neighbor-$i'));
     }
     await repos.dances.create(
       _dance(
-        id: 'center',
+        id: 'source',
+        links: [_related('source-anchor', 'anchor', transitive: true)],
+      ),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'anchor',
         links: [
           for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++)
-            _related('center-$i', 'neighbor-$i', transitive: true),
+            _related('anchor-$i', 'neighbor-$i', transitive: true),
         ],
       ),
     );
-    final original = await repos.dances.getById('center');
+    final original = await repos.dances.getById('source');
     capture.reset();
 
     await expectLater(
@@ -656,7 +663,7 @@ void main() {
     );
     expect(
       capture.danceSelects,
-      lessThanOrEqualTo(kMaxTransitiveDanceGroupSize),
+      lessThanOrEqualTo(kMaxTransitiveDanceGroupSize + 1),
     );
   });
 
@@ -726,12 +733,12 @@ class _RelatedDanceQueryCapture extends drift.QueryInterceptor {
     String statement,
     List<Object?> args,
   ) {
-    if (statement.toLowerCase().contains('from dances')) {
+    final normalizedStatement = statement.toLowerCase().replaceAll('"', '');
+    if (normalizedStatement.contains('from dances')) {
       danceSelects++;
     }
-    final lowerStatement = statement.toLowerCase();
-    if (lowerStatement.contains('from dance_links') &&
-        lowerStatement.contains('target_dance_id')) {
+    if (normalizedStatement.contains('from dance_links') &&
+        normalizedStatement.contains('target_dance_id')) {
       incomingLinkQueries.add(statement);
     }
     return super.runSelect(executor, statement, args);
