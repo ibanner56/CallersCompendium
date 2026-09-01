@@ -1,0 +1,50 @@
+name: Device Sync tracking
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/tracking/**'
+      - 'tools/tracking/**'
+      - '.github/workflows/device-sync-tracking.yml'
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited, converted_to_draft, ready_for_review, closed]
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
+
+# Project state is a single generated projection. Let each reconciliation finish
+# rather than cancelling a write midway when another event arrives.
+concurrency:
+  group: device-sync-tracking
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  reconcile:
+    name: Reconcile Device Sync Project
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # pull_request_target has access to the Project token, so this workflow
+      # must execute only trusted main content and treat PR content as data.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/heads/main
+          persist-credentials: false
+      - name: Validate canonical tracking
+        run: python3 tools/tracking/validate.py
+      - name: Reconcile generated Project state
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          DEVICE_SYNC_PROJECT_TOKEN: ${{ secrets.DEVICE_SYNC_PROJECT_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$DEVICE_SYNC_PROJECT_TOKEN" ]; then
+            echo '::error::DEVICE_SYNC_PROJECT_TOKEN is required for Project reconciliation.'
+            exit 1
+          fi
+          python3 tools/tracking/sync_project.py --apply

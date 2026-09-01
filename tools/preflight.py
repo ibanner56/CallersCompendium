@@ -85,6 +85,7 @@ STEPS: tuple[Step, ...] = (
             py("tools/tracking/test_validate.py"),
             py("tools/tracking/test_validate_pr.py"),
             py("tools/tracking/test_sync_project.py"),
+            py("tools/tracking/test_workflow_integration.py"),
             py("tools/tracking/validate.py"),
         ),
     ),
