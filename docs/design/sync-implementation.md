@@ -878,10 +878,10 @@ requires it. Those two belong to W5, not here.
 backup** (spec §6.1). The two exclusions are enforced by different mechanisms —
 the sync side by classification, the backup side by `kBackupSettingsDenylist`,
 which is opt-out and is deliberately not derived from `EgressClass` (#923) — so
-a key can satisfy the first and fail the second. This unit MUST denylist
-`sync_enabled`, the endpoint and every other key it adds, and its enablement
-test MUST cover restore as well as first run: restoring a backup taken on a
-syncing device leaves sync off and makes no network call.
+a non-shareable key can satisfy the first and fail the second. This unit MUST
+add `sync_enabled`, the endpoint and every other key it adds to the denylist,
+and its enablement test MUST cover restore as well as first run: restoring a
+backup taken on a syncing device leaves sync off and makes no network call.
 
 #### W14 · A kind-agnostic review surface
 
