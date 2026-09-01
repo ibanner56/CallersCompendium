@@ -1,5 +1,8 @@
 import 'package:compendium_app/src/data/backup_service.dart'
-    show kBackupSettingsDenylistPrefixes;
+    show
+        isBackupEligibleSettingKey,
+        kBackupSettingsDenylist,
+        kBackupSettingsDenylistPrefixes;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -9,21 +12,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// filter's hand-written denylist (`kBackupSettingsDenylistPrefixes`, in
 /// `backup_service.dart`).
 ///
-/// These are deliberately **not** unified into one derived list (issue #923,
-/// maintainer decision): only 2 of the registry's 8 `deviceScoped` settings
-/// entries are actually excluded from backups today (`window_frame`,
-/// `last_backup_at`) — the other six device-scoped keys (`perform_text_scale`,
-/// `seed.initialCollection.completed`, `custom_fields.sharing.disclosed`,
-/// `update_auto_check`, `update_beta_channel`, `update_dismissed_version`) are
-/// intentionally included in backups. So "non-shareable ⇒ excluded from
-/// backups" is not a rule this codebase follows, and deriving the backup
-/// denylist from `EgressClass` would encode a rule that is false for 6 of the
-/// 8 cases it would apply to.
+/// These are deliberately not unified into one derived list (issue #923):
+/// the backup denylist also contains structurally represented keys and backup
+/// metadata, while the registry classifies values by their allowed egress.
 ///
-/// What *is* true, and worth guarding, is the narrower claim: every
-/// **prefix** classified `deviceScoped` is also denylisted from backups, and
-/// vice versa. This test asserts that narrower claim without asserting the
-/// broader (false) one.
+/// The prefix assertion below guards the stronger correspondence needed by
+/// transient editor drafts. The exact-key test also guards that every remaining
+/// `deviceScoped` key is denylisted, without asserting the broader false rule
+/// that every non-shareable key must be excluded from backups.
 void main() {
   test('every deviceScoped settings-key prefix is excluded from backups, '
       'and vice versa', () {
@@ -44,4 +40,41 @@ void main() {
           'the other.',
     );
   });
+
+  test(
+    'exact deviceScoped settings are denylisted and portable local settings '
+    'remain backup eligible',
+    () {
+      const backupLocalKeys = {
+        'perform_text_scale',
+        'seed.initialCollection.completed',
+        'custom_fields.sharing.disclosed',
+        'update_auto_check',
+        'update_beta_channel',
+        'update_dismissed_version',
+        '__shareable_text_normalisation_scope__',
+      };
+
+      final exactDeviceScopedKeys = {
+        for (final entry in settingsClassifications.entries)
+          if (entry.value.egress == EgressClass.deviceScoped) entry.key,
+      };
+
+      expect(exactDeviceScopedKeys, {'window_frame', 'last_backup_at'});
+      expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
+
+      for (final key in backupLocalKeys) {
+        expect(
+          settingsClassifications[key]?.egress,
+          EgressClass.deviceLocal,
+          reason: '$key must be classified as deviceLocal',
+        );
+        expect(
+          isBackupEligibleSettingKey(key),
+          isTrue,
+          reason: '$key is intentionally retained in local backups',
+        );
+      }
+    },
+  );
 }
