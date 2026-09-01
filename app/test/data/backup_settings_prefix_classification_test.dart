@@ -41,40 +41,37 @@ void main() {
     );
   });
 
-  test(
-    'exact deviceScoped settings are denylisted and portable local settings '
-    'remain backup eligible',
-    () {
-      const backupLocalKeys = {
-        'perform_text_scale',
-        'seed.initialCollection.completed',
-        'custom_fields.sharing.disclosed',
-        'update_auto_check',
-        'update_beta_channel',
-        'update_dismissed_version',
-        '__shareable_text_normalisation_scope__',
-      };
+  test('exact deviceScoped settings are denylisted and portable local settings '
+      'remain backup eligible', () {
+    const backupLocalKeys = {
+      'perform_text_scale',
+      'seed.initialCollection.completed',
+      'custom_fields.sharing.disclosed',
+      'update_auto_check',
+      'update_beta_channel',
+      'update_dismissed_version',
+      '__shareable_text_normalisation_scope__',
+    };
 
-      final exactDeviceScopedKeys = {
-        for (final entry in settingsClassifications.entries)
-          if (entry.value.egress == EgressClass.deviceScoped) entry.key,
-      };
+    final exactDeviceScopedKeys = {
+      for (final entry in settingsClassifications.entries)
+        if (entry.value.egress == EgressClass.deviceScoped) entry.key,
+    };
 
-      expect(exactDeviceScopedKeys, {'window_frame', 'last_backup_at'});
-      expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
+    expect(exactDeviceScopedKeys, {'window_frame', 'last_backup_at'});
+    expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
 
-      for (final key in backupLocalKeys) {
-        expect(
-          settingsClassifications[key]?.egress,
-          EgressClass.deviceLocal,
-          reason: '$key must be classified as deviceLocal',
-        );
-        expect(
-          isBackupEligibleSettingKey(key),
-          isTrue,
-          reason: '$key is intentionally retained in local backups',
-        );
-      }
-    },
-  );
+    for (final key in backupLocalKeys) {
+      expect(
+        settingsClassifications[key]?.egress,
+        EgressClass.deviceLocal,
+        reason: '$key must be classified as deviceLocal',
+      );
+      expect(
+        isBackupEligibleSettingKey(key),
+        isTrue,
+        reason: '$key is intentionally retained in local backups',
+      );
+    }
+  });
 }

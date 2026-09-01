@@ -3497,11 +3497,11 @@ sender, and enforced client-side.
 **Settings need a second check, on the key rather than the field.** For
 `kind: "setting"` the egress decision is per settings key, but every setting blob
 has the same field shape (`key`, `value`, `updatedAt`), so a field-level
-allow-list cannot tell a `shareable` setting from a `deviceScoped` one. Without a
-key-level check, a peer holding the shared sync ID can push `update_auto_check`,
-`update_beta_channel` or `update_dismissed_version` — all `deviceScoped`
-(`_installState`) — and have the victim apply them, **suppressing update checks
-or pinning a dismissed version**. That is a patch-suppression primitive, and it
+allow-list cannot tell a `shareable` setting from a non-shareable one. Without a
+key-level check, a peer holding the shared sync ID can push
+`update_auto_check`, `update_beta_channel` or `update_dismissed_version` — all
+non-shareable — and have the victim apply them, **suppressing update checks or
+pinning a dismissed version**. That is a patch-suppression primitive, and it
 sits outside the disclosed trust boundary, which covers a second person writing
 *shareable records* rather than altering another device's update policy.
 
@@ -4117,7 +4117,7 @@ must say this plainly rather than implying sync is opaque to us.
 - **Inbound apply rejects present non-shareable keys** — a hand-built blob
   carrying `contact1Email` (the **wire** spelling, which is the point) is
   stripped by the receiver, not merely by the server.
-- **A peer cannot push a `deviceScoped` setting** — applying a `setting` blob for
+- **A peer cannot push a non-shareable setting** — applying a `setting` blob for
   `update_auto_check` is refused client-side. Guards the update-suppression
   primitive.
 - **Collision reconciliation** — two devices create the same choreographer name

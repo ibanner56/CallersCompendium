@@ -22,6 +22,8 @@ core version. They are left that way deliberately — do not renumber them.
 
 ### Changed
 
+- Correct the seven backup-eligible settings classifications to `deviceLocal`
+  rather than `deviceScoped`, matching their permitted local-backup route.
 - **Schema 29 → 30** — remove redundant normalization collision snapshots;
   existing skip identities are retained while `recordNormalisationSkip` now
   accepts only the identifying table, column, and record triple.
