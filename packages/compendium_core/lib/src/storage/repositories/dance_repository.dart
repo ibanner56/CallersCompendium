@@ -1015,11 +1015,16 @@ class DanceRepository {
   ) async {
     if (toPurge.isEmpty) return;
     for (final d in toPurge) {
+      // normalization-structure-exempt: maintenance copies a canonicalized
+      // dance title into a tombstone slot, rather than accepting new input.
       await _db.customUpdate(
         // sync-invariant-exclusion: maintenance-cleanup is idempotent; not a sync record edit.
         'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
         'WHERE dance_id = ? AND text IS NULL',
-        variables: [Variable<String>(d.title), Variable<String>(d.id)],
+        variables: [
+          Variable<String>(normalizeShareableText(d.title)),
+          Variable<String>(d.id),
+        ],
         updates: {_db.programSlots},
         updateKind: UpdateKind.update,
       );

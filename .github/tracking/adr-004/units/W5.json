@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W5",
+  "title": "Sync ID, authentication and the HTTP client",
+  "phase": 2,
+  "sequence": 49,
+  "summary": "Define credentials and transport behavior, landing the shared server dependency before completing the client.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W5 · Sync ID, authentication and the HTTP client"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "5.1 Authentication"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "5.2 Endpoints"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "5.3 Status codes"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W3",
+    "ADR-004/W18"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Diceware sync ID and shared normalizer",
+    "Unconditional base64url credential encoding and id_key definition",
+    "Authenticated HTTP client with typed outcomes",
+    "Device-scoped endpoint, ID, and device settings"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Shared credential primitives land early enough for W10.",
+      "Non-ASCII credentials are issued over the real request path.",
+      "Redirect, certificate, decompression, and loopback protections pass.",
+      "First-time missing and previously used missing collections return distinct typed outcomes.",
+      "The client performs no replacement POST before caller confirmation."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

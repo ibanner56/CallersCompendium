@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W16",
+  "title": "Operational readiness",
+  "phase": 4,
+  "sequence": 53,
+  "summary": "Make the remote service deployable, observable, supportable, and safe before compatible clients ship.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W16 · Operational readiness"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "7.5 Deployment"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W10",
+    "ADR-004/W12"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C7"
+  ],
+  "produces": [
+    "Container and Apache deployment documentation",
+    "TLS, HSTS, proxy, and real-client rate-limit conformance",
+    "Alerts, retention proof, break-glass authorization, and lost-ID support"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "A new operator can deploy from the documentation.",
+      "Plaintext requests are refused rather than redirected or proxied.",
+      "Proxy address handling and every rate limit are proven against running configuration.",
+      "Alerting, retention proof, break-glass authorization, and lost-ID support are exercised.",
+      "The compatible service is deployed before beta and public client distribution."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

@@ -233,8 +233,8 @@ const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
 const String compactDosidoSeesawCanonicalRebuildDoneKey =
     '__compact_dosido_seesaw_canonical_rebuild_done__';
 
-/// Settings marker containing the exact natural-key normalization scope that
-/// has been backfilled successfully.
+/// Settings marker containing the shareable-text normalization algorithm and
+/// exact scope that has been backfilled successfully.
 const String shareableTextNormalisationScopeKey =
     '__shareable_text_normalisation_scope__';
 

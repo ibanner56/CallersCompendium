@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W9",
+  "title": "Quarantine, repair and restore",
+  "phase": 3,
+  "sequence": 100,
+  "summary": "Quarantine unsafe clock data, repair only from peer evidence, and make backup restore force a clean attach.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W9 · Quarantine, repair and restore"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.9 Quarantine and repair"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.11 Restore"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W4",
+    "ADR-004/W6",
+    "ADR-004/W18"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C6"
+  ],
+  "produces": [
+    "Clock-skew quarantine and peer-evidence repair",
+    "Restore behavior that drops sync baselines",
+    "Deletion revalidation and normalization-state reset"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Repair reads no local clock and changes only permitted fields.",
+      "Unrepairable records remain quarantined rather than being guessed.",
+      "Restore forces a fresh attach, preserves and revalidates deletions, and reruns normalization.",
+      "Quarantine, repair, and restore converge under the conformance vectors."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

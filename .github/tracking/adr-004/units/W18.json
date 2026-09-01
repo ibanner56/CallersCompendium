@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W18",
+  "title": "Text normalisation and sanitisation across write paths",
+  "phase": 1,
+  "sequence": 40,
+  "summary": "Make every shareable write sanitize before NFC normalization and repair stored rows and derived indexes safely.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W18 · Text normalisation and sanitisation across write paths"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "4.6 Text sanitisation"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.10 Fresh-attach dedupe"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W1"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Repository write-path normalization choke points",
+    "Collision-safe and resumable stored-row repair",
+    "Normalization skip records and fingerprinted completion marker",
+    "Derived-index rebuild and standing write-routing guard"
+  ],
+  "pullRequests": [
+    1119,
+    1124
+  ],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Sanitization precedes NFC normalization on every relevant path.",
+      "The corrected repair reruns over rows processed by the earlier ordering.",
+      "Collisions, retries, restore, and derived-index rebuilding preserve data.",
+      "The structural routing guard is mutation-proven and transferred to W17."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

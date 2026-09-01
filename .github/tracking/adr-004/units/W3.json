@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W3",
+  "title": "Blob, settings-record and manifest codecs",
+  "phase": 1,
+  "sequence": 30,
+  "summary": "Implement the shared record, settings, and manifest wire codecs over the canonical format.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W3 · Blob, settings-record and manifest codecs"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "4.3 Record blob"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "4.4 Settings records"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "4.5 Manifest"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W1",
+    "ADR-004/W2"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C1"
+  ],
+  "produces": [
+    "Versioned record blob codec",
+    "Settings-record codec",
+    "Kind-nested manifest codec"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Blob and manifest round trips are byte-identical.",
+      "Absent and explicit null values remain distinct.",
+      "Join-hydrated authorship and tags are encoded consistently."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

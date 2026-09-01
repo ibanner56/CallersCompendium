@@ -21,6 +21,8 @@ import 'settings_repository.dart';
 import 'tag_repository.dart';
 import 'venue_repository.dart';
 
+const _shareableTextNormalisationAlgorithmVersion = 2;
+
 String _normaliseStoredColumn(String column, String raw) {
   const jsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
   return jsonColumns.contains(column)
@@ -625,9 +627,10 @@ class CompendiumRepositories {
     final skips = await db
         .customSelect('SELECT table_name FROM normalisation_skips LIMIT 1')
         .get();
-    final scope = jsonEncode(
-      _normalisationColumns.map((c) => '${c.$1}.${c.$2}').toList(),
-    );
+    final scope = jsonEncode({
+      'version': _shareableTextNormalisationAlgorithmVersion,
+      'columns': _normalisationColumns.map((c) => '${c.$1}.${c.$2}').toList(),
+    });
     if (marker.isNotEmpty &&
         marker.single.read<String>('value_json') == scope &&
         skips.isEmpty) {
@@ -656,6 +659,8 @@ class CompendiumRepositories {
               target,
             ));
           } else if (target != raw) {
+            // normalization-structure-exempt: this is the normalization
+            // backfill itself, writing the value returned by the canonicalizer.
             await db.customUpdate(
               'UPDATE $table SET $column = ? WHERE rowid = ?',
               variables: [
@@ -704,6 +709,8 @@ class CompendiumRepositories {
                 .firstWhere((r) => r.read<int>('_rowid') == rowId)
                 .read<String>(column);
             if (raw != target) {
+              // normalization-structure-exempt: this is the normalization
+              // backfill itself, writing the value returned by the canonicalizer.
               await db.customUpdate(
                 'UPDATE $table SET $column = ? WHERE rowid = ?',
                 variables: [Variable<String>(target), Variable<int>(rowId)],
@@ -899,6 +906,8 @@ class CompendiumRepositories {
         // Rewrite only the figures_json column — nothing else about the dance
         // changes, and a full _upsert would needlessly rebuild derived rows
         // per dance (the bulk rebuild at the end is cheaper).
+        // normalization-structure-exempt: derived maintenance writes encoded
+        // figures already produced from the canonical dance model.
         await db.customUpdate(
           // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
           'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
@@ -998,6 +1007,8 @@ class CompendiumRepositories {
       // Rewrite only the figures_json column — nothing else about the dance
       // changes, and a full _upsert would needlessly rebuild derived rows per
       // dance (the bulk rebuild below is cheaper).
+      // normalization-structure-exempt: derived maintenance writes encoded
+      // figures already produced from the canonical dance model.
       await db.customUpdate(
         // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
         'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
@@ -1205,6 +1216,8 @@ class CompendiumRepositories {
           // dance changes, and a full _upsert would needlessly rebuild
           // derived rows per dance (the bulk rebuild at the end is
           // cheaper).
+          // normalization-structure-exempt: derived maintenance writes encoded
+          // figures already produced from the canonical dance model.
           await db.customUpdate(
             // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
             'UPDATE ${db.dances.actualTableName} SET figures_json = ? '

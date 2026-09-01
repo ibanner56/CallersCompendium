@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W8",
+  "title": "Attach and fresh-attach dedupe",
+  "phase": 3,
+  "sequence": 90,
+  "summary": "Attach local and remote collections, deduplicate natural matches, and reuse the path only after confirmed replacement creation.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W8 · Attach and fresh-attach dedupe"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.2 Attach"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.10 Fresh-attach dedupe"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W4",
+    "ADR-004/W5",
+    "ADR-004/W6",
+    "ADR-004/W7",
+    "ADR-004/W14",
+    "ADR-004/W18"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C4"
+  ],
+  "produces": [
+    "Union and fresh-attach algorithm",
+    "Normalized-title and choreography dedupe",
+    "Reference rewiring, epoch persistence, and after-merge report",
+    "Post-confirmation replacement attach"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Explicit tombstones and fresh-attach exclusions are honored.",
+      "Dedupe and reference rewiring preserve all intended data.",
+      "Repeated ambiguous ties continue to be reported.",
+      "Replacement attach cannot run before confirmation and successful POST.",
+      "W8 never initiates backup export or bypasses user consent."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}
