@@ -136,6 +136,20 @@ await db.customInsert(sql);
     expect(_unwrappedShareableCalls(source, fields), hasLength(3));
   });
 
+  test('detects triple-quoted and raw SQL shareable writes', () {
+    const source = """
+await db.customUpdate('''UPDATE dances SET title = ? WHERE id = ?''');
+await db.customUpdate(r'UPDATE dances SET title = ? WHERE id = ?');
+await db.customUpdate(r\"\"\"UPDATE dances SET title = ? WHERE id = ?\"\"\");
+""";
+    final fields = <String, Map<String, Set<String>>>{
+      'DancesCompanion': {
+        'title': {'normalizeShareableText'},
+      },
+    };
+    expect(_unwrappedShareableCalls(source, fields), hasLength(3));
+  });
+
   test('does not trust an unrelated normalized local', () {
     const source = '''
 final text = normalizeShareableText(value);
@@ -226,6 +240,57 @@ Map<String, String> _readColumnAliases(String source) {
   return aliases;
 }
 
+int? _dartStringEnd(String source, int start) {
+  var quoteStart = start;
+  final raw =
+      source[start] == 'r' &&
+      start + 1 < source.length &&
+      _isQuote(source[start + 1]);
+  if (raw) {
+    quoteStart++;
+  } else if (!_isQuote(source[start])) {
+    return null;
+  }
+
+  final quote = source[quoteStart];
+  final delimiter = source.startsWith('$quote$quote$quote', quoteStart)
+      ? '$quote$quote$quote'
+      : quote;
+  var index = quoteStart + delimiter.length;
+  while (index < source.length) {
+    if (!raw && source[index] == r'\') {
+      index += 2;
+    } else if (source.startsWith(delimiter, index)) {
+      return index + delimiter.length;
+    } else {
+      index++;
+    }
+  }
+  return source.length;
+}
+
+String? _dartStringValue(String argument) {
+  final value = argument.trim();
+  if (value.isEmpty) return null;
+  var quoteStart = 0;
+  if (value.startsWith('r') && value.length > 1 && _isQuote(value[1])) {
+    quoteStart = 1;
+  } else if (!_isQuote(value[0])) {
+    return null;
+  }
+  final quote = value[quoteStart];
+  final delimiter = value.startsWith('$quote$quote$quote', quoteStart)
+      ? '$quote$quote$quote'
+      : quote;
+  if (!value.endsWith(delimiter)) return null;
+  final contentStart = quoteStart + delimiter.length;
+  final contentEnd = value.length - delimiter.length;
+  if (contentEnd < contentStart) return null;
+  return value.substring(contentStart, contentEnd);
+}
+
+bool _isQuote(String value) => value == "'" || value == '"';
+
 List<String> _unwrappedShareableCalls(
   String source,
   _ShareableFields fields, {
@@ -272,27 +337,20 @@ List<String> _unwrappedShareableCalls(
   for (final match in rawCalls.allMatches(source)) {
     final call = _callBody(source, match.end - 1);
     final firstArgument = _firstArgumentBody(call);
-    final sqlArgument = firstArgument == null
-        ? null
-        : firstArgument.replaceFirst(
-            RegExp(r'^\s*(?:(?://[^\n]*\n)|(?:/\*.*?\*/))*', dotAll: true),
-            '',
-          );
-    if (sqlArgument == null ||
-        (!sqlArgument.trimLeft().startsWith("'") &&
-            !sqlArgument.trimLeft().startsWith('"'))) {
+    final sqlArgument = firstArgument?.replaceFirst(
+      RegExp(r'^\s*(?:(?://[^\n]*\n)|(?:/\*.*?\*/))*', dotAll: true),
+      '',
+    );
+    String? sqlText;
+    if (sqlArgument != null) {
+      sqlText = _dartStringValue(sqlArgument);
+    }
+    if (sqlText == null) {
       if (!_hasRawWriteException(source, match.start)) {
         violations.add('$sourceName: raw write with nonliteral SQL');
       }
       continue;
     }
-    final sql = sqlArgument.trim();
-    final sqlText =
-        sql.length >= 2 &&
-            ((sql.startsWith("'") && sql.endsWith("'")) ||
-                (sql.startsWith('"') && sql.endsWith('"')))
-        ? sql.substring(1, sql.length - 1)
-        : sql;
     if (!RegExp(
       r'^\s*(?:insert\s+into|update)\b',
       caseSensitive: false,
@@ -331,23 +389,14 @@ List<String> _unwrappedShareableCalls(
 String? _firstArgumentBody(String call) {
   final valueStart = call.indexOf('(') + 1;
   var depth = 0;
-  var quote = '';
-  var escaped = false;
   for (var i = valueStart; i < call.length; i++) {
-    final char = call[i];
-    if (quote.isNotEmpty) {
-      if (escaped) {
-        escaped = false;
-      } else if (char == r'\') {
-        escaped = true;
-      } else if (char == quote) {
-        quote = '';
-      }
+    final stringEnd = _dartStringEnd(call, i);
+    if (stringEnd != null) {
+      i = stringEnd - 1;
       continue;
     }
-    if (char == "'" || char == '"') {
-      quote = char;
-    } else if ('([{'.contains(char)) {
+    final char = call[i];
+    if ('([{'.contains(char)) {
       depth++;
     } else if (')]}'.contains(char)) {
       if (depth == 0) return call.substring(valueStart, i);
@@ -368,8 +417,6 @@ bool _hasRawWriteException(String source, int offset) {
 
 String _balancedBlock(String source, int openBrace) {
   var depth = 0;
-  var quote = '';
-  var escaped = false;
   var lineComment = false;
   var blockComment = false;
   for (var i = openBrace; i < source.length; i++) {
@@ -385,14 +432,9 @@ String _balancedBlock(String source, int openBrace) {
       }
       continue;
     }
-    if (quote.isNotEmpty) {
-      if (escaped) {
-        escaped = false;
-      } else if (char == r'\') {
-        escaped = true;
-      } else if (char == quote) {
-        quote = '';
-      }
+    final stringEnd = _dartStringEnd(source, i);
+    if (stringEnd != null) {
+      i = stringEnd - 1;
       continue;
     }
     if (char == '/' && next == '/') {
@@ -403,9 +445,7 @@ String _balancedBlock(String source, int openBrace) {
       blockComment = true;
       continue;
     }
-    if (char == "'" || char == '"') {
-      quote = char;
-    } else if (char == '{') {
+    if (char == '{') {
       depth++;
     } else if (char == '}' && --depth == 0) {
       return source.substring(openBrace + 1, i);
@@ -416,23 +456,14 @@ String _balancedBlock(String source, int openBrace) {
 
 String _callBody(String source, int openParen) {
   var depth = 0;
-  var quote = '';
-  var escaped = false;
   for (var i = openParen; i < source.length; i++) {
-    final char = source[i];
-    if (quote.isNotEmpty) {
-      if (escaped) {
-        escaped = false;
-      } else if (char == r'\') {
-        escaped = true;
-      } else if (char == quote) {
-        quote = '';
-      }
+    final stringEnd = _dartStringEnd(source, i);
+    if (stringEnd != null) {
+      i = stringEnd - 1;
       continue;
     }
-    if (char == "'" || char == '"') {
-      quote = char;
-    } else if (char == '(') {
+    final char = source[i];
+    if (char == '(') {
       depth++;
     } else if (char == ')' && --depth == 0) {
       return source.substring(openParen, i + 1);
@@ -446,23 +477,14 @@ String? _argumentBody(String call, String field) {
   if (start == null) return null;
   final valueStart = start.end;
   var depth = 0;
-  var quote = '';
-  var escaped = false;
   for (var i = valueStart; i < call.length; i++) {
-    final char = call[i];
-    if (quote.isNotEmpty) {
-      if (escaped) {
-        escaped = false;
-      } else if (char == r'\') {
-        escaped = true;
-      } else if (char == quote) {
-        quote = '';
-      }
+    final stringEnd = _dartStringEnd(call, i);
+    if (stringEnd != null) {
+      i = stringEnd - 1;
       continue;
     }
-    if (char == "'" || char == '"') {
-      quote = char;
-    } else if ('([{'.contains(char)) {
+    final char = call[i];
+    if ('([{'.contains(char)) {
       depth++;
     } else if (')]}'.contains(char)) {
       if (depth == 0) return call.substring(valueStart, i);
