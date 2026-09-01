@@ -20,6 +20,8 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-01
+
 ### Changed
 
 - Correct the seven backup-eligible settings classifications to `deviceLocal`

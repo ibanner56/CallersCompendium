@@ -51,8 +51,8 @@ body:
     id: app-version
     attributes:
       label: App version
-      description: "Find it in Settings ▸ About once that screen is available; otherwise it's 0.2.0."
-      value: "0.2.0"
+      description: "Find it in Settings ▸ About; otherwise it's 0.3.0."
+      value: "0.3.0"
     validations:
       required: true
   - type: textarea
