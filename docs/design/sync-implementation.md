@@ -318,22 +318,14 @@ and program content — which is precisely what the editor-draft keys held until
 **Most of this shipped in #1119 (closing #1111), and two parts of it shipped
 wrong.** The write-path choke point, the backfill, the collision grouping, the
 `normalisation_skips` table and the structural guards are on `main`, at schema
-v30 since #1124. What is left is corrective, and both items were contract
-violations rather than gaps — **the second has since been fixed on `main`, so
-only (1) remains open for this unit**:
+v30 since #1124. #1131 corrected the remaining composition-order violation and
+versioned the repair marker so existing rows are revisited:
 
 1. **The composition order is reversed.** `normalizeShareableText` is
-   `sanitizeImportedText(nfc(value), allowLineBreaks: true)` — NFC first —
-   which §4.6 records as the order that does not work. Verified by running the
-   shipped function rather than by reading its doc comment: on
-   `e` + `U+200B` + `U+0301` it returns `U+0065 U+0301`, so the canonicaliser
-   emits text that is not NFC. Its guard cannot catch this, because the test
-   input places the zero-width space *after* the combining mark
-   (`'Cafe\u0301\u200B\nnext'`), where NFC composes before the strip and the
-   order cannot matter. Fixing the order also requires **re-running the
-   backfill**, since rows repaired by the reversed composition may be stored
-   decomposed — so the completion marker must be invalidated, not just the
-   function corrected.
+   now applies `NFC(sanitizeImportedText(value))`, the order specified in §4.6.
+   The regression vector `e` + `U+200B` + `U+0301` becomes `U+00E9`, and the
+   algorithm-versioned completion marker reruns the backfill for rows repaired
+   by the former implementation.
 2. **`target_value` had to go, and its classification was wrong.** §3.2
    holds that the table stores "no name, only the address of a row", and
    requires retry to re-derive the target from the live column. The v29 column

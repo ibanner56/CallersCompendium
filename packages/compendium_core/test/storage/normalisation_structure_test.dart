@@ -1,186 +1,332 @@
 import 'dart:io';
 
+import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' show DriftSqlType;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import '../test_package_root.dart';
+import 'test_database.dart';
 
-// Keep this field-specific: one wrapped field must not hide another bypass.
-const _shareableTextFields = {
-  'ChoreographersCompanion.insert': {
-    'name': 'normalizeShareableText',
-    'website': 'normalizeShareableText',
-    'notes': 'normalizeShareableText',
-  },
-  'CustomFieldDefsCompanion.insert': {
-    'key': 'normalizeShareableText',
-    'label': 'normalizeShareableText',
-  },
-  'DancesCompanion.insert': {
-    'title': 'normalizeShareableText',
-    'formationDetail': 'normalizeShareableText',
-    'figuresJson': 'normalizeShareableJsonText',
-    'hook': 'normalizeShareableText',
-    'callingNotes': 'normalizeShareableText',
-    'walkthrough': 'normalizeShareableText',
-    'tunesJson': 'normalizeShareableJsonText',
-  },
-  'DanceLinksCompanion.insert': {
-    'url': 'normalizeShareableText',
-    'label': 'normalizeShareableText',
-  },
-  'ProgramSlotsCompanion.insert': {
-    'text_': 'normalizeShareableText',
-    'guestCaller': 'normalizeShareableText',
-  },
-  'ProgramsCompanion.insert': {
-    'title': 'normalizeShareableText',
-    'venue': 'normalizeShareableText',
-    'band': 'normalizeShareableText',
-    'caller': 'normalizeShareableText',
-    'dancerLevel': 'normalizeShareableText',
-    'notes': 'normalizeShareableText',
-  },
-  'PublishedSourcesCompanion.insert': {
-    'title': 'normalizeShareableText',
-    'author': 'normalizeShareableText',
-    'url': 'normalizeShareableText',
-    'notes': 'normalizeShareableText',
-  },
-  'TagsCompanion.insert': {'name': 'normalizeShareableText'},
-  'DanceSourcesCompanion.insert': {
-    'page': 'normalizeShareableText',
-    'number': 'normalizeShareableText',
-  },
-  'CustomFieldValuesCompanion.insert': {'valueText': 'normalizeShareableText'},
-  'ProvenanceCompanion.insert': {
-    'externalId': 'normalizeShareableText',
-    'permission': 'normalizeShareableText',
-    'license': 'normalizeShareableText',
-    'sourceVersion': 'normalizeShareableText',
-  },
-  'ProgramProvenanceCompanion.insert': {
-    'externalId': 'normalizeShareableText',
-    'permission': 'normalizeShareableText',
-    'license': 'normalizeShareableText',
-    'sourceVersion': 'normalizeShareableText',
-  },
-  'VenuesCompanion.insert': {
-    'name': 'normalizeShareableText',
-    'website': '_normalize',
-    'sponsor': '_normalize',
-    'eventName': '_normalize',
-    'time': '_normalize',
-    'genericSchedule': '_normalize',
-    'price': '_normalize',
-    'notes': '_normalize',
-  },
-  'VenueProvenanceCompanion.insert': {
-    'externalId': 'normalizeShareableText',
-    'permission': '_normalize',
-    'license': '_normalize',
-    'sourceVersion': '_normalize',
-  },
+// These are shareable strings with a constrained representation or a
+// deliberately different normalization seam. New fields are checked by
+// default; adding an exemption requires naming its reason here.
+const _normalisationExemptions = <String, String>{
+  'dances.form': 'enum value',
+  'dances.formation_shape': 'enum value',
+  'dances.progression': 'enum value',
+  'dances.phrase_structure': 'canonical phrase value',
+  'dances.status': 'enum value',
+  'dances.level': 'enum value',
+  'dances.composed_on': 'canonical partial date',
+  'dances.revised_on': 'canonical partial date',
+  'dance_links.kind': 'enum value',
+  'provenance.source': 'enum value',
+  'program_provenance.source': 'enum value',
+  'venue_provenance.source': 'enum value',
+  'programs.status': 'enum value',
+  'custom_field_defs.type': 'enum value',
+  'custom_field_defs.choices_json':
+      'choice strings are normalized before JSON encoding',
 };
 
-void main() {
-  test('all shareable persistence calls wrap their text inputs', () async {
-    final root = await packageRootPath();
-    const repositoryFiles = [
-      'lib/src/storage/repositories/choreographer_repository.dart',
-      'lib/src/storage/repositories/custom_field_repository.dart',
-      'lib/src/storage/repositories/dance_repository.dart',
-      'lib/src/storage/repositories/program_repository.dart',
-      'lib/src/storage/repositories/published_source_repository.dart',
-      'lib/src/storage/repositories/settings_repository.dart',
-      'lib/src/storage/repositories/tag_repository.dart',
-      'lib/src/storage/repositories/venue_repository.dart',
-    ];
+typedef _ShareableFields = Map<String, Map<String, Set<String>>>;
 
-    for (final relativePath in repositoryFiles) {
-      final source = File(p.join(root, relativePath)).readAsStringSync();
-      expect(_hasUnwrappedShareableCall(source), isFalse, reason: relativePath);
-      if (relativePath.endsWith('settings_repository.dart')) {
-        expect(
-          source,
-          contains('normalizeShareableJson(value)'),
-          reason: 'settings writes must normalize shareable JSON values',
+void main() {
+  test(
+    'all discovered shareable persistence calls wrap their text inputs',
+    () async {
+      final root = await packageRootPath();
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final fields = _discoverShareableFields(root, db);
+      expect(fields['ProgramSlotsCompanion'], contains('text_'));
+      final repositoryRoot = Directory(
+        p.join(root, 'lib', 'src', 'storage', 'repositories'),
+      );
+
+      final violations = <String>[];
+      for (final entity
+          in repositoryRoot.listSync(recursive: true).whereType<File>()) {
+        if (!entity.path.endsWith('.dart')) continue;
+        violations.addAll(
+          _unwrappedShareableCalls(
+            entity.readAsStringSync(),
+            fields,
+            sourceName: p.relative(entity.path, from: root),
+          ),
         );
       }
-    }
-  });
+      expect(violations, isEmpty);
 
-  test('detects an additional direct persistence bypass', () {
+      final settings = File(
+        p.join(
+          root,
+          'lib',
+          'src',
+          'storage',
+          'repositories',
+          'settings_repository.dart',
+        ),
+      ).readAsStringSync();
+      expect(settings, contains('normalizeShareableJson(value)'));
+    },
+  );
+
+  test(
+    'discovery reports an unlisted writer for a live shareable field',
+    () async {
+      final root = await packageRootPath();
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final fields = _discoverShareableFields(root, db);
+      final tempRoot = await Directory.systemTemp.createTemp(
+        'normalisation-structure-',
+      );
+      addTearDown(() => tempRoot.delete(recursive: true));
+      final writer = File(
+        p.join(
+          tempRoot.path,
+          'lib',
+          'src',
+          'storage',
+          'repositories',
+          'future_repository.dart',
+        ),
+      )..createSync(recursive: true);
+      writer.writeAsStringSync('''
+import 'package:drift/drift.dart';
+
+void save(String value) {
+  DancesCompanion.insert(title: Value(value));
+}
+''');
+
+      final violations = _unwrappedShareableCalls(
+        writer.readAsStringSync(),
+        fields,
+        sourceName: p.relative(writer.path, from: tempRoot.path),
+      );
+      expect(
+        violations,
+        contains(contains('future_repository.dart: DancesCompanion.title')),
+      );
+    },
+  );
+
+  test('detects an unwrapped companion insert and update', () {
     const source = '''
 DancesCompanion.insert(title: normalizeShareableText(value));
 DancesCompanion.insert(title: value);
+DancesCompanion(title: Value(value));
 ''';
-    expect(_hasUnwrappedShareableCall(source), isTrue);
+    final fields = <String, Map<String, Set<String>>>{
+      'DancesCompanion': {
+        'title': {'normalizeShareableText'},
+      },
+    };
+    expect(_unwrappedShareableCalls(source, fields), hasLength(2));
   });
 
-  test('detects an unwrapped child-table field', () {
+  test('detects an unwrapped raw SQL shareable write', () {
     const source = '''
-    ProgramSlotsCompanion.insert(
-      text_: Value(normalizeShareableText(value)),
-      guestCaller: Value(value),
-    );
-    ''';
-    expect(_hasUnwrappedShareableCall(source), isTrue);
+await db.customUpdate('UPDATE dances SET title = ? WHERE id = ?');
+''';
+    final fields = <String, Map<String, Set<String>>>{
+      'DancesCompanion': {
+        'title': {'normalizeShareableText'},
+      },
+    };
+    expect(_unwrappedShareableCalls(source, fields), hasLength(1));
   });
 
   test('does not trust an unrelated normalized local', () {
     const source = '''
-    final text = normalizeShareableText(value);
-    DancesCompanion.insert(hook: Value(text));
-    ''';
-    expect(_hasUnwrappedShareableCall(source), isTrue);
-  });
-
-  test('does not confuse a local suffix with a normalized field', () {
-    const source = '''
-    final name = normalizeShareableText(value);
-    TagsCompanion.insert(name: Value(nameForImport));
-    ''';
-    expect(_hasUnwrappedShareableCall(source), isTrue);
-  });
-
-  test('does not allow a mixed normalized and raw expression', () {
-    const source = '''
-    final name = normalizeShareableText(value);
-    TagsCompanion.insert(name: Value(name ?? rawName));
-    ''';
-    expect(_hasUnwrappedShareableCall(source), isTrue);
+final text = normalizeShareableText(value);
+DancesCompanion.insert(title: Value(text));
+''';
+    final fields = <String, Map<String, Set<String>>>{
+      'DancesCompanion': {
+        'title': {'normalizeShareableText'},
+      },
+    };
+    expect(_unwrappedShareableCalls(source, fields), hasLength(1));
   });
 }
 
-bool _hasUnwrappedShareableCall(String source) {
-  for (final entry in _shareableTextFields.entries) {
-    final companion = entry.key;
-    final starts = _occurrences(source, '$companion(').toList();
-    for (final start in starts) {
-      final call = _callBody(source, start);
-      for (final field in entry.value.entries) {
-        final argument = _argumentBody(call, field.key);
-        if (argument == null) continue;
-        if (!argument.contains(field.value)) {
-          return true;
-        }
+_ShareableFields _discoverShareableFields(String root, CompendiumDatabase db) {
+  final aliases = _readColumnAliases(
+    File(
+      p.join(root, 'lib', 'src', 'storage', 'tables.dart'),
+    ).readAsStringSync(),
+  );
+  final fields = <String, Map<String, Set<String>>>{};
+  for (final table in db.allTables) {
+    final primaryKeys = table.$primaryKey.map((column) => column.name).toSet();
+    for (final column in table.$columns) {
+      final key = '${table.actualTableName}.${column.name}';
+      final classification = fieldClassifications[key];
+      if (column.type != DriftSqlType.string ||
+          classification?.egress != EgressClass.shareable ||
+          classification!.isIdentity ||
+          primaryKeys.contains(column.name) ||
+          _normalisationExemptions.containsKey(key)) {
+        continue;
+      }
+      final dartField = aliases[key] ?? _camelCase(column.name);
+      final companion = '${_pascalCase(table.actualTableName)}Companion';
+      final normalizer = column.name.endsWith('_json')
+          ? 'normalizeShareableJsonText'
+          : 'normalizeShareableText';
+      fields.putIfAbsent(companion, () => {})[dartField] = {normalizer};
+      // VenueRepository deliberately uses its small nullable wrapper.
+      if (companion == 'VenuesCompanion' ||
+          companion == 'VenueProvenanceCompanion') {
+        fields[companion]![dartField]!.add('_normalize');
       }
     }
   }
-  return false;
+  return fields;
 }
 
-Iterable<int> _occurrences(String source, String needle) sync* {
-  var offset = 0;
-  while (true) {
-    final index = source.indexOf(needle, offset);
-    if (index < 0) return;
-    if (index == 0 || !RegExp(r'[A-Za-z0-9_]').hasMatch(source[index - 1])) {
-      yield index + needle.length - 1;
+Map<String, String> _readColumnAliases(String source) {
+  final aliases = <String, String>{};
+  final classes = RegExp(
+    r'class\s+(\w+)\s+extends\s+Table\s*\{',
+  ).allMatches(source);
+  for (final declaration in classes) {
+    final body = _balancedBlock(source, declaration.end - 1);
+    final table = _snakeCase(declaration.group(1)!);
+    for (final getter in RegExp(
+      r'(?:\w+)Column\s+get\s+(\w+)\s*=>\s*(.*?);',
+      dotAll: true,
+    ).allMatches(body)) {
+      final dartField = getter.group(1)!;
+      final named = RegExp(
+        r"\.named\('([^']+)'\)",
+      ).firstMatch(getter.group(2)!);
+      aliases['$table.${named?.group(1) ?? _snakeCase(dartField)}'] = dartField;
     }
-    offset = index + needle.length;
   }
+  return aliases;
+}
+
+List<String> _unwrappedShareableCalls(
+  String source,
+  _ShareableFields fields, {
+  String sourceName = '<source>',
+}) {
+  final violations = <String>[];
+  final companionCalls = RegExp(
+    r'\b([A-Z]\w+Companion)(?:\.(?:insert|update))?\(',
+  );
+  for (final match in companionCalls.allMatches(source)) {
+    final companion = match.group(1)!;
+    final expected = fields[companion];
+    if (expected == null) continue;
+    final call = _callBody(source, match.end - 1);
+    for (final entry in expected.entries) {
+      final argument = _argumentBody(call, entry.key);
+      if (argument == null) continue;
+      if (!entry.value.any(argument.contains)) {
+        violations.add('$sourceName: $companion.${entry.key}');
+      }
+    }
+  }
+
+  final rawWrites = [
+    ...RegExp(
+      r"(?:customUpdate|customStatement)\(\s*'(.*?)'",
+      caseSensitive: false,
+      dotAll: true,
+    ).allMatches(source),
+    ...RegExp(
+      r'''(?:customUpdate|customStatement)\(\s*"(.*?)"''',
+      caseSensitive: false,
+      dotAll: true,
+    ).allMatches(source),
+  ];
+  for (final match in rawWrites) {
+    final sql = match.group(1)!;
+    if (!RegExp(
+      r'^\s*(?:insert\s+into|update)\b',
+      caseSensitive: false,
+    ).hasMatch(sql)) {
+      continue;
+    }
+    for (final entry in fields.entries) {
+      final table = _snakeCase(entry.key.replaceFirst('Companion', ''));
+      for (final field in entry.value.keys) {
+        final sqlField = _snakeCase(field.replaceFirst(RegExp(r'_+$'), ''));
+        if (RegExp(
+          '\\b$table\\b[\\s\\S]*\\b$sqlField\\b',
+          caseSensitive: false,
+        ).hasMatch(sql)) {
+          violations.add('$sourceName: raw $table.$sqlField');
+        }
+      }
+    }
+    if (sql.contains(r'$column') &&
+        !_hasRawWriteException(source, match.start)) {
+      violations.add('$sourceName: raw dynamic shareable field');
+    }
+  }
+  return violations;
+}
+
+bool _hasRawWriteException(String source, int offset) {
+  final start = offset > 500 ? offset - 500 : 0;
+  return source
+      .substring(start, offset)
+      .contains('normalization-structure-exempt:');
+}
+
+String _balancedBlock(String source, int openBrace) {
+  var depth = 0;
+  var quote = '';
+  var escaped = false;
+  var lineComment = false;
+  var blockComment = false;
+  for (var i = openBrace; i < source.length; i++) {
+    final char = source[i];
+    final next = i + 1 < source.length ? source[i + 1] : '';
+    if (lineComment) {
+      if (char == '\n') lineComment = false;
+      continue;
+    }
+    if (blockComment) {
+      if (char == '*' && next == '/') {
+        blockComment = false;
+      }
+      continue;
+    }
+    if (quote.isNotEmpty) {
+      if (escaped) {
+        escaped = false;
+      } else if (char == r'\') {
+        escaped = true;
+      } else if (char == quote) {
+        quote = '';
+      }
+      continue;
+    }
+    if (char == '/' && next == '/') {
+      lineComment = true;
+      continue;
+    }
+    if (char == '/' && next == '*') {
+      blockComment = true;
+      continue;
+    }
+    if (char == "'" || char == '"') {
+      quote = char;
+    } else if (char == '{') {
+      depth++;
+    } else if (char == '}' && --depth == 0) {
+      return source.substring(openBrace + 1, i);
+    }
+  }
+  throw StateError('unclosed block at offset $openBrace');
 }
 
 String _callBody(String source, int openParen) {
@@ -211,9 +357,9 @@ String _callBody(String source, int openParen) {
 }
 
 String? _argumentBody(String call, String field) {
-  final start = call.indexOf('$field:');
-  if (start < 0) return null;
-  final valueStart = start + field.length + 1;
+  final start = RegExp('\\b${RegExp.escape(field)}\\s*:').firstMatch(call);
+  if (start == null) return null;
+  final valueStart = start.end;
   var depth = 0;
   var quote = '';
   var escaped = false;
@@ -242,3 +388,20 @@ String? _argumentBody(String call, String field) {
   }
   return call.substring(valueStart);
 }
+
+String _pascalCase(String value) => value
+    .split('_')
+    .map((part) => part[0].toUpperCase() + part.substring(1))
+    .join();
+
+String _camelCase(String value) {
+  final pascal = _pascalCase(value);
+  return pascal[0].toLowerCase() + pascal.substring(1);
+}
+
+String _snakeCase(String value) => value
+    .replaceAllMapped(
+      RegExp(r'([a-z0-9])([A-Z])'),
+      (match) => '${match.group(1)}_${match.group(2)}',
+    )
+    .toLowerCase();

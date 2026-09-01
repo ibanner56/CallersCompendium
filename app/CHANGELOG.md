@@ -45,6 +45,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - **Windows Settings navigation** — use an update icon that renders correctly
   for the Updates section.
+- **Shareable text normalization** — sanitize before NFC composition and
+  re-repair existing values that were left decomposed by the previous order.
 
 ### Data / Migrations
 
