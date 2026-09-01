@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W4",
+  "title": "Sync-local tables",
+  "phase": 2,
+  "sequence": 60,
+  "summary": "Add the local-only state that supports baselines, aliases, pending deletion, review, and publication history.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W4 · Sync-local tables"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "3.2 Sync-local tables"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W1",
+    "ADR-004/W2",
+    "ADR-004/W3",
+    "ADR-004/W18"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3",
+    "C4",
+    "C6"
+  ],
+  "produces": [
+    "Baseline, ID-alias, pending-deletion, review-queue, and published-record tables",
+    "Privacy classifications and distinct lifecycle behavior for every table"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Every new persisted field is classified on all privacy axes.",
+      "Baseline identity is keyed by record kind and record ID.",
+      "Each table's cleanup and restore lifecycle is covered by tests."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

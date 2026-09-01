@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004",
+  "title": "Device Sync",
+  "project": {
+    "owner": "ibanner56",
+    "number": 1,
+    "url": "https://github.com/users/ibanner56/projects/1"
+  },
+  "repository": "ibanner56/CallersCompendium",
+  "expectedWorkUnits": [
+    "ADR-004/W0",
+    "ADR-004/W1",
+    "ADR-004/W2",
+    "ADR-004/W3",
+    "ADR-004/W4",
+    "ADR-004/W5",
+    "ADR-004/W6",
+    "ADR-004/W7",
+    "ADR-004/W8",
+    "ADR-004/W9",
+    "ADR-004/W10",
+    "ADR-004/W11",
+    "ADR-004/W12",
+    "ADR-004/W13",
+    "ADR-004/W14",
+    "ADR-004/W15",
+    "ADR-004/W16",
+    "ADR-004/W17",
+    "ADR-004/W18"
+  ],
+  "phases": [
+    {
+      "id": 0,
+      "name": "Phase 0 - Shipped prerequisite"
+    },
+    {
+      "id": 1,
+      "name": "Phase 1 - Shared contract"
+    },
+    {
+      "id": 2,
+      "name": "Phase 2 - Foundations and server core"
+    },
+    {
+      "id": 3,
+      "name": "Phase 3 - Sync engine"
+    },
+    {
+      "id": 4,
+      "name": "Phase 4 - Server hardening and operations"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "C0",
+      "title": "Migration and standing soft-delete protection",
+      "dependsOnUnits": [
+        "ADR-004/W0"
+      ],
+      "dependsOnCheckpoints": [],
+      "criteria": [
+        "The timestamp and tombstone migration is present.",
+        "The structural soft-delete join guard is green."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C1",
+      "title": "Shared wire contract frozen",
+      "dependsOnUnits": [
+        "ADR-004/W1",
+        "ADR-004/W2",
+        "ADR-004/W3",
+        "ADR-004/W18"
+      ],
+      "dependsOnCheckpoints": [
+        "C0"
+      ],
+      "criteria": [
+        "Independent encoders agree on the canonical wire corpus.",
+        "The shareable allow-list is complete and excludes device-local data.",
+        "Stored and newly written shareable text is sanitized and normalized.",
+        "The write-routing guard that W17 owns is mutation-proven."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C2",
+      "title": "Real client and server round trip",
+      "dependsOnUnits": [
+        "ADR-004/W5",
+        "ADR-004/W10"
+      ],
+      "dependsOnCheckpoints": [
+        "C1"
+      ],
+      "criteria": [
+        "The real client and server agree on credentials, blobs, manifests, ETags, limits, and create-versus-connect behavior.",
+        "Connecting to a first-time missing collection reports it and performs no automatic creation."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C3",
+      "title": "Steady-state convergence",
+      "dependsOnUnits": [
+        "ADR-004/W6"
+      ],
+      "dependsOnCheckpoints": [
+        "C2"
+      ],
+      "criteria": [
+        "Three or more devices converge under interleaved edits and stale peers.",
+        "A previously used collection that is now missing pauses without creating a replacement and requests one user decision."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C4",
+      "title": "Attach, dedupe, deletion, and review",
+      "dependsOnUnits": [
+        "ADR-004/W7",
+        "ADR-004/W8",
+        "ADR-004/W14"
+      ],
+      "dependsOnCheckpoints": [
+        "C3"
+      ],
+      "criteria": [
+        "Fresh attach, dedupe, reconciliation, deletion, and the persistent review queue pass against the real libraries.",
+        "A confirmed replacement collection is created once and then follows the fresh-attach path."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C5",
+      "title": "Server retention and boundary hardening",
+      "dependsOnUnits": [
+        "ADR-004/W11",
+        "ADR-004/W12"
+      ],
+      "dependsOnCheckpoints": [
+        "C2"
+      ],
+      "criteria": [
+        "The server rejects non-shareable data and enforces limits before allocation.",
+        "Retention, garbage collection, immediate wipe, and privacy-safe access logging pass their conformance vectors."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C6",
+      "title": "Low-volume beta",
+      "dependsOnUnits": [
+        "ADR-004/W9",
+        "ADR-004/W13",
+        "ADR-004/W15"
+      ],
+      "dependsOnCheckpoints": [
+        "C4",
+        "C5"
+      ],
+      "criteria": [
+        "Sync remains off by default and makes no network call until enabled.",
+        "Backup export is offered before first connection but never starts automatically.",
+        "The app distinguishes a first-time missing collection from a previously used collection that no longer exists.",
+        "Replacement creation explains that inactivity expiry or removal may be the cause and requires confirmation; cancellation makes no network call.",
+        "The privacy-policy effective date is in force before any beta content leaves a device.",
+        "Maintainers use the beta in normal low-volume use, repair observed breakage, and make an explicit qualitative decision that it is satisfactory; no numeric user or duration threshold is required."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    },
+    {
+      "id": "C7",
+      "title": "Release",
+      "dependsOnUnits": [
+        "ADR-004/W15",
+        "ADR-004/W16"
+      ],
+      "dependsOnCheckpoints": [
+        "C6"
+      ],
+      "criteria": [
+        "Policy wording and effective date are rechecked.",
+        "Operational processes have been exercised against the deployed service.",
+        "The compatible server is deployed before the client release."
+      ],
+      "sourceReference": {
+        "path": "docs/design/sync-implementation.md",
+        "heading": "7. Checkpoints"
+      }
+    }
+  ],
+  "decisions": [
+    {
+      "id": "service-first",
+      "decision": "Build and deploy the remote service as early as the shared compendium_core and wire contracts permit.",
+      "effect": "After C1, land the shared W5 credential definition needed by W10, then prioritize W10 and a live test endpoint before W6 client-engine development.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
+      "id": "backup-offer",
+      "decision": "Offer backup export before the first connection; never start an export automatically.",
+      "effect": "W13 owns an explicit offer and W8 must remain incapable of initiating export by itself.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
+      "id": "missing-collection",
+      "decision": "A first-time missing collection is reported and offered for creation.",
+      "effect": "The connect path performs no automatic POST and remains distinct from replacement of a previously used collection.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
+      "id": "replacement-confirmation",
+      "decision": "A previously used collection that no longer exists may have expired through inactivity or been removed; explain that uncertainty and require confirmation before replacement.",
+      "effect": "W5 types the outcome, W6 pauses without POST, W13 owns the decision surface, and W8 fresh-attaches only after confirmed creation.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
+      "id": "qualitative-beta",
+      "decision": "The beta is a low-volume period of ordinary use, repair, and qualitative maintainer judgment rather than a statistically measured trial.",
+      "effect": "C6 records observed failures and an explicit satisfactory-use decision but sets no minimum user count, duration, or numerical threshold.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
+      "id": "privacy-before-beta",
+      "decision": "The amended privacy policy and its effective date must be in force before real beta content leaves a device.",
+      "effect": "W15 and the effective-date check gate C6, not only public release.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    },
+    {
+      "id": "server-before-client",
+      "decision": "Deploy the compatible server before distributing a client that can use it.",
+      "effect": "The beta and public release gates both verify server-first ordering.",
+      "decidedBy": "ibanner56",
+      "decidedOn": "2026-09-01"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W17",
+  "title": "Standing-invariant ratchets",
+  "phase": 2,
+  "sequence": 46,
+  "summary": "Turn sync-critical structural properties into mutation-proven gates that remain active after implementation.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W17 · Standing-invariant ratchets"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.5 Invariants"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "9. Conformance tests"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W0"
+  ],
+  "completionDependsOn": [
+    "ADR-004/W18"
+  ],
+  "checkpoints": [
+    "C0",
+    "C1"
+  ],
+  "produces": [
+    "Soft-delete join coverage gate",
+    "I1 and I2 write-boundary gates",
+    "Certificate escape-hatch and shared-normalizer gates",
+    "Permanent ownership of W18 write-routing protection"
+  ],
+  "pullRequests": [
+    1118
+  ],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Every named structural check is proven by a mutation that makes it fail.",
+      "The W18 write-routing scan is transferred into the standing gate.",
+      "The gates run through repository preflight and CI."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

@@ -47,6 +47,12 @@ jobs:
         run: python3 tools/ci/test_check_agent_context_budget.py
       - name: Guard resident agent context (byte budget)
         run: python3 tools/ci/check_agent_context_budget.py
+      - name: Test and validate Device Sync work tracking
+        run: |
+          python3 tools/tracking/test_validate.py
+          python3 tools/tracking/test_validate_pr.py
+          python3 tools/tracking/test_sync_project.py
+          python3 tools/tracking/validate.py
       # The merge-readiness gates (review freshness by reviewer identity,
       # unresolved threads with totalCount, closing-issue intent, suppressed
       # review findings) are a script rather than a procedure an agent has to

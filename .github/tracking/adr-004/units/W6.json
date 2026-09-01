@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W6",
+  "title": "Steady-state merge",
+  "phase": 3,
+  "sequence": 70,
+  "summary": "Implement baseline-based, existence-first convergence against the live Athenaeum endpoint.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W6 · Steady-state merge"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.3 Steady-state sync"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.4 Existence"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.5 Invariants"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W3",
+    "ADR-004/W4",
+    "ADR-004/W5",
+    "ADR-004/W10"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C3"
+  ],
+  "produces": [
+    "Baseline diff and existence-first merge engine",
+    "Transactional inbound apply with privacy filtering",
+    "Background isolate boundary",
+    "Coalesced replacement-required event for a missing previously used collection"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Three or more devices converge under interleaved changes.",
+      "Equal-timestamp ties and malformed records are reported without corrupting the baseline.",
+      "Classification filtering and I1/I2 hold on inbound apply.",
+      "A previously used missing collection stops the pass, preserves local state and baseline, emits one decision event, and performs no POST.",
+      "The automatic-recreation mutation makes the guard test fail."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

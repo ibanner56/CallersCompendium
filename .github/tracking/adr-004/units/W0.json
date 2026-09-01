@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W0",
+  "title": "Schema migration",
+  "phase": 0,
+  "sequence": 0,
+  "summary": "Add the timestamp and tombstone foundation required by every later sync path.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W0 · Schema migration"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "3.1 Schema migration"
+    }
+  ],
+  "dependsOn": [],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C0"
+  ],
+  "produces": [
+    "Created, updated, and deleted timestamps on all eight synchronized record kinds",
+    "Tombstone behavior in place of synchronized hard deletes"
+  ],
+  "pullRequests": [
+    901,
+    903
+  ],
+  "hold": null,
+  "completion": {
+    "complete": true,
+    "conditions": [
+      "The migration covers every synchronized table and column.",
+      "The structural soft-delete join invariant is enforced."
+    ],
+    "summary": "The schema migration and its standing join protection shipped.",
+    "evidence": [
+      "PR #901",
+      "PR #903",
+      "Checkpoint C0 is recorded green in the implementation plan."
+    ]
+  }
+}

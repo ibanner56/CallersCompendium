@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W13",
+  "title": "Settings blade, pairing, triggers and user-facing obligations",
+  "phase": 2,
+  "sequence": 62,
+  "summary": "Build the off-by-default settings, pairing, status, backup offer, and missing-collection decision surfaces.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W13 · Settings blade, pairing, triggers and user-facing obligations"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.1 Enablement"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.12 Failure, offline and triggers"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.14 Pairing-time disclosures"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W5"
+  ],
+  "completionDependsOn": [
+    "ADR-004/W6",
+    "ADR-004/W8",
+    "ADR-004/W9"
+  ],
+  "checkpoints": [
+    "C6"
+  ],
+  "produces": [
+    "Off-by-default Device Sync settings and status",
+    "Create-versus-connect pairing flow",
+    "User-initiated backup offer before first connection",
+    "Previously used missing-collection explanation and replacement confirmation",
+    "WiFi-only default, import exclusion, and partial-venue guidance"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Unconfigured and disabled states make no network call.",
+      "Backup export is offered but never starts automatically.",
+      "First-time missing collection creation is distinct from replacement of a previously used collection.",
+      "The replacement message says the collection may have expired through inactivity or been removed.",
+      "Confirm creates once; cancel performs no POST and keeps the decision available.",
+      "Every disclosure and trigger obligation in the normative specification is covered."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}
