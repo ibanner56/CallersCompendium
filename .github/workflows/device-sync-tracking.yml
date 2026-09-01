@@ -8,6 +8,7 @@ on:
       - 'tools/tracking/**'
       - '.github/workflows/device-sync-tracking.yml'
   pull_request_target:
+    branches: [main]
     types: [opened, reopened, synchronize, edited, converted_to_draft, ready_for_review, closed]
   schedule:
     - cron: '17 4 * * *'
