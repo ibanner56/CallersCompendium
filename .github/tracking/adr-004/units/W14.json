@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W14",
+  "title": "A kind-agnostic review surface",
+  "phase": 2,
+  "sequence": 61,
+  "summary": "Provide a persistent generic review queue for conflicts that cannot be resolved silently.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W14 · A kind-agnostic review surface"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "6.6 Collision reconciliation"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W4"
+  ],
+  "completionDependsOn": [],
+  "checkpoints": [
+    "C4"
+  ],
+  "produces": [
+    "Persistent cross-record-kind review queue",
+    "Keep-both and merge decisions",
+    "Rename prompt for natural-key keep-both collisions"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "Queued decisions survive restart.",
+      "Keep both leaves both records present.",
+      "Natural-key keep-both resolution cannot complete without a distinct name."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

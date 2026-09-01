@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "id": "ADR-004/W10",
+  "title": "Athenaeum core — storage, endpoints, limits",
+  "phase": 2,
+  "sequence": 50,
+  "summary": "Build the remote service immediately after the shared contract so later client work can exercise a live endpoint.",
+  "specReferences": [
+    {
+      "path": "docs/design/sync-implementation.md",
+      "heading": "W10 · Athenaeum core — storage, endpoints, limits"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "7.1 Storage"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "5.2 Endpoints"
+    },
+    {
+      "path": "docs/design/sync-spec.md",
+      "heading": "5.4 Limits"
+    }
+  ],
+  "dependsOn": [
+    "ADR-004/W1",
+    "ADR-004/W2",
+    "ADR-004/W3",
+    "ADR-004/W18"
+  ],
+  "completionDependsOn": [
+    "ADR-004/W5"
+  ],
+  "checkpoints": [
+    "C2"
+  ],
+  "produces": [
+    "Dart shelf Athenaeum service",
+    "HMAC-keyed and epoch-namespaced storage",
+    "Create, lookup, blob, manifest, and deletion endpoints",
+    "Allocation-safe request and store limits",
+    "A deployed live endpoint for client development"
+  ],
+  "pullRequests": [],
+  "hold": null,
+  "completion": {
+    "complete": false,
+    "conditions": [
+      "The service consumes W5's shared id_key definition before C2.",
+      "Create and lookup remain distinct and issue fresh epochs correctly.",
+      "Blobs are immutable and stale epochs are rejected.",
+      "ETag, content type, credential decoding, and budget accounting pass.",
+      "A live test deployment is available before W6 client-engine work begins."
+    ],
+    "summary": null,
+    "evidence": []
+  }
+}

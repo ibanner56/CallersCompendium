@@ -2903,18 +2903,21 @@ first time.
 The *second* reason given here has since expired, and is worth recording because
 it shows how an argument can survive losing a leg. It said a client would never
 observe a `410` anyway, since `GET /v1/store` created the store when absent.
-After the §5.2 split that is false — a reaped store now answers `404`, and the
-client does observe it. But the observation is deliberately undifferentiated:
-`404` means only "nothing is here", and the client responds by creating, which
-is the correct action whether the store expired or never existed. Distinguishing
-the two would buy the client nothing and would cost the server exactly the
-persistent record the first objection rules out.
+After the §5.2 split that is false — a missing store now answers `404`, and the
+client does observe it. The observation remains deliberately
+undifferentiated: `404` means only "nothing is here". What changed is the client
+response. Durable prior success lets the client distinguish first-time pairing
+from disappearance, but not inactivity expiry from operator removal, so it
+explains both possibilities and requests confirmation before replacement.
+That buys informed consent without costing the server the persistent record the
+first objection rules out.
 
 So: the other endpoints return `404` when either the store or the requested
 resource is absent, and the client recovers by calling `GET /v1/store` to
-distinguish those cases. If that GET also returns `404`, a steady-state client
-re-creates the store with `POST /v1/store`, which returns a fresh epoch; the
-pairing path reports the missing store instead.
+distinguish those cases. If that GET also returns `404`, the pairing path
+reports the missing store; a steady-state client pauses, explains that the
+previously used collection may have expired or been removed, and creates a
+fresh epoch only after confirmation.
 
 `422` should never occur in normal operation. It fires only when a client bug
 would otherwise put a venue address on our infrastructure, so it is a **loud**
@@ -2947,7 +2950,9 @@ sync ID entirely, so re-enabling is a fresh attach.
 2. Create → `POST /v1/store`; `409` means the ID is already in use and is
    reported, never silently joined. Connect → `GET /v1/store`; `404` means no
    store has that ID — almost always a typo — and is reported, never silently
-   created.
+   created. This is not the steady-state replacement flow: a device with durable
+   prior success can explain disappearance and offer replacement, but it still
+   cannot create without confirmation.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
    detach, and on `409`. Detaching **forgets the sync ID entirely**: no list of
    previously-attached IDs is kept, so re-attaching cannot resurrect a stale
@@ -3178,7 +3183,11 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
 
 ### Steady-state sync
 
-1. `GET /v1/store`. **Epoch differs → fresh attach.** Stop.
+1. `GET /v1/store`. **Epoch differs → fresh attach.** Stop. If the store is
+   missing for an ID this device previously used successfully, stop without
+   creating, explain that it may have expired through inactivity or been
+   removed, and wait for confirmation. Confirmation creates once and
+   fresh-attaches; declining makes no network call.
 2. Compute the local manifest.
 3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
 4. Per record, compare local / remote / baseline hashes **and `updatedAt`**:
@@ -5210,11 +5219,12 @@ collector was written as though it were not.
 
 #### An ADR promise that never reached the spec is owned by nobody
 
-Four pairing-time disclosures — sharing is not collaboration, no recovery and
-no revocation, sync is not a backup, and warn as expiry approaches — were
-recorded in ADR-004 as things that "must be said at pairing time, not
-discovered", and reached neither the specification nor any unit's gate. A grep
-for their wording across the specification returned one unrelated hit.
+The user-visible obligations now cover sharing not being collaboration, no
+recovery or revocation, sync not being backup, an approaching-expiry warning,
+the explicit create-or-connect choice, and confirmation before replacing a
+previously used missing collection. Earlier review found the first group only in
+ADR-004, where no implementation unit owned them; they now live in normative
+§6.14 and W13.
 
 This is the third instance of one structural fact: **the ownership ratchet maps
 specification sections to units**, so an ADR promise with no specification

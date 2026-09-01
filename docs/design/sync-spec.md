@@ -1521,18 +1521,19 @@ been *typed*, so absence is as likely to mean "you mistyped it" as "no store
 exists". Which call to issue is a decision the user has already made at that
 step, and §6.14 requires the pairing surface to put it to them.
 
-**In steady state the opposite holds.** At §6.3 step 1 the ID is one this device
-has already synced against successfully, so a `404` cannot be a typo: it means
-§7.3 reaped the store. Re-creating is then correct and MUST happen without
-asking, exactly as an epoch change is handled without asking. The rule is
-therefore about the provenance of the ID rather than the status code — **a
-client MUST NOT create against an ID the user has just entered, and MUST create
-against one it has itself used successfully.**
+**In steady state the ID has different provenance but creation still requires a
+decision.** At §6.3 step 1 the device knows only that it synced against this ID
+successfully before and that no store exists now. The server deliberately
+retains no deletion history, so the client cannot distinguish §7.3 inactivity
+expiry from an operator wipe. It MUST explain both possibilities and MUST NOT
+issue `POST /v1/store` until the user confirms replacement. A declined or
+pending decision makes no creation, manifest or blob request.
 
-**This is my call, not a maintainer ruling.** The protocol split forces a client
-to choose some moment to create; the only two candidate policies are "ask" and
-"create on absence"; and the second reintroduces a silent divergence this
-document goes to considerable length to prevent everywhere else.
+The two paths therefore remain distinct: a newly entered ID reports that no
+collection exists and offers creation as a pairing choice; a previously used ID
+reports that the collection no longer exists, explains why that may have
+happened, and offers replacement. Neither path silently creates. Maintainer
+ruling, 2026-09-01.
 
 `POST` carries no request body. The epoch is minted by the server and by nothing
 else (§7.1), and there is no other creation-time parameter, so a body could only
@@ -1591,9 +1592,12 @@ There is no distinct "expired" status. Reset detection is the epoch's job. A
 client receiving `404` from a *within-store* endpoint — a manifest, a blob —
 recovers by calling `GET /v1/store`, which tells it whether the store still
 exists at all. A `404` from `GET /v1/store` itself means the store is gone:
-either it never existed, or §7.3 reaped it. Recovery is then a `POST`, and
-because that mints a fresh epoch every peer fresh-attaches, which is the
-intended outcome of an expiry and the reason no separate status is needed.
+it may never have existed, §7.3 may have reaped it, or an operator may have
+wiped it. On a newly entered ID the client reports a missing collection. On a
+durably previously successful ID it requests the replacement confirmation in
+§6.3 step 1. Only confirmation issues `POST`; the fresh epoch then makes every
+peer fresh-attach. No distinct server status is needed because the client
+reports the uncertainty rather than claiming a cause the server cannot prove.
 
 `413` and `507` divide on **per-request versus per-store**, and the split is
 normative because it is otherwise a coin toss. A single request exceeding a
@@ -1782,7 +1786,9 @@ republishes, which is an ordinary upload and needs no special path.
    `POST /v1/store`. A `409` means the ID is already in use; the client MUST
    report that and MUST NOT silently join, because a user who asked to create
    and was quietly attached to a stranger's store is the exact failure the
-   choice exists to prevent.
+   choice exists to prevent. This first-time missing-collection path is distinct
+   from §6.3 step 1, where durable prior success permits the client to explain
+   disappearance and offer replacement.
 3. **Fresh attach** always: on first attach, on re-attach after detach, and on
    `409`. Detach MUST forget the sync ID entirely.
 4. Upload every local record; download every remote record. Inbound rejection
@@ -1820,9 +1826,9 @@ republishes, which is an ordinary upload and needs no special path.
    step 8 runs, this device is absent from §7.1's `devices` list, no peer can
    see any record it holds, and by §7.3 the blobs it just uploaded are
    unreferenced and become collectable once the grace window elapses. A device
-   attaching to an empty store — the shape on first attach, and again after
-   §7.3 reaps a store and some device re-creates it — would otherwise seed
-   nothing at all.
+   attaching to an empty store — the shape on first attach, and again after a
+   user confirms replacement of a store that no longer exists — would otherwise
+   seed nothing at all.
 
    This pass is a **continuation of the attach**, not a second concurrent
    operation, and §6.12's single-flight rule MUST NOT be read as forbidding it.
@@ -1837,10 +1843,13 @@ republishes, which is an ordinary upload and needs no special path.
 
 ### 6.3 Steady-state sync
 
-1. `GET /v1/store`. Epoch differs → fresh attach; stop. `404` → §7.3 reaped
-   the store; `POST /v1/store` to re-create it, then fresh attach and stop.
-   This device has synced against this ID before, so absence is a reap and not
-   a typo, and §5.2's no-auto-create rule does not reach it.
+1. `GET /v1/store`. Epoch differs → fresh attach; stop. `404` on an ID this
+   device has used successfully → stop the pass, persist or coalesce one
+   replacement-needed state, and explain that the collection no longer exists
+   and may have expired through inactivity or been removed. Make no manifest,
+   blob or `POST` request while the decision is pending. Confirmation issues
+   exactly one `POST /v1/store`, then fresh-attaches and stops; declining leaves
+   sync configured but paused so a later user action can reconsider.
 2. Compute the local manifest.
 3. `GET /v1/manifests/{peer}` for each peer, with `If-None-Match`.
 4. Per record, resolve existence first (§6.4), then compare hashes and
@@ -2608,12 +2617,12 @@ wording here is not a worse hint; it is a privacy claim the app cannot keep.
 
 ### 6.14 Pairing-time disclosures
 
-Five consequences of this design are user-visible, irreversible, and cannot be
+Six consequences of this design are user-visible, irreversible, and cannot be
 inferred from the interface. Each is recorded in ADR-004 as knowingly accepted,
 and each names a moment the user must be told. They are specified here because
 an obligation that lives only in the ADR is owned by no unit: the ownership
 matrix maps **spec sections** to units, so an ADR promise that never reached
-this document is invisible to it by construction. All four had that shape.
+this document is invisible to it by construction.
 
 1. **Sharing is not collaboration, and MUST be said at pairing time.** Two
    people on one sync ID is permitted and falls out of the layout, but merging
@@ -2630,9 +2639,10 @@ this document is invisible to it by construction. All four had that shape.
    "last synced" line is exactly what a user reads as "my data is safe", so the
    disclosure belongs on the status surface and not only at pairing.
 4. **The client SHOULD warn as the disuse expiry approaches.** Reaching it is
-   safe and correct — the next device to connect re-creates the store and
-   fresh-attaches (§6.3 step 1) — but it arrives as an unexplained dedupe
-   review for a user who simply did not open the app for five weeks.
+   recoverable but disruptive — the next previously connected device must ask
+   before creating a replacement and fresh-attaching (§6.3 step 1), which may
+   lead to a dedupe review for a user who simply did not open the app for five
+   weeks.
 5. **The pairing surface MUST ask whether the user is creating a new store or
    connecting to an existing one, and MUST NOT infer it.** §5.2 splits creation
    onto its own endpoint, so the client necessarily issues one call or the
@@ -2642,12 +2652,18 @@ this document is invisible to it by construction. All four had that shape.
    second matters more, because a user who asked to create and was quietly
    attached instead has joined a stranger's library, and last-writer-wins gives
    them no signal that anything is wrong.
+6. **A previously used collection that no longer exists MUST be explained and
+   MUST NOT be replaced without confirmation.** The server retains no deletion
+   reason, so the client MUST say it may have expired through inactivity or been
+   removed rather than claiming either cause as fact. Confirmation creates once
+   and begins fresh attach; cancellation makes no network call and leaves the
+   choice available for later.
 
-Requirements 1 to 3 and 5 are MUSTs because each states something the user
+Requirements 1 to 3, 5 and 6 are MUSTs because each states something the user
 cannot discover before the harm: a silently discarded edit, an unrecoverable
 credential, a backup that is not one, and a store that is not the one they
-meant. Requirement 4 is a SHOULD because what it prevents is surprise, not
-loss.
+meant, or replacement of a collection without consent. Requirement 4 is a
+SHOULD because what it prevents is surprise, not loss.
 
 ## 7. Server conformance
 
@@ -3706,6 +3722,11 @@ any `409` as the reset signal — every epoch-mismatch test still passes, becaus
 all of them arrive through the manifest `PUT`, and the damage needs a *create*
 against an ID already in use, which is exactly the silent join §6.2 step 2
 exists to prevent).
+**A previously used store answered `404` does not auto-create**: before
+confirmation there is no `POST`, manifest or blob request; declining preserves
+the baseline and server state; accepting creates exactly once and then runs
+fresh attach. Concurrent triggers coalesce behind the one pending decision
+(mutation: restore the former automatic `POST` and assert that the guard fails).
 
 **Server.** Each cap rejected at the boundary, not after allocation. A sync ID
 one code point over the word bound is rejected `403`, and one at the bound is
@@ -3720,10 +3741,10 @@ exemption to `DELETE` as well, and the wipe silently leaves the data on disk).
 Two stores upload a byte-identical blob and one is wiped; the survivor can still
 `GET` it (mutation: drop the `<id_key>` segment from the blob path — every other
 server test passes, because the damage is only observable from the second
-store). A store is wiped by `DELETE /v1/store` and immediately recreated by a
-`GET`, a blob is uploaded into the new incarnation, and the wipe's deferred
-filesystem cleanup is then allowed to run to completion: the new blob is still
-`GET`-able (mutation: drop the `<epoch>` segment from the blob path, or
+store). A store is wiped by `DELETE /v1/store` and, after user confirmation,
+recreated by `POST /v1/store`; a blob is uploaded into the new incarnation, and
+the wipe's deferred filesystem cleanup is then allowed to run to completion:
+the new blob is still `GET`-able (mutation: drop the `<epoch>` segment from the blob path, or
 the `epoch` column from the `blob_refs` and `manifests` keys, so both
 incarnations share one subtree — every steady-state blob test passes, because
 the damage needs a reset, and the sweep's own reap path reproduces it without
@@ -3830,15 +3851,21 @@ a venue whose `deviceLocal` fields are empty while sync is enabled, is derived
 rather than stored, and **names the local-only fields** rather than promising
 that contact details do not travel (mutation: assert the hint text does not
 claim contact details stay on the device — `venues.notes` is `shareable`, so
-that claim is false and the hint is where a user would read it). The four
-**§6.14 pairing-time disclosures** are present: sharing is not collaboration,
+that claim is false and the hint is where a user would read it). The six
+**§6.14 user-visible obligations** are present: sharing is not collaboration,
 shown where a second person can be added; no recovery and no revocation, shown
 in the pairing flow; sync is not backup, shown wherever success is reported;
-and the approaching-expiry warning. The mutation for the first three is to move
+the approaching-expiry warning; the explicit create-or-connect choice; and the
+explanation and confirmation required before replacing a previously used
+missing collection. The first-time `404` vector separately proves that a newly
+entered ID reports missing rather than presenting the replacement flow. The
+mutation for the first three is to move
 the text into help or onboarding — every screenshot test still passes, and the
 user who needed it at the moment of the decision never sees it. The mutation
 for the third specifically is to show it only at pairing: the status line
-reporting a successful sync is what a user reads as "my data is safe".
+reporting a successful sync is what a user reads as "my data is safe". The
+replacement mutation is to issue `POST` before confirmation; cancellation MUST
+leave that mutation observably red.
 
 **Client isolate and robustness.** Hostile peer blob: a malformed date rejects
 one record without aborting the batch or escaping the isolate. **An interrupted

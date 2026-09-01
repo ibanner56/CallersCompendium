@@ -688,10 +688,12 @@ deletion silently reverts".
   `dart:io` throws `FormatException` on a raw header value carrying any code
   unit outside ASCII 32–127 — `café` throws, not only CJK — so the failure is a
   local exception rather than a rejected request; bearer auth that
-  never puts the ID in a URL; and status handling — a **stale-epoch `409` from a
-  manifest `PUT`** forces fresh attach, while a `409` from `POST /v1/store` is
-  reported and stops and is never joined; `422` is surfaced and **never
-  retried**; `429` honours `Retry-After`.
+  never puts the ID in a URL; and typed status handling — a first-time missing
+  store is distinct from a previously successful ID whose store disappeared,
+  and neither outcome creates a store; a **stale-epoch `409` from a manifest
+  `PUT`** forces fresh attach, while a `409` from `POST /v1/store` is reported
+  and stops and is never joined; `422` is surfaced and **never retried**; `429`
+  honours `Retry-After`.
 
   W5 also owns **`sync_id` and `sync_device_id` as persisted settings keys, with
   their classifications** — `accessControlData` and `protocolIdentifier` — and
@@ -733,7 +735,9 @@ deletion silently reverts".
   who is on the other end of the connection, which the scheme string does not
   constrain. The *standing* half of the certificate rule — that no escape hatch
   is ever added — belongs to W17, not here; this unit owns only the behaviour,
-  which a debug flag defaulting to off would satisfy.
+  which a debug flag defaulting to off would satisfy. A previously used store
+  returning `404` MUST produce a replacement-required result and MUST NOT issue
+  `POST`; mutating that path back to automatic creation makes the test fail.
 
 The strength score **warns and never blocks**, here or anywhere else, and is
 computed over the **normalised** ID rather than the string as typed — an
@@ -814,35 +818,40 @@ ruling, re-affirmed after the split; spec §8 carries the re-derivation.
   (mutation: key on `id_key` alone and interleave a `DELETE /v1/store` with the
   recreating `POST`).
 
-**This unit is numbered late and must be scheduled early.** It is the cheaper
+**This unit is numbered late and is scheduled early by maintainer decision.** It is the cheaper
 half of the programme and it is the *test fixture* for the expensive half: a
 merge engine developed against a mock server is a merge engine whose first
-contact with the real contract happens at the end. My recommendation is to start
-W10 at C1, concurrently with W4 and W5, and to treat "the client team has a real
+contact with the real contract happens at the end. Start W10 at C1, after the
+shared W5 credential definition it needs, and treat "the client team has a real
 server to run against" as the point of it rather than a side effect.
 
 #### W13 · Settings blade, pairing, triggers and user-facing obligations
 
 - **Serves** §6.1, §6.12, §6.13, §6.14.
-- **Inherits** W5 for the ID and endpoint types, and **W6 + W9 for the
+- **Inherits** W5 for the ID, endpoint and typed missing-store outcomes, and
+  **W6 + W9 for the
   `sync_exclude_imports` filter alone** — that clause acts on the publish set
   and needs §6.9's citation closure, so it is the one part of this unit that
   cannot be built against a fake engine. The blade, pairing, triggers, status
   surface and the §6.13 hint can, from C1 onward. It also inherits **W8 for the
-  attach-completion report alone**.
+  attach-completion report and confirmed replacement attach**.
 - **Produces** the top-level Settings blade; **off on every installation until
   the user turns it on, with no sync-related network call while off**; the
   pairing flow, which must work for a user reading an ID aloud over the phone;
+  an explicit offer to export a backup before first connection, with no
+  automatic export on either acceptance or refusal;
   *Sync only on WiFi* defaulting to on, with a manual attempt on a metered
   connection routing to the setting; the status surface;
   **`sync_exclude_imports`** and the publish-set filter it drives, including the
   §6.9 citation closure that keeps a cited imported dance published and the
   upload-only scope that keeps it convergent; and the **partial-venue hint** of
-  §6.13, derived on read and naming the local-only fields; and the four
-  **§6.14 pairing-time disclosures**, each at the moment it is about — sharing
+  §6.13, derived on read and naming the local-only fields; and the six
+  **§6.14 user-visible obligations**, each at the moment it is about — sharing
   is not collaboration where a second person can be added, no-recovery and
   no-revocation in the pairing flow, not-a-backup wherever success is reported,
-  and the approaching-expiry warning.
+  the approaching-expiry warning, explicit create-or-connect choice, and an
+  explanation that a previously used missing collection may have expired or
+  been removed followed by confirmation before replacement.
 - **Unblocks** nothing. It is a leaf, which is what keeps it parallel with
   everything except the two engine clauses it inherits.
 
@@ -854,9 +863,11 @@ blade. Without it the two halves of one screen are scheduled independently.
   merely that the toggle renders, **and** the §9 *User-visible sync obligations*
   bucket is green — both `sync_exclude_imports` clauses (a cited imported dance
   stays published; a second pass makes no further request for a peer's imported
-  dance), the hint's field-naming clause, and all four §6.14 disclosure
-  clauses — including that not-a-backup appears on the **status surface** and
-  not only in the pairing flow.
+  dance), the hint's field-naming clause, and all six §6.14 obligations —
+  including that not-a-backup appears on the **status surface** and not only in
+  the pairing flow. Cancellation of replacement performs no `POST` and leaves
+  the decision available; confirmation creates once. The pre-connection backup
+  offer is user-initiated and neither choice silently exports.
 
 Its settings keys are themselves `deviceScoped` and MUST NOT sync — a sync
 feature whose configuration syncs is a loop. That holds for this unit's keys;
@@ -1068,7 +1079,9 @@ the programme and the only one that can block a release on its own.
 - **Produces** the baseline diff; the merge table including the both-present row
   that resolves as `changed`/`changed`; existence decided by `existenceAt`
   *before* the table is consulted and separately from content; the apply path;
-  the isolate boundary; and enforcement of **I1** and **I2**.
+  the isolate boundary; enforcement of **I1** and **I2**; and one coalesced
+  replacement-required event when a durably previously successful store is
+  missing, with the pass stopped and no `POST`.
 - **Unblocks** W7, W8, W9, and **W13**'s `sync_exclude_imports` filter.
 - **Done when** the §9 *Merge* and *Existence* buckets are green, including
   ≥3-device convergence with interleaved edits, the equal-`updatedAt` tie being
@@ -1089,7 +1102,9 @@ the programme and the only one that can block a release on its own.
   (`accessControlData`) are never applied from a received record or envelope.
   Their non-adoption vectors are **receive-only**, which is why they need naming
   here — the send side never emits either value, so every serialisation test in
-  the suite passes against an implementation that adopts both.
+  the suite passes against an implementation that adopts both. The missing-store
+  vector preserves local content and baseline state and mutation-proves that
+  automatic recreation fails.
   The isolate half of *Client isolate and robustness* lands here too — a
   malformed date rejects one record without aborting the batch or escaping the
   isolate; **an interrupted pass leaves no partial apply**, which is §6.7's
@@ -1152,7 +1167,8 @@ content conflict for W6's table rather than a reconciliation for this unit.
   tombstone with the greater `existenceAt` is applied** (§6.2 step 5, §6.4);
   dedupe on `normalizeTitle` plus `_choreographyEquals`, with tombstones
   excluded from candidacy entirely; `program_slots.dance_id` rewiring to the
-  survivor; epoch and baseline persistence; and the after-the-fact count
+  survivor; epoch and baseline persistence; confirmed replacement attach after
+  W13 authorizes one successful `POST`; and the after-the-fact count
   ("merged 412 duplicates"), which is the mitigation rather than a prompt.
 - **Unblocks** **W13's attach-completion report only**. The count is surfaced
   at the end of pairing, and pairing is W13's. This is the "what the user is
@@ -1170,7 +1186,9 @@ content conflict for W6's table rather than a reconciliation for this unit.
   union and silent merge; an equal-`updatedAt` fresh-attach tie reported rather
   than swallowed *and* reported again on the next steady pass; referential
   closure across a pending hold; the three-peer case of deleter, pending holder
-  and stale peer. It is also green on the *Existence* bucket's **fresh-attach
+  and stale peer. A replacement cannot enter this path before confirmation, and
+  cancellation leaves both server and baseline untouched. It is also green on
+  the *Existence* bucket's **fresh-attach
   exclusion** — a tombstone reached at attach applies rather than being held
   back by §6.4's baseline-absence guard, which at attach has no baseline to
   consult and would otherwise degenerate into *never apply a tombstone*, the
@@ -1446,8 +1464,10 @@ is off by default until the user enables it, so abandoning after C6 strands no
 one who did not opt in. The server holds no unique data by construction, so
 decommissioning it loses nothing. **The one gap is a user who has attached and
 then wants out**, and the honest answer is that the shipped JSON export is the
-only rollback they will ever have. Taking an automatic export immediately before
-a first attach is the cheapest insurance in the programme and I would do it.
+only rollback they will ever have. The pairing flow therefore offers that export
+immediately before first connection, but never starts it automatically: some
+platforms cannot grant file access without the user's action, and declining the
+offer must remain a valid path.
 
 ## 7. Checkpoints
 
@@ -1457,12 +1477,12 @@ cannot fail is not a checkpoint.
 | ID | Lands after | Gate |
 | --- | --- | --- |
 | **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. §3.1 also carries a §9 bucket — *Soft-delete join coverage* — which nothing enforced when this row was written; the one known violation (#1016) was fixed by #1018 while the *rule* still decayed silently. **That is now enforced.** #1118 shipped `tools/ci/check_sync_invariants.py`, which fails the build on a Drift or raw-SQL join through a soft-deletable parent with no `deleted_at IS NULL` predicate. C0 is green on both halves. W17's remaining ratchet is a *different* invariant — that every write reaches W18's choke point — and is gated at C1, not here. |
-| **C1** | W1, W2, W3, W18 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, a locally-created never-synced NFD title, and a row normalised by W18's backfill; the surrogate rejection fires before encoding; allow-list bijection green over real codec output, and non-vacuous. *Parallel work begins here.* |
-| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: `POST /v1/store` creates and `GET /v1/store` is `404` until it does, with neither call able to stand in for the other; blob and manifest survive `PUT`/`GET` byte-identically; `413` and `415` paths exercised — **not `422`, which is the allow-list rejection and belongs to W11 at C5**, since W10 inherits W2 only *via* W11 and cannot reject a key it has no mapping for; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
-| **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. |
-| **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact. |
+| **C1** | W1, W2, W3, W17, W18 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, a locally-created never-synced NFD title, and a row normalised by W18's backfill; the surrogate rejection fires before encoding; allow-list bijection and W17's write-routing guard are green and non-vacuous. *Parallel work begins here.* |
+| **C2** | W10, W5 | **Loopback round trip.** One client against a local server: `POST /v1/store` creates and `GET /v1/store` is `404` until it does, with neither call able to stand in for the other; connecting to a first-time missing ID reports it and performs no `POST`; blob and manifest survive `PUT`/`GET` byte-identically; `413` and `415` paths exercised — **not `422`, which is the allow-list rejection and belongs to W11 at C5**, since W10 inherits W2 only *via* W11 and cannot reject a key it has no mapping for; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
+| **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. A previously used store returning `404` pauses without creation and emits one replacement decision. |
+| **C4** | W7, W8, W14 | **Attach and dedupe on a real library.** §9 *Dedupe*, *Reconciliation*, *Deletion* and the attach half of *Attach and restore* green; the review queue survives a restart; the merge count is reported after the fact; an accepted replacement creates exactly once and then fresh-attaches. |
 | **C5** | W11, W12 | **Server hardened.** §9 *Server* green; **`422` exercised over a blob carrying a non-`shareable` key, and an unknown `v` accepted**; limits rejected before allocation; grace window honoured and `DELETE` exempt from it. |
-| **C6** | W9, W13, **C4 and C5** | **Beta.** Exit criteria below. Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured. **W15 must have landed**, *and the policy's effective date must be bumped*, if any real user's content moves (S7) — the amendment text and the date that puts it in force are one prerequisite, not two. |
+| **C6** | W9, W13, **C4 and C5** | **Beta.** Off by default with the no-network-call property proven; quarantine, repair and restore working; WiFi-only default honoured; backup offered but never automatic; first-time missing and previously used missing collections distinguished; expiry/removal explained and replacement confirmed before creation, with cancellation network-silent. **W15 must have landed**, *and the policy's effective date must be bumped*, if any real user's content moves (S7) — the amendment text and the date that puts it in force are one prerequisite, not two. Exit is an explicit qualitative maintainer judgment after ordinary low-volume use and repair, with no numeric user or duration threshold. |
 | **C7** | W15, W16, **C6** | **Ship gate.** Privacy policy amended in both files with the date bumped; ops prerequisites met; **server deployed ahead of the client release** (S3). |
 
 C2 is the checkpoint most likely to be skipped and least advisable to skip. It
@@ -1505,15 +1525,13 @@ between them, which is a shape this document has recorded before. The bump now
 gates **C6**, with C7 re-checking it because the date must name the release that
 actually ships.
 
-**C6 needs exit criteria, because a beta with none cannot fail.** The ADR
-defines revisit triggers, and not one of them can fire against a checkpoint that
-observes nothing. What is missing, and is the maintainer's to set: how many
-devices, over how long, what is watched, and which observation sends the
-programme back to the ADR rather than forward to C7. My suggestion is that the
-watched signals be the ones the design already predicts and cannot rule out —
-the rate of review-queue entries per sync, the rate of skipped-record reports,
-and any equal-`updatedAt` tie reported twice — because each maps to a named
-limitation in §10 and a trigger in the ADR.
+**C6 uses qualitative exit criteria by maintainer decision.** This product is
+unlikely to have enough beta users for statistical thresholds to say anything
+honest. Maintainers use it in ordinary low-volume operation, fix breakage they
+observe, and explicitly decide when that experience is satisfactory enough to
+advance to C7. Review-queue entries, skipped-record reports, repeated
+equal-`updatedAt` ties and the ADR revisit triggers remain observations to
+record, but there is no minimum device count, duration or numerical pass rate.
 
 ## 8. Parallelism hazards
 
@@ -1633,10 +1651,10 @@ buckets. Ownership is now explicit:
 | Dedupe | W8 |
 | Quarantine and repair | W9 |
 | Deletion | W7 |
-| Attach and restore | W8 (attach) + W9 (restore) |
-| Server | **W5** (the sync-ID bound and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
-| User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses and the partial-venue hint) |
-| Client isolate and robustness | W6 (isolate) + W5 (redirect, certificate and loopback *behaviour*, and the client-side decompression-abort clause) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause and the §6.12 trigger clauses) |
+| Attach and restore | W8 (attach, including post-confirmation replacement attach) + W9 (restore) |
+| Server | **W5** (the sync-ID bound, typed missing-store outcomes, no-auto-create client rule and the client half of `id_key` agreement) + **W10** (`ETag`/`If-None-Match`, `Content-Type`, the blob-namespacing and path-safety clauses, the `{deviceId}`/`{hash}` format clauses, the base64url decode and its `401`, the **endpoint-split clauses** — `GET` on an unknown store `404`s and creates nothing, `POST` mints a fresh epoch, `POST` against an existing store is `409` and mints nothing — the **budget-accounting clauses**, that all four failure outcomes increment the server-wide counter and successes do not, and the saturated-limit clause: a request resolving an existing store still succeeds while the counter is shedding) + **W12** (the `DELETE` grace-window clause and the no-logging clauses, including that no log line carries a raw `{deviceId}`) + **W16** (the plaintext-refusal clause, and the rate-limit clauses — the per-IP and server-wide failure limits and the separate store-creation cap — each checked against the running configuration rather than the code, because a limit present in the source and absent from the deployment is exactly what these clauses exist to catch — not because they carry §8's bound, which rests on entropy) |
+| User-visible sync obligations | **W13** (the `sync_exclude_imports` publish-set clauses, partial-venue hint, backup offer, create-or-connect choice, and missing-collection explanation and confirmation) |
+| Client isolate and robustness | W6 (isolate plus coalesced replacement-required pause) + W5 (redirect, certificate and loopback *behaviour*, client-side decompression abort and no-auto-create outcome) + **W17** (the certificate-affordance source scan) + W10 (store lifecycle) + **W13** (the no-network-call-while-unconfigured clause, §6.12 trigger clauses and network-silent replacement cancellation) |
 
 A bucket split across units is split by clause, not left jointly owned: each
 unit's **Done when** names the clauses it carries. §10 (deferred) is owned by
@@ -1648,19 +1666,20 @@ said "its last two entries" and §10 has since gained the certificate-pinning
 deferral at the end — a positional reference into a list that grows silently
 stops pointing at what it meant.
 
-## 10. Relationship to a coarser issue breakdown
+## 10. Relationship to repository work tracking
 
 The grouping below is **mine, not the ADR's.** An earlier draft of this document
 said "the ADR anticipated seven issues"; it does not, and the word "seven"
 appears nowhere in it. I carried the list forward from my own planning notes and
 attributed it upward, which is the failure this repository's own guidance names
 — grep for the property, not the citation — committed in the same document that
-records two other instances of it. The grouping is still useful, and it is worth
-having because filing an issue per unit has real costs, but it carries no
-authority beyond my judgement.
+records two other instances of it. The grouping remains a useful human overview,
+but execution is tracked at the W0–W18 unit boundary in
+`.github/tracking/adr-004/`, not in GitHub Issues.
 
-This plan is finer-grained on purpose — an issue that spans W1 through W3 cannot
-say which half of it is blocking:
+The finer-grained unit records are intentional: a track spanning W1 through W3
+cannot say which prerequisite is blocking, while one file per unit lets parallel
+PRs update their own state without conflicting:
 
 | Track | Units |
 | --- | --- |
@@ -1678,30 +1697,21 @@ W13 spans two tracks, because pairing *is* a screen in the settings blade and
 splitting it puts one flow under two owners. W17 and W18 share a track and do
 not fit the others at all, which is the point of them: W17 is the only work here
 that never finishes, and W18 is the only work here that changes stored user rows
-outside a sync path. Both are separable into their own issues, and W18's should
-be filed as a migration rather than as a feature.
+outside a sync path. They remain distinct work units, and W18 is tracked as a
+migration rather than a feature.
 
-Filing granularity is a separate decision from execution granularity, and it is
-the maintainer's. My recommendation is one issue per unit for W1–W3, because
-they are the units where "blocked on the other half" needs to be sayable, and
-one issue per track thereafter.
+## 11. Planning decisions
 
-## 11. Decisions still open
+The previously open plan-level choices were decided by `ibanner56` on
+2026-09-01:
 
-Named here rather than assumed, because each changes the plan rather than its
-details:
-
-1. **Whether W10 is scheduled early**, as recommended under W10 and in *Order of
-   execution*. The alternative is a mocked server and a later, riskier first
-   contact.
-2. **C6's exit criteria** — how many devices, over how long, what is watched,
-   and which observation sends the programme back to the ADR. C6 currently
-   observes nothing, so none of the ADR's revisit triggers can fire against it.
-   *Whether* there is a beta is settled: C6 exists, it is off by default, and
-   under S7 it cannot run before W15. What is open is what would end it.
-3. **Issue-filing granularity**, as raised under *Relationship to a coarser
-   issue breakdown*.
-4. **Whether a pre-attach automatic export ships with W8.** The shipped JSON
-   export is the only rollback a user who attaches and regrets it will ever
-   have. I would do it; it is a scope addition to a unit already on the critical
-   path, so it is worth deciding deliberately rather than by default.
+1. **Schedule W10 early** and provide a live endpoint before W6 client-engine
+   development.
+2. **Use qualitative C6 exit criteria**: ordinary low-volume use, repair of
+   observed breakage, and an explicit maintainer decision to proceed.
+3. **Track implementation without GitHub Issues**, using repository work-unit
+   records projected onto a GitHub Project.
+4. **Offer a user-initiated backup export before first connection**, never an
+   automatic export.
+5. **Require confirmation before replacing a previously used missing store**,
+   explaining that it may have expired through inactivity or been removed.
