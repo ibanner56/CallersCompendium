@@ -102,8 +102,8 @@ python3 tools/tracking/test_sync_project.py
 python3 tools/tracking/validate.py
 ```
 
-Project synchronization uses a fine-grained personal access token owned by
-`ibanner56`, with **Account permissions > Projects: Read and write**, in the
+Project synchronization uses a standard personal access token owned by
+`ibanner56`, with Project read/write access, in the
 `DEVICE_SYNC_PROJECT_TOKEN` Actions secret. The Project token is used only for
 Project API mutations; repository reads use the workflow's `GITHUB_TOKEN`, and
 no privileged workflow checks out or executes pull-request code.
