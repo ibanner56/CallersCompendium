@@ -9,7 +9,7 @@ name: CI
 # Markdown-only changes do not need the costly Flutter checks or platform
 # builds. Pull requests still start this workflow, though: `Merge gate` is a
 # required status and must report for every PR. `classify` skips the expensive
-# jobs only after comparing the PR base and head; `Merge gate` then verifies
+# jobs only after comparing the PR merge base and head; `Merge gate` then verifies
 # that the skipped result was expected. Pushes retain the path filter because
 # they do not provide the required PR status.
 on:
@@ -31,8 +31,10 @@ permissions:
 
 jobs:
   # Match the former paths-ignore rule exactly, but do it inside a PR workflow
-  # so the required final gate always exists. --no-renames makes a code-to-Markdown
-  # rename count as code-changing rather than hiding the removed code path.
+  # so the required final gate always exists. Diff from the merge base so base
+  # branch changes do not affect the PR's classification. --no-renames makes a
+  # code-to-Markdown rename count as code-changing rather than hiding the
+  # removed code path.
   classify:
     name: Classify changes
     runs-on: ubuntu-latest
@@ -64,8 +66,29 @@ jobs:
           import sys
 
           base, head = sys.argv[1:]
+          for label, ref in (
+              ('Pull request base', base),
+              ('Pull request head', head),
+          ):
+              resolved = subprocess.run(
+                  ['git', 'rev-parse', '--verify', '--quiet', f'{ref}^{{commit}}'],
+                  capture_output=True,
+                  check=False,
+              )
+              if resolved.returncode:
+                  detail = resolved.stderr.decode(errors='replace').strip()
+                  print(f'::error::{label} SHA does not resolve: {detail}')
+                  raise SystemExit(1)
+
           result = subprocess.run(
-              ['git', 'diff', '--no-renames', '--name-only', '-z', base, head],
+              [
+                  'git',
+                  'diff',
+                  '--no-renames',
+                  '--name-only',
+                  '-z',
+                  f'{base}...{head}',
+              ],
               capture_output=True,
               check=False,
           )
