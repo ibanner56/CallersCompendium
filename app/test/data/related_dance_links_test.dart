@@ -417,6 +417,40 @@ void main() {
     },
   );
 
+  test('removes an ordinary link selected alongside a group detach', () async {
+    final repos = openTestRepositories();
+    for (final id in ['a', 'b', 'c']) {
+      await repos.dances.create(_dance(id: id));
+    }
+    await repos.dances.update(
+      _dance(id: 'a', links: [_related('a-c', 'c', transitive: true)]),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'b',
+        links: [_related('b-a', 'a'), _related('b-c', 'c', transitive: true)],
+      ),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'c',
+        links: [
+          _related('c-a', 'a', transitive: true),
+          _related('c-b', 'b', transitive: true),
+        ],
+      ),
+    );
+    final original = await repos.dances.getById('b');
+
+    await saveDanceWithRelatedLinks(
+      repos,
+      dance: original!.copyWith(links: []),
+      original: original,
+    );
+
+    expect((await repos.dances.getById('a'))!.links, isEmpty);
+  });
+
   test('can detach an old group and create a new group in one save', () async {
     final repos = openTestRepositories();
     for (final id in ['a', 'b', 'c', 'd']) {

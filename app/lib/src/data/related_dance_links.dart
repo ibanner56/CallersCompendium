@@ -164,7 +164,10 @@ Future<void> saveDanceWithRelatedLinks(
 
     for (final targetId in before.keys) {
       if (after.containsKey(targetId)) continue;
-      if (detached.contains(dance.id) && detached.contains(targetId)) {
+      final wasTransitive = before[targetId]!.any((link) => link.transitive);
+      if (wasTransitive &&
+          detached.contains(dance.id) &&
+          detached.contains(targetId)) {
         continue;
       }
       final target = await load(targetId);
