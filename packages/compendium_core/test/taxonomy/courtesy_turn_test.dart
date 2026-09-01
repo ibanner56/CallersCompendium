@@ -65,8 +65,9 @@ void main() {
       // collection_import_events without changing the taxonomy. Schema 28
       // (#1005) added scoped search indexes, and schema 29 (#1111) added
       // shareable-text repair bookkeeping. Schema 30 (#1123) removed
-      // redundant normalization snapshots; none changed the taxonomy.
-      expect(kCompendiumSchemaVersion, 30);
+      // redundant normalization snapshots, and schema 31 (#1130) added
+      // transitive related-dance link groups; neither changed the taxonomy.
+      expect(kCompendiumSchemaVersion, 31);
     });
 
     test('registers with the maintainer-ruled param set', () {
