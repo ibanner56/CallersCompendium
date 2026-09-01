@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import tempfile
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().with_name("validate_pr.py")
@@ -164,6 +165,35 @@ def test_owner_admin_bootstrap_allows_initial_multi_unit_change() -> None:
         )
         == []
     )
+
+
+def test_bootstrap_rejects_combined_admin_and_unit_markers() -> None:
+    errors = validate(
+        paths=[
+            ".github/tracking/adr-004/project.json",
+            ".github/tracking/adr-004/units/W1.json",
+        ],
+        bootstrap=True,
+        body=(
+            "<!-- tracking-admin -->\n"
+            "<!-- tracking-unit: ADR-004/W1 -->"
+        ),
+        author_association="OWNER",
+    )
+    assert any("cannot be combined" in error for error in errors)
+
+
+def test_malformed_unit_file_reports_controlled_error() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        units = Path(tmp) / ".github" / "tracking" / "adr-004" / "units"
+        units.mkdir(parents=True)
+        (units / "W1.json").write_text("{", encoding="utf-8")
+        try:
+            validate_pr.load_pull_requests(Path(tmp))
+        except RuntimeError as error:
+            assert "unable to read" in str(error)
+        else:
+            raise AssertionError("malformed unit JSON must fail with RuntimeError")
 
 
 def main() -> int:

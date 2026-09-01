@@ -208,6 +208,34 @@ def test_missing_source_heading_fails() -> None:
         assert "heading not found" in result.stdout
 
 
+def test_non_utf8_source_file_reports_validation_error() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = build_repo(Path(tmp))
+        source = repo / "docs" / "design" / "binary.md"
+        source.write_bytes(b"\xff")
+        path = repo / ".github" / "tracking" / "adr-004" / "units" / "W1.json"
+        value = json.loads(path.read_text(encoding="utf-8"))
+        value["specReferences"][0]["path"] = "docs/design/binary.md"
+        write_json(path, value)
+        result = run(repo)
+        assert result.returncode == 1
+        assert "source file is not valid UTF-8" in result.stdout
+        assert "Traceback" not in result.stderr
+
+
+def test_unknown_checkpoint_unit_is_reported_once() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = build_repo(Path(tmp))
+        path = repo / ".github" / "tracking" / "adr-004" / "project.json"
+        value = json.loads(path.read_text(encoding="utf-8"))
+        value["checkpoints"][0]["dependsOnUnits"] = ["ADR-004/W99"]
+        write_json(path, value)
+        result = run(repo)
+        assert result.returncode == 1
+        message = "unknown unit dependency ADR-004/W99"
+        assert result.stdout.count(message) == 1, result.stdout
+
+
 def test_unknown_checkpoint_dependency_fails() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         repo = build_repo(Path(tmp))

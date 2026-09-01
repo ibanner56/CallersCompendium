@@ -249,7 +249,7 @@ def qualified_pull_requests(
             number=number,
             pull_requests={unit_id: pull_request_numbers},
             bootstrap=False,
-            author_association=pull_request.get("authorAssociation") or "",
+            author_association="",
         )
         if errors:
             continue
@@ -317,7 +317,7 @@ def list_open_pull_requests(repository: str, token: str) -> list[dict[str, Any]]
             "--limit",
             "200",
             "--json",
-            "number,isDraft,title,body,url,headRefName,changedFiles,authorAssociation",
+            "number,isDraft,title,body,url,headRefName,changedFiles",
         ],
         token,
     )
@@ -366,6 +366,7 @@ def project_state(owner: str, number: int, token: str) -> dict[str, Any]:
         projectV2(number: $number) {
           id
           fields(first: 100) {
+            pageInfo { hasNextPage }
             nodes {
               ... on ProjectV2Field { id name dataType }
               ... on ProjectV2SingleSelectField {
@@ -376,12 +377,14 @@ def project_state(owner: str, number: int, token: str) -> dict[str, Any]:
             }
           }
           items(first: 100) {
+            pageInfo { hasNextPage }
             nodes {
               id
               content {
                 ... on DraftIssue { id title body }
               }
               fieldValues(first: 50) {
+                pageInfo { hasNextPage }
                 nodes {
                   ... on ProjectV2ItemFieldTextValue {
                     text
@@ -408,6 +411,17 @@ def project_state(owner: str, number: int, token: str) -> dict[str, Any]:
     project = data.get("user", {}).get("projectV2")
     if not project:
         raise RuntimeError(f"Project {owner}/{number} was not found")
+    for connection_name in ("fields", "items"):
+        connection = project[connection_name]
+        if connection["pageInfo"]["hasNextPage"]:
+            raise RuntimeError(
+                f"Project {connection_name} exceed the supported page size"
+            )
+    for item in project["items"]["nodes"]:
+        if item["fieldValues"]["pageInfo"]["hasNextPage"]:
+            raise RuntimeError(
+                f"Project item {item['id']} field values exceed the supported page size"
+            )
     return project
 
 

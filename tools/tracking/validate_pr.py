@@ -73,6 +73,9 @@ def validate_pull_request(
         if (match := UNIT_PATH.fullmatch(path))
     ]
 
+    if admin and markers:
+        errors.append("tracking-admin and tracking-unit markers cannot be combined")
+        return errors
     if bootstrap:
         if not admin or author_association != "OWNER":
             errors.append("tracking bootstrap requires repository-owner tracking-admin")
@@ -84,9 +87,6 @@ def validate_pull_request(
             )
         return errors
 
-    if admin and markers:
-        errors.append("tracking-admin and tracking-unit markers cannot be combined")
-        return errors
     control_paths = [path for path in changed_paths if is_control_path(path)]
     if control_paths and not admin:
         errors.append(
@@ -163,8 +163,15 @@ def is_bootstrap(base: str) -> bool:
 def load_pull_requests(root: Path) -> dict[str, list[int]]:
     result = {}
     for path in (root / ".github" / "tracking" / "adr-004" / "units").glob("*.json"):
-        unit = json.loads(path.read_text(encoding="utf-8"))
-        result[unit["id"]] = unit["pullRequests"]
+        try:
+            unit = json.loads(path.read_text(encoding="utf-8"))
+            unit_id = unit["id"]
+            pull_requests = unit["pullRequests"]
+        except (OSError, UnicodeError, json.JSONDecodeError, KeyError, TypeError) as error:
+            raise RuntimeError(f"unable to read {path}: {error}") from error
+        if not isinstance(unit_id, str) or not isinstance(pull_requests, list):
+            raise RuntimeError(f"unable to read {path}: invalid id or pullRequests")
+        result[unit_id] = pull_requests
     return result
 
 
@@ -179,7 +186,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    event = json.loads(args.event_path.read_text(encoding="utf-8"))
+    try:
+        event = json.loads(args.event_path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        print(f"ERROR: unable to read pull request event: {error}")
+        return 2
     pull_request = event.get("pull_request")
     if not isinstance(pull_request, dict):
         print("ERROR: event has no pull_request object")
@@ -187,6 +198,7 @@ def main(argv: list[str] | None = None) -> int:
     try:
         paths = changed_paths(args.base_sha, args.head_sha)
         bootstrap = is_bootstrap(args.base_sha)
+        pull_requests = load_pull_requests(args.root)
     except RuntimeError as error:
         print(f"ERROR: unable to inspect pull request: {error}")
         return 2
@@ -196,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
         body=pull_request.get("body") or "",
         head_ref=pull_request.get("head", {}).get("ref") or "",
         number=pull_request.get("number") or 0,
-        pull_requests=load_pull_requests(args.root),
+        pull_requests=pull_requests,
         bootstrap=bootstrap,
         author_association=pull_request.get("author_association") or "",
     )

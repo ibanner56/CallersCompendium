@@ -119,8 +119,16 @@ class Validator:
         if not path.is_file():
             self.error(location, f"source file does not exist: {relative}")
             return
+        try:
+            source = path.read_text(encoding="utf-8")
+        except UnicodeError:
+            self.error(location, f"source file is not valid UTF-8: {relative}")
+            return
+        except OSError as error:
+            self.error(location, f"source file cannot be read: {relative}: {error}")
+            return
         headings = []
-        for line in path.read_text(encoding="utf-8").splitlines():
+        for line in source.splitlines():
             match = re.match(r"^#{1,6}\s+(.+?)\s*#*\s*$", line)
             if match:
                 headings.append(match.group(1))
@@ -476,15 +484,15 @@ class Validator:
                             unit_id,
                             f"cannot complete before dependency {dependency}",
                         )
-            for checkpoint in project.get("checkpoints", []):
-                if not isinstance(checkpoint, dict):
-                    continue
-                for dependency in checkpoint.get("dependsOnUnits", []):
-                    if dependency not in units:
-                        self.error(
-                            f"checkpoint {checkpoint.get('id', '?')}",
-                            f"unknown unit dependency {dependency}",
-                        )
+        for checkpoint in project.get("checkpoints", []):
+            if not isinstance(checkpoint, dict):
+                continue
+            for dependency in checkpoint.get("dependsOnUnits", []):
+                if dependency not in units:
+                    self.error(
+                        f"checkpoint {checkpoint.get('id', '?')}",
+                        f"unknown unit dependency {dependency}",
+                    )
 
         visiting: list[str] = []
         visited: set[str] = set()

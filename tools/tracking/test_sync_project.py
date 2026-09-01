@@ -92,6 +92,64 @@ def test_non_draft_wins_when_a_unit_has_multiple_open_pull_requests() -> None:
     assert desired["ADR-004/W1"].pull_requests == (20, 21)
 
 
+def test_project_state_fails_closed_on_truncated_connections() -> None:
+    original = sync_project.graphql
+
+    def truncated(
+        query: str,
+        variables: dict[str, object],
+        token: str,
+    ) -> dict[str, object]:
+        assert "pageInfo { hasNextPage }" in query
+        return {
+            "user": {
+                "projectV2": {
+                    "id": "project",
+                    "fields": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": False},
+                    },
+                    "items": {
+                        "nodes": [],
+                        "pageInfo": {"hasNextPage": True},
+                    },
+                }
+            }
+        }
+
+    sync_project.graphql = truncated
+    try:
+        try:
+            sync_project.project_state("ibanner56", 1, "token")
+        except RuntimeError as error:
+            assert "items exceed the supported page size" in str(error)
+        else:
+            raise AssertionError("truncated Project items must fail closed")
+    finally:
+        sync_project.graphql = original
+
+
+def test_pull_request_listing_uses_supported_cli_fields() -> None:
+    original = sync_project.gh_json
+
+    def fake_gh_json(
+        args: list[str],
+        token: str,
+        *,
+        input_value: object | None = None,
+    ) -> list[object]:
+        assert args[:2] == ["pr", "list"]
+        fields = args[args.index("--json") + 1].split(",")
+        assert "authorAssociation" not in fields
+        return []
+
+    sync_project.gh_json = fake_gh_json
+    try:
+        assert sync_project.list_open_pull_requests("owner/repo", "token") == []
+    finally:
+        sync_project.gh_json = original
+
+
 def test_blocking_is_orthogonal_to_lifecycle() -> None:
     units = {
         "ADR-004/W1": unit(
