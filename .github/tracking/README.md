@@ -103,6 +103,7 @@ Run:
 python3 tools/tracking/test_validate.py
 python3 tools/tracking/test_validate_pr.py
 python3 tools/tracking/test_sync_project.py
+python3 tools/tracking/test_workflow_integration.py
 python3 tools/tracking/validate.py
 ```
 
