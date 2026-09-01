@@ -193,6 +193,19 @@ class RelatedDancesEditor extends StatelessWidget {
                         ),
                         onChanged: (_) => onChanged(),
                       ),
+                      CheckboxListTile(
+                        key: ValueKey('related-dance-transitive-${draft.id}'),
+                        value: draft.transitive,
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(l10n.danceEditorTransitiveGroup),
+                        subtitle: Text(l10n.danceEditorTransitiveGroupHint),
+                        onChanged: (value) {
+                          draft.transitive = value ?? false;
+                          onChanged();
+                        },
+                      ),
                     ],
                   ),
                 ),

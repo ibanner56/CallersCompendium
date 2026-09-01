@@ -49,7 +49,9 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 ///
 /// v9 → v10: adds a per-figure `wordingOverride` (display-only text for this
 /// occurrence). Older drafts decode each figure with `wordingOverride: null`.
-const _kDraftVersion = 10;
+/// v10 -> v11: adds the optional `transitive` flag to related-dance links.
+/// Older drafts decode it as `false`.
+const _kDraftVersion = 11;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -58,10 +60,10 @@ const _kDraftVersion = 10;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v10):
+/// Schema (v11):
 /// ```jsonc
 /// {
-///   "v": 10,
+///   "v": 11,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -73,7 +75,8 @@ const _kDraftVersion = 10;
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
-///     {"id":"...", "kind":"relatedDance", "targetDanceId":"...", "label":"..."}
+///     {"id":"...", "kind":"relatedDance", "targetDanceId":"...", "label":"...",
+///      "transitive":true}
 ///   ],
 ///   "sourceCitations": [
 ///     {"sourceId":"...", "page":"12-14", "number":"A1"}
@@ -124,6 +127,7 @@ String encodeDraft(EditorSnapshot snapshot) {
           if (l.url.isNotEmpty) 'url': l.url,
           if (l.label.isNotEmpty) 'label': l.label,
           if (l.targetDanceId != null) 'targetDanceId': l.targetDanceId,
+          if (l.transitive) 'transitive': true,
         },
     ],
     if (snapshot.sourceCitations.isNotEmpty)
@@ -322,6 +326,7 @@ LinkSnapshot _parseLinkSnapshot(Object? e) {
     targetDanceId: m['targetDanceId'] is String
         ? m['targetDanceId'] as String
         : null,
+    transitive: _bool(m, 'transitive'),
   );
 }
 

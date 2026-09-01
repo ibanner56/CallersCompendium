@@ -14,6 +14,7 @@ class LinkDraft {
     required this.urlController,
     required this.labelController,
     this.targetDanceId,
+    this.transitive = false,
   }) : _kind = kind; // ignore: prefer_initializing_formals
 
   factory LinkDraft.empty() => LinkDraft(
@@ -38,6 +39,7 @@ class LinkDraft {
     urlController: TextEditingController(text: link.url ?? ''),
     labelController: TextEditingController(text: link.label ?? ''),
     targetDanceId: link.targetDanceId,
+    transitive: link.transitive,
   );
 
   /// Reconstructs a draft from an [EditorSnapshot]'s [LinkSnapshot], used
@@ -48,6 +50,7 @@ class LinkDraft {
     urlController: TextEditingController(text: s.url),
     labelController: TextEditingController(text: s.label),
     targetDanceId: s.targetDanceId,
+    transitive: s.transitive,
   );
 
   final String id;
@@ -63,6 +66,7 @@ class LinkDraft {
       urlController.clear();
     } else {
       targetDanceId = null;
+      transitive = false;
     }
   }
 
@@ -71,6 +75,9 @@ class LinkDraft {
 
   /// Set when [kind] is [LinkKind.relatedDance]; `null` otherwise.
   String? targetDanceId;
+
+  /// Whether this related-dance link participates in a transitive group.
+  bool transitive;
 
   /// Builds a [DanceLink], or `null` when the required target is absent.
   ///
@@ -86,6 +93,7 @@ class LinkDraft {
         kind: kind,
         targetDanceId: target,
         label: label.isEmpty ? null : label,
+        transitive: transitive,
       );
     } else {
       final url = urlController.text.trim();

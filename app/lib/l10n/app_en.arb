@@ -6666,6 +6666,14 @@
   "@danceEditorTypeToSearchHint": {
     "description": "Hint text for a type-ahead search field."
   },
+  "danceEditorTransitiveGroup": "Include in related-dance group",
+  "@danceEditorTransitiveGroup": {
+    "description": "Checkbox label for making a related-dance link part of a transitive group."
+  },
+  "danceEditorTransitiveGroupHint": "All dances in this group will be linked together.",
+  "@danceEditorTransitiveGroupHint": {
+    "description": "Supporting text for the transitive related-dance group checkbox."
+  },
   "danceEditorEditItemTooltip": "Edit {item}",
   "@danceEditorEditItemTooltip": {
     "description": "Tooltip for editing an existing shared item from a chip.",

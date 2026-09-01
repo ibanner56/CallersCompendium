@@ -5052,6 +5052,14 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorTypeToSearchHint => 'Skriv for at søge…';
 
   @override
+  String get danceEditorTransitiveGroup =>
+      'Inkludér i gruppen af relaterede danse';
+
+  @override
+  String get danceEditorTransitiveGroupHint =>
+      'Alle danse i denne gruppe bliver forbundet med hinanden.';
+
+  @override
   String danceEditorEditItemTooltip(String item) {
     return 'Rediger $item';
   }

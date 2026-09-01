@@ -213,7 +213,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**186 columns**: 137 shareable, 21 device-local, 3 device-scoped, 25 derived. 24 personal data by category.
+**187 columns**: 138 shareable, 21 device-local, 3 device-scoped, 25 derived. 24 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -271,6 +271,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dance_links` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_links` | `label` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_links` | `target_dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
+| `dance_links` | `transitive` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dance_links` | `url` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable | Citation or video link attached to a dance. |
 | `dance_sources` | `dance_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `dance_sources` | `number` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |

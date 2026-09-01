@@ -84,6 +84,26 @@ void main() {
       expect(l.url, '');
     });
 
+    test('encodes and decodes a transitive relatedDance link', () {
+      final snapshot = _minimalSnapshot(
+        links: [
+          const LinkSnapshot(
+            id: 'l-transitive',
+            kind: LinkKind.relatedDance,
+            url: '',
+            label: 'Group member',
+            targetDanceId: 'd99',
+            transitive: true,
+          ),
+        ],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      expect(encoded, contains('"transitive":true'));
+      final link = decodeDraft(encoded).links.single;
+      expect(link.transitive, isTrue);
+    });
+
     test('encodes and decodes a mix of URL and relatedDance links', () {
       final snapshot = _minimalSnapshot(
         links: [

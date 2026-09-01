@@ -24,9 +24,14 @@ core version. They are left that way deliberately — do not renumber them.
 
 - Correct the seven backup-eligible settings classifications to `deviceLocal`
   rather than `deviceScoped`, matching their permitted local-backup route.
+  
 - **Schema 29 → 30** — remove redundant normalization collision snapshots;
   existing skip identities are retained while `recordNormalisationSkip` now
   accepts only the identifying table, column, and record triple.
+  
+- Add optional transitive related-dance markers, including schema 30 → 31
+  persistence and archive compatibility.
+  
 - **Shareable text normalization** — sanitize before NFC composition and
   re-run the existing-data repair sweep when the normalization algorithm
   changes.

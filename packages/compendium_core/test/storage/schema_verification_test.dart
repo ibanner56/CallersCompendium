@@ -36,8 +36,8 @@
 //
 // ## Why this covers what drift's own `SchemaVerifier` would not
 //
-// Five entities here are created by raw `customStatement` DDL rather than
-// being drift-managed: the `dance_fts` FTS5 virtual table and the four lookup
+// Six entities here are created by raw `customStatement` DDL rather than
+// being drift-managed: the `dance_fts` FTS5 virtual table and the five lookup
 // indices. They are maintained by hand in two places (`onCreate` and an
 // upgrade step), which makes them the *likeliest* to diverge, yet a schema
 // dumped from Dart source would not contain them at all. Taking the dumps from

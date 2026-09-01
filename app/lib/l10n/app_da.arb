@@ -5136,6 +5136,14 @@
   "@danceEditorTypeToSearchHint": {
     "x-sourceSha256": "1e825b4f95587a80947ae38c367f27593ec670b55f6ec4a02e2a9c4625f533cd"
   },
+  "danceEditorTransitiveGroup": "Inkludér i gruppen af relaterede danse",
+  "@danceEditorTransitiveGroup": {
+    "x-sourceSha256": "46976c6f7036d269a82ae172d5fdb9612c2faa6a2fccb18d41e49bcde059df9d"
+  },
+  "danceEditorTransitiveGroupHint": "Alle danse i denne gruppe bliver forbundet med hinanden.",
+  "@danceEditorTransitiveGroupHint": {
+    "x-sourceSha256": "0a42fd4913b60e8ee72c5e2e8c83c9d99b733df152e8dc2592459865820a2a23"
+  },
   "danceEditorEditItemTooltip": "Rediger {item}",
   "@danceEditorEditItemTooltip": {
     "x-sourceSha256": "7415b9182d98c0eb8fb1261a526783a8515554a75c2a399691dc9dd7b3dbd141"

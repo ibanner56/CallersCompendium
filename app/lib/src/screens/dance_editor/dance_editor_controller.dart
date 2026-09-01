@@ -494,6 +494,7 @@ class DanceEditorController extends ChangeNotifier {
           url: l.urlController.text,
           label: l.labelController.text,
           targetDanceId: l.targetDanceId,
+          transitive: l.transitive,
         ),
       ),
     ),

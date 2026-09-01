@@ -83,6 +83,15 @@ const List<String> venueLookupIndexSql = [
 const String danceLinksDanceIdIndexSql =
     'CREATE INDEX IF NOT EXISTS dance_links_dance_id ON dance_links(dance_id)';
 
+/// Lookup index for marked related-dance links by target (schema v31).
+///
+/// Transitive-group reconciliation discovers incoming marked related links by
+/// target, marker, and kind. The owner id is included so the query can return
+/// its distinct result without reading the table rows.
+const String danceLinksTargetTransitiveIndexSql =
+    'CREATE INDEX IF NOT EXISTS dance_links_target_transitive '
+    'ON dance_links(target_dance_id, transitive, kind, dance_id)';
+
 /// Lookup index for `dance_id` on `program_slots` (schema v16).
 ///
 /// `program_slots` is keyed on its own `id` alone (not a `{danceId, ...}`
@@ -248,7 +257,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 30;
+const int kCompendiumSchemaVersion = 31;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -374,6 +383,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await customStatement(sql);
       }
       await customStatement(danceLinksDanceIdIndexSql);
+      await customStatement(danceLinksTargetTransitiveIndexSql);
       for (final sql in venueLookupIndexSql) {
         await customStatement(sql);
       }
@@ -714,6 +724,12 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       if (from >= 29 && from < 30) {
         await m.alterTable(TableMigration(normalisationSkips));
+      }
+      if (from < 31) {
+        // Issue #1130: mark related-dance links that participate in a
+        // transitive group. Existing links remain ordinary pairwise links.
+        await m.addColumn(danceLinks, danceLinks.transitive);
+        await customStatement(danceLinksTargetTransitiveIndexSql);
       }
     },
     beforeOpen: (details) async {

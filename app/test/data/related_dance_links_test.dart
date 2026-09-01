@@ -1,5 +1,7 @@
 import 'package:compendium_app/src/data/related_dance_links.dart';
 import 'package:compendium_core/compendium_core.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/test_repositories.dart';
@@ -20,11 +22,17 @@ Dance _dance({
   deletedAt: deletedAt,
 );
 
-DanceLink _related(String id, String target, {String? label}) => DanceLink(
+DanceLink _related(
+  String id,
+  String target, {
+  String? label,
+  bool transitive = false,
+}) => DanceLink(
   id: id,
   kind: LinkKind.relatedDance,
   targetDanceId: target,
   label: label,
+  transitive: transitive,
 );
 
 void main() {
@@ -216,4 +224,523 @@ void main() {
     expect((await repos.dances.getById('old'))!.links.single.id, 'old-link');
     expect(await repos.dances.getById('missing'), isNull);
   });
+
+  test('expands multiple transitive links into a complete group', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'source'));
+    await repos.dances.create(_dance(id: 'left'));
+    await repos.dances.create(_dance(id: 'right'));
+    final source = (await repos.dances.getById('source'))!.copyWith(
+      links: [
+        _related('source-left', 'left', transitive: true),
+        _related('source-right', 'right', transitive: true),
+      ],
+    );
+
+    await saveDanceWithRelatedLinks(repos, dance: source);
+
+    for (final id in ['source', 'left', 'right']) {
+      final links = (await repos.dances.getById(id))!.links;
+      final expected = switch (id) {
+        'source' => ['left', 'right'],
+        'left' => ['source', 'right'],
+        _ => ['source', 'left'],
+      };
+      expect(
+        links
+            .where((link) => link.transitive)
+            .map((link) => link.targetDanceId),
+        containsAll(expected),
+      );
+    }
+  });
+
+  test(
+    'does not traverse ordinary adjacency while expanding a group',
+    () async {
+      final repos = openTestRepositories();
+      for (final id in ['a', 'b', 'c', 'd']) {
+        await repos.dances.create(_dance(id: id));
+      }
+      await repos.dances.update(
+        _dance(id: 'a', links: [_related('a-b', 'b', transitive: true)]),
+      );
+      await repos.dances.update(
+        _dance(
+          id: 'b',
+          links: [_related('b-a', 'a', transitive: true), _related('b-c', 'c')],
+        ),
+      );
+      await repos.dances.update(
+        _dance(id: 'c', links: [_related('c-b', 'b'), _related('c-d', 'd')]),
+      );
+      await repos.dances.update(_dance(id: 'd', links: [_related('d-c', 'c')]));
+      final original = await repos.dances.getById('b');
+      final updated = original!.copyWith(
+        links: [
+          _related('b-a', 'a', transitive: true),
+          _related('b-c', 'c', transitive: true),
+        ],
+      );
+
+      await saveDanceWithRelatedLinks(
+        repos,
+        dance: updated,
+        original: original,
+      );
+
+      final d = await repos.dances.getById('d');
+      expect(d!.links.single.targetDanceId, 'c');
+      expect(d.links.single.transitive, isFalse);
+      expect((await repos.dances.getById('a'))!.links, hasLength(2));
+      expect((await repos.dances.getById('c'))!.links, hasLength(3));
+    },
+  );
+
+  test(
+    'promotes an imported reciprocal row in place when explicitly enabled',
+    () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'source'));
+      await repos.dances.create(
+        _dance(
+          id: 'target',
+          links: [_related('imported-reciprocal', 'source', label: 'Imported')],
+        ),
+      );
+      final original = await repos.dances.getById('source');
+      final updated = original!.copyWith(
+        links: [_related('editor-link', 'target', transitive: true)],
+      );
+
+      await saveDanceWithRelatedLinks(
+        repos,
+        dance: updated,
+        original: original,
+      );
+
+      final reciprocal = (await repos.dances.getById('target'))!.links.single;
+      expect(reciprocal.id, 'imported-reciprocal');
+      expect(reciprocal.label, 'Imported');
+      expect(reciprocal.transitive, isTrue);
+    },
+  );
+
+  test(
+    'promotes the labelled canonical row and suppresses legacy duplicates',
+    () async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'source'));
+      await repos.dances.create(
+        _dance(
+          id: 'target',
+          links: [
+            _related('duplicate', 'source'),
+            _related('canonical', 'source', label: 'Keep me'),
+          ],
+        ),
+      );
+      final original = await repos.dances.getById('source');
+      final updated = original!.copyWith(
+        links: [_related('source-link', 'target', transitive: true)],
+      );
+
+      await saveDanceWithRelatedLinks(
+        repos,
+        dance: updated,
+        original: original,
+      );
+
+      final links = (await repos.dances.getById('target'))!.links;
+      expect(links, hasLength(1));
+      expect(links.single.id, 'canonical');
+      expect(links.single.label, 'Keep me');
+      expect(links.single.transitive, isTrue);
+    },
+  );
+
+  test(
+    'detaches a transitive group without removing ordinary neighbours',
+    () async {
+      final repos = openTestRepositories();
+      for (final id in ['a', 'b', 'c', 'd']) {
+        await repos.dances.create(_dance(id: id));
+      }
+      await repos.dances.update(
+        _dance(id: 'a', links: [_related('a-b', 'b', transitive: true)]),
+      );
+      await repos.dances.update(
+        _dance(
+          id: 'b',
+          links: [
+            _related('b-a', 'a', transitive: true),
+            _related('b-c', 'c', transitive: true),
+          ],
+        ),
+      );
+      await repos.dances.update(
+        _dance(
+          id: 'c',
+          links: [
+            _related('c-b', 'b', transitive: true),
+            _related('c-a', 'a', transitive: true),
+            _related('c-d', 'd'),
+          ],
+        ),
+      );
+      await repos.dances.update(_dance(id: 'd', links: [_related('d-c', 'c')]));
+      final original = await repos.dances.getById('b');
+      final updated = original!.copyWith(
+        links: [_related('b-a', 'a', transitive: true)],
+      );
+
+      await saveDanceWithRelatedLinks(
+        repos,
+        dance: updated,
+        original: original,
+      );
+
+      for (final id in ['a', 'b', 'c']) {
+        expect(
+          (await repos.dances.getById(
+            id,
+          ))!.links.where((link) => link.transitive),
+          isEmpty,
+        );
+      }
+      expect(
+        (await repos.dances.getById('c'))!.links.single.targetDanceId,
+        'd',
+      );
+      expect(
+        (await repos.dances.getById('d'))!.links.single.targetDanceId,
+        'c',
+      );
+    },
+  );
+
+  test('removes an ordinary link selected alongside a group detach', () async {
+    final repos = openTestRepositories();
+    for (final id in ['a', 'b', 'c']) {
+      await repos.dances.create(_dance(id: id));
+    }
+    await repos.dances.update(
+      _dance(id: 'a', links: [_related('a-c', 'c', transitive: true)]),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'b',
+        links: [_related('b-a', 'a'), _related('b-c', 'c', transitive: true)],
+      ),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'c',
+        links: [
+          _related('c-a', 'a', transitive: true),
+          _related('c-b', 'b', transitive: true),
+        ],
+      ),
+    );
+    final original = await repos.dances.getById('b');
+
+    await saveDanceWithRelatedLinks(
+      repos,
+      dance: original!.copyWith(links: []),
+      original: original,
+    );
+
+    expect((await repos.dances.getById('a'))!.links, isEmpty);
+  });
+
+  test('preserves reciprocal metadata when unmarking a direct pair', () async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'source'));
+    await repos.dances.create(_dance(id: 'target'));
+    await repos.dances.update(
+      _dance(
+        id: 'source',
+        links: [
+          _related(
+            'source-link',
+            'target',
+            label: 'source note',
+            transitive: true,
+          ),
+        ],
+      ),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'target',
+        links: [
+          _related(
+            'target-link',
+            'source',
+            label: 'target note',
+            transitive: true,
+          ),
+        ],
+      ),
+    );
+    final original = await repos.dances.getById('source');
+    final updated = original!.copyWith(
+      links: [_related('source-link', 'target', label: 'source note')],
+    );
+
+    await saveDanceWithRelatedLinks(repos, dance: updated, original: original);
+
+    final reciprocal = (await repos.dances.getById('target'))!.links.single;
+    expect(reciprocal.id, 'target-link');
+    expect(reciprocal.label, 'target note');
+    expect(reciprocal.transitive, isFalse);
+  });
+
+  test('can detach an old group and create a new group in one save', () async {
+    final repos = openTestRepositories();
+    for (final id in ['a', 'b', 'c', 'd']) {
+      await repos.dances.create(_dance(id: id));
+    }
+    await repos.dances.update(
+      _dance(id: 'a', links: [_related('a-b', 'b', transitive: true)]),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'b',
+        links: [
+          _related('b-a', 'a', transitive: true),
+          _related('b-c', 'c', transitive: true),
+        ],
+      ),
+    );
+    await repos.dances.update(
+      _dance(id: 'c', links: [_related('c-b', 'b', transitive: true)]),
+    );
+    final original = await repos.dances.getById('b');
+    final updated = original!.copyWith(
+      links: [
+        _related('b-a', 'a', transitive: true),
+        _related('b-d', 'd', transitive: true),
+      ],
+    );
+
+    await saveDanceWithRelatedLinks(repos, dance: updated, original: original);
+
+    expect(
+      (await repos.dances.getById('a'))!.links.where((link) => link.transitive),
+      isEmpty,
+    );
+    expect(
+      (await repos.dances.getById('c'))!.links.where((link) => link.transitive),
+      isEmpty,
+    );
+    expect(
+      (await repos.dances.getById('b'))!.links
+          .where((link) => link.transitive)
+          .map((link) => link.targetDanceId),
+      contains('d'),
+    );
+    expect(
+      (await repos.dances.getById('d'))!.links
+          .where((link) => link.transitive)
+          .map((link) => link.targetDanceId),
+      contains('b'),
+    );
+  });
+
+  test('handles transitive cycles without looping', () async {
+    final repos = openTestRepositories();
+    for (final id in ['a', 'b', 'c']) {
+      await repos.dances.create(_dance(id: id));
+    }
+    await repos.dances.update(
+      _dance(id: 'a', links: [_related('a-b', 'b', transitive: true)]),
+    );
+    await repos.dances.update(
+      _dance(id: 'b', links: [_related('b-c', 'c', transitive: true)]),
+    );
+    await repos.dances.update(
+      _dance(id: 'c', links: [_related('c-a', 'a', transitive: true)]),
+    );
+    final original = await repos.dances.getById('a');
+
+    await saveDanceWithRelatedLinks(
+      repos,
+      dance: original!.copyWith(title: 'Updated'),
+      original: original,
+    );
+
+    expect((await repos.dances.getById('a'))!.title, 'Updated');
+    for (final id in ['a', 'b', 'c']) {
+      expect(
+        (await repos.dances.getById(id))!.links
+            .where((link) => link.transitive)
+            .map((link) => link.targetDanceId),
+        containsAll([
+          if (id != 'a') 'a',
+          if (id != 'b') 'b',
+          if (id != 'c') 'c',
+        ]),
+      );
+    }
+  });
+
+  test('rejects a transitive group beyond the inspection bound', () async {
+    final repos = openTestRepositories();
+    for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) {
+      await repos.dances.create(_dance(id: 'd$i'));
+    }
+    for (var i = 0; i < kMaxTransitiveDanceGroupSize; i++) {
+      await repos.dances.update(
+        _dance(
+          id: 'd$i',
+          links: [_related('link-$i', 'd${i + 1}', transitive: true)],
+        ),
+      );
+    }
+    final original = await repos.dances.getById('d0');
+
+    await expectLater(
+      saveDanceWithRelatedLinks(
+        repos,
+        dance: original!.copyWith(title: 'Should not save'),
+        original: original,
+      ),
+      throwsA(
+        isA<RelatedDanceLinkSaveException>().having(
+          (e) => e.reason,
+          'reason',
+          'group-too-large',
+        ),
+      ),
+    );
+    expect((await repos.dances.getById('d0'))!.title, 'Dance');
+  });
+
+  test('bounds high-fan-out discovery before loading every neighbor', () async {
+    final capture = _RelatedDanceQueryCapture();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(capture),
+      ),
+      contraTaxonomy,
+    );
+    await repos.dances.create(_dance(id: 'anchor'));
+    for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) {
+      await repos.dances.create(_dance(id: 'neighbor-$i'));
+    }
+    await repos.dances.create(
+      _dance(
+        id: 'source',
+        links: [_related('source-anchor', 'anchor', transitive: true)],
+      ),
+    );
+    await repos.dances.update(
+      _dance(
+        id: 'anchor',
+        links: [
+          for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++)
+            _related('anchor-$i', 'neighbor-$i', transitive: true),
+        ],
+      ),
+    );
+    final original = await repos.dances.getById('source');
+    capture.reset();
+
+    await expectLater(
+      saveDanceWithRelatedLinks(
+        repos,
+        dance: original!.copyWith(title: 'Should not save'),
+        original: original,
+      ),
+      throwsA(
+        isA<RelatedDanceLinkSaveException>().having(
+          (e) => e.reason,
+          'reason',
+          'group-too-large',
+        ),
+      ),
+    );
+    expect(
+      capture.danceSelects,
+      lessThanOrEqualTo(kMaxTransitiveDanceGroupSize + 1),
+    );
+  });
+
+  test('bounds high-fan-out incoming discovery queries', () async {
+    final capture = _RelatedDanceQueryCapture();
+    final repos = CompendiumRepositories(
+      openWidgetTestDatabase(
+        executor: NativeDatabase.memory().interceptWith(capture),
+      ),
+      contraTaxonomy,
+    );
+    await repos.dances.create(_dance(id: 'center'));
+    await repos.dances.create(
+      _dance(
+        id: 'source',
+        links: [_related('source-center', 'center', transitive: true)],
+      ),
+    );
+    for (var i = 0; i <= kMaxTransitiveDanceGroupSize; i++) {
+      await repos.dances.create(_dance(id: 'owner-$i'));
+      await repos.dances.update(
+        _dance(
+          id: 'owner-$i',
+          links: [_related('owner-$i-center', 'center', transitive: true)],
+        ),
+      );
+    }
+    final original = await repos.dances.getById('source');
+    capture.reset();
+
+    await expectLater(
+      saveDanceWithRelatedLinks(
+        repos,
+        dance: original!.copyWith(title: 'Should not save'),
+        original: original,
+      ),
+      throwsA(
+        isA<RelatedDanceLinkSaveException>().having(
+          (e) => e.reason,
+          'reason',
+          'group-too-large',
+        ),
+      ),
+    );
+    expect(capture.incomingLinkQueries, isNotEmpty);
+    expect(
+      capture.incomingLinkQueries.every(
+        (statement) => statement.toLowerCase().contains('limit ?'),
+      ),
+      isTrue,
+    );
+  });
+}
+
+class _RelatedDanceQueryCapture extends drift.QueryInterceptor {
+  int danceSelects = 0;
+  final incomingLinkQueries = <String>[];
+
+  void reset() {
+    danceSelects = 0;
+    incomingLinkQueries.clear();
+  }
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    drift.QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    final normalizedStatement = statement.toLowerCase().replaceAll('"', '');
+    if (normalizedStatement.contains('from dances')) {
+      danceSelects++;
+    }
+    if (normalizedStatement.contains('from dance_links') &&
+        normalizedStatement.contains('target_dance_id')) {
+      incomingLinkQueries.add(statement);
+    }
+    return super.runSelect(executor, statement, args);
+  }
 }

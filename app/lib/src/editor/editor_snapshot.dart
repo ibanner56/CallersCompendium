@@ -102,6 +102,7 @@ class LinkSnapshot {
     required this.url,
     required this.label,
     this.targetDanceId,
+    this.transitive = false,
   });
 
   final String id;
@@ -114,6 +115,9 @@ class LinkSnapshot {
 
   /// Set when [kind] is [LinkKind.relatedDance]; `null` otherwise.
   final String? targetDanceId;
+
+  /// Whether this related-dance link participates in a transitive group.
+  final bool transitive;
 }
 
 // ---------------------------------------------------------------------------

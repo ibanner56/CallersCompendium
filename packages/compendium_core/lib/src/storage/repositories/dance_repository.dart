@@ -352,6 +352,7 @@ class DanceRepository {
               label: Value(
                 link.label == null ? null : normalizeShareableText(link.label!),
               ),
+              transitive: Value(link.transitive),
             ),
           );
     }
@@ -2067,6 +2068,7 @@ class DanceRepository {
         url: r.url,
         targetDanceId: r.targetDanceId,
         label: r.label,
+        transitive: r.transitive,
       );
     } on ArgumentError {
       return null;

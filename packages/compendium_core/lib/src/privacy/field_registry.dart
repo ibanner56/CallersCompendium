@@ -351,6 +351,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'dance_links.id': _key,
   'dance_links.dance_id': _key,
   'dance_links.kind': _choreography,
+  'dance_links.transitive': _choreography,
   'dance_links.url': const DataClassification(
     term: DpvTerm.websiteUrl,
     subject: DataSubject.none,
