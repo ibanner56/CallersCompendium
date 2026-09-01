@@ -9,10 +9,9 @@
 # something rather than append to it.
 #
 # This lives in its own workflow, like docs-bundle-check.yml and for the same
-# reason: ci.yml (which calls _checks.yml, where this gate also runs) has
-# `paths-ignore: '**.md'` and so skips entirely for a Markdown-only change — and
-# every file this gate measures is Markdown. Without this workflow the gate
-# would be absent from exactly the PRs that can breach it.
+# reason: ci.yml skips _checks.yml, where this gate also runs, for a
+# Markdown-only change — and every file this gate measures is Markdown. Without
+# this workflow the gate would be absent from exactly the PRs that can breach it.
 #
 # It is intentionally cheap (plain python3, no toolchain setup) and is not
 # marked a required status, so it never leaves a required check pending on an

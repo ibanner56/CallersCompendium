@@ -6,27 +6,18 @@
 # `flutter-version-file`. Bumping .fvmrc therefore updates every job at once.
 name: CI
 
-# Docs-only changes (Markdown) don't affect the build/test/analyze pipeline, so
-# skip CI when a push or PR touches nothing but *.md files.
-#
-# NOTE: paths-ignore prevents these workflows from starting at all for a
-# Markdown-only change, so they never report a status. As of this writing the
-# `main` branch ruleset does NOT mark these CI checks as required, so a
-# Markdown-only PR won't get stuck waiting on a status that never arrives.
-# Branch protection lives outside this file and can change, though: if CI is
-# ever made a required status check, revisit this, because a skipped required
-# check stays pending forever. The fix would be to always start the workflow
-# and gate the heavy jobs internally (e.g. a dorny/paths-filter step guarding
-# conditional jobs, plus a final job that always reports the required check
-# name) rather than skipping the run via paths-ignore.
+# Markdown-only changes do not need the costly Flutter checks or platform
+# builds. Pull requests still start this workflow, though: `Merge gate` is a
+# required status and must report for every PR. `classify` skips the expensive
+# jobs only after comparing the PR merge base and head; `Merge gate` then verifies
+# that the skipped result was expected. Pushes retain the path filter because
+# they do not provide the required PR status.
 on:
   push:
     branches: [main]
     paths-ignore:
       - '**.md'
   pull_request:
-    paths-ignore:
-      - '**.md'
 
 # Cancel superseded in-flight runs for the same PR (or ref, for pushes) so a
 # new push doesn't leave stale, redundant builds burning runner minutes.
@@ -39,17 +30,102 @@ permissions:
   contents: read
 
 jobs:
+  # Match the former paths-ignore rule exactly, but do it inside a PR workflow
+  # so the required final gate always exists. Diff from the merge base so base
+  # branch changes do not affect the PR's classification. --no-renames makes a
+  # code-to-Markdown rename count as code-changing rather than hiding the
+  # removed code path.
+  classify:
+    name: Classify changes
+    runs-on: ubuntu-latest
+    outputs:
+      code_changed: ${{ steps.classify.outputs.code_changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name == 'pull_request'
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - id: classify
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" != 'pull_request' ]; then
+            # The retained push path filter already excludes Markdown-only pushes.
+            echo 'code_changed=true' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
+            echo '::error::Pull request base or head SHA is unavailable.'
+            exit 1
+          fi
+          python3 - "$BASE_SHA" "$HEAD_SHA" <<'PY'
+          import os
+          import subprocess
+          import sys
+
+          base, head = sys.argv[1:]
+          for label, ref in (
+              ('Pull request base', base),
+              ('Pull request head', head),
+          ):
+              resolved = subprocess.run(
+                  ['git', 'rev-parse', '--verify', '--quiet', f'{ref}^{{commit}}'],
+                  capture_output=True,
+                  check=False,
+              )
+              if resolved.returncode:
+                  detail = resolved.stderr.decode(errors='replace').strip()
+                  print(f'::error::{label} SHA does not resolve: {detail}')
+                  raise SystemExit(1)
+
+          result = subprocess.run(
+              [
+                  'git',
+                  'diff',
+                  '--no-renames',
+                  '--name-only',
+                  '-z',
+                  f'{base}...{head}',
+              ],
+              capture_output=True,
+              check=False,
+          )
+          if result.returncode:
+              detail = result.stderr.decode(errors='replace').strip()
+              print(f'::error::Unable to determine pull request changes: {detail}')
+              raise SystemExit(1)
+
+          paths = tuple(path for path in result.stdout.split(b'\0') if path)
+          if not paths:
+              print(
+                  '::error::Pull request has no changed paths; refusing to '
+                  'classify it as Markdown-only.'
+              )
+              raise SystemExit(1)
+
+          code_changed = any(not path.endswith(b'.md') for path in paths)
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'code_changed={str(code_changed).lower()}\n')
+          PY
+
   checks:
     # Delegate to the reusable checks workflow so the same lint/test/guard
     # definitions single-source both this PR gate and the future release
-    # path (ADR-002). The event triggers, paths-ignore, and concurrency stay
-    # here on the caller; the PR-only schema-guard and the build matrix
+    # path (ADR-002). The event triggers, push path filter, and concurrency
+    # stay here on the caller; the PR-only schema-guard and the build matrix
     # intentionally remain below (see notes on each).
+    needs: classify
+    if: needs.classify.outputs.code_changed == 'true'
     uses: ./.github/workflows/_checks.yml
 
   build:
     name: Build (${{ matrix.target }})
-    needs: checks
+    needs: [classify, checks]
+    if: >-
+      needs.classify.outputs.code_changed == 'true' &&
+      needs.checks.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -119,3 +195,56 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: python3 tools/ci/check_version_history.py "$BASE_SHA"
+
+  # This is the sole required status for main. It runs even when a dependency
+  # fails or is skipped, so a cancelled or missing heavy job cannot look green.
+  merge-gate:
+    name: Merge gate
+    needs: [classify, checks, build, schema-guard]
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required job results
+        env:
+          CLASSIFY_RESULT: ${{ needs.classify.result }}
+          CODE_CHANGED: ${{ needs.classify.outputs.code_changed }}
+          CHECKS_RESULT: ${{ needs.checks.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          SCHEMA_GUARD_RESULT: ${{ needs.schema-guard.result }}
+        run: |
+          set -u
+          failed=0
+
+          require_success() {
+            if [ "$2" != 'success' ]; then
+              echo "::error::$1 finished with '$2'; expected success."
+              failed=1
+            fi
+          }
+
+          require_skipped() {
+            if [ "$2" != 'skipped' ]; then
+              echo "::error::$1 finished with '$2'; expected skipped."
+              failed=1
+            fi
+          }
+
+          require_success 'Classify changes' "$CLASSIFY_RESULT"
+          require_success 'Schema migration gate' "$SCHEMA_GUARD_RESULT"
+
+          case "$CODE_CHANGED" in
+            true)
+              require_success 'Format, analyze, test' "$CHECKS_RESULT"
+              require_success 'Platform builds' "$BUILD_RESULT"
+              ;;
+            false)
+              require_skipped 'Format, analyze, test' "$CHECKS_RESULT"
+              require_skipped 'Platform builds' "$BUILD_RESULT"
+              ;;
+            *)
+              echo "::error::Classify changes produced invalid code_changed output '$CODE_CHANGED'."
+              failed=1
+              ;;
+          esac
+
+          exit "$failed"

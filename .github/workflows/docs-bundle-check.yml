@@ -9,7 +9,7 @@
 # the guides still render and every on-site cross-link and #anchor resolves.
 #
 # It lives in its own workflow — rather than the shared _checks.yml — because
-# ci.yml skips entirely for Markdown-only changes (`paths-ignore: '**.md'`), and
+# ci.yml skips the expensive reusable checks job for Markdown-only changes, and
 # the guide sources under docs/user/ are Markdown; a docs-only PR that edits
 # docs/user/ without regenerating app/assets/docs/, or that breaks a guide
 # cross-link, would slip past a gate that only ran inside ci.yml. This

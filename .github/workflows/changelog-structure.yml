@@ -11,11 +11,10 @@
 # each.
 #
 # It lives in its own workflow — rather than the shared _checks.yml — for the
-# same reason docs-bundle-check.yml does: _checks.yml is reachable only from
-# ci.yml, which skips entirely for Markdown-only changes (`paths-ignore:
-# '**.md'`), and from release.yml, which runs after the tag. Both changelogs are
-# Markdown, and the PR that edits nothing else is exactly the release-prep PR
-# this gate exists to check. A gate that only ran inside ci.yml would miss it.
+# same reason docs-bundle-check.yml does: ci.yml skips _checks.yml for
+# Markdown-only changes, and release.yml runs after the tag. Both changelogs
+# are Markdown, and the PR that edits nothing else is exactly the release-prep
+# PR this gate exists to check. A gate that only ran inside ci.yml would miss it.
 #
 # It is intentionally cheap (plain python3, no Flutter setup) and is not marked
 # a required status, so it never runs on unrelated PRs and never leaves a
