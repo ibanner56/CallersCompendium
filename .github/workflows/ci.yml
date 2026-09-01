@@ -221,6 +221,7 @@ jobs:
           git show "$BASE_SHA:tools/tracking/validate_pr.py" > "$validator"
           python3 "$validator" "$BASE_SHA" "$HEAD_SHA" "$GITHUB_EVENT_PATH" \
             --root "$GITHUB_WORKSPACE"
+          python3 tools/tracking/validate.py
 
   # This is the sole required status for main. It runs even when a dependency
   # fails or is skipped, so a cancelled or missing heavy job cannot look green.

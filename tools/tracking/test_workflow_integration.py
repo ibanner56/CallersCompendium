@@ -54,8 +54,18 @@ def test_ci_executes_base_tracking_validator() -> None:
     ), "tracking-gate checkout must not persist credentials"
     assert "set -euo pipefail" in tracking
     assert 'git show "$BASE_SHA:tools/tracking/validate_pr.py" > "$validator"' in tracking
-    assert 'python3 "$validator" "$BASE_SHA" "$HEAD_SHA" "$GITHUB_EVENT_PATH" \\' in tracking
+    base_validation = (
+        'python3 "$validator" "$BASE_SHA" "$HEAD_SHA" "$GITHUB_EVENT_PATH" \\'
+    )
+    head_validation = "python3 tools/tracking/validate.py"
+    assert base_validation in tracking
     assert '--root "$GITHUB_WORKSPACE"' in tracking
+    assert (
+        head_validation in tracking
+    ), "tracking-gate must validate canonical head tracking after ownership"
+    assert tracking.index(base_validation) < tracking.index(
+        head_validation
+    ), "base ownership validation must run before head canonical validation"
     assert "python3 tools/tracking/validate_pr.py" not in tracking
     assert "||" not in tracking, "trusted validator loading must not have a fallback"
 
