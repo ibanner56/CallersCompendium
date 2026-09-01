@@ -1,12 +1,10 @@
 # Reusable PR-gate checks: single-source lint + test definition.
 #
-# This callable workflow holds the fast `checks` job (single-source guards →
-# format → analyze → core/app tests). It is invoked by the PR gate (ci.yml) and
-# is designed to be reused by the future tag-triggered release workflow so the
-# same check definitions gate both paths (ADR-002). It is trigger-agnostic: it
-# takes no inputs and no secrets, and it deliberately does NOT contain the
-# PR-only schema-guard (which needs the pull_request base ref) or the build
-# matrix (the release path builds/packages its own artifacts).
+# This callable workflow separates validation from the core and app suites. The
+# PR caller selects only suites whose inputs changed; release callers retain the
+# safe default of running both. It deliberately does NOT contain the PR-only
+# schema-guard (which needs the pull_request base ref) or the build matrix (the
+# release path builds/packages its own artifacts).
 #
 # The Flutter version is NOT hardcoded here: it is derived from .fvmrc (the
 # single source of truth, also used by FVM locally) via subosito/flutter-action's
@@ -15,6 +13,17 @@ name: Reusable checks
 
 on:
   workflow_call:
+    inputs:
+      run_core_tests:
+        description: Run compendium_core's suite and coverage checks.
+        required: false
+        default: true
+        type: boolean
+      run_app_tests:
+        description: Run the Flutter app suite.
+        required: false
+        default: true
+        type: boolean
 
 # Least privilege: these checks only read the checked-out code. The effective
 # token permissions of a called workflow are the intersection of the caller's
@@ -23,8 +32,8 @@ permissions:
   contents: read
 
 jobs:
-  checks:
-    name: Format, analyze, test
+  validate:
+    name: Format, analyze, and guards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -228,54 +237,6 @@ jobs:
       - name: Guard Flutter version single-source (.fvmrc == toolchain)
         run: python3 tools/ci/check_flutter_version.py
       - run: flutter pub get --enforce-lockfile
-      # package:sqlite3's build hook downloads a pre-compiled SQLite library
-      # from a GitHub release during native-asset resolution, so every job that
-      # runs a test has that network fetch on its critical path — and it fails
-      # BEFORE any test executes (the hook runs during build-asset resolution),
-      # on THIS gating check, so a transient CDN blip reds the merge path rather
-      # than a single platform build. Issue #939: seven such failures in ~7h,
-      # every one cleared by a bare re-run. subosito's `cache: true` above does
-      # NOT cover this: it caches the Flutter SDK and the pub cache, but the .so
-      # is fetched by the build hook and written OUTSIDE the pub cache, under
-      # .dart_tool/hooks_runner/shared/sqlite3/. The hook reuses that artifact
-      # in place when it is present (it re-verifies the file's SHA-256 and only
-      # re-downloads on a mismatch), so caching that directory turns the fetch
-      # into an at-most-once-per-version event and lets a cache hit satisfy the
-      # build even when the CDN is down. Remove this and the flake in #939
-      # returns. The version is resolved into the key below rather than hashing
-      # the whole lockfile so an unrelated dependency bump does not needlessly
-      # evict the artifact.
-      - name: Resolve the pinned sqlite3 version (cache key input)
-        id: sqlite3
-        # The prebuilt is per-version, so the cache MUST invalidate on a bump.
-        # The root pubspec.lock is the only real lockfile (pub workspace; see
-        # .gitignore) and `flutter pub get --enforce-lockfile` above pins it, so
-        # read the version from there. The `^  sqlite3:` anchor (2-space indent,
-        # trailing colon) deliberately does not match `sqlite3_flutter_libs:`.
-        # Fail loudly rather than silently cache under an empty, colliding key.
-        run: |
-          version="$(awk '/^  sqlite3:/{f=1} f&&/^    version:/{gsub(/[" ]/,"",$2); print $2; exit}' pubspec.lock)"
-          if [ -z "$version" ]; then
-            echo "::error::could not resolve the sqlite3 version from pubspec.lock"
-            exit 1
-          fi
-          echo "Resolved sqlite3 version: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Cache the sqlite3 prebuilt native library
-        id: sqlite3_cache
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .dart_tool/hooks_runner/shared/sqlite3
-          # Keyed on the sqlite3 version (a bump must re-fetch the new binary)
-          # plus runner.os/arch: the artifact is platform-specific, and this
-          # reusable workflow is written to be reused on other runners (see the
-          # header and ADR-002), so a Linux .so must never be restored onto a
-          # macOS/Windows runner. This job runs only on ubuntu-latest today, so
-          # os/arch are constant here — they are insurance against that reuse,
-          # and cost nothing. No restore-keys: a prefix match would restore a
-          # different version's binary, which the hook would reject on its hash
-          # check and re-download anyway, so only an exact match is worth having.
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - run: dart format --output=none --set-exit-if-changed .
       # --fatal-infos: the analysis_options here are deliberately strict
       # (strict-casts/strict-inference/strict-raw-types + error escalations), but
@@ -300,31 +261,22 @@ jobs:
       # and ARB->generated drift becomes undetectable again.
       - name: Guard committed localizations against ARB drift (#930)
         run: python3 tools/ci/check_l10n_drift.py
-      # ADR-001: the domain core must stay free of Flutter. Resolution/dependency
-      # based guard (replaces a brittle grep that false-positived on comments):
-      #   1. no Flutter package is reachable in compendium_core's resolved
-      #      dependency graph (`dart pub deps --json`) — this is the authoritative
-      #      check and catches a real import or transitive dependency, and
-      #   2. a comment-safe source scan of lib/test/benchmark for an actual
-      #      import/export directive targeting package:flutter* (comments are
-      #      stripped first; the directive regex requires a full quoted URI and a
-      #      trailing semicolon so it won't fire on a string-literal line).
+  core-tests:
+    name: Test compendium_core
+    if: inputs.run_core_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
       - name: Guard compendium_core against Flutter (ADR-001)
         run: python3 tools/ci/check_core_flutter_free.py
       - name: Guard figure fixtures against the taxonomy (#747)
         working-directory: packages/compendium_core
-        # Ratchet: every `Figure(...)` in either test suite must be valid under
-        # contraTaxonomy, routed through `testFigure` (which validates at run
-        # time, for fixtures built from variables), or marked
-        # `// invalid-fixture: <reason>`. Rendering SUBSTITUTES rather than
-        # validates, so an invalid param renders literally and every test still
-        # passes — which is how seven `meanwhile` fixtures drifted unnoticed for
-        # days when #697 split `orbit` into a first-class move (fixed in #745).
-        # Also checks the marker in the other direction (#791): one that
-        # introduces no fixture is a stale claim the next fixture written under
-        # it would silently inherit, so it fails here rather than lying quietly.
-        # Runs before the core test suite so a drifted fixture is reported as a
-        # fixture problem rather than as whatever downstream assertion it breaks.
         run: dart run tool/check_fixture_validity.dart
       - name: Test compendium_core (with coverage)
         run: python3 tools/ci/run_core_tests_with_coverage.py
@@ -333,6 +285,37 @@ jobs:
       - name: Benchmark compendium_core search (20k dances)
         working-directory: packages/compendium_core
         run: dart run benchmark/search_benchmark.dart
+
+  app-tests:
+    name: Test app
+    if: inputs.run_app_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version-file: .fvmrc
+          channel: stable
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      # package:sqlite3's build hook writes its prebuilt outside the pub cache.
+      # Restore it by version so a transient release-download failure cannot
+      # prevent the app suite from starting (issue #939).
+      - name: Resolve the pinned sqlite3 version (cache key input)
+        id: sqlite3
+        run: |
+          version="$(awk '/^  sqlite3:/{f=1} f&&/^    version:/{gsub(/[" ]/,"",$2); print $2; exit}' pubspec.lock)"
+          if [ -z "$version" ]; then
+            echo "::error::could not resolve the sqlite3 version from pubspec.lock"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Cache the sqlite3 prebuilt native library
+        id: sqlite3_cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .dart_tool/hooks_runner/shared/sqlite3
+          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Test app
         working-directory: app
         run: flutter test
