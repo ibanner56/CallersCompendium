@@ -35,18 +35,25 @@
   ],
   "pullRequests": [
     1119,
-    1124
+    1124,
+    1137,
+    1143
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Sanitization precedes NFC normalization on every relevant path.",
       "The corrected repair reruns over rows processed by the earlier ordering.",
       "Collisions, retries, restore, and derived-index rebuilding preserve data.",
       "The structural routing guard is mutation-proven and transferred to W17."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Shareable writes sanitize before NFC normalization, and the versioned repair safely revisits earlier rows while preserving collisions, retries, restore, and derived indexes.",
+    "evidence": [
+      "PR #1119: repository write choke points, collision-safe resumable backfill, skip records, derived-index rebuilding, and the mutation-proven structural routing guard.",
+      "PR #1124: schema v30 removes normalisation_skips.target_value so retries re-derive targets from live values.",
+      "PR #1137 (merge c855848c08e368039590ca8f3788f88ee5088b7b): sanitize-before-NFC ordering and the version 2 repair marker revisit rows processed by the former algorithm.",
+      "packages/compendium_core/test/storage/shareable_text_test.dart, normalisation_test.dart, and normalisation_structure_test.dart cover transform order, rerun, collisions, retries, restore-safe metadata, derived rebuilding, and the routing guard transferred to W17."
+    ]
   }
 }
