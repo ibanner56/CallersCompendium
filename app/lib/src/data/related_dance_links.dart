@@ -67,6 +67,19 @@ Future<void> saveDanceWithRelatedLinks(
               targetDanceId: dance.id,
             ),
           );
+        } else if (existingReciprocals.length > 1) {
+          final keepId = existingReciprocals
+              .firstWhere(
+                (l) => (l.label ?? '').trim().isNotEmpty,
+                orElse: () => existingReciprocals.first,
+              )
+              .id;
+          nextLinks.removeWhere(
+            (link) =>
+                link.kind == LinkKind.relatedDance &&
+                link.targetDanceId == dance.id &&
+                link.id != keepId,
+          );
         }
       } else if (before.contains(targetId) && !after.contains(targetId)) {
         nextLinks.removeWhere(
