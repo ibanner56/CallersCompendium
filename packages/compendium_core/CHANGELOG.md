@@ -24,6 +24,8 @@ core version. They are left that way deliberately — do not renumber them.
 
 - Add RFC 8785 canonical JSON and lowercase-hex SHA-256 helpers for Device Sync
   wire content and body hashes.
+- Add the generated Device Sync privacy allow-list, fail-closed body validation,
+  and shareable projection helpers derived from the core privacy registries.
 
 ## [0.3.0] - 2026-09-01
 
