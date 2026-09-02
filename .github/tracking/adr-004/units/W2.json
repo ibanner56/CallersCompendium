@@ -27,7 +27,9 @@
     "Prefix-aware settings classification",
     "Shared client and server allow-list artifact"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1149
+  ],
   "hold": null,
   "completion": {
     "complete": false,
