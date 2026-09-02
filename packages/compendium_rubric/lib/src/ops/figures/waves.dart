@@ -71,10 +71,10 @@ List<_CorneredBand> _corneredBands(Formation formation) => [
 /// rather than trusted, and a contradiction is [ErrorKind.whoMismatch].
 ///
 /// [centerHand] drives, inverted to give the hand the facing pairs join. When
-/// the source states no hand, [center] drives instead — it names the same bit
-/// from the other side, and preferring a stated parameter to a defaulted one
-/// is what keeps a record that says "robins in the middle" from being refused
-/// for disagreeing with a hand it never mentioned.
+/// it is absent [center] drives instead — it names the same bit from the other
+/// side. Note that the JSON parser fills [centerHand] from `compendium_core`'s
+/// `right` default, so that second path is reached only by direct
+/// construction; see [FormShortWaves.centerHand].
 ///
 /// **Which role ends in the middle is an output, not an input.** The offset is
 /// derived from facing throughout (§8.5.1), so the same hand puts different
@@ -105,11 +105,15 @@ final class FormShortWaves extends Operation {
   /// `null` is the upstream `unspecified` sentinel rather than a missing value:
   /// a record that states which role takes the middle but not by which hand has
   /// said everything needed, and defaulting a hand on its behalf would
-  /// manufacture a contradiction with the parameter it did state. The baseline
-  /// taxonomy declares a `right` default, which is deliberately not honoured:
-  /// the canonical wave is the centre pair joining **left** and the sides
-  /// right, so a stated `center` derives the hand and beats a literal default
-  /// that would contradict it.
+  /// manufacture a contradiction with the parameter it did state. When it is
+  /// `null`, [center] derives the hand instead — see [_outerHand].
+  ///
+  /// **The JSON parser no longer produces `null` here.** `compendium_core`'s
+  /// taxonomy declares a `right` default and, by ruling, that default governs
+  /// what an omitted parameter means, so a parsed record always arrives with a
+  /// hand. The sentinel is kept because the figure is constructible directly —
+  /// tests and any future caller that genuinely knows nothing about the hand
+  /// still get the `center`-derived behaviour rather than an invented one.
   final Hand? centerHand;
 
   /// Who the source says the facing pairs are. Verified, not trusted.
@@ -337,13 +341,17 @@ final class FormLongWaves extends Operation {
 
   /// The pair who face **in**; the other pair faces out.
   ///
-  /// `null` is the upstream `unspecified` sentinel, and it is **carried rather
-  /// than defaulted** for the reason [FormShortWaves.centerHand] is: the
-  /// baseline defaults this to `role1s`, but a record can fix the same bit of
-  /// geometry by naming the hold instead — and from a duple-improper start
-  /// `whom: neighbors` by the `right` is the *other* pair. Supplying the
-  /// default on such a record's behalf would make it contradict itself over a
-  /// value it never stated. See [resolvedWho].
+  /// `null` is the upstream `unspecified` sentinel: a record can fix the same
+  /// bit of geometry by naming the hold instead — and from a duple-improper
+  /// start `whom: neighbors` by the `right` is the *other* pair — so when this
+  /// is absent the anchors resolve it. See [resolvedWho].
+  ///
+  /// **The JSON parser no longer produces `null` here.** `compendium_core`'s
+  /// taxonomy declares a `role1s` default and, by ruling, that default governs
+  /// what an omitted parameter means. The anchors therefore only ever
+  /// *corroborate* a parsed record, raising [WarningKind.anchorMismatch] on a
+  /// hold the arrangement cannot produce; the resolving path in [resolvedWho]
+  /// remains reachable through direct construction.
   final WhoSet? who;
 
   /// Whom you hold. An anchor: no end-state effect, `null` is the upstream

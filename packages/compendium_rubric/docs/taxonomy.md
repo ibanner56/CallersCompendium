@@ -1999,27 +1999,42 @@ To be defined later with worked examples.
     example on record.
   - `balance` — flag, default `false`. **No end-state effect** (styling), as `petronella`'s.
   - `center` — dancer set, default `role2s`. Who the source says ends in the two centre cells.
-  - `centerHand` — handedness. The hand the **centre pair** joins — not the hand the wave is
-    named for, which is the outer join alternation makes its opposite. **Carried as absent
-    rather than defaulted**, diverging from the baseline's `right`: see *the one-bit problem*
-    below. *(User-ruled: `centerHand` names the centre join, and the canonical duple-improper
+  - `centerHand` — handedness, default `right` (the CallersCompendium baseline's stated value).
+    The hand the **centre pair** joins — not the hand the wave is
+    named for, which is the outer join alternation makes its opposite.
+    *(User-ruled: `centerHand` names the centre join, and the canonical duple-improper
     wave is `centerHand: left` — role2s joining left in the middle, neighbours right on the
-    sides.)*
+    sides.)* ⚠️ **This default is known-broken upstream** and is honoured anyway — see *the
+    one-bit problem* below.
   - `sides` — dancer set, default `neighbors`. Who the source says the facing pairs are.
   - `beats` — int, default 4. Timing only.
 - **the one-bit problem (why three params describe one thing):** a wave alternates hands along
   its length, so naming *either* join fixes the other, and fixing either one fixes every
   dancer's offset. `centerHand`, `center` and `sides` therefore all speak to a **single bit** of
   geometry. That makes two of them redundant — and therefore useful: they are **checked against
-  the resulting arrangement rather than trusted**, and a contradiction is `whoMismatch`. It is
-  also why `centerHand` must be allowed to be absent: a record that says "robins in the middle"
-  and no hand has already fixed the geometry, and supplying the baseline default on its behalf
-  would let the figure refuse itself for a contradiction of our own making. Concretely, the
-  baseline's `centerHand: right` and `center: role2s` cannot both hold from a duple-improper
-  start — the canonical wave there is `centerHand: left` — so honouring the literal default
-  would make the baseline's own pair of defaults refuse each other. When absent, `center`
-  drives; when `center` fails to discriminate too, the canonical wave (centre **left**, sides
-  right) is used. *(The divergence from the baseline default is user-ruled, not inferred.)*
+  the resulting arrangement rather than trusted**, and a contradiction is `whoMismatch`.
+
+  ⚠️ **The baseline's two defaults contradict each other, and we honour them anyway.**
+  `centerHand: right` and `center: role2s` cannot both hold from a duple-improper start — the
+  canonical wave there is `centerHand: left` — so a record that omits `centerHand` is refused
+  for a contradiction between two values it never stated:
+
+  ```
+  REFUSED whoMismatch: form_short_waves names center:role2s with the ends giving left
+  hands, but that offset puts L-B and L-A in the middle; the hand and the centre pair
+  the figure names disagree
+  ```
+
+  This is a defect in the upstream taxonomy, filed with its maintainer, and it is reproduced
+  here deliberately: `compendium_rubric` verifies choreography *against* that taxonomy, so
+  silently substituting a better default would make this compiler answer for a dance the
+  record does not describe. `test/io/known_upstream_defects_test.dart` locks the behaviour so
+  the day the default is fixed upstream, that test fails and points here.
+
+  The `Hand? centerHand` field remains nullable, and when it is absent `center` derives the
+  hand (falling back to the canonical wave — centre **left**, sides right — when `center`
+  fails to discriminate). That path is now reachable only by constructing the figure
+  directly; it is what the fix should restore to the parser.
 - **preconditions:**
   - `dir` other than `across` → `unsupportedParam`.
   - No complete hands four → `unresolvableDancerSet`.
@@ -2060,9 +2075,10 @@ To be defined later with worked examples.
 - **summary:** The two **side lines** become waves running **along** the set. **Nobody moves** —
   this figure is facing and nothing else.
 - **params** (meets CallersCompendium baseline `{who, whom, hand, balance, beats}`):
-  - `who` — dancer set, **absent by default** rather than the baseline's `role1s`. The pair who
-    face **in**; everyone else faces out. Carried as absent for the same reason
-    `form_short_waves`'s `centerHand` is — see *the anchors* below.
+  - `who` — dancer set, default `role1s` (the baseline's value). The pair who
+    face **in**; everyone else faces out. The field stays nullable and the *anchors* below can
+    still resolve it, but a parsed record never arrives absent, so from JSON the anchors only
+    ever corroborate.
   - `whom` — dancer set, absent by default (the upstream `unspecified` sentinel). Whom you hold.
     An **anchor**: no end-state effect, but verified.
   - `hand` — handedness, absent by default (same sentinel). The hand you hold `whom` by. An
@@ -2088,11 +2104,14 @@ To be defined later with worked examples.
     so it is checked rather than trusted — the same move `form_short_waves` makes with `center`
     and `sides`. A contradiction raises the **`anchorMismatch` warning** and the figure runs
     unchanged: it never needed the anchor, so what is wrong is the description.
-  - **Why `who` cannot be defaulted.** From a duple-improper start, `whom: neighbors` by the
-    `right` is the **robins** facing in, not the baseline's `role1s`. Supplying the baseline
-    default on a record's behalf would make it contradict itself over a value it never stated —
-    the same self-inflicted contradiction `centerHand` avoids. TCB writes exactly this record:
-    *"Balance long wave (NR, women face in)"*.
+  - **Why `who` is nonetheless defaulted.** From a duple-improper start, `whom: neighbors` by the
+    `right` is the **robins** facing in, not the baseline's `role1s`, so supplying the default
+    on a record's behalf can make it contradict itself over a value it never stated. TCB writes
+    exactly such a record: *"Balance long wave (NR, women face in)"*. The baseline's default is
+    honoured regardless, by the same ruling that governs `form_short_waves`'s `centerHand`: this
+    compiler verifies against the upstream taxonomy rather than improving on it. Unlike
+    `centerHand`, this one does not self-refuse — the anchors downgrade to
+    `anchorMismatch`, a warning, so the figure still runs.
   - **Worked case:** duple improper, robins facing in ⟺ everyone holds their **neighbours** by
     the **right**. `whom: nextNeighbors` is impossible from there — nobody in a long wave holds
     hands across a grouping boundary — so it warns.
@@ -2202,8 +2221,9 @@ To be defined later with worked examples.
 
 - **summary:** Facing couples **pass across the set** and land in a **wave of four**.
 - **params** (mirror `form_short_waves` exactly): `dir` (default `across`), `balance`, `center`
-  (default `role2s`), `centerHand` (**nullable** — absent is the baseline's `unspecified`),
-  `sides` (default `neighbors`), `beats` (default 4).
+  (default `role2s`), `centerHand` (default `right`, the baseline's value — and unlike
+  `form_short_waves`, that default is *consistent* here, because step 1 crosses everyone over
+  before the wave forms), `sides` (default `neighbors`), `beats` (default 4).
 - **effect — three composed steps:**
   1. `reflectBands(columns: true)` — everyone crosses over. Each rank keeps its two dancers and
      they trade columns. *(This is the user-confirmed decoding of the verifier's

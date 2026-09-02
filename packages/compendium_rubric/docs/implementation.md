@@ -434,6 +434,18 @@ typed.
   really in their file.
 - **`_parseFormation(raw, warnings)`** warns and falls back to `dupleImproper` on
   an unknown shape *(user-ruled)*, rather than refusing.
+- **Aliases are resolved, not reimplemented.** `compendium_core` names three
+  moves as aliases of others with parameters pinned — `see_saw` → `do_si_do`
+  `{shoulder: left}`, `swat_the_flea` → `box_the_gnat` `{hand: left}`,
+  `meltdown_swing` → `swing` `{prefix: meltdown}`. `_parseFigure` reads
+  `contraTaxonomy.aliases` directly rather than keeping a table of its own, and
+  the pinned params **overwrite** the record's: the pins *are* the alias, so a
+  `see_saw` that also said `shoulder: right` would not be one. `supportedMoves`
+  lists aliases alongside the registry.
+- **Upstream defaults govern what an omitted parameter means** *(user-ruled)*.
+  Where `compendium_core`'s taxonomy states a `defaultValue`, this parser
+  supplies it — even where a better value is available and even where the
+  taxonomy is wrong. See §15 for the one case where it is wrong.
 
 > **`turn` is polymorphic — resolve it per move.** `taxonomy.md` rules **three
 > meanings**: a rotation *amount* (`allemande`, `do_si_do`, `gate`, `mad_robin`,
@@ -490,6 +502,8 @@ Worked most recently on `hey` (`ops/figures/hey.dart`). In order:
 | `test/ops/operation_framework_test.dart` | `apply`, reaching, sizing, lint plumbing |
 | `test/ops/value_semantics_test.dart` | **every figure**: `==`, `hashCode`, `toString`, and that each param participates |
 | `test/io/parser_defaults_test.dart` | **every registry entry** and its defaults |
+| `test/io/core_taxonomy_alignment_test.dart` | **every move**, cross-checked against `compendium_core`'s taxonomy |
+| `test/io/known_upstream_defects_test.dart` | upstream taxonomy bugs we reproduce on purpose — **written to fail when fixed** |
 | `test/golden/*.json` + `golden_dances_test.dart` | whole real dances, end to end |
 
 **Golden dances are sourced, never authored.** *(User-ruled, absolute.)* The only
@@ -516,7 +530,15 @@ is a guaranteed failure. Never hand-translate a dance record into a fixture.
 4. **Facing is only ever a warning.**
 5. **Progression is never inferred from state** — only the explicit flag.
 6. **Never use the word "gypsy."** The figure is `shoulder_round`.
-7. **Ask before pushing.**
+7. **`compendium_core` is consumed, never modified.** *(User-ruled.)* It owns
+   the dance representation and the taxonomy; this package verifies
+   choreography against them. An alignment mismatch is always fixed here — and
+   where upstream is genuinely wrong, the defect is reproduced and pinned in
+   `test/io/known_upstream_defects_test.dart` rather than papered over, because
+   silently substituting a better answer means answering for a dance the record
+   does not describe. Note this is a **narrowing of rule 1**: §1.1 still governs
+   the *legacy .NET project*, but `compendium_core` is upstream, not legacy.
+8. **Ask before pushing.**
 
 ---
 
@@ -541,8 +563,21 @@ is a guaranteed failure. Never hand-translate a dance record into a fixture.
 
 ## 15. Current state and known debt
 
-- **907 tests green; `analyze` clean; `format` clean.**
-- **46 figures registered.**
+- **966 tests green; `analyze` clean; `format` clean.**
+- **46 figures registered**, plus 3 upstream aliases resolved to them.
+- **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
+  Every move id resolves upstream, every advertised move parses, and every
+  default matches the taxonomy's. The check is deliberately mapping-free: it
+  builds each figure from an empty param map and again from
+  `Taxonomy.effectiveParams`, and compares the two Operations.
+- ⚠️ **One reproduced upstream defect.** `form_short_waves`'s baseline defaults
+  `centerHand: right` and `center: role2s` are mutually inconsistent from a
+  duple-improper start, so a record omitting `centerHand` refuses itself with
+  `whoMismatch`. Honouring it is user-ruled (rule 7); the issue is filed with
+  the taxonomy's maintainer. `test/io/known_upstream_defects_test.dart` pins the
+  behaviour and carries the instructions for backing it out once fixed —
+  restore `optionalEnum` for `centerHand` in `dance_json.dart`; the figure
+  already implements the `center`-derives-hand path.
 - **`hey` has a full `docs/taxonomy.md` entry** and is out of the Held table.
 - **No golden dance covers `hey` yet.** Neither corpus dance probed during its
   development discriminates between the candidate permutations (a following
