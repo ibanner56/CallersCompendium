@@ -318,19 +318,25 @@ def test_title_scan_rejects_alternate_implementation() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         title = root / "packages/core/lib/src/imports/dedupe.dart"
-        duplicate = root / "packages/core/lib/src/sync/title_codec.dart"
+        duplicate = root / "packages/core/lib/src/imports/title_key.dart"
+        client = root / "packages/core/lib/src/sync/client.dart"
         title.parent.mkdir(parents=True)
-        duplicate.parent.mkdir(parents=True)
+        duplicate.parent.mkdir(parents=True, exist_ok=True)
+        client.parent.mkdir(parents=True, exist_ok=True)
         title.write_text(
             "String normalizeTitle(String value) => value.trim();\n",
             encoding="utf-8",
         )
         duplicate.write_text(
-            "String _normalizeTitleForSync(String value) => value.trim();\n"
             "String titleKey(String title) {\n"
             "  final lower = title.toLowerCase();\n"
             "  return lower.replaceAll(RegExp(r'[^a-z]'), ' ');\n"
             "}\n",
+            encoding="utf-8",
+        )
+        client.write_text(
+            "import '../imports/dedupe.dart' show normalizeTitle;\n"
+            "String encode(String title) => normalizeTitle(title);\n",
             encoding="utf-8",
         )
 
@@ -350,7 +356,7 @@ def test_title_scan_requires_sync_call_sites_to_import_shared_definition() -> No
             encoding="utf-8",
         )
         client.write_text(
-            "String encode(String title) => title.trim();\n",
+            "String encode(String value) => normalizeTitle(value);\n",
             encoding="utf-8",
         )
 
@@ -385,6 +391,50 @@ def test_sync_id_import_must_resolve_to_shared_definition() -> None:
         server.write_text(
             "import 'other_normalization.dart' show normalizeSyncId;\n"
             "String accept(String syncId) => normalizeSyncId(syncId);\n",
+            encoding="utf-8",
+        )
+
+        result = scan(root)
+        assert any(v.kind == "sync-ID" for v in result.violations)
+
+
+def test_sync_id_scans_nested_client_and_server_units() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "app/lib/src/title.dart"
+        shared = root / "packages/core/lib/src/sync/normalization.dart"
+        client = root / "packages/core/lib/src/sync/client.dart"
+        server = root / "packages/core/lib/src/sync/server.dart"
+        nested_client = root / "packages/core/lib/src/sync/client/engine.dart"
+        nested_server = root / "packages/core/lib/src/sync/server/engine.dart"
+        for path in (title, shared, client, server, nested_client, nested_server):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value;\n"
+            "final q = 'SELECT * FROM dance_tags JOIN tags t ON t.id = x "
+            "WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        shared.write_text(
+            "String normalizeSyncId(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        client.write_text(
+            "import 'normalization.dart' show normalizeSyncId;\n"
+            "String send(String syncId) => normalizeSyncId(syncId);\n",
+            encoding="utf-8",
+        )
+        server.write_text(
+            "import 'normalization.dart' show normalizeSyncId;\n"
+            "String accept(String syncId) => normalizeSyncId(syncId);\n",
+            encoding="utf-8",
+        )
+        nested_client.write_text(
+            "String sendMore(String syncId) => syncId.trim();\n",
+            encoding="utf-8",
+        )
+        nested_server.write_text(
+            "String acceptMore(String syncId) => syncId.trim();\n",
             encoding="utf-8",
         )
 

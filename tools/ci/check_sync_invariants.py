@@ -673,15 +673,17 @@ def _alternate_title_definitions(source: str) -> list[int]:
         if name == "normalizeTitle":
             continue
         signature = match.group("parameters")
-        if not TITLE_NORMALIZER_NAME_RE.search(name) or not re.search(
+        title_relevant = "title" in name.lower() or re.search(
             r"\btitle\b", signature, re.IGNORECASE
-        ) and "title" not in name.lower():
+        )
+        if not title_relevant:
             continue
         body = _function_body(source, match)
         operations = TITLE_BEHAVIOR_RE.findall(body)
         named_normalizer = TITLE_NORMALIZER_NAME_RE.search(name)
         canonical_behavior = len(operations) >= 2 and any(
-            operation in {"toLowerCase", "replaceAll", "replaceFirst", "fold"}
+            operation.rstrip("(")
+            in {"toLowerCase", "replaceAll", "replaceFirst", "fold"}
             for operation in operations
         )
         if NORMALIZATION_OPERATION_RE.search(body) and (
@@ -758,6 +760,11 @@ def _has_function_call(source: str, name: str) -> bool:
 def _sync_unit_kind(relative: str) -> str | None:
     if not _is_sync_source(relative):
         return None
+    parts = tuple(part.lower() for part in Path(relative).parts)
+    if "client" in parts:
+        return "client"
+    if "server" in parts:
+        return "server"
     stem = Path(relative).stem.lower()
     if "client" in stem:
         return "client"
@@ -767,7 +774,9 @@ def _sync_unit_kind(relative: str) -> str | None:
 
 
 def _is_sync_source(relative: str) -> bool:
-    return "sync" in (part.lower() for part in Path(relative).parts)
+    parts = tuple(part.lower() for part in Path(relative).parts)
+    stem = Path(relative).stem.lower()
+    return "sync" in parts or stem.startswith("sync_") or "_sync" in stem
 
 
 def scan(root: Path = REPO_ROOT) -> ScanResult:
@@ -837,10 +846,9 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         for path, source in sync_sources:
             if path == title_definition:
                 continue
-            masked = "\n".join(mask_source(source))
-            if not re.search(r"\btitle\b", masked, re.IGNORECASE):
+            if not _has_function_call(source, "normalizeTitle"):
                 continue
-            if not _has_function_call(source, "normalizeTitle") or not _imports_definition(
+            if not _imports_definition(
                 root, path, source, "normalizeTitle", title_definition
             ):
                 violations.append(
