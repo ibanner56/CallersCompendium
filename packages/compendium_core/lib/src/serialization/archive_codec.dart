@@ -16,6 +16,7 @@ import '../model/tag.dart';
 import '../model/venue.dart';
 import '../util/argb.dart';
 import '../util/text_sanitizer.dart';
+import 'archive_entity_codec.dart';
 import 'compendium_archive.dart';
 import 'figure_codec.dart';
 
@@ -78,33 +79,34 @@ Map<String, Object?> archiveToJson(
     'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
         ? archive.schemaVersion
         : requiredSchemaVersion(archive),
-    'exportedAt': _iso(archive.exportedAt),
+    'exportedAt': archiveIso(archive.exportedAt),
     'choreographers': [
       for (final c in _sortedById(archive.choreographers, (c) => c.id))
-        _choreographerToJson(c),
+        archiveChoreographerToJson(c),
     ],
     'publishedSources': [
       for (final s in _sortedById(archive.publishedSources, (s) => s.id))
-        _publishedSourceToJson(s),
+        archivePublishedSourceToJson(s),
     ],
     'tags': [
-      for (final t in _sortedById(archive.tags, (t) => t.id)) _tagToJson(t),
+      for (final t in _sortedById(archive.tags, (t) => t.id))
+        archiveTagToJson(t),
     ],
     'customFields': [
       for (final f in _sortedById(archive.customFields, (f) => f.id))
         if (mode == ArchiveSerializationMode.backup || f.shareable)
-          _customFieldDefToJson(
+          archiveCustomFieldDefToJson(
             f,
             includeShareable: mode == ArchiveSerializationMode.backup,
           ),
     ],
     'dances': [
       for (final d in _sortedById(archive.dances, (d) => d.id))
-        _danceToJson(d, excludedFieldIds),
+        archiveDanceToJson(d, excludedFieldIds),
     ],
     'programs': [
       for (final p in _sortedById(archive.programs, (p) => p.id))
-        _programToJson(p),
+        archiveProgramToJson(p),
     ],
     // Omit the `venues` array entirely when empty so archives produced before
     // the venue entity (and any that simply have no venues) stay byte-identical
@@ -112,194 +114,13 @@ Map<String, Object?> archiveToJson(
     if (archive.venues.isNotEmpty)
       'venues': [
         for (final v in _sortedById(archive.venues, (v) => v.id))
-          _venueToJson(v),
+          archiveVenueToJson(v),
       ],
   };
 }
 
 List<T> _sortedById<T>(List<T> items, String Function(T) id) =>
     [...items]..sort((a, b) => id(a).compareTo(id(b)));
-
-String _iso(DateTime dt) => dt.toUtc().toIso8601String();
-
-Map<String, Object?> _choreographerToJson(Choreographer c) => {
-  'id': c.id,
-  'name': c.name,
-  if (c.website != null) 'website': c.website,
-  if (c.notes != null) 'notes': c.notes,
-  if (c.email != null) 'email': c.email,
-  if (c.location != null) 'location': c.location,
-  'deceased': c.deceased,
-};
-
-Map<String, Object?> _publishedSourceToJson(PublishedSource s) => {
-  'id': s.id,
-  'title': s.title,
-  if (s.author != null) 'author': s.author,
-  if (s.year != null) 'year': s.year,
-  if (s.url != null) 'url': s.url,
-  if (s.notes != null) 'notes': s.notes,
-};
-
-Map<String, Object?> _tagToJson(Tag t) => {
-  'id': t.id,
-  'name': t.name,
-  if (t.color != null) 'color': t.color,
-};
-
-Map<String, Object?> _customFieldDefToJson(
-  CustomFieldDef f, {
-  required bool includeShareable,
-}) => {
-  'id': f.id,
-  'key': f.key,
-  'label': f.label,
-  'type': f.type.name,
-  if (f.choices != null) 'choices': f.choices,
-  'showInList': f.showInList,
-  'searchable': f.searchable,
-  if (includeShareable) 'shareable': f.shareable,
-};
-
-Map<String, Object?> _danceToJson(Dance d, Set<String> excludedFieldIds) => {
-  'id': d.id,
-  'title': d.title,
-  'authorIds': d.authorIds,
-  'form': d.form.name,
-  'formation': _formationToJson(d.formation),
-  'progression': d.progression.name,
-  'phraseStructure': d.phraseStructure.raw,
-  'figures': [for (final f in d.figures) figureToJson(f)],
-  'hook': d.hook,
-  'callingNotes': d.callingNotes,
-  'walkthrough': d.walkthrough,
-  'status': d.status.name,
-  if (d.level != null) 'level': d.level!.name,
-  'mixedLevel': d.mixedLevel,
-  'mixer': d.mixer,
-  if (d.rating != null) 'rating': d.rating,
-  'tunes': d.tunes,
-  'customFields': [
-    for (final v in d.customFields)
-      if (!excludedFieldIds.contains(v.fieldId))
-        _customFieldValueToJson(v, danceId: d.id),
-  ],
-  'tagIds': d.tagIds,
-  'links': [for (final l in d.links) _danceLinkToJson(l)],
-  'sourceCitations': [
-    for (final s in d.sourceCitations) _sourceCitationToJson(s),
-  ],
-  if (d.provenance != null) 'provenance': _provenanceToJson(d.provenance!),
-  if (d.composedOn != null) 'composedOn': d.composedOn!.serialize(),
-  if (d.revisedOn != null) 'revisedOn': d.revisedOn!.serialize(),
-  'createdAt': _iso(d.createdAt),
-  'updatedAt': _iso(d.updatedAt),
-  if (d.deletedAt != null) 'deletedAt': _iso(d.deletedAt!),
-};
-
-Map<String, Object?> _formationToJson(Formation f) => {
-  'shape': f.shape.name,
-  if (f.detail != null) 'detail': f.detail,
-};
-
-Map<String, Object?> _customFieldValueToJson(
-  CustomFieldValue v, {
-  required String danceId,
-}) {
-  if (v.value is num && !isFiniteCustomFieldNumber(v.value)) {
-    throw ArchiveEncodingException(danceId: danceId, fieldId: v.fieldId);
-  }
-  return {'fieldId': v.fieldId, 'value': v.value};
-}
-
-Map<String, Object?> _danceLinkToJson(DanceLink l) => {
-  'id': l.id,
-  'kind': l.kind.name,
-  if (l.url != null) 'url': l.url,
-  if (l.targetDanceId != null) 'targetDanceId': l.targetDanceId,
-  if (l.label != null) 'label': l.label,
-  if (l.transitive) 'transitive': true,
-};
-
-Map<String, Object?> _sourceCitationToJson(SourceCitation s) => {
-  'sourceId': s.sourceId,
-  if (s.page != null) 'page': s.page,
-  if (s.number != null) 'number': s.number,
-};
-
-/// Serializes provenance. Archives exported by an app on **database** schema
-/// v20 or earlier also carried a `rawPayload` key (the verbatim imported source
-/// record, dropped in #781) — note that is the migration version in
-/// `database.dart`, not this file's [archiveSchemaVersion], which is unchanged.
-/// Restoring one of those archives needs no special handling, because
-/// [decodeArchive] ignores unknown keys: the payload is simply not read back.
-Map<String, Object?> _provenanceToJson(Provenance p) => {
-  'source': p.source.name,
-  if (p.externalId != null) 'externalId': p.externalId,
-  'importedAt': _iso(p.importedAt),
-  if (p.permission != null) 'permission': p.permission,
-  if (p.license != null) 'license': p.license,
-  if (p.sourceVersion != null) 'sourceVersion': p.sourceVersion,
-};
-
-Map<String, Object?> _programToJson(Program p) => {
-  'id': p.id,
-  'title': p.title,
-  if (p.eventDate != null) 'eventDate': _iso(p.eventDate!),
-  if (p.venue != null) 'venue': p.venue,
-  if (p.venueId != null) 'venueId': p.venueId,
-  if (p.band != null) 'band': p.band,
-  if (p.caller != null) 'caller': p.caller,
-  if (p.dancerLevel != null) 'dancerLevel': p.dancerLevel,
-  'notes': p.notes,
-  'status': p.status.name,
-  if (p.hideAlternates) 'hideAlternates': p.hideAlternates,
-  'slots': [for (final s in p.slots) _programSlotToJson(s)],
-  if (p.provenance != null) 'provenance': _provenanceToJson(p.provenance!),
-  'createdAt': _iso(p.createdAt),
-  'updatedAt': _iso(p.updatedAt),
-  if (p.deletedAt != null) 'deletedAt': _iso(p.deletedAt!),
-};
-
-Map<String, Object?> _programSlotToJson(ProgramSlot s) => {
-  'id': s.id,
-  'position': s.position,
-  if (s.danceId != null) 'danceId': s.danceId,
-  if (s.text != null) 'text': s.text,
-  'isAlt': s.isAlt,
-  if (s.guestCaller != null) 'guestCaller': s.guestCaller,
-  if (s.plannedMinutes != null) 'plannedMinutes': s.plannedMinutes,
-  if (s.performedAt != null) 'performedAt': _iso(s.performedAt!),
-};
-
-/// Emits only the venue's non-null fields (plus the always-present id/name), so
-/// the serialized shape stays compact and the round-trip is stable (the model's
-/// `_normalize` maps empty/whitespace to null on the way back in).
-Map<String, Object?> _venueToJson(Venue v) => {
-  'id': v.id,
-  'name': v.name,
-  if (v.address1 != null) 'address1': v.address1,
-  if (v.address2 != null) 'address2': v.address2,
-  if (v.city != null) 'city': v.city,
-  if (v.stateProv != null) 'stateProv': v.stateProv,
-  if (v.country != null) 'country': v.country,
-  if (v.postalCode != null) 'postalCode': v.postalCode,
-  if (v.plus4 != null) 'plus4': v.plus4,
-  if (v.website != null) 'website': v.website,
-  if (v.sponsor != null) 'sponsor': v.sponsor,
-  if (v.eventName != null) 'eventName': v.eventName,
-  if (v.time != null) 'time': v.time,
-  if (v.genericSchedule != null) 'genericSchedule': v.genericSchedule,
-  if (v.price != null) 'price': v.price,
-  if (v.notes != null) 'notes': v.notes,
-  if (v.contact1Name != null) 'contact1Name': v.contact1Name,
-  if (v.contact1Phone != null) 'contact1Phone': v.contact1Phone,
-  if (v.contact1Email != null) 'contact1Email': v.contact1Email,
-  if (v.contact2Name != null) 'contact2Name': v.contact2Name,
-  if (v.contact2Phone != null) 'contact2Phone': v.contact2Phone,
-  if (v.contact2Email != null) 'contact2Email': v.contact2Email,
-  if (v.provenance != null) 'provenance': _provenanceToJson(v.provenance!),
-};
 
 // ---------------------------------------------------------------------------
 // Decoding

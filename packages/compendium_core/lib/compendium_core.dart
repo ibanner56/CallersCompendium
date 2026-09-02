@@ -90,6 +90,7 @@ export 'src/serialization/compendium_archive.dart';
 export 'src/serialization/figure_codec.dart';
 export 'src/sync/canonical_json.dart';
 export 'src/sync/sync_record_kind.dart';
+export 'src/sync/sync_codec.dart';
 export 'src/sync/wire_mapping.dart';
 export 'src/snippet/snippet_library.dart';
 export 'src/snippet/snippet_signature.dart';

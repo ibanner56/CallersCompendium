@@ -304,6 +304,7 @@ Object? _projectValue(
   if (hasPath && !isShareable && !hasDescendants) {
     return _omitted;
   }
+  if (value == null && (isShareable || hasDescendants)) return null;
 
   if (!hasDescendants && hasPath) return value;
 

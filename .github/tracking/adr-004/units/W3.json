@@ -36,16 +36,22 @@
     "Settings-record codec",
     "Kind-nested manifest codec"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1151
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Blob and manifest round trips are byte-identical.",
       "Absent and explicit null values remain distinct.",
       "Join-hydrated authorship and tags are encoded consistently."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Device Sync record, settings, and kind-nested manifest codecs are shipped with canonical bytes, strict decoding, privacy filtering, explicit-null handling, and defensive payload retention.",
+    "evidence": [
+      "PR #1151: shared archive entity builders, eight-kind record/settings/manifest codecs, privacy projection, strict validation, and regression guards.",
+      "packages/compendium_core/test/sync/sync_codec_test.dart covers canonical golden bytes, explicit null versus absence, hydrated author/tag joins, settings admission, manifest nesting, malformed envelopes, structural nulls, defensive nested-data retention, and non-shareable custom-field omission.",
+      "python3 tools/preflight.py passed 19 locally available gates on the final implementation head; Flutter/Dart PATH-dependent gates were visibly skipped."
+    ]
   }
 }

@@ -2760,8 +2760,12 @@ A change to canonicalisation is a wire-format break and needs a `v` bump.
   "epoch": "9c4a...",
   "writtenAt": "2026-08-03T04:11:22.000Z",
   "records": {
-    "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11": "e3b0c442...",
-    "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed": "a1c2f3d4..."
+    "dance": {
+      "8f14e45f-ceea-467a-9f8c-1f3f9a2b7c11": "e3b0c442..."
+    },
+    "setting": {
+      "walkthrough_font_scale": "a1c2f3d4..."
+    }
   }
 }
 ```

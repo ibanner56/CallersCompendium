@@ -26,6 +26,8 @@ core version. They are left that way deliberately — do not renumber them.
   wire content and body hashes.
 - Add the generated Device Sync privacy allow-list, fail-closed body validation,
   and shareable projection helpers derived from the core privacy registries.
+- Add Device Sync record-blob, per-key settings-record, and kind-nested manifest
+  codecs with canonical bytes, explicit null handling, and strict decoding.
 
 ## [0.3.0] - 2026-09-01
 
