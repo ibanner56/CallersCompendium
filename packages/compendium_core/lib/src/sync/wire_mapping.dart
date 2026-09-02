@@ -297,16 +297,15 @@ Object? _projectValue(
   String? settingsKey,
   Set<String> allowedCustomFieldIds = const {},
 }) {
-  if (path.isNotEmpty &&
-      !isShareableWirePath(kind, path, settingsKey: settingsKey) &&
-      !hasShareableWireDescendant(kind, path)) {
+  final hasPath = path.isNotEmpty;
+  final isShareable =
+      hasPath && isShareableWirePath(kind, path, settingsKey: settingsKey);
+  final hasDescendants = hasPath && hasShareableWireDescendant(kind, path);
+  if (hasPath && !isShareable && !hasDescendants) {
     return _omitted;
   }
 
-  final fields = syncWireFields[kind]!;
-  final hasDescendants =
-      path.isNotEmpty && hasShareableWireDescendant(kind, path);
-  if (!hasDescendants && path.isNotEmpty) return value;
+  if (!hasDescendants && hasPath) return value;
 
   if (value is Map) {
     final result = <String, Object?>{};
@@ -347,10 +346,7 @@ Object? _projectValue(
         ),
     ];
   }
-  return fields.any((field) => field.path == path) ||
-          isShareableWirePath(kind, path, settingsKey: settingsKey)
-      ? value
-      : _omitted;
+  return _omitted;
 }
 
 /// Validates every key in a received body without modifying it.
@@ -371,16 +367,14 @@ String? _firstInvalid(
   Object? value, {
   String? settingsKey,
 }) {
-  if (path.isNotEmpty &&
-      !isShareableWirePath(kind, path, settingsKey: settingsKey) &&
-      !hasShareableWireDescendant(kind, path)) {
+  final hasPath = path.isNotEmpty;
+  final isShareable =
+      hasPath && isShareableWirePath(kind, path, settingsKey: settingsKey);
+  final hasDescendants = hasPath && hasShareableWireDescendant(kind, path);
+  if (hasPath && !isShareable && !hasDescendants) {
     return path;
   }
-  if (path.isNotEmpty &&
-      isShareableWirePath(kind, path, settingsKey: settingsKey)) {
-    final hasDescendants = hasShareableWireDescendant(kind, path);
-    if (!hasDescendants) return null;
-  }
+  if (hasPath && isShareable && !hasDescendants) return null;
   if (value is Map) {
     for (final entry in value.entries) {
       if (entry.key is! String) return path;
