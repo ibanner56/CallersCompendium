@@ -53,22 +53,21 @@ void main() {
         );
       });
 
-      test('$id inherited param defaults match the sibling split move', () {
-        // The legacy `form_an_ocean_wave` is gone (v14); assert the two splits
-        // still carry identical defaults for every inherited param, so neither
-        // drifted or invented a value during the removal.
-        final sibling = id == 'form_short_waves'
-            ? 'pass_the_ocean'
-            : 'form_short_waves';
-        final params = tax.resolve(id)!.params;
-        final other = tax.resolve(sibling)!.params;
-        for (final key in inheritedParams) {
+      test('$id keeps the intended split-move defaults', () {
+        final shortWave = tax.resolve('form_short_waves')!.params;
+        final passTheOcean = tax.resolve('pass_the_ocean')!.params;
+        for (final key in inheritedParams.where((key) => key != 'centerHand')) {
           expect(
-            params[key]!.defaultValue,
-            other[key]!.defaultValue,
-            reason: '$id.$key default must match $sibling',
+            shortWave[key]!.defaultValue,
+            passTheOcean[key]!.defaultValue,
+            reason: '$key remains shared by the split moves',
           );
         }
+        final expectedCenterHand = id == 'form_short_waves' ? 'left' : 'right';
+        expect(
+          tax.resolve(id)!.params['centerHand']!.defaultValue,
+          expectedCenterHand,
+        );
       });
 
       test(
