@@ -20,6 +20,11 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+### Added
+
+- Add RFC 8785 canonical JSON and lowercase-hex SHA-256 helpers for Device Sync
+  wire content and body hashes.
+
 ## [0.3.0] - 2026-09-01
 
 ### Changed
