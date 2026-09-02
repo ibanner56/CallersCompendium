@@ -9,9 +9,10 @@ The checker deliberately covers the production source roots only:
 * raw SQL content updates advance ``updated_at`` (I1), and raw SQL updates that
   advance ``updated_at`` also change content or existence state (I2);
 * the concrete certificate-validation escape hatches are absent;
-* ``normalizeTitle`` has exactly one definition; and
+* ``normalizeTitle`` has exactly one implementation, and sync title call sites
+  import and call that definition; and
 * once a ``syncId`` use appears, ``normalizeSyncId`` has exactly one shared
-  definition imported by both sync client and server units.
+  definition imported and called by both sync client and server units.
 
 The sync-ID check is intentionally dormant while sync code is absent, but it is
 not an unconditional pass: the first sync-ID marker activates the definition and
@@ -127,6 +128,25 @@ NORMALIZE_TITLE_DEF_RE = re.compile(
     r"normalizeTitle\s*\([^;\n]*\)\s*(?:\{|=>)",
     re.MULTILINE,
 )
+FUNCTION_DEF_RE = re.compile(
+    r"^\s*(?:(?:static|external|abstract)\s+)*"
+    r"(?:[A-Za-z_][A-Za-z0-9_<>,?]*\s+)+"
+    r"(?P<name>[A-Za-z_][A-Za-z0-9_]*)\s*"
+    r"\((?P<parameters>[^;\n]*)\)\s*(?P<body>\{|=>)",
+    re.MULTILINE,
+)
+NORMALIZATION_OPERATION_RE = re.compile(
+    r"\b(?:trim|toLowerCase|toUpperCase|replaceAll|replaceFirst|"
+    r"normalize|normalise|fold|collapse|sanitize|canonicalize)"
+    r"[A-Za-z0-9_]*\s*\(",
+)
+TITLE_NORMALIZER_NAME_RE = re.compile(
+    r"(?:normalize|normalise|canonical|sanitize|fold)", re.IGNORECASE
+)
+TITLE_BEHAVIOR_RE = re.compile(
+    r"\b(?:toLowerCase|toUpperCase|replaceAll|replaceFirst|"
+    r"normalize|normalise|fold)\s*\(",
+)
 SYNC_ID_MARKER_RE = re.compile(
     r"\b(?:sync[_-]?id|syncId|syncID)\b",
     re.IGNORECASE,
@@ -139,6 +159,10 @@ SYNC_ID_DEF_RE = re.compile(
 SYNC_ID_IMPORT_RE = re.compile(
     r"^\s*import\s+[^;\n]*(?:normalizeSyncId|sync[_-]?normaliz)",
     re.MULTILINE | re.IGNORECASE,
+)
+IMPORT_RE = re.compile(
+    r"^\s*import\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;\n]*)\s*;",
+    re.MULTILINE,
 )
 
 
@@ -617,6 +641,135 @@ def _definitions(source: str, pattern: re.Pattern[str]) -> list[int]:
     return [match.start() for match in pattern.finditer(masked)]
 
 
+def _balanced_block_end(source: str, open_at: int) -> int | None:
+    depth = 0
+    for offset in range(open_at, len(source)):
+        if source[offset] == "{":
+            depth += 1
+        elif source[offset] == "}":
+            depth -= 1
+            if depth == 0:
+                return offset
+    return None
+
+
+def _function_body(source: str, match: re.Match[str]) -> str:
+    masked = "\n".join(mask_source(source))
+    body_at = match.end() - 1
+    if match.group("body") == "=>":
+        end = masked.find(";", body_at)
+        return masked[body_at:] if end < 0 else masked[body_at:end]
+    end = _balanced_block_end(masked, body_at)
+    return masked[body_at:] if end is None else masked[body_at : end + 1]
+
+
+def _alternate_title_definitions(source: str) -> list[int]:
+    """Find functions that implement title normalization under another name."""
+
+    masked = "\n".join(mask_source(source))
+    definitions: list[int] = []
+    for match in FUNCTION_DEF_RE.finditer(masked):
+        name = match.group("name")
+        if name == "normalizeTitle":
+            continue
+        signature = match.group("parameters")
+        if not TITLE_NORMALIZER_NAME_RE.search(name) or not re.search(
+            r"\btitle\b", signature, re.IGNORECASE
+        ) and "title" not in name.lower():
+            continue
+        body = _function_body(source, match)
+        operations = TITLE_BEHAVIOR_RE.findall(body)
+        named_normalizer = TITLE_NORMALIZER_NAME_RE.search(name)
+        canonical_behavior = len(operations) >= 2 and any(
+            operation in {"toLowerCase", "replaceAll", "replaceFirst", "fold"}
+            for operation in operations
+        )
+        if NORMALIZATION_OPERATION_RE.search(body) and (
+            named_normalizer or canonical_behavior
+        ):
+            definitions.append(match.start())
+    return definitions
+
+
+def _imported_uris(source: str, symbol: str) -> list[tuple[str, int]]:
+    """Return imports that make [symbol] available, with their source lines."""
+
+    imports: list[tuple[str, int]] = []
+    comments_blank = blank_comments(source)
+    for match in IMPORT_RE.finditer(comments_blank):
+        clause = match.group("clause")
+        show = re.search(r"\bshow\b(?P<names>.*)", clause, re.IGNORECASE)
+        if show and not re.search(
+            rf"\b{re.escape(symbol)}\b", show.group("names")
+        ):
+            continue
+        if re.search(rf"\bhide\s+[^;]*\b{re.escape(symbol)}\b", clause, re.IGNORECASE):
+            continue
+        imports.append((match.group("uri"), _line_number(source, match.start())))
+    return imports
+
+
+def _resolve_import(root: Path, importer: Path, uri: str) -> Path | None:
+    if uri.startswith("dart:"):
+        return None
+    if uri.startswith("package:"):
+        package_uri = uri.removeprefix("package:")
+        package, separator, relative = package_uri.partition("/")
+        if not separator:
+            return None
+        candidate = root / "packages" / package / "lib" / relative
+    else:
+        candidate = importer.parent / uri
+    try:
+        resolved = candidate.resolve()
+        resolved.relative_to(root.resolve())
+    except ValueError:
+        return None
+    return resolved
+
+
+def _imports_definition(
+    root: Path,
+    importer: Path,
+    source: str,
+    symbol: str,
+    definition: Path,
+) -> bool:
+    for uri, _ in _imported_uris(source, symbol):
+        target = _resolve_import(root, importer, uri)
+        if target == definition.resolve():
+            return True
+    return False
+
+
+def _has_function_call(source: str, name: str) -> bool:
+    masked = "\n".join(mask_source(source))
+    definition_spans = [
+        range(match.start("name"), match.end("name"))
+        for match in FUNCTION_DEF_RE.finditer(masked)
+        if match.group("name") == name
+    ]
+    return any(
+        not any(match.start() in span for span in definition_spans)
+        for match in re.finditer(rf"\b{re.escape(name)}\s*\(", masked)
+    )
+
+
+def _sync_unit_kind(relative: str) -> str | None:
+    if not _is_sync_source(relative):
+        return None
+    stem = Path(relative).stem.lower()
+    if "client" in stem:
+        return "client"
+    if "server" in stem:
+        return "server"
+    return None
+
+
+def _is_sync_source(relative: str) -> bool:
+    return "sync" in (part.lower() for part in Path(relative).parts)
+
+
 def scan(root: Path = REPO_ROOT) -> ScanResult:
     files = source_files(root)
     violations: list[Violation] = []
@@ -624,7 +777,9 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
     title_definitions = 0
     sync_id_activated = False
     sync_id_definitions: list[tuple[str, int]] = []
-    sync_id_files: list[tuple[str, str]] = []
+    sync_sources: list[tuple[Path, str]] = []
+    sync_units: list[tuple[Path, str, str]] = []
+    title_definition_paths: list[Path] = []
 
     for path in files:
         source = path.read_text(encoding="utf-8", errors="replace")
@@ -638,17 +793,30 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
         violations.extend(_certificate_violations(source, relative))
         soft_candidates += raw_candidates + drift_candidates
 
-        title_definitions += len(_definitions(source, NORMALIZE_TITLE_DEF_RE))
+        title_matches = _definitions(source, NORMALIZE_TITLE_DEF_RE)
+        title_definitions += len(title_matches)
+        if title_matches:
+            title_definition_paths.extend([path] * len(title_matches))
+        for offset in _alternate_title_definitions(source):
+            violations.append(
+                Violation(
+                    "normalizeTitle",
+                    relative,
+                    _line_number(source, offset),
+                    "title normalization must use the shared normalizeTitle "
+                    "definition",
+                )
+            )
         sync_id_uses = SYNC_ID_MARKER_RE.search("\n".join(mask_source(source)))
         if sync_id_uses:
             sync_id_activated = True
         for offset in _definitions(source, SYNC_ID_DEF_RE):
             sync_id_definitions.append((relative, _line_number(source, offset)))
-        if (
-            "sync" in relative.lower()
-            and ("client" in relative.lower() or "server" in relative.lower())
-        ):
-            sync_id_files.append((relative, source))
+        if _is_sync_source(relative):
+            sync_sources.append((path, source))
+        unit_kind = _sync_unit_kind(relative)
+        if unit_kind:
+            sync_units.append((path, unit_kind, source))
 
     if not files:
         violations.append(
@@ -664,6 +832,26 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
                 f"{title_definitions}",
             )
         )
+    elif len(title_definition_paths) == 1:
+        title_definition = title_definition_paths[0]
+        for path, source in sync_sources:
+            if path == title_definition:
+                continue
+            masked = "\n".join(mask_source(source))
+            if not re.search(r"\btitle\b", masked, re.IGNORECASE):
+                continue
+            if not _has_function_call(source, "normalizeTitle") or not _imports_definition(
+                root, path, source, "normalizeTitle", title_definition
+            ):
+                violations.append(
+                    Violation(
+                        "normalizeTitle",
+                        path.relative_to(root).as_posix(),
+                        1,
+                        "sync title call sites must import and call the "
+                        "shared normalizeTitle definition",
+                    )
+                )
     if soft_candidates == 0:
         violations.append(
             Violation(
@@ -684,8 +872,45 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
                     f"definition was not found (found {len(sync_id_definitions)})",
                 )
             )
-        for relative, source in sync_id_files:
+        if not any(kind == "client" for _, kind, _ in sync_units):
+            violations.append(
+                Violation(
+                    "sync-ID",
+                    "source roots",
+                    0,
+                    "sync-ID use is present but no sync client unit was found",
+                )
+            )
+        if not any(kind == "server" for _, kind, _ in sync_units):
+            violations.append(
+                Violation(
+                    "sync-ID",
+                    "source roots",
+                    0,
+                    "sync-ID use is present but no sync server unit was found",
+                )
+            )
+        if len(sync_id_definitions) == 1:
+            definition = root / sync_id_definitions[0][0]
+            for path, kind, source in sync_units:
+                relative = path.relative_to(root).as_posix()
+                if not _has_function_call(source, "normalizeSyncId") or not _imports_definition(
+                    root, path, source, "normalizeSyncId", definition
+                ):
+                    violations.append(
+                        Violation(
+                            "sync-ID",
+                            relative,
+                            1,
+                            f"sync {kind} unit must call normalizeSyncId imported "
+                            "from the shared normalizer",
+                        )
+                    )
+        for path, kind, source in sync_units:
+            relative = path.relative_to(root).as_posix()
             if not SYNC_ID_IMPORT_RE.search(blank_comments(source)):
+                # Keep this separate from the resolved-import check so the
+                # diagnostic still explains the missing symbol import.
                 violations.append(
                     Violation(
                         "sync-ID",
@@ -704,8 +929,8 @@ def scan(root: Path = REPO_ROOT) -> ScanResult:
     )
 
 
-def main() -> int:
-    result = scan()
+def main(root: Path = REPO_ROOT) -> int:
+    result = scan(root)
     if result.violations:
         for violation in result.violations:
             print(f"::error::{violation.kind}: {violation.format()}")
@@ -725,4 +950,7 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    if len(sys.argv) > 2:
+        print("usage: check_sync_invariants.py [source-root]", file=sys.stderr)
+        sys.exit(2)
+    sys.exit(main(Path(sys.argv[1]) if len(sys.argv) == 2 else REPO_ROOT))

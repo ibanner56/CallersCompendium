@@ -39,13 +39,18 @@
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Every named structural check is proven by a mutation that makes it fail.",
       "The W18 write-routing scan is transferred into the standing gate.",
       "The gates run through repository preflight and CI."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Structural invariant ratchets cover joins, write boundaries, certificate hatches, shared normalizer call paths, and W18's registry-derived write routing.",
+    "evidence": [
+      "tools/ci/test_check_sync_invariants.py::test_checker_cli_returns_red_for_named_mutations invokes the checker against soft-delete join, I1, I2, certificate-hatch, alternate-title, and sync-ID bypass mutations and requires exit code 1.",
+      "tools/ci/test_check_sync_invariants.py covers shared normalizeTitle and normalizeSyncId definitions, resolved imports, call paths, comment stripping, source-root scope, and non-vacuity; python3 tools/ci/check_sync_invariants.py passes the repository scan.",
+      "packages/compendium_core/test/storage/normalisation_structure_test.dart provides the registry/table-derived W18 write-routing guard, already exercised by the core suite through tools/preflight.py and .github/workflows/_checks.yml.",
+      "The direct checker and mutation-assertion suite cover every named completion check; conforming repository fixtures remain green."
+    ]
   }
 }

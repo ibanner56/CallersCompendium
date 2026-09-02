@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -19,6 +21,19 @@ from check_sync_invariants import (
 
 def assert_no(violations) -> None:
     assert not violations, violations
+
+
+def _run_checker(root: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            sys.executable,
+            str(Path(__file__).with_name("check_sync_invariants.py")),
+            str(root),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
 
 
 def test_comment_stripping_and_exact_source_roots() -> None:
@@ -297,6 +312,148 @@ def test_sync_id_activation_requires_one_shared_definition_and_imports() -> None
         )
         result = scan(root)
         assert any(v.kind == "sync-ID" for v in result.violations)
+
+
+def test_title_scan_rejects_alternate_implementation() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "packages/core/lib/src/imports/dedupe.dart"
+        duplicate = root / "packages/core/lib/src/sync/title_codec.dart"
+        title.parent.mkdir(parents=True)
+        duplicate.parent.mkdir(parents=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        duplicate.write_text(
+            "String _normalizeTitleForSync(String value) => value.trim();\n"
+            "String titleKey(String title) {\n"
+            "  final lower = title.toLowerCase();\n"
+            "  return lower.replaceAll(RegExp(r'[^a-z]'), ' ');\n"
+            "}\n",
+            encoding="utf-8",
+        )
+
+        result = scan(root)
+        assert any(v.kind == "normalizeTitle" for v in result.violations)
+
+
+def test_title_scan_requires_sync_call_sites_to_import_shared_definition() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "packages/core/lib/src/imports/dedupe.dart"
+        client = root / "packages/core/lib/src/sync/client.dart"
+        title.parent.mkdir(parents=True)
+        client.parent.mkdir(parents=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        client.write_text(
+            "String encode(String title) => title.trim();\n",
+            encoding="utf-8",
+        )
+
+        result = scan(root)
+        assert any(v.kind == "normalizeTitle" for v in result.violations)
+
+
+def test_sync_id_import_must_resolve_to_shared_definition() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        client = root / "packages/core/lib/src/sync/client.dart"
+        server = root / "packages/core/lib/src/sync/server.dart"
+        shared = root / "packages/core/lib/src/sync/normalization.dart"
+        for path in (client, server, shared):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        (root / "app/lib/src/title.dart").parent.mkdir(parents=True)
+        (root / "app/lib/src/title.dart").write_text(
+            "String normalizeTitle(String value) => value;\n"
+            "final q = 'SELECT * FROM dance_tags JOIN tags t ON t.id = x "
+            "WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        shared.write_text(
+            "String normalizeSyncId(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        client.write_text(
+            "import 'normalization.dart' show normalizeSyncId;\n"
+            "String send(String syncId) => normalizeSyncId(syncId);\n",
+            encoding="utf-8",
+        )
+        server.write_text(
+            "import 'other_normalization.dart' show normalizeSyncId;\n"
+            "String accept(String syncId) => normalizeSyncId(syncId);\n",
+            encoding="utf-8",
+        )
+
+        result = scan(root)
+        assert any(v.kind == "sync-ID" for v in result.violations)
+
+
+def test_checker_cli_returns_red_for_named_mutations() -> None:
+    mutations = (
+        (
+            "soft-delete-join",
+            "final q = 'SELECT * FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id "
+            "WHERE dt.dance_id = ?';\n",
+        ),
+        ("I1", "final q = 'UPDATE dances SET body = ? WHERE id = ?';\n"),
+        ("I2", "final q = 'UPDATE dances SET updated_at = ? WHERE id = ?';\n"),
+        ("certificate-hatch", "client.badCertificateCallback = (_, __, ___) => true;\n"),
+        (
+            "normalizeTitle",
+            "String _normalizeTitleForSync(String value) => value.trim();\n",
+        ),
+    )
+    for kind, mutation in mutations:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "app/lib/src/base.dart"
+            source.parent.mkdir(parents=True)
+            source.write_text(
+                "String normalizeTitle(String value) => value.trim();\n"
+                "final q = 'SELECT * FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id "
+                "WHERE t.deleted_at IS NULL';\n"
+                + mutation,
+                encoding="utf-8",
+            )
+            result = _run_checker(root)
+            assert result.returncode == 1, (kind, result.stdout, result.stderr)
+            assert kind in result.stdout, (kind, result.stdout, result.stderr)
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "app/lib/src/title.dart"
+        client = root / "packages/core/lib/src/sync/client.dart"
+        server = root / "packages/core/lib/src/sync/server.dart"
+        shared = root / "packages/core/lib/src/sync/normalization.dart"
+        for path in (title, client, server, shared):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value.trim();\n"
+            "final q = 'SELECT * FROM dance_tags dt JOIN tags t ON t.id = dt.tag_id "
+            "WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        shared.write_text(
+            "String normalizeSyncId(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        client.write_text(
+            "import 'normalization.dart' show normalizeSyncId;\n"
+            "String send(String syncId) => normalizeSyncId(syncId);\n",
+            encoding="utf-8",
+        )
+        server.write_text(
+            "import 'normalization.dart' show normalizeSyncId;\n"
+            "String accept(String syncId) => syncId.trim();\n",
+            encoding="utf-8",
+        )
+        result = _run_checker(root)
+        assert result.returncode == 1, (result.stdout, result.stderr)
+        assert "sync-ID" in result.stdout
 
 
 def test_repository_scan_is_not_vacuous() -> None:
