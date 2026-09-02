@@ -16,7 +16,7 @@ import 'window_service.dart' show kWindowFrameKey;
 
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
-/// Two reasons a key is excluded:
+/// Three reasons a key is excluded:
 /// - **structurally represented** — the dialect library and custom themes travel
 ///   in their own typed sections of the [BackupDocument], so their raw settings
 ///   blobs would be redundant (and could disagree with the typed sections):
@@ -25,6 +25,10 @@ import 'window_service.dart' show kWindowFrameKey;
 /// - **device-local / backup metadata** — geometry and backup bookkeeping that
 ///   must not travel between machines or be rewritten by restoring an old file:
 ///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey].
+/// - **sync security state** — credentials and per-installation routing state
+///   must never be copied through a backup, even though their transport-specific
+///   privacy classes are not [EgressClass.deviceLocal]:
+///   [kSyncIdKey], [kSyncDeviceIdKey].
 const Set<String> kBackupSettingsDenylist = {
   kCustomDialectsKey,
   kActiveDialectRefKey,
@@ -54,9 +58,9 @@ const Set<String> kBackupSettingsDenylistPrefixes = {
 /// `app.settings` map (and thus be fully replaced on restore).
 ///
 /// The denylist ([kBackupSettingsDenylist] + [kBackupSettingsDenylistPrefixes])
-/// is the single source of truth for "device-local / structurally-represented /
-/// don't touch". Everything else is by definition backup-eligible content that a
-/// restore replaces.
+/// is the single source of truth for settings that are structurally represented,
+/// device-local, backup metadata, or sync security state. Everything else is by
+/// definition backup-eligible content that a restore replaces.
 bool isBackupEligibleSettingKey(String key) {
   if (kBackupSettingsDenylist.contains(key)) return false;
   for (final prefix in kBackupSettingsDenylistPrefixes) {

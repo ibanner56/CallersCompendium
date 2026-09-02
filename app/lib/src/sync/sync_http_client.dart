@@ -31,6 +31,8 @@ enum SyncResponseKind {
   rateLimited,
   quotaExhausted,
   redirectRefused,
+  serverError,
+  unexpectedStatus,
 }
 
 /// A bounded response with a typed status category.
@@ -182,7 +184,18 @@ class SyncHttpClient {
         return _readResponse(response);
       }
 
-      await response.stream.drain<void>();
+      try {
+        await _discardBoundedBody(response);
+      } on SyncEndpointException {
+        // diagnostics: silent — redirect response is discarded and surfaced as
+        // a typed redirectRefused result.
+        return SyncHttpResponse(
+          statusCode: response.statusCode,
+          kind: SyncResponseKind.redirectRefused,
+          headers: Map.unmodifiable(response.headers),
+          body: const [],
+        );
+      }
       if (redirects >= maxRedirects) {
         return SyncHttpResponse(
           statusCode: response.statusCode,
@@ -200,7 +213,15 @@ class SyncHttpClient {
           body: const [],
         );
       }
-      final next = current.resolve(location);
+      final next = Uri.tryParse(location);
+      if (next == null) {
+        return SyncHttpResponse(
+          statusCode: response.statusCode,
+          kind: SyncResponseKind.redirectRefused,
+          headers: Map.unmodifiable(response.headers),
+          body: const [],
+        );
+      }
       if (!_isAllowedRedirect(next)) {
         return SyncHttpResponse(
           statusCode: response.statusCode,
@@ -256,9 +277,21 @@ class SyncHttpClient {
   }
 
   Future<List<int>> _readBoundedBody(http.StreamedResponse response) async {
-    final encoding = response.headers['content-encoding']?.toLowerCase();
     final bytes = <int>[];
+    await _consumeBoundedBody(response, bytes.addAll);
+    return bytes;
+  }
+
+  Future<void> _discardBoundedBody(http.StreamedResponse response) =>
+      _consumeBoundedBody(response, (_) {});
+
+  Future<void> _consumeBoundedBody(
+    http.StreamedResponse response,
+    void Function(List<int>) onChunk,
+  ) async {
+    final encoding = response.headers['content-encoding']?.toLowerCase();
     var compressedBytes = 0;
+    var decodedBytes = 0;
     Stream<List<int>> decoded = response.stream;
     if (encoding == 'gzip') {
       final source = response.stream.map((chunk) {
@@ -268,15 +301,15 @@ class SyncHttpClient {
       decoded = gzip.decoder.bind(source);
     }
     await for (final chunk in decoded) {
-      if (bytes.length + chunk.length > maxResponseBytes ||
+      decodedBytes += chunk.length;
+      if (decodedBytes > maxResponseBytes ||
           (encoding == 'gzip' &&
-              bytes.length + chunk.length >
+              decodedBytes >
                   min(maxResponseBytes, max(1, compressedBytes * 10)))) {
         throw const SyncEndpointException('sync response exceeds size limit');
       }
-      bytes.addAll(chunk);
+      onChunk(chunk);
     }
-    return bytes;
   }
 
   SyncResponseKind _kindForStatus(int status) => switch (status) {
@@ -294,7 +327,8 @@ class SyncHttpClient {
     422 => SyncResponseKind.rejected,
     429 => SyncResponseKind.rateLimited,
     507 => SyncResponseKind.quotaExhausted,
-    _ => SyncResponseKind.malformedRequest,
+    >= 500 && <= 599 => SyncResponseKind.serverError,
+    _ => SyncResponseKind.unexpectedStatus,
   };
 
   Duration? _retryAfter(String? value) {

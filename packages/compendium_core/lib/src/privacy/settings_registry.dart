@@ -124,7 +124,7 @@ final Map<String, DataClassification> settingsClassifications = {
     note:
         'User-entered bearer credential. It may contain personal information, '
         'travels only in Authorization to the configured sync origin, and is '
-        'never recoverably retained or logged.',
+        'never recoverably retained or logged by the server or a proxy.',
   ),
   'sync_device_id': const DataClassification(
     term: DpvTerm.nonPersonal,

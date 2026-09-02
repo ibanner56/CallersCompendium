@@ -91,7 +91,7 @@ know exists.
 | `deviceLocal` | Must never reach project-operated infrastructure. Leaves only by a transfer the user deliberately initiates between their own devices, or in a local backup file they control |
 | `deviceScoped` | Never transmitted **by any route at all**, because the value is meaningless or actively wrong on another device — a window position, a per-device marker, a per-installation key. Distinct from `deviceLocal`: that is withheld for what it *contains*, this for what it *means*. |
 | `protocolIdentifier` | May travel as opaque protocol metadata to the configured endpoint, but carries no user data and is never adopted from a peer — here, the per-installation sync device ID |
-| `accessControlData` | May travel only as the authorization for the configured endpoint, but is never recoverably retained, logged, or adopted — here, the sync ID bearer credential |
+| `accessControlData` | May travel only as the authorization for the configured endpoint, but is never recoverably retained, logged, or adopted by the server or a proxy — here, the sync ID bearer credential |
 | `derived` | Never transmitted at all. Rebuildable from other fields on arrival, so sending it would be redundant as well as an extra copy to protect |
 
 ## Vocabulary
@@ -488,7 +488,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
-| `sync_id` | `dpv:PersonalData` | app user | **access-control-data** | User-entered bearer credential. It may contain personal information, travels only in Authorization to the configured sync origin, and is never recoverably retained or logged. |
+| `sync_id` | `dpv:PersonalData` | app user | **access-control-data** | User-entered bearer credential. It may contain personal information, travels only in Authorization to the configured sync origin, and is never recoverably retained or logged by the server or a proxy. |
 | `theme_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `track_history_for_all_callers` | `dpv:NonPersonalData` | app user | shareable |  |
 | `update_auto_check` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |

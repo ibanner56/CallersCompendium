@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -65,6 +65,26 @@ void main() {
       },
     );
 
+    test('refuses malformed redirect locations as typed outcomes', () async {
+      final server = await _startServer((request) async {
+        request.response
+          ..statusCode = HttpStatus.found
+          ..headers.set('location', '%not-a-uri');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final result = await client.getStore(previouslyUsed: false);
+
+      expect(result.response.kind, SyncResponseKind.redirectRefused);
+    });
+
     test(
       'refuses an untrusted certificate before sending authorization',
       () async {
@@ -119,11 +139,26 @@ void main() {
     });
 
     test('aborts an oversized gzip response while inflating', () async {
-      final compressed = gzip.encode(List<int>.filled(1000, 0x61));
+      final compressed = gzip.encode(List<int>.filled(1024 * 1024, 0x61));
+      var sentChunks = 0;
+      final chunks = [
+        for (var offset = 0; offset < compressed.length; offset += 8)
+          compressed.sublist(offset, min(offset + 8, compressed.length)),
+      ];
       final server = await _startServer((request) async {
         request.response.headers.set('content-encoding', 'gzip');
-        request.response.add(compressed);
-        await request.response.close();
+        request.response.bufferOutput = false;
+        try {
+          for (final chunk in chunks) {
+            request.response.add(chunk);
+            await request.response.flush();
+            sentChunks++;
+            await Future<void>.delayed(const Duration(milliseconds: 1));
+          }
+          await request.response.close();
+        } on IOException {
+          // The client canceled the response after the limit was exceeded.
+        }
       });
       addTearDown(() => server.close(force: true));
 
@@ -138,6 +173,8 @@ void main() {
         client.request('GET', 'store'),
         throwsA(isA<SyncEndpointException>()),
       );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(sentChunks, lessThan(chunks.length));
     });
   });
 
@@ -196,6 +233,30 @@ void main() {
       final limited = await client.request('GET', 'store');
       expect(limited.kind, SyncResponseKind.rateLimited);
       expect(limited.retryAfter, const Duration(seconds: 7));
+    });
+
+    test('types transient and unexpected statuses separately', () async {
+      final statuses = [HttpStatus.serviceUnavailable, 418];
+      final server = await _startServer((request) async {
+        request.response.statusCode = statuses.removeAt(0);
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      expect(
+        (await client.request('GET', 'store')).kind,
+        SyncResponseKind.serverError,
+      );
+      expect(
+        (await client.request('GET', 'store')).kind,
+        SyncResponseKind.unexpectedStatus,
+      );
     });
 
     test('sends ETags and blob content types on the correct paths', () async {

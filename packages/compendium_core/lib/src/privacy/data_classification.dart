@@ -182,7 +182,8 @@ enum EgressClass {
   protocolIdentifier,
 
   /// A bearer credential that authorizes the request carrying it. It may travel
-  /// only to the configured endpoint, and must never be retained recoverably.
+  /// only to the configured endpoint; the server and any proxy must never
+  /// retain it recoverably.
   accessControlData,
 }
 

@@ -29,8 +29,8 @@ String _egressName(EgressClass egress) => switch (egress) {
   EgressClass.accessControlData => 'access-control-data',
 };
 
-/// The table-cell rendering: [_egressName], emphasised for the classes that
-/// must not reach project infrastructure so they stand out when skimming.
+/// The table-cell rendering: [_egressName], emphasised for classes with
+/// constrained or prohibited egress so they stand out when skimming.
 String _egressLabel(EgressClass egress) => switch (egress) {
   EgressClass.deviceLocal ||
   EgressClass.protocolIdentifier ||

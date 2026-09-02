@@ -100,6 +100,24 @@ void main() {
       );
     });
 
+    test(
+      'client and server adapters agree across whitespace and Unicode form',
+      () {
+        final pepper = List<int>.filled(32, 0x42);
+        const typed = ' CAF\u0045\u0301-horse-battery-staple ';
+        const normalized = 'café-horse-battery-staple';
+
+        expect(
+          deriveSyncIdKey(typed, pepper),
+          deriveIncomingSyncIdKey(typed, pepper),
+        );
+        expect(
+          deriveIncomingSyncIdKey(typed, pepper),
+          deriveSyncIdKey(normalized, pepper),
+        );
+      },
+    );
+
     test('ASCII IDs and their encoded spellings remain distinct IDs', () {
       const asciiId = 'cafe-horse-battery-staple';
       final encoded = encodeSyncCredential(asciiId);
