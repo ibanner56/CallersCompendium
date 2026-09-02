@@ -37,10 +37,12 @@
     "Authenticated HTTP client with typed outcomes",
     "Device-scoped endpoint, ID, and device settings"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1157
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Shared credential primitives land early enough for W10.",
       "Non-ASCII credentials are issued over the real request path.",
@@ -48,7 +50,12 @@
       "First-time missing and previously used missing collections return distinct typed outcomes.",
       "The client performs no replacement POST before caller confirmation."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Shared sync identity primitives and the endpoint-isolated authenticated HTTP client are shipped with explicit missing-store outcomes and transport safety guards.",
+    "evidence": [
+      "PR #1157: core EFF diceware IDs, shared trim/NFC/lowercase normalization, advisory strength scoring, unconditional base64url credentials, HMAC storage-key derivation, typed HTTP outcomes, exact endpoint/loopback validation, same-origin manual redirects, platform TLS verification, and bounded gzip handling.",
+      "packages/compendium_core/test/sync/sync_id_test.dart covers structural bounds, generated IDs, normalized scoring, non-ASCII UTF-8 credentials, malformed credential rejection, normalized key agreement, and unconditional encoding.",
+      "app/test/sync/sync_http_client_test.dart exercises an issued non-ASCII Bearer request, foreign redirect refusal, untrusted certificate refusal before authorization, exact loopback rules, streaming gzip limits, first-time versus replacement-required 404 outcomes, conflict/rejection/rate-limit typing, and ETag handling. Mutation runs caught raw credentials, a missing Bearer scheme, permissive redirects, and omitted backup exclusions.",
+      "python3 tools/preflight.py passed 19 locally available gates on the final implementation head; Flutter/Dart PATH-dependent gates were visibly skipped."
+    ]
   }
 }
