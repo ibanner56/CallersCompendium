@@ -95,7 +95,8 @@ void main() {
       expect(body, containsPair('formation', containsPair('detail', isNull)));
       expect(body, containsPair('authorIds', ['c1', 'c2']));
       expect(body, containsPair('tagIds', ['t1', 't2']));
-      expect(body, isNot(contains('futurePrivateField')));
+      final venueBody = syncBodyForEntity(SyncRecordKind.venue, _venue());
+      expect(venueBody, isNot(contains('address1')));
     });
 
     test('keeps null shareable structural fields explicit', () {

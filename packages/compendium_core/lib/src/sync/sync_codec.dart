@@ -316,7 +316,7 @@ T _requireEntity<T>(Object entity, SyncRecordKind kind) {
 Map<String, Object?> _decodeObject(String json, String label) {
   final decoded = jsonDecode(json);
   if (decoded is! Map) throw FormatException('$label must be a JSON object');
-  return Map<String, Object?>.from(decoded);
+  return _requiredObject(decoded, label);
 }
 
 Map<String, Object?> _requiredObject(Object? value, String field) {
