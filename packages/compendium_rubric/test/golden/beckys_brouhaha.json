@@ -1,0 +1,112 @@
+{
+  "id": "31e3eb9d-a5b2-4737-9848-0a9ca3d91f51",
+  "title": "Becky's Brouhaha",
+  "authorIds": [
+    "fbc4df21-5020-4a06-adf2-c49b726f0d5a"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "box_the_gnat",
+      "params": {
+        "who": "neighbors",
+        "hand": "right",
+        "balance": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_dancers",
+      "params": {
+        "who": "neighbors",
+        "hand": "right",
+        "beats": 2
+      },
+      "note": "to prev neighbors"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "prevNeighbors",
+        "hand": "left",
+        "turn": 1,
+        "beats": 6
+      },
+      "note": "- return to current neighbors"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "prefix": "balance",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "chain",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "star",
+      "params": {
+        "hand": "left",
+        "places": 4,
+        "beats": 8
+      },
+      "note": "- reach right hand to next neighbors",
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "137",
+    "importedAt": "2026-08-27T20:27:29.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-27T20:27:29.000Z",
+  "updatedAt": "2026-08-27T20:27:29.000Z"
+}

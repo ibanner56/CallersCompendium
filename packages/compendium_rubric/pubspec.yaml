@@ -1,0 +1,24 @@
+name: compendium_rubric
+description: >-
+  A stateless, functional "compiler" that applies an ordered sequence of
+  contra-dance figures (operations) to a formation matrix and verifies the
+  resulting state against a named success criterion. Pure Dart (Flutter-free,
+  per ADR-001), sharing the dance representation and figure taxonomy defined
+  by compendium_core.
+version: 0.1.0
+publish_to: none
+repository: https://github.com/ibanner56/CallersCompendium
+resolution: workspace
+
+environment:
+  sdk: ^3.12.0
+
+dependencies:
+  # The dance representation and figure taxonomy are owned by compendium_core;
+  # this package verifies choreography expressed in that schema.
+  compendium_core:
+  meta: ^1.16.0
+
+dev_dependencies:
+  lints: ^6.0.0
+  test: ^1.25.6

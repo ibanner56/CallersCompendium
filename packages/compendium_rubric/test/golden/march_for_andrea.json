@@ -1,0 +1,135 @@
+{
+  "id": "5c7f8ba5-23bb-43e9-ab40-00a898f1eb9e",
+  "title": "March for Andrea {alternate}",
+  "authorIds": [
+    "a7724089-1dd6-4710-ba29-5e4caff028e5"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "becketCw",
+    "detail": "Duple Minor - Becket"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role1s",
+        "hand": "left",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "down_the_hall",
+      "params": {
+        "ender": "none",
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "turn_alone",
+      "params": {
+        "beats": 2
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "up_the_hall",
+      "params": {
+        "ender": "bendTheLine",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "balance_the_ring",
+      "params": {
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "california_twirl",
+      "params": {
+        "who": "partners",
+        "beats": 4
+      },
+      "progression": true
+    },
+    {
+      "schemaVersion": 1,
+      "move": "balance_the_ring",
+      "params": {
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "roll_away",
+      "params": {
+        "beats": 4,
+        "who": "role1s",
+        "whom": "nextNeighbors"
+      },
+      "note": "role2s roll right, role1s side-step left"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "balance_the_ring",
+      "params": {
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "give_and_take",
+      "params": {
+        "who": "role1s",
+        "whom": "partners",
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 8
+      }
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Appears in: website contradb.com\\n\\nImported from The Caller's Box.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "callersbox",
+    "externalId": "15814",
+    "importedAt": "2026-08-25T21:43:51Z",
+    "permission": "full",
+    "sourceVersion": "2026-08-25T14:43:49-07:00"
+  },
+  "createdAt": "2026-08-25T21:43:51Z",
+  "updatedAt": "2026-08-25T21:43:51Z"
+}
+

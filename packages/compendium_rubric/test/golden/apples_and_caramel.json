@@ -1,0 +1,119 @@
+{
+  "id": "87561c44-cae7-40d6-b8d2-6eccc9f5ba69",
+  "title": "Apples and Caramel",
+  "authorIds": [
+    "7b25668d-5238-4eb6-a48e-c40e32c3847c"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "form_short_waves",
+      "params": {
+        "dir": "across",
+        "balance": false,
+        "center": "role2s",
+        "centerHand": "left",
+        "sides": "neighbors",
+        "beats": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "rory_o_more",
+      "params": {
+        "balance": true,
+        "slide": "right",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "rory_o_more",
+      "params": {
+        "balance": true,
+        "slide": "left",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "prefix": "balance",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pass_through",
+      "params": {
+        "beats": 2
+      },
+      "progression": true
+    },
+    {
+      "schemaVersion": 1,
+      "move": "do_si_do",
+      "params": {
+        "who": "nextNeighbors",
+        "turn": 1.25,
+        "beats": 8
+      },
+      "note": "to short waves"
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "1998",
+    "importedAt": "2026-08-31T17:55:52.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-31T17:55:52.000Z",
+  "updatedAt": "2026-08-31T18:04:10.000Z"
+}

@@ -1,0 +1,98 @@
+{
+  "id": "90bad2bf-965d-4c40-ad4e-a902be3861e5",
+  "title": "Frederick Contra",
+  "authorIds": [
+    "d7270be0-b173-4840-88f6-acd42546f6d1"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "Duple Minor - Improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "long_lines",
+      "params": {
+        "goBack": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "left",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 16,
+        "prefix": "balance",
+        "endFacing": "down"
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "down_the_hall",
+      "params": {
+        "ender": "turnCouple",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "up_the_hall",
+      "params": {
+        "ender": "bendTheLine",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 10
+      },
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Appears in: Dance All Day Too! (p. 21); Contra Dance Programming (p. 8); Contra Dance Programming (p. 36); Contra Dance Programming (p. 39); Contra Dance Programming (p. 40); Dance All Night (p. 13); Give-and-Take (p. 111); website ACDOL; website CDNY Repertoire (p. 16); website contradb.com; website Goodyear programs; website King; website Tepfer2; 2001 RPDLW syllabus (p. 13); 2010 RPDLW syllabus (p. 6); New Mexico Callers Collective Handbook (p. 8); New Mexico Callers Collective Handbook (p. 13)\\n\\nImported from The Caller\u0027s Box.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "callersbox",
+    "externalId": "10446",
+    "importedAt": "2026-08-25T21:18:27.000Z",
+    "permission": "full",
+    "sourceVersion": "2026-08-25T21:18:16\u002B00:00"
+  },
+  "createdAt": "2026-08-25T21:18:27.000Z",
+  "updatedAt": "2026-08-25T21:19:49.000Z"
+}

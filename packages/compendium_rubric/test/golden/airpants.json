@@ -1,0 +1,99 @@
+{
+  "id": "bff863f2-517a-45c3-8b36-9c7d25b7afcb",
+  "title": "Airpants",
+  "authorIds": [
+    "00eabd98-912d-42a6-8494-08b605a92e15"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "prefix": "balance",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "long_lines",
+      "params": {
+        "goBack": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "prefix": "balance",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pass_through",
+      "params": {
+        "dir": "along",
+        "shoulder": "right",
+        "beats": 2
+      },
+      "progression": true
+    },
+    {
+      "schemaVersion": 1,
+      "move": "do_si_do",
+      "params": {
+        "who": "nextNeighbors",
+        "turn": 1,
+        "beats": 6
+      }
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "831",
+    "importedAt": "2026-08-25T21:38:08.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-25T21:38:08.000Z",
+  "updatedAt": "2026-08-25T21:38:42.000Z"
+}

@@ -1,0 +1,114 @@
+{
+  "id": "31d3dca4-e8dd-4817-8c6f-567625b7bc88",
+  "title": "Jet Lag",
+  "authorIds": [
+    "979adf5b-f91a-47ef-b38f-8e0a9b155c33"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "dupleImproper",
+    "detail": "improper"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "box_the_gnat",
+      "params": {
+        "who": "neighbors",
+        "hand": "right",
+        "balance": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pull_by_direction",
+      "params": {
+        "hand": "right",
+        "beats": 2
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "prevNeighbors",
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "long_lines",
+      "params": {
+        "goBack": true,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "beats": 8
+      },
+      "note": "(this is your current neighbor)"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "chain",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "star",
+      "params": {
+        "hand": "left",
+        "places": 4,
+        "beats": 8
+      },
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "2635",
+    "importedAt": "2026-08-27T20:27:48.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-27T20:27:48.000Z",
+  "updatedAt": "2026-08-27T20:28:19.000Z"
+}

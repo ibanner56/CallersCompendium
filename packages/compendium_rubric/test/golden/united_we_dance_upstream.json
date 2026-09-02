@@ -1,0 +1,110 @@
+{
+  "id": "e8f7034e-520f-4b6f-b0d9-894b838b7eda",
+  "title": "United We Dance",
+  "authorIds": [
+    "b837af47-93eb-4c89-b8d2-1ca97c8fb69d"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "other",
+    "detail": "long waves, larks facing out"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "form_long_waves",
+      "params": {
+        "who": "role2s",
+        "balance": false,
+        "beats": 0
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "rory_o_more",
+      "params": {
+        "balance": true,
+        "slide": "right",
+        "beats": 8
+      },
+      "note": "(in long waves)"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "rory_o_more",
+      "params": {
+        "balance": true,
+        "slide": "left",
+        "beats": 8
+      },
+      "note": "(in long waves)"
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "neighbors",
+        "prefix": "balance",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 6
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 10
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "chain",
+      "params": {
+        "who": "role2s",
+        "hand": "right",
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "star",
+      "params": {
+        "hand": "left",
+        "places": 4,
+        "beats": 8
+      },
+      "note": "to long waves",
+      "progression": true
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Imported from ContraDB.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "contradb",
+    "externalId": "2254",
+    "importedAt": "2026-08-31T18:04:22.000Z",
+    "sourceVersion": "contradb-html"
+  },
+  "createdAt": "2026-08-31T18:04:22.000Z",
+  "updatedAt": "2026-08-31T18:05:14.000Z"
+}
