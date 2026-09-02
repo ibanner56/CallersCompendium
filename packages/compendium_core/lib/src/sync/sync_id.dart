@@ -100,10 +100,12 @@ bool isValidSyncId(String value) {
 /// Generates a cryptographically random four-word EFF long-list ID.
 SyncId generateSyncId([Random? random]) {
   final source = random ?? Random.secure();
-  final words = [
-    for (var i = 0; i < syncIdWordCount; i++)
-      effLongWordlist[source.nextInt(effLongWordlist.length)],
-  ];
+  final words = <String>[];
+  while (words.length < syncIdWordCount) {
+    final word = effLongWordlist[source.nextInt(effLongWordlist.length)];
+    if (word.contains('-')) continue;
+    words.add(word);
+  }
   return SyncId.parse(words.join('-'));
 }
 

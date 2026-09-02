@@ -42,6 +42,12 @@ void main() {
       expect(id.isBelowStrengthWarning, isFalse);
     });
 
+    test('rejection-samples hyphenated EFF words', () {
+      final id = generateSyncId(_FixedRandom([2008, 0, 1, 2, 3]));
+
+      expect(id.words, ['abacus', 'abdomen', 'abdominal', 'abide']);
+    });
+
     test('strength scoring is normalized and advisory', () {
       expect(
         estimateSyncIdStrengthBits(' CAF\u0045\u0301-horse-battery-staple '),
@@ -147,4 +153,20 @@ class _SequenceRandom implements Random {
 
   @override
   int nextInt(int max) => _next++ % max;
+}
+
+class _FixedRandom implements Random {
+  _FixedRandom(this._values);
+
+  final List<int> _values;
+  var _index = 0;
+
+  @override
+  bool nextBool() => nextInt(2) == 1;
+
+  @override
+  double nextDouble() => nextInt(100) / 100;
+
+  @override
+  int nextInt(int max) => _values[_index++] % max;
 }

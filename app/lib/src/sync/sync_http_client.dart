@@ -213,8 +213,8 @@ class SyncHttpClient {
           body: const [],
         );
       }
-      final next = Uri.tryParse(location);
-      if (next == null) {
+      final parsed = Uri.tryParse(location);
+      if (parsed == null) {
         return SyncHttpResponse(
           statusCode: response.statusCode,
           kind: SyncResponseKind.redirectRefused,
@@ -222,6 +222,7 @@ class SyncHttpClient {
           body: const [],
         );
       }
+      final next = current.resolveUri(parsed);
       if (!_isAllowedRedirect(next)) {
         return SyncHttpResponse(
           statusCode: response.statusCode,
@@ -333,8 +334,18 @@ class SyncHttpClient {
 
   Duration? _retryAfter(String? value) {
     if (value == null) return null;
-    final seconds = int.tryParse(value.trim());
-    return seconds == null || seconds < 0 ? null : Duration(seconds: seconds);
+    final trimmed = value.trim();
+    final seconds = int.tryParse(trimmed);
+    if (seconds != null) {
+      return seconds < 0 ? null : Duration(seconds: seconds);
+    }
+    try {
+      final delay = HttpDate.parse(trimmed).difference(DateTime.now().toUtc());
+      return delay.isNegative ? Duration.zero : delay;
+    } on FormatException {
+      // diagnostics: silent — malformed Retry-After is treated as absent.
+      return null;
+    }
   }
 }
 

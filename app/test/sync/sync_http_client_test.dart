@@ -210,6 +210,10 @@ void main() {
         (HttpStatus.conflict, const {}),
         (HttpStatus.unprocessableEntity, const {}),
         (HttpStatus.tooManyRequests, const {'retry-after': '7'}),
+        (
+          HttpStatus.tooManyRequests,
+          const {'retry-after': 'Wed, 01 Jan 2020 00:00:00 GMT'},
+        ),
       ];
       final server = await _startServer((request) async {
         final (status, headers) = responses.removeAt(0);
@@ -233,6 +237,8 @@ void main() {
       final limited = await client.request('GET', 'store');
       expect(limited.kind, SyncResponseKind.rateLimited);
       expect(limited.retryAfter, const Duration(seconds: 7));
+      final expired = await client.request('GET', 'store');
+      expect(expired.retryAfter, Duration.zero);
     });
 
     test('types transient and unexpected statuses separately', () async {
