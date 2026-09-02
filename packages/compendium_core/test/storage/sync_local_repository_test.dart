@@ -99,6 +99,28 @@ void main() {
     expect(await repository.listBaselineEntries(), isEmpty);
   });
 
+  test(
+    'preserves opaque tombstone bytes alongside their supplied hash',
+    () async {
+      final db = openTestDatabase();
+      addTearDown(db.close);
+      final repository = SyncLocalRepository(db);
+      const blob = '{"id":"e\u0301\u0001"}';
+
+      await repository.upsertPendingDeletion(
+        kind: SyncRecordKind.dance,
+        recordId: 'opaque',
+        tombstonedAt: DateTime.utc(2026, 1, 15),
+        tombstoneHash: 'hash-for-opaque-blob',
+        tombstoneBlob: blob,
+      );
+
+      final row = (await repository.listPendingDeletions()).single;
+      expect(row.tombstoneBlob, blob);
+      expect(row.tombstoneHash, 'hash-for-opaque-blob');
+    },
+  );
+
   group('SyncLocalRepository lifecycle', () {
     late CompendiumDatabase db;
     late SyncLocalRepository repository;
