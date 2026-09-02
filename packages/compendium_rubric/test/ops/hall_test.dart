@@ -277,7 +277,7 @@ void main() {
     });
 
     test('a full weave is the identity', () {
-      final after = applyOk(const FigureEight(half: 1), base());
+      final after = applyOk(const FigureEight(half: TurnFraction.full), base());
       expect(after.toRolesNotation(), base().toRolesNotation());
     });
 
@@ -302,9 +302,13 @@ void main() {
     });
 
     test('a quarter weave is refused rather than rounded', () {
-      for (final half in const [0.25, 0.75]) {
+      for (final half in const [
+        TurnFraction.quarter,
+        TurnFraction.threeQuarter,
+        TurnFraction.other,
+      ]) {
         final error = applyErr(FigureEight(half: half), base());
-        expect(error.kind, ErrorKind.unsupportedParam, reason: 'half: $half');
+        expect(error.kind, ErrorKind.unsupportedParam, reason: '$half');
         expect(error.message, contains('half or a full weave'));
       }
     });

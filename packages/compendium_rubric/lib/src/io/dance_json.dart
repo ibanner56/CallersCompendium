@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:compendium_core/compendium_core.dart' show contraTaxonomy;
 import 'package:meta/meta.dart';
 
 import '../domain/formation_type.dart';
@@ -230,7 +231,16 @@ const Map<String, _FigureBuilder> _registry = {
 };
 
 /// The figures this compiler can build, for diagnostics.
-List<String> get supportedMoves => _registry.keys.toList()..sort();
+/// Every move this compiler can parse, including the aliases it resolves.
+///
+/// Aliases are `compendium_core`'s vocabulary, not ours: they are listed here
+/// because a record may name one, and refusing it would reject a dance we can
+/// in fact compile.
+List<String> get supportedMoves => <String>{
+  ..._registry.keys,
+  for (final entry in contraTaxonomy.aliases.entries)
+    if (_registry.containsKey(entry.value.targetMove)) entry.key,
+}.toList()..sort();
 
 Operation _buildCircle(_Params p) => Circle(
   // `turn` here is a **direction** — one of its three taxonomy meanings.
@@ -486,10 +496,10 @@ Operation _buildFormShortWaves(_Params p) => FormShortWaves(
   dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
   center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
-  // Left absent rather than defaulted: a record that names the centre pair but
-  // no hand has already fixed the geometry, and supplying a hand on its behalf
-  // would let the figure refuse itself for a contradiction of our own making.
-  centerHand: p.optionalEnum(['centerHand'], Hand.fromKey),
+  // Core's stated default. The figure still treats `null` as a distinct
+  // "unspecified" state -- see [FormShortWaves.centerHand] -- but a record
+  // parsed from core's schema never reaches it, because core fills the hand.
+  centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.right),
   sides: p.enumOr(['sides'], WhoSet.fromKey, WhoSet.neighbors),
 );
 
@@ -499,14 +509,15 @@ Operation _buildPassTheOcean(_Params p) => PassTheOcean(
   dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
   center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
-  centerHand: p.optionalEnum(['centerHand'], Hand.fromKey),
+  centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.right),
   sides: p.enumOr(['sides'], WhoSet.fromKey, WhoSet.neighbors),
 );
 
 Operation _buildFormLongWaves(_Params p) => FormLongWaves(
-  // Not defaulted here: an absent `who` is a record that may have fixed the
-  // same geometry by naming the hold instead, and the figure resolves it.
-  who: p.optionalEnum(['who'], WhoSet.fromKey),
+  // Core's stated default. The figure keeps `null` as a distinct state for
+  // records that fix the geometry by naming the hold instead, but a record
+  // parsed from core's schema never reaches it.
+  who: p.enumOr(['who'], WhoSet.fromKey, WhoSet.role1s),
   whom: p.optionalEnum(['whom'], WhoSet.fromKey),
   hand: p.optionalEnum(['hand'], Hand.fromKey),
   balance: p.boolOr(['balance'], false),
@@ -536,7 +547,7 @@ Operation _buildFigureEight(_Params p) => FigureEight(
   // descriptive only -- no net effect on the landing -- but the taxonomy gives
   // it a stated default, so an unstated lead takes that rather than nothing.
   lead: p.optionalString(['lead']) ?? 'onesRole2',
-  half: p.numberOr(['half'], 0.5),
+  half: p.enumOr(['half'], TurnFraction.fromKey, TurnFraction.half),
 );
 
 Operation _buildGate(_Params p) => Gate(
@@ -722,7 +733,14 @@ OperationInvocation _parseFigure(Object? raw, int index) {
     );
   }
 
-  final build = _registry[move];
+  // An alias is `compendium_core`'s name for a target move with some params
+  // fixed -- `see_saw` is a `do_si_do` by the left shoulder. Resolving through
+  // `contraTaxonomy.aliases` rather than a table of our own keeps the one
+  // definition upstream, which is the point of depending on core at all.
+  final alias = contraTaxonomy.aliases[move];
+  final moveId = alias?.targetMove ?? move;
+
+  final build = _registry[moveId];
   if (build == null) {
     throw _ParseFailure(
       DanceParseError(
@@ -747,10 +765,16 @@ OperationInvocation _parseFigure(Object? raw, int index) {
     );
   }
 
+  // The pinned params *are* the alias -- a `see_saw` whose record also said
+  // `shoulder: right` would not be a see saw -- so they overwrite rather than
+  // fill in behind.
+  final figureParams = <String, Object?>{
+    ...(params as Map<String, Object?>?) ?? const {},
+    ...?alias?.pinnedParams,
+  };
+
   return OperationInvocation(
-    build(
-      _Params((params as Map<String, Object?>?) ?? const {}, '$path.params'),
-    ),
+    build(_Params(figureParams, '$path.params')),
     progression: (progression as bool?) ?? false,
   );
 }

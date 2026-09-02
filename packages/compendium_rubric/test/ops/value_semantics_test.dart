@@ -320,7 +320,7 @@ void main() {
     'who': const FigureEight(who: WhoSet.twos),
     'dir': const FigureEight(dir: FigureEightDir.above),
     'lead': const FigureEight(lead: 'onesRole1'),
-    'half': const FigureEight(half: 1),
+    'half': const FigureEight(half: TurnFraction.full),
   });
 
   checkValueSemantics(const Poussette(), const Poussette(), {

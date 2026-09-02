@@ -40,7 +40,7 @@ final class FigureEight extends Operation {
     this.who = WhoSet.ones,
     this.dir = FigureEightDir.none,
     this.lead,
-    this.half = 0.5,
+    this.half = TurnFraction.half,
   });
 
   /// The active couple that weaves.
@@ -54,8 +54,8 @@ final class FigureEight extends Operation {
   /// it is carried verbatim.
   final String? lead;
 
-  /// `0.5` = one loop; `1.0` = the complete eight.
-  final double half;
+  /// How far around. Only `half` and `full` are implemented.
+  final TurnFraction half;
 
   @override
   String get name => 'figure_8';
@@ -64,7 +64,7 @@ final class FigureEight extends Operation {
   Iterable<WhoSet?> get dancerSets => [who];
 
   /// Whether this is the half — the only fraction that moves anyone.
-  bool get _isHalf => rotationAmountOf(half) == RotationAmount.half;
+  bool get _isHalf => half == TurnFraction.half;
 
   @override
   OpError? checkPreconditions(Formation formation) {
@@ -74,10 +74,11 @@ final class FigureEight extends Operation {
         'figure_8 dir:across is deferred as degenerate',
       );
     }
-    if (rotationAmountOf(half).landsInWave) {
+    if (half != TurnFraction.half && half != TurnFraction.full) {
       return OpError(
         ErrorKind.unsupportedParam,
-        'figure_8 is defined at a half or a full weave; half: $half is neither',
+        'figure_8 is defined at a half or a full weave; half:${half.key} is '
+        'neither',
       );
     }
 
@@ -116,5 +117,5 @@ final class FigureEight extends Operation {
   int get hashCode => Object.hash(name, who, dir, lead, half);
 
   @override
-  String toString() => 'figure_8(${who.key}, half: $half)';
+  String toString() => 'figure_8(${who.key}, half: ${half.key})';
 }
