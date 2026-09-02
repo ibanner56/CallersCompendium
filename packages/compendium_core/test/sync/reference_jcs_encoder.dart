@@ -55,6 +55,7 @@ String _referenceNumber(num value) {
     0xbecbf647612f3696: '-0.0000033333333333333333',
     0x43143ff3c1cb0959: '1424953923781206.2',
     0x4010000000000000: '4',
+    0x3ff0000000000000: '1',
     0x3ff4000000000000: '1.25',
   };
   final expected = values[bits];
