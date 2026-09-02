@@ -28,7 +28,8 @@
     "Shared client and server allow-list artifact"
   ],
   "pullRequests": [
-    1149
+    1149,
+    1150
   ],
   "hold": null,
   "completion": {
