@@ -129,6 +129,16 @@ void main() {
       );
     });
 
+    test('rejects cyclic lists and maps', () {
+      final list = <Object?>[];
+      list.add(list);
+      final map = <String, Object?>{};
+      map['self'] = map;
+
+      expect(() => canonicalJson(list), throwsFormatException);
+      expect(() => canonicalJson(map), throwsFormatException);
+    });
+
     test('rejects integers that cannot be represented exactly as doubles', () {
       expect(() => canonicalJson(9007199254740993), throwsFormatException);
     });
