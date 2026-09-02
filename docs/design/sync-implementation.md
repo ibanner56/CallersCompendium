@@ -26,13 +26,13 @@ repair issue raised by the review of this design:
 | Landed | Closes | Unit | State |
 | --- | --- | --- | --- |
 | #1115 | #1109 | **W15** | Substantially done. Both policy files carry the operator-visibility and logged break-glass disclosures §8 requires. |
-| #1118 | #1110 | **W17** | Partly done: the soft-delete join rule, I1/I2 over raw and typed writes, and the certificate-hatch scan. The write-path routing ratchet is still owed, and could not have landed — it asserts a choke point W18 builds. |
-| #1119, #1124, #1137 | #1111, #1123 | **W18** | Implementation delivered; repository-backed tracking deliberately remains incomplete pending the separate human completion decision. |
+| #1118 and follow-up W17 ratchet work | #1110 | **W17** | Complete: the soft-delete join rule, I1/I2 over raw and typed writes, certificate-hatch scan, shared-normalizer source scans, and the standing write-path routing gate are mutation-proven. |
+| #1119, #1124, #1137, #1143 | #1111, #1123 | **W18** | Complete: implementation and repository-backed tracking are complete; its write-path routing guard is retained as a W17-owned standing gate. |
 
 **W18's final delta was corrective, not additive**, and that is the entry most
 likely to be misread. Its card below records the delivered implementation and
-the contract it satisfies. Repository-backed completion remains a separate
-human decision rather than an inference from merged code.
+the contract it satisfies. Its repository-backed completion is recorded
+separately from W17's standing ownership of the routing gate.
 
 Three live defects found while reviewing this plan were filed rather than folded
 in, and all three have since been fixed on `main`: **#1016** (an archive
@@ -952,13 +952,10 @@ otherwise.
 
   **Three of these landed in #1118 (closing #1110)**, as
   `tools/ci/check_sync_invariants.py`: the soft-delete join rule, I1/I2 over
-  both raw-SQL and typed Drift writes, and the certificate-hatch scan. What
-  remains is the **write-path routing ratchet**, which is the one that could
-  not have landed with them — it asserts that every write reaches a choke point
-  W18 builds, which is exactly the narrow W18 edge this card's `Inherits`
-  already declares. The scope label earned its keep: without it this unit would
-  have been read as blocked in full behind a data migration three of its four
-  ratchets have nothing to do with.
+  both raw-SQL and typed Drift writes, and the certificate-hatch scan. This
+  change completes the standing unit by hardening the shared-normalizer scans,
+  recording mutation proofs for every named check, and retaining W18's
+  write-path routing guard as a W17-owned gate.
 
   The two single-definition scans are the exception to this unit's pattern: they
   are gated by **no §9 bucket**, and deliberately. §9 is scoped to the rules the
@@ -1445,7 +1442,7 @@ cannot fail is not a checkpoint.
 
 | ID | Lands after | Gate |
 | --- | --- | --- |
-| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. §3.1 also carries a §9 bucket — *Soft-delete join coverage* — which nothing enforced when this row was written; the one known violation (#1016) was fixed by #1018 while the *rule* still decayed silently. **That is now enforced.** #1118 shipped `tools/ci/check_sync_invariants.py`, which fails the build on a Drift or raw-SQL join through a soft-deletable parent with no `deleted_at IS NULL` predicate. C0 is green on both halves. W17's remaining ratchet is a *different* invariant — that every write reaches W18's choke point — and is gated at C1, not here. |
+| **C0** | W0 | **Shipped, with a caveat.** Migration merged as #898 (schema v25, via #901 and #903); eight tables, twenty columns, six entity-level hard deletes converted to tombstones. §3.1 also carries a §9 bucket — *Soft-delete join coverage* — which nothing enforced when this row was written; the one known violation (#1016) was fixed by #1018 while the *rule* still decayed silently. **That is now enforced.** #1118 shipped `tools/ci/check_sync_invariants.py`, which fails the build on a Drift or raw-SQL join through a soft-deletable parent with no `deleted_at IS NULL` predicate. C0 is green on both halves. W17's complementary ratchet is a *different* invariant — that every write reaches W18's choke point — and is gated at C1, not here. |
 | **C1** | W1, W2, W3, W17, W18 | **Wire format frozen.** RFC 8785 vectors pass; two independently written encoders agree on a corpus including a fractional `value_num`, an NFC/NFD title pair, a locally-created never-synced NFD title, and a row normalised by W18's backfill; the surrogate rejection fires before encoding; allow-list bijection and W17's write-routing guard are green and non-vacuous. *Parallel work begins here.* |
 | **C2** | W10, W5 | **Loopback round trip.** One client against a local server: `POST /v1/store` creates and `GET /v1/store` is `404` until it does, with neither call able to stand in for the other; connecting to a first-time missing ID reports it and performs no `POST`; blob and manifest survive `PUT`/`GET` byte-identically; `413` and `415` paths exercised — **not `422`, which is the allow-list rejection and belongs to W11 at C5**, since W10 inherits W2 only *via* W11 and cannot reject a key it has no mapping for; `ETag`/`304` honoured; client and server agree on `id_key` for the same typed ID under differing whitespace and Unicode form (contract 5). |
 | **C3** | W6 | **Two devices converge.** §9 *Merge* and *Existence* green, including the both-present row, ≥3-device interleaved edits, a stale peer failing to roll back newer data, and an equal-`updatedAt` tie being reported rather than broken. A previously used store returning `404` pauses without creation and emits one replacement decision. |
@@ -1664,10 +1661,10 @@ PRs update their own state without conflicting:
 
 W13 spans two tracks, because pairing *is* a screen in the settings blade and
 splitting it puts one flow under two owners. W17 and W18 share a track and do
-not fit the others at all, which is the point of them: W17 is the only work here
-that never finishes, and W18 is the only work here that changes stored user rows
-outside a sync path. They remain distinct work units, and W18 is tracked as a
-migration rather than a feature.
+not fit the others at all, which is the point of them: W17 is the standing owner
+of the invariant gates, and W18 is the only work here that changes stored user
+rows outside a sync path. They remain distinct work units, and W18 is tracked as
+a migration rather than a feature.
 
 ## 11. Planning decisions
 
