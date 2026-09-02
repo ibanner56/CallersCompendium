@@ -23,6 +23,14 @@ void main() {
         '"program":{"shared-id":{"title":"Café"}}},'
         '"unicode":"line\\nquote\\"slash\\\\"}',
       );
+
+      final roundTripped =
+          jsonDecode(canonicalJson(corpus)) as Map<String, dynamic>;
+      final records = roundTripped['records'] as Map<String, dynamic>;
+      final dance = records['dance'] as Map<String, dynamic>;
+      final program = records['program'] as Map<String, dynamic>;
+      expect((dance['shared-id'] as Map<String, dynamic>)['title'], 'Café');
+      expect((program['shared-id'] as Map<String, dynamic>)['title'], 'Café');
     });
 
     test('orders keys by UTF-16 code units and preserves nested values', () {
