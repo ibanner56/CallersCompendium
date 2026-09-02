@@ -391,6 +391,18 @@ shape:
   one. Listing it there would silently enlarge the set (`reachAfter`) for a
   figure where nobody travels.
 
+> **An anchor is only as good as what you check it against.** `hey`'s `pass2`
+> was checked against the pair standing at the *ends*, on the strength of
+> `compendium_core`'s `hey` MoveDef, which comments it as "the ends pair". That
+> is wrong, and core's own Caller's Box dialect says so: it fills `pass2` from
+> the *who of the second pass code* (`callersbox_figure_dialect.dart`, the
+> `position == 2` branch). A hey's passes alternate centre and side, so the
+> second pass is danced on the **sides**, pairing a centre dancer with the end
+> dancer standing where that centre dancer arrives after crossing. The check now
+> runs against those derived side pairs. A misread anchor is invisible to a
+> compile check — it only ever warns — so the golden that covers it asserts the
+> **absence** of `anchorMismatch`, not merely that the dance lands.
+
 ---
 
 ## 9. Waves
@@ -460,6 +472,50 @@ typed.
 > compile error rather than a silent mis-read. The builders carry a comment at
 > each site.
 
+### 10.1 The Caller's Box import boundary
+
+`io/callersbox_source.dart` is the *second* IO surface, and the only one that
+touches `compendium_core`. It turns a Caller's Box JSON payload into a
+`DanceRun` by way of `core.CallersBoxAdapter`, and it exists so that real
+choreography can be compiled without hand-authoring fixtures (§12).
+
+The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
+`parseDance` → `compile`, and each stage has one job:
+
+- **`runCoreDance`** sorts a dance into a `DanceOutcome` before anything else
+  gets a chance to. It rejects an empty dance, then rejects any dance with a
+  `custom` figure *(user-ruled — a custom figure can never compile, so counting
+  it as a compiler failure would be a lie)*, then bridges, parses, and compiles.
+  The `compile` call sits in a `try`/`catch`: a figure that throws lands in
+  `crashed` rather than taking a 24,000-file sweep down with it.
+- **`bridgeCoreDance`** rewrites a `core.Dance` into the record this package's
+  parser reads: `title`, `form`, `formation.shape`, `progression` (the success
+  criterion — single or double — not the flag), and `figures`, each carrying its
+  `move` and `params`, plus `progression: true` on the one figure that
+  progresses. That flag is the only field the bridge *adds* rather than
+  translates, and where the assumed-progression rule below takes effect.
+- **`DanceOutcome`** keeps eight buckets deliberately separate, because they name
+  eight different problems with eight different owners. `unstructured` and
+  `unsupported` are upstream's; `mismatch`, `figureRefused` and `crashed` are
+  ours; `empty` and `adapterFailed` are the corpus's.
+- **`CorpusReport`** makes every rate name its own denominator. A "compile rate"
+  over all files and one over dances the compiler actually attempted differ by a
+  factor of three, and an unlabelled percentage invites the wrong one.
+
+> **The assumed-progression rule** *(user-ruled).* `CallersBoxAdapter` never sets
+> `Figure.progression` — the Caller's Box records do not carry it. Rather than
+> refuse every imported dance, `assumedProgressionIndex` assumes a placement:
+> the **last figure**, except in a Becket dance whose first figure is
+> `slide_along_set` sliding left, where it is the **first**. (Core's
+> `slide_along_set.slide` defaults to `left`, so a bare slide takes the Becket
+> branch.) The assumption **always warns**, with `assumedProgression`, even when
+> the dance compiles — a green result resting on a guess must not read like a
+> green result resting on the record.
+>
+> This is a property of the *bridge*, not of the compiler. The compiler's own
+> rule is untouched: an unflagged record still refuses with
+> `unperformedProgression`. **The bridge assumes; the compiler never infers.**
+
 ---
 
 ## 11. Adding a figure — the checklist
@@ -505,6 +561,7 @@ Worked most recently on `hey` (`ops/figures/hey.dart`). In order:
 | `test/io/core_taxonomy_alignment_test.dart` | **every move**, cross-checked against `compendium_core`'s taxonomy |
 | `test/io/known_upstream_defects_test.dart` | upstream taxonomy bugs we reproduce on purpose — **written to fail when fixed** |
 | `test/golden/*.json` + `golden_dances_test.dart` | whole real dances, end to end |
+| `test/io/callersbox_integration_test.dart` | the `compendium_core` seam — one committed Caller's Box payload, imported and compiled |
 
 **Golden dances are sourced, never authored.** *(User-ruled, absolute.)* The only
 acceptable ingestion path from the legacy corpus is the CallersCompendium
@@ -512,6 +569,28 @@ adapter — `packages/compendium_core/lib/src/imports/callersbox_adapter.dart`.
 **If any figure in a dance parses to `custom`, the dance is rejected outright**:
 a custom figure can never compile, so a fixture containing one is not a test, it
 is a guaranteed failure. Never hand-translate a dance record into a fixture.
+
+**Exactly one Caller's Box payload is committed.** The corpus runs to tens of
+thousands of files and belongs nowhere near this repository, so
+`callersbox_integration_test.dart` proves the seam on a single dance and the
+same code answers to a command line for everything else:
+
+```
+fvm dart run bin/callersbox_harness.dart <file-or-directory>...
+```
+
+Directory arguments expand to `*.json`. `-q`/`--quiet` prints only the report;
+the default prints a line for every dance that did **not** compile, naming the
+figure, the move, the error kind and the message — which is what corpus tallies
+get parsed out of. `-v`/`--verbose` lists every dance, with warnings. The same
+sweep runs as a test when `RUBRIC_TCB_CORPUS` names a directory, and skips
+otherwise.
+
+**Guard a full hey from the other side.** A full hey returns every dancer to
+where they started, so a golden covering one compiles just as well with the hey
+deleted — the obvious guard cannot fail. `last_hey.json`'s guard substitutes a
+**half** hey and requires a `Mismatch`, which does bite. Ask what mutation a
+test catches, not whether undoing your own work reddens it.
 
 ---
 
@@ -548,7 +627,11 @@ is a guaranteed failure. Never hand-translate a dance record into a fixture.
   `.fvmrc` to Flutter 3.44.6 (the CallersCompendium integration target's
   toolchain — see `architecture.md` §7).
 - **Python is not installed.** Use PowerShell.
-- **Not a git repository.**
+- **This package lives inside the CallersCompendium repository** — the pub
+  workspace at `packages/compendium_rubric`, on branch `rubric`. Run `analyze`,
+  `format` and `test` from **inside the package directory**, not the repo root.
+  Ask before pushing (§13 rule 8), and never `git stash`: worktrees share one
+  stash stack.
 - `fvm dart format --output=none --set-exit-if-changed .` **does not write** — run
   `fvm dart format .` to apply.
 - Coverage: `fvm dart test --coverage=coverage` then
@@ -563,7 +646,7 @@ is a guaranteed failure. Never hand-translate a dance record into a fixture.
 
 ## 15. Current state and known debt
 
-- **966 tests green; `analyze` clean; `format` clean.**
+- **989 tests green; `analyze` clean; `format` clean.**
 - **46 figures registered**, plus 3 upstream aliases resolved to them.
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
@@ -579,11 +662,11 @@ is a guaranteed failure. Never hand-translate a dance record into a fixture.
   restore `optionalEnum` for `centerHand` in `dance_json.dart`; the figure
   already implements the `center`-derives-hand path.
 - **`hey` has a full `docs/taxonomy.md` entry** and is out of the Held table.
-- **No golden dance covers `hey` yet.** Neither corpus dance probed during its
-  development discriminates between the candidate permutations (a following
-  partner swing normalizes the difference away), so confidence rests on the
-  derivation and the user's worked matrices rather than on the corpus. Sourcing
-  one through the adapter is the open task.
+- **`hey` is covered by a golden.** `last_hey.json` (Caller's Box #14417) is the
+  first sourced dance containing one. Two things had to be settled to land it:
+  the imported record's `length: half` was wrong for a sixteen-beat, seven-pass
+  hey and was corrected to `full`; and the `pass2` anchor was being read as the
+  ends pair, which is what §8 now records as a misreading of upstream's comment.
 - **Deferred, with worked examples still needed** (Held table): `promenade`,
   `butterfly_whirl`, `arch_and_dive` (progression half only), `revolving_door`,
   `slice`, `contra_corners`, `dolphin_hey`, `orbit` couple-`who` (the
@@ -599,3 +682,58 @@ is a guaranteed failure. Never hand-translate a dance record into a fixture.
 - `FormLongWaves.hand` **without** `whom` currently asserts nothing falsifiable.
   Deliberate and documented in its test; revisit if a record turns up that means
   something by it.
+- **A `give_and_take` crash is open.** Three corpus dances throw
+  `StateError: Cell collision at (r0,c0)` out of `Formation.withUpdates`, from
+  the closure in `ops/figures/give_and_take.dart`. The `crashed` outcome keeps a
+  sweep alive through it, but the figure still needs a ruling: whether the
+  collision is a geometry the figure should **refuse** with an `OpError`, or
+  evidence that the permutation is wrong.
+- **A hey may start on the side, and this model refuses one that does.** `pass1`
+  is assumed to name the pair meeting in the centre; the user has since noted
+  that the first pass is sometimes a side pass, with the centre pass falling to
+  `pass2`. Core's dialect makes the same assumption, so correcting it departs
+  from upstream and needs a ruling on how a side-starting hey is to be
+  recognised. It is not a rare edge: heys whose `pass1` names `partners` or
+  `neighbors` are roughly a tenth of every refusal in the corpus.
+
+### 15.1 What the corpus says
+
+Measured over the full 24,107-file Caller's Box mirror (not in this repository;
+see §12). Numbers move as figures land — re-measure rather than cite these.
+
+- **Fewer than half the files are dances.** 9,017 are empty and 3,591 contain a
+  bare `NaN`, which is the Caller's Box API's answer for a dance it will not
+  serve. That leaves **11,499 real dances**.
+- **Most are lost upstream, not here.** 6,571 — **57%** of the real dances —
+  arrive with at least one figure left as free text, so the compiler never sees
+  them. Raising the ceiling on this project is upstream recognition work far
+  more than it is figure work.
+- Of the 3,516 the compiler attempted, **1,391 compiled (39.6%)**.
+- **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
+  exercised by real choreography. The genuine backlog named by the corpus is
+  `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
+- **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
+  for a figure this common — the likely explanation is that core's adapter does
+  not recognise its wording. Worth confirming; it would be an upstream finding.
+- Refusals are dominated by `whoMismatch` (73%), then `unsupportedParam` (13%)
+  and `unresolvableDancerSet` (12.5%). Among deferred parameters, **diagonal
+  `right_left_through` is the highest-value unblock** — it also gates the hey
+  diagonals.
+- **The assumed-progression rule costs about 12%, and that has been measured.**
+  Every one of the 3,516 attempted dances was recompiled with each figure
+  flagged in turn. The assumed placement lands for 1,391; a *different* placement
+  lands for **416** where the assumption does not; and **1,709 compile under no
+  placement at all**. So a perfect oracle would take the compile rate from 39.6%
+  to about 51%, and the remaining half of the failures are genuine geometry, not
+  a misplaced progression. This refutes a plausible earlier reading — that the
+  large `whoMismatch` bucket was mostly progression misplacement measured from a
+  wrong baseline. It is a real contributor and a minority one.
+- **The corpus does not suggest a better rule.** Among the 416 the rule loses,
+  the progression belongs mid-dance far more often than at either end, and the
+  move that carries it is spread thinly across a dozen figures — `pass_through`,
+  `star`, `swing`, `allemande` and `chain` lead, none of them decisively. No
+  positional rule in sight beats "the last figure". Closing the gap would mean
+  *searching* for a placement that compiles, and that is **inferring progression
+  from state**, which §13 rule 5 forbids. Raise it as a decision rather than
+  implementing it. (155 of the 416 admit more than one working placement, so a
+  search would also have to answer which one it meant.)

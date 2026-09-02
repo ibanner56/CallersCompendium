@@ -2260,7 +2260,8 @@ To be defined later with worked examples.
   - `pass1` — dancer set, default `role2s`. The pair who begin **in the centre**, and so take
     the first centre meeting. This is the only param that selects anybody.
   - `length` — enum {`lessThanHalf`, `half`, `betweenHalfAndFull`, `full`}, default `half`.
-  - `pass2` — dancer set, **nullable**. The pair at the ends. An **anchor** (see below).
+  - `pass2` — dancer set, **nullable**. The pair who dance the **second** pass, which is a pass on
+  the **side**. An **anchor** (see below).
   - `meetTarget` — dancer set, **nullable**. Whom the `pass1` pair meet when the weave stops part
     way. Meaningful only for the deferred partial lengths; carried for record fidelity, no
     end-state effect.
@@ -2315,9 +2316,22 @@ To be defined later with worked examples.
     | `rico2` | `[[R2-B . . . L1-A], [L2-B . . . R1-A]]` |
     | `rico1` + `rico2` | identity |
 
+- **`pass2` names the second pass, not the ends.** A hey's passes alternate between the centre and
+  the sides: `pass1` meets in the middle, and the *second* pass happens on the two sides at once.
+  Because the centre pair **cross** as they pass, each comes out beside the end dancer who was
+  standing on the far side — so the side pairs are centre-west with end-east, and centre-east with
+  end-west, never the two ends with each other. In Duple Improper the dancer across the set is the
+  partner, so a hey there has a **partner** second pass.
+
+  > This corrects an earlier reading. `compendium_core`'s `hey` MoveDef comments `pass2` as "the
+  > ends pair", and that comment is wrong; core's own Caller's Box dialect fills the parameter from
+  > the second entry of the pass list, which is the reading above. Note also that `rico1`..`rico4`
+  > number **centre meetings only**, so they do not share numbering with `pass1`/`pass2` — the
+  > dialect assigns ricochet flags to odd pass-list positions for exactly that reason.
+
 - **`pass2` is an anchor, not a selector** (the `form_long_waves` precedent): once `pass1` is
-  resolved the ends are simply whoever is left, so a stated `pass2` cannot select anyone. It is
-  checked against the pair the figure derived and reported through `anchorMismatch` when the two
+  resolved the side pairs follow by construction, so a stated `pass2` cannot select anyone. It is
+  checked against the pairs the figure derived and reported through `anchorMismatch` when the two
   disagree. The hey still weaves as `pass1` describes; only the second pass is misdescribed.
 - **preconditions:**
   - `dir != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
