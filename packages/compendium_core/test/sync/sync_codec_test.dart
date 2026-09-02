@@ -18,43 +18,43 @@ void main() {
           updatedAt: _stamp,
           existenceAt: _stamp,
           allowedCustomFieldIds: {'cf'},
-        ),
+        )!,
         syncRecordBlobForEntity(
           SyncRecordKind.program,
           _program(),
           updatedAt: _stamp,
           existenceAt: _stamp,
-        ),
+        )!,
         syncRecordBlobForEntity(
           SyncRecordKind.choreographer,
           _choreographer(),
           updatedAt: _stamp,
           existenceAt: _stamp,
-        ),
+        )!,
         syncRecordBlobForEntity(
           SyncRecordKind.tag,
           _tag(),
           updatedAt: _stamp,
           existenceAt: _stamp,
-        ),
+        )!,
         syncRecordBlobForEntity(
           SyncRecordKind.publishedSource,
           _source(),
           updatedAt: _stamp,
           existenceAt: _stamp,
-        ),
+        )!,
         syncRecordBlobForEntity(
           SyncRecordKind.customFieldDef,
           _customField(),
           updatedAt: _stamp,
           existenceAt: _stamp,
-        ),
+        )!,
         syncRecordBlobForEntity(
           SyncRecordKind.venue,
           _venue(),
           updatedAt: _stamp,
           existenceAt: _stamp,
-        ),
+        )!,
         SyncSettingsRecord(
           key: 'custom_dialects',
           value: null,
@@ -98,12 +98,82 @@ void main() {
       expect(body, isNot(contains('futurePrivateField')));
     });
 
+    test('keeps null shareable structural fields explicit', () {
+      for (final entry in {
+        SyncRecordKind.dance: _dance(),
+        SyncRecordKind.program: _program(),
+        SyncRecordKind.venue: _venue(),
+      }.entries) {
+        final blob = syncRecordBlobForEntity(
+          entry.key,
+          entry.value,
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!;
+        expect(
+          blob.body,
+          containsPair('provenance', isNull),
+          reason: entry.key.name,
+        );
+        expect(
+          encodeSyncRecordBlob(blob),
+          contains('"provenance":null'),
+          reason: entry.key.name,
+        );
+      }
+    });
+
+    test('freezes nested body data after validation', () {
+      final provenance = <String, Object?>{'source': 'manual'};
+      final links = <Object?>[
+        <String, Object?>{'id': 'l1', 'kind': 'reference'},
+      ];
+      final body = <String, Object?>{
+        'id': 'd1',
+        'title': 'Dance',
+        'provenance': provenance,
+        'links': links,
+      };
+      final blob = SyncRecordBlob(
+        kind: SyncRecordKind.dance,
+        id: 'd1',
+        updatedAt: _stamp,
+        deletedAt: null,
+        existenceAt: _stamp,
+        body: body,
+      );
+      final encoded = encodeSyncRecordBlob(blob);
+
+      provenance['futurePrivateField'] = 'secret';
+      (links.single! as Map<String, Object?>)['futurePrivateField'] = 'secret';
+
+      expect(encodeSyncRecordBlob(blob), encoded);
+      expect(
+        () => (blob.body['provenance']! as Map<String, Object?>)['x'] = 'y',
+        throwsUnsupportedError,
+      );
+    });
+
     test('shared entity builder keeps archive output unchanged', () {
       final archive = CompendiumArchive(exportedAt: _stamp, dances: [_dance()]);
       final archiveBody =
           (archiveToJson(archive)['dances']! as List<Object?>).single
               as Map<String, Object?>;
       expect(archiveBody, archiveDanceToJson(_dance(), const {}));
+    });
+
+    group('entity admission', () {
+      test('omits non-shareable custom-field definitions', () {
+        expect(
+          syncRecordBlobForEntity(
+            SyncRecordKind.customFieldDef,
+            _customField(shareable: false),
+            updatedAt: _stamp,
+            existenceAt: _stamp,
+          ),
+          isNull,
+        );
+      });
     });
   });
 
@@ -310,7 +380,7 @@ SyncRecordBlob _danceBlob() => syncRecordBlobForEntity(
   updatedAt: _stamp,
   existenceAt: _stamp,
   allowedCustomFieldIds: {'cf'},
-);
+)!;
 
 Dance _dance() => Dance(
   id: 'd1',
@@ -338,11 +408,12 @@ Tag _tag() => Tag(id: 't1', name: 'Tag');
 
 PublishedSource _source() => PublishedSource(id: 's1', title: 'Source');
 
-CustomFieldDef _customField() => CustomFieldDef(
+CustomFieldDef _customField({bool shareable = true}) => CustomFieldDef(
   id: 'cf',
   key: 'tempo',
   label: 'Tempo',
   type: CustomFieldType.number,
+  shareable: shareable,
 );
 
 Venue _venue() => Venue(id: 'v1', name: 'Hall', address1: 'private address');

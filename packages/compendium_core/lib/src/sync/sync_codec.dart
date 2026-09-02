@@ -31,7 +31,7 @@ class SyncRecordBlob {
   }) : updatedAt = _normalizeTimestamp(updatedAt),
        deletedAt = deletedAt == null ? null : _normalizeTimestamp(deletedAt),
        existenceAt = _normalizeTimestamp(existenceAt),
-       body = Map.unmodifiable(body) {
+       body = _freezeJsonObject(body) {
     _validateVersion(v);
     _validateId(id);
     _validateBlobBody(kind, id, this.body);
@@ -280,7 +280,7 @@ Map<String, Object?> syncBodyForEntity(
 }
 
 /// Builds a versioned blob for one of the seven archive entity kinds.
-SyncRecordBlob syncRecordBlobForEntity(
+SyncRecordBlob? syncRecordBlobForEntity(
   SyncRecordKind kind,
   Object entity, {
   required DateTime updatedAt,
@@ -296,6 +296,7 @@ SyncRecordBlob syncRecordBlobForEntity(
     entity,
     allowedCustomFieldIds: allowedCustomFieldIds,
   );
+  if (body.isEmpty) return null;
   final id = _requiredString(body['id'], 'body.id');
   return SyncRecordBlob(
     kind: kind,
@@ -405,6 +406,53 @@ void _validateNonEmptyString(String value, String field) {
   if (value.isEmpty) {
     throw ArgumentError.value(value, field, 'must not be empty');
   }
+}
+
+Map<String, Object?> _freezeJsonObject(Map<String, Object?> value) {
+  final active = Set<Object>.identity();
+  return _freezeJsonMap(value, active);
+}
+
+Map<String, Object?> _freezeJsonMap(
+  Map<Object?, Object?> value,
+  Set<Object> active,
+) {
+  if (!active.add(value)) {
+    throw ArgumentError.value(value, 'body', 'must not contain cycles');
+  }
+  try {
+    final result = <String, Object?>{};
+    for (final entry in value.entries) {
+      if (entry.key is! String) {
+        throw ArgumentError.value(
+          entry.key,
+          'body',
+          'nested map keys must be strings',
+        );
+      }
+      result[entry.key as String] = _freezeJsonValue(entry.value, active);
+    }
+    return Map.unmodifiable(result);
+  } finally {
+    active.remove(value);
+  }
+}
+
+Object? _freezeJsonValue(Object? value, Set<Object> active) {
+  if (value is Map) return _freezeJsonMap(value, active);
+  if (value is List) {
+    if (!active.add(value)) {
+      throw ArgumentError.value(value, 'body', 'must not contain cycles');
+    }
+    try {
+      return List<Object?>.unmodifiable([
+        for (final item in value) _freezeJsonValue(item, active),
+      ]);
+    } finally {
+      active.remove(value);
+    }
+  }
+  return value;
 }
 
 void _requireExactKeys(
