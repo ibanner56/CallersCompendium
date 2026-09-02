@@ -2219,11 +2219,11 @@ class BaselineState extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NOT NULL CHECK (id = 1)',
   );
-  late final GeneratedColumn<int> epoch = GeneratedColumn<int>(
+  late final GeneratedColumn<String> epoch = GeneratedColumn<String>(
     'epoch',
     aliasedName,
     false,
-    type: DriftSqlType.int,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );

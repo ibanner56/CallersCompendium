@@ -39,6 +39,7 @@ void main() {
         };
         expect(baselineInfo['id']!['notnull'], 1);
         expect(baselineInfo['id']!['pk'], 1);
+        expect(baselineInfo['epoch']!['type'], 'TEXT');
         expect(baselineInfo['epoch']!['notnull'], 1);
 
         final entries = await db
@@ -53,7 +54,7 @@ void main() {
 
         final repository = SyncLocalRepository(db);
         await repository.replaceBaseline(
-          epoch: DateTime.utc(2026, 1, 2),
+          epoch: '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f',
           entries: [
             const SyncBaselineEntry(
               kind: SyncRecordKind.dance,
@@ -75,7 +76,7 @@ void main() {
               .insert(
                 BaselineStateCompanion.insert(
                   id: const Value(2),
-                  epoch: DateTime.utc(2026, 1, 3),
+                  epoch: '8b3d2e1f0a9c8b7d6e5f4a3b2c1d0e9f',
                 ),
               ),
           throwsA(isA<SqliteException>()),
@@ -89,11 +90,11 @@ void main() {
     addTearDown(db.close);
     final repository = SyncLocalRepository(db);
 
-    await repository.replaceBaseline(epoch: DateTime.utc(2026, 1, 15));
+    await repository.replaceBaseline(epoch: '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f');
 
     expect(
-      (await repository.getBaselineState())!.epoch.toUtc(),
-      DateTime.utc(2026, 1, 15),
+      (await repository.getBaselineState())!.epoch,
+      '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f',
     );
     expect(await repository.listBaselineEntries(), isEmpty);
   });
@@ -106,7 +107,7 @@ void main() {
       db = openTestDatabase();
       repository = SyncLocalRepository(db);
       await repository.replaceBaseline(
-        epoch: DateTime.utc(2026, 1, 1),
+        epoch: '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f',
         entries: [
           const SyncBaselineEntry(
             kind: SyncRecordKind.dance,
@@ -155,10 +156,12 @@ void main() {
     test(
       'same-epoch baseline replacement preserves aliases and review queue',
       () async {
-        await repository.replaceBaseline(epoch: DateTime.utc(2026, 2, 1));
+        await repository.replaceBaseline(
+          epoch: '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f',
+        );
         expect(
-          (await repository.getBaselineState())!.epoch.toUtc(),
-          DateTime.utc(2026, 2, 1),
+          (await repository.getBaselineState())!.epoch,
+          '9c4a1f2e8b7d4a6c9e0f1a2b3c4d5e6f',
         );
         expect(await repository.listBaselineEntries(), isEmpty);
         expect(await repository.listAliases(), hasLength(1));
@@ -171,10 +174,10 @@ void main() {
     test(
       'epoch reset clears baseline conclusions but preserves monotonic state',
       () async {
-        await repository.resetEpoch(epoch: DateTime.utc(2026, 2, 1));
+        await repository.resetEpoch(epoch: '8b3d2e1f0a9c8b7d6e5f4a3b2c1d0e9f');
         expect(
-          (await repository.getBaselineState())!.epoch.toUtc(),
-          DateTime.utc(2026, 2, 1),
+          (await repository.getBaselineState())!.epoch,
+          '8b3d2e1f0a9c8b7d6e5f4a3b2c1d0e9f',
         );
         expect(await repository.listBaselineEntries(), isEmpty);
         expect(await repository.listAliases(), isEmpty);
@@ -290,7 +293,21 @@ void main() {
             kind: SyncRecordKind.dance,
             recordId: 'losing',
           ),
-          isFalse,
+          isTrue,
+        );
+        expect(
+          await repository.isPublished(
+            kind: SyncRecordKind.dance,
+            recordId: 'older',
+          ),
+          isTrue,
+        );
+        expect(
+          await repository.isPublished(
+            kind: SyncRecordKind.dance,
+            recordId: 'oldest',
+          ),
+          isTrue,
         );
         expect(
           await repository.isPublished(

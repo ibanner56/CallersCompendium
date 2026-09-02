@@ -2370,7 +2370,7 @@
           {
             "name": "epoch",
             "getter_name": "epoch",
-            "moor_type": "int",
+            "moor_type": "string",
             "nullable": false,
             "customConstraints": "NOT NULL",
             "default_dart": null,

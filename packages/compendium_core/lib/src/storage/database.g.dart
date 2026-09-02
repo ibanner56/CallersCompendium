@@ -11271,11 +11271,11 @@ class $BaselineStateTable extends BaselineState
   );
   static const VerificationMeta _epochMeta = const VerificationMeta('epoch');
   @override
-  late final GeneratedColumn<DateTime> epoch = GeneratedColumn<DateTime>(
+  late final GeneratedColumn<String> epoch = GeneratedColumn<String>(
     'epoch',
     aliasedName,
     false,
-    type: DriftSqlType.dateTime,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   @override
@@ -11317,7 +11317,7 @@ class $BaselineStateTable extends BaselineState
         data['${effectivePrefix}id'],
       )!,
       epoch: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
+        DriftSqlType.string,
         data['${effectivePrefix}epoch'],
       )!,
     );
@@ -11332,13 +11332,13 @@ class $BaselineStateTable extends BaselineState
 class BaselineStateRow extends DataClass
     implements Insertable<BaselineStateRow> {
   final int id;
-  final DateTime epoch;
+  final String epoch;
   const BaselineStateRow({required this.id, required this.epoch});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
-    map['epoch'] = Variable<DateTime>(epoch);
+    map['epoch'] = Variable<String>(epoch);
     return map;
   }
 
@@ -11353,7 +11353,7 @@ class BaselineStateRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return BaselineStateRow(
       id: serializer.fromJson<int>(json['id']),
-      epoch: serializer.fromJson<DateTime>(json['epoch']),
+      epoch: serializer.fromJson<String>(json['epoch']),
     );
   }
   @override
@@ -11361,11 +11361,11 @@ class BaselineStateRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'epoch': serializer.toJson<DateTime>(epoch),
+      'epoch': serializer.toJson<String>(epoch),
     };
   }
 
-  BaselineStateRow copyWith({int? id, DateTime? epoch}) =>
+  BaselineStateRow copyWith({int? id, String? epoch}) =>
       BaselineStateRow(id: id ?? this.id, epoch: epoch ?? this.epoch);
   BaselineStateRow copyWithCompanion(BaselineStateCompanion data) {
     return BaselineStateRow(
@@ -11395,18 +11395,18 @@ class BaselineStateRow extends DataClass
 
 class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
   final Value<int> id;
-  final Value<DateTime> epoch;
+  final Value<String> epoch;
   const BaselineStateCompanion({
     this.id = const Value.absent(),
     this.epoch = const Value.absent(),
   });
   BaselineStateCompanion.insert({
     this.id = const Value.absent(),
-    required DateTime epoch,
+    required String epoch,
   }) : epoch = Value(epoch);
   static Insertable<BaselineStateRow> custom({
     Expression<int>? id,
-    Expression<DateTime>? epoch,
+    Expression<String>? epoch,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -11414,7 +11414,7 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
     });
   }
 
-  BaselineStateCompanion copyWith({Value<int>? id, Value<DateTime>? epoch}) {
+  BaselineStateCompanion copyWith({Value<int>? id, Value<String>? epoch}) {
     return BaselineStateCompanion(
       id: id ?? this.id,
       epoch: epoch ?? this.epoch,
@@ -11428,7 +11428,7 @@ class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
       map['id'] = Variable<int>(id.value);
     }
     if (epoch.present) {
-      map['epoch'] = Variable<DateTime>(epoch.value);
+      map['epoch'] = Variable<String>(epoch.value);
     }
     return map;
   }
@@ -22223,9 +22223,9 @@ typedef $$NormalisationSkipsTableProcessedTableManager =
       PrefetchHooks Function()
     >;
 typedef $$BaselineStateTableCreateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, required DateTime epoch});
+    BaselineStateCompanion Function({Value<int> id, required String epoch});
 typedef $$BaselineStateTableUpdateCompanionBuilder =
-    BaselineStateCompanion Function({Value<int> id, Value<DateTime> epoch});
+    BaselineStateCompanion Function({Value<int> id, Value<String> epoch});
 
 class $$BaselineStateTableFilterComposer
     extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
@@ -22241,7 +22241,7 @@ class $$BaselineStateTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<DateTime> get epoch => $composableBuilder(
+  ColumnFilters<String> get epoch => $composableBuilder(
     column: $table.epoch,
     builder: (column) => ColumnFilters(column),
   );
@@ -22261,7 +22261,7 @@ class $$BaselineStateTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<DateTime> get epoch => $composableBuilder(
+  ColumnOrderings<String> get epoch => $composableBuilder(
     column: $table.epoch,
     builder: (column) => ColumnOrderings(column),
   );
@@ -22279,7 +22279,7 @@ class $$BaselineStateTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumn<DateTime> get epoch =>
+  GeneratedColumn<String> get epoch =>
       $composableBuilder(column: $table.epoch, builder: (column) => column);
 }
 
@@ -22321,13 +22321,11 @@ class $$BaselineStateTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<DateTime> epoch = const Value.absent(),
+                Value<String> epoch = const Value.absent(),
               }) => BaselineStateCompanion(id: id, epoch: epoch),
           createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required DateTime epoch,
-              }) => BaselineStateCompanion.insert(id: id, epoch: epoch),
+              ({Value<int> id = const Value.absent(), required String epoch}) =>
+                  BaselineStateCompanion.insert(id: id, epoch: epoch),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),

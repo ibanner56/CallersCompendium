@@ -38,15 +38,15 @@ void main() {
     expect(tables, hasLength(6));
 
     final repository = SyncLocalRepository(db);
-    await repository.replaceBaseline(epoch: DateTime.utc(2026, 3, 1));
+    await repository.replaceBaseline(epoch: '7e6d5c4b3a291817161514131211100f');
     await db.close();
 
     final reopened = CompendiumDatabase(NativeDatabase(target));
     addTearDown(reopened.close);
     final reopenedRepository = SyncLocalRepository(reopened);
     expect(
-      (await reopenedRepository.getBaselineState())!.epoch.toUtc(),
-      DateTime.utc(2026, 3, 1),
+      (await reopenedRepository.getBaselineState())!.epoch,
+      '7e6d5c4b3a291817161514131211100f',
     );
     expect(await reopenedRepository.listBaselineEntries(), isEmpty);
   });

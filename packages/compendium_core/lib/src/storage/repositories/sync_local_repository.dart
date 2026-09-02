@@ -24,8 +24,8 @@ class SyncBaselineEntry {
 
 /// Local-only state for the Device Sync protocol.
 ///
-/// The public methods each run in one transaction. Call [transaction] when a
-/// caller must compose a lifecycle operation with other database writes.
+/// Public mutating methods each run in one transaction. Call [transaction]
+/// when a caller must compose a lifecycle operation with other database writes.
 class SyncLocalRepository {
   SyncLocalRepository(this._db);
 
@@ -42,12 +42,12 @@ class SyncLocalRepository {
       _db.select(_db.baselineEntries).get();
 
   Future<void> replaceBaseline({
-    required DateTime epoch,
+    required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) => transaction((tx) => tx.replaceBaseline(epoch: epoch, entries: entries));
 
   Future<void> resetEpoch({
-    required DateTime epoch,
+    required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) => transaction((tx) => tx.resetEpoch(epoch: epoch, entries: entries));
 
@@ -157,7 +157,7 @@ class SyncLocalTransaction {
   final CompendiumDatabase _db;
 
   Future<void> replaceBaseline({
-    required DateTime epoch,
+    required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) async {
     await _db.delete(_db.baselineState).go();
@@ -182,7 +182,7 @@ class SyncLocalTransaction {
   }
 
   Future<void> resetEpoch({
-    required DateTime epoch,
+    required String epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) async {
     await clearBaseline();
@@ -332,13 +332,6 @@ class SyncLocalTransaction {
     if (published.isNotEmpty) {
       await markPublished(kind: kind, recordId: target);
     }
-    await (_db.delete(_db.publishedRecords)..where(
-          (row) =>
-              row.kind.equals(kind.name) &
-              row.recordId.isIn(rewrittenIds) &
-              row.recordId.isNotIn({target}),
-        ))
-        .go();
   }
 
   Future<String> _resolveAlias({

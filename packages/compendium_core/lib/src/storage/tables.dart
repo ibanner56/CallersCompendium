@@ -607,7 +607,7 @@ class NormalisationSkips extends Table {
 @DataClassName('BaselineStateRow')
 class BaselineState extends Table {
   IntColumn get id => integer().customConstraint('NOT NULL CHECK (id = 1)')();
-  DateTimeColumn get epoch => dateTime()();
+  TextColumn get epoch => text()();
 
   @override
   Set<Column> get primaryKey => {id};
