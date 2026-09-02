@@ -1,26 +1,29 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:compendium_app/src/sync/sync_http_client.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
+
+Future<HttpServer> _startServer(
+  FutureOr<void> Function(HttpRequest request) handler,
+) async {
+  final server = await HttpServer.bind('127.0.0.1', 0);
+  server.listen(handler);
+  return server;
+}
 
 void main() {
   group('SyncHttpClient transport', () {
     test('issues non-ASCII credentials with the Bearer scheme', () async {
-      final server = await HttpServer.bind('127.0.0.1', 0);
       final requestSeen = Completer<HttpHeaders>();
-      final subscription = server.listen((request) {
+      final server = await _startServer((request) async {
         if (!requestSeen.isCompleted) requestSeen.complete(request.headers);
         request.response.statusCode = HttpStatus.ok;
-        request.response.close();
+        await request.response.close();
       });
-      addTearDown(() async {
-        await subscription.cancel();
-        await server.close(force: true);
-      });
+      addTearDown(() => server.close(force: true));
 
       final client = SyncHttpClient(
         endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
@@ -39,26 +42,26 @@ void main() {
     test(
       'refuses a foreign redirect before issuing a second request',
       () async {
-        final requests = <http.BaseRequest>[];
-        final mock = MockClient((request) async {
-          requests.add(request);
-          return http.Response(
-            '',
-            HttpStatus.found,
-            headers: {'location': 'https://foreign.example/v1/store'},
-          );
+        var requests = 0;
+        final server = await _startServer((request) async {
+          requests++;
+          request.response
+            ..statusCode = HttpStatus.found
+            ..headers.set('location', 'https://foreign.example/v1/store');
+          await request.response.close();
         });
+        addTearDown(() => server.close(force: true));
+
         final client = SyncHttpClient(
-          endpoint: Uri.parse('http://localhost:8080/'),
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
           syncId: 'one-two-three-four',
-          client: mock,
         );
         addTearDown(client.close);
 
         final result = await client.getStore(previouslyUsed: false);
 
         expect(result.response.kind, SyncResponseKind.redirectRefused);
-        expect(requests, hasLength(1));
+        expect(requests, 1);
       },
     );
 
@@ -70,14 +73,11 @@ void main() {
           ..usePrivateKey('test/sync/fixtures/untrusted_sync_key.pem');
         var requests = 0;
         final server = await HttpServer.bindSecure('localhost', 0, context);
-        final subscription = server.listen((request) {
+        server.listen((request) {
           requests++;
           request.response.close();
         });
-        addTearDown(() async {
-          await subscription.cancel();
-          await server.close(force: true);
-        });
+        addTearDown(() => server.close(force: true));
 
         final client = SyncHttpClient(
           endpoint: Uri.parse('https://localhost:${server.port}/'),
@@ -85,8 +85,8 @@ void main() {
         );
         addTearDown(client.close);
 
-        expect(
-          () => client.request('GET', 'store'),
+        await expectLater(
+          client.request('GET', 'store'),
           throwsA(isA<HandshakeException>()),
         );
         await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -120,23 +120,22 @@ void main() {
 
     test('aborts an oversized gzip response while inflating', () async {
       final compressed = gzip.encode(List<int>.filled(1000, 0x61));
-      final mock = MockClient(
-        (_) async => http.Response.bytes(
-          compressed,
-          HttpStatus.ok,
-          headers: {'content-encoding': 'gzip'},
-        ),
-      );
+      final server = await _startServer((request) async {
+        request.response.headers.set('content-encoding', 'gzip');
+        request.response.add(compressed);
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
       final client = SyncHttpClient(
-        endpoint: Uri.parse('http://localhost/'),
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
         syncId: 'one-two-three-four',
-        client: mock,
         maxResponseBytes: 100,
       );
       addTearDown(client.close);
 
-      expect(
-        () => client.request('GET', 'store'),
+      await expectLater(
+        client.request('GET', 'store'),
         throwsA(isA<SyncEndpointException>()),
       );
     });
@@ -147,13 +146,16 @@ void main() {
       'distinguishes first-time and previously used missing stores',
       () async {
         final methods = <String>[];
+        final server = await _startServer((request) async {
+          methods.add(request.method);
+          request.response.statusCode = HttpStatus.notFound;
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
         final client = SyncHttpClient(
-          endpoint: Uri.parse('http://localhost/'),
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
           syncId: 'one-two-three-four',
-          client: MockClient((request) async {
-            methods.add(request.method);
-            return http.Response('', HttpStatus.notFound);
-          }),
         );
         addTearDown(client.close);
 
@@ -167,19 +169,22 @@ void main() {
     );
 
     test('types conflicts, rejection, and Retry-After', () async {
-      final responses = <http.Response>[
-        http.Response('', HttpStatus.conflict),
-        http.Response('', HttpStatus.unprocessableEntity),
-        http.Response(
-          '',
-          HttpStatus.tooManyRequests,
-          headers: {'retry-after': '7'},
-        ),
+      final responses = <(int, Map<String, String>)>[
+        (HttpStatus.conflict, const {}),
+        (HttpStatus.unprocessableEntity, const {}),
+        (HttpStatus.tooManyRequests, const {'retry-after': '7'}),
       ];
+      final server = await _startServer((request) async {
+        final (status, headers) = responses.removeAt(0);
+        request.response.statusCode = status;
+        headers.forEach(request.response.headers.set);
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
       final client = SyncHttpClient(
-        endpoint: Uri.parse('http://localhost/'),
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
         syncId: 'one-two-three-four',
-        client: MockClient((_) async => responses.removeAt(0)),
       );
       addTearDown(client.close);
 
@@ -194,24 +199,26 @@ void main() {
     });
 
     test('sends ETags and blob content types on the correct paths', () async {
-      late http.BaseRequest received;
+      final requests = <HttpRequest>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        request.response.statusCode = HttpStatus.notModified;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
       final client = SyncHttpClient(
-        endpoint: Uri.parse('http://localhost/'),
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
         syncId: 'one-two-three-four',
-        client: MockClient((request) async {
-          received = request;
-          return http.Response('', HttpStatus.notModified);
-        }),
       );
       addTearDown(client.close);
 
       final response = await client.getManifest('device/id', etag: '"hash"');
-
       expect(response.kind, SyncResponseKind.notModified);
-      expect(received.url.path, '/v1/manifests/device%2Fid');
-      expect(received.headers['if-none-match'], '"hash"');
+      expect(requests.single.uri.path, '/v1/manifests/device%2Fid');
+      expect(requests.single.headers.value('if-none-match'), '"hash"');
       expect(
-        received.headers['authorization'],
+        requests.single.headers.value('authorization'),
         'Bearer ${encodeSyncCredential('one-two-three-four')}',
       );
     });

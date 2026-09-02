@@ -83,13 +83,11 @@ class SyncHttpClient {
   SyncHttpClient({
     required Uri endpoint,
     required String syncId,
-    http.Client? client,
     this.maxRedirects = syncMaxRedirects,
     this.maxResponseBytes = syncMaxResponseBytes,
   }) : endpoint = validateSyncEndpoint(endpoint),
        _syncId = SyncId.parse(normalizeSyncId(syncId)),
-       _client = client ?? _defaultClient(),
-       _ownsClient = client == null {
+       _client = _defaultClient() {
     if (maxRedirects < 0) {
       throw ArgumentError.value(maxRedirects, 'maxRedirects');
     }
@@ -103,7 +101,6 @@ class SyncHttpClient {
   final int maxResponseBytes;
   final SyncId _syncId;
   final http.Client _client;
-  final bool _ownsClient;
 
   /// Sends a store lookup. This method never issues a creation request.
   Future<SyncStoreResult> getStore({required bool previouslyUsed}) async {
@@ -217,7 +214,7 @@ class SyncHttpClient {
   }
 
   void close() {
-    if (_ownsClient) _client.close();
+    _client.close();
   }
 
   Uri _uri(String relativePath) {
@@ -328,7 +325,7 @@ Uri validateSyncEndpoint(Uri uri) {
   return uri;
 }
 
-http.Client _defaultClient() => IOClient(HttpClient());
+http.Client _defaultClient() => IOClient(HttpClient()..autoUncompress = false);
 
 bool _isRedirect(int statusCode) =>
     statusCode == 301 ||
