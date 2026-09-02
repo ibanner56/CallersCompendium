@@ -36,13 +36,17 @@
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Independent encoders agree on the complete wire corpus.",
       "Non-finite numbers and unpaired surrogates are rejected before encoding.",
       "Manifest identity remains nested by record kind."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Canonical JSON and lowercase SHA-256 content hashing are shipped with an independent wire corpus oracle and malformed-value rejection.",
+    "evidence": [
+      "PR #1147 (merge 2dd46781114aa751218df78c0d32afebc681d67c): RFC 8785 canonical JSON, content and body SHA-256 hashes, public core export, and the independent wire corpus oracle.",
+      "packages/compendium_core/test/sync/canonical_json_test.dart covers independent corpus agreement, RFC number spellings, malformed values, hash output, same-ID kind nesting, and mutation-proven cycle rejection.",
+      "python3 tools/preflight.py passed 19 locally available gates on the final implementation head; Flutter/Dart PATH-dependent gates were visibly skipped."
+    ]
   }
 }
