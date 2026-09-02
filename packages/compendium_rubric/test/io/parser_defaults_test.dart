@@ -50,8 +50,8 @@ const Map<String, Operation> defaults = {
   'facing_star': FacingStar(),
   'figure_8': FigureEight(lead: 'onesRole2'),
   'form_a_long_wave': FormALongWave(),
-  'form_long_waves': FormLongWaves(),
-  'form_short_waves': FormShortWaves(),
+  'form_long_waves': FormLongWaves(who: WhoSet.role1s),
+  'form_short_waves': FormShortWaves(centerHand: Hand.right),
   'gate': Gate(),
   'give_and_take': GiveAndTake(),
   'hey': HeyForFour(pass1: WhoSet.role2s, length: HeyLength.half),
@@ -59,7 +59,7 @@ const Map<String, Operation> defaults = {
   'mad_robin': MadRobin(),
   'orbit': Orbit(),
   'pass_by': PassBy(),
-  'pass_the_ocean': PassTheOcean(),
+  'pass_the_ocean': PassTheOcean(centerHand: Hand.right),
   'pass_through': PassThrough(),
   'petronella': Petronella(),
   'poussette': Poussette(),
@@ -81,6 +81,13 @@ const Map<String, Operation> defaults = {
   'two_hand_turn': TwoHandTurn(),
   'up_the_hall': UpTheHall(),
   'zig_zag': ZigZag(),
+
+  // `compendium_core`'s aliases: a target move with some params pinned. They
+  // are parseable, so they are pinned here on the same footing as the rest --
+  // each expectation is the target's own defaults with the pin applied.
+  'meltdown_swing': Swing(who: WhoSet.partners, prefix: 'meltdown'),
+  'see_saw': DoSiDo(who: WhoSet.neighbors, shoulder: Hand.left),
+  'swat_the_flea': BoxTheGnat(hand: Hand.left),
 };
 
 void main() {
