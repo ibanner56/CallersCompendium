@@ -39,6 +39,16 @@ enum DanceOutcome {
   /// A figure refused to run.
   figureRefused,
 
+  /// The compiler **threw**, which it is never supposed to do.
+  ///
+  /// Always a defect in this package, never a fact about the dance: a figure
+  /// that cannot run is required to return an [OpError], so an exception
+  /// escaping [compile] means an operation built a formation it should have
+  /// refused to build. Caught here only so that one bad dance cannot end a
+  /// corpus sweep, and kept as its own outcome so that catching it does not
+  /// quietly bury it among the legitimate refusals.
+  crashed,
+
   /// The record could not be read: a move this compiler does not implement, a
   /// progression tier it does not model, a non-contra form.
   unsupported,
@@ -110,7 +120,13 @@ class DanceRun {
       outcome == DanceOutcome.compiled || outcome == DanceOutcome.mismatch;
 
   /// Whether the compiler was given a chance at all.
-  bool get attempted => ran || outcome == DanceOutcome.figureRefused;
+  ///
+  /// A crash counts: the compiler was handed the dance and did not compile it,
+  /// and excluding it would flatter the rate by hiding this package's own bugs.
+  bool get attempted =>
+      ran ||
+      outcome == DanceOutcome.figureRefused ||
+      outcome == DanceOutcome.crashed;
 
   @override
   String toString() =>
@@ -261,7 +277,20 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
         assumedAt: bridged.assumedProgressionAt,
       );
     case Ok(:final value):
-      final result = compile(value);
+      final CompileResult result;
+      try {
+        result = compile(value);
+      } catch (error) {
+        // Deliberately unfiltered: what is being caught is "the compiler threw
+        // at all", and narrowing the clause would let some other escaping type
+        // end the sweep. The outcome keeps it loud.
+        return finish(
+          DanceOutcome.crashed,
+          detail: '$error',
+          extra: bridged.warnings,
+          assumedAt: bridged.assumedProgressionAt,
+        );
+      }
       final warnings = [...bridged.warnings, ...result.warnings];
       return switch (result) {
         Compiled() => finish(
