@@ -52,7 +52,7 @@ void _writeValue(
     case final Map<Object?, Object?> map:
       _writeMap(output, map, active, path);
     default:
-      throw FormatException('Unsupported JSON value at ${pathOrRoot(path)}');
+      throw FormatException('Unsupported JSON value at ${_pathOrRoot(path)}');
   }
 }
 
@@ -87,7 +87,7 @@ void _writeMap(
     for (final key in value.keys) {
       if (key is! String) {
         throw FormatException(
-          'Object key is not a String at ${pathOrRoot(path)}',
+          'Object key is not a String at ${_pathOrRoot(path)}',
         );
       }
       _validateString(key, '$path/${_pointerEscape(key)}');
@@ -111,7 +111,7 @@ void _writeMap(
 
 void _enter(Object value, HashSet<Object> active, String path) {
   if (!active.add(value)) {
-    throw FormatException('Cyclic JSON value at ${pathOrRoot(path)}');
+    throw FormatException('Cyclic JSON value at ${_pathOrRoot(path)}');
   }
 }
 
@@ -122,7 +122,7 @@ String _formatNumber(num value, String path) {
     if (!ieee754.isFinite || ieee754.toInt() != value) {
       throw FormatException(
         'Integer is not exactly representable as an IEEE-754 double '
-        'at ${pathOrRoot(path)}',
+        'at ${_pathOrRoot(path)}',
       );
     }
   } else {
@@ -130,7 +130,7 @@ String _formatNumber(num value, String path) {
   }
   if (!ieee754.isFinite) {
     throw FormatException(
-      'NaN and infinity are not JSON numbers at ${pathOrRoot(path)}',
+      'NaN and infinity are not JSON numbers at ${_pathOrRoot(path)}',
     );
   }
   if (ieee754 == 0) return '0';
@@ -239,13 +239,13 @@ void _validateString(String value, String path) {
       if (!hasLowPair) {
         throw FormatException(
           'String contains an unpaired high surrogate at '
-          '${pathOrRoot(path)}',
+          '${_pathOrRoot(path)}',
         );
       }
       index++;
     } else if (codeUnit >= 0xdc00 && codeUnit <= 0xdfff) {
       throw FormatException(
-        'String contains an unpaired low surrogate at ${pathOrRoot(path)}',
+        'String contains an unpaired low surrogate at ${_pathOrRoot(path)}',
       );
     }
   }
@@ -265,4 +265,4 @@ int _compareUtf16(String first, String second) {
 String _pointerEscape(String value) =>
     value.replaceAll('~', '~0').replaceAll('/', '~1');
 
-String pathOrRoot(String path) => path.isEmpty ? '<root>' : path;
+String _pathOrRoot(String path) => path.isEmpty ? '<root>' : path;
