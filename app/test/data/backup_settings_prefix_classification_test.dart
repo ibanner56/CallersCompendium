@@ -60,10 +60,7 @@ void main() {
 
     expect(exactDeviceScopedKeys, {'window_frame', 'last_backup_at'});
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
-    expect(
-      kBackupSettingsDenylist,
-      containsAll({'sync_id', 'sync_device_id'}),
-    );
+    expect(kBackupSettingsDenylist, containsAll({'sync_id', 'sync_device_id'}));
     expect(isBackupEligibleSettingKey('sync_id'), isFalse);
     expect(isBackupEligibleSettingKey('sync_device_id'), isFalse);
 
