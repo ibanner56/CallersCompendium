@@ -35,6 +35,7 @@ class SyncRecordBlob {
     _validateVersion(v);
     _validateId(id);
     _validateBlobBody(kind, id, this.body);
+    canonicalJson(this.body);
   }
 
   final int v;

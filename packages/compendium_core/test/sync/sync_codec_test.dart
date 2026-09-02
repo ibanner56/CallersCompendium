@@ -155,6 +155,27 @@ void main() {
       );
     });
 
+    test('rejects non-JSON body values at construction', () {
+      for (final value in <Object?>[
+        DateTime.utc(2026, 7, 15),
+        Uri.parse('https://example.com'),
+        double.infinity,
+      ]) {
+        expect(
+          () => SyncRecordBlob(
+            kind: SyncRecordKind.dance,
+            id: 'd1',
+            updatedAt: _stamp,
+            deletedAt: null,
+            existenceAt: _stamp,
+            body: {'id': 'd1', 'title': value},
+          ),
+          throwsFormatException,
+          reason: '$value',
+        );
+      }
+    });
+
     test('shared entity builder keeps archive output unchanged', () {
       final archive = CompendiumArchive(exportedAt: _stamp, dances: [_dance()]);
       final archiveBody =
