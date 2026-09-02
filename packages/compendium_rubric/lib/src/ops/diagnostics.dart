@@ -206,6 +206,27 @@ enum WarningKind {
     'unrecognizedFormation',
     'the declared starting formation is not one this compiler models; the base '
         'formation is used instead',
+  ),
+
+  /// An importer had to assume which figure progresses, because its source
+  /// never said.
+  ///
+  /// Raised by an **import bridge**, never by the compiler, and that separation
+  /// is the point. The compiler's rule stands untouched: progression is a fact
+  /// the record states, never one inferred from the matrix, and a record with
+  /// no figure flagged is still refused outright
+  /// ([ErrorKind.unperformedProgression]). This warning exists so that a source
+  /// whose format simply has no place to *put* that fact can be read at all,
+  /// while the assumption stays visible in the output.
+  ///
+  /// It is raised **whenever the assumption is made**, including when the dance
+  /// then compiles. A compile that rests on a guess and one that rests on the
+  /// record saying so are not the same result, and they must not read alike.
+  /// *(User-ruled.)*
+  assumedProgression(
+    'assumedProgression',
+    'the source did not say which figure progresses, so one was assumed; the '
+        'result rests on that assumption',
   );
 
   const WarningKind(this.key, this.description);
