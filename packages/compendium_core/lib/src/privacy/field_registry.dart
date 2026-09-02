@@ -88,6 +88,36 @@ const _normalisationRepairState = DataClassification(
   note: 'Local collision-repair bookkeeping; never exported or synchronized.',
 );
 
+/// Device Sync protocol bookkeeping. These fields identify local state and
+/// ordering, but carry no record content and have no meaning on another device.
+const _syncBookkeeping = DataClassification(
+  term: DpvTerm.nonPersonal,
+  subject: DataSubject.none,
+  egress: EgressClass.deviceScoped,
+  note: 'Device Sync bookkeeping; never exported or synchronized.',
+);
+
+/// An opaque pending sync candidate. Its serialized record may contain
+/// third-party data, but it is held locally until a user resolves the review.
+const _syncCandidatePayload = DataClassification(
+  term: DpvTerm.unclassifiedPersonal,
+  subject: DataSubject.thirdParty,
+  egress: EgressClass.deviceScoped,
+  note:
+      'Opaque serialized sync candidate may contain third-party record content; '
+      'held locally until review and never synchronized as queue state.',
+);
+
+/// An opaque tombstone payload that is intentionally retransmitted by sync.
+const _syncTombstonePayload = DataClassification(
+  term: DpvTerm.unclassifiedPersonal,
+  subject: DataSubject.thirdParty,
+  egress: EgressClass.shareable,
+  note:
+      'Opaque serialized tombstone may contain third-party record content; '
+      'shareable because pending deletion retransmits it to sync peers.',
+);
+
 /// A soft-delete tombstone (`deleted_at`) on a kind that gained one in schema
 /// v25 (issue #898).
 ///
@@ -532,6 +562,29 @@ final Map<String, DataClassification> fieldClassifications = {
   'normalisation_skips.table_name': _normalisationRepairState,
   'normalisation_skips.column_name': _normalisationRepairState,
   'normalisation_skips.record_id': _normalisationRepairState,
+  'baseline_state.id': _syncBookkeeping,
+  'baseline_state.epoch': _syncBookkeeping,
+  'baseline_entries.kind': _syncBookkeeping,
+  'baseline_entries.record_id': _syncBookkeeping,
+  'baseline_entries.wire_hash': _syncBookkeeping,
+  'baseline_entries.body_hash': _syncBookkeeping,
+  'id_aliases.kind': _syncBookkeeping,
+  'id_aliases.losing_id': _syncBookkeeping,
+  'id_aliases.surviving_id': _syncBookkeeping,
+  'pending_deletions.kind': _syncBookkeeping,
+  'pending_deletions.record_id': _syncBookkeeping,
+  'pending_deletions.tombstoned_at': _syncBookkeeping,
+  'pending_deletions.tombstone_hash': _syncBookkeeping,
+  'pending_deletions.tombstone_blob': _syncTombstonePayload,
+  'review_queue.kind': _syncBookkeeping,
+  'review_queue.record_id': _syncBookkeeping,
+  'review_queue.counterpart_id': _syncBookkeeping,
+  'review_queue.reason': _syncBookkeeping,
+  'review_queue.candidate_blob': _syncCandidatePayload,
+  'review_queue.candidate_hash': _syncBookkeeping,
+  'review_queue.queued_at': _syncBookkeeping,
+  'published_records.kind': _syncBookkeeping,
+  'published_records.record_id': _syncBookkeeping,
 };
 
 const _contactStreet = DataClassification(

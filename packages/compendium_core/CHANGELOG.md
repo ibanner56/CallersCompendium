@@ -28,6 +28,9 @@ core version. They are left that way deliberately — do not renumber them.
   and shareable projection helpers derived from the core privacy registries.
 - Add Device Sync record-blob, per-key settings-record, and kind-nested manifest
   codecs with canonical bytes, explicit null handling, and strict decoding.
+- Add schema-v32 local Device Sync persistence for baselines, aliases, pending
+  tombstones, review candidates, and publication history, with lifecycle-safe
+  repository operations.
 
 ## [0.3.0] - 2026-09-01
 

@@ -11253,6 +11253,1897 @@ class NormalisationSkipsCompanion
   }
 }
 
+class $BaselineStateTable extends BaselineState
+    with TableInfo<$BaselineStateTable, BaselineStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BaselineStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL CHECK (id = 1)',
+  );
+  static const VerificationMeta _epochMeta = const VerificationMeta('epoch');
+  @override
+  late final GeneratedColumn<DateTime> epoch = GeneratedColumn<DateTime>(
+    'epoch',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, epoch];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'baseline_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BaselineStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('epoch')) {
+      context.handle(
+        _epochMeta,
+        epoch.isAcceptableOrUnknown(data['epoch']!, _epochMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_epochMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  BaselineStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BaselineStateRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      epoch: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}epoch'],
+      )!,
+    );
+  }
+
+  @override
+  $BaselineStateTable createAlias(String alias) {
+    return $BaselineStateTable(attachedDatabase, alias);
+  }
+}
+
+class BaselineStateRow extends DataClass
+    implements Insertable<BaselineStateRow> {
+  final int id;
+  final DateTime epoch;
+  const BaselineStateRow({required this.id, required this.epoch});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['epoch'] = Variable<DateTime>(epoch);
+    return map;
+  }
+
+  BaselineStateCompanion toCompanion(bool nullToAbsent) {
+    return BaselineStateCompanion(id: Value(id), epoch: Value(epoch));
+  }
+
+  factory BaselineStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BaselineStateRow(
+      id: serializer.fromJson<int>(json['id']),
+      epoch: serializer.fromJson<DateTime>(json['epoch']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'epoch': serializer.toJson<DateTime>(epoch),
+    };
+  }
+
+  BaselineStateRow copyWith({int? id, DateTime? epoch}) =>
+      BaselineStateRow(id: id ?? this.id, epoch: epoch ?? this.epoch);
+  BaselineStateRow copyWithCompanion(BaselineStateCompanion data) {
+    return BaselineStateRow(
+      id: data.id.present ? data.id.value : this.id,
+      epoch: data.epoch.present ? data.epoch.value : this.epoch,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselineStateRow(')
+          ..write('id: $id, ')
+          ..write('epoch: $epoch')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, epoch);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BaselineStateRow &&
+          other.id == this.id &&
+          other.epoch == this.epoch);
+}
+
+class BaselineStateCompanion extends UpdateCompanion<BaselineStateRow> {
+  final Value<int> id;
+  final Value<DateTime> epoch;
+  const BaselineStateCompanion({
+    this.id = const Value.absent(),
+    this.epoch = const Value.absent(),
+  });
+  BaselineStateCompanion.insert({
+    this.id = const Value.absent(),
+    required DateTime epoch,
+  }) : epoch = Value(epoch);
+  static Insertable<BaselineStateRow> custom({
+    Expression<int>? id,
+    Expression<DateTime>? epoch,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (epoch != null) 'epoch': epoch,
+    });
+  }
+
+  BaselineStateCompanion copyWith({Value<int>? id, Value<DateTime>? epoch}) {
+    return BaselineStateCompanion(
+      id: id ?? this.id,
+      epoch: epoch ?? this.epoch,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (epoch.present) {
+      map['epoch'] = Variable<DateTime>(epoch.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselineStateCompanion(')
+          ..write('id: $id, ')
+          ..write('epoch: $epoch')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $BaselineEntriesTable extends BaselineEntries
+    with TableInfo<$BaselineEntriesTable, BaselineEntryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $BaselineEntriesTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($BaselineEntriesTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _wireHashMeta = const VerificationMeta(
+    'wireHash',
+  );
+  @override
+  late final GeneratedColumn<String> wireHash = GeneratedColumn<String>(
+    'wire_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyHashMeta = const VerificationMeta(
+    'bodyHash',
+  );
+  @override
+  late final GeneratedColumn<String> bodyHash = GeneratedColumn<String>(
+    'body_hash',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, recordId, wireHash, bodyHash];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'baseline_entries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<BaselineEntryRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('wire_hash')) {
+      context.handle(
+        _wireHashMeta,
+        wireHash.isAcceptableOrUnknown(data['wire_hash']!, _wireHashMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_wireHashMeta);
+    }
+    if (data.containsKey('body_hash')) {
+      context.handle(
+        _bodyHashMeta,
+        bodyHash.isAcceptableOrUnknown(data['body_hash']!, _bodyHashMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId};
+  @override
+  BaselineEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return BaselineEntryRow(
+      kind: $BaselineEntriesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      wireHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}wire_hash'],
+      )!,
+      bodyHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body_hash'],
+      ),
+    );
+  }
+
+  @override
+  $BaselineEntriesTable createAlias(String alias) {
+    return $BaselineEntriesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class BaselineEntryRow extends DataClass
+    implements Insertable<BaselineEntryRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  final String wireHash;
+  final String? bodyHash;
+  const BaselineEntryRow({
+    required this.kind,
+    required this.recordId,
+    required this.wireHash,
+    this.bodyHash,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $BaselineEntriesTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['wire_hash'] = Variable<String>(wireHash);
+    if (!nullToAbsent || bodyHash != null) {
+      map['body_hash'] = Variable<String>(bodyHash);
+    }
+    return map;
+  }
+
+  BaselineEntriesCompanion toCompanion(bool nullToAbsent) {
+    return BaselineEntriesCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+      wireHash: Value(wireHash),
+      bodyHash: bodyHash == null && nullToAbsent
+          ? const Value.absent()
+          : Value(bodyHash),
+    );
+  }
+
+  factory BaselineEntryRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return BaselineEntryRow(
+      kind: $BaselineEntriesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      wireHash: serializer.fromJson<String>(json['wireHash']),
+      bodyHash: serializer.fromJson<String?>(json['bodyHash']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $BaselineEntriesTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+      'wireHash': serializer.toJson<String>(wireHash),
+      'bodyHash': serializer.toJson<String?>(bodyHash),
+    };
+  }
+
+  BaselineEntryRow copyWith({
+    SyncRecordKind? kind,
+    String? recordId,
+    String? wireHash,
+    Value<String?> bodyHash = const Value.absent(),
+  }) => BaselineEntryRow(
+    kind: kind ?? this.kind,
+    recordId: recordId ?? this.recordId,
+    wireHash: wireHash ?? this.wireHash,
+    bodyHash: bodyHash.present ? bodyHash.value : this.bodyHash,
+  );
+  BaselineEntryRow copyWithCompanion(BaselineEntriesCompanion data) {
+    return BaselineEntryRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      wireHash: data.wireHash.present ? data.wireHash.value : this.wireHash,
+      bodyHash: data.bodyHash.present ? data.bodyHash.value : this.bodyHash,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselineEntryRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wireHash: $wireHash, ')
+          ..write('bodyHash: $bodyHash')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, recordId, wireHash, bodyHash);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is BaselineEntryRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId &&
+          other.wireHash == this.wireHash &&
+          other.bodyHash == this.bodyHash);
+}
+
+class BaselineEntriesCompanion extends UpdateCompanion<BaselineEntryRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<String> wireHash;
+  final Value<String?> bodyHash;
+  final Value<int> rowid;
+  const BaselineEntriesCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.wireHash = const Value.absent(),
+    this.bodyHash = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  BaselineEntriesCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String wireHash,
+    this.bodyHash = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId),
+       wireHash = Value(wireHash);
+  static Insertable<BaselineEntryRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<String>? wireHash,
+    Expression<String>? bodyHash,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (wireHash != null) 'wire_hash': wireHash,
+      if (bodyHash != null) 'body_hash': bodyHash,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  BaselineEntriesCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<String>? wireHash,
+    Value<String?>? bodyHash,
+    Value<int>? rowid,
+  }) {
+    return BaselineEntriesCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      wireHash: wireHash ?? this.wireHash,
+      bodyHash: bodyHash ?? this.bodyHash,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $BaselineEntriesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (wireHash.present) {
+      map['wire_hash'] = Variable<String>(wireHash.value);
+    }
+    if (bodyHash.present) {
+      map['body_hash'] = Variable<String>(bodyHash.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('BaselineEntriesCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('wireHash: $wireHash, ')
+          ..write('bodyHash: $bodyHash, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $IdAliasesTable extends IdAliases
+    with TableInfo<$IdAliasesTable, IdAliasRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $IdAliasesTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($IdAliasesTable.$converterkind);
+  static const VerificationMeta _losingIdMeta = const VerificationMeta(
+    'losingId',
+  );
+  @override
+  late final GeneratedColumn<String> losingId = GeneratedColumn<String>(
+    'losing_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _survivingIdMeta = const VerificationMeta(
+    'survivingId',
+  );
+  @override
+  late final GeneratedColumn<String> survivingId = GeneratedColumn<String>(
+    'surviving_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, losingId, survivingId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'id_aliases';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<IdAliasRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('losing_id')) {
+      context.handle(
+        _losingIdMeta,
+        losingId.isAcceptableOrUnknown(data['losing_id']!, _losingIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_losingIdMeta);
+    }
+    if (data.containsKey('surviving_id')) {
+      context.handle(
+        _survivingIdMeta,
+        survivingId.isAcceptableOrUnknown(
+          data['surviving_id']!,
+          _survivingIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_survivingIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, losingId};
+  @override
+  IdAliasRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return IdAliasRow(
+      kind: $IdAliasesTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      losingId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}losing_id'],
+      )!,
+      survivingId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}surviving_id'],
+      )!,
+    );
+  }
+
+  @override
+  $IdAliasesTable createAlias(String alias) {
+    return $IdAliasesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class IdAliasRow extends DataClass implements Insertable<IdAliasRow> {
+  final SyncRecordKind kind;
+  final String losingId;
+  final String survivingId;
+  const IdAliasRow({
+    required this.kind,
+    required this.losingId,
+    required this.survivingId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $IdAliasesTable.$converterkind.toSql(kind),
+      );
+    }
+    map['losing_id'] = Variable<String>(losingId);
+    map['surviving_id'] = Variable<String>(survivingId);
+    return map;
+  }
+
+  IdAliasesCompanion toCompanion(bool nullToAbsent) {
+    return IdAliasesCompanion(
+      kind: Value(kind),
+      losingId: Value(losingId),
+      survivingId: Value(survivingId),
+    );
+  }
+
+  factory IdAliasRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return IdAliasRow(
+      kind: $IdAliasesTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      losingId: serializer.fromJson<String>(json['losingId']),
+      survivingId: serializer.fromJson<String>(json['survivingId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $IdAliasesTable.$converterkind.toJson(kind),
+      ),
+      'losingId': serializer.toJson<String>(losingId),
+      'survivingId': serializer.toJson<String>(survivingId),
+    };
+  }
+
+  IdAliasRow copyWith({
+    SyncRecordKind? kind,
+    String? losingId,
+    String? survivingId,
+  }) => IdAliasRow(
+    kind: kind ?? this.kind,
+    losingId: losingId ?? this.losingId,
+    survivingId: survivingId ?? this.survivingId,
+  );
+  IdAliasRow copyWithCompanion(IdAliasesCompanion data) {
+    return IdAliasRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      losingId: data.losingId.present ? data.losingId.value : this.losingId,
+      survivingId: data.survivingId.present
+          ? data.survivingId.value
+          : this.survivingId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IdAliasRow(')
+          ..write('kind: $kind, ')
+          ..write('losingId: $losingId, ')
+          ..write('survivingId: $survivingId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, losingId, survivingId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is IdAliasRow &&
+          other.kind == this.kind &&
+          other.losingId == this.losingId &&
+          other.survivingId == this.survivingId);
+}
+
+class IdAliasesCompanion extends UpdateCompanion<IdAliasRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> losingId;
+  final Value<String> survivingId;
+  final Value<int> rowid;
+  const IdAliasesCompanion({
+    this.kind = const Value.absent(),
+    this.losingId = const Value.absent(),
+    this.survivingId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  IdAliasesCompanion.insert({
+    required SyncRecordKind kind,
+    required String losingId,
+    required String survivingId,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       losingId = Value(losingId),
+       survivingId = Value(survivingId);
+  static Insertable<IdAliasRow> custom({
+    Expression<String>? kind,
+    Expression<String>? losingId,
+    Expression<String>? survivingId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (losingId != null) 'losing_id': losingId,
+      if (survivingId != null) 'surviving_id': survivingId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  IdAliasesCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? losingId,
+    Value<String>? survivingId,
+    Value<int>? rowid,
+  }) {
+    return IdAliasesCompanion(
+      kind: kind ?? this.kind,
+      losingId: losingId ?? this.losingId,
+      survivingId: survivingId ?? this.survivingId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $IdAliasesTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (losingId.present) {
+      map['losing_id'] = Variable<String>(losingId.value);
+    }
+    if (survivingId.present) {
+      map['surviving_id'] = Variable<String>(survivingId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IdAliasesCompanion(')
+          ..write('kind: $kind, ')
+          ..write('losingId: $losingId, ')
+          ..write('survivingId: $survivingId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PendingDeletionsTable extends PendingDeletions
+    with TableInfo<$PendingDeletionsTable, PendingDeletionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PendingDeletionsTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($PendingDeletionsTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tombstonedAtMeta = const VerificationMeta(
+    'tombstonedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> tombstonedAt = GeneratedColumn<DateTime>(
+    'tombstoned_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tombstoneHashMeta = const VerificationMeta(
+    'tombstoneHash',
+  );
+  @override
+  late final GeneratedColumn<String> tombstoneHash = GeneratedColumn<String>(
+    'tombstone_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tombstoneBlobMeta = const VerificationMeta(
+    'tombstoneBlob',
+  );
+  @override
+  late final GeneratedColumn<String> tombstoneBlob = GeneratedColumn<String>(
+    'tombstone_blob',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    kind,
+    recordId,
+    tombstonedAt,
+    tombstoneHash,
+    tombstoneBlob,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pending_deletions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PendingDeletionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('tombstoned_at')) {
+      context.handle(
+        _tombstonedAtMeta,
+        tombstonedAt.isAcceptableOrUnknown(
+          data['tombstoned_at']!,
+          _tombstonedAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tombstonedAtMeta);
+    }
+    if (data.containsKey('tombstone_hash')) {
+      context.handle(
+        _tombstoneHashMeta,
+        tombstoneHash.isAcceptableOrUnknown(
+          data['tombstone_hash']!,
+          _tombstoneHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tombstoneHashMeta);
+    }
+    if (data.containsKey('tombstone_blob')) {
+      context.handle(
+        _tombstoneBlobMeta,
+        tombstoneBlob.isAcceptableOrUnknown(
+          data['tombstone_blob']!,
+          _tombstoneBlobMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_tombstoneBlobMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId};
+  @override
+  PendingDeletionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PendingDeletionRow(
+      kind: $PendingDeletionsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      tombstonedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}tombstoned_at'],
+      )!,
+      tombstoneHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tombstone_hash'],
+      )!,
+      tombstoneBlob: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tombstone_blob'],
+      )!,
+    );
+  }
+
+  @override
+  $PendingDeletionsTable createAlias(String alias) {
+    return $PendingDeletionsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class PendingDeletionRow extends DataClass
+    implements Insertable<PendingDeletionRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  final DateTime tombstonedAt;
+  final String tombstoneHash;
+  final String tombstoneBlob;
+  const PendingDeletionRow({
+    required this.kind,
+    required this.recordId,
+    required this.tombstonedAt,
+    required this.tombstoneHash,
+    required this.tombstoneBlob,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $PendingDeletionsTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['tombstoned_at'] = Variable<DateTime>(tombstonedAt);
+    map['tombstone_hash'] = Variable<String>(tombstoneHash);
+    map['tombstone_blob'] = Variable<String>(tombstoneBlob);
+    return map;
+  }
+
+  PendingDeletionsCompanion toCompanion(bool nullToAbsent) {
+    return PendingDeletionsCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+      tombstonedAt: Value(tombstonedAt),
+      tombstoneHash: Value(tombstoneHash),
+      tombstoneBlob: Value(tombstoneBlob),
+    );
+  }
+
+  factory PendingDeletionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PendingDeletionRow(
+      kind: $PendingDeletionsTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      tombstonedAt: serializer.fromJson<DateTime>(json['tombstonedAt']),
+      tombstoneHash: serializer.fromJson<String>(json['tombstoneHash']),
+      tombstoneBlob: serializer.fromJson<String>(json['tombstoneBlob']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $PendingDeletionsTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+      'tombstonedAt': serializer.toJson<DateTime>(tombstonedAt),
+      'tombstoneHash': serializer.toJson<String>(tombstoneHash),
+      'tombstoneBlob': serializer.toJson<String>(tombstoneBlob),
+    };
+  }
+
+  PendingDeletionRow copyWith({
+    SyncRecordKind? kind,
+    String? recordId,
+    DateTime? tombstonedAt,
+    String? tombstoneHash,
+    String? tombstoneBlob,
+  }) => PendingDeletionRow(
+    kind: kind ?? this.kind,
+    recordId: recordId ?? this.recordId,
+    tombstonedAt: tombstonedAt ?? this.tombstonedAt,
+    tombstoneHash: tombstoneHash ?? this.tombstoneHash,
+    tombstoneBlob: tombstoneBlob ?? this.tombstoneBlob,
+  );
+  PendingDeletionRow copyWithCompanion(PendingDeletionsCompanion data) {
+    return PendingDeletionRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      tombstonedAt: data.tombstonedAt.present
+          ? data.tombstonedAt.value
+          : this.tombstonedAt,
+      tombstoneHash: data.tombstoneHash.present
+          ? data.tombstoneHash.value
+          : this.tombstoneHash,
+      tombstoneBlob: data.tombstoneBlob.present
+          ? data.tombstoneBlob.value
+          : this.tombstoneBlob,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingDeletionRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('tombstonedAt: $tombstonedAt, ')
+          ..write('tombstoneHash: $tombstoneHash, ')
+          ..write('tombstoneBlob: $tombstoneBlob')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(kind, recordId, tombstonedAt, tombstoneHash, tombstoneBlob);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PendingDeletionRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId &&
+          other.tombstonedAt == this.tombstonedAt &&
+          other.tombstoneHash == this.tombstoneHash &&
+          other.tombstoneBlob == this.tombstoneBlob);
+}
+
+class PendingDeletionsCompanion extends UpdateCompanion<PendingDeletionRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<DateTime> tombstonedAt;
+  final Value<String> tombstoneHash;
+  final Value<String> tombstoneBlob;
+  final Value<int> rowid;
+  const PendingDeletionsCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.tombstonedAt = const Value.absent(),
+    this.tombstoneHash = const Value.absent(),
+    this.tombstoneBlob = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PendingDeletionsCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    required DateTime tombstonedAt,
+    required String tombstoneHash,
+    required String tombstoneBlob,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId),
+       tombstonedAt = Value(tombstonedAt),
+       tombstoneHash = Value(tombstoneHash),
+       tombstoneBlob = Value(tombstoneBlob);
+  static Insertable<PendingDeletionRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<DateTime>? tombstonedAt,
+    Expression<String>? tombstoneHash,
+    Expression<String>? tombstoneBlob,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (tombstonedAt != null) 'tombstoned_at': tombstonedAt,
+      if (tombstoneHash != null) 'tombstone_hash': tombstoneHash,
+      if (tombstoneBlob != null) 'tombstone_blob': tombstoneBlob,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PendingDeletionsCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<DateTime>? tombstonedAt,
+    Value<String>? tombstoneHash,
+    Value<String>? tombstoneBlob,
+    Value<int>? rowid,
+  }) {
+    return PendingDeletionsCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      tombstonedAt: tombstonedAt ?? this.tombstonedAt,
+      tombstoneHash: tombstoneHash ?? this.tombstoneHash,
+      tombstoneBlob: tombstoneBlob ?? this.tombstoneBlob,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $PendingDeletionsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (tombstonedAt.present) {
+      map['tombstoned_at'] = Variable<DateTime>(tombstonedAt.value);
+    }
+    if (tombstoneHash.present) {
+      map['tombstone_hash'] = Variable<String>(tombstoneHash.value);
+    }
+    if (tombstoneBlob.present) {
+      map['tombstone_blob'] = Variable<String>(tombstoneBlob.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PendingDeletionsCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('tombstonedAt: $tombstonedAt, ')
+          ..write('tombstoneHash: $tombstoneHash, ')
+          ..write('tombstoneBlob: $tombstoneBlob, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReviewQueueTable extends ReviewQueue
+    with TableInfo<$ReviewQueueTable, ReviewQueueRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReviewQueueTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($ReviewQueueTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _counterpartIdMeta = const VerificationMeta(
+    'counterpartId',
+  );
+  @override
+  late final GeneratedColumn<String> counterpartId = GeneratedColumn<String>(
+    'counterpart_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _candidateBlobMeta = const VerificationMeta(
+    'candidateBlob',
+  );
+  @override
+  late final GeneratedColumn<String> candidateBlob = GeneratedColumn<String>(
+    'candidate_blob',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _candidateHashMeta = const VerificationMeta(
+    'candidateHash',
+  );
+  @override
+  late final GeneratedColumn<String> candidateHash = GeneratedColumn<String>(
+    'candidate_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _queuedAtMeta = const VerificationMeta(
+    'queuedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> queuedAt = GeneratedColumn<DateTime>(
+    'queued_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    kind,
+    recordId,
+    counterpartId,
+    reason,
+    candidateBlob,
+    candidateHash,
+    queuedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'review_queue';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReviewQueueRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    if (data.containsKey('counterpart_id')) {
+      context.handle(
+        _counterpartIdMeta,
+        counterpartId.isAcceptableOrUnknown(
+          data['counterpart_id']!,
+          _counterpartIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_counterpartIdMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('candidate_blob')) {
+      context.handle(
+        _candidateBlobMeta,
+        candidateBlob.isAcceptableOrUnknown(
+          data['candidate_blob']!,
+          _candidateBlobMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_candidateBlobMeta);
+    }
+    if (data.containsKey('candidate_hash')) {
+      context.handle(
+        _candidateHashMeta,
+        candidateHash.isAcceptableOrUnknown(
+          data['candidate_hash']!,
+          _candidateHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_candidateHashMeta);
+    }
+    if (data.containsKey('queued_at')) {
+      context.handle(
+        _queuedAtMeta,
+        queuedAt.isAcceptableOrUnknown(data['queued_at']!, _queuedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_queuedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId, counterpartId};
+  @override
+  ReviewQueueRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReviewQueueRow(
+      kind: $ReviewQueueTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+      counterpartId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}counterpart_id'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      candidateBlob: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidate_blob'],
+      )!,
+      candidateHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}candidate_hash'],
+      )!,
+      queuedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}queued_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReviewQueueTable createAlias(String alias) {
+    return $ReviewQueueTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class ReviewQueueRow extends DataClass implements Insertable<ReviewQueueRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  final String counterpartId;
+  final String reason;
+  final String candidateBlob;
+  final String candidateHash;
+  final DateTime queuedAt;
+  const ReviewQueueRow({
+    required this.kind,
+    required this.recordId,
+    required this.counterpartId,
+    required this.reason,
+    required this.candidateBlob,
+    required this.candidateHash,
+    required this.queuedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $ReviewQueueTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    map['counterpart_id'] = Variable<String>(counterpartId);
+    map['reason'] = Variable<String>(reason);
+    map['candidate_blob'] = Variable<String>(candidateBlob);
+    map['candidate_hash'] = Variable<String>(candidateHash);
+    map['queued_at'] = Variable<DateTime>(queuedAt);
+    return map;
+  }
+
+  ReviewQueueCompanion toCompanion(bool nullToAbsent) {
+    return ReviewQueueCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+      counterpartId: Value(counterpartId),
+      reason: Value(reason),
+      candidateBlob: Value(candidateBlob),
+      candidateHash: Value(candidateHash),
+      queuedAt: Value(queuedAt),
+    );
+  }
+
+  factory ReviewQueueRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReviewQueueRow(
+      kind: $ReviewQueueTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+      counterpartId: serializer.fromJson<String>(json['counterpartId']),
+      reason: serializer.fromJson<String>(json['reason']),
+      candidateBlob: serializer.fromJson<String>(json['candidateBlob']),
+      candidateHash: serializer.fromJson<String>(json['candidateHash']),
+      queuedAt: serializer.fromJson<DateTime>(json['queuedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $ReviewQueueTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+      'counterpartId': serializer.toJson<String>(counterpartId),
+      'reason': serializer.toJson<String>(reason),
+      'candidateBlob': serializer.toJson<String>(candidateBlob),
+      'candidateHash': serializer.toJson<String>(candidateHash),
+      'queuedAt': serializer.toJson<DateTime>(queuedAt),
+    };
+  }
+
+  ReviewQueueRow copyWith({
+    SyncRecordKind? kind,
+    String? recordId,
+    String? counterpartId,
+    String? reason,
+    String? candidateBlob,
+    String? candidateHash,
+    DateTime? queuedAt,
+  }) => ReviewQueueRow(
+    kind: kind ?? this.kind,
+    recordId: recordId ?? this.recordId,
+    counterpartId: counterpartId ?? this.counterpartId,
+    reason: reason ?? this.reason,
+    candidateBlob: candidateBlob ?? this.candidateBlob,
+    candidateHash: candidateHash ?? this.candidateHash,
+    queuedAt: queuedAt ?? this.queuedAt,
+  );
+  ReviewQueueRow copyWithCompanion(ReviewQueueCompanion data) {
+    return ReviewQueueRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+      counterpartId: data.counterpartId.present
+          ? data.counterpartId.value
+          : this.counterpartId,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      candidateBlob: data.candidateBlob.present
+          ? data.candidateBlob.value
+          : this.candidateBlob,
+      candidateHash: data.candidateHash.present
+          ? data.candidateHash.value
+          : this.candidateHash,
+      queuedAt: data.queuedAt.present ? data.queuedAt.value : this.queuedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewQueueRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('counterpartId: $counterpartId, ')
+          ..write('reason: $reason, ')
+          ..write('candidateBlob: $candidateBlob, ')
+          ..write('candidateHash: $candidateHash, ')
+          ..write('queuedAt: $queuedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    kind,
+    recordId,
+    counterpartId,
+    reason,
+    candidateBlob,
+    candidateHash,
+    queuedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReviewQueueRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId &&
+          other.counterpartId == this.counterpartId &&
+          other.reason == this.reason &&
+          other.candidateBlob == this.candidateBlob &&
+          other.candidateHash == this.candidateHash &&
+          other.queuedAt == this.queuedAt);
+}
+
+class ReviewQueueCompanion extends UpdateCompanion<ReviewQueueRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<String> counterpartId;
+  final Value<String> reason;
+  final Value<String> candidateBlob;
+  final Value<String> candidateHash;
+  final Value<DateTime> queuedAt;
+  final Value<int> rowid;
+  const ReviewQueueCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.counterpartId = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.candidateBlob = const Value.absent(),
+    this.candidateHash = const Value.absent(),
+    this.queuedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReviewQueueCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    required String counterpartId,
+    required String reason,
+    required String candidateBlob,
+    required String candidateHash,
+    required DateTime queuedAt,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId),
+       counterpartId = Value(counterpartId),
+       reason = Value(reason),
+       candidateBlob = Value(candidateBlob),
+       candidateHash = Value(candidateHash),
+       queuedAt = Value(queuedAt);
+  static Insertable<ReviewQueueRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<String>? counterpartId,
+    Expression<String>? reason,
+    Expression<String>? candidateBlob,
+    Expression<String>? candidateHash,
+    Expression<DateTime>? queuedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (counterpartId != null) 'counterpart_id': counterpartId,
+      if (reason != null) 'reason': reason,
+      if (candidateBlob != null) 'candidate_blob': candidateBlob,
+      if (candidateHash != null) 'candidate_hash': candidateHash,
+      if (queuedAt != null) 'queued_at': queuedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReviewQueueCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<String>? counterpartId,
+    Value<String>? reason,
+    Value<String>? candidateBlob,
+    Value<String>? candidateHash,
+    Value<DateTime>? queuedAt,
+    Value<int>? rowid,
+  }) {
+    return ReviewQueueCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      counterpartId: counterpartId ?? this.counterpartId,
+      reason: reason ?? this.reason,
+      candidateBlob: candidateBlob ?? this.candidateBlob,
+      candidateHash: candidateHash ?? this.candidateHash,
+      queuedAt: queuedAt ?? this.queuedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $ReviewQueueTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (counterpartId.present) {
+      map['counterpart_id'] = Variable<String>(counterpartId.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (candidateBlob.present) {
+      map['candidate_blob'] = Variable<String>(candidateBlob.value);
+    }
+    if (candidateHash.present) {
+      map['candidate_hash'] = Variable<String>(candidateHash.value);
+    }
+    if (queuedAt.present) {
+      map['queued_at'] = Variable<DateTime>(queuedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReviewQueueCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('counterpartId: $counterpartId, ')
+          ..write('reason: $reason, ')
+          ..write('candidateBlob: $candidateBlob, ')
+          ..write('candidateHash: $candidateHash, ')
+          ..write('queuedAt: $queuedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PublishedRecordsTable extends PublishedRecords
+    with TableInfo<$PublishedRecordsTable, PublishedRecordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PublishedRecordsTable(this.attachedDatabase, [this._alias]);
+  @override
+  late final GeneratedColumnWithTypeConverter<SyncRecordKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SyncRecordKind>($PublishedRecordsTable.$converterkind);
+  static const VerificationMeta _recordIdMeta = const VerificationMeta(
+    'recordId',
+  );
+  @override
+  late final GeneratedColumn<String> recordId = GeneratedColumn<String>(
+    'record_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, recordId];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'published_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PublishedRecordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('record_id')) {
+      context.handle(
+        _recordIdMeta,
+        recordId.isAcceptableOrUnknown(data['record_id']!, _recordIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_recordIdMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind, recordId};
+  @override
+  PublishedRecordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PublishedRecordRow(
+      kind: $PublishedRecordsTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      recordId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}record_id'],
+      )!,
+    );
+  }
+
+  @override
+  $PublishedRecordsTable createAlias(String alias) {
+    return $PublishedRecordsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<SyncRecordKind, String, String> $converterkind =
+      const EnumNameConverter(SyncRecordKind.values);
+}
+
+class PublishedRecordRow extends DataClass
+    implements Insertable<PublishedRecordRow> {
+  final SyncRecordKind kind;
+  final String recordId;
+  const PublishedRecordRow({required this.kind, required this.recordId});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    {
+      map['kind'] = Variable<String>(
+        $PublishedRecordsTable.$converterkind.toSql(kind),
+      );
+    }
+    map['record_id'] = Variable<String>(recordId);
+    return map;
+  }
+
+  PublishedRecordsCompanion toCompanion(bool nullToAbsent) {
+    return PublishedRecordsCompanion(
+      kind: Value(kind),
+      recordId: Value(recordId),
+    );
+  }
+
+  factory PublishedRecordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PublishedRecordRow(
+      kind: $PublishedRecordsTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      recordId: serializer.fromJson<String>(json['recordId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(
+        $PublishedRecordsTable.$converterkind.toJson(kind),
+      ),
+      'recordId': serializer.toJson<String>(recordId),
+    };
+  }
+
+  PublishedRecordRow copyWith({SyncRecordKind? kind, String? recordId}) =>
+      PublishedRecordRow(
+        kind: kind ?? this.kind,
+        recordId: recordId ?? this.recordId,
+      );
+  PublishedRecordRow copyWithCompanion(PublishedRecordsCompanion data) {
+    return PublishedRecordRow(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      recordId: data.recordId.present ? data.recordId.value : this.recordId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PublishedRecordRow(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, recordId);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PublishedRecordRow &&
+          other.kind == this.kind &&
+          other.recordId == this.recordId);
+}
+
+class PublishedRecordsCompanion extends UpdateCompanion<PublishedRecordRow> {
+  final Value<SyncRecordKind> kind;
+  final Value<String> recordId;
+  final Value<int> rowid;
+  const PublishedRecordsCompanion({
+    this.kind = const Value.absent(),
+    this.recordId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PublishedRecordsCompanion.insert({
+    required SyncRecordKind kind,
+    required String recordId,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       recordId = Value(recordId);
+  static Insertable<PublishedRecordRow> custom({
+    Expression<String>? kind,
+    Expression<String>? recordId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (recordId != null) 'record_id': recordId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PublishedRecordsCompanion copyWith({
+    Value<SyncRecordKind>? kind,
+    Value<String>? recordId,
+    Value<int>? rowid,
+  }) {
+    return PublishedRecordsCompanion(
+      kind: kind ?? this.kind,
+      recordId: recordId ?? this.recordId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $PublishedRecordsTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (recordId.present) {
+      map['record_id'] = Variable<String>(recordId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PublishedRecordsCompanion(')
+          ..write('kind: $kind, ')
+          ..write('recordId: $recordId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$CompendiumDatabase extends GeneratedDatabase {
   _$CompendiumDatabase(QueryExecutor e) : super(e);
   $CompendiumDatabaseManager get managers => $CompendiumDatabaseManager(this);
@@ -11286,6 +13177,18 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
       $CollectionImportEventsTable(this);
   late final $NormalisationSkipsTable normalisationSkips =
       $NormalisationSkipsTable(this);
+  late final $BaselineStateTable baselineState = $BaselineStateTable(this);
+  late final $BaselineEntriesTable baselineEntries = $BaselineEntriesTable(
+    this,
+  );
+  late final $IdAliasesTable idAliases = $IdAliasesTable(this);
+  late final $PendingDeletionsTable pendingDeletions = $PendingDeletionsTable(
+    this,
+  );
+  late final $ReviewQueueTable reviewQueue = $ReviewQueueTable(this);
+  late final $PublishedRecordsTable publishedRecords = $PublishedRecordsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11311,6 +13214,12 @@ abstract class _$CompendiumDatabase extends GeneratedDatabase {
     venueProvenance,
     collectionImportEvents,
     normalisationSkips,
+    baselineState,
+    baselineEntries,
+    idAliases,
+    pendingDeletions,
+    reviewQueue,
+    publishedRecords,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -20313,6 +22222,1120 @@ typedef $$NormalisationSkipsTableProcessedTableManager =
       NormalisationSkipRow,
       PrefetchHooks Function()
     >;
+typedef $$BaselineStateTableCreateCompanionBuilder =
+    BaselineStateCompanion Function({Value<int> id, required DateTime epoch});
+typedef $$BaselineStateTableUpdateCompanionBuilder =
+    BaselineStateCompanion Function({Value<int> id, Value<DateTime> epoch});
+
+class $$BaselineStateTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
+  $$BaselineStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BaselineStateTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
+  $$BaselineStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get epoch => $composableBuilder(
+    column: $table.epoch,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BaselineStateTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $BaselineStateTable> {
+  $$BaselineStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get epoch =>
+      $composableBuilder(column: $table.epoch, builder: (column) => column);
+}
+
+class $$BaselineStateTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $BaselineStateTable,
+          BaselineStateRow,
+          $$BaselineStateTableFilterComposer,
+          $$BaselineStateTableOrderingComposer,
+          $$BaselineStateTableAnnotationComposer,
+          $$BaselineStateTableCreateCompanionBuilder,
+          $$BaselineStateTableUpdateCompanionBuilder,
+          (
+            BaselineStateRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $BaselineStateTable,
+              BaselineStateRow
+            >,
+          ),
+          BaselineStateRow,
+          PrefetchHooks Function()
+        > {
+  $$BaselineStateTableTableManager(
+    _$CompendiumDatabase db,
+    $BaselineStateTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BaselineStateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BaselineStateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BaselineStateTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<DateTime> epoch = const Value.absent(),
+              }) => BaselineStateCompanion(id: id, epoch: epoch),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required DateTime epoch,
+              }) => BaselineStateCompanion.insert(id: id, epoch: epoch),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BaselineStateTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $BaselineStateTable,
+      BaselineStateRow,
+      $$BaselineStateTableFilterComposer,
+      $$BaselineStateTableOrderingComposer,
+      $$BaselineStateTableAnnotationComposer,
+      $$BaselineStateTableCreateCompanionBuilder,
+      $$BaselineStateTableUpdateCompanionBuilder,
+      (
+        BaselineStateRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $BaselineStateTable,
+          BaselineStateRow
+        >,
+      ),
+      BaselineStateRow,
+      PrefetchHooks Function()
+    >;
+typedef $$BaselineEntriesTableCreateCompanionBuilder =
+    BaselineEntriesCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      required String wireHash,
+      Value<String?> bodyHash,
+      Value<int> rowid,
+    });
+typedef $$BaselineEntriesTableUpdateCompanionBuilder =
+    BaselineEntriesCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<String> wireHash,
+      Value<String?> bodyHash,
+      Value<int> rowid,
+    });
+
+class $$BaselineEntriesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $BaselineEntriesTable> {
+  $$BaselineEntriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get wireHash => $composableBuilder(
+    column: $table.wireHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bodyHash => $composableBuilder(
+    column: $table.bodyHash,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$BaselineEntriesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $BaselineEntriesTable> {
+  $$BaselineEntriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get wireHash => $composableBuilder(
+    column: $table.wireHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bodyHash => $composableBuilder(
+    column: $table.bodyHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$BaselineEntriesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $BaselineEntriesTable> {
+  $$BaselineEntriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<String> get wireHash =>
+      $composableBuilder(column: $table.wireHash, builder: (column) => column);
+
+  GeneratedColumn<String> get bodyHash =>
+      $composableBuilder(column: $table.bodyHash, builder: (column) => column);
+}
+
+class $$BaselineEntriesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $BaselineEntriesTable,
+          BaselineEntryRow,
+          $$BaselineEntriesTableFilterComposer,
+          $$BaselineEntriesTableOrderingComposer,
+          $$BaselineEntriesTableAnnotationComposer,
+          $$BaselineEntriesTableCreateCompanionBuilder,
+          $$BaselineEntriesTableUpdateCompanionBuilder,
+          (
+            BaselineEntryRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $BaselineEntriesTable,
+              BaselineEntryRow
+            >,
+          ),
+          BaselineEntryRow,
+          PrefetchHooks Function()
+        > {
+  $$BaselineEntriesTableTableManager(
+    _$CompendiumDatabase db,
+    $BaselineEntriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$BaselineEntriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$BaselineEntriesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$BaselineEntriesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<String> wireHash = const Value.absent(),
+                Value<String?> bodyHash = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BaselineEntriesCompanion(
+                kind: kind,
+                recordId: recordId,
+                wireHash: wireHash,
+                bodyHash: bodyHash,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                required String wireHash,
+                Value<String?> bodyHash = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => BaselineEntriesCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                wireHash: wireHash,
+                bodyHash: bodyHash,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$BaselineEntriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $BaselineEntriesTable,
+      BaselineEntryRow,
+      $$BaselineEntriesTableFilterComposer,
+      $$BaselineEntriesTableOrderingComposer,
+      $$BaselineEntriesTableAnnotationComposer,
+      $$BaselineEntriesTableCreateCompanionBuilder,
+      $$BaselineEntriesTableUpdateCompanionBuilder,
+      (
+        BaselineEntryRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $BaselineEntriesTable,
+          BaselineEntryRow
+        >,
+      ),
+      BaselineEntryRow,
+      PrefetchHooks Function()
+    >;
+typedef $$IdAliasesTableCreateCompanionBuilder =
+    IdAliasesCompanion Function({
+      required SyncRecordKind kind,
+      required String losingId,
+      required String survivingId,
+      Value<int> rowid,
+    });
+typedef $$IdAliasesTableUpdateCompanionBuilder =
+    IdAliasesCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> losingId,
+      Value<String> survivingId,
+      Value<int> rowid,
+    });
+
+class $$IdAliasesTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $IdAliasesTable> {
+  $$IdAliasesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get losingId => $composableBuilder(
+    column: $table.losingId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get survivingId => $composableBuilder(
+    column: $table.survivingId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$IdAliasesTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $IdAliasesTable> {
+  $$IdAliasesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get losingId => $composableBuilder(
+    column: $table.losingId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get survivingId => $composableBuilder(
+    column: $table.survivingId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$IdAliasesTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $IdAliasesTable> {
+  $$IdAliasesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get losingId =>
+      $composableBuilder(column: $table.losingId, builder: (column) => column);
+
+  GeneratedColumn<String> get survivingId => $composableBuilder(
+    column: $table.survivingId,
+    builder: (column) => column,
+  );
+}
+
+class $$IdAliasesTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $IdAliasesTable,
+          IdAliasRow,
+          $$IdAliasesTableFilterComposer,
+          $$IdAliasesTableOrderingComposer,
+          $$IdAliasesTableAnnotationComposer,
+          $$IdAliasesTableCreateCompanionBuilder,
+          $$IdAliasesTableUpdateCompanionBuilder,
+          (
+            IdAliasRow,
+            BaseReferences<_$CompendiumDatabase, $IdAliasesTable, IdAliasRow>,
+          ),
+          IdAliasRow,
+          PrefetchHooks Function()
+        > {
+  $$IdAliasesTableTableManager(_$CompendiumDatabase db, $IdAliasesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$IdAliasesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$IdAliasesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$IdAliasesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> losingId = const Value.absent(),
+                Value<String> survivingId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => IdAliasesCompanion(
+                kind: kind,
+                losingId: losingId,
+                survivingId: survivingId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String losingId,
+                required String survivingId,
+                Value<int> rowid = const Value.absent(),
+              }) => IdAliasesCompanion.insert(
+                kind: kind,
+                losingId: losingId,
+                survivingId: survivingId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$IdAliasesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $IdAliasesTable,
+      IdAliasRow,
+      $$IdAliasesTableFilterComposer,
+      $$IdAliasesTableOrderingComposer,
+      $$IdAliasesTableAnnotationComposer,
+      $$IdAliasesTableCreateCompanionBuilder,
+      $$IdAliasesTableUpdateCompanionBuilder,
+      (
+        IdAliasRow,
+        BaseReferences<_$CompendiumDatabase, $IdAliasesTable, IdAliasRow>,
+      ),
+      IdAliasRow,
+      PrefetchHooks Function()
+    >;
+typedef $$PendingDeletionsTableCreateCompanionBuilder =
+    PendingDeletionsCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      required DateTime tombstonedAt,
+      required String tombstoneHash,
+      required String tombstoneBlob,
+      Value<int> rowid,
+    });
+typedef $$PendingDeletionsTableUpdateCompanionBuilder =
+    PendingDeletionsCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<DateTime> tombstonedAt,
+      Value<String> tombstoneHash,
+      Value<String> tombstoneBlob,
+      Value<int> rowid,
+    });
+
+class $$PendingDeletionsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $PendingDeletionsTable> {
+  $$PendingDeletionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get tombstonedAt => $composableBuilder(
+    column: $table.tombstonedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tombstoneHash => $composableBuilder(
+    column: $table.tombstoneHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get tombstoneBlob => $composableBuilder(
+    column: $table.tombstoneBlob,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PendingDeletionsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $PendingDeletionsTable> {
+  $$PendingDeletionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get tombstonedAt => $composableBuilder(
+    column: $table.tombstonedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tombstoneHash => $composableBuilder(
+    column: $table.tombstoneHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get tombstoneBlob => $composableBuilder(
+    column: $table.tombstoneBlob,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PendingDeletionsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $PendingDeletionsTable> {
+  $$PendingDeletionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get tombstonedAt => $composableBuilder(
+    column: $table.tombstonedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tombstoneHash => $composableBuilder(
+    column: $table.tombstoneHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get tombstoneBlob => $composableBuilder(
+    column: $table.tombstoneBlob,
+    builder: (column) => column,
+  );
+}
+
+class $$PendingDeletionsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $PendingDeletionsTable,
+          PendingDeletionRow,
+          $$PendingDeletionsTableFilterComposer,
+          $$PendingDeletionsTableOrderingComposer,
+          $$PendingDeletionsTableAnnotationComposer,
+          $$PendingDeletionsTableCreateCompanionBuilder,
+          $$PendingDeletionsTableUpdateCompanionBuilder,
+          (
+            PendingDeletionRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $PendingDeletionsTable,
+              PendingDeletionRow
+            >,
+          ),
+          PendingDeletionRow,
+          PrefetchHooks Function()
+        > {
+  $$PendingDeletionsTableTableManager(
+    _$CompendiumDatabase db,
+    $PendingDeletionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PendingDeletionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PendingDeletionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PendingDeletionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<DateTime> tombstonedAt = const Value.absent(),
+                Value<String> tombstoneHash = const Value.absent(),
+                Value<String> tombstoneBlob = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PendingDeletionsCompanion(
+                kind: kind,
+                recordId: recordId,
+                tombstonedAt: tombstonedAt,
+                tombstoneHash: tombstoneHash,
+                tombstoneBlob: tombstoneBlob,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                required DateTime tombstonedAt,
+                required String tombstoneHash,
+                required String tombstoneBlob,
+                Value<int> rowid = const Value.absent(),
+              }) => PendingDeletionsCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                tombstonedAt: tombstonedAt,
+                tombstoneHash: tombstoneHash,
+                tombstoneBlob: tombstoneBlob,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PendingDeletionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $PendingDeletionsTable,
+      PendingDeletionRow,
+      $$PendingDeletionsTableFilterComposer,
+      $$PendingDeletionsTableOrderingComposer,
+      $$PendingDeletionsTableAnnotationComposer,
+      $$PendingDeletionsTableCreateCompanionBuilder,
+      $$PendingDeletionsTableUpdateCompanionBuilder,
+      (
+        PendingDeletionRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $PendingDeletionsTable,
+          PendingDeletionRow
+        >,
+      ),
+      PendingDeletionRow,
+      PrefetchHooks Function()
+    >;
+typedef $$ReviewQueueTableCreateCompanionBuilder =
+    ReviewQueueCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      required String counterpartId,
+      required String reason,
+      required String candidateBlob,
+      required String candidateHash,
+      required DateTime queuedAt,
+      Value<int> rowid,
+    });
+typedef $$ReviewQueueTableUpdateCompanionBuilder =
+    ReviewQueueCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<String> counterpartId,
+      Value<String> reason,
+      Value<String> candidateBlob,
+      Value<String> candidateHash,
+      Value<DateTime> queuedAt,
+      Value<int> rowid,
+    });
+
+class $$ReviewQueueTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $ReviewQueueTable> {
+  $$ReviewQueueTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get counterpartId => $composableBuilder(
+    column: $table.counterpartId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get candidateBlob => $composableBuilder(
+    column: $table.candidateBlob,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get candidateHash => $composableBuilder(
+    column: $table.candidateHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get queuedAt => $composableBuilder(
+    column: $table.queuedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReviewQueueTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $ReviewQueueTable> {
+  $$ReviewQueueTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get counterpartId => $composableBuilder(
+    column: $table.counterpartId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get candidateBlob => $composableBuilder(
+    column: $table.candidateBlob,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get candidateHash => $composableBuilder(
+    column: $table.candidateHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get queuedAt => $composableBuilder(
+    column: $table.queuedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReviewQueueTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $ReviewQueueTable> {
+  $$ReviewQueueTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+
+  GeneratedColumn<String> get counterpartId => $composableBuilder(
+    column: $table.counterpartId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get candidateBlob => $composableBuilder(
+    column: $table.candidateBlob,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get candidateHash => $composableBuilder(
+    column: $table.candidateHash,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get queuedAt =>
+      $composableBuilder(column: $table.queuedAt, builder: (column) => column);
+}
+
+class $$ReviewQueueTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $ReviewQueueTable,
+          ReviewQueueRow,
+          $$ReviewQueueTableFilterComposer,
+          $$ReviewQueueTableOrderingComposer,
+          $$ReviewQueueTableAnnotationComposer,
+          $$ReviewQueueTableCreateCompanionBuilder,
+          $$ReviewQueueTableUpdateCompanionBuilder,
+          (
+            ReviewQueueRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $ReviewQueueTable,
+              ReviewQueueRow
+            >,
+          ),
+          ReviewQueueRow,
+          PrefetchHooks Function()
+        > {
+  $$ReviewQueueTableTableManager(
+    _$CompendiumDatabase db,
+    $ReviewQueueTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReviewQueueTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReviewQueueTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReviewQueueTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<String> counterpartId = const Value.absent(),
+                Value<String> reason = const Value.absent(),
+                Value<String> candidateBlob = const Value.absent(),
+                Value<String> candidateHash = const Value.absent(),
+                Value<DateTime> queuedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReviewQueueCompanion(
+                kind: kind,
+                recordId: recordId,
+                counterpartId: counterpartId,
+                reason: reason,
+                candidateBlob: candidateBlob,
+                candidateHash: candidateHash,
+                queuedAt: queuedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                required String counterpartId,
+                required String reason,
+                required String candidateBlob,
+                required String candidateHash,
+                required DateTime queuedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ReviewQueueCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                counterpartId: counterpartId,
+                reason: reason,
+                candidateBlob: candidateBlob,
+                candidateHash: candidateHash,
+                queuedAt: queuedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReviewQueueTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $ReviewQueueTable,
+      ReviewQueueRow,
+      $$ReviewQueueTableFilterComposer,
+      $$ReviewQueueTableOrderingComposer,
+      $$ReviewQueueTableAnnotationComposer,
+      $$ReviewQueueTableCreateCompanionBuilder,
+      $$ReviewQueueTableUpdateCompanionBuilder,
+      (
+        ReviewQueueRow,
+        BaseReferences<_$CompendiumDatabase, $ReviewQueueTable, ReviewQueueRow>,
+      ),
+      ReviewQueueRow,
+      PrefetchHooks Function()
+    >;
+typedef $$PublishedRecordsTableCreateCompanionBuilder =
+    PublishedRecordsCompanion Function({
+      required SyncRecordKind kind,
+      required String recordId,
+      Value<int> rowid,
+    });
+typedef $$PublishedRecordsTableUpdateCompanionBuilder =
+    PublishedRecordsCompanion Function({
+      Value<SyncRecordKind> kind,
+      Value<String> recordId,
+      Value<int> rowid,
+    });
+
+class $$PublishedRecordsTableFilterComposer
+    extends Composer<_$CompendiumDatabase, $PublishedRecordsTable> {
+  $$PublishedRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnWithTypeConverterFilters<SyncRecordKind, SyncRecordKind, String>
+  get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PublishedRecordsTableOrderingComposer
+    extends Composer<_$CompendiumDatabase, $PublishedRecordsTable> {
+  $$PublishedRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordId => $composableBuilder(
+    column: $table.recordId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PublishedRecordsTableAnnotationComposer
+    extends Composer<_$CompendiumDatabase, $PublishedRecordsTable> {
+  $$PublishedRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumnWithTypeConverter<SyncRecordKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get recordId =>
+      $composableBuilder(column: $table.recordId, builder: (column) => column);
+}
+
+class $$PublishedRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$CompendiumDatabase,
+          $PublishedRecordsTable,
+          PublishedRecordRow,
+          $$PublishedRecordsTableFilterComposer,
+          $$PublishedRecordsTableOrderingComposer,
+          $$PublishedRecordsTableAnnotationComposer,
+          $$PublishedRecordsTableCreateCompanionBuilder,
+          $$PublishedRecordsTableUpdateCompanionBuilder,
+          (
+            PublishedRecordRow,
+            BaseReferences<
+              _$CompendiumDatabase,
+              $PublishedRecordsTable,
+              PublishedRecordRow
+            >,
+          ),
+          PublishedRecordRow,
+          PrefetchHooks Function()
+        > {
+  $$PublishedRecordsTableTableManager(
+    _$CompendiumDatabase db,
+    $PublishedRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PublishedRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PublishedRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PublishedRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<SyncRecordKind> kind = const Value.absent(),
+                Value<String> recordId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PublishedRecordsCompanion(
+                kind: kind,
+                recordId: recordId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required SyncRecordKind kind,
+                required String recordId,
+                Value<int> rowid = const Value.absent(),
+              }) => PublishedRecordsCompanion.insert(
+                kind: kind,
+                recordId: recordId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PublishedRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$CompendiumDatabase,
+      $PublishedRecordsTable,
+      PublishedRecordRow,
+      $$PublishedRecordsTableFilterComposer,
+      $$PublishedRecordsTableOrderingComposer,
+      $$PublishedRecordsTableAnnotationComposer,
+      $$PublishedRecordsTableCreateCompanionBuilder,
+      $$PublishedRecordsTableUpdateCompanionBuilder,
+      (
+        PublishedRecordRow,
+        BaseReferences<
+          _$CompendiumDatabase,
+          $PublishedRecordsTable,
+          PublishedRecordRow
+        >,
+      ),
+      PublishedRecordRow,
+      PrefetchHooks Function()
+    >;
 
 class $CompendiumDatabaseManager {
   final _$CompendiumDatabase _db;
@@ -20359,4 +23382,16 @@ class $CompendiumDatabaseManager {
       );
   $$NormalisationSkipsTableTableManager get normalisationSkips =>
       $$NormalisationSkipsTableTableManager(_db, _db.normalisationSkips);
+  $$BaselineStateTableTableManager get baselineState =>
+      $$BaselineStateTableTableManager(_db, _db.baselineState);
+  $$BaselineEntriesTableTableManager get baselineEntries =>
+      $$BaselineEntriesTableTableManager(_db, _db.baselineEntries);
+  $$IdAliasesTableTableManager get idAliases =>
+      $$IdAliasesTableTableManager(_db, _db.idAliases);
+  $$PendingDeletionsTableTableManager get pendingDeletions =>
+      $$PendingDeletionsTableTableManager(_db, _db.pendingDeletions);
+  $$ReviewQueueTableTableManager get reviewQueue =>
+      $$ReviewQueueTableTableManager(_db, _db.reviewQueue);
+  $$PublishedRecordsTableTableManager get publishedRecords =>
+      $$PublishedRecordsTableTableManager(_db, _db.publishedRecords);
 }
