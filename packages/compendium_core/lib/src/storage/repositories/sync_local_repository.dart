@@ -301,10 +301,9 @@ class SyncLocalTransaction {
       recordId: survivingId,
       seen: {losingId},
     );
-    final aliases = await (_db.select(_db.idAliases)..where(
-          (row) => row.kind.equals(kind.name),
-        ))
-        .get();
+    final aliases = await (_db.select(
+      _db.idAliases,
+    )..where((row) => row.kind.equals(kind.name))).get();
     final rewrittenIds = <String>{losingId};
     var changed = true;
     while (changed) {
