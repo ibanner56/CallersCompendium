@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../sync/sync_record_kind.dart';
 
 // Design: docs/design/storage.md. `dance_figures` is a derived, rebuildable
 // index over `dances.figures_json` (the authoritative store); `dance_fts` is
@@ -599,6 +600,83 @@ class NormalisationSkips extends Table {
 
   @override
   Set<Column> get primaryKey => {tableNameValue, columnNameValue, recordId};
+}
+
+/// The persisted epoch for the sync baseline. The fixed key is enforced in
+/// SQLite so an empty baseline cannot have ambiguous metadata.
+@DataClassName('BaselineStateRow')
+class BaselineState extends Table {
+  IntColumn get id => integer().customConstraint('NOT NULL CHECK (id = 1)')();
+  TextColumn get epoch => text()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Last-agreed hashes for each syncable record in the current baseline.
+@DataClassName('BaselineEntryRow')
+class BaselineEntries extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  TextColumn get wireHash => text()();
+  TextColumn get bodyHash => text().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
+/// Durable aliases produced by collision reconciliation.
+@DataClassName('IdAliasRow')
+class IdAliases extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get losingId => text().named('losing_id')();
+  TextColumn get survivingId => text().named('surviving_id')();
+
+  @override
+  Set<Column> get primaryKey => {kind, losingId};
+}
+
+/// Tombstones that still need to be carried by a local record.
+@DataClassName('PendingDeletionRow')
+class PendingDeletions extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  DateTimeColumn get tombstonedAt => dateTime().named('tombstoned_at')();
+  TextColumn get tombstoneHash => text().named('tombstone_hash')();
+  TextColumn get tombstoneBlob => text().named('tombstone_blob')();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
+}
+
+/// Immutable candidates awaiting a user's conflict decision.
+@DataClassName('ReviewQueueRow')
+class ReviewQueue extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+  TextColumn get counterpartId => text().named('counterpart_id')();
+  TextColumn get reason => text()();
+  TextColumn get candidateBlob => text().named('candidate_blob')();
+  TextColumn get candidateHash => text().named('candidate_hash')();
+  DateTimeColumn get queuedAt => dateTime().named('queued_at')();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId, counterpartId};
+}
+
+/// Monotonic record-publication history used by hard-delete forfeiture.
+@DataClassName('PublishedRecordRow')
+class PublishedRecords extends Table {
+  TextColumn get kind =>
+      text().map(const EnumNameConverter(SyncRecordKind.values))();
+  TextColumn get recordId => text()();
+
+  @override
+  Set<Column> get primaryKey => {kind, recordId};
 }
 
 // A `snapshots` table lived here until schema v21. It recorded the

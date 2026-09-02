@@ -29,16 +29,22 @@
     "Baseline, ID-alias, pending-deletion, review-queue, and published-record tables",
     "Privacy classifications and distinct lifecycle behavior for every table"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1154
+  ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "Every new persisted field is classified on all privacy axes.",
       "Baseline identity is keyed by record kind and record ID.",
       "Each table's cleanup and restore lifecycle is covered by tests."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Schema-v32 sync-local persistence is implemented with lifecycle-safe repository operations.",
+    "evidence": [
+      "packages/compendium_core/lib/src/privacy/field_registry.dart classifies every v32 column on category, subject, and egress axes; data_classification_coverage_test.dart passes.",
+      "sync_local_repository_test.dart proves baseline_entries uses the (kind, record_id) identity and same IDs across kinds coexist.",
+      "sync_local_repository_test.dart covers baseline reset, restore revalidation, detach cleanup, publication-history survival, transaction rollback, remap marker union, singleton epoch state, and idempotent review queueing."
+    ]
   }
 }

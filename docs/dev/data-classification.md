@@ -213,10 +213,16 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**187 columns**: 138 shareable, 21 device-local, 3 device-scoped, 25 derived. 24 personal data by category.
+**210 columns**: 139 shareable, 21 device-local, 25 device-scoped, 25 derived. 26 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
+| `baseline_entries` | `body_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_entries` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_entries` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_entries` | `wire_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_state` | `epoch` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `baseline_state` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `choreographers` | `deceased` | `cc:DeceasedFlag` | DeceasedFlag | third party | **device-local** | Personal data about someone who cannot exercise any rights over it. |
 | `choreographers` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
 | `choreographers` | `email` | `pd:EmailAddress` | Contact → EmailAddress | third party | **device-local** | Private contact data for someone who does not use this app. This registry replaces the prose rule that lived on Choreographer.email. |
@@ -311,9 +317,17 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `dances` | `tunes_json` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `dances` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `dances` | `walkthrough` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `id_aliases` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `id_aliases` | `losing_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `id_aliases` | `surviving_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `column_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
 | `normalisation_skips` | `table_name` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Local collision-repair bookkeeping; never exported or synchronized. |
+| `pending_deletions` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `pending_deletions` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `pending_deletions` | `tombstone_blob` | `dpv:PersonalData` | PersonalData | third party | shareable | Opaque serialized tombstone may contain third-party record content; shareable because pending deletion retransmits it to sync peers. |
+| `pending_deletions` | `tombstone_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `pending_deletions` | `tombstoned_at` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `program_provenance` | `external_id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_provenance` | `imported_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `program_provenance` | `license` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -352,6 +366,8 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `provenance` | `permission` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `provenance` | `source` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `provenance` | `source_version` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `published_records` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `published_records` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `published_sources` | `author` | `pd:Name` | Identifying → Name | third party | shareable | Published authorship credit; public by definition. |
 | `published_sources` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
 | `published_sources` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
@@ -361,6 +377,13 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `published_sources` | `updated_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Record stamp, not author-supplied. Required for ordering across devices. |
 | `published_sources` | `url` | `cc:WebsiteUrl` | WebsiteUrl | — | shareable |  |
 | `published_sources` | `year` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `review_queue` | `candidate_blob` | `dpv:PersonalData` | PersonalData | third party | device-scoped | Opaque serialized sync candidate may contain third-party record content; held locally until review and never synchronized as queue state. |
+| `review_queue` | `candidate_hash` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `counterpart_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `kind` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `queued_at` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `reason` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
+| `review_queue` | `record_id` | `dpv:NonPersonalData` | NonPersonalData | — | device-scoped | Device Sync bookkeeping; never exported or synchronized. |
 | `settings` | `deleted_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer that has not synced recently resurrects a deleted record. Added to this kind in #898. |
 | `settings` | `existence_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Existence-transition stamp. A bare timestamp with no data subject; must travel or a receiver cannot decide which of two disagreeing copies is the later existence decision, and deletions resurrect. Added in #898. |
 | `settings` | `key` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | The settings table is a key/value store; classifying the column says nothing about an individual preference. Per-key classification lives in the app package. |
