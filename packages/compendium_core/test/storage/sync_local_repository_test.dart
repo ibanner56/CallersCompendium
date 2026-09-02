@@ -153,9 +153,25 @@ void main() {
     tearDown(() => db.close());
 
     test(
-      'empty baseline retains its epoch and reset preserves monotonic state',
+      'same-epoch baseline replacement preserves aliases and review queue',
       () async {
         await repository.replaceBaseline(epoch: DateTime.utc(2026, 2, 1));
+        expect(
+          (await repository.getBaselineState())!.epoch.toUtc(),
+          DateTime.utc(2026, 2, 1),
+        );
+        expect(await repository.listBaselineEntries(), isEmpty);
+        expect(await repository.listAliases(), hasLength(1));
+        expect(await repository.listReviewQueue(), hasLength(1));
+        expect(await repository.listPendingDeletions(), hasLength(2));
+        expect(await repository.listPublishedRecords(), hasLength(1));
+      },
+    );
+
+    test(
+      'epoch reset clears baseline conclusions but preserves monotonic state',
+      () async {
+        await repository.resetEpoch(epoch: DateTime.utc(2026, 2, 1));
         expect(
           (await repository.getBaselineState())!.epoch.toUtc(),
           DateTime.utc(2026, 2, 1),
@@ -245,6 +261,19 @@ void main() {
           losingId: 'older',
           survivingId: 'losing',
         );
+        await repository.upsertAlias(
+          kind: SyncRecordKind.dance,
+          losingId: 'oldest',
+          survivingId: 'older',
+        );
+        await repository.markPublished(
+          kind: SyncRecordKind.dance,
+          recordId: 'oldest',
+        );
+        await repository.markPublished(
+          kind: SyncRecordKind.dance,
+          recordId: 'older',
+        );
         await repository.markPublished(
           kind: SyncRecordKind.dance,
           recordId: 'losing',
@@ -272,6 +301,7 @@ void main() {
         );
         final aliases = await repository.listAliases();
         expect(aliases.map((row) => (row.losingId, row.survivingId)).toSet(), {
+          ('oldest', 'survivor'),
           ('older', 'survivor'),
           ('losing', 'survivor'),
         });

@@ -46,6 +46,11 @@ class SyncLocalRepository {
     Iterable<SyncBaselineEntry> entries = const [],
   }) => transaction((tx) => tx.replaceBaseline(epoch: epoch, entries: entries));
 
+  Future<void> resetEpoch({
+    required DateTime epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+  }) => transaction((tx) => tx.resetEpoch(epoch: epoch, entries: entries));
+
   Future<void> clearBaseline() => transaction((tx) => tx.clearBaseline());
 
   Future<void> clearOnDetach() => transaction((tx) => tx.clearOnDetach());
@@ -155,7 +160,8 @@ class SyncLocalTransaction {
     required DateTime epoch,
     Iterable<SyncBaselineEntry> entries = const [],
   }) async {
-    await clearBaseline();
+    await _db.delete(_db.baselineState).go();
+    await _db.delete(_db.baselineEntries).go();
     await _db
         .into(_db.baselineState)
         .insertOnConflictUpdate(
@@ -173,6 +179,14 @@ class SyncLocalTransaction {
             ),
           );
     }
+  }
+
+  Future<void> resetEpoch({
+    required DateTime epoch,
+    Iterable<SyncBaselineEntry> entries = const [],
+  }) async {
+    await clearBaseline();
+    await replaceBaseline(epoch: epoch, entries: entries);
   }
 
   Future<void> clearBaseline() async {
@@ -287,29 +301,43 @@ class SyncLocalTransaction {
       recordId: survivingId,
       seen: {losingId},
     );
+    final aliases = await (_db.select(_db.idAliases)..where(
+          (row) => row.kind.equals(kind.name),
+        ))
+        .get();
+    final rewrittenIds = <String>{losingId};
+    var changed = true;
+    while (changed) {
+      changed = false;
+      for (final alias in aliases) {
+        if (rewrittenIds.contains(alias.survivingId) &&
+            rewrittenIds.add(alias.losingId)) {
+          changed = true;
+        }
+      }
+    }
     await (_db.update(_db.idAliases)..where(
           (row) =>
-              row.kind.equals(kind.name) & row.survivingId.equals(losingId),
+              row.kind.equals(kind.name) & row.survivingId.isIn(rewrittenIds),
         ))
         .write(IdAliasesCompanion(survivingId: Value(target)));
     await upsertAlias(kind: kind, losingId: losingId, survivingId: target);
 
-    final losingPublished =
+    final published =
         await (_db.select(_db.publishedRecords)..where(
               (row) =>
-                  row.kind.equals(kind.name) & row.recordId.equals(losingId),
+                  row.kind.equals(kind.name) &
+                  row.recordId.isIn({...rewrittenIds, target}),
             ))
-            .getSingleOrNull();
-    final survivingPublished =
-        await (_db.select(_db.publishedRecords)..where(
-              (row) => row.kind.equals(kind.name) & row.recordId.equals(target),
-            ))
-            .getSingleOrNull();
-    if (losingPublished != null || survivingPublished != null) {
+            .get();
+    if (published.isNotEmpty) {
       await markPublished(kind: kind, recordId: target);
     }
     await (_db.delete(_db.publishedRecords)..where(
-          (row) => row.kind.equals(kind.name) & row.recordId.equals(losingId),
+          (row) =>
+              row.kind.equals(kind.name) &
+              row.recordId.isIn(rewrittenIds) &
+              row.recordId.isNotIn({target}),
         ))
         .go();
   }
