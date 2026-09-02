@@ -837,6 +837,21 @@ void main() {
       );
     });
 
+    test("and the record's second pass is the one the weave derives", () {
+      // The record's pass list opens (WL;N2R;...), so its `pass2` is the N2
+      // side pass -- a centre dancer meeting an end dancer after the centres
+      // have crossed, not the two ends meeting each other. Read as the ends
+      // pair it contradicts the geometry, and the dance still compiles but
+      // carries a spurious anchor warning, so the absence of one is the
+      // assertion here.
+      final parsed = parseFixture('test/golden/last_hey.json');
+
+      expect(
+        compile(parsed).warnings.map((w) => w.kind),
+        isNot(contains(WarningKind.anchorMismatch)),
+      );
+    });
+
     test('and a half hey in its place lands the centre couples crossed', () {
       // A *full* hey is a positional identity: every dancer weaves a complete
       // figure of eight and finishes where they began, which is why removing
