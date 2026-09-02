@@ -62,8 +62,15 @@ typedef _HeyLine = ({DancerPair centers, DancerPair ends});
 /// Mapped onto the matrix, an across-the-set line of four runs
 /// `west-outer, west-inner | east-inner, east-outer`. The two dancers standing
 /// *inner* are whichever pair [pass1] names — that is the whole content of the
-/// parameter — so they must be one in each side column. The remaining two are
-/// the ends by construction, which is why [pass2] can only ever corroborate.
+/// parameter — so they must be one on each side of the set. The remaining two
+/// are the ends by construction, which is why [pass2] can only ever
+/// corroborate.
+///
+/// The passes alternate between the centre and the sides. The centres meet
+/// first; then, having crossed, each of them passes the end dancer who was
+/// standing on the far side. So the second pass is a **side** pass, and it
+/// pairs a centre dancer with an end dancer rather than naming the ends pair —
+/// which is what [pass2] describes.
 ///
 /// This is deliberately **state-dependent** rather than a fixed permutation.
 /// From a Duple Improper start with `pass1: role2s` the Robins are diagonally
@@ -107,12 +114,21 @@ final class HeyForFour extends Operation {
   /// How much of the weave is danced.
   final HeyLength length;
 
-  /// The pair who begin at the ends.
+  /// The pair who make the **second** pass, which happens on the sides.
+  ///
+  /// Not the ends pair. The passes of a hey alternate between the centre and
+  /// the sides, and [pass1] takes the first — so the second is danced on the
+  /// sides, by a centre dancer and the end dancer standing where that centre
+  /// dancer arrives. Core's `hey` MoveDef comments this parameter as "the ends
+  /// pair", but core's own Caller's Box dialect fills it from the *who* of the
+  /// second pass code (`callersbox_figure_dialect.dart`, the `position == 2`
+  /// branch), and the dialect is what actually populates the records this
+  /// compiler reads.
   ///
   /// An **anchor**, on the [FormLongWaves] precedent: once [pass1] is resolved
-  /// the ends are simply whoever is left, so a stated [pass2] cannot select
-  /// anybody. It is checked against the pair the figure derived and reported
-  /// through [WarningKind.anchorMismatch] when the two disagree.
+  /// the side pairings follow from the geometry, so a stated [pass2] cannot
+  /// select anybody. It is checked against the pairs the figure derived and
+  /// reported through [WarningKind.anchorMismatch] when the two disagree.
   final WhoSet? pass2;
 
   /// Who the [pass1] pair are to meet when the weave stops part way.
@@ -239,6 +255,28 @@ final class HeyForFour extends Operation {
     return Ok<List<_HeyLine>, OpError>(lines);
   }
 
+  /// The two pairs who dance the second pass, which happens on the sides.
+  ///
+  /// Passing in the centre puts each of the centre dancers on the far side of
+  /// the set, so each comes out beside the end dancer who was standing there.
+  /// The side passes therefore cross the line: centre-west with end-east, and
+  /// centre-east with end-west.
+  List<DancerPair> _sidePairs(Formation formation, _HeyLine line) {
+    bool isWest(DancerId id) =>
+        formation.stateOf(id).position.col < kColumnCount ~/ 2;
+
+    final forCenterA = isWest(line.ends.a) == isWest(line.centers.a)
+        ? line.ends.b
+        : line.ends.a;
+    return [
+      (a: line.centers.a, b: forCenterA),
+      (
+        a: line.centers.b,
+        b: forCenterA == line.ends.a ? line.ends.b : line.ends.a,
+      ),
+    ];
+  }
+
   @override
   Iterable<Warning> lint(Formation formation) {
     final anchor = pass2;
@@ -246,17 +284,20 @@ final class HeyForFour extends Operation {
     final lines = _lines(formation).valueOrNull;
     if (lines == null) return const [];
     for (final line in lines) {
-      if (whoMatches(formation, line.ends.a, line.ends.b, anchor)) continue;
-      return [
-        Warning(
-          WarningKind.anchorMismatch,
-          detail:
-              'hey says the ends pair are the ${anchor.key}, but with '
-              '${pass1.key} in the centre the ends are ${line.ends.a} and '
-              '${line.ends.b}, who are not. The hey still weaves as pass1 '
-              'describes it; only the second pass is misdescribed',
-        ),
-      ];
+      for (final pair in _sidePairs(formation, line)) {
+        if (whoMatches(formation, pair.a, pair.b, anchor)) continue;
+        return [
+          Warning(
+            WarningKind.anchorMismatch,
+            detail:
+                'hey says the second pass is danced by the ${anchor.key}, but '
+                'with ${pass1.key} meeting first in the centre it falls to '
+                '${pair.a} and ${pair.b} on the side, who are not. The hey '
+                'still weaves as pass1 describes it; only the second pass is '
+                'misdescribed',
+          ),
+        ];
+      }
     }
     return const [];
   }

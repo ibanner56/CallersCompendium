@@ -197,13 +197,21 @@ void main() {
   });
 
   group('HeyForFour pass2 anchor', () {
-    test('a pass2 that agrees with the derived ends is silent', () {
-      const op = HeyForFour(pass2: WhoSet.role1s);
+    test('a pass2 that names the derived side pass is silent', () {
+      // The Robins meet in the centre and cross, so each comes out beside the
+      // Lark who was standing on the far side -- and in Duple Improper the
+      // dancer across the set is the partner. The second pass is a partner
+      // pass, and naming it as one asserts nothing new.
+      const op = HeyForFour(pass2: WhoSet.partners);
       expect(op.lint(di(_start)), isEmpty);
     });
 
-    test('a pass2 that contradicts the derived ends warns, and still runs', () {
-      const op = HeyForFour(pass2: WhoSet.role2s);
+    test('naming the ends pair instead of the side pass warns', () {
+      // `role1s` is the pair standing at the ends, which is what this anchor
+      // used to be read as. It is not who dances the second pass: the passes
+      // alternate centre and side, and the side pass crosses the line rather
+      // than joining the two ends to each other.
+      const op = HeyForFour(pass2: WhoSet.role1s);
       final start = di(_start);
       final warnings = op.lint(start).toList();
       expect(warnings, hasLength(1));
@@ -221,7 +229,7 @@ void main() {
     });
 
     test('a pass2 on a formation the hey refuses does not also warn', () {
-      const op = HeyForFour(pass2: WhoSet.role1s);
+      const op = HeyForFour(pass2: WhoSet.partners);
       expect(
         op.lint(di(const ['L1-A . . . R1-A', 'L2-B . . . R2-B'])),
         isEmpty,
