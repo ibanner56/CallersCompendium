@@ -1,0 +1,114 @@
+{
+  "id": "8e9fd225-a4f8-4a9d-a3de-114c247bac48",
+  "title": "Last Hey",
+  "authorIds": [
+    "a7724089-1dd6-4710-ba29-5e4caff028e5"
+  ],
+  "form": "contra",
+  "formation": {
+    "shape": "becketCw",
+    "detail": "Duple Minor - Becket"
+  },
+  "progression": "single",
+  "phraseStructure": "",
+  "figures": [
+    {
+      "schemaVersion": 1,
+      "move": "circle",
+      "params": {
+        "turn": "left",
+        "places": 3,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "balance_the_ring",
+      "params": {
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "pass_through",
+      "params": {
+        "dir": "along",
+        "shoulder": "right",
+        "beats": 4
+      },
+      "progression": true
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "role2s",
+        "hand": "left",
+        "turn": 1.5,
+        "beats": 8
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "form_short_waves",
+      "params": {
+        "dir": "across",
+        "balance": true,
+        "center": "role2s",
+        "centerHand": "left",
+        "sides": "partners",
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "allemande",
+      "params": {
+        "who": "partners",
+        "hand": "right",
+        "turn": 0.75,
+        "beats": 4
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "hey",
+      "params": {
+        "length": "full",
+        "pass1": "role2s",
+        "shoulder": "left",
+        "pass2": "nextNeighbors",
+        "beats": 16
+      }
+    },
+    {
+      "schemaVersion": 1,
+      "move": "swing",
+      "params": {
+        "who": "partners",
+        "beats": 16,
+        "prefix": "balance"
+      }
+    }
+  ],
+  "hook": "",
+  "callingNotes": "Appears in: website Banner; Free and Open Dancing for All (p. 24); website contradb.com\n\nImported from The Caller's Box.",
+  "walkthrough": "",
+  "status": "active",
+  "mixedLevel": false,
+  "mixer": false,
+  "tunes": [],
+  "customFields": [],
+  "tagIds": [],
+  "links": [],
+  "sourceCitations": [],
+  "provenance": {
+    "source": "callersbox",
+    "externalId": "14417",
+    "importedAt": "2026-09-02T22:37:04.000Z",
+    "permission": "full",
+    "sourceVersion": "2026-09-02T22:36:49+00:00"
+  },
+  "createdAt": "2026-09-02T22:37:04.000Z",
+  "updatedAt": "2026-09-02T22:38:07.000Z"
+}

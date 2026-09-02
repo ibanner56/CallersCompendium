@@ -811,5 +811,68 @@ void main() {
 
       expect(parsed.requiredHandsFour, 2);
     });
+
+    // The first record in the golden set to call a hey, and so the first
+    // standing check that the weave lands where a full one should. Everything
+    // before it is setup the hey depends on: the pass through carries the
+    // couples on, the role2s allemande and the short wave set the hey's
+    // starting hands, and the partner allemande three quarters puts each
+    // dancer on the shoulder the first pass wants.
+    //
+    // The imported record called the hey a half. The Caller's Box source
+    // gives it sixteen beats and seven named passes, which is a full hey --
+    // and the record's own `beats: 16` already disagreed with its `length`.
+    // The fixture carries the length the source describes.
+    test('Last Hey weaves a full hey and lands progressed', () {
+      final parsed = parseFixture('test/golden/last_hey.json');
+
+      expect(parsed.name, 'Last Hey');
+      expect(parsed.formation, FormationType.becketCw);
+      expect(parsed.figures[6].name, 'hey');
+      expect(parsed.figures[2].progression, isTrue);
+      expect(
+        compile(parsed).isSuccess,
+        isTrue,
+        reason: 'Last Hey did not land',
+      );
+    });
+
+    test('and a half hey in its place lands the centre couples crossed', () {
+      // A *full* hey is a positional identity: every dancer weaves a complete
+      // figure of eight and finishes where they began, which is why removing
+      // it from this dance would also compile. The assertion that the hey is
+      // being danced at all therefore has to come from the other side --
+      // shorten it to a half and the two centre couples finish on each
+      // other's side of the set, and the dance no longer lands.
+      final parsed = parseFixture('test/golden/last_hey.json');
+      final hey = parsed.figures[6].operation as HeyForFour;
+      final halved = Dance(
+        name: parsed.name,
+        formation: parsed.formation,
+        success: parsed.success,
+        figures: [
+          ...parsed.figures.take(6),
+          OperationInvocation(
+            HeyForFour(
+              length: HeyLength.half,
+              pass1: hey.pass1,
+              shoulder: hey.shoulder,
+              pass2: hey.pass2,
+            ),
+          ),
+          ...parsed.figures.skip(7),
+        ],
+      );
+
+      expect(compile(halved), isA<Mismatch>());
+    });
+
+    test('and the hey reaches no further than the base two hands four', () {
+      // A hey travels the length of the minor set but never past it, so a
+      // Becket dance that calls one still sizes to the base two.
+      final parsed = parseFixture('test/golden/last_hey.json');
+
+      expect(parsed.requiredHandsFour, 2);
+    });
   });
 }
