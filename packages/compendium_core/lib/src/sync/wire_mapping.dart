@@ -222,6 +222,8 @@ const Set<String> syncWireMappingExceptions = {
   'provenance.dance_id',
   'program_provenance.program_id',
   'venue_provenance.venue_id',
+  // Tombstones are retransmitted sync metadata, not ordinary archive bodies.
+  'pending_deletions.tombstone_blob',
   'tags.updated_at',
   'tags.deleted_at',
   'tags.existence_at',

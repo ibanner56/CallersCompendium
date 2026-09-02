@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../../sync/sync_record_kind.dart';
 import '../database.dart';
+import '../shareable_text.dart';
 
 /// A polymorphic sync record identity.
 typedef SyncRecordAddress = ({SyncRecordKind kind, String recordId});
@@ -239,7 +240,7 @@ class SyncLocalTransaction {
           recordId: recordId,
           tombstonedAt: tombstonedAt,
           tombstoneHash: tombstoneHash,
-          tombstoneBlob: tombstoneBlob,
+          tombstoneBlob: normalizeShareableText(tombstoneBlob),
         ),
       );
 
