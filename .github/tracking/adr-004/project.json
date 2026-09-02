@@ -96,6 +96,7 @@
       "id": "C2",
       "title": "Real client and server round trip",
       "dependsOnUnits": [
+        "ADR-004/W4",
         "ADR-004/W5",
         "ADR-004/W10"
       ],
