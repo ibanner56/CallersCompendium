@@ -32,13 +32,17 @@
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "A non-vacuous property test proves a bijection between registry entries and real codecs.",
       "No device-local field can be serialized.",
       "Unknown classifications fail closed."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "The generated Device Sync allow-list maps real archive output to classified fields and rejects unclassified egress.",
+    "evidence": [
+      "PR #1149 (merge 7a5757adad3ce90cb27aab086400fe7a2caa56e6): generated structural mapping and allow-list, W3 projection, and W11 fail-closed validation.",
+      "packages/compendium_core/test/sync/wire_mapping_test.dart covers every emitted archive kind against the mapping and checks that each mapped non-shareable path is omitted while shareable sentinels remain.",
+      "packages/compendium_core/test/sync/wire_mapping_test.dart covers exact and longest-prefix settings classification and rejects unknown setting values."
+    ]
   }
 }
