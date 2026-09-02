@@ -1331,14 +1331,14 @@ void main() {
 
         // The B2 hey `(16) Hey (WR;PL;MR;N1L;WR;PL;MR;N1L~)` is the regression:
         // the `N1L` pass (current neighbor) must decode onto the structured hey
-        // rather than fall to custom. The bare "Hey" states no fraction, so the
-        // decoder applies its ratified default length (`half`) — length is read
-        // from the fraction, never inferred from the pass count.
+        // rather than fall to custom. The bare "Hey" is TCB's full 16-beat
+        // default; length is read from an explicit fraction when one is present,
+        // never inferred from the pass count.
         final heys = draft.dance.figures.where((f) => f.move == 'hey').toList();
         expect(heys, hasLength(1), reason: 'B2 hey should be structured');
         final hey = heys.single;
         expect(hey.isCustom, isFalse);
-        expect(hey.params['length'], 'half');
+        expect(hey.params['length'], 'full');
         expect(hey.params['shoulder'], 'right'); // code1 WR -> R
         expect(hey.params['pass1'], 'role2s'); // code1 WR -> W
         expect(hey.params['pass2'], 'partners'); // code2 PL -> P

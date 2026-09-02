@@ -143,6 +143,33 @@ void main() {
       expect(figures[1].params['balance'], isTrue);
       expect(figures[1].params.containsKey('center'), isFalse);
     });
+
+    test('a bracketed relation is retained as a canonical note', () async {
+      final figures = await _figuresFor([
+        '(4) Balance wave of four (PR,WL) [with N2]',
+      ]);
+      expect(figures, hasLength(1));
+      final figure = figures.single;
+      expect(figure.move, 'form_short_waves');
+      expect(figure.params['balance'], isTrue);
+      expect(figure.params['sides'], 'partners');
+      expect(figure.params['center'], 'role2s');
+      expect(figure.params['centerHand'], 'left');
+      expect(figure.params['beats'], 4);
+      expect(figure.note, 'with nextNeighbors');
+    });
+
+    for (final line in const [
+      '(4) Balance wave of four (PR,WL) [with phantom]',
+      '(4) Balance wave of four (PR,WL) [with N2] trailing',
+      '(4) Balance wave of four (PR,WL) [with N2] [with N3]',
+    ]) {
+      test('"$line" remains custom', () async {
+        final figures = await _figuresFor([line]);
+        expect(figures, hasLength(1));
+        expect(figures.single.isCustom, isTrue);
+      });
+    }
   });
 
   group('explicit prior forming — exactly ONE form figure results', () {

@@ -1104,15 +1104,29 @@ class CallersBoxAdapter implements SourceAdapter {
     final text = f.params['text'];
     if (text is! String) return null;
     final lower = text.toLowerCase();
-    // `[…]` is TCB's "who does it" annotation — a different payload we do not
-    // model here, so a line carrying one stays custom.
-    if (lower.contains('[')) return null;
+    final squareAnnotations = _balanceWaveSquareAnnotation
+        .allMatches(text)
+        .toList();
+    if (squareAnnotations.length > 1) return null;
+    String? squareNote;
+    if (squareAnnotations.isNotEmpty) {
+      final annotation = squareAnnotations.single;
+      // Only a clause-final relation annotation is supported here. A bracket
+      // elsewhere may carry formation context that this promotion cannot model.
+      if (text.substring(annotation.end).trim().isNotEmpty) return null;
+      final body = annotation.group(1)!.trim();
+      final relation = _balanceWaveBracketRelation.firstMatch(body);
+      if (relation == null) return null;
+      final who = resolveDancerSetPhrase(relation.group(2)!);
+      if (who == null) return null;
+      squareNote = '${relation.group(1)!.toLowerCase()} $who';
+    }
     final annotations = RegExp(
       r'\(([^)]*)\)',
     ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
     if (annotations.length > 1) return null;
     final head = lower
-        .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+        .replaceAll(RegExp(r'\([^)]*\)|\[[^\[\]]{0,120}\]'), ' ')
         .split(RegExp(r'[^a-z0-9]+'))
         .where((w) => w.isNotEmpty)
         .toList();
@@ -1122,7 +1136,7 @@ class CallersBoxAdapter implements SourceAdapter {
       if (annotation == null || annotation.isEmpty) {
         // No stated hands: the MoveDef defaults describe the wave, exactly as a
         // bare "Form a wave" line already does.
-        return _asFormFigure(f, 'form_short_waves', const {});
+        return _asFormFigure(f, 'form_short_waves', const {}, note: squareNote);
       }
       final parts = _splitAnnotation(annotation);
       if (parts.length != 2) return null;
@@ -1137,7 +1151,7 @@ class CallersBoxAdapter implements SourceAdapter {
         'sides': sides.who,
         'center': center.who,
         'centerHand': center.hand,
-      });
+      }, note: squareNote);
     }
 
     if (_sameWords(head, const ['balance', 'long', 'wave'])) {
@@ -1151,7 +1165,7 @@ class CallersBoxAdapter implements SourceAdapter {
         'whom': whom.who,
         'hand': whom.hand,
         'who': facing.group(1)!,
-      });
+      }, note: squareNote);
     }
     return null;
   }
@@ -1182,14 +1196,23 @@ class CallersBoxAdapter implements SourceAdapter {
   static Figure _asFormFigure(
     Figure f,
     String move,
-    Map<String, Object?> params,
-  ) => Figure(
+    Map<String, Object?> params, {
+    String? note,
+  }) => Figure(
     move: move,
     params: {...params, 'balance': true, 'beats': f.beats},
-    note: f.note,
+    note: combineFigureNotes(f.note, note),
     progression: f.progression,
     walkthroughOverride: f.walkthroughOverride,
     wordingOverride: f.wordingOverride,
+  );
+
+  static final RegExp _balanceWaveSquareAnnotation = RegExp(
+    r'\[([^\[\]]{0,120})\]',
+  );
+  static final RegExp _balanceWaveBracketRelation = RegExp(
+    r'^(with|around)\s+(.+)$',
+    caseSensitive: false,
   );
 
   static bool _sameWords(List<String> a, List<String> b) {
