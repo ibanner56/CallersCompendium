@@ -22,7 +22,9 @@
     "ADR-004/W18"
   ],
   "completionDependsOn": [],
-  "checkpoints": [],
+  "checkpoints": [
+    "C2"
+  ],
   "produces": [
     "Baseline, ID-alias, pending-deletion, review-queue, and published-record tables",
     "Privacy classifications and distinct lifecycle behavior for every table"
