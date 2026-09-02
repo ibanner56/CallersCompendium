@@ -31,7 +31,9 @@
     "SHA-256 content hash",
     "Independent golden corpus reusing W18's shared normalization primitive"
   ],
-  "pullRequests": [],
+  "pullRequests": [
+    1147
+  ],
   "hold": null,
   "completion": {
     "complete": false,
