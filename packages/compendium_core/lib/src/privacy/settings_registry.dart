@@ -114,6 +114,28 @@ final Map<String, DataClassification> settingsClassifications = {
   // restore by backup_settings_schema.dart).
   'program_matrix_columns': _preference,
 
+  // Device Sync transport values are not ordinary preferences. The ID is a
+  // user-entered bearer credential and may contain personal information; the
+  // device ID is an opaque per-installation routing identifier.
+  'sync_id': const DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.accessControlData,
+    note:
+        'User-entered bearer credential. It may contain personal information, '
+        'travels only in Authorization to the configured sync origin, and is '
+        'never recoverably retained or logged.',
+  ),
+  'sync_device_id': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    note:
+        'Opaque per-installation routing identifier. It must travel in '
+        'protocol metadata but must never be adopted from another device or '
+        'restored from a backup.',
+  ),
+
   // -- Programs and performance --------------------------------------------
   'default_program_band': const DataClassification(
     term: DpvTerm.name,

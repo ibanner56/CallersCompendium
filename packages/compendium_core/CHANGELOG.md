@@ -31,6 +31,8 @@ core version. They are left that way deliberately — do not renumber them.
 - Add schema-v32 local Device Sync persistence for baselines, aliases, pending
   tombstones, review candidates, and publication history, with lifecycle-safe
   repository operations.
+- Add shared Device Sync ID normalization, EFF diceware generation, advisory
+  strength scoring, base64url credential encoding, and HMAC storage-key helpers.
 
 ## [0.3.0] - 2026-09-01
 

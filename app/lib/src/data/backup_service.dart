@@ -10,6 +10,8 @@ import 'backup_settings_schema.dart';
 import 'custom_theme.dart';
 import 'custom_themes_controller.dart';
 import 'dialect_library_controller.dart';
+import '../screens/settings/settings_keys.dart'
+    show kSyncDeviceIdKey, kSyncIdKey;
 import 'window_service.dart' show kWindowFrameKey;
 
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
@@ -32,6 +34,8 @@ const Set<String> kBackupSettingsDenylist = {
   kWindowFrameKey,
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
+  kSyncIdKey,
+  kSyncDeviceIdKey,
 };
 
 /// Key *prefixes* excluded from backups. Some settings-table keys are dynamic

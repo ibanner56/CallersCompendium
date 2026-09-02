@@ -25,12 +25,16 @@ String _egressName(EgressClass egress) => switch (egress) {
   EgressClass.deviceLocal => 'device-local',
   EgressClass.deviceScoped => 'device-scoped',
   EgressClass.derived => 'derived',
+  EgressClass.protocolIdentifier => 'protocol-identifier',
+  EgressClass.accessControlData => 'access-control-data',
 };
 
 /// The table-cell rendering: [_egressName], emphasised for the classes that
 /// must not reach project infrastructure so they stand out when skimming.
 String _egressLabel(EgressClass egress) => switch (egress) {
-  EgressClass.deviceLocal => '**${_egressName(egress)}**',
+  EgressClass.deviceLocal ||
+  EgressClass.protocolIdentifier ||
+  EgressClass.accessControlData => '**${_egressName(egress)}**',
   _ => _egressName(egress),
 };
 
