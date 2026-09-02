@@ -21,8 +21,10 @@ Uint8List canonicalJsonUtf8(Object? value) =>
     Uint8List.fromList(utf8.encode(canonicalJson(value)));
 
 /// Returns lowercase hexadecimal SHA-256 for [bytes].
-String sha256Hex(Iterable<int> bytes) =>
-    sha256.convert(bytes.toList()).toString().toLowerCase();
+String sha256Hex(Iterable<int> bytes) {
+  final input = bytes is List<int> ? bytes : bytes.toList();
+  return sha256.convert(input).toString().toLowerCase();
+}
 
 /// Hashes a complete sync content value.
 String contentHash(Object? value) => sha256Hex(canonicalJsonUtf8(value));
