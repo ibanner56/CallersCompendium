@@ -364,6 +364,35 @@ def test_title_scan_requires_sync_call_sites_to_import_shared_definition() -> No
         assert any(v.kind == "normalizeTitle" for v in result.violations)
 
 
+def test_title_scan_accepts_public_barrel_imports() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "packages/core/lib/src/imports/dedupe.dart"
+        barrel = root / "packages/core/lib/core.dart"
+        client = root / "packages/core/lib/src/sync/client.dart"
+        title.parent.mkdir(parents=True)
+        barrel.parent.mkdir(parents=True, exist_ok=True)
+        client.parent.mkdir(parents=True, exist_ok=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value.trim();\n"
+            "final q = 'SELECT * FROM dance_tags JOIN tags t ON t.id = x '\n"
+            "  'WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        barrel.write_text(
+            "export 'src/imports/dedupe.dart' show normalizeTitle;\n",
+            encoding="utf-8",
+        )
+        client.write_text(
+            "import 'package:core/core.dart' show normalizeTitle;\n"
+            "String encode(String value) => normalizeTitle(value);\n",
+            encoding="utf-8",
+        )
+
+        result = scan(root)
+        assert_no(result.violations)
+
+
 def test_sync_id_import_must_resolve_to_shared_definition() -> None:
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
@@ -501,6 +530,42 @@ def test_checker_cli_returns_red_for_named_mutations() -> None:
             "String accept(String syncId) => syncId.trim();\n",
             encoding="utf-8",
         )
+        result = _run_checker(root)
+        assert result.returncode == 1, (result.stdout, result.stderr)
+        assert "sync-ID" in result.stdout
+
+
+def test_checker_cli_returns_red_for_duplicate_sync_id_definition() -> None:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        title = root / "app/lib/src/title.dart"
+        shared = root / "packages/core/lib/src/sync/normalization.dart"
+        duplicate = root / "packages/core/lib/src/sync/duplicate.dart"
+        client = root / "packages/core/lib/src/sync/client.dart"
+        server = root / "packages/core/lib/src/sync/server.dart"
+        for path in (title, shared, duplicate, client, server):
+            path.parent.mkdir(parents=True, exist_ok=True)
+        title.write_text(
+            "String normalizeTitle(String value) => value;\n"
+            "final q = 'SELECT * FROM dance_tags JOIN tags t ON t.id = x '\n"
+            "  'WHERE t.deleted_at IS NULL';\n",
+            encoding="utf-8",
+        )
+        shared.write_text(
+            "String normalizeSyncId(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        duplicate.write_text(
+            "String normalizeSyncId(String value) => value.trim();\n",
+            encoding="utf-8",
+        )
+        for path, function in ((client, "send"), (server, "accept")):
+            path.write_text(
+                "import 'normalization.dart' show normalizeSyncId;\n"
+                f"String {function}(String syncId) => normalizeSyncId(syncId);\n",
+                encoding="utf-8",
+            )
+
         result = _run_checker(root)
         assert result.returncode == 1, (result.stdout, result.stderr)
         assert "sync-ID" in result.stdout

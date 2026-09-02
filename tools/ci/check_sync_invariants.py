@@ -164,6 +164,10 @@ IMPORT_RE = re.compile(
     r"^\s*import\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;\n]*)\s*;",
     re.MULTILINE,
 )
+EXPORT_RE = re.compile(
+    r"^\s*export\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;\n]*)\s*;",
+    re.MULTILINE,
+)
 
 
 @dataclass(frozen=True)
@@ -711,6 +715,24 @@ def _imported_uris(source: str, symbol: str) -> list[tuple[str, int]]:
     return imports
 
 
+def _exported_uris(source: str, symbol: str) -> list[str]:
+    """Return libraries that export [symbol] from this library."""
+
+    exports: list[str] = []
+    comments_blank = blank_comments(source)
+    for match in EXPORT_RE.finditer(comments_blank):
+        clause = match.group("clause")
+        show = re.search(r"\bshow\b(?P<names>.*)", clause, re.IGNORECASE)
+        if show and not re.search(
+            rf"\b{re.escape(symbol)}\b", show.group("names")
+        ):
+            continue
+        if re.search(rf"\bhide\s+[^;]*\b{re.escape(symbol)}\b", clause, re.IGNORECASE):
+            continue
+        exports.append(match.group("uri"))
+    return exports
+
+
 def _resolve_import(root: Path, importer: Path, uri: str) -> Path | None:
     if uri.startswith("dart:"):
         return None
@@ -730,6 +752,34 @@ def _resolve_import(root: Path, importer: Path, uri: str) -> Path | None:
     return resolved
 
 
+def _library_exports_definition(
+    root: Path,
+    library: Path,
+    symbol: str,
+    definition: Path,
+    visited: set[Path],
+) -> bool:
+    library = library.resolve()
+    definition = definition.resolve()
+    if library == definition:
+        return True
+    if library in visited or not library.is_file():
+        return False
+    visited.add(library)
+    try:
+        source = library.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return any(
+        target is not None
+        and _library_exports_definition(
+            root, target, symbol, definition, visited
+        )
+        for uri in _exported_uris(source, symbol)
+        for target in [_resolve_import(root, library, uri)]
+    )
+
+
 def _imports_definition(
     root: Path,
     importer: Path,
@@ -739,7 +789,9 @@ def _imports_definition(
 ) -> bool:
     for uri, _ in _imported_uris(source, symbol):
         target = _resolve_import(root, importer, uri)
-        if target == definition.resolve():
+        if target is not None and _library_exports_definition(
+            root, target, symbol, definition, set()
+        ):
             return True
     return False
 
