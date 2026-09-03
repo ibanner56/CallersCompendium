@@ -264,15 +264,23 @@ void main() {
         headers: {'content-encoding': 'gzip'},
       );
       expect(expansion.statusCode, 413);
+      final malformedSource = Uint8List.fromList(
+        List<int>.generate(1024, (index) => index % 251),
+      );
+      final malformedCompressed = Uint8List.fromList(
+        gzip.encode(malformedSource),
+      );
+      malformedCompressed[10] ^= 0xff;
       final malformedGzip = await _send(
         'PUT',
         '/v1/blobs/${'c' * 64}',
         syncId: syncId,
-        body: Uint8List.fromList([0x1f, 0x8b, 0x08]),
+        body: malformedCompressed.sublist(0, malformedCompressed.length - 1),
         contentType: 'application/octet-stream',
         headers: {'content-encoding': 'gzip'},
       );
       expect(malformedGzip.statusCode, 400);
+      expect(await malformedGzip.body(), contains('malformed compressed body'));
     },
   );
 
