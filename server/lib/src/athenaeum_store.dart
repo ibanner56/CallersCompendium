@@ -38,6 +38,7 @@ const Duration storeDisuseTtl = Duration(days: 30);
 const Duration uploadGracePeriod = Duration(hours: 24);
 const Duration breakGlassLinkabilityPeriod = Duration(days: 30);
 const Duration diagnosticRetentionPeriod = Duration(days: 30);
+const int maxDiagnosticRows = 10000;
 const int maxStoreCreationsPerMinute = 60;
 const int maxFailedResolutionsPerIp = 10;
 const int maxFailedResolutionsPerIpBurst = 20;
@@ -56,6 +57,7 @@ class AthenaeumStore {
     FileDelete? deleteFile,
     DateTime Function()? clock,
     this.quotaLimits = const AthenaeumQuotaLimits(),
+    this.diagnosticRowLimit = maxDiagnosticRows,
   }) : config = config,
        _database = database ?? _openDatabase(config.dataDirectory),
        _breakGlassDatabase =
@@ -77,6 +79,10 @@ class AthenaeumStore {
     for (final table in diagnosticTableSchemas) {
       _diagnosticDatabase.execute(table.createSql());
     }
+    _diagnosticDatabase.execute(
+      'CREATE INDEX IF NOT EXISTS diagnostic_events_recorded_at_idx '
+      'ON diagnostic_events (recorded_at)',
+    );
     retryPendingDeletions();
   }
 
@@ -88,6 +94,7 @@ class AthenaeumStore {
   final FileDelete _deleteFile;
   final DateTime Function() _clock;
   final AthenaeumQuotaLimits quotaLimits;
+  final int diagnosticRowLimit;
 
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
@@ -388,6 +395,17 @@ class AthenaeumStore {
   }) {
     final now = recordedAt ?? _clock();
     purgeExpiredDiagnostics(now: now);
+    final count =
+        _diagnosticDatabase
+                .select('SELECT COUNT(*) AS count FROM diagnostic_events')
+                .single['count']
+            as int;
+    if (count >= diagnosticRowLimit) {
+      _diagnosticDatabase.execute(
+        'DELETE FROM diagnostic_events WHERE rowid IN ('
+        'SELECT rowid FROM diagnostic_events ORDER BY recorded_at LIMIT 1)',
+      );
+    }
     _diagnosticDatabase.execute(
       'INSERT INTO diagnostic_events (status, id_key, hash, recorded_at) '
       'VALUES (?, ?, ?, ?)',
@@ -601,16 +619,21 @@ class AthenaeumStore {
       final epoch = row['epoch'] as String;
       final hash = row['hash'] as String;
       _validateHash(hash);
-      final file = blobFile(idKey, epoch, hash);
-      try {
-        if (file.existsSync()) _deleteFile(file);
-      } on FileSystemException {
-        continue;
-      }
       var inTransaction = false;
       try {
         _database.execute('BEGIN IMMEDIATE');
         inTransaction = true;
+        final currentRef = blobRef(idKey, epoch, hash);
+        if (currentRef == null) {
+          final file = blobFile(idKey, epoch, hash);
+          try {
+            if (file.existsSync()) _deleteFile(file);
+          } on FileSystemException {
+            _database.execute('ROLLBACK');
+            inTransaction = false;
+            continue;
+          }
+        }
         _database.execute(
           'DELETE FROM blob_deletion_jobs '
           'WHERE id_key = ? AND epoch = ? AND hash = ?',

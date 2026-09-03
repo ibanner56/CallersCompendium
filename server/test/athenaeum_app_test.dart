@@ -1176,10 +1176,58 @@ void main() {
     expect(serialized, isNot(contains('1,2,3')));
   });
 
+  test(
+    'manifest path device identifiers are absent from diagnostics',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      const rawDeviceId = 'device.with.raw-id';
+      final response = await app.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/manifests/$rawDeviceId'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          },
+        ),
+      );
+      expect(response.statusCode, 400);
+      final rows = app.store.diagnosticDatabase.select(
+        'SELECT status, id_key, hash FROM diagnostic_events',
+      );
+      expect(rows, hasLength(1));
+      expect(rows.single['status'], 400);
+      expect(jsonEncode(rows.single), isNot(contains(rawDeviceId)));
+    },
+  );
+
+  test('unauthenticated request failures do not create diagnostics', () async {
+    final response = await app.call(
+      Request('GET', Uri.parse('http://127.0.0.1/v1/blobs/not-a-hash')),
+    );
+    expect(response.statusCode, 400);
+    expect(
+      app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+      isEmpty,
+    );
+  });
+
   test('sweep controller cancels its hourly callback on shutdown', () {
     final timer = _FakeTimer();
     late void Function() fire;
     var sweeps = 0;
+    final expiredIdKey = '9' * 64;
+    app.store.create(expiredIdKey);
+    app.store.database
+        .execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
+          DateTime.now()
+                  .subtract(const Duration(days: 31))
+                  .millisecondsSinceEpoch ~/
+              1000,
+          expiredIdKey,
+        ]);
     final controller = AthenaeumSweepController(
       app.store,
       schedule: (interval, callback) {
@@ -1196,6 +1244,7 @@ void main() {
     controller.start();
     fire();
     expect(sweeps, 1);
+    expect(app.store.lookup(expiredIdKey), isNull);
     controller.stop();
     expect(timer.isActive, isFalse);
     fire();

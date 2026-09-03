@@ -48,7 +48,7 @@
     "evidence": [
       "server/test/athenaeum_store_test.dart proves reachable and recent uploads survive collection, stale uploads are reclaimed after the grace window, and repeated uploads do not renew uploaded_at.",
       "server/test/athenaeum_app_test.dart proves DELETE /v1/store removes a grace-protected blob immediately and aggregate quota failures return 507 before persistent allocation.",
-      "server/test/athenaeum_app_test.dart and server/test/athenaeum_store_test.dart prove diagnostic records omit raw device IDs and credentials, persist only derived identifiers, and expire during the hourly sweep.",
+      "server/test/athenaeum_app_test.dart and server/test/athenaeum_store_test.dart prove diagnostic records omit raw manifest device IDs and credentials, persist only derived identifiers, remain bounded and indexed, and expire during the hourly sweep.",
       "docs/dev/store-submission/privacy-policy.md, site/privacy/index.html, and server/README.md state the observed 30-day eligibility and next-hourly-sweep pruning behavior consistently."
     ]
   }

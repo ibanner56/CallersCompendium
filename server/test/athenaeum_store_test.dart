@@ -198,6 +198,96 @@ void main() {
     }
   });
 
+  test('stale blob deletion jobs cannot remove a re-uploaded blob', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final breakGlassDatabase = sqlite3.openInMemory();
+    var failDelete = true;
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: breakGlassDatabase,
+      clock: () => now,
+      deleteFile: (file) {
+        if (failDelete) {
+          throw const FileSystemException('injected file failure');
+        }
+        file.deleteSync();
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+    final idKey = '7' * 64;
+    final created = store.create(idKey);
+    final hash = '8' * 64;
+    final body = Uint8List.fromList([1]);
+    store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body);
+    database.execute('UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?', [
+      now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+      idKey,
+    ]);
+    store.collectGarbage(idKey, created.epoch, now: now);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+
+    failDelete = false;
+    expect(
+      store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
+      isTrue,
+    );
+    store.retryPendingBlobDeletions();
+    expect(store.blobRef(idKey, created.epoch, hash), isNotNull);
+    expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isTrue);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), isEmpty);
+  });
+
+  test('diagnostic storage is indexed and bounded', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final breakGlassDatabase = sqlite3.openInMemory();
+    final diagnosticDatabase = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: breakGlassDatabase,
+      diagnosticDatabase: diagnosticDatabase,
+      diagnosticRowLimit: 1,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    store.recordDiagnostic(status: 400, idKey: '1' * 64, hash: '2' * 64);
+    store.recordDiagnostic(status: 413, idKey: '3' * 64, hash: '4' * 64);
+
+    expect(
+      diagnosticDatabase
+          .select('SELECT COUNT(*) AS count FROM diagnostic_events')
+          .single['count'],
+      1,
+    );
+    expect(
+      diagnosticDatabase.select(
+        "SELECT name FROM sqlite_master WHERE type = 'index' "
+        "AND name = 'diagnostic_events_recorded_at_idx'",
+      ),
+      hasLength(1),
+    );
+  });
+
   test('sweep removes stores past the rolling disuse TTL', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',

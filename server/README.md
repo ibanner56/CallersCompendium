@@ -36,4 +36,5 @@ can be published safely; `DELETE /v1/store` bypasses that grace period. The
 break-glass access database makes a derived store key eligible for nulling after
 30 days and nulls it by the next hourly sweep, then retains only its timestamp.
 Ordinary diagnostic events become eligible for removal after 30 days and are
-removed by the next hourly sweep.
+removed by the next hourly sweep; unauthenticated failures are not persisted,
+and the diagnostic store is capped at 10,000 rows with a timestamp index.

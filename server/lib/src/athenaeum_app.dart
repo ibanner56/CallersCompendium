@@ -405,6 +405,7 @@ class AthenaeumApp {
     if (segments.length == 3 && _validHash(segments[2])) {
       hash = segments[2];
     }
+    if (idKey == null) return;
     _diagnosticLogger(
       AthenaeumDiagnosticEvent(status: error.status, idKey: idKey, hash: hash),
     );
