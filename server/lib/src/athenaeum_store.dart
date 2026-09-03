@@ -14,6 +14,18 @@ import 'athenaeum_schema.dart';
 typedef DirectoryDelete = void Function(Directory directory);
 typedef FileDelete = void Function(File file);
 
+class AthenaeumQuotaLimits {
+  const AthenaeumQuotaLimits({
+    this.maxBlobs = maxStoreBlobs,
+    this.maxBytes = maxStoreBytes,
+    this.maxDevices = maxStoreDevices,
+  });
+
+  final int maxBlobs;
+  final int maxBytes;
+  final int maxDevices;
+}
+
 const int maxBlobBytes = 1024 * 1024;
 const int maxManifestBytes = 16 * 1024 * 1024;
 const int maxMissingHashes = 10000;
@@ -38,13 +50,17 @@ class AthenaeumStore {
     required AthenaeumConfig config,
     sqlite3.Database? database,
     sqlite3.Database? breakGlassDatabase,
+    sqlite3.Database? diagnosticDatabase,
     DirectoryDelete? deleteDirectory,
     FileDelete? deleteFile,
     DateTime Function()? clock,
+    this.quotaLimits = const AthenaeumQuotaLimits(),
   }) : config = config,
        _database = database ?? _openDatabase(config.dataDirectory),
        _breakGlassDatabase =
            breakGlassDatabase ?? _openBreakGlassDatabase(config.dataDirectory),
+       _diagnosticDatabase =
+           diagnosticDatabase ?? _openDiagnosticDatabase(config.dataDirectory),
        _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively,
        _deleteFile = deleteFile ?? _deleteFileSync,
        _clock = clock ?? DateTime.now {
@@ -57,15 +73,20 @@ class AthenaeumStore {
     for (final table in breakGlassTableSchemas) {
       _breakGlassDatabase.execute(table.createSql());
     }
+    for (final table in diagnosticTableSchemas) {
+      _diagnosticDatabase.execute(table.createSql());
+    }
     retryPendingDeletions();
   }
 
   final AthenaeumConfig config;
   final sqlite3.Database _database;
   final sqlite3.Database _breakGlassDatabase;
+  final sqlite3.Database _diagnosticDatabase;
   final DirectoryDelete _deleteDirectory;
   final FileDelete _deleteFile;
   final DateTime Function() _clock;
+  final AthenaeumQuotaLimits quotaLimits;
 
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
@@ -79,12 +100,20 @@ class AthenaeumStore {
     );
   }
 
+  static sqlite3.Database _openDiagnosticDatabase(String dataDirectory) {
+    Directory(dataDirectory).createSync(recursive: true);
+    return sqlite3.sqlite3.open(
+      p.join(dataDirectory, 'athenaeum-diagnostics.sqlite'),
+    );
+  }
+
   Directory get blobDirectory =>
       Directory(p.join(config.dataDirectory, 'blobs'));
 
   void close() {
     _database.close();
     _breakGlassDatabase.close();
+    _diagnosticDatabase.close();
   }
 
   StoreRow? lookup(String idKey) {
@@ -146,6 +175,8 @@ class AthenaeumStore {
       devices: [for (final row in deviceRows) row['device_id'] as String],
       blobs: (blobRows.single['count'] as int?) ?? 0,
       bytes: store.bytesUsed,
+      maxBlobs: quotaLimits.maxBlobs,
+      maxBytes: quotaLimits.maxBytes,
     );
   }
 
@@ -191,7 +222,7 @@ class AthenaeumStore {
                   [idKey, epoch],
                 ).single['count']
                 as int;
-        if (count >= maxStoreDevices) {
+        if (count >= quotaLimits.maxDevices) {
           throw const StoreQuotaExceeded('device quota exhausted');
         }
       }
@@ -288,11 +319,14 @@ class AthenaeumStore {
         final hash = row['hash'] as String;
         if (referenced.contains(hash)) continue;
         _validateHash(hash);
-        final file = blobFile(idKey, epoch, hash);
-        if (file.existsSync()) _deleteFile(file);
         _database.execute(
           'DELETE FROM blob_refs WHERE id_key = ? AND epoch = ? AND hash = ?',
           [idKey, epoch, hash],
+        );
+        _database.execute(
+          'INSERT OR IGNORE INTO blob_deletion_jobs '
+          '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
+          [idKey, epoch, hash, _clock().millisecondsSinceEpoch ~/ 1000],
         );
         _database.execute(
           'UPDATE stores SET bytes_used = MAX(0, bytes_used - ?) '
@@ -302,6 +336,7 @@ class AthenaeumStore {
       }
       _database.execute('COMMIT');
       inTransaction = false;
+      retryPendingBlobDeletions();
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
@@ -340,6 +375,33 @@ class AthenaeumStore {
     _breakGlassDatabase.execute(
       'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
       [idKey, now.millisecondsSinceEpoch ~/ 1000],
+    );
+  }
+
+  void recordDiagnostic({
+    required int status,
+    required String? idKey,
+    required String? hash,
+    DateTime? recordedAt,
+  }) {
+    final now = recordedAt ?? _clock();
+    purgeExpiredDiagnostics(now: now);
+    _diagnosticDatabase.execute(
+      'INSERT INTO diagnostic_events (status, id_key, hash, recorded_at) '
+      'VALUES (?, ?, ?, ?)',
+      [status, idKey, hash, now.millisecondsSinceEpoch ~/ 1000],
+    );
+  }
+
+  void purgeExpiredDiagnostics({DateTime? now}) {
+    final cutoff =
+        (now ?? _clock())
+            .subtract(breakGlassLinkabilityPeriod)
+            .millisecondsSinceEpoch ~/
+        1000;
+    _diagnosticDatabase.execute(
+      'DELETE FROM diagnostic_events WHERE recorded_at < ?',
+      [cutoff],
     );
   }
 
@@ -382,10 +444,10 @@ class AthenaeumStore {
                   [idKey, epoch],
                 ).single['count']
                 as int;
-        if (count >= maxStoreBlobs) {
+        if (count >= quotaLimits.maxBlobs) {
           throw const StoreQuotaExceeded('blob quota exhausted');
         }
-        if (current.bytesUsed > maxStoreBytes - body.length) {
+        if (current.bytesUsed > quotaLimits.maxBytes - body.length) {
           throw const StoreQuotaExceeded('byte quota exhausted');
         }
       }
@@ -444,6 +506,8 @@ class AthenaeumStore {
   sqlite3.Database get breakGlassDatabase => _breakGlassDatabase;
 
   sqlite3.Database get database => _database;
+
+  sqlite3.Database get diagnosticDatabase => _diagnosticDatabase;
 
   void deleteStore(String idKey) {
     late final String epoch;
@@ -512,6 +576,43 @@ class AthenaeumStore {
         _database.execute(
           'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
           [idKey, epoch],
+        );
+        _database.execute('COMMIT');
+        inTransaction = false;
+      } catch (error) {
+        try {
+          if (inTransaction) _database.execute('ROLLBACK');
+        } finally {
+          rethrow;
+        }
+      }
+    }
+    retryPendingBlobDeletions();
+  }
+
+  void retryPendingBlobDeletions() {
+    final rows = _database.select(
+      'SELECT id_key, epoch, hash FROM blob_deletion_jobs ORDER BY queued_at',
+    );
+    for (final row in rows) {
+      final idKey = row['id_key'] as String;
+      final epoch = row['epoch'] as String;
+      final hash = row['hash'] as String;
+      _validateHash(hash);
+      final file = blobFile(idKey, epoch, hash);
+      try {
+        if (file.existsSync()) _deleteFile(file);
+      } on FileSystemException {
+        continue;
+      }
+      var inTransaction = false;
+      try {
+        _database.execute('BEGIN IMMEDIATE');
+        inTransaction = true;
+        _database.execute(
+          'DELETE FROM blob_deletion_jobs '
+          'WHERE id_key = ? AND epoch = ? AND hash = ?',
+          [idKey, epoch, hash],
         );
         _database.execute('COMMIT');
         inTransaction = false;
@@ -596,12 +697,16 @@ class StoreMetadata {
     required this.devices,
     required this.blobs,
     required this.bytes,
+    required this.maxBlobs,
+    required this.maxBytes,
   });
 
   final String epoch;
   final List<String> devices;
   final int blobs;
   final int bytes;
+  final int maxBlobs;
+  final int maxBytes;
 
   Map<String, Object?> toJson() => {
     'epoch': epoch,
@@ -609,8 +714,8 @@ class StoreMetadata {
     'quota': {
       'blobs': blobs,
       'bytes': bytes,
-      'maxBlobs': maxStoreBlobs,
-      'maxBytes': maxStoreBytes,
+      'maxBlobs': maxBlobs,
+      'maxBytes': maxBytes,
     },
   };
 }

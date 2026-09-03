@@ -6,6 +6,7 @@ void main() {
     final expected = {
       ...serverSqliteFields,
       ...serverBreakGlassSqliteFields,
+      ...serverDiagnosticSqliteFields,
       ...serverFilesystemFields,
       ...serverConfigurationFields,
     };

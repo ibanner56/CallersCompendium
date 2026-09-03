@@ -148,6 +148,56 @@ void main() {
     );
   });
 
+  test('garbage collection rolls back metadata without losing files', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final breakGlassDatabase = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: breakGlassDatabase,
+      clock: () => now,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+    final idKey = '4' * 64;
+    final created = store.create(idKey);
+    for (final hash in ['5' * 64, '6' * 64]) {
+      store.putBlob(
+        idKey: idKey,
+        epoch: created.epoch,
+        hash: hash,
+        body: Uint8List.fromList([1]),
+      );
+    }
+    database.execute('UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?', [
+      now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+      idKey,
+    ]);
+    database.execute(
+      'CREATE TRIGGER fail_blob_job BEFORE INSERT ON blob_deletion_jobs '
+      "WHEN NEW.hash = '6${'6' * 63}' "
+      "BEGIN SELECT RAISE(ABORT, 'injected job failure'); END",
+    );
+
+    expect(
+      () => store.collectGarbage(idKey, created.epoch, now: now),
+      throwsA(isA<SqliteException>()),
+    );
+    for (final hash in ['5' * 64, '6' * 64]) {
+      expect(store.blobRef(idKey, created.epoch, hash), isNotNull);
+      expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isTrue);
+    }
+  });
+
   test('sweep removes stores past the rolling disuse TTL', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',

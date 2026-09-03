@@ -82,15 +82,22 @@ class AthenaeumApp {
        store = store ?? AthenaeumStore(config: config),
        _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress,
        _failureBudget = _FailureBudget(budgetLimits),
-       _creationBudget = _CreationBudget(budgetLimits),
-       _diagnosticLogger = diagnosticLogger ?? _discardDiagnostic;
+       _creationBudget = _CreationBudget(budgetLimits) {
+    _diagnosticLogger =
+        diagnosticLogger ??
+        (event) => this.store.recordDiagnostic(
+          status: event.status,
+          idKey: event.idKey,
+          hash: event.hash,
+        );
+  }
 
   final AthenaeumConfig config;
   final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
-  final AthenaeumDiagnosticLogger _diagnosticLogger;
+  late final AthenaeumDiagnosticLogger _diagnosticLogger;
 
   Handler get handler => call;
 
@@ -560,8 +567,6 @@ class AthenaeumApp {
       Response(405, headers: {'allow': methods.join(', ')});
 
   static String _defaultClientAddress(Request request) => 'unknown';
-
-  static void _discardDiagnostic(AthenaeumDiagnosticEvent event) {}
 }
 
 class _AuthResult {

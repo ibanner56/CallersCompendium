@@ -46,12 +46,27 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
     'epoch': 'TEXT NOT NULL',
     'queued_at': 'INTEGER NOT NULL',
   }, tableConstraint: 'PRIMARY KEY (id_key, epoch)'),
+  AthenaeumTableSchema('blob_deletion_jobs', {
+    'id_key': 'TEXT NOT NULL',
+    'epoch': 'TEXT NOT NULL',
+    'hash': 'TEXT NOT NULL',
+    'queued_at': 'INTEGER NOT NULL',
+  }, tableConstraint: 'PRIMARY KEY (id_key, epoch, hash)'),
 ];
 
 const List<AthenaeumTableSchema> breakGlassTableSchemas = [
   AthenaeumTableSchema('break_glass_access', {
     'id_key': 'TEXT',
     'accessed_at': 'INTEGER NOT NULL',
+  }),
+];
+
+const List<AthenaeumTableSchema> diagnosticTableSchemas = [
+  AthenaeumTableSchema('diagnostic_events', {
+    'status': 'INTEGER NOT NULL',
+    'id_key': 'TEXT',
+    'hash': 'TEXT',
+    'recorded_at': 'INTEGER NOT NULL',
   }),
 ];
 
@@ -62,6 +77,11 @@ List<String> get serverSqliteFields => [
 
 List<String> get serverBreakGlassSqliteFields => [
   for (final table in breakGlassTableSchemas)
+    for (final column in table.columns.keys) '${table.name}.$column',
+];
+
+List<String> get serverDiagnosticSqliteFields => [
+  for (final table in diagnosticTableSchemas)
     for (final column in table.columns.keys) '${table.name}.$column',
 ];
 

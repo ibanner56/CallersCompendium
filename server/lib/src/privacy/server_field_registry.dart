@@ -105,6 +105,26 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
   ),
+  'blob_deletion_jobs.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'blob_deletion_jobs.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'blob_deletion_jobs.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'blob_deletion_jobs.queued_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
   'break_glass_access.id_key': DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
@@ -116,6 +136,28 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
     note: 'Retained audit timestamp without a linkable store key.',
+  ),
+  'diagnostic_events.status': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'diagnostic_events.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Peppered pseudonymous store key retained for at most 30 days.',
+  ),
+  'diagnostic_events.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'diagnostic_events.recorded_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Diagnostic event timestamp retained for at most 30 days.',
   ),
   'blob_files.body': DataClassification(
     term: DpvTerm.unclassifiedPersonal,

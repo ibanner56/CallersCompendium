@@ -1017,6 +1017,103 @@ void main() {
     },
   );
 
+  test('blob-count quota rejects the next unique upload', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-blob-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 1),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    Future<Response> request(String method, String path, {Uint8List? body}) =>
+        customApp.call(
+          Request(
+            method,
+            Uri.parse('http://127.0.0.1$path'),
+            headers: {
+              'authorization': authorization,
+              if (body != null) 'content-type': 'application/octet-stream',
+            },
+            body: body,
+          ),
+        );
+
+    expect((await request('POST', '/v1/store')).statusCode, 201);
+    final firstBody = Uint8List.fromList([1]);
+    final firstHash = sha256.convert(firstBody).toString();
+    expect(
+      (await request(
+        'PUT',
+        '/v1/blobs/$firstHash',
+        body: firstBody,
+      )).statusCode,
+      201,
+    );
+    final secondBody = Uint8List.fromList([2]);
+    final secondHash = sha256.convert(secondBody).toString();
+    expect(
+      (await request(
+        'PUT',
+        '/v1/blobs/$secondHash',
+        body: secondBody,
+      )).statusCode,
+      507,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    final epoch = customStore.lookup(idKey)!.epoch;
+    expect(
+      customStore.blobFile(idKey, epoch, secondHash).existsSync(),
+      isFalse,
+    );
+  });
+
+  test('production diagnostics persist and expire safely', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final hash = 'a' * 64;
+    final response = await _send(
+      'PUT',
+      '/v1/blobs/$hash',
+      syncId: syncId,
+      body: Uint8List.fromList([1, 2, 3]),
+      contentType: 'application/octet-stream',
+    );
+    expect(response.statusCode, 400);
+    final rows = app.store.diagnosticDatabase.select(
+      'SELECT status, id_key, hash, recorded_at FROM diagnostic_events',
+    );
+    expect(rows, hasLength(1));
+    expect(rows.single['status'], 400);
+    expect(rows.single['id_key'], isNot(syncId));
+    expect(rows.single['hash'], hash);
+    app.store.diagnosticDatabase
+        .execute('UPDATE diagnostic_events SET recorded_at = ?', [
+          DateTime.now()
+                  .subtract(const Duration(days: 31))
+                  .millisecondsSinceEpoch ~/
+              1000,
+        ]);
+    app.store.purgeExpiredDiagnostics();
+    expect(
+      app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+      isEmpty,
+    );
+  });
+
   test('rejection diagnostics contain only derived identifiers', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final events = <AthenaeumDiagnosticEvent>[];
