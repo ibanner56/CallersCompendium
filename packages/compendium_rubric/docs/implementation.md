@@ -682,7 +682,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,007 tests green; `analyze` clean; `format` clean.**
+- **1,009 tests green; `analyze` clean; `format` clean.**
 - **46 figures registered**, plus 3 upstream aliases resolved to them.
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
@@ -756,9 +756,25 @@ rest cannot pass for the wrong reason.
   the centre pair — necessarily, because in the state *The Carousel* reaches its
   hey from, both role pairs span the set and nothing else could choose. An
   absent `pass2` there is a refusal, never a guess. **Deferred:** a side opening
-  at any length but `full`, and any side opening carrying a ricochet, since
-  opening on the side shifts every later pass by one and no worked example pins
-  where the half-way point or each `rico` flag then lands.
+  at any length but `full`, since opening on the side shifts every later pass by
+  one and no worked example pins where the half-way point then lands.
+- **Ricochets survive the side opening, on a user ruling.** `rico1`–`rico4`
+  always name **centre passes** — the user ruled the exceptions out of scope.
+  That is what makes them portable: opening on the side moves the first centre
+  meeting from pass 1 to pass 2, but it changes neither how many centre meetings
+  a pair has nor which pair has the first, and `_exchanges` reads nothing but
+  the per-pair meeting parity. So `rico1`/`rico3` still belong to whichever pair
+  meets first — the `pass1` pair in a centre opening, the `pass2` pair in a side
+  one, both already resolved before the flags are read. The deferral that had
+  been carried for want of this ruling is retired. Note the ricochet flags were
+  never renumbered, only re-attributed; the three replacement tests assert exact
+  matrices and were mutation-verified by swapping which flag pair feeds which
+  dancer pair, which reddens them.
+  **It earned no coverage, and that was measured rather than assumed.** 496
+  corpus files mention a ricochet; swept as a subset they compile 76 either
+  way, with the deferral lifted or temporarily restored. So no corpus dance
+  combines a ricochet with a side-opening hey, and this reading rests on the
+  user ruling and the derivation alone — there is no dance behind it.
 
 ### 15.1 What the corpus says
 

@@ -86,8 +86,16 @@ typedef _HeyLine = ({DancerPair centers, DancerPair ends, bool sideStart});
 /// with pass 1 suppressed gives `a b c d` → `d b c a` — the ends traded and the
 /// centres did not — so suppressing a meeting is exactly "that pair does not
 /// exchange". The flags are numbered by centre meeting, and *who* meets in the
-/// centre alternates: [rico1] and [rico3] are the [pass1] pair's two meetings,
-/// [rico2] and [rico4] the end pair's.
+/// centre alternates: [rico1] and [rico3] are the two meetings of whichever
+/// pair meets in the centre **first**, [rico2] and [rico4] the other pair's.
+///
+/// The flags count centre meetings only, never side passes (user-ruled; the
+/// exceptions are out of scope). That is what makes them survive a hey that
+/// opens on the side: opening there moves the first centre meeting from pass 1
+/// to pass 2, but it does not change how many centre meetings each pair has,
+/// nor which pair has the first of them — in a side opening that pair is the
+/// one [pass2] names, and this figure has already resolved it before the flags
+/// are read.
 ///
 /// Because an exchange is an involution, two unsuppressed meetings cancel. Each
 /// pair therefore ends swapped exactly when it met an **odd** number of times,
@@ -143,16 +151,19 @@ final class HeyForFour extends Operation {
   /// The axis the line of four lies along. Only `across` is implemented.
   final Direction dir;
 
-  /// The [pass1] pair ricochet at their first centre meeting.
+  /// The pair who meet in the centre first ricochet at that meeting.
+  ///
+  /// That is the [pass1] pair when the hey opens in the centre, and the [pass2]
+  /// pair when it opens on the side.
   final bool rico1;
 
-  /// The end pair ricochet at their first centre meeting.
+  /// The other pair ricochet at their first centre meeting.
   final bool rico2;
 
-  /// The [pass1] pair ricochet at their second centre meeting (full hey only).
+  /// The pair who met first ricochet at their second meeting (full hey only).
   final bool rico3;
 
-  /// The end pair ricochet at their second centre meeting (full hey only).
+  /// The other pair ricochet at their second centre meeting (full hey only).
   final bool rico4;
 
   @override
@@ -326,13 +337,17 @@ final class HeyForFour extends Operation {
     return named.length == 4;
   }
 
-  /// Why a hey that opens on the side is deferred unless it is a plain full one.
+  /// Why a hey that opens on the side is deferred unless it is a full one.
   ///
-  /// Opening on the side shifts every later pass by one, so the centre meetings
-  /// the ricochet flags and the half-way point are counted from land somewhere
-  /// this model has no worked example for. A **full** hey with no ricochets is
-  /// exempt because it is the identity by either counting, so the shift cannot
-  /// change the answer.
+  /// Opening on the side shifts every later pass by one, so the **half-way
+  /// point** lands somewhere this model has no worked example for. A full hey
+  /// is exempt because the whole weave is danced either way.
+  ///
+  /// Ricochets are *not* deferred. They count centre meetings rather than
+  /// passes (user-ruled), and opening on the side changes neither how many
+  /// centre meetings a pair has nor which pair has the first one — it only
+  /// moves that meeting from pass 1 to pass 2. Since [_exchanges] reads
+  /// nothing but the per-pair meeting parity, the shift cannot reach it.
   OpError? _deferredSideStart() {
     if (length != HeyLength.full) {
       return OpError(
@@ -341,14 +356,6 @@ final class HeyForFour extends Operation {
         'there shifts every pass by one, so where the weave stops half way is '
         'not the place a centre-opening half hey stops, and no worked example '
         'pins it',
-      );
-    }
-    if (rico1 || rico2 || rico3 || rico4) {
-      return const OpError(
-        ErrorKind.unsupportedParam,
-        'hey ricochets on a side-opening hey are deferred: rico1..rico4 count '
-        'centre meetings, and opening on the side moves the first of those to '
-        'the second pass, so which meeting each flag names is unpinned',
       );
     }
     return null;

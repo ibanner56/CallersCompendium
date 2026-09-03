@@ -351,16 +351,50 @@ void main() {
       expect(error.message, contains('half way'));
     });
 
-    test('ricochets on a side-opening hey are deferred', () {
+    test('rico1 suppresses the meeting of whichever pair meets first', () {
+      // User ruling: rico1..rico4 always name centre passes. Opening on the
+      // side moves the first centre meeting from pass 1 to pass 2, but it does
+      // not renumber the meetings -- so rico1 still names the first one, which
+      // here belongs to the pass2 pair (the Larks) rather than the pass1 pair.
       const hey = HeyForFour(
         pass1: WhoSet.partners,
         pass2: WhoSet.role1s,
         length: HeyLength.full,
         rico1: true,
       );
-      final error = applyErr(hey, di(carousel));
-      expect(error.kind, ErrorKind.unsupportedParam);
-      expect(error.message, contains('centre meetings'));
+      expect(applyOk(hey, di(carousel)).toRolesNotation(), [
+        'R2-B . . . L2-B',
+        'L1-A . . . R1-A',
+      ]);
+    });
+
+    test(
+      'rico2 suppresses the other pair instead, and they are not the same',
+      () {
+        const hey = HeyForFour(
+          pass1: WhoSet.partners,
+          pass2: WhoSet.role1s,
+          length: HeyLength.full,
+          rico2: true,
+        );
+        expect(applyOk(hey, di(carousel)).toRolesNotation(), [
+          'R1-A . . . L1-A',
+          'L2-B . . . R2-B',
+        ]);
+      },
+    );
+
+    test('rico1 and rico3 cancel, because an exchange is an involution', () {
+      // Both of the Larks' meetings suppressed is an even count, same as none.
+      const hey = HeyForFour(
+        pass1: WhoSet.partners,
+        pass2: WhoSet.role1s,
+        length: HeyLength.full,
+        rico1: true,
+        rico3: true,
+      );
+      final start = di(carousel);
+      expect(applyOk(hey, start).toMatrix(), start.toMatrix());
     });
 
     test('a centre-opening hey is untouched by any of this', () {

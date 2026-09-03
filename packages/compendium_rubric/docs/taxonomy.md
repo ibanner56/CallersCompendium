@@ -2307,9 +2307,12 @@ To be defined later with worked examples.
   came instead of passing through. Re-walking the reel with pass 1 suppressed gives
   `a b c d → d b c a` (the ends traded, the centres did not), so a ricochet is exactly *"that pair
   does not exchange"*.
-  - A half hey has **exactly two centre meetings**: the `pass1` pair at the first, the end pair at
-    the second. *Who* meets in the centre alternates — so `rico1`/`rico3` are the **`pass1` pair's**
-    two meetings and `rico2`/`rico4` the **end pair's**. They are not "first and second dancer".
+  - A half hey has **exactly two centre meetings**: the pair who meets first at the first, the
+    other pair at the second. *Who* meets in the centre alternates — so `rico1`/`rico3` are the
+    **first-meeting pair's** two meetings and `rico2`/`rico4` the other pair's. They are not
+    "first and second dancer". When the hey opens in the centre the first-meeting pair is the
+    `pass1` pair; when it opens on the side it is the `pass2` pair (see the side-opening section
+    below).
   - Because an exchange is an **involution**, two unsuppressed meetings cancel. A pair ends
     swapped exactly when it met an **odd** number of unsuppressed times. This is why a plain full
     hey is the identity, and why `rico1` alone on a full hey *does* produce a swap.
@@ -2358,10 +2361,24 @@ To be defined later with worked examples.
   lone pair names half of it. Duple *proper* with `pass1: role2s` is that case — both Robins east,
   nobody named opposite — and it stays an `unresolvableDancerSet` refusal.
 
-  **Deferred:** a side-opening hey that is not a plain `full` one, and any side-opening hey
-  carrying a ricochet. Opening on the side shifts every later pass by one, so neither the half-way
-  stopping point nor the centre meeting each `rico` flag names is pinned by any worked example. A
-  full hey with no ricochets is exempt because it is the identity under either counting.
+  **Deferred:** a side-opening hey that is not a `full` one. Opening on the side shifts every
+  later pass by one, so the half-way stopping point is not the place a centre-opening half hey
+  stops, and no worked example pins it. A full hey is exempt because the whole weave is danced
+  either way.
+
+  **Ricochets are not deferred here.** They number **centre meetings**, never passes (user-ruled;
+  the exceptions are out of scope), and opening on the side changes neither how many centre
+  meetings a pair has nor which pair has the first of them — it only moves that meeting from pass
+  1 to pass 2. So `rico1`/`rico3` still belong to the pair who meets first, which in a side
+  opening is the `pass2` pair. Worked through on The Carousel's post-allemande state
+  `[[R2-B . . . L1-A], [L2-B . . . R1-A]]`:
+
+  | call | result |
+  |---|---|
+  | plain full | identity |
+  | `rico1` (the Larks, who meet first) | `[[R2-B . . . L2-B], [L1-A . . . R1-A]]` |
+  | `rico2` (the Robins) | `[[R1-A . . . L1-A], [L2-B . . . R2-B]]` |
+  | `rico1` + `rico3` | identity |
 - **preconditions:**
   - `dir != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
     hands four, and are **deferred behind diagonal `right_left_through`**, which they would have to
@@ -2376,8 +2393,8 @@ To be defined later with worked examples.
     anything else names a pass with no place to happen.
   - A side opening with `pass2` absent, or with a `pass2` that names no single spanning pair →
     `unresolvableDancerSet`. There the anchor is the only thing that can identify the centres.
-  - A side opening at any `length` other than `full`, or carrying any ricochet →
-    `unsupportedParam`.
+  - A side opening at any `length` other than `full` → `unsupportedParam`. Ricochets are **not**
+    refused there; see the side-opening section above.
   - A band holds other than four dancers, or there is **no complete hands four** →
     `unresolvableDancerSet`.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on
@@ -2386,15 +2403,20 @@ To be defined later with worked examples.
 - **h4 contribution** (D7): 0.
 - **progression-eligible:** **yes** (user-ruled).
 - **sources:** derived from first principles and confirmed against **user worked matrices** (the
-  four above) and user rulings on ricochet numbering, ending facing and progression-eligibility.
+  four centre-opening rows above) and user rulings on ricochet numbering, ending facing and
+  progression-eligibility. The user's ruling is that `rico1`–`rico4` **always** name centre
+  passes, exceptions being out of scope; the side-opening ricochet table above is *derived* from
+  that ruling plus the involution argument, not supplied.
   CallersCompendium taxonomy `hey` MoveDef for the param surface — the adapter structures heys
   natively, with names matching this implementation. ContraDanceVerifier `FigureSimulator.cs`
   contributes the DI special case only; **its ricochet code path is not authoritative** —
   `SYSTEM_REFERENCE.md` lists "Ricochet hey" as intentionally skipped and `DanceData.cs` filters
   ricochet dances out of the corpus, so that code was never validated against a real dance.
-- **not yet covered by a golden dance.** Neither corpus dance probed during development
-  *discriminates* between the candidate permutations (a following partner swing normalizes the
-  difference away), so confidence rests on the derivation and the worked matrices, not on the
-  corpus.
+- **covered by two golden dances**, `last_hey.json` (centre opening, and the record that settled
+  `pass2`) and `the_carousel.json` (side opening, where the compile itself is the assertion since
+  a centre reading refuses). **Ricochets remain uncovered by any golden**, and cannot easily be:
+  no probed corpus dance *discriminates* between the candidate permutations, because a following
+  partner swing normalizes the difference away. Confidence there rests on the derivation and the
+  worked matrices, not on the corpus.
 
 <!-- Figure entries will be appended here using the template above. -->
