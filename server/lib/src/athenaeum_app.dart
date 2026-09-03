@@ -14,6 +14,7 @@ typedef AthenaeumDiagnosticLogger =
     void Function(AthenaeumDiagnosticEvent event);
 typedef AthenaeumPeriodicTimer =
     Timer Function(Duration interval, void Function(Timer timer) callback);
+typedef AthenaeumSweep = void Function();
 
 class AthenaeumDiagnosticEvent {
   const AthenaeumDiagnosticEvent({
@@ -40,15 +41,24 @@ class AthenaeumSweepController {
     this.store, {
     AthenaeumPeriodicTimer? schedule,
     this.interval = const Duration(hours: 1),
-  }) : _schedule = schedule ?? Timer.periodic;
+    AthenaeumSweep? sweep,
+  }) : _schedule = schedule ?? Timer.periodic,
+       _sweep = sweep ?? store.sweep;
 
   final AthenaeumStore store;
   final AthenaeumPeriodicTimer _schedule;
+  final AthenaeumSweep _sweep;
   final Duration interval;
   Timer? _timer;
 
   void start() {
-    _timer ??= _schedule(interval, (_) => store.sweep());
+    _timer ??= _schedule(interval, (_) {
+      try {
+        _sweep();
+      } catch (error) {
+        stderr.writeln('Athenaeum sweep failed (${error.runtimeType})');
+      }
+    });
   }
 
   void stop() {
@@ -205,6 +215,17 @@ class AthenaeumApp {
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
         throw const _RequestFailure(413, 'request body exceeds limit');
       }
+      try {
+        store.manifestUploadPreflight(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          deviceId: deviceId,
+        );
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale manifest epoch');
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
+      }
       final depthScanner = _MissingHashScanner();
       final body = await _readBody(
         request,
@@ -323,6 +344,10 @@ class AthenaeumApp {
     }
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/octet-stream');
+      if (request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
+          _declaredLengthExceeds(request, maxBlobBytes)) {
+        throw const _RequestFailure(413, 'request body exceeds limit');
+      }
       late final int quotaLimit;
       try {
         quotaLimit = store.blobUploadLimit(identity.idKey, current.epoch, hash);
@@ -331,10 +356,8 @@ class AthenaeumApp {
       } on StoreEpochMismatch {
         throw const _RequestFailure(409, 'stale blob epoch');
       }
-      if (_declaredLengthExceeds(request, maxBlobBytes)) {
-        throw const _RequestFailure(413, 'request body exceeds limit');
-      }
-      if (_declaredLengthExceeds(request, quotaLimit)) {
+      if (request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
+          _declaredLengthExceeds(request, quotaLimit)) {
         throw const _RequestFailure(507, 'byte quota exhausted');
       }
       final body = await _readBody(

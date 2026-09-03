@@ -222,22 +222,8 @@ class AthenaeumStore {
       if (current == null || current.epoch != epoch) {
         throw const StoreEpochMismatch();
       }
-      final existed = _database.select(
-        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
-        'AND device_id = ?',
-        [idKey, epoch, deviceId],
-      ).isNotEmpty;
-      if (!existed) {
-        final count =
-            _database.select(
-                  'SELECT COUNT(*) AS count FROM manifests WHERE id_key = ? AND epoch = ?',
-                  [idKey, epoch],
-                ).single['count']
-                as int;
-        if (count >= quotaLimits.maxDevices) {
-          throw const StoreQuotaExceeded('device quota exhausted');
-        }
-      }
+      final existed = _manifestExists(idKey, epoch, deviceId);
+      _checkManifestDeviceQuota(idKey, epoch, deviceId, existed: existed);
       _database.execute(
         'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
         'VALUES (?, ?, ?, ?, ?, ?) '
@@ -254,6 +240,44 @@ class AthenaeumStore {
       } finally {
         rethrow;
       }
+    }
+  }
+
+  void manifestUploadPreflight({
+    required String idKey,
+    required String epoch,
+    required String deviceId,
+  }) {
+    final current = lookup(idKey);
+    if (current == null || current.epoch != epoch) {
+      throw const StoreEpochMismatch();
+    }
+    _checkManifestDeviceQuota(idKey, epoch, deviceId);
+  }
+
+  bool _manifestExists(String idKey, String epoch, String deviceId) =>
+      _database.select(
+        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
+        'AND device_id = ?',
+        [idKey, epoch, deviceId],
+      ).isNotEmpty;
+
+  void _checkManifestDeviceQuota(
+    String idKey,
+    String epoch,
+    String deviceId, {
+    bool? existed,
+  }) {
+    if (existed ?? _manifestExists(idKey, epoch, deviceId)) return;
+    final count =
+        _database.select(
+              'SELECT COUNT(*) AS count FROM manifests '
+              'WHERE id_key = ? AND epoch = ?',
+              [idKey, epoch],
+            ).single['count']
+            as int;
+    if (count >= quotaLimits.maxDevices) {
+      throw const StoreQuotaExceeded('device quota exhausted');
     }
   }
 
@@ -304,32 +328,39 @@ class AthenaeumStore {
     try {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
-      final referenced = <String>{};
-      final manifests = _database.select(
-        'SELECT body FROM manifests WHERE id_key = ? AND epoch = ?',
+      final stale = _database.select(
+        'SELECT hash, size FROM blob_refs '
+        'WHERE id_key = ? AND epoch = ? AND uploaded_at < ?',
+        [idKey, epoch, cutoff],
+      );
+      final candidates = <String>{
+        for (final row in stale) row['hash'] as String,
+      };
+      final manifestRows = _database.select(
+        'SELECT rowid FROM manifests WHERE id_key = ? AND epoch = ?',
         [idKey, epoch],
       );
-      for (final row in manifests) {
-        final decoded = jsonDecode(utf8.decode(row['body'] as List<int>));
+      for (final manifestRow in manifestRows) {
+        final body =
+            _database.select('SELECT body FROM manifests WHERE rowid = ?', [
+                  manifestRow['rowid'],
+                ]).single['body']
+                as List<int>;
+        final decoded = jsonDecode(utf8.decode(body));
         if (decoded is! Map || decoded['records'] is! Map) continue;
         final records = decoded['records'] as Map;
         for (final kind in records.values) {
           if (kind is! Map) continue;
           for (final hash in kind.values) {
             if (hash is String && _hashPattern.hasMatch(hash)) {
-              referenced.add(hash);
+              candidates.remove(hash);
             }
           }
         }
       }
-      final stale = _database.select(
-        'SELECT hash, size FROM blob_refs '
-        'WHERE id_key = ? AND epoch = ? AND uploaded_at < ?',
-        [idKey, epoch, cutoff],
-      );
       for (final row in stale) {
         final hash = row['hash'] as String;
-        if (referenced.contains(hash)) continue;
+        if (!candidates.contains(hash)) continue;
         _validateHash(hash);
         _database.execute(
           'DELETE FROM blob_refs WHERE id_key = ? AND epoch = ? AND hash = ?',
@@ -404,11 +435,30 @@ class AthenaeumStore {
               [idKey],
             ).single['bytes']
             as int;
-    final bytesUsed = max(current.bytesUsed, aggregateBytes);
+    final bytesUsed =
+        max(current.bytesUsed, aggregateBytes) +
+        _pendingBlobDeletionBytes(idKey);
     if (bytesUsed >= quotaLimits.maxBytes) {
       throw const StoreQuotaExceeded('byte quota exhausted');
     }
+
     return min(maxBlobBytes, quotaLimits.maxBytes - bytesUsed);
+  }
+
+  int _pendingBlobDeletionBytes(String idKey) {
+    var bytes = 0;
+    final rows = _database.select(
+      'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
+      [idKey],
+    );
+    for (final row in rows) {
+      final epoch = row['epoch'] as String;
+      final hash = row['hash'] as String;
+      if (blobRef(idKey, epoch, hash) != null) continue;
+      final file = blobFile(idKey, epoch, hash);
+      if (file.existsSync()) bytes += file.lengthSync();
+    }
+    return bytes;
   }
 
   void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
@@ -505,7 +555,9 @@ class AthenaeumStore {
                 [idKey],
               ).single['bytes']
               as int;
-      final bytesUsed = max(current.bytesUsed, aggregateBytes);
+      final bytesUsed =
+          max(current.bytesUsed, aggregateBytes) +
+          _pendingBlobDeletionBytes(idKey);
       if (count >= quotaLimits.maxBlobs) {
         throw const StoreQuotaExceeded('blob quota exhausted');
       }

@@ -1143,6 +1143,171 @@ void main() {
     expect(customStore.blobFile(idKey, epoch, hash).existsSync(), isFalse);
   });
 
+  test('device quota rejects before buffering the manifest body', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-device-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxDevices: 1),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    final epoch = customStore.lookup(idKey)!.epoch;
+    customStore.putManifest(
+      idKey: idKey,
+      epoch: epoch,
+      deviceId: 'device-one',
+      etag: 'a' * 64,
+      writtenAt: 0,
+      body: Uint8List.fromList([1]),
+    );
+    var yielded = 0;
+    Stream<List<int>> body() async* {
+      yielded++;
+      yield Uint8List.fromList([1]);
+      yielded++;
+      yield Uint8List.fromList([2]);
+    }
+
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/manifests/device-two'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/json',
+        },
+        body: body(),
+      ),
+    );
+    expect(response.statusCode, 507);
+    expect(yielded, 0);
+  });
+
+  test('per-request size errors precede aggregate quota errors', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-size-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 0),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/${'a' * 64}'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/octet-stream',
+          'content-length': '${maxBlobBytes + 1}',
+        },
+      ),
+    );
+    expect(response.statusCode, 413);
+  });
+
+  test('gzip blob quota uses decompressed size', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-gzip-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 1),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final body = Uint8List.fromList([42]);
+    final compressed = Uint8List.fromList(gzip.encode(body));
+    final hash = sha256.convert(body).toString();
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/octet-stream',
+          'content-encoding': 'gzip',
+          'content-length': '${compressed.length}',
+        },
+        body: compressed,
+      ),
+    );
+    expect(response.statusCode, 201);
+  });
+
   test('production diagnostics persist and expire safely', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final hash = 'a' * 64;
@@ -1335,6 +1500,30 @@ void main() {
     expect(timer.isActive, isFalse);
     fire();
     expect(sweeps, 1);
+  });
+
+  test('sweep controller contains callback failures', () {
+    final timer = _FakeTimer();
+    late void Function() fire;
+    var attempts = 0;
+    final controller = AthenaeumSweepController(
+      app.store,
+      sweep: () {
+        attempts++;
+        if (attempts == 1) throw StateError('injected sweep failure');
+      },
+      schedule: (interval, callback) {
+        fire = () {
+          if (timer.isActive) callback(timer);
+        };
+        return timer;
+      },
+    );
+    controller.start();
+    fire();
+    fire();
+    expect(attempts, 2);
+    controller.stop();
   });
 }
 

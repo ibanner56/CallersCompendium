@@ -599,6 +599,51 @@ void main() {
     expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
   });
 
+  test('failed blob deletion remains charged against the byte quota', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-pending-quota-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 3),
+      deleteFile: (_) {
+        throw const FileSystemException('injected file failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+    final idKey = '1' * 64;
+    final created = store.create(idKey);
+    final hash = '2' * 64;
+    final body = Uint8List.fromList([1, 2, 3]);
+    store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body);
+    database.execute('UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?', [
+      now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+      idKey,
+    ]);
+    store.collectGarbage(idKey, created.epoch, now: now);
+    expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isTrue);
+    expect(
+      () => store.putBlob(
+        idKey: idKey,
+        epoch: created.epoch,
+        hash: '3' * 64,
+        body: Uint8List.fromList([4]),
+      ),
+      throwsA(isA<StoreQuotaExceeded>()),
+    );
+  });
+
   test('deleting a recreated store cleans stale epoch directories', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',
