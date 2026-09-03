@@ -402,7 +402,9 @@ void main() {
       final requests = <HttpRequest>[];
       final server = await _startServer((request) async {
         requests.add(request);
-        request.response.statusCode = HttpStatus.notModified;
+        request.response.statusCode = requests.length == 1
+            ? HttpStatus.notModified
+            : HttpStatus.created;
         await request.response.close();
       });
       addTearDown(() => server.close(force: true));
@@ -423,12 +425,39 @@ void main() {
       );
 
       final blobResponse = await client.putBlob('hash', [1, 2, 3]);
-      expect(blobResponse.kind, SyncResponseKind.notModified);
+      expect(blobResponse.kind, SyncResponseKind.created);
       expect(requests, hasLength(2));
       expect(requests[1].uri.path, '/v1/blobs/hash');
       expect(
         requests[1].headers.value('content-type'),
         'application/octet-stream',
+      );
+    });
+
+    test('treats 304 outside conditional manifest GET as unexpected', () async {
+      final server = await _startServer((request) async {
+        request.response.statusCode = HttpStatus.notModified;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      expect(
+        (await client.putBlob('hash', [1, 2, 3])).kind,
+        SyncResponseKind.unexpectedStatus,
+      );
+      expect(
+        (await client.getManifest('device')).kind,
+        SyncResponseKind.unexpectedStatus,
+      );
+      expect(
+        (await client.getManifest('device', etag: '"hash"')).kind,
+        SyncResponseKind.notModified,
       );
     });
 

@@ -154,11 +154,12 @@ class SyncHttpClient {
 
   /// Fetches a manifest and optionally supplies its strong ETag.
   Future<SyncHttpResponse> getManifest(String deviceId, {String? etag}) =>
-      request(
+      _request(
         'GET',
         'manifests/${Uri.encodeComponent(deviceId)}',
         ifNoneMatch: etag,
         maxDecodedBytes: min(maxResponseBytes, syncMaxManifestResponseBytes),
+        allowNotModified: etag != null,
       );
 
   /// Publishes a manifest body with the JSON media type.
@@ -198,6 +199,25 @@ class SyncHttpClient {
     String? ifNoneMatch,
     Map<String, String> extraHeaders = const {},
     int? maxDecodedBytes,
+  }) => _request(
+    method,
+    relativePath,
+    body: body,
+    contentType: contentType,
+    ifNoneMatch: ifNoneMatch,
+    extraHeaders: extraHeaders,
+    maxDecodedBytes: maxDecodedBytes,
+  );
+
+  Future<SyncHttpResponse> _request(
+    String method,
+    String relativePath, {
+    List<int>? body,
+    String? contentType,
+    String? ifNoneMatch,
+    Map<String, String> extraHeaders = const {},
+    int? maxDecodedBytes,
+    bool allowNotModified = false,
   }) async {
     final decodedLimit = maxDecodedBytes ?? maxResponseBytes;
     if (decodedLimit <= 0 || decodedLimit > maxResponseBytes) {
@@ -224,7 +244,10 @@ class SyncHttpClient {
 
       final response = await _beforeDeadline(_client.send(request), elapsed);
       if (!_isRedirect(response.statusCode)) {
-        return _beforeDeadline(_readResponse(response, decodedLimit), elapsed);
+        return _beforeDeadline(
+          _readResponse(response, decodedLimit, allowNotModified),
+          elapsed,
+        );
       }
 
       try {
@@ -355,12 +378,13 @@ class SyncHttpClient {
   Future<SyncHttpResponse> _readResponse(
     http.StreamedResponse response,
     int maxDecodedBytes,
+    bool allowNotModified,
   ) async {
     final headers = Map<String, String>.unmodifiable(response.headers);
     final body = await _readBoundedBody(response, maxDecodedBytes);
     return SyncHttpResponse(
       statusCode: response.statusCode,
-      kind: _kindForStatus(response.statusCode),
+      kind: _kindForStatus(response.statusCode, allowNotModified),
       headers: headers,
       body: body,
       retryAfter: _retryAfter(headers['retry-after']),
@@ -409,24 +433,26 @@ class SyncHttpClient {
     }
   }
 
-  SyncResponseKind _kindForStatus(int status) => switch (status) {
-    200 => SyncResponseKind.success,
-    201 => SyncResponseKind.created,
-    204 => SyncResponseKind.success,
-    304 => SyncResponseKind.notModified,
-    400 => SyncResponseKind.malformedRequest,
-    401 => SyncResponseKind.unauthorized,
-    403 => SyncResponseKind.invalidSyncId,
-    404 => SyncResponseKind.notFound,
-    409 => SyncResponseKind.conflict,
-    413 => SyncResponseKind.payloadTooLarge,
-    415 => SyncResponseKind.unsupportedMediaType,
-    422 => SyncResponseKind.rejected,
-    429 => SyncResponseKind.rateLimited,
-    507 => SyncResponseKind.quotaExhausted,
-    >= 500 && <= 599 => SyncResponseKind.serverError,
-    _ => SyncResponseKind.unexpectedStatus,
-  };
+  SyncResponseKind _kindForStatus(int status, bool allowNotModified) =>
+      switch (status) {
+        200 => SyncResponseKind.success,
+        201 => SyncResponseKind.created,
+        204 => SyncResponseKind.success,
+        304 when allowNotModified => SyncResponseKind.notModified,
+        304 => SyncResponseKind.unexpectedStatus,
+        400 => SyncResponseKind.malformedRequest,
+        401 => SyncResponseKind.unauthorized,
+        403 => SyncResponseKind.invalidSyncId,
+        404 => SyncResponseKind.notFound,
+        409 => SyncResponseKind.conflict,
+        413 => SyncResponseKind.payloadTooLarge,
+        415 => SyncResponseKind.unsupportedMediaType,
+        422 => SyncResponseKind.rejected,
+        429 => SyncResponseKind.rateLimited,
+        507 => SyncResponseKind.quotaExhausted,
+        >= 500 && <= 599 => SyncResponseKind.serverError,
+        _ => SyncResponseKind.unexpectedStatus,
+      };
 
   Duration? _retryAfter(String? value) {
     if (value == null) return null;
