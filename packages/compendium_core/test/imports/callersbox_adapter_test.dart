@@ -1123,12 +1123,27 @@ void main() {
         () async {
           final figures = await figuresFor([
             '(4) Pass the ocean',
-            '(4) Balance wave of four (NR,WL)',
+            '(4) Balance wave of four (NR,WL) [with N2]',
           ]);
           expect(figures, hasLength(1));
           expect(figures.single.move, 'pass_the_ocean');
           expect(figures.single.params['balance'], isTrue);
           expect(figures.single.params['beats'], 8); // 4 + 4
+          expect(figures.single.note, 'with nextNeighbors');
+        },
+      );
+
+      test(
+        'balance-wave bracket note survives a leading balance fold',
+        () async {
+          final figures = await figuresFor([
+            '(4) Balance wave of four (PR,WL) [with N2]',
+            '(12) Neighbor swing',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'swing');
+          expect(figures.single.params['prefix'], 'balance');
+          expect(figures.single.note, 'with nextNeighbors');
         },
       );
 
