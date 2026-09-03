@@ -219,6 +219,32 @@ void main() {
     },
   );
 
+  test('Android save does not display an opaque provider identifier', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'json-android-save-test',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    String? stagedPath;
+
+    final result = await saveJsonBundle(
+      '{"canonical":true}',
+      'dance.json',
+      isDesktop: () => false,
+      isAndroid: () => true,
+      stageFile: (json, fileName) async {
+        stagedPath = '${directory.path}/$fileName';
+        await File(stagedPath!).writeAsString(json);
+        return XFile(stagedPath!);
+      },
+      mobileSaveFile: (_) async => '/document/msf:123',
+    );
+
+    expect(result, isNotNull);
+    expect(result!.path, '/document/msf:123');
+    expect(result.fileName, isNull);
+    expect(await File(stagedPath!).exists(), isFalse);
+  });
+
   test('mobile save cancellation deletes its staged export', () async {
     final directory = await Directory.systemTemp.createTemp(
       'json-mobile-cancel-test',

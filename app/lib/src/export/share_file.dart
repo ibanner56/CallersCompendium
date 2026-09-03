@@ -18,8 +18,9 @@ class JsonSaveResult {
   /// The path or platform document identifier returned by the save API.
   final String path;
 
-  /// The name presented to the user for the saved document.
-  final String fileName;
+  /// The name presented to the user for the saved document, when provided by
+  /// the platform.
+  final String? fileName;
 }
 
 /// Opens a native desktop Save As dialog.
@@ -71,6 +72,7 @@ Future<JsonSaveResult?> saveJsonBundle(
   String fileName, {
   bool Function()? isDesktop,
   bool Function()? isMacOS,
+  bool Function()? isAndroid,
   JsonSaveLocationPicker? saveLocationPicker,
   JsonMobileSaveFile? mobileSaveFile,
   BundleFileWriter? stageFile,
@@ -94,7 +96,9 @@ Future<JsonSaveResult?> saveJsonBundle(
     if (savedPath == null) return null;
     return JsonSaveResult(
       path: savedPath,
-      fileName: _fileNameFromSavePath(savedPath, fileName),
+      fileName: (isAndroid ?? (() => Platform.isAndroid))()
+          ? null
+          : _fileNameFromSavePath(savedPath, fileName),
     );
   } finally {
     final stagedFile = File(staged.path);

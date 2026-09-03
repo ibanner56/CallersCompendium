@@ -362,6 +362,41 @@ void main() {
       expect(find.text("Couldn't share this dance"), findsOneWidget);
     });
 
+    testWidgets('guards JSON export when a referenced tag is missing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance().copyWith(tagIds: const ['missing-tag']),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => JsonExportChoice.copy,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export dance as JSON'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this JSON file."), findsOneWidget);
+    });
+
     testWidgets('share receives a non-null sharePositionOrigin', (
       tester,
     ) async {

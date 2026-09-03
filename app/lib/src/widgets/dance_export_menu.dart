@@ -181,9 +181,11 @@ class DanceExportMenu extends StatelessWidget {
         await _guard(messenger, l10n.exportJsonSaveError, () async {
           final result = await delivery.save(bundle.json, bundle.fileName);
           if (result == null || !context.mounted) return;
-          final message = result.path.isEmpty
-              ? l10n.exportJsonSaved(result.fileName)
-              : l10n.exportJsonSavedTo(result.fileName, result.path);
+          final message = result.fileName == null || result.path.isEmpty
+              ? l10n.exportJsonSaved(
+                  result.fileName ?? l10n.exportJsonDialogTitle,
+                )
+              : l10n.exportJsonSavedTo(result.fileName!, result.path);
           messenger.showSnackBar(SnackBar(content: Text(message)));
         });
       case JsonExportChoice.copy:
@@ -252,7 +254,11 @@ class DanceExportMenu extends StatelessWidget {
       case _ExportAction.copyText:
         await _copyText(context);
       case _ExportAction.shareJson:
-        await _exportJson(context, origin);
+        await _guard(
+          messenger,
+          l10n.exportJsonShareError,
+          () => _exportJson(context, origin),
+        );
       case _ExportAction.pdf:
         await _guard(messenger, l10n.exportDanceError, () => _exportPdf(l10n));
     }
