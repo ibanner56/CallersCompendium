@@ -162,7 +162,9 @@ void main() {
     for (final line in const [
       '(4) Balance wave of four (PR,WL) [with phantom]',
       '(4) Balance wave of four (PR,WL) [with N2] trailing',
-      '(4) Balance wave of four (PR,WL) [with N2] [with N3]',
+      '(4) Balance wave of four (PR,WL) [with N2] [with N3] [with N4]',
+      '(4) Balance wave of four (PR,WL) [[with N2]',
+      '(4) Balance wave of four (PR,WL) [with N2]]',
     ]) {
       test('"$line" remains custom', () async {
         final figures = await _figuresFor([line]);

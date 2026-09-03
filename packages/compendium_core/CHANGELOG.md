@@ -32,6 +32,11 @@ core version. They are left that way deliberately — do not renumber them.
   tombstones, review candidates, and publication history, with lifecycle-safe
   repository operations.
 
+### Fixed
+
+- Correct CallersBox parsing for bare 16-beat heys and supported bracketed
+  balance-wave annotations.
+
 ## [0.3.0] - 2026-09-01
 
 ### Changed

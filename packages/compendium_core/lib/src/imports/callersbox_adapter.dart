@@ -1104,13 +1104,24 @@ class CallersBoxAdapter implements SourceAdapter {
     final text = f.params['text'];
     if (text is! String) return null;
     final lower = text.toLowerCase();
+    // Stop after the second match: one is supported, while more than one
+    // remains custom without allocating for every untrusted annotation.
     final squareAnnotations = _balanceWaveSquareAnnotation
         .allMatches(text)
+        .take(2)
         .toList();
     if (squareAnnotations.length > 1) return null;
     String? squareNote;
     if (squareAnnotations.isNotEmpty) {
       final annotation = squareAnnotations.single;
+      final prefix = text.substring(0, annotation.start);
+      final suffix = text.substring(annotation.end);
+      if (prefix.contains('[') ||
+          prefix.contains(']') ||
+          suffix.contains('[') ||
+          suffix.contains(']')) {
+        return null;
+      }
       // Only a clause-final relation annotation is supported here. A bracket
       // elsewhere may carry formation context that this promotion cannot model.
       if (text.substring(annotation.end).trim().isNotEmpty) return null;
@@ -1120,6 +1131,8 @@ class CallersBoxAdapter implements SourceAdapter {
       final who = resolveDancerSetPhrase(relation.group(2)!);
       if (who == null) return null;
       squareNote = '${relation.group(1)!.toLowerCase()} $who';
+    } else if (text.contains('[') || text.contains(']')) {
+      return null;
     }
     final annotations = RegExp(
       r'\(([^)]*)\)',
