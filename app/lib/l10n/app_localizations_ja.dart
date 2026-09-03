@@ -586,7 +586,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      '「Canonical figure text」がオンの場合、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが開きます。オフの場合、詳細はアクティブなダイアレクトで開き、この設定は保持されます。';
+      '「標準フィガー表記」がオンの場合、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが開きます。オフの場合、詳細はアクティブなダイアレクトで開き、この設定は保持されます。';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'コレクションカードの項目';

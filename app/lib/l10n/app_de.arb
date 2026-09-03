@@ -668,7 +668,7 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Wenn Canonical figure text aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in Ihrem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
+  "settingsDefaultsCanonicalSubtitle": "Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in Ihrem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
   "@settingsDefaultsCanonicalSubtitle": {
     "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },

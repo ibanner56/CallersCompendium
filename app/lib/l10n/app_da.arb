@@ -668,7 +668,7 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Når Canonical figure text er aktiveret, åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Når den er deaktiveret, åbnes detaljer i din aktive dialekt, og denne indstilling bevares.",
+  "settingsDefaultsCanonicalSubtitle": "Når Kanonisk figurtekst er aktiveret, åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Når den er deaktiveret, åbnes detaljer i din aktive dialekt, og denne indstilling bevares.",
   "@settingsDefaultsCanonicalSubtitle": {
     "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },

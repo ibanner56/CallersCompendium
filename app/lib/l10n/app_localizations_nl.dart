@@ -598,7 +598,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Als Canonical figure text is ingeschakeld, opent een dans met canonieke rol- en bewegingsnamen in plaats van je actieve dialect. Als het is uitgeschakeld, worden details in je actieve dialect geopend en blijft deze voorkeur behouden.';
+      'Als Canonieke figuurtekst is ingeschakeld, opent een dans met canonieke rol- en bewegingsnamen in plaats van je actieve dialect. Als het is uitgeschakeld, worden details in je actieve dialect geopend en blijft deze voorkeur behouden.';
 
   @override
   String get settingsDefaultsCollectionCardHeader =>
