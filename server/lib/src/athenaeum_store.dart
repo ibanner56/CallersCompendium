@@ -175,14 +175,18 @@ class AthenaeumStore {
       [store.idKey, store.epoch],
     );
     final blobRows = _database.select(
-      'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ? AND epoch = ?',
-      [store.idKey, store.epoch],
+      'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+      [store.idKey],
+    );
+    final byteRows = _database.select(
+      'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs WHERE id_key = ?',
+      [store.idKey],
     );
     return StoreMetadata(
       epoch: store.epoch,
       devices: [for (final row in deviceRows) row['device_id'] as String],
       blobs: (blobRows.single['count'] as int?) ?? 0,
-      bytes: store.bytesUsed,
+      bytes: byteRows.single['bytes'] as int,
       maxBlobs: quotaLimits.maxBlobs,
       maxBytes: quotaLimits.maxBytes,
     );
@@ -457,19 +461,26 @@ class AthenaeumStore {
         return false;
       }
       final current = lookup(idKey);
-      if (current != null && current.epoch == epoch) {
-        final count =
-            _database.select(
-                  'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ? AND epoch = ?',
-                  [idKey, epoch],
-                ).single['count']
-                as int;
-        if (count >= quotaLimits.maxBlobs) {
-          throw const StoreQuotaExceeded('blob quota exhausted');
-        }
-        if (current.bytesUsed > quotaLimits.maxBytes - body.length) {
-          throw const StoreQuotaExceeded('byte quota exhausted');
-        }
+      if (current == null) throw const StoreEpochMismatch();
+      final count =
+          _database.select(
+                'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+                [idKey],
+              ).single['count']
+              as int;
+      final aggregateBytes =
+          _database.select(
+                'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs '
+                'WHERE id_key = ?',
+                [idKey],
+              ).single['bytes']
+              as int;
+      final bytesUsed = max(current.bytesUsed, aggregateBytes);
+      if (count >= quotaLimits.maxBlobs) {
+        throw const StoreQuotaExceeded('blob quota exhausted');
+      }
+      if (bytesUsed > quotaLimits.maxBytes - body.length) {
+        throw const StoreQuotaExceeded('byte quota exhausted');
       }
       file = blobFile(idKey, epoch, hash);
       file.parent.createSync(recursive: true);

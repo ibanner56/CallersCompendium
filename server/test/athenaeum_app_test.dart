@@ -1176,6 +1176,29 @@ void main() {
     expect(serialized, isNot(contains('1,2,3')));
   });
 
+  test('diagnostic sink failures do not replace protocol responses', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final customApp = AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      diagnosticLogger: (_) {
+        throw StateError('injected logger failure');
+      },
+    );
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/${'c' * 64}'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          'content-type': 'application/octet-stream',
+        },
+        body: Uint8List.fromList([1, 2, 3]),
+      ),
+    );
+    expect(response.statusCode, 400);
+  });
+
   test(
     'manifest path device identifiers are absent from diagnostics',
     () async {
@@ -1183,22 +1206,24 @@ void main() {
         (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
         201,
       );
-      const rawDeviceId = 'device.with.raw-id';
+      final rawDeviceId = 'a' * 64;
       final response = await app.call(
         Request(
-          'GET',
+          'PUT',
           Uri.parse('http://127.0.0.1/v1/manifests/$rawDeviceId'),
           headers: {
             'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'text/plain',
           },
         ),
       );
-      expect(response.statusCode, 400);
+      expect(response.statusCode, 415);
       final rows = app.store.diagnosticDatabase.select(
         'SELECT status, id_key, hash FROM diagnostic_events',
       );
       expect(rows, hasLength(1));
-      expect(rows.single['status'], 400);
+      expect(rows.single['status'], 415);
+      expect(rows.single['hash'], isNull);
       expect(jsonEncode(rows.single), isNot(contains(rawDeviceId)));
     },
   );

@@ -288,6 +288,50 @@ void main() {
     );
   });
 
+  test('stale-epoch uploads still consume store quota', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final breakGlassDatabase = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: breakGlassDatabase,
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 1),
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+    final idKey = 'a' * 64;
+    final first = store.create(idKey);
+    store.deleteStore(idKey);
+    store.create(idKey);
+
+    expect(
+      store.putBlob(
+        idKey: idKey,
+        epoch: first.epoch,
+        hash: 'b' * 64,
+        body: Uint8List.fromList([1]),
+      ),
+      isTrue,
+    );
+    expect(
+      () => store.putBlob(
+        idKey: idKey,
+        epoch: first.epoch,
+        hash: 'c' * 64,
+        body: Uint8List.fromList([2]),
+      ),
+      throwsA(isA<StoreQuotaExceeded>()),
+    );
+  });
+
   test('sweep removes stores past the rolling disuse TTL', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',

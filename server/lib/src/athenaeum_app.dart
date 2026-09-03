@@ -340,6 +340,8 @@ class AthenaeumApp {
         );
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale blob epoch');
       }
       return Response(created ? 201 : 200);
     }
@@ -402,13 +404,25 @@ class AthenaeumApp {
     }
     String? hash;
     final segments = request.url.pathSegments;
-    if (segments.length == 3 && _validHash(segments[2])) {
+    if (segments.length == 3 &&
+        segments[1] == 'blobs' &&
+        _validHash(segments[2])) {
       hash = segments[2];
     }
     if (idKey == null) return;
-    _diagnosticLogger(
-      AthenaeumDiagnosticEvent(status: error.status, idKey: idKey, hash: hash),
-    );
+    try {
+      _diagnosticLogger(
+        AthenaeumDiagnosticEvent(
+          status: error.status,
+          idKey: idKey,
+          hash: hash,
+        ),
+      );
+    } on Object catch (loggerError) {
+      stderr.writeln(
+        'Athenaeum diagnostic logging failed (${loggerError.runtimeType})',
+      );
+    }
   }
 
   static void _requireContentType(Request request, String expected) {
