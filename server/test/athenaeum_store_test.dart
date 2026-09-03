@@ -38,6 +38,15 @@ void main() {
     );
     final second = store.blobRef(idKey, created.epoch, hash)!;
     expect(second.uploadedAt, first.uploadedAt);
+    database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ? AND epoch = ?',
+      [123, idKey, created.epoch],
+    );
+    expect(
+      store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
+      isFalse,
+    );
+    expect(store.blobRef(idKey, created.epoch, hash)!.uploadedAt, 123);
   });
 
   test('store deletion rolls back all metadata when a delete fails', () {
@@ -178,5 +187,45 @@ void main() {
 
     expect(staleFile.existsSync(), isFalse);
     expect(currentFile.existsSync(), isFalse);
+  });
+
+  test('store blob directories remain isolated during deletion', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final firstId = 'a' * 64;
+    final secondId = 'b' * 64;
+    final hash = 'c' * 64;
+    final first = store.create(firstId);
+    final second = store.create(secondId);
+    store.putBlob(
+      idKey: firstId,
+      epoch: first.epoch,
+      hash: hash,
+      body: Uint8List.fromList([1]),
+    );
+    store.putBlob(
+      idKey: secondId,
+      epoch: second.epoch,
+      hash: hash,
+      body: Uint8List.fromList([2]),
+    );
+
+    store.deleteStore(firstId);
+
+    expect(store.blobFile(secondId, second.epoch, hash).existsSync(), isTrue);
   });
 }

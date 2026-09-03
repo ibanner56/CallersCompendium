@@ -662,6 +662,37 @@ void main() {
   );
 
   test(
+    'manifest JSON depth limits cancel input before retaining later chunks',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> overlyDeepManifest() async* {
+        yielded++;
+        yield Uint8List.fromList(utf8.encode('[' * (maxJsonDepth + 1)));
+        yielded++;
+        yield Uint8List.fromList(utf8.encode(']' * (maxJsonDepth + 1)));
+      }
+
+      final response = await app.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/json',
+          },
+          body: overlyDeepManifest(),
+        ),
+      );
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
     'escaped duplicate hashes keys are rejected before later chunks are read',
     () async {
       expect(

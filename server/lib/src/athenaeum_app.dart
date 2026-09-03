@@ -144,7 +144,12 @@ class AthenaeumApp {
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
         return _jsonResponse(413, {'error': 'request body exceeds limit'});
       }
-      final body = await _readBody(request, maxManifestBytes);
+      final depthScanner = _MissingHashScanner();
+      final body = await _readBody(
+        request,
+        maxManifestBytes,
+        onChunk: depthScanner.add,
+      );
       final manifest = _decodeManifest(body);
       if (manifest.deviceId != deviceId) {
         throw const _RequestFailure(
@@ -776,7 +781,9 @@ class _TokenBucket {
     return true;
   }
 
-  bool isInactive(DateTime now) => now.difference(_updatedAt).inSeconds >= 60;
+  bool isInactive(DateTime now) =>
+      now.difference(_updatedAt).inSeconds >=
+      ((capacity * 60) / refillPerMinute).ceil();
 }
 
 class _CreationBudget {
