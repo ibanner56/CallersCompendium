@@ -58,6 +58,7 @@ class Step:
     # never as a pass: a step that silently no-ops is worse than one that fails.
     needs_binary: str | None = None
     needs_import: str | None = None
+    needs_path: Path | None = None
 
 
 def py(*args: str) -> tuple[str, ...]:
@@ -284,10 +285,23 @@ STEPS: tuple[Step, ...] = (
         fast=False,
         needs_binary="flutter",
     ),
+    Step(
+        "server-tests",
+        "Athenaeum server analyzer and endpoint suite",
+        (
+            ("dart", "analyze", "server"),
+            ("dart", "test", "server/test"),
+        ),
+        fast=False,
+        needs_binary="dart",
+        needs_path=ROOT / "server" / "pubspec.yaml",
+    ),
 )
 
 
 def _unavailable(step: Step) -> str | None:
+    if step.needs_path and not step.needs_path.is_file():
+        return f"{step.needs_path.relative_to(ROOT)} is not present"
     if step.needs_binary and shutil.which(step.needs_binary) is None:
         return f"{step.needs_binary} is not on PATH"
     if step.needs_import:
