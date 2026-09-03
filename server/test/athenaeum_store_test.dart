@@ -92,4 +92,41 @@ void main() {
     expect(blobFile.existsSync(), isFalse);
     expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
   });
+
+  test('deleting a recreated store cleans stale epoch directories', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'f' * 64;
+    final first = store.create(idKey);
+    store.deleteStore(idKey);
+    final recreated = store.create(idKey);
+    store.putBlob(
+      idKey: idKey,
+      epoch: first.epoch,
+      hash: '1' * 64,
+      body: Uint8List.fromList([3]),
+    );
+    final staleFile = store.blobFile(idKey, first.epoch, '1' * 64);
+    final currentFile = store.blobFile(idKey, recreated.epoch, '2' * 64);
+    currentFile.parent.createSync(recursive: true);
+    currentFile.writeAsBytesSync([4]);
+
+    store.deleteStore(idKey);
+    store.retryPendingDeletions();
+
+    expect(staleFile.existsSync(), isFalse);
+    expect(currentFile.existsSync(), isFalse);
+  });
 }

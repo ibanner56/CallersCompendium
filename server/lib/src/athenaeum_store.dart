@@ -287,13 +287,25 @@ class AthenaeumStore {
         return;
       }
       epoch = rows.single['epoch'] as String;
+      final epochs = <String>{
+        epoch,
+        for (final row in _database.select(
+          'SELECT epoch FROM manifests WHERE id_key = ? '
+          'UNION SELECT epoch FROM blob_refs WHERE id_key = ?',
+          [idKey, idKey],
+        ))
+          row['epoch'] as String,
+      };
+      for (final queuedEpoch in epochs) {
+        _database.execute(
+          'INSERT INTO deletion_jobs (id_key, epoch, queued_at) '
+          'VALUES (?, ?, ?)',
+          [idKey, queuedEpoch, DateTime.now().millisecondsSinceEpoch ~/ 1000],
+        );
+      }
       _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
       _database.execute('DELETE FROM blob_refs WHERE id_key = ?', [idKey]);
       _database.execute('DELETE FROM stores WHERE id_key = ?', [idKey]);
-      _database.execute(
-        'INSERT INTO deletion_jobs (id_key, epoch, queued_at) VALUES (?, ?, ?)',
-        [idKey, epoch, DateTime.now().millisecondsSinceEpoch ~/ 1000],
-      );
       _database.execute('COMMIT');
       inTransaction = false;
     } catch (error) {
