@@ -75,6 +75,14 @@ class AthenaeumStore {
     for (final table in athenaeumTableSchemas) {
       _database.execute(table.createSql());
     }
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS deletion_jobs_queued_at_idx '
+      'ON deletion_jobs (queued_at)',
+    );
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS blob_deletion_jobs_queued_at_idx '
+      'ON blob_deletion_jobs (queued_at)',
+    );
     for (final table in breakGlassTableSchemas) {
       _breakGlassDatabase.execute(table.createSql());
     }
@@ -430,7 +438,7 @@ class AthenaeumStore {
         .toList();
     for (final idKey in expired) {
       try {
-        deleteStore(idKey);
+        deleteStore(idKey, retryGlobal: false);
       } on Object catch (error) {
         stderr.writeln(
           'Athenaeum store deletion failed (${error.runtimeType})',
@@ -723,7 +731,7 @@ class AthenaeumStore {
 
   sqlite3.Database get diagnosticDatabase => _diagnosticDatabase;
 
-  void deleteStore(String idKey) {
+  void deleteStore(String idKey, {bool retryGlobal = true}) {
     late final String epoch;
     late final Set<String> epochs;
     var inTransaction = false;
@@ -773,21 +781,15 @@ class AthenaeumStore {
     for (final queuedEpoch in epochs) {
       _retryPendingDirectory(idKey, queuedEpoch);
     }
-    retryPendingDeletions();
+    if (retryGlobal) retryPendingDeletions();
   }
 
   void retryPendingDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
   }) {
     final rows = _database.select(
-      'SELECT id_key, epoch FROM deletion_jobs AS jobs '
-      'WHERE NOT EXISTS ('
-      'SELECT 1 FROM manifests '
-      'WHERE id_key = jobs.id_key AND epoch = jobs.epoch'
-      ') AND NOT EXISTS ('
-      'SELECT 1 FROM blob_refs '
-      'WHERE id_key = jobs.id_key AND epoch = jobs.epoch'
-      ') ORDER BY queued_at, rowid LIMIT ?',
+      'SELECT id_key, epoch FROM deletion_jobs '
+      'ORDER BY queued_at, rowid LIMIT ?',
       [maxJobs],
     );
     for (final row in rows) {
@@ -811,6 +813,12 @@ class AthenaeumStore {
       if (refs.isNotEmpty) {
         _database.execute('COMMIT');
         inTransaction = false;
+        _database.execute(
+          'UPDATE deletion_jobs SET queued_at = ('
+          'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
+          ') WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
+        );
         return;
       }
       try {

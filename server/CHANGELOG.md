@@ -16,7 +16,8 @@ the app and of `compendium_core`; version headings below refer to
 - Validate recognizable record blobs against the shared generated privacy
   allow-list while tolerating newer envelope versions.
 - Add 30-day store retention, 24-hour upload grace-period garbage collection,
-  aggregate store quotas, and a privacy-safe break-glass access log.
+  aggregate store quotas, a privacy-safe break-glass access log, and a bounded
+  diagnostic-event store with privacy filtering and 30-day retention.
 
 ### Fixed
 

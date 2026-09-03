@@ -8,6 +8,86 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('cleanup retry queues have ordered selection indexes', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-queue-index-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final indexes = database
+        .select(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name IN ('deletion_jobs_queued_at_idx', "
+          "'blob_deletion_jobs_queued_at_idx')",
+        )
+        .map((row) => row['name'] as String)
+        .toSet();
+    expect(
+      indexes,
+      equals({
+        'deletion_jobs_queued_at_idx',
+        'blob_deletion_jobs_queued_at_idx',
+      }),
+    );
+  });
+
+  test('ref-protected directory jobs rotate behind eligible jobs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-directory-queue-rotation-',
+    );
+    final database = sqlite3.openInMemory();
+    var attempts = 0;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      deleteDirectory: (_) {
+        attempts++;
+        throw const FileSystemException('injected directory failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    for (var index = 0; index < maxPendingDeletionRetriesPerRequest; index++) {
+      final idKey = index.toRadixString(16).padLeft(64, '0');
+      final epoch = 'protected-$index';
+      database.execute(
+        'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [idKey, epoch, 'a' * 64, 1, 0],
+      );
+      database.execute(
+        'INSERT INTO deletion_jobs (id_key, epoch, queued_at) VALUES (?, ?, ?)',
+        [idKey, epoch, 0],
+      );
+    }
+    database.execute(
+      'INSERT INTO deletion_jobs (id_key, epoch, queued_at) VALUES (?, ?, ?)',
+      ['f' * 64, 'eligible', 0],
+    );
+
+    store.retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerRequest);
+    expect(attempts, 0);
+    store.retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerRequest);
+    expect(attempts, 1);
+  });
+
   test('duplicate blob uploads preserve the original uploaded timestamp', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',
@@ -905,6 +985,51 @@ void main() {
     store.sweep(now: now);
 
     expect(attempts, 2 * (maxPendingDeletionRetriesPerRequest + 1));
+  });
+
+  test('sweep drains the global retry queue once after expired stores', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-sweep-store-retry-bound-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    var attempts = 0;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+      deleteDirectory: (_) {
+        attempts++;
+        throw const FileSystemException('injected directory failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    for (var storeIndex = 0; storeIndex < 2; storeIndex++) {
+      final idKey = (storeIndex == 0 ? '6' : '7') * 64;
+      final created = store.create(idKey);
+      store.putBlob(
+        idKey: idKey,
+        epoch: created.epoch,
+        hash: '8' * 64,
+        body: Uint8List.fromList([storeIndex]),
+      );
+      database.execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
+        0,
+        idKey,
+      ]);
+    }
+
+    store.sweep(now: now);
+
+    expect(attempts, 4);
   });
 
   test('directory retries preserve epochs that gain stale refs', () {

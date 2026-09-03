@@ -225,7 +225,9 @@
           selected content for as long as the store receives authenticated activity,
           then reaps it after 30 days of disuse. Unreferenced uploads are protected
           for 24 hours while they can still be published, but deleting the store
-          removes them immediately. The access log's linkable derived sync ID
+          requests immediate removal. If physical removal fails, a durable cleanup
+          record retries it on later requests and hourly sweeps. The access log's
+          linkable derived sync ID
           becomes eligible for nulling 30 days after access and is nulled by the
           next hourly sweep; it retains a timestamp-only aggregate row after that.
           Ordinary diagnostic events become eligible for removal after 30 days and

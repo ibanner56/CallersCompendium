@@ -2672,6 +2672,10 @@ SHOULD because what it prevents is surprise, not loss.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
+  athenaeum-break-glass.sqlite
+                        separately retained break-glass access records
+  athenaeum-diagnostics.sqlite
+                        bounded operational diagnostic events
   blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>
 ```
 
