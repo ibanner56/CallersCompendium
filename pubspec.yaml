@@ -5,3 +5,4 @@ environment:
 workspace:
   - packages/compendium_core
   - app
+  - server
