@@ -320,7 +320,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .dart_tool/hooks_runner/shared/sqlite3
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
+          key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Test app
         working-directory: app
         run: flutter test
@@ -367,7 +367,7 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .dart_tool/hooks_runner/shared/sqlite3
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
+          key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Analyze server
         run: dart analyze server
         if: steps.server-package.outputs.present == 'true'
@@ -388,4 +388,4 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: .dart_tool/hooks_runner/shared/sqlite3
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
+          key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
