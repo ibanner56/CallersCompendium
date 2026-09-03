@@ -1472,9 +1472,11 @@ class FigureRenderer {
       );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final direction = params['dir'];
+      final directionWho =
+          params['who'] ?? def.params['who']?.defaultValue;
       final directionClause = switch (direction) {
-        'above' => 'up between ${r._invertPair(params['who'], dialect)}',
-        'below' => 'down between ${r._invertPair(params['who'], dialect)}',
+        'above' => 'up between ${r._invertPair(directionWho, dialect)}',
+        'below' => 'down between ${r._invertPair(directionWho, dialect)}',
         'across' => 'across',
         null || 'none' || ParamVocab.unspecified => '',
         _ => _displayChoice(direction),
