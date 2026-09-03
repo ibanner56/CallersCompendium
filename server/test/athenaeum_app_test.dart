@@ -1,0 +1,915 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:callers_compendium_server/callers_compendium_server.dart';
+import 'package:compendium_core/compendium_core.dart';
+import 'package:crypto/crypto.dart';
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:sqlite3/sqlite3.dart';
+import 'package:test/test.dart';
+
+void main() {
+  late Directory dataDirectory;
+  late AthenaeumApp app;
+  late HttpServer server;
+  late HttpClient client;
+  const syncId = 'café-horse-battery-staple';
+
+  setUp(() async {
+    dataDirectory = await Directory.systemTemp.createTemp('athenaeum-test-');
+    final config = AthenaeumConfig(
+      dataDirectory: dataDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    app = AthenaeumApp(
+      config: config,
+      clientAddressResolver: (request) =>
+          request.headers['x-test-ip'] ?? 'test',
+    );
+    server = await shelf_io.serve(app.handler, InternetAddress.loopbackIPv4, 0);
+    client = HttpClient();
+    _activeClient = client;
+    _activeServer = server;
+  });
+
+  tearDown(() async {
+    client.close(force: true);
+    await server.close(force: true);
+    app.store.close();
+    await dataDirectory.delete(recursive: true);
+  });
+
+  test('C2 loopback round trip preserves manifest and blob bytes', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    final store = jsonDecode(await created.body()) as Map<String, Object?>;
+    final epoch = store['epoch']! as String;
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3, 0, 0, 0),
+      records: {
+        SyncRecordKind.dance: {'dance-one': 'a' * 64},
+      },
+    );
+    final manifestBytes = encodeSyncManifestUtf8(manifest);
+    final manifestPut = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: manifestBytes,
+      contentType: 'application/json; charset=utf-8',
+    );
+    expect(manifestPut.statusCode, 201);
+    final repeatedManifestPut = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: manifestBytes,
+      contentType: 'application/json; charset=utf-8',
+    );
+    expect(repeatedManifestPut.statusCode, 200);
+    final manifestGet = await _send(
+      'GET',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+    );
+    expect(manifestGet.statusCode, 200);
+    expect(await manifestGet.bodyBytes(), equals(manifestBytes));
+    final etag = manifestGet.headers.value('etag')!;
+    expect(etag, '"${sha256.convert(manifestBytes)}"');
+    final unchanged = await _send(
+      'GET',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      headers: {'if-none-match': etag},
+    );
+    expect(unchanged.statusCode, 304);
+
+    final blobBytes = Uint8List.fromList(List<int>.generate(257, (i) => i));
+    final hash = sha256.convert(blobBytes).toString();
+    final blobPut = await _send(
+      'PUT',
+      '/v1/blobs/$hash',
+      syncId: syncId,
+      body: blobBytes,
+      contentType: 'application/octet-stream',
+    );
+    expect(blobPut.statusCode, 201);
+    final duplicateBlobPut = await _send(
+      'PUT',
+      '/v1/blobs/$hash',
+      syncId: syncId,
+      body: blobBytes,
+      contentType: 'application/octet-stream',
+    );
+    expect(duplicateBlobPut.statusCode, 200);
+    final blobGet = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
+    expect(blobGet.statusCode, 200);
+    expect(await blobGet.bodyBytes(), equals(blobBytes));
+    expect(
+      blobGet.headers.value('cache-control'),
+      'private, max-age=31536000, immutable',
+    );
+  });
+
+  test('GET and POST store lifecycle remain distinct', () async {
+    final missingOne = await _send('GET', '/v1/store', syncId: syncId);
+    final missingTwo = await _send('GET', '/v1/store', syncId: syncId);
+    expect(missingOne.statusCode, 404);
+    expect(missingTwo.statusCode, 404);
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    final before = jsonDecode(await created.body()) as Map<String, Object?>;
+    final duplicate = await _send('POST', '/v1/store', syncId: syncId);
+    expect(duplicate.statusCode, 409);
+    final after = await _send('GET', '/v1/store', syncId: syncId);
+    final afterBody = jsonDecode(await after.body()) as Map<String, Object?>;
+    expect(afterBody['epoch'], before['epoch']);
+    expect(afterBody['devices'], isEmpty);
+  });
+
+  test('weak structurally valid sync IDs are accepted', () async {
+    final response = await _send(
+      'POST',
+      '/v1/store',
+      syncId: 'one-two-three-four',
+    );
+    expect(response.statusCode, 201);
+  });
+
+  test('normalized sync IDs resolve to the same store', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final before = jsonDecode(await created.body()) as Map<String, Object?>;
+    for (final equivalent in [
+      ' CAFÉ-HORSE-BATTERY-STAPLE ',
+      ' cafe\u0301-horse-battery-staple ',
+    ]) {
+      final response = await _send('GET', '/v1/store', syncId: equivalent);
+      final body = jsonDecode(await response.body()) as Map<String, Object?>;
+      expect(response.statusCode, 200);
+      expect(body['epoch'], before['epoch']);
+    }
+  });
+
+  test(
+    'concurrent creators share one epoch and reset creates a new one',
+    () async {
+      const concurrentId = 'concurrent-café-horse-staple';
+      final responses = await Future.wait(
+        List.generate(
+          8,
+          (_) => _send('POST', '/v1/store', syncId: concurrentId),
+        ),
+      );
+      final statuses = responses
+          .map((response) => response.statusCode)
+          .toList();
+      for (final response in responses) {
+        await response.drain<void>();
+      }
+      expect(statuses.where((status) => status == 201), hasLength(1));
+      expect(statuses.where((status) => status == 409), hasLength(7));
+      final before = await _send('GET', '/v1/store', syncId: concurrentId);
+      final beforeBody =
+          jsonDecode(await before.body()) as Map<String, Object?>;
+      expect(
+        (await _send('DELETE', '/v1/store', syncId: concurrentId)).statusCode,
+        204,
+      );
+      final recreated = await _send('POST', '/v1/store', syncId: concurrentId);
+      final recreatedBody =
+          jsonDecode(await recreated.body()) as Map<String, Object?>;
+      expect(recreated.statusCode, 201);
+      expect(recreatedBody['epoch'], isNot(beforeBody['epoch']));
+      expect(recreatedBody['epoch'], hasLength(32));
+    },
+  );
+
+  test(
+    'credential, path, media type, and request boundary failures are typed',
+    () async {
+      final malformed = await _send(
+        'GET',
+        '/v1/store',
+        credential: '%%%invalid',
+      );
+      expect(malformed.statusCode, 401);
+      final malformedUtf8 = await _send(
+        'GET',
+        '/v1/store',
+        credential: base64Url.encode([0xc3, 0x28]).replaceAll('=', ''),
+      );
+      expect(malformedUtf8.statusCode, 401);
+      final invalidPath = await _send(
+        'GET',
+        '/v1/blobs/${'a' * 63}',
+        syncId: syncId,
+      );
+      expect(invalidPath.statusCode, 400);
+      final created = await _send('POST', '/v1/store', syncId: syncId);
+      expect(created.statusCode, 201);
+      final wrongType = await _send(
+        'PUT',
+        '/v1/blobs/${'a' * 64}',
+        syncId: syncId,
+        body: Uint8List(0),
+        contentType: 'text/plain',
+      );
+      expect(wrongType.statusCode, 415);
+      final missingType = await _send(
+        'POST',
+        '/v1/store',
+        syncId: 'new-café-horse-staple',
+      );
+      expect(missingType.statusCode, 201);
+      final tooLarge = await _send(
+        'PUT',
+        '/v1/blobs/${'a' * 64}',
+        syncId: syncId,
+        body: Uint8List(maxBlobBytes + 1),
+        contentType: 'application/octet-stream',
+      );
+      expect(tooLarge.statusCode, 413);
+
+      final oversizedManifest = Uint8List(maxManifestBytes + 1);
+      final manifestTooLarge = await _send(
+        'PUT',
+        '/v1/manifests/device-one',
+        syncId: syncId,
+        body: oversizedManifest,
+        contentType: 'application/json',
+      );
+      expect(manifestTooLarge.statusCode, 413);
+
+      final deepJson = utf8.encode(
+        '[' * (maxJsonDepth + 2) + ']' * (maxJsonDepth + 2),
+      );
+      final tooDeep = await _send(
+        'POST',
+        '/v1/blobs/missing',
+        syncId: syncId,
+        body: Uint8List.fromList(deepJson),
+        contentType: 'application/json',
+      );
+      expect(tooDeep.statusCode, 413);
+
+      final tooManyHashes = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({'hashes': List<int>.filled(maxMissingHashes + 1, 0)}),
+        ),
+      );
+      final tooMany = await _send(
+        'POST',
+        '/v1/blobs/missing',
+        syncId: syncId,
+        body: tooManyHashes,
+        contentType: 'application/json',
+      );
+      expect(tooMany.statusCode, 413);
+
+      final expanded = Uint8List.fromList(List<int>.filled(1024, 0x61));
+      final compressed = Uint8List.fromList(gzip.encode(expanded));
+      final expansion = await _send(
+        'PUT',
+        '/v1/blobs/${'b' * 64}',
+        syncId: syncId,
+        body: compressed,
+        contentType: 'application/octet-stream',
+        headers: {'content-encoding': 'gzip'},
+      );
+      expect(expansion.statusCode, 413);
+      final malformedSource = Uint8List.fromList(
+        List<int>.generate(1024, (index) => index % 251),
+      );
+      final malformedCompressed = Uint8List.fromList(
+        gzip.encode(malformedSource),
+      );
+      malformedCompressed[10] ^= 0xff;
+      final malformedGzip = await _send(
+        'PUT',
+        '/v1/blobs/${'c' * 64}',
+        syncId: syncId,
+        body: malformedCompressed.sublist(0, malformedCompressed.length - 1),
+        contentType: 'application/octet-stream',
+        headers: {'content-encoding': 'gzip'},
+      );
+      expect(malformedGzip.statusCode, 400);
+      expect(await malformedGzip.body(), contains('malformed compressed body'));
+    },
+  );
+
+  test('stale epochs are rejected and blobs are store-isolated', () async {
+    final first = await _send('POST', '/v1/store', syncId: syncId);
+    final firstBody = jsonDecode(await first.body()) as Map<String, Object?>;
+    final stale = SyncManifest(
+      deviceId: 'device-one',
+      epoch: 'b' * 32,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: const {},
+    );
+    final staleResponse = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: encodeSyncManifestUtf8(stale),
+      contentType: 'application/json',
+    );
+    expect(staleResponse.statusCode, 409);
+    expect(firstBody['epoch'], isNot('b' * 32));
+
+    final bytes = Uint8List.fromList([1, 2, 3]);
+    final hash = sha256.convert(bytes).toString();
+    final upload = await _send(
+      'PUT',
+      '/v1/blobs/$hash',
+      syncId: syncId,
+      body: bytes,
+      contentType: 'application/octet-stream',
+    );
+    expect(upload.statusCode, 201);
+    final otherStore = await _send(
+      'POST',
+      '/v1/store',
+      syncId: 'other-café-horse-staple',
+    );
+    expect(otherStore.statusCode, 201);
+    final hidden = await _send(
+      'GET',
+      '/v1/blobs/$hash',
+      syncId: 'other-café-horse-staple',
+    );
+    expect(hidden.statusCode, 404);
+  });
+
+  test('blob uploads reject a body whose hash differs from the path', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = Uint8List.fromList([1, 2, 3]);
+    final wrongHash = 'a' * 64;
+    final response = await _send(
+      'PUT',
+      '/v1/blobs/$wrongHash',
+      syncId: syncId,
+      body: bytes,
+      contentType: 'application/octet-stream',
+    );
+    expect(response.statusCode, 400);
+    final missing = await _send('GET', '/v1/blobs/$wrongHash', syncId: syncId);
+    expect(missing.statusCode, 404);
+  });
+
+  test(
+    'each failed store-resolution outcome consumes its own budget',
+    () async {
+      for (
+        var attempt = 0;
+        attempt < maxFailedResolutionsPerIpBurst;
+        attempt++
+      ) {
+        final response = await _send('GET', '/v1/store', credential: '%%%bad');
+        expect(response.statusCode, 401);
+      }
+      expect(
+        (await _send('GET', '/v1/store', credential: '%%%bad')).statusCode,
+        429,
+      );
+    },
+  );
+
+  test('structurally invalid credentials consume the failure budget', () async {
+    final invalidCredential = base64Url
+        .encode(utf8.encode('one-two-three'))
+        .replaceAll('=', '');
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      final response = await _send(
+        'GET',
+        '/v1/store',
+        credential: invalidCredential,
+      );
+      expect(response.statusCode, 403);
+    }
+    expect(
+      (await _send(
+        'GET',
+        '/v1/store',
+        credential: invalidCredential,
+      )).statusCode,
+      429,
+    );
+  });
+
+  test('unknown-store resolutions consume the failure budget', () async {
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      final response = await _send(
+        'GET',
+        '/v1/store',
+        syncId: 'unknown-$attempt-café-staple',
+      );
+      expect(response.statusCode, 404);
+    }
+    expect(
+      (await _send(
+        'GET',
+        '/v1/store',
+        syncId: 'unknown-final-café-staple',
+      )).statusCode,
+      429,
+    );
+  });
+
+  test('duplicate creation consumes the failure budget', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        409,
+      );
+    }
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 429);
+  });
+
+  test('successful resolutions do not consume the failure budget', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    expect(created.statusCode, 201);
+    for (
+      var attempt = 0;
+      attempt < maxFailedResolutionsPerIpBurst + 5;
+      attempt++
+    ) {
+      expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
+    }
+  });
+
+  test('failure-budget churn cannot reset an active address bucket', () async {
+    final customApp = AthenaeumApp(
+      config: app.config,
+      clientAddressResolver: (request) => request.headers['x-test-ip']!,
+      budgetLimits: const AthenaeumBudgetLimits(
+        perIpFailureBurst: maxFailedResolutionsPerIpBurst,
+        serverWideFailuresPerMinute: 2000,
+      ),
+    );
+    Future<Response> failedRequest(String address) => customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer %%%bad', 'x-test-ip': address},
+      ),
+    );
+
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect((await failedRequest('target')).statusCode, 401);
+    }
+    for (var attempt = 0; attempt < 999; attempt++) {
+      expect((await failedRequest('other-$attempt')).statusCode, 401);
+    }
+    expect((await failedRequest('new-address')).statusCode, 429);
+    expect((await failedRequest('target')).statusCode, 429);
+  });
+
+  test(
+    'server-wide shedding preserves existing-store and resource behavior',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      for (
+        var attempt = 0;
+        attempt < maxFailedResolutionsServerWide;
+        attempt++
+      ) {
+        final response = await _send(
+          'GET',
+          '/v1/store',
+          syncId: 'global-$attempt-café-staple',
+          headers: {'x-test-ip': 'address-$attempt'},
+        );
+        expect(response.statusCode, 404);
+      }
+      expect(
+        (await _send(
+          'GET',
+          '/v1/store',
+          syncId: 'global-final-café-staple',
+          headers: {'x-test-ip': 'address-final'},
+        )).statusCode,
+        429,
+      );
+      expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
+      final missingBlob = await _send(
+        'GET',
+        '/v1/blobs/${'c' * 64}',
+        syncId: syncId,
+      );
+      expect(missingBlob.statusCode, 404);
+    },
+  );
+
+  test('creation cap does not hide an existing-store conflict', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    for (var attempt = 0; attempt < maxStoreCreationsPerMinute - 1; attempt++) {
+      expect(
+        (await _send(
+          'POST',
+          '/v1/store',
+          syncId: 'creation-$attempt-café-staple',
+        )).statusCode,
+        201,
+      );
+    }
+    expect(
+      (await _send(
+        'POST',
+        '/v1/store',
+        syncId: 'over-cap-café-staple',
+      )).statusCode,
+      429,
+    );
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 409);
+  });
+
+  test('failed store creation does not consume the creation budget', () async {
+    final database = sqlite3.openInMemory();
+    final customStore = AthenaeumStore(config: app.config, database: database);
+    final customApp = AthenaeumApp(
+      config: app.config,
+      store: customStore,
+      budgetLimits: const AthenaeumBudgetLimits(creationsPerMinute: 1),
+    );
+    addTearDown(customStore.close);
+    database.execute(
+      'CREATE TRIGGER fail_store_create BEFORE INSERT ON stores '
+      "BEGIN SELECT RAISE(ABORT, 'injected create failure'); END",
+    );
+    Future<Response> createRequest() => customApp.call(
+      Request(
+        'POST',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+        },
+      ),
+    );
+
+    await expectLater(createRequest(), throwsA(isA<SqliteException>()));
+    database.execute('DROP TRIGGER fail_store_create');
+    expect((await createRequest()).statusCode, 201);
+  });
+
+  test('concurrent identical blob uploads are idempotent', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = Uint8List.fromList(List<int>.generate(128, (i) => i));
+    final hash = sha256.convert(bytes).toString();
+    final responses = await Future.wait(
+      List.generate(
+        8,
+        (_) => _send(
+          'PUT',
+          '/v1/blobs/$hash',
+          syncId: syncId,
+          body: bytes,
+          contentType: 'application/octet-stream',
+        ),
+      ),
+    );
+    expect(
+      responses.where((response) => response.statusCode == 201),
+      hasLength(1),
+    );
+    expect(
+      responses.where((response) => response.statusCode == 200),
+      hasLength(7),
+    );
+    for (final response in responses) {
+      await response.drain<void>();
+    }
+    final fetched = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
+    expect(await fetched.bodyBytes(), equals(bytes));
+  });
+
+  test('epoch changes are rejected at the write boundary', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final createdBody =
+        jsonDecode(await created.body()) as Map<String, Object?>;
+    final epoch = createdBody['epoch']! as String;
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: const {},
+    );
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final body = encodeSyncManifestUtf8(manifest);
+    expect(
+      () => app.store.putManifest(
+        idKey: idKey,
+        epoch: epoch,
+        deviceId: manifest.deviceId,
+        etag: rawBodyHash(body),
+        writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
+        body: body,
+      ),
+      throwsA(isA<StoreEpochMismatch>()),
+    );
+    expect(
+      () => app.store.putBlob(
+        idKey: idKey,
+        epoch: epoch,
+        hash: 'a' * 64,
+        body: Uint8List(0),
+      ),
+      returnsNormally,
+    );
+    expect(app.store.blobFile(idKey, epoch, 'a' * 64).existsSync(), isTrue);
+  });
+
+  test('method-not-allowed responses advertise the route methods', () async {
+    final store = await _send('PUT', '/v1/store', syncId: syncId);
+    expect(store.statusCode, 405);
+    expect(store.headers.value('allow'), 'GET, POST, DELETE');
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final blob = await _send('POST', '/v1/blobs/${'a' * 64}', syncId: syncId);
+    expect(blob.statusCode, 405);
+    expect(blob.headers.value('allow'), 'GET, PUT');
+    final missing = await _send('GET', '/v1/blobs/missing', syncId: syncId);
+    expect(missing.statusCode, 405);
+    expect(missing.headers.value('allow'), 'POST');
+  });
+
+  test(
+    'streaming body limits cancel input at the first oversized chunk',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> oversizedBody() async* {
+        yielded++;
+        yield Uint8List(maxBlobBytes + 1);
+        yielded++;
+        yield Uint8List(1);
+      }
+
+      final request = Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/${'d' * 64}'),
+        headers: {
+          'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+          'content-type': 'application/octet-stream',
+        },
+        body: oversizedBody(),
+      );
+      final response = await app.call(request);
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
+    'missing-hash limits cancel input before retaining later chunks',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      final firstChunk = utf8.encode(
+        '{"hashes":[${List<int>.filled(maxMissingHashes + 1, 0).join(',')}]',
+      );
+      Stream<List<int>> oversizedHashes() async* {
+        yielded++;
+        yield Uint8List.fromList(firstChunk);
+        yielded++;
+        yield Uint8List.fromList([0x7d]);
+      }
+
+      final response = await app.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/blobs/missing'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': 'application/json',
+          },
+          body: oversizedHashes(),
+        ),
+      );
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
+    'JSON depth limits cancel input before retaining later chunks',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> overlyDeepJson() async* {
+        yielded++;
+        yield Uint8List.fromList(
+          utf8.encode('{"hashes":${'[' * maxJsonDepth}'),
+        );
+        yielded++;
+        yield Uint8List.fromList(utf8.encode("0${']' * maxJsonDepth}"));
+      }
+
+      final response = await app.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/blobs/missing'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': 'application/json',
+          },
+          body: overlyDeepJson(),
+        ),
+      );
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
+    'manifest JSON depth limits cancel input before retaining later chunks',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> overlyDeepManifest() async* {
+        yielded++;
+        yield Uint8List.fromList(utf8.encode('[' * (maxJsonDepth + 1)));
+        yielded++;
+        yield Uint8List.fromList(utf8.encode(']' * (maxJsonDepth + 1)));
+      }
+
+      final response = await app.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/json',
+          },
+          body: overlyDeepManifest(),
+        ),
+      );
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
+    'escaped duplicate hashes keys are rejected before later chunks are read',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> duplicateHashes() async* {
+        yielded++;
+        yield Uint8List.fromList(utf8.encode(r'{"hashes":[],"hash\u0065s":['));
+        yielded++;
+        yield Uint8List.fromList(utf8.encode('0' * (maxMissingHashes + 1)));
+      }
+
+      final response = await app.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/blobs/missing'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/json',
+          },
+          body: duplicateHashes(),
+        ),
+      );
+      expect(response.statusCode, 400);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
+    'nested hashes extension fields remain opaque to the request scanner',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      final response = await _send(
+        'POST',
+        '/v1/blobs/missing',
+        syncId: syncId,
+        contentType: 'application/json',
+        body: Uint8List.fromList(
+          utf8.encode(
+            '{"extension":{"hashes":[${List.filled(10001, '0').join(',')}]},'
+            '"hashes":[]}',
+          ),
+        ),
+      );
+      expect(response.statusCode, 200);
+      expect(await response.body(), '{"missing":[]}');
+    },
+  );
+
+  test('ordinary requests retry queued filesystem cleanup', () async {
+    final customDirectory = await Directory.systemTemp.createTemp(
+      'athenaeum-request-retry-',
+    );
+    var failDelete = true;
+    final customConfig = AthenaeumConfig(
+      dataDirectory: customDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    final customStore = AthenaeumStore(
+      config: customConfig,
+      deleteDirectory: (directory) {
+        if (failDelete) {
+          throw const FileSystemException('injected filesystem failure');
+        }
+        directory.deleteSync(recursive: true);
+      },
+    );
+    final customApp = AthenaeumApp(config: customConfig, store: customStore);
+    addTearDown(() async {
+      customStore.close();
+      await customDirectory.delete(recursive: true);
+    });
+
+    final idKey = deriveIncomingSyncIdKey(syncId, customConfig.pepper);
+    final created = customStore.create(idKey);
+    customStore.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: 'f' * 64,
+      body: Uint8List.fromList([5]),
+    );
+    final blobFile = customStore.blobFile(idKey, created.epoch, 'f' * 64);
+    customStore.deleteStore(idKey);
+    expect(blobFile.existsSync(), isTrue);
+
+    failDelete = false;
+    final response = await customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ${encodeSyncCredential(syncId)}'},
+      ),
+    );
+    expect(response.statusCode, 404);
+    expect(blobFile.existsSync(), isFalse);
+  });
+}
+
+extension on HttpClientResponse {
+  Future<String> body() async => utf8.decode(await bodyBytes());
+
+  Future<Uint8List> bodyBytes() async => Uint8List.fromList(
+    await fold<List<int>>(<int>[], (all, chunk) {
+      all.addAll(chunk);
+      return all;
+    }),
+  );
+}
+
+Future<HttpClientResponse> _send(
+  String method,
+  String path, {
+  String? syncId,
+  String? credential,
+  Uint8List? body,
+  String? contentType,
+  Map<String, String> headers = const {},
+}) async {
+  final request = await _activeClient.openUrl(method, _uri(path));
+  final token = credential ?? encodeSyncCredential(syncId!);
+  request.headers.set('authorization', 'Bearer $token');
+  if (contentType != null) request.headers.set('content-type', contentType);
+  headers.forEach(request.headers.set);
+  if (body != null) {
+    request.contentLength = body.length;
+    request.add(body);
+  }
+  return request.close();
+}
+
+late HttpClient _activeClient;
+late HttpServer _activeServer;
+
+Uri _uri(String path) => Uri.http('127.0.0.1:${_activeServer.port}', path);
