@@ -51,7 +51,7 @@
     "conditions": [
       "The service consumes W5's shared id_key definition before C2.",
       "Create and lookup remain distinct and issue fresh epochs correctly.",
-      "Blobs are immutable and stale epochs are rejected.",
+      "Blobs are immutable and stale manifest epochs are rejected.",
       "ETag, content type, credential decoding, and budget accounting pass.",
       "A live loopback test deployment is available before W6 client-engine work begins."
     ],

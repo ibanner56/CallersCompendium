@@ -86,11 +86,15 @@ class AthenaeumApp {
         return _failedResolution(request, 409, 'store already exists');
       }
       if (!_creationBudget.allow()) return _rateLimitedResponse();
+      var created = false;
       try {
-        final created = store.create(identity.idKey);
-        return _jsonResponse(201, store.metadata(created).toJson());
+        final storeRow = store.create(identity.idKey);
+        created = true;
+        return _jsonResponse(201, store.metadata(storeRow).toJson());
       } on StoreAlreadyExists {
         return _failedResolution(request, 409, 'store already exists');
+      } finally {
+        if (!created) _creationBudget.refund();
       }
     }
     if (request.method == 'DELETE') {
@@ -799,5 +803,9 @@ class _CreationBudget {
     if (_timestamps.length >= _limit) return false;
     _timestamps.add(now);
     return true;
+  }
+
+  void refund() {
+    if (_timestamps.isNotEmpty) _timestamps.removeLast();
   }
 }

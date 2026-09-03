@@ -131,6 +131,15 @@ void main() {
     expect(afterBody['devices'], isEmpty);
   });
 
+  test('weak structurally valid sync IDs are accepted', () async {
+    final response = await _send(
+      'POST',
+      '/v1/store',
+      syncId: 'one-two-three-four',
+    );
+    expect(response.statusCode, 201);
+  });
+
   test('normalized sync IDs resolve to the same store', () async {
     final created = await _send('POST', '/v1/store', syncId: syncId);
     final before = jsonDecode(await created.body()) as Map<String, Object?>;
@@ -333,6 +342,22 @@ void main() {
       syncId: 'other-café-horse-staple',
     );
     expect(hidden.statusCode, 404);
+  });
+
+  test('blob uploads reject a body whose hash differs from the path', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = Uint8List.fromList([1, 2, 3]);
+    final wrongHash = 'a' * 64;
+    final response = await _send(
+      'PUT',
+      '/v1/blobs/$wrongHash',
+      syncId: syncId,
+      body: bytes,
+      contentType: 'application/octet-stream',
+    );
+    expect(response.statusCode, 400);
+    final missing = await _send('GET', '/v1/blobs/$wrongHash', syncId: syncId);
+    expect(missing.statusCode, 404);
   });
 
   test(

@@ -69,21 +69,25 @@ class AthenaeumStore {
   StoreRow create(String idKey) {
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
     final epoch = _randomEpoch();
-    _database.execute('BEGIN IMMEDIATE');
-    final existing = lookup(idKey);
-    if (existing != null) {
-      _database.execute('ROLLBACK');
-      throw StoreAlreadyExists(existing);
-    }
+    var inTransaction = false;
     try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final existing = lookup(idKey);
+      if (existing != null) {
+        _database.execute('ROLLBACK');
+        inTransaction = false;
+        throw StoreAlreadyExists(existing);
+      }
       _database.execute(
         'INSERT INTO stores (id_key, epoch, created_at, last_seen, bytes_used) '
         'VALUES (?, ?, ?, ?, 0)',
         [idKey, epoch, now, now],
       );
       _database.execute('COMMIT');
+      inTransaction = false;
     } on sqlite3.SqliteException {
-      _database.execute('ROLLBACK');
+      if (inTransaction) _database.execute('ROLLBACK');
       rethrow;
     }
     return lookup(idKey)!;
