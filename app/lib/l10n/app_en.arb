@@ -790,7 +790,7 @@
   "@settingsDefaultsCanonicalTitle": {
     "description": "Toggle title: open dances in canonical terms rather than the active dialect."
   },
-  "settingsDefaultsCanonicalSubtitle": "When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.",
+  "settingsDefaultsCanonicalSubtitle": "When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.",
   "@settingsDefaultsCanonicalSubtitle": {
     "description": "Explanation for the canonical-terms default toggle."
   },

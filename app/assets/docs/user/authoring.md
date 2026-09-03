@@ -196,9 +196,9 @@ Two things follow from that:
   **Update your saved snippet?** — choose **Use everywhere** to update the default,
   or **Just this dance** to keep the change local.
 
-Your whole library of snippets lives at **Settings** ▸ **Defaults** ▸
-**Walkthrough snippets**, where you can review and edit them. Editing one there
-updates the default used everywhere.
+Your whole library of snippets lives at **Settings** ▸ **Dialect** ▸ **Dance
+details & shorthands** ▸ **Walkthrough snippets**, where you can review and edit
+them. Editing one there updates the default used everywhere.
 
 ### More details
 

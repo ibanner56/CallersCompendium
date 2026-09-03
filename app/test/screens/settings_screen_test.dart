@@ -397,6 +397,10 @@ void main() {
       expect(child, findsOneWidget);
       expect(tester.widget<SwitchListTile>(gate).value, isFalse);
       expect(tester.widget<SwitchListTile>(child).onChanged, isNull);
+      expect(
+        find.textContaining('When Canonical figure text is on'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('enabling the gate enables and persists the child default', (

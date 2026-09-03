@@ -586,7 +586,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'オンにすると、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが表示されます。ダンスを開いている間もビューを切り替えられます。';
+      '「Canonical figure text」がオンの場合、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが開きます。オフの場合、詳細はアクティブなダイアレクトで開き、この設定は保持されます。';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'コレクションカードの項目';

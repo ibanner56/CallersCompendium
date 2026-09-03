@@ -1115,7 +1115,7 @@ abstract class AppLocalizations {
   /// Explanation for the canonical-terms default toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.'**
+  /// **'When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.'**
   String get settingsDefaultsCanonicalSubtitle;
 
   /// Section header for the collection-card field-visibility preference (#767).

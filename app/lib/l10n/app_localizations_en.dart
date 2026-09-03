@@ -596,7 +596,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.';
+      'When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'Collection card fields';

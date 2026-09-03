@@ -601,7 +601,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Når aktiveret åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Du kan stadig skifte visning, mens dansen er åben.';
+      'Når Canonical figure text er aktiveret, åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Når den er deaktiveret, åbnes detaljer i din aktive dialekt, og denne indstilling bevares.';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'Felter på samlingskort';

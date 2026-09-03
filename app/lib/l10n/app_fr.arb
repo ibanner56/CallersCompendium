@@ -668,9 +668,9 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Activé : une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt que votre dialecte actif. Vous pouvez toujours changer de vue pendant que la danse est ouverte.",
+  "settingsDefaultsCanonicalSubtitle": "Lorsque le texte canonique des figures est activé, une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt qu’avec votre dialecte actif. Lorsqu’il est désactivé, les détails s’ouvrent dans votre dialecte actif et ce réglage est conservé.",
   "@settingsDefaultsCanonicalSubtitle": {
-    "x-sourceSha256": "fe95b6d2b485134a9500ac36c5d39b84f899d3838d0f83d31e0f93c2e00b8e49"
+    "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },
   "settingsDefaultsCollectionCardHeader": "Champs de la carte de collection",
   "@settingsDefaultsCollectionCardHeader": {

@@ -611,7 +611,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Activé : une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt que votre dialecte actif. Vous pouvez toujours changer de vue pendant que la danse est ouverte.';
+      'Lorsque le texte canonique des figures est activé, une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt qu’avec votre dialecte actif. Lorsqu’il est désactivé, les détails s’ouvrent dans votre dialecte actif et ce réglage est conservé.';
 
   @override
   String get settingsDefaultsCollectionCardHeader =>
