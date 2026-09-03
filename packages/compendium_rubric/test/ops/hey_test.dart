@@ -194,6 +194,18 @@ void main() {
       expect(error.kind, ErrorKind.unresolvableDancerSet);
       expect(error.message, contains('same line'));
     });
+
+    test('one same-side pair names only half a side pass', () {
+      // Duple *proper* again, but asked for a full hey so the side-opening
+      // deferral cannot be what answers. Both Robins stand east with nobody
+      // named opposite them, so neither reading of the opening pass applies.
+      final error = applyErr(
+        const HeyForFour(length: HeyLength.full),
+        di(const ['L1-A . . . R1-A', 'L2-B . . . R2-B']),
+      );
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.message, contains('nobody named opposite'));
+    });
   });
 
   group('HeyForFour pass2 anchor', () {
@@ -259,6 +271,102 @@ void main() {
         expect(HeyLength.fromKey(length.key), length);
       }
       expect(HeyLength.fromKey('sideways'), isNull);
+    });
+  });
+
+  group('HeyForFour opening on the side', () {
+    // The Carousel (Caller's Box 10324) reaches its hey through a Robins'
+    // allemande left 1½, which swaps a diagonal and leaves each couple standing
+    // together on one side of the set. Its record calls the hey
+    // `pass1: partners, pass2: role1s` — and here the partners are exactly the
+    // two same-side pairs, while the Larks are the pair standing across. The
+    // record and the floor agree, which is what identifies the opening pass as
+    // a side pass rather than a centre one.
+    const carousel = ['R2-B . . . L1-A', 'L2-B . . . R1-A'];
+
+    test('partners stand along the sides here, and the Larks across', () {
+      final start = di(carousel);
+      // Guards the premise the rest of this group rests on: if this state ever
+      // stops being side-on, the tests below would pass for the wrong reason.
+      int col(int couple, Role role) =>
+          start.stateOf(DancerId(couple, role)).position.col;
+      expect(
+        col(0, Role.robin),
+        col(0, Role.lark),
+        reason: 'the A partners share a side',
+      );
+      expect(
+        col(1, Role.robin),
+        col(1, Role.lark),
+        reason: 'the B partners share a side',
+      );
+      expect(
+        col(0, Role.lark),
+        isNot(col(1, Role.lark)),
+        reason: 'the Larks stand across the set',
+      );
+    });
+
+    test('a full hey opening on the side is still the identity', () {
+      final start = di(carousel);
+      const hey = HeyForFour(
+        pass1: WhoSet.partners,
+        pass2: WhoSet.role1s,
+        length: HeyLength.full,
+      );
+      expect(applyOk(hey, start).toMatrix(), start.toMatrix());
+    });
+
+    test('pass2 selects the centres, so naming the wrong pair is refused', () {
+      const hey = HeyForFour(
+        pass1: WhoSet.partners,
+        pass2: WhoSet.partners,
+        length: HeyLength.full,
+      );
+      final error = applyErr(hey, di(carousel));
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.message, contains('across the set'));
+    });
+
+    test('without pass2 there is nothing to name the centre pass', () {
+      const hey = HeyForFour(pass1: WhoSet.partners, length: HeyLength.full);
+      final error = applyErr(hey, di(carousel));
+      expect(error.kind, ErrorKind.unresolvableDancerSet);
+      expect(error.message, contains('pass2 is needed'));
+    });
+
+    test('a side-opening hey raises no anchorMismatch on its own pass2', () {
+      const hey = HeyForFour(
+        pass1: WhoSet.partners,
+        pass2: WhoSet.role1s,
+        length: HeyLength.full,
+      );
+      expect(hey.lint(di(carousel)), isEmpty);
+    });
+
+    test('a half hey opening on the side is deferred, not guessed', () {
+      const hey = HeyForFour(pass1: WhoSet.partners, pass2: WhoSet.role1s);
+      final error = applyErr(hey, di(carousel));
+      expect(error.kind, ErrorKind.unsupportedParam);
+      expect(error.message, contains('half way'));
+    });
+
+    test('ricochets on a side-opening hey are deferred', () {
+      const hey = HeyForFour(
+        pass1: WhoSet.partners,
+        pass2: WhoSet.role1s,
+        length: HeyLength.full,
+        rico1: true,
+      );
+      final error = applyErr(hey, di(carousel));
+      expect(error.kind, ErrorKind.unsupportedParam);
+      expect(error.message, contains('centre meetings'));
+    });
+
+    test('a centre-opening hey is untouched by any of this', () {
+      final start = di(_start);
+      final after = applyOk(const HeyForFour(), start);
+      expect(after.toRolesNotation(), ['R2-B . . . L2-B', 'L1-A . . . R1-A']);
     });
   });
 }

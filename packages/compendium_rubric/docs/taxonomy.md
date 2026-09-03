@@ -2257,11 +2257,14 @@ To be defined later with worked examples.
 - **summary:** A **reel of four** — the dancers weave past each other along a line of four,
   without taking hands.
 - **params** (meets CallersCompendium baseline; no `beats`):
-  - `pass1` — dancer set, default `role2s`. The pair who begin **in the centre**, and so take
-    the first centre meeting. This is the only param that selects anybody.
+  - `pass1` — dancer set, default `role2s`. The pair, **or pairs**, who dance the first pass. If
+    they stand one on each side of the set the hey opens in the **centre**; if they stand as two
+    same-side pairs covering the whole hands four, it opens with the **side** pass and the centre
+    pass falls to `pass2`.
   - `length` — enum {`lessThanHalf`, `half`, `betweenHalfAndFull`, `full`}, default `half`.
-  - `pass2` — dancer set, **nullable**. The pair who dance the **second** pass, which is a pass on
-  the **side**. An **anchor** (see below).
+  - `pass2` — dancer set, **nullable**. The pair who dance the **second** pass. Normally an
+    **anchor** on the side pass (see below); in a side-opening hey it is instead the **selector**
+    for the centre pair, and its absence is a refusal.
   - `meetTarget` — dancer set, **nullable**. Whom the `pass1` pair meet when the weave stops part
     way. Meaningful only for the deferred partial lengths; carried for record fidelity, no
     end-state effect.
@@ -2329,10 +2332,32 @@ To be defined later with worked examples.
   > number **centre meetings only**, so they do not share numbering with `pass1`/`pass2` — the
   > dialect assigns ricochet flags to odd pass-list positions for exactly that reason.
 
-- **`pass2` is an anchor, not a selector** (the `form_long_waves` precedent): once `pass1` is
-  resolved the side pairs follow by construction, so a stated `pass2` cannot select anyone. It is
-  checked against the pairs the figure derived and reported through `anchorMismatch` when the two
-  disagree. The hey still weaves as `pass1` describes; only the second pass is misdescribed.
+- **`pass2` is an anchor, not a selector** (the `form_long_waves` precedent) **when the hey opens
+  in the centre**: once `pass1` is resolved the side pairs follow by construction, so a stated
+  `pass2` cannot select anyone. It is checked against the pairs the figure derived and reported
+  through `anchorMismatch` when the two disagree. The hey still weaves as `pass1` describes; only
+  the second pass is misdescribed.
+
+- **⭐ a hey may open on the side, and then `pass2` does select.** Which pass comes first is read
+  off the floor, not declared: a pair standing one on each side of the set can only meet in the
+  middle, and a pair standing on the same side can only pass there. So when `pass1` resolves to
+  two same-side pairs that between them cover the hands four, the opening pass is the side pass —
+  danced on both sides at once — and the centre pass is the second.
+
+  Nothing else can then say who meets in the middle. *The Carousel* (Caller's Box 10324) reaches
+  its hey through `role2s allemande left 1½`, which swaps a diagonal and leaves each couple
+  standing together on one side; in the state that produces, **both** role pairs span the set, so
+  either could be the centre pair. Its record resolves it by naming `pass2: role1s`. An absent
+  `pass2` there is a refusal, never a guess, per the anchor doctrine.
+
+  One same-side pair is **not** enough: a side pass happens on both sides simultaneously, so a
+  lone pair names half of it. Duple *proper* with `pass1: role2s` is that case — both Robins east,
+  nobody named opposite — and it stays an `unresolvableDancerSet` refusal.
+
+  **Deferred:** a side-opening hey that is not a plain `full` one, and any side-opening hey
+  carrying a ricochet. Opening on the side shifts every later pass by one, so neither the half-way
+  stopping point nor the centre meeting each `rico` flag names is pinned by any worked example. A
+  full hey with no ricochets is exempt because it is the identity under either counting.
 - **preconditions:**
   - `dir != across` → `unsupportedParam`. The diagonals lay the line of four across more than one
     hands four, and are **deferred behind diagonal `right_left_through`**, which they would have to
@@ -2342,9 +2367,13 @@ To be defined later with worked examples.
     defined over (fundamentals §8). "Valid but out of scope", not "malformed".
   - `rico3` / `rico4` below a **full** hey → `unsupportedParam`. Each pair has only one centre
     meeting in a half, so these name a meeting that never happens — refused rather than ignored.
-  - `pass1` does not resolve to **exactly one** pair in a band → `unresolvableDancerSet`.
-  - The `pass1` pair stand in the **same column** → `unresolvableDancerSet`; they must be one on
-    each side of the set to meet in the centre.
+  - `pass1` resolves to neither **one spanning pair** nor **two same-side pairs covering the hands
+    four** → `unresolvableDancerSet`. The two readings are the centre opening and the side opening;
+    anything else names a pass with no place to happen.
+  - A side opening with `pass2` absent, or with a `pass2` that names no single spanning pair →
+    `unresolvableDancerSet`. There the anchor is the only thing that can identify the centres.
+  - A side opening at any `length` other than `full`, or carrying any ricochet →
+    `unsupportedParam`.
   - A band holds other than four dancers, or there is **no complete hands four** →
     `unresolvableDancerSet`.
 - **facing:** `flexible` for all four. A hey ends mid-flow, and what a dancer looks at depends on

@@ -708,13 +708,17 @@ test catches, not whether undoing your own work reddens it.
   sweep alive through it, but the figure still needs a ruling: whether the
   collision is a geometry the figure should **refuse** with an `OpError`, or
   evidence that the permutation is wrong.
-- **A hey may start on the side, and this model refuses one that does.** `pass1`
-  is assumed to name the pair meeting in the centre; the user has since noted
-  that the first pass is sometimes a side pass, with the centre pass falling to
-  `pass2`. Core's dialect makes the same assumption, so correcting it departs
-  from upstream and needs a ruling on how a side-starting hey is to be
-  recognised. It is not a rare edge: heys whose `pass1` names `partners` or
-  `neighbors` are roughly a tenth of every refusal in the corpus.
+- **A hey may open on the side, and now does.** `pass1` names the first pass,
+  which is not always the centre one. Which it is gets read off the floor: a
+  pair standing one on each side of the set can only meet in the middle, and two
+  same-side pairs covering the hands four can only pass on the sides. In the
+  side-opening case `pass2` stops being an anchor and becomes the selector for
+  the centre pair — necessarily, because in the state *The Carousel* reaches its
+  hey from, both role pairs span the set and nothing else could choose. An
+  absent `pass2` there is a refusal, never a guess. **Deferred:** a side opening
+  at any length but `full`, and any side opening carrying a ricochet, since
+  opening on the side shifts every later pass by one and no worked example pins
+  where the half-way point or each `rico` flag then lands.
 
 ### 15.1 What the corpus says
 

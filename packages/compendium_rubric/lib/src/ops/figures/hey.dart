@@ -36,7 +36,7 @@ enum HeyLength {
 }
 
 /// One hands four read as the line of four a hey weaves along.
-typedef _HeyLine = ({DancerPair centers, DancerPair ends});
+typedef _HeyLine = ({DancerPair centers, DancerPair ends, bool sideStart});
 
 /// `hey` — a reel of four, in which the dancers weave past each other without
 /// taking hands (`docs/taxonomy.md`).
@@ -195,37 +195,84 @@ final class HeyForFour extends Operation {
   }
 
   /// Reads each hands four as a line of four, or explains why it cannot be.
+  ///
+  /// A hey's passes alternate between the centre and the sides, and `pass1`
+  /// names the **first** one — which is usually, but not always, the centre.
+  /// Which it is here is read off the floor rather than declared: a pair
+  /// standing one on each side of the set can only meet in the middle, and a
+  /// pair standing on the same side can only pass there. So when `pass1`
+  /// resolves to one **spanning** pair the hey opens in the centre, and when it
+  /// resolves to pairs that each stand on **one side** the hey opens with the
+  /// two side passes danced at once, and the centre pass falls to `pass2`.
+  ///
+  /// In the side-opening case `pass2` stops being an anchor and becomes a
+  /// genuine selector, because nothing else can say who meets in the middle —
+  /// in a duple-improper set after an allemande that swaps a diagonal, *both*
+  /// role pairs span. Per the anchor doctrine (`docs/implementation.md` §8) an
+  /// absent `pass2` there is a refusal, never a guess.
   Result<List<_HeyLine>, OpError> _lines(Formation formation) {
+    bool spans(DancerPair pair) =>
+        formation.stateOf(pair.a).position.col !=
+        formation.stateOf(pair.b).position.col;
+
     final lines = <_HeyLine>[];
     for (final band in handsFourBands(formation)) {
       final where = 'the hands four at rows ${band.topRow}-${band.bottomRow}';
-      final centers = resolveWhoPairs(
+      final opening = resolveWhoPairs(
         formation,
         pass1,
         topRow: band.topRow,
         bottomRow: band.bottomRow,
       );
-      if (centers.length != 1) {
+      if (opening.isEmpty) {
         return Err<List<_HeyLine>, OpError>(
           OpError(
             ErrorKind.unresolvableDancerSet,
-            'hey needs pass1 to name the one pair standing in the centre, but '
-            '${pass1.key} names ${centers.length} pairs in $where',
+            'hey needs pass1 to name the pair or pairs who pass first, but '
+            '${pass1.key} names nobody standing together in $where',
           ),
         );
       }
-      final middle = centers.single;
-      if (formation.stateOf(middle.a).position.col ==
-          formation.stateOf(middle.b).position.col) {
+
+      final DancerPair middle;
+      final bool sideStart;
+      if (opening.length == 1 && spans(opening.single)) {
+        middle = opening.single;
+        sideStart = false;
+      } else if (_coversBothSides(opening, spans)) {
+        final error = _deferredSideStart();
+        if (error != null) return Err<List<_HeyLine>, OpError>(error);
+        final centers = _resolveSideStartCenters(formation, band, spans, where);
+        switch (centers) {
+          case Err(:final error):
+            return Err<List<_HeyLine>, OpError>(error);
+          case Ok(:final value):
+            middle = value;
+            sideStart = true;
+        }
+      } else if (opening.length == 1) {
         return Err<List<_HeyLine>, OpError>(
           OpError(
             ErrorKind.unresolvableDancerSet,
-            'hey needs the ${pass1.key} pair one on each side of the set to '
-            'meet in the centre, but ${middle.a} and ${middle.b} are standing '
-            'in the same line in $where',
+            'hey needs the ${pass1.key} pair either one on each side of the '
+            'set, to meet in the centre, or matched by a second pair on the '
+            'far side, to pass on the sides; ${opening.single.a} and '
+            '${opening.single.b} are standing in the same line in $where with '
+            'nobody named opposite them',
+          ),
+        );
+      } else {
+        return Err<List<_HeyLine>, OpError>(
+          OpError(
+            ErrorKind.unresolvableDancerSet,
+            'hey cannot tell where ${pass1.key} passes in $where: it names '
+            '${opening.length} pairs, which is neither the one pair standing '
+            'across the set that meets in the centre nor the two same-side '
+            'pairs that pass on the sides',
           ),
         );
       }
+
       final rest = [
         for (final id in [
           ...formation.dancersInRow(band.topRow),
@@ -242,7 +289,11 @@ final class HeyForFour extends Operation {
           ),
         );
       }
-      lines.add((centers: middle, ends: (a: rest.first, b: rest.last)));
+      lines.add((
+        centers: middle,
+        ends: (a: rest.first, b: rest.last),
+        sideStart: sideStart,
+      ));
     }
     if (lines.isEmpty) {
       return Err<List<_HeyLine>, OpError>(
@@ -253,6 +304,91 @@ final class HeyForFour extends Operation {
       );
     }
     return Ok<List<_HeyLine>, OpError>(lines);
+  }
+
+  /// Whether [opening] describes the side pass of a hey rather than a pass in
+  /// the centre.
+  ///
+  /// A hey's side pass is danced on **both** sides at once, so the reading only
+  /// holds when the named pairs account for the whole hands four: two pairs,
+  /// neither of them spanning the set, between them covering all four dancers.
+  /// One same-side pair names half a pass and leaves the other half unsaid,
+  /// which is not enough to weave from.
+  bool _coversBothSides(
+    List<DancerPair> opening,
+    bool Function(DancerPair) spans,
+  ) {
+    if (opening.length != 2) return false;
+    if (opening.any(spans)) return false;
+    final named = {
+      for (final pair in opening) ...[pair.a, pair.b],
+    };
+    return named.length == 4;
+  }
+
+  /// Why a hey that opens on the side is deferred unless it is a plain full one.
+  ///
+  /// Opening on the side shifts every later pass by one, so the centre meetings
+  /// the ricochet flags and the half-way point are counted from land somewhere
+  /// this model has no worked example for. A **full** hey with no ricochets is
+  /// exempt because it is the identity by either counting, so the shift cannot
+  /// change the answer.
+  OpError? _deferredSideStart() {
+    if (length != HeyLength.full) {
+      return OpError(
+        ErrorKind.unsupportedParam,
+        'hey length:${length.key} opening on the side is deferred: opening '
+        'there shifts every pass by one, so where the weave stops half way is '
+        'not the place a centre-opening half hey stops, and no worked example '
+        'pins it',
+      );
+    }
+    if (rico1 || rico2 || rico3 || rico4) {
+      return const OpError(
+        ErrorKind.unsupportedParam,
+        'hey ricochets on a side-opening hey are deferred: rico1..rico4 count '
+        'centre meetings, and opening on the side moves the first of those to '
+        'the second pass, so which meeting each flag names is unpinned',
+      );
+    }
+    return null;
+  }
+
+  /// Who meets in the centre when `pass1` named the side passes.
+  Result<DancerPair, OpError> _resolveSideStartCenters(
+    Formation formation,
+    ({int topRow, int bottomRow}) band,
+    bool Function(DancerPair) spans,
+    String where,
+  ) {
+    final anchor = pass2;
+    if (anchor == null) {
+      return Err<DancerPair, OpError>(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          'hey opens with ${pass1.key} passing on the sides in $where, so the '
+          'centre pass is the second one and nothing names it; pass2 is '
+          'needed to say who meets in the middle',
+        ),
+      );
+    }
+    final candidates = resolveWhoPairs(
+      formation,
+      anchor,
+      topRow: band.topRow,
+      bottomRow: band.bottomRow,
+    ).where(spans).toList();
+    if (candidates.length != 1) {
+      return Err<DancerPair, OpError>(
+        OpError(
+          ErrorKind.unresolvableDancerSet,
+          'hey opens on the sides in $where, so pass2 must name the pair who '
+          'meet in the centre, but ${anchor.key} names ${candidates.length} '
+          'pairs standing across the set',
+        ),
+      );
+    }
+    return Ok<DancerPair, OpError>(candidates.single);
   }
 
   /// The two pairs who dance the second pass, which happens on the sides.
@@ -284,6 +420,9 @@ final class HeyForFour extends Operation {
     final lines = _lines(formation).valueOrNull;
     if (lines == null) return const [];
     for (final line in lines) {
+      // In a side-opening hey `pass2` is what named these centres, so checking
+      // it against the second pass would be checking it against itself.
+      if (line.sideStart) continue;
       for (final pair in _sidePairs(formation, line)) {
         if (whoMatches(formation, pair.a, pair.b, anchor)) continue;
         return [
