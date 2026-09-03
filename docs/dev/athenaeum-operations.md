@@ -64,16 +64,21 @@ authenticated access to an existing store.
 Use a no-redirect probe after every Apache change:
 
 ```sh
-ATHENAEUM_CREDENTIAL='encoded-credential-for-a-disposable-store' \
+ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
   sh server/deploy/smoke_test.sh sync.example.invalid
 curl --max-time 10 --max-redirs 0 --include http://sync.example.invalid/v1/store
 curl --max-time 10 --include https://sync.example.invalid/v1/store
 ```
 
-The credential must belong to a disposable test store. The first request must
-be a refusal (not 3xx and not an Athenaeum response); the script then requires
-authenticated Athenaeum create/lookup responses over HTTPS and
-`Strict-Transport-Security`.
+The credential must be new and belong to a disposable test store; the script
+deletes stores it creates. The first request must be a refusal (not 3xx and not
+an Athenaeum response). The script then exercises real client buckets and
+forwarded-header overwrite through Apache, the 1,000-failure and 60-creation
+budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
+authenticated Athenaeum create/lookup responses over HTTPS with
+`Strict-Transport-Security`. Run it against a freshly restarted staging
+container because the failure and creation budgets are in memory. Save the
+labeled output as release evidence.
 
 ## Operations
 

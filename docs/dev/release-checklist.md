@@ -233,7 +233,9 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Follow [`athenaeum-operations.md`](athenaeum-operations.md) and attach
   evidence for the no-redirect plaintext `:80 /v1` refusal, successful HTTPS
   request with HSTS, proxy header/body/address checks, and every documented
-  rate-limit budget.
+  rate-limit budget. Include the labeled output from
+  `server/deploy/smoke_test.sh`, which runs these checks through the
+  host-network Apache vhost.
 - [ ] Attach live staging evidence for quota and sweep alerts reaching a human,
   30-day retention removal with log-content absence, one authorized break-glass
   access with exactly one separate audit row, and the lost-ID "not recoverable"
