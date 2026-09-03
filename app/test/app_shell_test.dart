@@ -7,9 +7,11 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
@@ -25,6 +27,7 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required Size size,
+  ImportPicker? reimportPicker,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -70,7 +73,7 @@ Future<void> _pump(
           ),
         ),
       ),
-      home: const AppShell(),
+      home: AppShell(reimportPicker: reimportPicker),
     ),
   );
   await tester.pumpAndSettle();
@@ -220,6 +223,29 @@ void main() {
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
   });
 
+  testWidgets('global search opens a saved dance with re-import available', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Petronella',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    await tester.tap(find.byKey(const ValueKey('global-search-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('command-result-dance-d1')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
+  });
+
   testWidgets(
     'picking a program in the search palette opens the read-focused summary, '
     'not the edit builder (#830)',
@@ -242,7 +268,13 @@ void main() {
           updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
-      await _pump(tester, repos, size: const Size(1200, 900));
+      Future<String?> reimportPicker() async => null;
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        reimportPicker: reimportPicker,
+      );
 
       await tester.tap(find.byKey(const ValueKey('global-search-button')));
       await tester.pumpAndSettle();
@@ -267,6 +299,21 @@ void main() {
       expect(find.text('Edit program'), findsOneWidget);
       expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
       expect(find.text('Perform this program'), findsOneWidget);
+      expect(
+        tester
+            .widget<ProgramSummaryScreen>(find.byType(ProgramSummaryScreen))
+            .reimportPicker,
+        same(reimportPicker),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open-builder')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ProgramEditorScreen>(find.byType(ProgramEditorScreen))
+            .reimportPicker,
+        same(reimportPicker),
+      );
     },
   );
 

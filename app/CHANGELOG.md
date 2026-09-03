@@ -40,6 +40,10 @@ from that tag, so new entries need no visible or manually maintained suffix.
 - **JSON export delivery choices** — choose to save, copy the raw JSON, share
   through the OS, or cancel when exporting a dance or program as JSON.
 
+- **Dance choreography re-import** — refresh figures, formation, and progression
+  from every saved dance detail view, including read-only Program Editor previews,
+  without replacing your saved metadata.
+
 ### Fixed
 
 - **Program editor dance previews** — closing a wide preview no longer exits the

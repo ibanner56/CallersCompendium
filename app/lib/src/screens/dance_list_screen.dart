@@ -12,7 +12,6 @@ import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/collection_tile_fields_scope.dart';
 import '../data/contradb_online.dart';
-import '../data/dance_reimport.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
 import '../data/import_error_labels.dart';
@@ -1038,7 +1037,10 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (imported.danceCount == 1 && danceId != null) {
       navigator.push(
         MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(danceId: danceId),
+          builder: (_) => DanceDetailScreen(
+            danceId: danceId,
+            onReimport: _beginReimportRoute,
+          ),
         ),
       );
     }
@@ -1051,103 +1053,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   Future<void> _beginReimportRoute(DanceDetailData target) async {
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final preview = await selectReimportDance(
-        context,
-        target: target.dance,
-        callersBox: _callersBox,
-        contraDb: _contraDb,
-      );
-      if (!mounted || preview == null) return;
-      final committed = await Navigator.of(context).push<bool>(
-        MaterialPageRoute<bool>(
-          builder: (_) => DanceDetailScreen.preview(
-            data: preview,
-            onImport: () async {
-              if (_importing) return;
-              _importing = true;
-              try {
-                final result = await replaceDanceChoreography(
-                  _repos,
-                  targetDanceId: target.dance.id,
-                  incoming: preview.dance,
-                  expectedUpdatedAt: target.dance.updatedAt,
-                );
-                if (!mounted) return;
-                if (result == DanceReimportResult.replaced) {
-                  Navigator.of(context).pop(true);
-                } else {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        result == DanceReimportResult.targetMissing
-                            ? AppLocalizations.of(
-                                context,
-                              ).danceReimportTargetMissing
-                            : AppLocalizations.of(
-                                context,
-                              ).danceReimportTargetChanged,
-                      ),
-                    ),
-                  );
-                }
-              } catch (error, stackTrace) {
-                logCaughtErrorTypeOnly(
-                  error,
-                  stackTrace,
-                  source: 'dance_list_screen._commitReimport',
-                );
-                if (mounted) {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        AppLocalizations.of(context).danceReimportSourceFailed,
-                      ),
-                    ),
-                  );
-                }
-              } finally {
-                _importing = false;
-              }
-            },
-          ),
-        ),
-      );
-      if (mounted && committed == true) {
-        messenger.showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
-        );
-      }
-    } on DanceReimportJsonException catch (error) {
-      logCaughtErrorTypeOnly(
-        error,
-        StackTrace.current,
-        source: 'dance_list_screen._beginReimportRoute',
-      );
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            error.programBearing
-                ? AppLocalizations.of(context).danceReimportProgramArchive
-                : AppLocalizations.of(context).danceReimportInvalidJson,
-          ),
-        ),
-      );
-    } catch (error, stackTrace) {
-      logCaughtErrorTypeOnly(
-        error,
-        stackTrace,
-        source: 'dance_list_screen._beginReimportRoute',
-      );
-      if (!mounted) return;
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(AppLocalizations.of(context).danceReimportSourceFailed),
-        ),
-      );
-    }
+    await DanceReimportCoordinator(
+      repos: _repos,
+      callersBox: _callersBox,
+      contraDb: _contraDb,
+    ).open(context, target);
   }
 
   /// Directly imports the previewed online dance into the local collection

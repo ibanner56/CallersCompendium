@@ -1,8 +1,15 @@
+import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/callersbox_online.dart';
 import '../data/collection_filter_scope.dart';
+import '../data/contradb_online.dart';
+import '../data/import_io.dart';
+import '../data/online_search.dart';
+import '../data/repositories_scope.dart';
+import 'dance_reimport_flow.dart';
 import '../screens/dance_detail_screen.dart';
 import '../screens/program_summary_screen.dart';
 import '../theme/app_spacing.dart';
@@ -27,7 +34,16 @@ import 'user_guide/user_guide_screen.dart';
 /// rather than pushed routes, so the persistent shell chrome (rail search /
 /// bottom bar) stays visible while they're open.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  const AppShell({
+    super.key,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+    this.reimportPicker,
+  });
+
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+  final ImportPicker? reimportPicker;
 
   /// Breakpoint (logical pixels) at which the nav rail replaces the bottom bar.
   static const double railBreakpoint = 900;
@@ -38,6 +54,8 @@ class AppShell extends StatefulWidget {
 
 class _AppShellState extends State<AppShell> {
   int _index = 0;
+  late DanceReimportCoordinator _reimport;
+  CompendiumRepositories? _reimportRepos;
 
   /// The app-level tag-filter coordinator (issue #414). Subscribed so a tag tap
   /// anywhere switches to the Collection destination and reveals the (now
@@ -51,6 +69,16 @@ class _AppShellState extends State<AppShell> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final repos = RepositoriesScope.of(context);
+    if (!identical(repos, _reimportRepos)) {
+      _reimportRepos = repos;
+      _reimport = DanceReimportCoordinator(
+        repos: repos,
+        callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
+        contraDb: widget.contraDbOnline ?? ContraDbOnline(),
+        picker: widget.reimportPicker ?? pickImportFile,
+      );
+    }
     final controller = CollectionFilterScope.maybeOf(context);
     if (!identical(controller, _filterController)) {
       _filterController?.removeListener(_onTagFilterRequested);
@@ -135,13 +163,21 @@ class _AppShellState extends State<AppShell> {
       CommandResultKind.dance => (
         0,
         MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(danceId: result.id),
+          builder: (_) => DanceDetailScreen(
+            danceId: result.id,
+            onReimport: (detail) => _reimport.open(context, detail),
+          ),
         ),
       ),
       CommandResultKind.program => (
         1,
         MaterialPageRoute<void>(
-          builder: (_) => ProgramSummaryScreen(programId: result.id),
+          builder: (_) => ProgramSummaryScreen(
+            programId: result.id,
+            callersBoxOnline: widget.callersBoxOnline,
+            contraDbOnline: widget.contraDbOnline,
+            reimportPicker: widget.reimportPicker,
+          ),
         ),
       ),
     };

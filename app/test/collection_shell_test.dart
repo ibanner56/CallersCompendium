@@ -174,6 +174,7 @@ void main() {
 
       // DanceDetailScreen pushed — list is no longer visible
       expect(find.byType(DanceDetailScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
       expect(find.text('Push Me'), findsWidgets);
     });
 

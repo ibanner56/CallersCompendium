@@ -197,6 +197,9 @@ becomes a link you can select to jump straight to it.
 From the detail view you can:
 
 - **Edit** the dance.
+- **Re-import choreography** from Caller's Box, ContraDB, or a single-dance
+  Caller's Compendium JSON file. This is also available from saved dance details
+  opened through Programs, search, post-import results, and the Program Editor.
 - **Duplicate** it as a starting point for a variation.
 - **Add to program** — drop it into a [program](./programs.md) you are building.
 - **Print/Share** it as a PDF or as plain text. The export follows your active

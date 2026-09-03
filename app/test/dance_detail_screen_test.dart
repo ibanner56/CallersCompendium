@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
+import 'package:compendium_app/src/data/dance_reimport.dart';
 import 'package:compendium_app/src/diagnostics/crash_reporter.dart';
 import 'package:compendium_app/src/diagnostics/error_log.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
@@ -16,6 +17,7 @@ import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/export/dance_share_bundle.dart';
 import 'package:compendium_app/src/export/json_export.dart';
+import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
@@ -65,6 +67,8 @@ Future<ValueNotifier<bool>> _pumpDetail(
   Size surfaceSize = const Size(1200, 2400),
   DialectLibraryController? dialectLibrary,
   JsonExportDelivery? jsonExportDelivery,
+  bool readOnly = false,
+  Future<void> Function(DanceDetailData detail)? onReimport,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -96,6 +100,8 @@ Future<ValueNotifier<bool>> _pumpDetail(
       home: DanceDetailScreen(
         danceId: danceId,
         jsonExportDelivery: jsonExportDelivery,
+        readOnly: readOnly,
+        onReimport: onReimport,
       ),
     ),
   );
@@ -130,6 +136,76 @@ void main() {
     expect(find.text('Gene Hubert'), findsOneWidget);
     expect(find.text('a lovely hook'), findsOneWidget);
     expect(find.text('smooth'), findsOneWidget);
+  });
+
+  testWidgets('persisted read-only detail exposes only re-import', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Saved Dance'));
+    var reimported = false;
+
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      readOnly: true,
+      onReimport: (_) async => reimported = true,
+    );
+
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
+    expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
+    expect(find.byKey(const ValueKey('duplicate-dance')), findsNothing);
+    expect(find.byKey(const ValueKey('delete-dance')), findsNothing);
+
+    await tester.tap(find.byKey(const ValueKey('reimport-dance')));
+    expect(reimported, isTrue);
+  });
+
+  testWidgets('online read-only preview has no re-import action', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(notifier.dispose);
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: notifier, child: child!),
+        ),
+        home: DanceDetailScreen.readOnlyPreview(
+          data: reimportPreviewData(_dance(id: 'online')),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('reimport-dance')), findsNothing);
+  });
+
+  testWidgets('persisted read-only detail exposes re-import at phone width', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1'));
+
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      surfaceSize: const Size(360, 800),
+      readOnly: true,
+      onReimport: (_) async {},
+    );
+
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dance-actions-overflow')), findsNothing);
   });
 
   testWidgets('shows the mixer indicator when the dance is a mixer '
