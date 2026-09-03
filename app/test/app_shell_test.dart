@@ -268,7 +268,7 @@ void main() {
           updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
-      final reimportPicker = () async => null;
+      Future<String?> reimportPicker() async => null;
       await _pump(
         tester,
         repos,

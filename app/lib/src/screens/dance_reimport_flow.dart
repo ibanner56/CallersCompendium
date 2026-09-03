@@ -164,10 +164,12 @@ class DanceReimportCoordinator {
                     SnackBar(
                       content: Text(
                         result == DanceReimportResult.targetMissing
-                            ? AppLocalizations.of(context)
-                                  .danceReimportTargetMissing
-                            : AppLocalizations.of(context)
-                                  .danceReimportTargetChanged,
+                            ? AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetMissing
+                            : AppLocalizations.of(
+                                context,
+                              ).danceReimportTargetChanged,
                       ),
                     ),
                   );
