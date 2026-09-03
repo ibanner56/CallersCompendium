@@ -27,7 +27,10 @@ the app and of `compendium_core`; version headings below refer to
   unambiguously, preserve blob upload timestamps on duplicate writes, and
   refund failed store-creation reservations.
 - Delete stores immediately regardless of upload grace, and remove old
-  unreferenced blobs after manifest publication or the hourly sweep.
+  unreferenced blobs across all persisted epochs after manifest publication or
+  the hourly sweep.
+- Rotate failed filesystem cleanup jobs so bounded retry batches make progress
+  past permanently failing or ref-protected entries.
 - Preflight manifest and blob quotas before reading request bodies, keep pending
   filesystem deletions charged against blob and byte quotas (including failed
   whole-store removals), sweep stale epochs, bound request-path deletion

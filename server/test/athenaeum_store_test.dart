@@ -1019,6 +1019,56 @@ void main() {
     expect(targetFile.existsSync(), isFalse);
   });
 
+  test('directory retry batches rotate failed jobs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-directory-retry-rotation-',
+    );
+    final database = sqlite3.openInMemory();
+    var failDelete = true;
+    final failedIds = <String>{};
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      deleteDirectory: (directory) {
+        final shouldFail = failedIds.any(directory.path.contains);
+        if (failDelete || shouldFail) {
+          throw const FileSystemException('injected directory failure');
+        }
+        if (directory.existsSync()) directory.deleteSync(recursive: true);
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    for (var index = 0; index < maxPendingDeletionRetriesPerRequest; index++) {
+      final idKey = (index.toRadixString(16)) * 64;
+      failedIds.add(idKey);
+      store.create(idKey);
+      store.deleteStore(idKey);
+    }
+    final targetId = '${'a' * 63}b';
+    final target = store.create(targetId);
+    final targetFile = store.blobFile(targetId, target.epoch, 'b' * 64);
+    targetFile.parent.createSync(recursive: true);
+    targetFile.writeAsBytesSync([1]);
+    store.deleteStore(targetId);
+    database.execute(
+      'UPDATE deletion_jobs SET queued_at = CASE WHEN id_key = ? THEN 0 ELSE 1 END',
+      [targetId],
+    );
+
+    failDelete = false;
+    store.retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerRequest);
+
+    expect(targetFile.existsSync(), isFalse);
+  });
+
   test('retention purges continue after an epoch cleanup failure', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-retention-isolation-',

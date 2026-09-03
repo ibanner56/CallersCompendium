@@ -268,7 +268,7 @@ class AthenaeumApp {
         throw _RequestFailure(507, error.message);
       }
       try {
-        store.collectGarbage(identity.idKey, current.epoch);
+        store.collectGarbageForStore(identity.idKey);
       } on Object catch (error) {
         stderr.writeln(
           'Athenaeum post-manifest garbage collection failed '

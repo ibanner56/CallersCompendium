@@ -1365,6 +1365,50 @@ void main() {
     expect(blobFile.existsSync(), isFalse);
   });
 
+  test('manifest PUT collects stale-epoch unreferenced blobs', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final currentEpoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final staleEpoch = 'd' * 32;
+    final bytes = Uint8List.fromList([6, 5, 4]);
+    final hash = sha256.convert(bytes).toString();
+    app.store.putBlob(idKey: idKey, epoch: staleEpoch, hash: hash, body: bytes);
+    app.store.database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? '
+      'WHERE id_key = ? AND epoch = ? AND hash = ?',
+      [
+        DateTime.now()
+                .subtract(const Duration(days: 2))
+                .millisecondsSinceEpoch ~/
+            1000,
+        idKey,
+        staleEpoch,
+        hash,
+      ],
+    );
+    final staleBlobFile = app.store.blobFile(idKey, staleEpoch, hash);
+
+    final manifest = SyncManifest(
+      deviceId: 'device-stale-epoch',
+      epoch: currentEpoch,
+      writtenAt: DateTime.now(),
+      records: const {},
+    );
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/manifests/device-stale-epoch',
+        syncId: syncId,
+        body: encodeSyncManifestUtf8(manifest),
+        contentType: 'application/json',
+      )).statusCode,
+      201,
+    );
+    expect(staleBlobFile.existsSync(), isFalse);
+  });
+
   test(
     'manifest publication succeeds when post-publication GC fails',
     () async {

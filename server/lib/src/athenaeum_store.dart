@@ -399,6 +399,27 @@ class AthenaeumStore {
     }
   }
 
+  void collectGarbageForStore(
+    String idKey, {
+    DateTime? now,
+    int? retryMaxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
+    final epochs = _database
+        .select(
+          'SELECT epoch FROM blob_refs WHERE id_key = ? '
+          'UNION SELECT epoch FROM manifests WHERE id_key = ?',
+          [idKey, idKey],
+        )
+        .map((row) => row['epoch'] as String)
+        .toList();
+    for (final epoch in epochs) {
+      collectGarbage(idKey, epoch, now: now, retryMaxJobs: null);
+    }
+    if (retryMaxJobs != null) {
+      retryPendingBlobDeletions(maxJobs: retryMaxJobs);
+    }
+  }
+
   void sweep({DateTime? now}) {
     final current = now ?? _clock();
     final cutoff =
@@ -745,7 +766,14 @@ class AthenaeumStore {
     int maxJobs = maxPendingDeletionRetriesPerRequest,
   }) {
     final rows = _database.select(
-      'SELECT id_key, epoch FROM deletion_jobs ORDER BY queued_at LIMIT ?',
+      'SELECT id_key, epoch FROM deletion_jobs AS jobs '
+      'WHERE NOT EXISTS ('
+      'SELECT 1 FROM manifests '
+      'WHERE id_key = jobs.id_key AND epoch = jobs.epoch'
+      ') AND NOT EXISTS ('
+      'SELECT 1 FROM blob_refs '
+      'WHERE id_key = jobs.id_key AND epoch = jobs.epoch'
+      ') ORDER BY queued_at LIMIT ?',
       [maxJobs],
     );
     for (final row in rows) {
@@ -776,6 +804,11 @@ class AthenaeumStore {
       } on FileSystemException {
         _database.execute('ROLLBACK');
         inTransaction = false;
+        _database.execute(
+          'UPDATE deletion_jobs SET queued_at = ? '
+          'WHERE id_key = ? AND epoch = ?',
+          [_clock().millisecondsSinceEpoch ~/ 1000, idKey, epoch],
+        );
         return;
       }
       _database.execute(
@@ -818,6 +851,11 @@ class AthenaeumStore {
           } on FileSystemException {
             _database.execute('ROLLBACK');
             inTransaction = false;
+            _database.execute(
+              'UPDATE blob_deletion_jobs SET queued_at = ? '
+              'WHERE id_key = ? AND epoch = ? AND hash = ?',
+              [_clock().millisecondsSinceEpoch ~/ 1000, idKey, epoch, hash],
+            );
             continue;
           }
         }

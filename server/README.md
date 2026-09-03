@@ -36,7 +36,8 @@ gains a stale upload is preserved until its refs are gone. Store deletion also
 prioritizes all directories belonging to that store before background retries.
 Stores are reaped after 30 days without an authenticated request.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
-can be published safely; `DELETE /v1/store` bypasses that grace period. The
+can be published safely; manifest publication collects expired blobs across all
+persisted epochs, and `DELETE /v1/store` bypasses that grace period. The
 break-glass access database makes a derived store key eligible for nulling after
 30 days and nulls it by the next hourly sweep, then retains only its timestamp.
 Ordinary diagnostic events become eligible for removal after 30 days and are
