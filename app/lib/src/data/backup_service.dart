@@ -16,7 +16,7 @@ import 'window_service.dart' show kWindowFrameKey;
 
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
-/// Three reasons a key is excluded:
+/// Four reasons a key is excluded:
 /// - **structurally represented** — the dialect library and custom themes travel
 ///   in their own typed sections of the [BackupDocument], so their raw settings
 ///   blobs would be redundant (and could disagree with the typed sections):
@@ -24,7 +24,8 @@ import 'window_service.dart' show kWindowFrameKey;
 ///   [kCustomThemesKey], [kActiveCustomThemeKey].
 /// - **device-local / backup metadata** — geometry and backup bookkeeping that
 ///   must not travel between machines or be rewritten by restoring an old file:
-///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey].
+///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
+///   [taxonomyV33CanonicalRebuildDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
@@ -38,6 +39,7 @@ const Set<String> kBackupSettingsDenylist = {
   kWindowFrameKey,
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
+  taxonomyV33CanonicalRebuildDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
 };
