@@ -105,6 +105,66 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
   ),
+  'blob_deletion_jobs.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'blob_deletion_jobs.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'blob_deletion_jobs.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'blob_deletion_jobs.queued_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'break_glass_access.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Peppered pseudonymous store key; eligible after 30 days and nulled by '
+        'the next hourly sweep.',
+  ),
+  'break_glass_access.accessed_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Retained audit timestamp without a linkable store key.',
+  ),
+  'diagnostic_events.status': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'diagnostic_events.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Peppered pseudonymous store key; eligible after 30 days and removed by '
+        'the next hourly sweep.',
+  ),
+  'diagnostic_events.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'diagnostic_events.recorded_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note:
+        'Diagnostic event timestamp; eligible after 30 days and removed by the '
+        'next hourly sweep.',
+  ),
   'blob_files.body': DataClassification(
     term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.thirdParty,

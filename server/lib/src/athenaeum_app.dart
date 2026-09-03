@@ -10,6 +10,62 @@ import 'athenaeum_config.dart';
 import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
+typedef AthenaeumDiagnosticLogger =
+    void Function(AthenaeumDiagnosticEvent event);
+typedef AthenaeumPeriodicTimer =
+    Timer Function(Duration interval, void Function(Timer timer) callback);
+typedef AthenaeumSweep = void Function();
+
+class AthenaeumDiagnosticEvent {
+  const AthenaeumDiagnosticEvent({
+    required this.status,
+    required this.idKey,
+    required this.hash,
+  });
+
+  final int status;
+  final String? idKey;
+  final String? hash;
+  final Duration retention = const Duration(days: 30);
+
+  Map<String, Object?> toJson() => {
+    'status': status,
+    'idKey': idKey,
+    'hash': hash,
+    'retentionDays': retention.inDays,
+  };
+}
+
+class AthenaeumSweepController {
+  AthenaeumSweepController(
+    this.store, {
+    AthenaeumPeriodicTimer? schedule,
+    this.interval = const Duration(hours: 1),
+    AthenaeumSweep? sweep,
+  }) : _schedule = schedule ?? Timer.periodic,
+       _sweep = sweep ?? store.sweep;
+
+  final AthenaeumStore store;
+  final AthenaeumPeriodicTimer _schedule;
+  final AthenaeumSweep _sweep;
+  final Duration interval;
+  Timer? _timer;
+
+  void start() {
+    _timer ??= _schedule(interval, (_) {
+      try {
+        _sweep();
+      } catch (error) {
+        stderr.writeln('Athenaeum sweep failed (${error.runtimeType})');
+      }
+    });
+  }
+
+  void stop() {
+    _timer?.cancel();
+    _timer = null;
+  }
+}
 
 const _blobEnvelopeKeys = <String>{
   'v',
@@ -41,22 +97,38 @@ class AthenaeumApp {
     AthenaeumStore? store,
     ClientAddressResolver? clientAddressResolver,
     AthenaeumBudgetLimits budgetLimits = const AthenaeumBudgetLimits(),
+    AthenaeumDiagnosticLogger? diagnosticLogger,
   }) : config = config,
        store = store ?? AthenaeumStore(config: config),
        _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress,
        _failureBudget = _FailureBudget(budgetLimits),
-       _creationBudget = _CreationBudget(budgetLimits);
+       _creationBudget = _CreationBudget(budgetLimits) {
+    _diagnosticLogger =
+        diagnosticLogger ??
+        (event) => this.store.recordDiagnostic(
+          status: event.status,
+          idKey: event.idKey,
+          hash: event.hash,
+        );
+  }
 
   final AthenaeumConfig config;
   final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
+  late final AthenaeumDiagnosticLogger _diagnosticLogger;
 
   Handler get handler => call;
 
   Future<Response> call(Request request) async {
-    store.retryPendingDeletions();
+    try {
+      store.retryPendingDeletions();
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum request cleanup retry failed (${error.runtimeType})',
+      );
+    }
     final segments = request.url.pathSegments;
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});
@@ -69,6 +141,7 @@ class AthenaeumApp {
         _ => _jsonResponse(404, {'error': 'not found'}),
       };
     } on _RequestFailure catch (error) {
+      _logFailure(request, error);
       return _jsonResponse(error.status, {'error': error.message});
     }
   }
@@ -156,7 +229,18 @@ class AthenaeumApp {
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/json');
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
-        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+        throw const _RequestFailure(413, 'request body exceeds limit');
+      }
+      try {
+        store.manifestUploadPreflight(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          deviceId: deviceId,
+        );
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale manifest epoch');
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
       }
       final depthScanner = _MissingHashScanner();
       final body = await _readBody(
@@ -186,6 +270,16 @@ class AthenaeumApp {
         );
       } on StoreEpochMismatch {
         throw const _RequestFailure(409, 'stale manifest epoch');
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
+      }
+      try {
+        store.collectGarbageForStore(identity.idKey);
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum post-manifest garbage collection failed '
+          '(${error.runtimeType})',
+        );
       }
       return Response(
         created ? 201 : 200,
@@ -214,7 +308,7 @@ class AthenaeumApp {
         return _failedResolution(request, 404, 'store not found');
       }
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
-        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+        throw const _RequestFailure(413, 'request body exceeds limit');
       }
       final hashScanner = _MissingHashScanner();
       final body = await _readBody(
@@ -273,20 +367,49 @@ class AthenaeumApp {
     }
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/octet-stream');
-      if (_declaredLengthExceeds(request, maxBlobBytes)) {
-        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+      if (request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
+          _declaredLengthExceeds(request, maxBlobBytes)) {
+        throw const _RequestFailure(413, 'request body exceeds limit');
       }
-      final body = await _readBody(request, maxBlobBytes);
+      late final int quotaLimit;
+      try {
+        quotaLimit = store.blobUploadLimit(identity.idKey, current.epoch, hash);
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale blob epoch');
+      }
+      if (request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
+          _declaredLengthExceeds(request, quotaLimit)) {
+        throw const _RequestFailure(507, 'byte quota exhausted');
+      }
+      final body = await _readBody(
+        request,
+        maxBlobBytes,
+        quotaBytes: quotaLimit,
+      );
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
+
       _validateBlobAllowList(body);
-      final created = store.putBlob(
-        idKey: identity.idKey,
-        epoch: current.epoch,
-        hash: hash,
-        body: body,
-      );
+
+      late final bool created;
+      try {
+        created = store.putBlob(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          hash: hash,
+          body: body,
+        );
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
+      } on StoreEpochMismatch {
+        if (store.lookup(identity.idKey) == null) {
+          return _failedResolution(request, 404, 'store not found');
+        }
+        throw const _RequestFailure(409, 'stale blob epoch');
+      }
       return Response(created ? 201 : 200);
     }
     return _methodNotAllowed(const ['GET', 'PUT']);
@@ -334,6 +457,42 @@ class AthenaeumApp {
     return _jsonResponse(status, {'error': message});
   }
 
+  void _logFailure(Request request, _RequestFailure error) {
+    String? idKey;
+    final authorization = request.headers['authorization'];
+    if (authorization != null && authorization.startsWith('Bearer ')) {
+      try {
+        final syncId = decodeSyncCredential(authorization.substring(7));
+        validateSyncId(syncId);
+        idKey = deriveIncomingSyncIdKey(syncId, config.pepper);
+      } on FormatException {
+        idKey = null;
+      }
+    }
+    String? hash;
+    final segments = request.url.pathSegments;
+    if (segments.length == 3 &&
+        segments[1] == 'blobs' &&
+        _validHash(segments[2])) {
+      hash = segments[2];
+    }
+    if (idKey == null) return;
+    if (store.lookup(idKey) == null) return;
+    try {
+      _diagnosticLogger(
+        AthenaeumDiagnosticEvent(
+          status: error.status,
+          idKey: idKey,
+          hash: hash,
+        ),
+      );
+    } on Object catch (loggerError) {
+      stderr.writeln(
+        'Athenaeum diagnostic logging failed (${loggerError.runtimeType})',
+      );
+    }
+  }
+
   static void _requireContentType(Request request, String expected) {
     final value = request.headers['content-type'];
     if (value == null) return;
@@ -347,6 +506,7 @@ class AthenaeumApp {
     Request request,
     int maxBytes, {
     void Function(List<int> chunk)? onChunk,
+    int? quotaBytes,
   }) async {
     final declaredLength = int.tryParse(
       request.headers['content-length'] ?? '',
@@ -378,6 +538,10 @@ class AthenaeumApp {
           await iterator.cancel();
           tooLarge = true;
           break;
+        }
+        if (quotaBytes != null && size > quotaBytes) {
+          await iterator.cancel();
+          throw const _RequestFailure(507, 'byte quota exhausted');
         } else if (!tooLarge) {
           onChunk?.call(chunk);
           output.add(chunk);

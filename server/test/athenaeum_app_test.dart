@@ -1314,6 +1314,874 @@ void main() {
     expect(response.statusCode, 404);
     expect(blobFile.existsSync(), isFalse);
   });
+
+  test(
+    'blob PUT reports 404 when the store is deleted during body read',
+    () async {
+      final created = await _send('POST', '/v1/store', syncId: syncId);
+      expect(created.statusCode, 201);
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final hash = sha256.convert(bytes).toString();
+      final response = await app.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/octet-stream',
+          },
+          body: Stream<List<int>>.multi((controller) {
+            app.store.deleteStore(idKey);
+            controller
+              ..add(bytes)
+              ..close();
+          }),
+        ),
+      );
+      expect(response.statusCode, 404);
+    },
+  );
+
+  test('request cleanup failures do not abort the request', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-request-cleanup-failure-',
+    );
+    final database = sqlite3.openInMemory();
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    customStore.create(idKey);
+    database.execute(
+      'CREATE TRIGGER fail_request_cleanup '
+      'BEFORE DELETE ON deletion_jobs '
+      "BEGIN SELECT RAISE(ABORT, 'injected cleanup failure'); END",
+    );
+    customStore.deleteStore(idKey);
+
+    final response = await customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+        },
+      ),
+    );
+    expect(response.statusCode, 404);
+  });
+
+  test('manifest PUT collects old unreferenced blobs', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final createdBody =
+        jsonDecode(await created.body()) as Map<String, Object?>;
+    final epoch = createdBody['epoch']! as String;
+    final bytes = Uint8List.fromList([9, 8, 7]);
+    final hash = sha256.convert(bytes).toString();
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      )).statusCode,
+      201,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final blobFile = app.store.blobFile(idKey, epoch, hash);
+    app.store.database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? '
+      'WHERE id_key = ? AND epoch = ? AND hash = ?',
+      [
+        DateTime.utc(2026, 9, 1).millisecondsSinceEpoch ~/ 1000,
+        idKey,
+        epoch,
+        hash,
+      ],
+    );
+    expect(blobFile.existsSync(), isTrue);
+
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: const {},
+    );
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/manifests/device-one',
+        syncId: syncId,
+        body: encodeSyncManifestUtf8(manifest),
+        contentType: 'application/json',
+      )).statusCode,
+      201,
+    );
+    expect(blobFile.existsSync(), isFalse);
+  });
+
+  test('manifest PUT collects stale-epoch unreferenced blobs', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final currentEpoch =
+        (jsonDecode(await created.body()) as Map<String, Object?>)['epoch']!
+            as String;
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final staleEpoch = 'd' * 32;
+    final bytes = Uint8List.fromList([6, 5, 4]);
+    final hash = sha256.convert(bytes).toString();
+    app.store.putBlob(idKey: idKey, epoch: staleEpoch, hash: hash, body: bytes);
+    app.store.database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? '
+      'WHERE id_key = ? AND epoch = ? AND hash = ?',
+      [
+        DateTime.now()
+                .subtract(const Duration(days: 2))
+                .millisecondsSinceEpoch ~/
+            1000,
+        idKey,
+        staleEpoch,
+        hash,
+      ],
+    );
+    final staleBlobFile = app.store.blobFile(idKey, staleEpoch, hash);
+
+    final manifest = SyncManifest(
+      deviceId: 'device-stale-epoch',
+      epoch: currentEpoch,
+      writtenAt: DateTime.now(),
+      records: const {},
+    );
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/manifests/device-stale-epoch',
+        syncId: syncId,
+        body: encodeSyncManifestUtf8(manifest),
+        contentType: 'application/json',
+      )).statusCode,
+      201,
+    );
+    expect(staleBlobFile.existsSync(), isFalse);
+  });
+
+  test(
+    'manifest publication succeeds when post-publication GC fails',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-manifest-gc-failure-',
+      );
+      final customStore = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: directory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+      );
+      final customApp = AthenaeumApp(
+        config: customStore.config,
+        store: customStore,
+      );
+      addTearDown(() async {
+        customStore.close();
+        await directory.delete(recursive: true);
+      });
+
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      expect(
+        (await customApp.call(
+          Request(
+            'POST',
+            Uri.parse('http://127.0.0.1/v1/store'),
+            headers: {'authorization': authorization},
+          ),
+        )).statusCode,
+        201,
+      );
+      final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+      final epoch = customStore.lookup(idKey)!.epoch;
+      customStore.database.execute(
+        'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [idKey, epoch, 'b' * 64, 1, 0],
+      );
+      customStore.database.execute(
+        'INSERT INTO manifests '
+        '(id_key, epoch, device_id, etag, written_at, body) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          idKey,
+          epoch,
+          'poisoned',
+          'a' * 64,
+          0,
+          Uint8List.fromList([0]),
+        ],
+      );
+      final manifest = SyncManifest(
+        deviceId: 'device-one',
+        epoch: epoch,
+        writtenAt: DateTime.utc(2026, 9, 3),
+        records: const {},
+      );
+
+      final response = await customApp.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+          headers: {
+            'authorization': authorization,
+            'content-type': 'application/json',
+          },
+          body: encodeSyncManifestUtf8(manifest),
+        ),
+      );
+
+      expect(response.statusCode, 201);
+      expect(customStore.manifest(idKey, epoch, 'device-one'), isNotNull);
+    },
+  );
+
+  test('DELETE /v1/store removes a grace-protected blob immediately', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = Uint8List.fromList([4, 5, 6]);
+    final hash = sha256.convert(bytes).toString();
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      )).statusCode,
+      201,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final epoch = app.store.lookup(idKey)!.epoch;
+    final file = app.store.blobFile(idKey, epoch, hash);
+    expect(file.existsSync(), isTrue);
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    expect(file.existsSync(), isFalse);
+    expect(app.store.lookup(idKey), isNull);
+  });
+
+  test(
+    'aggregate store quotas return 507 before persistent allocation',
+    () async {
+      final created = await _send('POST', '/v1/store', syncId: syncId);
+      final createdBody =
+          jsonDecode(await created.body()) as Map<String, Object?>;
+      final epoch = createdBody['epoch']! as String;
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.database.execute(
+        'UPDATE stores SET bytes_used = ? WHERE id_key = ?',
+        [maxStoreBytes, idKey],
+      );
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final hash = sha256.convert(bytes).toString();
+      final response = await _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      );
+      expect(response.statusCode, 507);
+      expect(app.store.blobFile(idKey, epoch, hash).existsSync(), isFalse);
+
+      app.store.database.execute(
+        'UPDATE stores SET bytes_used = 0 WHERE id_key = ?',
+        [idKey],
+      );
+      for (var index = 0; index < maxStoreDevices; index++) {
+        final manifest = SyncManifest(
+          deviceId: 'quota-device-$index',
+          epoch: epoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        );
+        expect(
+          (await _send(
+            'PUT',
+            '/v1/manifests/quota-device-$index',
+            syncId: syncId,
+            body: encodeSyncManifestUtf8(manifest),
+            contentType: 'application/json',
+          )).statusCode,
+          201,
+        );
+      }
+      final overDeviceLimit = SyncManifest(
+        deviceId: 'quota-device-over-cap',
+        epoch: epoch,
+        writtenAt: DateTime.utc(2026, 9, 3),
+        records: const {},
+      );
+      expect(
+        (await _send(
+          'PUT',
+          '/v1/manifests/quota-device-over-cap',
+          syncId: syncId,
+          body: encodeSyncManifestUtf8(overDeviceLimit),
+          contentType: 'application/json',
+        )).statusCode,
+        507,
+      );
+    },
+  );
+
+  test('blob-count quota rejects the next unique upload', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-blob-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 1),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    Future<Response> request(String method, String path, {Uint8List? body}) =>
+        customApp.call(
+          Request(
+            method,
+            Uri.parse('http://127.0.0.1$path'),
+            headers: {
+              'authorization': authorization,
+              if (body != null) 'content-type': 'application/octet-stream',
+            },
+            body: body,
+          ),
+        );
+
+    expect((await request('POST', '/v1/store')).statusCode, 201);
+    final firstBody = Uint8List.fromList([1]);
+    final firstHash = sha256.convert(firstBody).toString();
+    expect(
+      (await request(
+        'PUT',
+        '/v1/blobs/$firstHash',
+        body: firstBody,
+      )).statusCode,
+      201,
+    );
+    final secondBody = Uint8List.fromList([2]);
+    final secondHash = sha256.convert(secondBody).toString();
+    expect(
+      (await request(
+        'PUT',
+        '/v1/blobs/$secondHash',
+        body: secondBody,
+      )).statusCode,
+      507,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    final epoch = customStore.lookup(idKey)!.epoch;
+    expect(
+      customStore.blobFile(idKey, epoch, secondHash).existsSync(),
+      isFalse,
+    );
+  });
+
+  test('streaming byte quota rejects before buffering later chunks', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-stream-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 3),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final firstChunk = Uint8List.fromList([1, 2, 3, 4]);
+    final hash = sha256.convert(firstChunk).toString();
+    var yielded = 0;
+    Stream<List<int>> body() async* {
+      yielded++;
+      yield firstChunk;
+      yielded++;
+      yield Uint8List.fromList([5]);
+    }
+
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/octet-stream',
+        },
+        body: body(),
+      ),
+    );
+    expect(response.statusCode, 507);
+    expect(yielded, 1);
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    final epoch = customStore.lookup(idKey)!.epoch;
+    expect(customStore.blobFile(idKey, epoch, hash).existsSync(), isFalse);
+  });
+
+  test('device quota rejects before buffering the manifest body', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-device-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxDevices: 1),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    final epoch = customStore.lookup(idKey)!.epoch;
+    customStore.putManifest(
+      idKey: idKey,
+      epoch: epoch,
+      deviceId: 'device-one',
+      etag: 'a' * 64,
+      writtenAt: 0,
+      body: Uint8List.fromList([1]),
+    );
+    var yielded = 0;
+    Stream<List<int>> body() async* {
+      yielded++;
+      yield Uint8List.fromList([1]);
+      yielded++;
+      yield Uint8List.fromList([2]);
+    }
+
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/manifests/device-two'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/json',
+        },
+        body: body(),
+      ),
+    );
+    expect(response.statusCode, 507);
+    expect(yielded, 0);
+  });
+
+  test('per-request size errors precede aggregate quota errors', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-size-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 0),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/${'a' * 64}'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/octet-stream',
+          'content-length': '${maxBlobBytes + 1}',
+        },
+      ),
+    );
+    expect(response.statusCode, 413);
+  });
+
+  test('gzip blob quota uses decompressed size', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-gzip-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 1),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final body = Uint8List.fromList([42]);
+    final compressed = Uint8List.fromList(gzip.encode(body));
+    final hash = sha256.convert(body).toString();
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/octet-stream',
+          'content-encoding': 'gzip',
+          'content-length': '${compressed.length}',
+        },
+        body: compressed,
+      ),
+    );
+    expect(response.statusCode, 201);
+  });
+
+  test('production diagnostics persist and expire safely', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final hash = 'a' * 64;
+    final response = await _send(
+      'PUT',
+      '/v1/blobs/$hash',
+      syncId: syncId,
+      body: Uint8List.fromList([1, 2, 3]),
+      contentType: 'application/octet-stream',
+    );
+    expect(response.statusCode, 400);
+    final rows = app.store.diagnosticDatabase.select(
+      'SELECT status, id_key, hash, recorded_at FROM diagnostic_events',
+    );
+    expect(rows, hasLength(1));
+    expect(rows.single['status'], 400);
+    expect(rows.single['id_key'], isNot(syncId));
+    expect(rows.single['hash'], hash);
+    app.store.diagnosticDatabase
+        .execute('UPDATE diagnostic_events SET recorded_at = ?', [
+          DateTime.now()
+                  .subtract(const Duration(days: 31))
+                  .millisecondsSinceEpoch ~/
+              1000,
+        ]);
+    app.store.purgeExpiredDiagnostics();
+    expect(
+      app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+      isEmpty,
+    );
+  });
+
+  test('declared oversized bodies produce safe diagnostics', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final hash = 'b' * 64;
+    final response = await app.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          'content-type': 'application/octet-stream',
+          'content-length': '${maxBlobBytes + 1}',
+        },
+      ),
+    );
+    expect(response.statusCode, 413);
+    final rows = app.store.diagnosticDatabase.select(
+      'SELECT status, id_key, hash FROM diagnostic_events',
+    );
+    expect(rows, hasLength(1));
+    expect(rows.single['status'], 413);
+    expect(
+      rows.single['id_key'],
+      deriveIncomingSyncIdKey(syncId, app.config.pepper),
+    );
+    expect(rows.single['hash'], hash);
+  });
+
+  test('rejection diagnostics contain only derived identifiers', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final events = <AthenaeumDiagnosticEvent>[];
+    final customApp = AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      diagnosticLogger: events.add,
+    );
+    final hash = 'a' * 64;
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          'content-type': 'application/octet-stream',
+        },
+        body: Uint8List.fromList([1, 2, 3]),
+      ),
+    );
+    expect(response.statusCode, 400);
+    expect(events, hasLength(1));
+    expect(events.single.status, 400);
+    expect(
+      events.single.idKey,
+      deriveIncomingSyncIdKey(syncId, app.config.pepper),
+    );
+    expect(events.single.hash, hash);
+    expect(events.single.retention, const Duration(days: 30));
+    final serialized = jsonEncode(events.single.toJson());
+    expect(serialized, isNot(contains(encodeSyncCredential(syncId))));
+    expect(serialized, isNot(contains(syncId)));
+    expect(serialized, isNot(contains('1,2,3')));
+  });
+
+  test('diagnostic sink failures do not replace protocol responses', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final customApp = AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      diagnosticLogger: (_) {
+        throw StateError('injected logger failure');
+      },
+    );
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/${'c' * 64}'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          'content-type': 'application/octet-stream',
+        },
+        body: Uint8List.fromList([1, 2, 3]),
+      ),
+    );
+    expect(response.statusCode, 400);
+  });
+
+  test(
+    'manifest path device identifiers are absent from diagnostics',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      final rawDeviceId = 'a' * 64;
+      final response = await app.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/manifests/$rawDeviceId'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'text/plain',
+          },
+        ),
+      );
+      expect(response.statusCode, 415);
+      final rows = app.store.diagnosticDatabase.select(
+        'SELECT status, id_key, hash FROM diagnostic_events',
+      );
+      expect(rows, hasLength(1));
+      expect(rows.single['status'], 415);
+      expect(rows.single['hash'], isNull);
+      expect(jsonEncode(rows.single), isNot(contains(rawDeviceId)));
+    },
+  );
+
+  test('unauthenticated request failures do not create diagnostics', () async {
+    final response = await app.call(
+      Request('GET', Uri.parse('http://127.0.0.1/v1/blobs/not-a-hash')),
+    );
+    expect(response.statusCode, 400);
+    expect(
+      app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+      isEmpty,
+    );
+  });
+
+  test(
+    'unknown stores do not create diagnostics from valid credentials',
+    () async {
+      final response = await app.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/blobs/not-a-hash'),
+          headers: {
+            'authorization': [
+              'Bearer',
+              encodeSyncCredential('café-horse-battery-other'),
+            ].join(' '),
+          },
+        ),
+      );
+      expect(response.statusCode, 400);
+      expect(
+        app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+        isEmpty,
+      );
+    },
+  );
+
+  test('sweep controller cancels its hourly callback on shutdown', () {
+    final timer = _FakeTimer();
+    late void Function() fire;
+    var sweeps = 0;
+    final expiredIdKey = '9' * 64;
+    app.store.create(expiredIdKey);
+    app.store.database
+        .execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
+          DateTime.now()
+                  .subtract(const Duration(days: 31))
+                  .millisecondsSinceEpoch ~/
+              1000,
+          expiredIdKey,
+        ]);
+    final controller = AthenaeumSweepController(
+      app.store,
+      schedule: (interval, callback) {
+        expect(interval, const Duration(hours: 1));
+        fire = () {
+          if (timer.isActive) {
+            sweeps++;
+            callback(timer);
+          }
+        };
+        return timer;
+      },
+    );
+    controller.start();
+    fire();
+    expect(sweeps, 1);
+    expect(app.store.lookup(expiredIdKey), isNull);
+    controller.stop();
+    expect(timer.isActive, isFalse);
+    fire();
+    expect(sweeps, 1);
+  });
+
+  test('sweep controller contains callback failures', () {
+    final timer = _FakeTimer();
+    late void Function() fire;
+    var attempts = 0;
+    final controller = AthenaeumSweepController(
+      app.store,
+      sweep: () {
+        attempts++;
+        if (attempts == 1) throw StateError('injected sweep failure');
+      },
+      schedule: (interval, callback) {
+        fire = () {
+          if (timer.isActive) callback(timer);
+        };
+        return timer;
+      },
+    );
+    controller.start();
+    fire();
+    fire();
+    expect(attempts, 2);
+    controller.stop();
+  });
 }
 
 extension on HttpClientResponse {
@@ -1350,6 +2218,19 @@ Future<HttpClientResponse> _send(
 
 late HttpClient _activeClient;
 late HttpServer _activeServer;
+
+class _FakeTimer implements Timer {
+  var _cancelled = false;
+
+  @override
+  void cancel() => _cancelled = true;
+
+  @override
+  bool get isActive => !_cancelled;
+
+  @override
+  int get tick => 0;
+}
 
 Uri _uri(String path) => Uri.http('127.0.0.1:${_activeServer.port}', path);
 

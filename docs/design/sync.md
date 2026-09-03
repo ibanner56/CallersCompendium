@@ -3612,6 +3612,10 @@ registry as the client, so the allow-list is generated from one definition.
 ```
 data/
   athenaeum.sqlite      stores, devices, blob refcounts, quota, activity
+  athenaeum-break-glass.sqlite
+                        separately retained break-glass access records
+  athenaeum-diagnostics.sqlite
+                        bounded operational diagnostic events
   blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>
 ```
 
@@ -3633,6 +3637,11 @@ body is hashed. Everywhere else the hash is attacker-controlled path input
 fanned into `blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` with nothing checking
 it. The
 guard belongs on every path, not on the one that happens to compute a hash.
+
+At startup, the server reconciles final files that lack a matching `blob_refs`
+row and temporary upload artifacts in this layout into the durable blob-deletion
+queue before retrying cleanup. This covers crashes before or after a blob rename,
+so an orphan cannot escape later TTL or store-wipe cleanup.
 
 **Stating that as a list of methods got it wrong twice**, which is the argument
 for stating it as a property. The draft said "on `GET` and `DELETE` as well as
@@ -3802,24 +3811,24 @@ not the store's, holding exactly two things:
 
 | Column | |
 | --- | --- |
-| `id_key` | `HMAC-SHA256(pepper, syncID)` — **the same derivation the store uses**, never the plaintext. **Nulled after 30 days.** |
+| `id_key` | Derived sync storage path: `HMAC-SHA256(pepper, syncID)` — **the same derivation the store uses**, never the plaintext. **Nulled after 30 days.** |
 | `accessed_at` | Timestamp. Retained. |
 
-Derived rather than plaintext for a specific reason: the sync ID is a bearer
-credential, and the store already avoids holding it in the clear so that a stolen
-copy yields nothing usable. A plaintext access log would undo exactly that, and
-would be worse than the store, because the log is meant to outlive the stores it
-describes. Correlation is unaffected — to find entries for a store under
-investigation, derive its key and match.
+The derived storage path is recorded rather than the plaintext for a specific
+reason: the sync ID is a bearer credential, and the store already avoids holding
+it in the clear so that a stolen copy yields nothing usable. A plaintext access
+log would undo exactly that, and would be worse than the store, because the log
+is meant to outlive the stores it describes. Correlation is unaffected — to find
+entries for a store under investigation, derive its path and match.
 
-**The identifier expires; the fact of access does not.** Even a peppered
-identifier is a linkable pseudonymous identifier, so it cannot be held
-indefinitely under the same reasoning that bounds everything else here. After 30
-days `id_key` is nulled, leaving a timestamp-only row.
+**The storage path expires; the fact of access does not.** Even a peppered path
+can link entries for one store, so it cannot be held indefinitely under the same
+reasoning that bounds everything else here. After 30 days `id_key` is nulled,
+leaving a timestamp-only row.
 
 The split is deliberate, because the audit value is two different things:
 
-- *"Did the operator open store X?"* — linkable, and expires on schedule.
+- *"Did the operator open store X?"* — store-linked, and expires on schedule.
 - *"How often is break-glass used at all?"* — an aggregate about our own conduct,
   with no data subject, which survives.
 
@@ -4819,7 +4828,7 @@ Recorded so the reasoning is not re-litigated.
 | Default state | **Off on every installation.** Opt-in only; an unconfigured app makes no sync network call at all. Device Sync gets its own top-level Settings blade. |
 | Access log | **Separate database**, holding a derived sync-ID key and a timestamp. Separate so reaping a store cannot destroy evidence of access to it. |
 | Identifier derivation | **`HMAC-SHA256(pepper, syncID)`**, server-side only — a bare hash is brute-forceable at ~2⁴⁰, and a chosen ID may sit below it. No client-side change; the app's cryptography is unchanged. |
-| Access-log retention | Identifier **nulled at 30 days**, timestamp retained — the linkable part expires, the non-linkable aggregate survives. |
+| Access-log retention | Derived storage path **nulled at 30 days**, timestamp retained — the store-linked part expires, the aggregate survives. |
 
 ### The settings migration has a one-time ordering effect
 

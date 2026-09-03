@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -11,50 +12,173 @@ import 'athenaeum_config.dart';
 import 'athenaeum_schema.dart';
 
 typedef DirectoryDelete = void Function(Directory directory);
+typedef FileDelete = void Function(File file);
+
+class AthenaeumQuotaLimits {
+  const AthenaeumQuotaLimits({
+    this.maxBlobs = maxStoreBlobs,
+    this.maxBytes = maxStoreBytes,
+    this.maxDevices = maxStoreDevices,
+  });
+
+  final int maxBlobs;
+  final int maxBytes;
+  final int maxDevices;
+}
 
 const int maxBlobBytes = 1024 * 1024;
 const int maxManifestBytes = 16 * 1024 * 1024;
 const int maxMissingHashes = 10000;
 const int maxJsonDepth = 32;
 const int maxGzipBytes = 32 * 1024 * 1024;
+const int maxStoreBlobs = 100000;
+const int maxStoreBytes = 250 * 1024 * 1024;
+const int maxStoreDevices = 32;
+const Duration storeDisuseTtl = Duration(days: 30);
+const Duration uploadGracePeriod = Duration(hours: 24);
+const Duration breakGlassLinkabilityPeriod = Duration(days: 30);
+const Duration diagnosticRetentionPeriod = Duration(days: 30);
+const int maxDiagnosticRows = 10000;
 const int maxStoreCreationsPerMinute = 60;
 const int maxFailedResolutionsPerIp = 10;
 const int maxFailedResolutionsPerIpBurst = 20;
 const int maxFailedResolutionsServerWide = 1000;
+const int maxPendingDeletionRetriesPerRequest = 16;
+const int maxPendingDeletionRetriesPerSweep = 1000;
 
 final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
+final RegExp _epochPattern = RegExp(r'^[0-9a-f]{32}$');
+final RegExp _temporaryBlobPattern = RegExp(
+  r'^([0-9a-f]{64})\.[0-9]+\.[0-9]+\.[0-9a-f]+\.tmp$',
+);
 
 class AthenaeumStore {
   AthenaeumStore({
     required AthenaeumConfig config,
     sqlite3.Database? database,
+    sqlite3.Database? breakGlassDatabase,
+    sqlite3.Database? diagnosticDatabase,
     DirectoryDelete? deleteDirectory,
+    FileDelete? deleteFile,
+    DateTime Function()? clock,
+    this.quotaLimits = const AthenaeumQuotaLimits(),
+    this.diagnosticRowLimit = maxDiagnosticRows,
   }) : config = config,
        _database = database ?? _openDatabase(config.dataDirectory),
-       _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively {
+       _breakGlassDatabase =
+           breakGlassDatabase ?? _openBreakGlassDatabase(config.dataDirectory),
+       _diagnosticDatabase =
+           diagnosticDatabase ?? _openDiagnosticDatabase(config.dataDirectory),
+       _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively,
+       _deleteFile = deleteFile ?? _deleteFileSync,
+       _clock = clock ?? DateTime.now {
     Directory(config.dataDirectory).createSync(recursive: true);
     _database.execute('PRAGMA foreign_keys = ON');
     _database.execute('PRAGMA journal_mode = WAL');
     for (final table in athenaeumTableSchemas) {
       _database.execute(table.createSql());
     }
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS deletion_jobs_queued_at_idx '
+      'ON deletion_jobs (queued_at)',
+    );
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS blob_deletion_jobs_queued_at_idx '
+      'ON blob_deletion_jobs (queued_at)',
+    );
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS stores_last_seen_idx '
+      'ON stores (last_seen)',
+    );
+    for (final table in breakGlassTableSchemas) {
+      _breakGlassDatabase.execute(table.createSql());
+    }
+    _breakGlassDatabase.execute(
+      'CREATE INDEX IF NOT EXISTS break_glass_access_linkable_idx '
+      'ON break_glass_access (accessed_at) WHERE id_key IS NOT NULL',
+    );
+    for (final table in diagnosticTableSchemas) {
+      _diagnosticDatabase.execute(table.createSql());
+    }
+    _diagnosticDatabase.execute(
+      'CREATE INDEX IF NOT EXISTS diagnostic_events_recorded_at_idx '
+      'ON diagnostic_events (recorded_at)',
+    );
+    _reconcileOrphanedBlobFiles();
     retryPendingDeletions();
   }
 
   final AthenaeumConfig config;
   final sqlite3.Database _database;
+  final sqlite3.Database _breakGlassDatabase;
+  final sqlite3.Database _diagnosticDatabase;
   final DirectoryDelete _deleteDirectory;
+  final FileDelete _deleteFile;
+  final DateTime Function() _clock;
+  final AthenaeumQuotaLimits quotaLimits;
+  final int diagnosticRowLimit;
 
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
     return sqlite3.sqlite3.open(p.join(dataDirectory, 'athenaeum.sqlite'));
   }
 
+  static sqlite3.Database _openBreakGlassDatabase(String dataDirectory) {
+    Directory(dataDirectory).createSync(recursive: true);
+    return sqlite3.sqlite3.open(
+      p.join(dataDirectory, 'athenaeum-break-glass.sqlite'),
+    );
+  }
+
+  static sqlite3.Database _openDiagnosticDatabase(String dataDirectory) {
+    Directory(dataDirectory).createSync(recursive: true);
+    return sqlite3.sqlite3.open(
+      p.join(dataDirectory, 'athenaeum-diagnostics.sqlite'),
+    );
+  }
+
   Directory get blobDirectory =>
       Directory(p.join(config.dataDirectory, 'blobs'));
 
-  void close() => _database.close();
+  void _reconcileOrphanedBlobFiles() {
+    if (!blobDirectory.existsSync()) return;
+    final queuedAt = _clock().millisecondsSinceEpoch ~/ 1000;
+    for (final entity in blobDirectory.listSync(recursive: true)) {
+      if (entity is! File) continue;
+      final segments = p.split(
+        p.relative(entity.path, from: blobDirectory.path),
+      );
+      if (segments.length != 5) continue;
+      final idKey = segments[0];
+      final epoch = segments[1];
+      final filename = segments[4];
+      final temporaryMatch = _temporaryBlobPattern.firstMatch(filename);
+      final hash = temporaryMatch?.group(1) ?? filename;
+      if (!_hashPattern.hasMatch(idKey) ||
+          !_epochPattern.hasMatch(epoch) ||
+          !_hashPattern.hasMatch(hash) ||
+          segments[2] != hash.substring(0, 2) ||
+          segments[3] != hash.substring(2, 4) ||
+          (temporaryMatch == null && filename != hash)) {
+        continue;
+      }
+      if (temporaryMatch == null && blobRef(idKey, epoch, hash) != null) {
+        continue;
+      }
+      _database.execute(
+        'INSERT OR IGNORE INTO blob_deletion_jobs '
+        '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
+        [idKey, epoch, hash, queuedAt],
+      );
+    }
+  }
+
+  void close() {
+    _database.close();
+    _breakGlassDatabase.close();
+    _diagnosticDatabase.close();
+  }
 
   StoreRow? lookup(String idKey) {
     final rows = _database.select(
@@ -67,7 +191,7 @@ class AthenaeumStore {
   }
 
   StoreRow create(String idKey) {
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final now = _clock().millisecondsSinceEpoch ~/ 1000;
     final epoch = _randomEpoch();
     var inTransaction = false;
     try {
@@ -95,7 +219,7 @@ class AthenaeumStore {
 
   void touch(String idKey) {
     _database.execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      _clock().millisecondsSinceEpoch ~/ 1000,
       idKey,
     ]);
   }
@@ -107,14 +231,21 @@ class AthenaeumStore {
       [store.idKey, store.epoch],
     );
     final blobRows = _database.select(
-      'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ? AND epoch = ?',
-      [store.idKey, store.epoch],
+      'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+      [store.idKey],
     );
+    final byteRows = _database.select(
+      'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs WHERE id_key = ?',
+      [store.idKey],
+    );
+    final pending = _pendingDeletionUsage(store.idKey);
     return StoreMetadata(
       epoch: store.epoch,
       devices: [for (final row in deviceRows) row['device_id'] as String],
-      blobs: (blobRows.single['count'] as int?) ?? 0,
-      bytes: store.bytesUsed,
+      blobs: ((blobRows.single['count'] as int?) ?? 0) + pending.blobs,
+      bytes: (byteRows.single['bytes'] as int) + pending.bytes,
+      maxBlobs: quotaLimits.maxBlobs,
+      maxBytes: quotaLimits.maxBytes,
     );
   }
 
@@ -148,11 +279,8 @@ class AthenaeumStore {
       if (current == null || current.epoch != epoch) {
         throw const StoreEpochMismatch();
       }
-      final existed = _database.select(
-        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
-        'AND device_id = ?',
-        [idKey, epoch, deviceId],
-      ).isNotEmpty;
+      final existed = _manifestExists(idKey, epoch, deviceId);
+      _checkManifestDeviceQuota(idKey, epoch, deviceId, existed: existed);
       _database.execute(
         'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
         'VALUES (?, ?, ?, ?, ?, ?) '
@@ -169,6 +297,44 @@ class AthenaeumStore {
       } finally {
         rethrow;
       }
+    }
+  }
+
+  void manifestUploadPreflight({
+    required String idKey,
+    required String epoch,
+    required String deviceId,
+  }) {
+    final current = lookup(idKey);
+    if (current == null || current.epoch != epoch) {
+      throw const StoreEpochMismatch();
+    }
+    _checkManifestDeviceQuota(idKey, epoch, deviceId);
+  }
+
+  bool _manifestExists(String idKey, String epoch, String deviceId) =>
+      _database.select(
+        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
+        'AND device_id = ?',
+        [idKey, epoch, deviceId],
+      ).isNotEmpty;
+
+  void _checkManifestDeviceQuota(
+    String idKey,
+    String epoch,
+    String deviceId, {
+    bool? existed,
+  }) {
+    if (existed ?? _manifestExists(idKey, epoch, deviceId)) return;
+    final count =
+        _database.select(
+              'SELECT COUNT(*) AS count FROM manifests '
+              'WHERE id_key = ? AND epoch = ?',
+              [idKey, epoch],
+            ).single['count']
+            as int;
+    if (count >= quotaLimits.maxDevices) {
+      throw const StoreQuotaExceeded('device quota exhausted');
     }
   }
 
@@ -211,6 +377,316 @@ class AthenaeumStore {
     ];
   }
 
+  void collectGarbage(
+    String idKey,
+    String epoch, {
+    DateTime? now,
+    int? retryMaxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
+    final cutoff =
+        (now ?? _clock()).subtract(uploadGracePeriod).millisecondsSinceEpoch ~/
+        1000;
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final stale = _database.select(
+        'SELECT hash, size FROM blob_refs '
+        'WHERE id_key = ? AND epoch = ? AND uploaded_at < ?',
+        [idKey, epoch, cutoff],
+      );
+      final candidates = <String>{
+        for (final row in stale) row['hash'] as String,
+      };
+      if (candidates.isNotEmpty) {
+        final manifestRows = _database.select(
+          'SELECT rowid FROM manifests WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
+        );
+        for (final manifestRow in manifestRows) {
+          final body =
+              _database.select('SELECT body FROM manifests WHERE rowid = ?', [
+                    manifestRow['rowid'],
+                  ]).single['body']
+                  as List<int>;
+          final decoded = jsonDecode(utf8.decode(body));
+          if (decoded is! Map || decoded['records'] is! Map) continue;
+          final records = decoded['records'] as Map;
+          for (final kind in records.values) {
+            if (kind is! Map) continue;
+            for (final hash in kind.values) {
+              if (hash is String && _hashPattern.hasMatch(hash)) {
+                candidates.remove(hash);
+              }
+            }
+            if (candidates.isEmpty) break;
+          }
+          if (candidates.isEmpty) break;
+        }
+      }
+      for (final row in stale) {
+        final hash = row['hash'] as String;
+        if (!candidates.contains(hash)) continue;
+        _validateHash(hash);
+        _database.execute(
+          'DELETE FROM blob_refs WHERE id_key = ? AND epoch = ? AND hash = ?',
+          [idKey, epoch, hash],
+        );
+        _database.execute(
+          'INSERT OR IGNORE INTO blob_deletion_jobs '
+          '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
+          [idKey, epoch, hash, _clock().millisecondsSinceEpoch ~/ 1000],
+        );
+        _database.execute(
+          'UPDATE stores SET bytes_used = MAX(0, bytes_used - ?) '
+          'WHERE id_key = ? AND epoch = ?',
+          [row['size'], idKey, epoch],
+        );
+      }
+      _database.execute('COMMIT');
+      inTransaction = false;
+      if (retryMaxJobs != null) {
+        retryPendingBlobDeletions(maxJobs: retryMaxJobs);
+      }
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
+  }
+
+  void collectGarbageForStore(
+    String idKey, {
+    DateTime? now,
+    int? retryMaxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
+    final epochs = _database
+        .select(
+          'SELECT epoch FROM blob_refs WHERE id_key = ? '
+          'UNION SELECT epoch FROM manifests WHERE id_key = ?',
+          [idKey, idKey],
+        )
+        .map((row) => row['epoch'] as String)
+        .toList();
+    for (final epoch in epochs) {
+      collectGarbage(idKey, epoch, now: now, retryMaxJobs: null);
+    }
+    if (retryMaxJobs != null) {
+      retryPendingBlobDeletions(maxJobs: retryMaxJobs);
+    }
+  }
+
+  void sweep({DateTime? now}) {
+    final current = now ?? _clock();
+    final cutoff =
+        current.subtract(storeDisuseTtl).millisecondsSinceEpoch ~/ 1000;
+    final expired = _database
+        .select('SELECT id_key FROM stores WHERE last_seen < ?', [cutoff])
+        .map((row) => row['id_key'] as String)
+        .toList();
+    for (final idKey in expired) {
+      try {
+        deleteStore(idKey, retryGlobal: false);
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum store deletion failed (${error.runtimeType})',
+        );
+      }
+    }
+    final epochs = _database.select(
+      'SELECT id_key, epoch FROM blob_refs '
+      'UNION SELECT id_key, epoch FROM manifests',
+    );
+    for (final row in epochs) {
+      try {
+        collectGarbage(
+          row['id_key'] as String,
+          row['epoch'] as String,
+          now: current,
+          retryMaxJobs: null,
+        );
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum garbage collection failed (${error.runtimeType})',
+        );
+      }
+    }
+    try {
+      purgeExpiredBreakGlassAccess(now: current);
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum break-glass retention failed (${error.runtimeType})',
+      );
+    }
+    try {
+      purgeExpiredDiagnostics(now: current);
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum diagnostic retention failed (${error.runtimeType})',
+      );
+    }
+    try {
+      retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerSweep);
+    } on Object catch (error) {
+      stderr.writeln('Athenaeum deletion retry failed (${error.runtimeType})');
+    }
+  }
+
+  int blobUploadLimit(String idKey, String epoch, String hash) {
+    if (blobRef(idKey, epoch, hash) != null) return maxBlobBytes;
+    final current = lookup(idKey);
+    if (current == null) throw const StoreEpochMismatch();
+    final count =
+        _database.select(
+              'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+              [idKey],
+            ).single['count']
+            as int;
+    final pending = _pendingDeletionUsage(
+      idKey,
+      excludingEpoch: epoch,
+      excludingHash: hash,
+    );
+    if (count + pending.blobs >= quotaLimits.maxBlobs) {
+      throw const StoreQuotaExceeded('blob quota exhausted');
+    }
+    final aggregateBytes =
+        _database.select(
+              'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs '
+              'WHERE id_key = ?',
+              [idKey],
+            ).single['bytes']
+            as int;
+    final bytesUsed = max(current.bytesUsed, aggregateBytes) + pending.bytes;
+    if (bytesUsed >= quotaLimits.maxBytes) {
+      throw const StoreQuotaExceeded('byte quota exhausted');
+    }
+
+    return min(maxBlobBytes, quotaLimits.maxBytes - bytesUsed);
+  }
+
+  _DeletionUsage _pendingDeletionUsage(
+    String idKey, {
+    String? excludingEpoch,
+    String? excludingHash,
+  }) {
+    var usage = const _DeletionUsage();
+    final accountedPaths = <String>{};
+    final directoryRows = _database.select(
+      'SELECT epoch FROM deletion_jobs WHERE id_key = ?',
+      [idKey],
+    );
+    if (directoryRows.isNotEmpty) {
+      final liveRows = _database.select(
+        'SELECT refs.epoch, refs.hash FROM blob_refs AS refs '
+        'INNER JOIN deletion_jobs AS jobs '
+        'ON jobs.id_key = refs.id_key AND jobs.epoch = refs.epoch '
+        'WHERE refs.id_key = ?',
+        [idKey],
+      );
+      for (final row in liveRows) {
+        accountedPaths.add(
+          blobFile(idKey, row['epoch'] as String, row['hash'] as String).path,
+        );
+      }
+      if (excludingEpoch != null && excludingHash != null) {
+        accountedPaths.add(blobFile(idKey, excludingEpoch, excludingHash).path);
+      }
+    }
+    final rows = _database.select(
+      'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
+      [idKey],
+    );
+    for (final row in rows) {
+      final epoch = row['epoch'] as String;
+      final hash = row['hash'] as String;
+      final isExcluded = epoch == excludingEpoch && hash == excludingHash;
+      if (!isExcluded && blobRef(idKey, epoch, hash) == null) {
+        final file = blobFile(idKey, epoch, hash);
+        if (file.existsSync() && accountedPaths.add(file.path)) {
+          usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+        }
+      }
+      for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
+        if (accountedPaths.add(file.path)) {
+          usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+        }
+      }
+    }
+    for (final row in directoryRows) {
+      final directory = Directory(
+        p.join(blobDirectory.path, idKey, row['epoch'] as String),
+      );
+      usage = usage.add(
+        usage: _directoryUsage(directory, accountedPaths: accountedPaths),
+      );
+    }
+    return usage;
+  }
+
+  void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
+    final now = accessedAt ?? _clock();
+    purgeExpiredBreakGlassAccess(now: now);
+    final idKey = deriveIncomingSyncIdKey(syncId, config.pepper);
+    _breakGlassDatabase.execute(
+      'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
+      [idKey, now.millisecondsSinceEpoch ~/ 1000],
+    );
+  }
+
+  void recordDiagnostic({
+    required int status,
+    required String? idKey,
+    required String? hash,
+    DateTime? recordedAt,
+  }) {
+    final now = recordedAt ?? _clock();
+    purgeExpiredDiagnostics(now: now);
+    final count =
+        _diagnosticDatabase
+                .select('SELECT COUNT(*) AS count FROM diagnostic_events')
+                .single['count']
+            as int;
+    if (count >= diagnosticRowLimit) {
+      _diagnosticDatabase.execute(
+        'DELETE FROM diagnostic_events WHERE rowid IN ('
+        'SELECT rowid FROM diagnostic_events ORDER BY recorded_at LIMIT 1)',
+      );
+    }
+    _diagnosticDatabase.execute(
+      'INSERT INTO diagnostic_events (status, id_key, hash, recorded_at) '
+      'VALUES (?, ?, ?, ?)',
+      [status, idKey, hash, now.millisecondsSinceEpoch ~/ 1000],
+    );
+  }
+
+  void purgeExpiredDiagnostics({DateTime? now}) {
+    final cutoff =
+        (now ?? _clock())
+            .subtract(diagnosticRetentionPeriod)
+            .millisecondsSinceEpoch ~/
+        1000;
+    _diagnosticDatabase.execute(
+      'DELETE FROM diagnostic_events WHERE recorded_at < ?',
+      [cutoff],
+    );
+  }
+
+  void purgeExpiredBreakGlassAccess({DateTime? now}) {
+    final cutoff =
+        (now ?? _clock())
+            .subtract(breakGlassLinkabilityPeriod)
+            .millisecondsSinceEpoch ~/
+        1000;
+    _breakGlassDatabase.execute(
+      'UPDATE break_glass_access SET id_key = NULL '
+      'WHERE id_key IS NOT NULL AND accessed_at < ?',
+      [cutoff],
+    );
+  }
+
   bool putBlob({
     required String idKey,
     required String epoch,
@@ -229,16 +705,43 @@ class AthenaeumStore {
         inTransaction = false;
         return false;
       }
+      final current = lookup(idKey);
+      if (current == null) throw const StoreEpochMismatch();
+      final count =
+          _database.select(
+                'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+                [idKey],
+              ).single['count']
+              as int;
+      final aggregateBytes =
+          _database.select(
+                'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs '
+                'WHERE id_key = ?',
+                [idKey],
+              ).single['bytes']
+              as int;
+      final pending = _pendingDeletionUsage(
+        idKey,
+        excludingEpoch: epoch,
+        excludingHash: hash,
+      );
+      final bytesUsed = max(current.bytesUsed, aggregateBytes) + pending.bytes;
+      if (count + pending.blobs >= quotaLimits.maxBlobs) {
+        throw const StoreQuotaExceeded('blob quota exhausted');
+      }
+      if (bytesUsed > quotaLimits.maxBytes - body.length) {
+        throw const StoreQuotaExceeded('byte quota exhausted');
+      }
       file = blobFile(idKey, epoch, hash);
       file.parent.createSync(recursive: true);
       final nonce = Random.secure().nextInt(1 << 32).toRadixString(16);
       temporary = File(
-        '${file.path}.$pid.${DateTime.now().microsecondsSinceEpoch}.$nonce.tmp',
+        '${file.path}.$pid.${_clock().microsecondsSinceEpoch}.$nonce.tmp',
       );
       temporary.writeAsBytesSync(body, flush: true);
       temporary.renameSync(file.path);
       published = true;
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final now = _clock().millisecondsSinceEpoch ~/ 1000;
       _database.execute(
         'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
         'VALUES (?, ?, ?, ?, ?)',
@@ -281,8 +784,15 @@ class AthenaeumStore {
     );
   }
 
-  void deleteStore(String idKey) {
+  sqlite3.Database get breakGlassDatabase => _breakGlassDatabase;
+
+  sqlite3.Database get database => _database;
+
+  sqlite3.Database get diagnosticDatabase => _diagnosticDatabase;
+
+  void deleteStore(String idKey, {bool retryGlobal = true}) {
     late final String epoch;
+    late final Set<String> epochs;
     var inTransaction = false;
     try {
       _database.execute('BEGIN IMMEDIATE');
@@ -297,12 +807,14 @@ class AthenaeumStore {
         return;
       }
       epoch = rows.single['epoch'] as String;
-      final epochs = <String>{
+      epochs = <String>{
         epoch,
         for (final row in _database.select(
           'SELECT epoch FROM manifests WHERE id_key = ? '
-          'UNION SELECT epoch FROM blob_refs WHERE id_key = ?',
-          [idKey, idKey],
+          'UNION SELECT epoch FROM blob_refs WHERE id_key = ? '
+          'UNION SELECT epoch FROM blob_deletion_jobs WHERE id_key = ? '
+          'UNION SELECT epoch FROM deletion_jobs WHERE id_key = ?',
+          [idKey, idKey, idKey, idKey],
         ))
           row['epoch'] as String,
       };
@@ -310,7 +822,7 @@ class AthenaeumStore {
         _database.execute(
           'INSERT OR IGNORE INTO deletion_jobs (id_key, epoch, queued_at) '
           'VALUES (?, ?, ?)',
-          [idKey, queuedEpoch, DateTime.now().millisecondsSinceEpoch ~/ 1000],
+          [idKey, queuedEpoch, _clock().millisecondsSinceEpoch ~/ 1000],
         );
       }
       _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
@@ -325,29 +837,139 @@ class AthenaeumStore {
         rethrow;
       }
     }
-    retryPendingDeletions();
+    for (final queuedEpoch in epochs) {
+      try {
+        _retryPendingDirectory(idKey, queuedEpoch);
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum post-delete directory cleanup failed '
+          '(${error.runtimeType})',
+        );
+      }
+    }
+    if (retryGlobal) {
+      try {
+        retryPendingDeletions();
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum post-delete cleanup retry failed '
+          '(${error.runtimeType})',
+        );
+      }
+    }
   }
 
-  void retryPendingDeletions() {
+  void retryPendingDeletions({
+    int maxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
     final rows = _database.select(
-      'SELECT id_key, epoch FROM deletion_jobs ORDER BY queued_at',
+      'SELECT id_key, epoch FROM deletion_jobs '
+      'ORDER BY queued_at, rowid LIMIT ?',
+      [maxJobs],
     );
     for (final row in rows) {
       final idKey = row['id_key'] as String;
       final epoch = row['epoch'] as String;
-      final directory = Directory(p.join(blobDirectory.path, idKey, epoch));
-      try {
-        _deleteDirectory(directory);
-      } on FileSystemException {
-        continue;
+      _retryPendingDirectory(idKey, epoch);
+    }
+    retryPendingBlobDeletions(maxJobs: maxJobs);
+  }
+
+  void _retryPendingDirectory(String idKey, String epoch) {
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final refs = _database.select(
+        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
+        'UNION SELECT 1 FROM blob_refs WHERE id_key = ? AND epoch = ? LIMIT 1',
+        [idKey, epoch, idKey, epoch],
+      );
+      if (refs.isNotEmpty) {
+        _database.execute('COMMIT');
+        inTransaction = false;
+        _database.execute(
+          'UPDATE deletion_jobs SET queued_at = ('
+          'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
+          ') WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
+        );
+        return;
       }
+      try {
+        _deleteDirectory(Directory(p.join(blobDirectory.path, idKey, epoch)));
+      } on FileSystemException {
+        _database.execute('ROLLBACK');
+        inTransaction = false;
+        _database.execute(
+          'UPDATE deletion_jobs SET queued_at = ('
+          'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
+          ') WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
+        );
+        return;
+      }
+      _database.execute(
+        'DELETE FROM blob_deletion_jobs WHERE id_key = ? AND epoch = ?',
+        [idKey, epoch],
+      );
+      _database.execute(
+        'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
+        [idKey, epoch],
+      );
+      _database.execute('COMMIT');
+      inTransaction = false;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
+  }
+
+  void retryPendingBlobDeletions({
+    int maxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
+    final rows = _database.select(
+      'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
+      'ORDER BY queued_at, rowid LIMIT ?',
+      [maxJobs],
+    );
+    for (final row in rows) {
+      final idKey = row['id_key'] as String;
+      final epoch = row['epoch'] as String;
+      final hash = row['hash'] as String;
+      _validateHash(hash);
       var inTransaction = false;
       try {
         _database.execute('BEGIN IMMEDIATE');
         inTransaction = true;
+        final currentRef = blobRef(idKey, epoch, hash);
+        try {
+          if (currentRef == null) {
+            final file = blobFile(idKey, epoch, hash);
+            if (file.existsSync()) _deleteFile(file);
+          }
+          for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
+            _deleteFile(file);
+          }
+        } on FileSystemException {
+          _database.execute('ROLLBACK');
+          inTransaction = false;
+          _database.execute(
+            'UPDATE blob_deletion_jobs SET queued_at = ('
+            'SELECT COALESCE(MAX(queued_at), -1) + 1 '
+            'FROM blob_deletion_jobs'
+            ') WHERE id_key = ? AND epoch = ? AND hash = ?',
+            [idKey, epoch, hash],
+          );
+          continue;
+        }
         _database.execute(
-          'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
-          [idKey, epoch],
+          'DELETE FROM blob_deletion_jobs '
+          'WHERE id_key = ? AND epoch = ? AND hash = ?',
+          [idKey, epoch, hash],
         );
         _database.execute('COMMIT');
         inTransaction = false;
@@ -363,6 +985,31 @@ class AthenaeumStore {
 
   static void _deleteDirectoryRecursively(Directory directory) {
     if (directory.existsSync()) directory.deleteSync(recursive: true);
+  }
+
+  static void _deleteFileSync(File file) => file.deleteSync();
+
+  Iterable<File> _temporaryBlobFiles(String idKey, String epoch, String hash) {
+    final directory = blobFile(idKey, epoch, hash).parent;
+    if (!directory.existsSync()) return const <File>[];
+    return directory.listSync().whereType<File>().where((file) {
+      final match = _temporaryBlobPattern.firstMatch(p.basename(file.path));
+      return match?.group(1) == hash;
+    });
+  }
+
+  _DeletionUsage _directoryUsage(
+    Directory directory, {
+    required Set<String> accountedPaths,
+  }) {
+    if (!directory.existsSync()) return const _DeletionUsage();
+    var usage = const _DeletionUsage();
+    for (final entity in directory.listSync(recursive: true)) {
+      if (entity is File && accountedPaths.add(entity.path)) {
+        usage = usage.add(bytes: entity.lengthSync(), blobs: 1);
+      }
+    }
+    return usage;
   }
 
   static void validateDeviceId(String value) {
@@ -392,6 +1039,25 @@ class StoreAlreadyExists implements Exception {
 
 class StoreEpochMismatch implements Exception {
   const StoreEpochMismatch();
+}
+
+class StoreQuotaExceeded implements Exception {
+  const StoreQuotaExceeded(this.message);
+
+  final String message;
+}
+
+class _DeletionUsage {
+  const _DeletionUsage({this.blobs = 0, this.bytes = 0});
+
+  final int blobs;
+  final int bytes;
+
+  _DeletionUsage add({_DeletionUsage? usage, int blobs = 0, int bytes = 0}) =>
+      _DeletionUsage(
+        blobs: this.blobs + (usage?.blobs ?? blobs),
+        bytes: this.bytes + (usage?.bytes ?? bytes),
+      );
 }
 
 class StoreRow {
@@ -424,12 +1090,16 @@ class StoreMetadata {
     required this.devices,
     required this.blobs,
     required this.bytes,
+    required this.maxBlobs,
+    required this.maxBytes,
   });
 
   final String epoch;
   final List<String> devices;
   final int blobs;
   final int bytes;
+  final int maxBlobs;
+  final int maxBytes;
 
   Map<String, Object?> toJson() => {
     'epoch': epoch,
@@ -437,8 +1107,8 @@ class StoreMetadata {
     'quota': {
       'blobs': blobs,
       'bytes': bytes,
-      'maxBlobs': 100000,
-      'maxBytes': 250 * 1024 * 1024,
+      'maxBlobs': maxBlobs,
+      'maxBytes': maxBytes,
     },
   };
 }
