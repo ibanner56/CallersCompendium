@@ -648,6 +648,59 @@ void main() {
     );
   });
 
+  test('pending deletion bytes remain charged across epochs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-cross-epoch-quota-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 3),
+      deleteDirectory: (_) {},
+      deleteFile: (_) {
+        throw const FileSystemException('injected file failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+    final idKey = '4' * 64;
+    final oldStore = store.create(idKey);
+    final hash = '5' * 64;
+    final body = Uint8List.fromList([1, 2, 3]);
+    store.putBlob(idKey: idKey, epoch: oldStore.epoch, hash: hash, body: body);
+    store.deleteStore(idKey);
+    final currentStore = store.create(idKey);
+    store.putBlob(idKey: idKey, epoch: oldStore.epoch, hash: hash, body: body);
+    database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ? AND epoch = ?',
+      [
+        now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+        idKey,
+        oldStore.epoch,
+      ],
+    );
+    store.collectGarbage(idKey, oldStore.epoch, now: now);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+    expect(
+      () => store.putBlob(
+        idKey: idKey,
+        epoch: currentStore.epoch,
+        hash: hash,
+        body: Uint8List.fromList([4]),
+      ),
+      throwsA(isA<StoreQuotaExceeded>()),
+    );
+  });
+
   test('deleting a recreated store cleans stale epoch directories', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',

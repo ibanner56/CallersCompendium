@@ -437,7 +437,11 @@ class AthenaeumStore {
             as int;
     final bytesUsed =
         max(current.bytesUsed, aggregateBytes) +
-        _pendingBlobDeletionBytes(idKey, excludingHash: hash);
+        _pendingBlobDeletionBytes(
+          idKey,
+          excludingEpoch: epoch,
+          excludingHash: hash,
+        );
     if (bytesUsed >= quotaLimits.maxBytes) {
       throw const StoreQuotaExceeded('byte quota exhausted');
     }
@@ -445,7 +449,11 @@ class AthenaeumStore {
     return min(maxBlobBytes, quotaLimits.maxBytes - bytesUsed);
   }
 
-  int _pendingBlobDeletionBytes(String idKey, {String? excludingHash}) {
+  int _pendingBlobDeletionBytes(
+    String idKey, {
+    String? excludingEpoch,
+    String? excludingHash,
+  }) {
     var bytes = 0;
     final rows = _database.select(
       'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
@@ -454,7 +462,7 @@ class AthenaeumStore {
     for (final row in rows) {
       final epoch = row['epoch'] as String;
       final hash = row['hash'] as String;
-      if (hash == excludingHash) continue;
+      if (epoch == excludingEpoch && hash == excludingHash) continue;
       if (blobRef(idKey, epoch, hash) != null) continue;
       final file = blobFile(idKey, epoch, hash);
       if (file.existsSync()) bytes += file.lengthSync();
@@ -558,7 +566,11 @@ class AthenaeumStore {
               as int;
       final bytesUsed =
           max(current.bytesUsed, aggregateBytes) +
-          _pendingBlobDeletionBytes(idKey, excludingHash: hash);
+          _pendingBlobDeletionBytes(
+            idKey,
+            excludingEpoch: epoch,
+            excludingHash: hash,
+          );
       if (count >= quotaLimits.maxBlobs) {
         throw const StoreQuotaExceeded('blob quota exhausted');
       }
