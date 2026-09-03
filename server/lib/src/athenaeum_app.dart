@@ -11,14 +11,24 @@ import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
 
+const int maxRequestsPerIp = 60;
+const int maxRequestsPerIpBurst = 120;
+const int maxRequestsPerStore = 600;
+
 class AthenaeumBudgetLimits {
   const AthenaeumBudgetLimits({
+    this.requestsPerIpPerMinute = maxRequestsPerIp,
+    this.requestBurstPerIp = maxRequestsPerIpBurst,
+    this.requestsPerStorePerMinute = maxRequestsPerStore,
     this.perIpFailuresPerMinute = maxFailedResolutionsPerIp,
     this.perIpFailureBurst = maxFailedResolutionsPerIpBurst,
     this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
     this.creationsPerMinute = maxStoreCreationsPerMinute,
   });
 
+  final int requestsPerIpPerMinute;
+  final int requestBurstPerIp;
+  final int requestsPerStorePerMinute;
   final int perIpFailuresPerMinute;
   final int perIpFailureBurst;
   final int serverWideFailuresPerMinute;
@@ -34,12 +44,14 @@ class AthenaeumApp {
   }) : config = config,
        store = store ?? AthenaeumStore(config: config),
        _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress,
+       _requestBudget = _RequestBudget(budgetLimits),
        _failureBudget = _FailureBudget(budgetLimits),
        _creationBudget = _CreationBudget(budgetLimits);
 
   final AthenaeumConfig config;
   final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
+  final _RequestBudget _requestBudget;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
 
@@ -47,6 +59,9 @@ class AthenaeumApp {
 
   Future<Response> call(Request request) async {
     store.retryPendingDeletions();
+    if (!_requestBudget.allowIp(_clientAddressResolver(request))) {
+      return _rateLimitedResponse();
+    }
     final segments = request.url.pathSegments;
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});
@@ -300,6 +315,9 @@ class AthenaeumApp {
     final idKey = deriveIncomingSyncIdKey(decoded, config.pepper);
     final current = store.lookup(idKey);
     if (current != null) {
+      if (!_requestBudget.allowStore(idKey)) {
+        return _AuthResult.response(_rateLimitedResponse());
+      }
       store.touch(idKey);
     }
     return _AuthResult.identity(_Identity(idKey, current));
@@ -749,6 +767,49 @@ class _FailureBudget {
 
   static void _prune(List<DateTime> values, DateTime now) {
     values.removeWhere((value) => now.difference(value).inSeconds >= 60);
+  }
+}
+
+class _RequestBudget {
+  _RequestBudget(AthenaeumBudgetLimits limits)
+    : _perIpPerMinute = limits.requestsPerIpPerMinute,
+      _perIpBurst = limits.requestBurstPerIp,
+      _perStorePerMinute = limits.requestsPerStorePerMinute;
+
+  static const int _maxBuckets = 4096;
+
+  final int _perIpPerMinute;
+  final int _perIpBurst;
+  final int _perStorePerMinute;
+  final Map<String, _TokenBucket> _ipBuckets = <String, _TokenBucket>{};
+  final Map<String, _TokenBucket> _storeBuckets = <String, _TokenBucket>{};
+
+  bool allowIp(String address) =>
+      _allow(_ipBuckets, address, _perIpBurst, _perIpPerMinute);
+
+  bool allowStore(String idKey) =>
+      _allow(_storeBuckets, idKey, _perStorePerMinute, _perStorePerMinute);
+
+  bool _allow(
+    Map<String, _TokenBucket> buckets,
+    String key,
+    int capacity,
+    int refillPerMinute,
+  ) {
+    final now = DateTime.now();
+    buckets.removeWhere((_, bucket) => bucket.isInactive(now));
+    var bucket = buckets[key];
+    if (bucket == null) {
+      if (buckets.length >= _maxBuckets) {
+        buckets.remove(buckets.keys.first);
+      }
+      bucket = _TokenBucket(
+        capacity: capacity,
+        refillPerMinute: refillPerMinute,
+      );
+      buckets[key] = bucket;
+    }
+    return bucket.tryTake(now);
   }
 }
 
