@@ -173,6 +173,29 @@ void main() {
       expect(rejectedFetch.statusCode, 404);
       await rejectedFetch.drain<void>();
 
+      final dottedKey = _recordBlob(
+        kind: 'dance',
+        id: 'dotted-key',
+        body: {'formation.shape': 'private'},
+      );
+      final dottedKeyHash = sha256.convert(dottedKey).toString();
+      final dottedKeyResponse = await _send(
+        'PUT',
+        '/v1/blobs/$dottedKeyHash',
+        syncId: syncId,
+        body: dottedKey,
+        contentType: 'application/octet-stream',
+      );
+      expect(dottedKeyResponse.statusCode, 422);
+      await dottedKeyResponse.drain<void>();
+      final dottedKeyGet = await _send(
+        'GET',
+        '/v1/blobs/$dottedKeyHash',
+        syncId: syncId,
+      );
+      expect(dottedKeyGet.statusCode, 404);
+      await dottedKeyGet.drain<void>();
+
       final invalidEntityId = Uint8List.fromList(
         utf8.encode(
           jsonEncode({
