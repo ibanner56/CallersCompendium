@@ -8,6 +8,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
+import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -502,6 +503,34 @@ void main() {
       429,
     );
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 409);
+  });
+
+  test('failed store creation does not consume the creation budget', () async {
+    final database = sqlite3.openInMemory();
+    final customStore = AthenaeumStore(config: app.config, database: database);
+    final customApp = AthenaeumApp(
+      config: app.config,
+      store: customStore,
+      budgetLimits: const AthenaeumBudgetLimits(creationsPerMinute: 1),
+    );
+    addTearDown(customStore.close);
+    database.execute(
+      'CREATE TRIGGER fail_store_create BEFORE INSERT ON stores '
+      "BEGIN SELECT RAISE(ABORT, 'injected create failure'); END",
+    );
+    Future<Response> createRequest() => customApp.call(
+      Request(
+        'POST',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+        },
+      ),
+    );
+
+    await expectLater(createRequest(), throwsA(isA<SqliteException>()));
+    database.execute('DROP TRIGGER fail_store_create');
+    expect((await createRequest()).statusCode, 201);
   });
 
   test('concurrent identical blob uploads are idempotent', () async {
