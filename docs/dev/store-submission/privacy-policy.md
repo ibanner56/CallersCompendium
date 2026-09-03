@@ -65,8 +65,8 @@ stored by the sync service you configure so it can be synchronized.
 
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
-logged. The derived sync storage path in that log becomes eligible for nulling 
-after 30 days of access and is nulled by the next hourly sweep; after that it 
+logged. The derived sync storage path in that log becomes eligible for nulling
+after 30 days of access and is nulled by the next hourly sweep; after that it
 becomes a timestamp-only aggregate row. Ordinary diagnostic events that contain
 store-derived metadata become eligible for removal after 30 days and are
 removed by the next hourly sweep. They never include request bodies, record
