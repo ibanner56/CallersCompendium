@@ -1315,6 +1315,34 @@ void main() {
     expect(blobFile.existsSync(), isFalse);
   });
 
+  test(
+    'blob PUT reports 404 when the store is deleted during body read',
+    () async {
+      final created = await _send('POST', '/v1/store', syncId: syncId);
+      expect(created.statusCode, 201);
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final hash = sha256.convert(bytes).toString();
+      final response = await app.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/octet-stream',
+          },
+          body: Stream<List<int>>.multi((controller) {
+            app.store.deleteStore(idKey);
+            controller
+              ..add(bytes)
+              ..close();
+          }),
+        ),
+      );
+      expect(response.statusCode, 404);
+    },
+  );
+
   test('manifest PUT collects old unreferenced blobs', () async {
     final created = await _send('POST', '/v1/store', syncId: syncId);
     final createdBody =

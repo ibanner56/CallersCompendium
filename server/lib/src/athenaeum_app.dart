@@ -399,6 +399,9 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       } on StoreEpochMismatch {
+        if (store.lookup(identity.idKey) == null) {
+          return _failedResolution(request, 404, 'store not found');
+        }
         throw const _RequestFailure(409, 'stale blob epoch');
       }
       return Response(created ? 201 : 200);
