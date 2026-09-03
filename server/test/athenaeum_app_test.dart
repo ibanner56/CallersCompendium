@@ -468,6 +468,14 @@ void main() {
         201,
       );
     }
+    expect(
+      (await _send(
+        'POST',
+        '/v1/store',
+        syncId: 'over-cap-café-staple',
+      )).statusCode,
+      429,
+    );
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 409);
   });
 
