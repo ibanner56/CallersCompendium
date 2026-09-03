@@ -705,8 +705,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         ),
         PopupMenuItem<void>(
           key: const ValueKey('overflow-share-dance-json'),
-          onTap: () =>
-              _shareDanceBundle(detail, extension: danceShareJsonExtension),
+          onTap: () {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _shareDanceBundle(detail, extension: danceShareJsonExtension);
+              }
+            });
+          },
           child: ListTile(
             leading: const Icon(Icons.data_object_outlined),
             title: Text(l10n.exportShareDanceJson),

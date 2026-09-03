@@ -484,6 +484,33 @@ void main() {
       expect(shared!.sharePositionOrigin, isNotNull);
     });
 
+    testWidgets('overflow JSON opens a real choice dialog after popup closes', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Export JSON'), findsOneWidget);
+      expect(find.text('Copy raw JSON'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Export JSON'), findsNothing);
+    });
+
     testWidgets('overflow dialect switch still changes the active dialect', (
       tester,
     ) async {

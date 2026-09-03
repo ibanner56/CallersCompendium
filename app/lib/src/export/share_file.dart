@@ -86,9 +86,16 @@ Future<JsonSaveResult?> saveJsonBundle(
   }
 
   final staged = await (stageFile ?? writeBundleTempFile)(json, fileName);
-  final savedPath = await (mobileSaveFile ?? _saveMobileFile)(staged.path);
-  if (savedPath == null) return null;
-  return JsonSaveResult(path: savedPath, fileName: fileName);
+  try {
+    final savedPath = await (mobileSaveFile ?? _saveMobileFile)(staged.path);
+    if (savedPath == null) return null;
+    return JsonSaveResult(path: savedPath, fileName: fileName);
+  } finally {
+    final stagedFile = File(staged.path);
+    if (await stagedFile.exists()) {
+      await stagedFile.delete();
+    }
+  }
 }
 
 Future<FileSaveLocation?> _showSaveLocation({

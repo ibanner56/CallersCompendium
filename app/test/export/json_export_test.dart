@@ -155,6 +155,10 @@ void main() {
   test(
     'mobile save stages exact JSON and returns platform destination',
     () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'json-mobile-test',
+      );
+      addTearDown(() => directory.delete(recursive: true));
       String? stagedJson;
       String? stagedName;
       String? sourcePath;
@@ -166,7 +170,9 @@ void main() {
         stageFile: (json, fileName) async {
           stagedJson = json;
           stagedName = fileName;
-          return XFile('/tmp/$fileName');
+          final path = '${directory.path}/$fileName';
+          await File(path).writeAsString(json);
+          return XFile(path);
         },
         mobileSaveFile: (path) async {
           sourcePath = path;
@@ -176,10 +182,34 @@ void main() {
 
       expect(stagedJson, '{"canonical":true}');
       expect(stagedName, 'dance.json');
-      expect(sourcePath, '/tmp/dance.json');
+      expect(sourcePath, '${directory.path}/dance.json');
       expect(result, isNotNull);
       expect(result!.path, 'content://downloads/dance.json');
       expect(result.fileName, 'dance.json');
+      expect(await File(sourcePath!).exists(), isFalse);
     },
   );
+
+  test('mobile save cancellation deletes its staged export', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'json-mobile-cancel-test',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    String? stagedPath;
+
+    final result = await saveJsonBundle(
+      '{"canonical":true}',
+      'dance.json',
+      isDesktop: () => false,
+      stageFile: (json, fileName) async {
+        stagedPath = '${directory.path}/$fileName';
+        await File(stagedPath!).writeAsString(json);
+        return XFile(stagedPath!);
+      },
+      mobileSaveFile: (_) async => null,
+    );
+
+    expect(result, isNull);
+    expect(await File(stagedPath!).exists(), isFalse);
+  });
 }
