@@ -448,6 +448,11 @@ can still fire.
   related-dance links that participate in editor-managed transitive groups.
   Existing links default to `false`, preserving ordinary pairwise behavior;
   import paths remain directional and do not invoke group reconciliation.
+- v32 (ADR-004/W4): adds the local-only Device Sync baseline metadata and
+  entries, ID aliases, pending deletions, review queue, and published-record
+  history. Baseline metadata uses an enforced singleton row so an empty
+  manifest retains its epoch; all six tables are device-scoped except the
+  retransmitted pending tombstone blob.
 
 ## The delete model
 

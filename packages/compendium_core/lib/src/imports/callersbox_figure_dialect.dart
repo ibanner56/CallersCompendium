@@ -2362,7 +2362,7 @@ const Set<String> _filler = {'your', 'the', 'a', 'an'};
 // hey's structured payload rather than a droppable annotation. It runs as the
 // front-end's pre-recognizer (BEFORE the shared `_normalize` strips the
 // parentheses) and decodes onto the existing `hey` MoveDef:
-//   * length   <- the fraction (default `half` when unspecified),
+//   * length   <- the fraction (default `full` when unspecified),
 //   * pass1     <- the *who* of the 1st pass code,
 //   * shoulder  <- the initial-pass shoulder (position-parity base; see below),
 //   * pass2     <- the *who* of the 2nd pass code (else the MoveDef default
@@ -2474,8 +2474,8 @@ const Map<String, String> tcbPassPeople = {
   '2': 'twos',
 };
 
-/// A hey fraction token -> `length`. Absent => `half` (ratified default). The
-/// length is read from the FRACTION, not the pass count (officially ambiguous).
+/// A hey fraction token -> `length`. Absent => `full` (TCB's default for a
+/// full, 16-beat hey). The length is read from the FRACTION, not the pass count.
 const Map<String, String> _heyLength = {
   '1/4': 'lessThanHalf',
   '1/2': 'half',
@@ -2487,12 +2487,12 @@ const Map<String, String> _heyLength = {
 /// The highest reachable ricochet slot for a hey [length]. Ricochets fall on
 /// the same-role center passes, and how far a hey progresses caps which ones
 /// can occur: each named length reaches one more slot than the previous —
-/// `lessThanHalf` → rico1, `half` (incl. the unspecified default) → rico2,
-/// `betweenHalfAndFull` → rico3, `full` → rico4 (the "whole" input token is
-/// decoded to `full` before it reaches here). A ricochet whose positional slot
-/// exceeds this cap is an internal contradiction (e.g. a rico3 in a half hey)
-/// and forces the custom fallback — we never infer length from the pass count,
-/// so the stated/default length is authoritative.
+/// `lessThanHalf` → rico1, `half` → rico2, `betweenHalfAndFull` → rico3,
+/// `full` → rico4 (the "whole" input token is decoded to `full` before it
+/// reaches here). A ricochet whose positional slot exceeds this cap is an
+/// internal contradiction (e.g. a rico3 in a half hey) and forces the custom
+/// fallback — we never infer length from the pass count, so the
+/// stated/default length is authoritative.
 int _heyMaxRicoSlot(String length) {
   switch (length) {
     case 'lessThanHalf':
@@ -2724,7 +2724,7 @@ FigureMatch? _hey(String scrubbed) {
   }
 
   var sawHey = false;
-  var length = 'half';
+  var length = 'full';
   var sawFraction = false;
   for (final word in outWords) {
     if (word == 'hey') {

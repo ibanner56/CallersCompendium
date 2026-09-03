@@ -1554,7 +1554,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
-        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },

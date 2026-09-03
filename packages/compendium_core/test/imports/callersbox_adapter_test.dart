@@ -1123,12 +1123,27 @@ void main() {
         () async {
           final figures = await figuresFor([
             '(4) Pass the ocean',
-            '(4) Balance wave of four (NR,WL)',
+            '(4) Balance wave of four (NR,WL) [with N2]',
           ]);
           expect(figures, hasLength(1));
           expect(figures.single.move, 'pass_the_ocean');
           expect(figures.single.params['balance'], isTrue);
           expect(figures.single.params['beats'], 8); // 4 + 4
+          expect(figures.single.note, 'with nextNeighbors');
+        },
+      );
+
+      test(
+        'balance-wave bracket note survives a leading balance fold',
+        () async {
+          final figures = await figuresFor([
+            '(4) Balance wave of four (PR,WL) [with N2]',
+            '(12) Neighbor swing',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'swing');
+          expect(figures.single.params['prefix'], 'balance');
+          expect(figures.single.note, 'with nextNeighbors');
         },
       );
 
@@ -1331,14 +1346,14 @@ void main() {
 
         // The B2 hey `(16) Hey (WR;PL;MR;N1L;WR;PL;MR;N1L~)` is the regression:
         // the `N1L` pass (current neighbor) must decode onto the structured hey
-        // rather than fall to custom. The bare "Hey" states no fraction, so the
-        // decoder applies its ratified default length (`half`) — length is read
-        // from the fraction, never inferred from the pass count.
+        // rather than fall to custom. The bare "Hey" is TCB's full 16-beat
+        // default; length is read from an explicit fraction when one is present,
+        // never inferred from the pass count.
         final heys = draft.dance.figures.where((f) => f.move == 'hey').toList();
         expect(heys, hasLength(1), reason: 'B2 hey should be structured');
         final hey = heys.single;
         expect(hey.isCustom, isFalse);
-        expect(hey.params['length'], 'half');
+        expect(hey.params['length'], 'full');
         expect(hey.params['shoulder'], 'right'); // code1 WR -> R
         expect(hey.params['pass1'], 'role2s'); // code1 WR -> W
         expect(hey.params['pass2'], 'partners'); // code2 PL -> P

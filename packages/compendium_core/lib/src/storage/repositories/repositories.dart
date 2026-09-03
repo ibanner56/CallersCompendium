@@ -18,6 +18,7 @@ import 'dance_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'settings_repository.dart';
+import 'sync_local_repository.dart';
 import 'tag_repository.dart';
 import 'venue_repository.dart';
 
@@ -86,7 +87,8 @@ class CompendiumRepositories {
        venues = VenueRepository(db),
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
-       settings = settings ?? SettingsRepository(db);
+       settings = settings ?? SettingsRepository(db),
+       syncLocal = SyncLocalRepository(db);
 
   final CompendiumDatabase db;
   final DanceRepository dances;
@@ -98,6 +100,7 @@ class CompendiumRepositories {
   final VenueRepository venues;
   final CollectionImportEventRepository collectionImports;
   final SettingsRepository settings;
+  final SyncLocalRepository syncLocal;
 
   /// The scope is derived from the live Drift schema and privacy registry, so
   /// adding a shareable text column cannot be missed by the repair sweep.

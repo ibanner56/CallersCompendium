@@ -73,11 +73,11 @@ void main() {
   });
 
   group('form_short_waves display', () {
-    test('default (centerHand right -> side left)', () {
+    test('default (centerHand left -> side right)', () {
       expect(
         renderer.render(Figure(move: 'form_short_waves'), d),
-        'form short waves - role2s by the right in the center, '
-        'neighbor by the left on the sides',
+        'form short waves - role2s by the left in the center, '
+        'neighbor by the right on the sides',
       );
     });
 
@@ -115,7 +115,7 @@ void main() {
         ),
         d,
       );
-      expect(out, startsWith('form short waves - by the right in the center'));
+      expect(out, startsWith('form short waves - by the left in the center'));
       expect(out, isNot(contains('  ')));
       expect(out, isNot(contains('- ,')));
     });

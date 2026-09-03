@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
 import '../model/formation.dart';
+import '../sync/sync_record_kind.dart';
 import 'tables.dart';
 
 part 'database.g.dart';
@@ -257,7 +258,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 31;
+const int kCompendiumSchemaVersion = 32;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -341,6 +342,12 @@ const int kMinSupportedSchemaVersion = 20;
     VenueProvenance,
     CollectionImportEvents,
     NormalisationSkips,
+    BaselineState,
+    BaselineEntries,
+    IdAliases,
+    PendingDeletions,
+    ReviewQueue,
+    PublishedRecords,
   ],
 )
 class CompendiumDatabase extends _$CompendiumDatabase {
@@ -730,6 +737,17 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         // transitive group. Existing links remain ordinary pairwise links.
         await m.addColumn(danceLinks, danceLinks.transitive);
         await customStatement(danceLinksTargetTransitiveIndexSql);
+      }
+      if (from < 32) {
+        // ADR-004/W4: local-only sync state. Baseline metadata is separate
+        // from baseline entries so an empty manifest still retains its epoch.
+        // normalisation_skips is W18-owned and deliberately not touched here.
+        await m.createTable(baselineState);
+        await m.createTable(baselineEntries);
+        await m.createTable(idAliases);
+        await m.createTable(pendingDeletions);
+        await m.createTable(reviewQueue);
+        await m.createTable(publishedRecords);
       }
     },
     beforeOpen: (details) async {

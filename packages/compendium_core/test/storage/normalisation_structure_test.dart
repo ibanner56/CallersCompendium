@@ -28,6 +28,8 @@ const _normalisationExemptions = <String, String>{
   'custom_field_defs.type': 'enum value',
   'custom_field_defs.choices_json':
       'choice strings are normalized before JSON encoding',
+  'pending_deletions.tombstone_blob':
+      'opaque hash-addressed sync payload; bytes must remain unchanged',
 };
 
 typedef _ShareableFields = Map<String, Map<String, Set<String>>>;

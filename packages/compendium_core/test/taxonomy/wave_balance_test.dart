@@ -47,6 +47,13 @@ void main() {
       expect(def.params['passThru'], isNull);
       expect(tax.validateFigure(Figure(move: 'form_short_waves')), isEmpty);
     });
+
+    test('short-wave defaults describe the center-left wave', () {
+      final defaults = tax.effectiveParams(Figure(move: 'form_short_waves'));
+      expect(defaults['center'], 'role2s');
+      expect(defaults['centerHand'], 'left');
+      expect(defaults['sides'], 'neighbors');
+    });
   });
 
   group('taxonomy v21 form_long_waves params', () {
@@ -321,8 +328,8 @@ void main() {
     test('no balance renders no clause', () {
       expect(
         renderer.render(Figure(move: 'form_short_waves'), d),
-        'form short waves - role2s by the right in the center, '
-        'neighbor by the left on the sides',
+        'form short waves - role2s by the left in the center, '
+        'neighbor by the right on the sides',
       );
     });
 
@@ -332,8 +339,8 @@ void main() {
           Figure(move: 'form_short_waves', params: const {'balance': true}),
           d,
         ),
-        'form short waves - role2s by the right in the center, '
-        'neighbor by the left on the sides - and balance',
+        'form short waves - role2s by the left in the center, '
+        'neighbor by the right on the sides - and balance',
       );
     });
   });

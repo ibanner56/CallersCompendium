@@ -67,7 +67,9 @@ void main() {
       // shareable-text repair bookkeeping. Schema 30 (#1123) removed
       // redundant normalization snapshots, and schema 31 (#1130) added
       // transitive related-dance link groups; neither changed the taxonomy.
-      expect(kCompendiumSchemaVersion, 31);
+      // Schema 32 adds Device Sync local persistence and likewise does not
+      // change the taxonomy.
+      expect(kCompendiumSchemaVersion, 32);
     });
 
     test('registers with the maintainer-ruled param set', () {

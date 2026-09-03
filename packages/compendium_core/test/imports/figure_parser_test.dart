@@ -612,9 +612,6 @@ void main() {
       'Hey 1/2 (ML;NR;WL;PR;M ricochet;PR;WL)',
       // A half hey with all-four ricochet positions: rico3/rico4 exceed max2.
       'Hey 1/2 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
-      // Unspecified length defaults to half, so a pos5 ricochet (rico3) still
-      // exceeds max2 -> custom (we never infer length from the pass count).
-      'Hey (ML;NR;WL;PR;M ricochet;PR;WL)',
       // 3/4 caps at rico3, so a pos7 ricochet (rico4) exceeds it -> custom.
       'Hey 3/4 (M ricochet;NR;W ricochet;PR;M ricochet;NR;W ricochet;PR)',
       // P-series boundary: P6+ and P-n have no taxonomy token. A line naming
@@ -690,8 +687,11 @@ void main() {
       expect(parse('Hey 3/4 (WR;PL)')!.params['length'], 'betweenHalfAndFull');
       expect(parse('Full hey (WR;PL)')!.params['length'], 'full');
       expect(parse('Whole hey (WR;PL)')!.params['length'], 'full');
-      // Unspecified length defaults to half.
-      expect(parse('Hey (WR;PL)')!.params['length'], 'half');
+      // TCB's unspecified full hey is 16 beats.
+      expect(parse('Hey (WR;PL)')!.params['length'], 'full');
+      final defaultFull = parse('Hey (ML;NR;WL;PR;M ricochet;PR;WL)')!;
+      expect(defaultFull.params['length'], 'full');
+      expect(defaultFull.params['rico3'], true);
       // Unicode ½ folds to 1/2.
       expect(parse('Hey ½ (WR;PL)')!.params['length'], 'half');
     });
