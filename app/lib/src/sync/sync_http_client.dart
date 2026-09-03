@@ -92,7 +92,13 @@ class SyncHttpClient {
     if (maxRedirects < 0) {
       throw ArgumentError.value(maxRedirects, 'maxRedirects');
     }
+    if (maxRedirects > syncMaxRedirects) {
+      throw ArgumentError.value(maxRedirects, 'maxRedirects');
+    }
     if (maxResponseBytes <= 0) {
+      throw ArgumentError.value(maxResponseBytes, 'maxResponseBytes');
+    }
+    if (maxResponseBytes > syncMaxResponseBytes) {
       throw ArgumentError.value(maxResponseBytes, 'maxResponseBytes');
     }
   }

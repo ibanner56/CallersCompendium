@@ -138,6 +138,26 @@ void main() {
       );
     });
 
+    test('does not allow transport limits above protocol maxima', () {
+      final endpoint = Uri.parse('http://localhost/');
+      expect(
+        () => SyncHttpClient(
+          endpoint: endpoint,
+          syncId: 'one-two-three-four',
+          maxRedirects: syncMaxRedirects + 1,
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => SyncHttpClient(
+          endpoint: endpoint,
+          syncId: 'one-two-three-four',
+          maxResponseBytes: syncMaxResponseBytes + 1,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('aborts a gzip response exceeding the decompression ratio', () async {
       final compressed = gzip.encode(List<int>.filled(1024 * 1024, 0x61));
       var sentChunks = 0;

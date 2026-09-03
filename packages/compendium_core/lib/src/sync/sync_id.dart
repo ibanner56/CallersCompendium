@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:meta/meta.dart';
 import 'package:unorm_dart/unorm_dart.dart';
 
 import 'eff_long_wordlist.dart';
@@ -103,14 +104,24 @@ bool isValidSyncId(String value) {
 
 /// Generates a cryptographically random four-word EFF long-list ID.
 SyncId generateSyncId() {
-  final source = Random.secure();
-  final words = <String>[];
-  while (words.length < syncIdWordCount) {
-    final word = effLongWordlist[source.nextInt(effLongWordlist.length)];
-    if (word.contains('-')) continue;
-    words.add(word);
+  return _generateSyncId(Random.secure());
+}
+
+/// Deterministic source hook for package tests; intentionally not barrel-exported.
+@internal
+SyncId generateSyncIdFromRandom(Random source) => _generateSyncId(source);
+
+SyncId _generateSyncId(Random source) {
+  while (true) {
+    final words = <String>[];
+    while (words.length < syncIdWordCount) {
+      final word = effLongWordlist[source.nextInt(effLongWordlist.length)];
+      if (word.contains('-')) continue;
+      words.add(word);
+    }
+    final id = SyncId.parse(words.join('-'));
+    if (!id.isBelowStrengthWarning) return id;
   }
-  return SyncId.parse(words.join('-'));
 }
 
 /// Estimates the guess-rank strength of a structurally valid ID in bits.
