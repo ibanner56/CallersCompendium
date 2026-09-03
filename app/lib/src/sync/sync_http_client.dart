@@ -6,8 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
 import 'package:compendium_core/compendium_core.dart'
-    show SyncId, encodeSyncCredential;
-import 'package:compendium_core/compendium_core.dart' show normalizeSyncId;
+    show SyncId, encodeSyncCredential, normalizeSyncId;
 
 /// Maximum number of redirect hops followed by the sync client.
 const int syncMaxRedirects = 5;

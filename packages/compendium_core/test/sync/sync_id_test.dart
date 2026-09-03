@@ -57,6 +57,14 @@ void main() {
         estimateSyncIdStrengthBits('a-b-c-d'),
         lessThan(syncIdStrengthWarningBits),
       );
+      expect(
+        estimateSyncIdStrengthBits('aaa-aaa-aaa-aaa'),
+        lessThan(syncIdStrengthWarningBits),
+      );
+      expect(
+        estimateSyncIdStrengthBits('password-password-password-password'),
+        lessThan(syncIdStrengthWarningBits),
+      );
       expect(SyncId.parse('a-b-c-d').isBelowStrengthWarning, isTrue);
     });
   });

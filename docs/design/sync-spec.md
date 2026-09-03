@@ -344,12 +344,12 @@ nothing naming the property that makes them one set. The classification is where
 a second credential, if one is ever added, inherits all five instead of
 rediscovering them.
 
-Neither `protocolIdentifier` nor `accessControlData` is added to the Dart
-`EgressClass` enum by this design. Both are specified here and land with their
-first registry entry, which is **W5**'s: W5 owns `sync_id` and `sync_device_id`
-as persisted settings keys and therefore owns their classifications. An enum
-member with no entries is not exercised by the registry ratchets, so adding it
-early buys nothing and risks a member nothing checks.
+`protocolIdentifier` and `accessControlData` are represented by the Dart
+`EgressClass` enum. Their first registry entries land with **W5**:
+`sync_id` and `sync_device_id` are persisted settings keys, so W5 owns their
+classifications. The access-control value is persisted locally under that
+classification, while the server and any proxy must never retain it
+recoverably.
 
 The serialiser MUST filter by classification; the archive codec does not do this
 and MUST NOT be relied on for it. The registry uses snake_case `table.column`

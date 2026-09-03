@@ -183,7 +183,8 @@ enum EgressClass {
 
   /// A bearer credential that authorizes the request carrying it. It may travel
   /// only to the configured endpoint; the server and any proxy must never
-  /// retain it recoverably.
+  /// retain it recoverably. Local persistence is governed by the field's
+  /// storage classification.
   accessControlData,
 }
 

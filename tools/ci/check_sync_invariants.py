@@ -157,11 +157,11 @@ SYNC_ID_DEF_RE = re.compile(
     re.MULTILINE,
 )
 SYNC_ID_IMPORT_RE = re.compile(
-    r"^\s*import\s+[^;\n]*(?:normalizeSyncId|sync[_-]?normaliz)",
+    r"^\s*import\s+[^;]*(?:normalizeSyncId|sync[_-]?normaliz)",
     re.MULTILINE | re.IGNORECASE,
 )
 IMPORT_RE = re.compile(
-    r"^\s*import\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;\n]*)\s*;",
+    r"^\s*import\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;]*)\s*;",
     re.MULTILINE,
 )
 EXPORT_RE = re.compile(

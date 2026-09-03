@@ -109,19 +109,33 @@ SyncId generateSyncId([Random? random]) {
   return SyncId.parse(words.join('-'));
 }
 
-/// Estimates the strength of a structurally valid ID in bits.
+/// Estimates the guess-rank strength of a structurally valid ID in bits.
 ///
-/// This deliberately remains a warning-only heuristic. It is computed after
-/// normalization and is not used by [SyncId.parse] or [validateSyncId].
+/// This deliberately remains a warning-only heuristic. It is computed over the
+/// normalized whole ID, so repeated words do not receive independent entropy.
+/// It is not used by [SyncId.parse] or [validateSyncId].
 double estimateSyncIdStrengthBits(String value) {
   final normalized = normalizeSyncId(value);
   if (!isValidSyncId(normalized)) return 0;
+  final words = normalized.split('-');
+  final uniqueWords = words.toSet();
+  return uniqueWords
+      .map(_estimateWordGuessBits)
+      .fold<double>(0, (sum, bits) => sum + bits);
+}
+
+double _estimateWordGuessBits(String word) {
   const alphabetBits = 4.7;
   const maxWordBits = 13.0;
-  return normalized
-      .split('-')
-      .map((word) => min(maxWordBits, word.runes.length * alphabetBits))
-      .fold<double>(0, (sum, bits) => sum + bits);
+  final codePoints = word.runes.length;
+  final distinctCodePoints = word.runes.toSet().length;
+  final lengthBits = min(maxWordBits, codePoints * alphabetBits);
+
+  // A repeated character is cheap to guess regardless of its length. This
+  // keeps the meter useful for human-chosen words without rejecting them.
+  if (distinctCodePoints == 1) return min(2.0, lengthBits);
+  if (distinctCodePoints * 2 <= codePoints) return lengthBits * 0.65;
+  return lengthBits;
 }
 
 /// Encodes the normalized ID as an unpadded RFC 4648 base64url token.

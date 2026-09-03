@@ -35,7 +35,7 @@
     "Diceware sync ID and shared normalizer",
     "Unconditional base64url credential encoding and id_key definition",
     "Authenticated HTTP client with typed outcomes",
-    "Device-scoped endpoint, ID, and device settings"
+    "Sync identity and device settings"
   ],
   "pullRequests": [
     1157
