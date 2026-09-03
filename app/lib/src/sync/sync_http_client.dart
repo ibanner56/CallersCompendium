@@ -14,6 +14,15 @@ const int syncMaxRedirects = 5;
 /// Maximum uncompressed response body accepted by the client.
 const int syncMaxResponseBytes = 32 * 1024 * 1024;
 
+/// Maximum decoded manifest response body accepted by the client.
+const int syncMaxManifestResponseBytes = 16 * 1024 * 1024;
+
+/// Maximum decoded blob response body accepted by the client.
+const int syncMaxBlobResponseBytes = 1 * 1024 * 1024;
+
+/// Maximum time allowed for one sync request, including its response body.
+const Duration syncRequestTimeout = Duration(seconds: 30);
+
 /// The result category for one sync HTTP response.
 enum SyncResponseKind {
   success,
@@ -79,6 +88,16 @@ class SyncEndpointException implements Exception {
   String toString() => 'SyncEndpointException: $message';
 }
 
+/// Raised when a request cannot complete before its transport deadline.
+class SyncTransportException implements Exception {
+  const SyncTransportException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'SyncTransportException: $message';
+}
+
 /// An authenticated, endpoint-isolated HTTP client for Device Sync.
 class SyncHttpClient {
   SyncHttpClient({
@@ -86,6 +105,7 @@ class SyncHttpClient {
     required String syncId,
     this.maxRedirects = syncMaxRedirects,
     this.maxResponseBytes = syncMaxResponseBytes,
+    this.requestTimeout = syncRequestTimeout,
   }) : endpoint = validateSyncEndpoint(endpoint),
        _syncId = SyncId.parse(normalizeSyncId(syncId)),
        _client = _defaultClient() {
@@ -101,13 +121,19 @@ class SyncHttpClient {
     if (maxResponseBytes > syncMaxResponseBytes) {
       throw ArgumentError.value(maxResponseBytes, 'maxResponseBytes');
     }
+    if (requestTimeout <= Duration.zero ||
+        requestTimeout > syncRequestTimeout) {
+      throw ArgumentError.value(requestTimeout, 'requestTimeout');
+    }
   }
 
   final Uri endpoint;
   final int maxRedirects;
   final int maxResponseBytes;
+  final Duration requestTimeout;
   final SyncId _syncId;
-  final http.Client _client;
+  late http.Client _client;
+  var _isClosed = false;
 
   /// Sends a store lookup. This method never issues a creation request.
   Future<SyncStoreResult> getStore({required bool previouslyUsed}) async {
@@ -132,24 +158,24 @@ class SyncHttpClient {
         'GET',
         'manifests/${Uri.encodeComponent(deviceId)}',
         ifNoneMatch: etag,
+        maxDecodedBytes: min(maxResponseBytes, syncMaxManifestResponseBytes),
       );
 
   /// Publishes a manifest body with the JSON media type.
-  Future<SyncHttpResponse> putManifest(
-    String deviceId,
-    List<int> body, {
-    required String epoch,
-  }) => request(
-    'PUT',
-    'manifests/${Uri.encodeComponent(deviceId)}',
-    body: body,
-    contentType: 'application/json',
-    extraHeaders: {'X-Sync-Epoch': epoch},
-  );
+  Future<SyncHttpResponse> putManifest(String deviceId, List<int> body) =>
+      request(
+        'PUT',
+        'manifests/${Uri.encodeComponent(deviceId)}',
+        body: body,
+        contentType: 'application/json',
+      );
 
   /// Fetches one content-addressed blob.
-  Future<SyncHttpResponse> getBlob(String hash) =>
-      request('GET', 'blobs/${Uri.encodeComponent(hash)}');
+  Future<SyncHttpResponse> getBlob(String hash) => request(
+    'GET',
+    'blobs/${Uri.encodeComponent(hash)}',
+    maxDecodedBytes: min(maxResponseBytes, syncMaxBlobResponseBytes),
+  );
 
   /// Uploads one content-addressed blob without JSON encoding.
   Future<SyncHttpResponse> putBlob(String hash, List<int> body) => request(
@@ -171,26 +197,41 @@ class SyncHttpClient {
     String? contentType,
     String? ifNoneMatch,
     Map<String, String> extraHeaders = const {},
+    int? maxDecodedBytes,
   }) async {
+    final decodedLimit = maxDecodedBytes ?? maxResponseBytes;
+    if (decodedLimit <= 0 || decodedLimit > maxResponseBytes) {
+      throw ArgumentError.value(decodedLimit, 'maxDecodedBytes');
+    }
     final initial = _uri(relativePath);
     var current = initial;
+    var redirectMethod = method;
+    var redirectBody = body;
+    var redirectContentType = contentType;
+    var redirectHeaders = extraHeaders;
+    final deadline = DateTime.now().add(requestTimeout);
     for (var redirects = 0; ; redirects++) {
-      final request = http.Request(method, current)
+      final request = http.Request(redirectMethod, current)
         ..followRedirects = false
-        ..headers.addAll(extraHeaders);
+        ..headers.addAll(redirectHeaders);
       request.headers['Authorization'] =
           'Bearer ${encodeSyncCredential(_syncId.value)}';
-      if (contentType != null) request.headers['Content-Type'] = contentType;
+      if (redirectContentType != null) {
+        request.headers['Content-Type'] = redirectContentType;
+      }
       if (ifNoneMatch != null) request.headers['If-None-Match'] = ifNoneMatch;
-      if (body != null) request.bodyBytes = body;
+      if (redirectBody != null) request.bodyBytes = redirectBody;
 
-      final response = await _client.send(request);
+      final response = await _beforeDeadline(_client.send(request), deadline);
       if (!_isRedirect(response.statusCode)) {
-        return _readResponse(response);
+        return _beforeDeadline(_readResponse(response, decodedLimit), deadline);
       }
 
       try {
-        await _discardBoundedBody(response);
+        await _beforeDeadline(
+          _discardBoundedBody(response, decodedLimit),
+          deadline,
+        );
       } on SyncEndpointException {
         // diagnostics: silent — redirect response is discarded and surfaced as
         // a typed redirectRefused result.
@@ -236,12 +277,41 @@ class SyncHttpClient {
           body: const [],
         );
       }
+      if (_redirectChangesToGet(response.statusCode, redirectMethod)) {
+        redirectMethod = 'GET';
+        redirectBody = null;
+        redirectContentType = null;
+        redirectHeaders = const {};
+      }
       current = next;
     }
   }
 
   void close() {
+    _isClosed = true;
     _client.close();
+  }
+
+  Future<T> _beforeDeadline<T>(Future<T> operation, DateTime deadline) {
+    final remaining = deadline.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      _cancelTimedOutRequest();
+      return Future<T>.error(
+        const SyncTransportException('sync request timed out'),
+      );
+    }
+    return operation.timeout(
+      remaining,
+      onTimeout: () {
+        _cancelTimedOutRequest();
+        throw const SyncTransportException('sync request timed out');
+      },
+    );
+  }
+
+  void _cancelTimedOutRequest() {
+    _client.close();
+    if (!_isClosed) _client = _defaultClient();
   }
 
   Uri _uri(String relativePath) {
@@ -270,9 +340,18 @@ class SyncHttpClient {
     return uri.scheme.toLowerCase() == 'https' ? 443 : 80;
   }
 
-  Future<SyncHttpResponse> _readResponse(http.StreamedResponse response) async {
+  bool _redirectChangesToGet(int statusCode, String method) =>
+      method != 'HEAD' &&
+      (statusCode == HttpStatus.movedPermanently ||
+          statusCode == HttpStatus.found ||
+          statusCode == HttpStatus.seeOther);
+
+  Future<SyncHttpResponse> _readResponse(
+    http.StreamedResponse response,
+    int maxDecodedBytes,
+  ) async {
     final headers = Map<String, String>.unmodifiable(response.headers);
-    final body = await _readBoundedBody(response);
+    final body = await _readBoundedBody(response, maxDecodedBytes);
     return SyncHttpResponse(
       statusCode: response.statusCode,
       kind: _kindForStatus(response.statusCode),
@@ -282,18 +361,24 @@ class SyncHttpClient {
     );
   }
 
-  Future<List<int>> _readBoundedBody(http.StreamedResponse response) async {
+  Future<List<int>> _readBoundedBody(
+    http.StreamedResponse response,
+    int maxDecodedBytes,
+  ) async {
     final bytes = <int>[];
-    await _consumeBoundedBody(response, bytes.addAll);
+    await _consumeBoundedBody(response, bytes.addAll, maxDecodedBytes);
     return bytes;
   }
 
-  Future<void> _discardBoundedBody(http.StreamedResponse response) =>
-      _consumeBoundedBody(response, (_) {});
+  Future<void> _discardBoundedBody(
+    http.StreamedResponse response,
+    int maxDecodedBytes,
+  ) => _consumeBoundedBody(response, (_) {}, maxDecodedBytes);
 
   Future<void> _consumeBoundedBody(
     http.StreamedResponse response,
     void Function(List<int>) onChunk,
+    int maxDecodedBytes,
   ) async {
     final encoding = response.headers['content-encoding']?.toLowerCase();
     var compressedBytes = 0;
@@ -308,10 +393,10 @@ class SyncHttpClient {
     }
     await for (final chunk in decoded) {
       decodedBytes += chunk.length;
-      if (decodedBytes > maxResponseBytes ||
+      if (decodedBytes > maxDecodedBytes ||
           (encoding == 'gzip' &&
               decodedBytes >
-                  min(maxResponseBytes, max(1, compressedBytes * 10)))) {
+                  min(maxDecodedBytes, max(1, compressedBytes * 10)))) {
         throw const SyncEndpointException('sync response exceeds size limit');
       }
       onChunk(chunk);

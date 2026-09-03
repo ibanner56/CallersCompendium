@@ -112,6 +112,15 @@ void main() {
       }
     });
 
+    test('keeps decoded invalid IDs distinct from malformed credentials', () {
+      final decoded = decodeSyncCredential(
+        base64Url.encode(utf8.encode('one-two-three')).replaceAll('=', ''),
+      );
+
+      expect(decoded, 'one-two-three');
+      expect(() => SyncId.parse(decoded), throwsFormatException);
+    });
+
     test('derives the same key from equivalent normalized IDs', () {
       final pepper = List<int>.filled(32, 0x42);
 

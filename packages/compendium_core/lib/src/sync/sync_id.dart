@@ -161,6 +161,9 @@ String encodeSyncCredential(String syncId) {
 }
 
 /// Decodes and normalizes an unpadded base64url credential.
+///
+/// This validates only the wire encoding. Call [validateSyncId] separately to
+/// distinguish an unparseable credential from a decoded but invalid sync ID.
 String decodeSyncCredential(String credential) {
   if (credential.isEmpty ||
       !RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(credential) ||
@@ -171,9 +174,7 @@ String decodeSyncCredential(String credential) {
     final padding = (4 - credential.length % 4) % 4;
     final bytes = base64Url.decode('$credential${'=' * padding}');
     final decoded = utf8.decode(bytes, allowMalformed: false);
-    final normalized = normalizeSyncId(decoded);
-    validateSyncId(normalized);
-    return normalized;
+    return normalizeSyncId(decoded);
   } on FormatException {
     rethrow;
   } on Object {

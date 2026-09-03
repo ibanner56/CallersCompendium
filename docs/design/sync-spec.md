@@ -3127,6 +3127,10 @@ A hop failing any of these MUST be refused rather than followed, and the
 configured endpoint's. A client MAY instead refuse cross-origin redirects
 outright; it MUST NOT follow one while still carrying the credential.
 
+Each request MUST have a **30-second** cancellable deadline covering both the
+response-header wait and body consumption. A deadline expiry is a transient
+transport failure, not an HTTP response.
+
 **The origin rule is the load-bearing one.** The other four bound what a hop may
 look like; only this one bounds *where the sync ID can go*. A redirect chain
 that satisfies every cosmetic check and terminates at an attacker-controlled

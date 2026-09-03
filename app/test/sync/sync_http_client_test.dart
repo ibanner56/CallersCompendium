@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
@@ -158,6 +159,84 @@ void main() {
       );
     });
 
+    test(
+      'cancels stalled header and body waits at the request deadline',
+      () async {
+        var requests = 0;
+        final holdFirstResponse = Completer<void>();
+        final holdSecondResponse = Completer<void>();
+        final server = await _startServer((request) async {
+          requests++;
+          if (requests == 1) {
+            await holdFirstResponse.future;
+            return;
+          }
+          request.response.add([0x61]);
+          await request.response.flush();
+          await holdSecondResponse.future;
+        });
+        addTearDown(() {
+          holdFirstResponse.complete();
+          holdSecondResponse.complete();
+          return server.close(force: true);
+        });
+
+        final client = SyncHttpClient(
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+          syncId: 'one-two-three-four',
+          requestTimeout: const Duration(milliseconds: 50),
+        );
+        addTearDown(client.close);
+
+        await expectLater(
+          client.getStore(previouslyUsed: false),
+          throwsA(isA<SyncTransportException>()),
+        );
+        await expectLater(
+          client.getStore(previouslyUsed: false),
+          throwsA(isA<SyncTransportException>()),
+        );
+        expect(requests, 2);
+      },
+    );
+
+    test('enforces the absolute decoded response-size cap', () async {
+      var sentChunks = 0;
+      final chunks = [
+        for (var offset = 0; offset < 1024; offset += 8)
+          List<int>.filled(min(8, 1024 - offset), 0x61),
+      ];
+      final server = await _startServer((request) async {
+        request.response.bufferOutput = false;
+        try {
+          for (final chunk in chunks) {
+            request.response.add(chunk);
+            await request.response.flush();
+            sentChunks++;
+            await Future<void>.delayed(const Duration(milliseconds: 1));
+          }
+          await request.response.close();
+        } on IOException {
+          // The client canceled the response after the limit was exceeded.
+        }
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+        maxResponseBytes: 100,
+      );
+      addTearDown(client.close);
+
+      await expectLater(
+        client.request('GET', 'store'),
+        throwsA(isA<SyncEndpointException>()),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(sentChunks, lessThan(chunks.length));
+    });
+
     test('aborts a gzip response exceeding the decompression ratio', () async {
       final compressed = gzip.encode(List<int>.filled(1024 * 1024, 0x61));
       var sentChunks = 0;
@@ -194,6 +273,65 @@ void main() {
       );
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(sentChunks, lessThan(chunks.length));
+    });
+
+    test('refuses a same-origin redirect loop at the hop limit', () async {
+      var requests = 0;
+      final server = await _startServer((request) async {
+        requests++;
+        request.response
+          ..statusCode = HttpStatus.found
+          ..headers.set('location', '/v1/store');
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+        maxRedirects: 2,
+      );
+      addTearDown(client.close);
+
+      final result = await client.getStore(previouslyUsed: false);
+
+      expect(result.response.kind, SyncResponseKind.redirectRefused);
+      expect(requests, 3);
+    });
+
+    test('follows a POST 303 with a GET and no request body', () async {
+      final methods = <String>[];
+      final bodies = <List<int>>[];
+      final server = await _startServer((request) async {
+        methods.add(request.method);
+        bodies.add(
+          await request.fold(<int>[], (bytes, chunk) => bytes..addAll(chunk)),
+        );
+        if (methods.length == 1) {
+          request.response
+            ..statusCode = HttpStatus.seeOther
+            ..headers.set('location', '/v1/store-result');
+        } else {
+          request.response.statusCode = HttpStatus.ok;
+        }
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final result = await client.request('POST', 'store', body: [1, 2, 3]);
+
+      expect(result.kind, SyncResponseKind.success);
+      expect(methods, ['POST', 'GET']);
+      expect(bodies, [
+        [1, 2, 3],
+        <int>[],
+      ]);
     });
   });
 
@@ -308,5 +446,54 @@ void main() {
         'Bearer ${encodeSyncCredential('one-two-three-four')}',
       );
     });
+
+    test('carries the manifest epoch only in its body', () async {
+      final requests = <HttpRequest>[];
+      final server = await _startServer((request) async {
+        requests.add(request);
+        request.response.statusCode = HttpStatus.noContent;
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      await client.putManifest('device', utf8.encode('{"epoch":"epoch-1"}'));
+
+      expect(requests.single.headers.value('x-sync-epoch'), isNull);
+    });
+
+    test(
+      'enforces manifest and blob response limits before allocation',
+      () async {
+        final server = await _startServer((request) async {
+          final limit = request.uri.path.contains('/manifests/')
+              ? syncMaxManifestResponseBytes
+              : syncMaxBlobResponseBytes;
+          request.response.add(List<int>.filled(limit + 1, 0x61));
+          await request.response.close();
+        });
+        addTearDown(() => server.close(force: true));
+
+        final client = SyncHttpClient(
+          endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+          syncId: 'one-two-three-four',
+        );
+        addTearDown(client.close);
+
+        await expectLater(
+          client.getManifest('device'),
+          throwsA(isA<SyncEndpointException>()),
+        );
+        await expectLater(
+          client.getBlob('hash'),
+          throwsA(isA<SyncEndpointException>()),
+        );
+      },
+    );
   });
 }
