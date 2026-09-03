@@ -670,7 +670,7 @@ test catches, not whether undoing your own work reddens it.
 
 ## 15. Current state and known debt
 
-- **996 tests green; `analyze` clean; `format` clean.**
+- **1,003 tests green; `analyze` clean; `format` clean.**
 - **46 figures registered**, plus 3 upstream aliases resolved to them.
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
@@ -698,6 +698,13 @@ test catches, not whether undoing your own work reddens it.
   the imported record's `length: half` was wrong for a sixteen-beat, seven-pass
   hey and was corrected to `full`; and the `pass2` anchor was being read as the
   ends pair, which is what §8 now records as a misreading of upstream's comment.
+  The first of those has since been fixed at the source — `compendium_core`
+  #1159 changed the import dialect so an unqualified `Hey (...)` reads as
+  `full` rather than `half` — so the fixture's corrected value is now what a
+  fresh import would produce, and the correction is no longer a divergence from
+  the adapter. (The *taxonomy's* `length` default is still `half`; that is the
+  schema's answer for a param nobody stated, which is a different question from
+  how TCB's prose reads.)
 - **Deferred, with worked examples still needed** (Held table): `promenade`,
   `butterfly_whirl`, `arch_and_dive` (progression half only), `revolving_door`,
   `slice`, `contra_corners`, `dolphin_hey`, `orbit` couple-`who` (the
@@ -739,13 +746,27 @@ see §12). Numbers move as figures land — re-measure rather than cite these.
 - **Fewer than half the files are dances.** 9,017 are empty and 3,591 contain a
   bare `NaN`, which is the Caller's Box API's answer for a dance it will not
   serve. That leaves **11,499 real dances**.
-- **Most are lost upstream, not here.** 6,571 — **57%** of the real dances —
+- **Most are lost upstream, not here.** 6,490 — **56%** of the real dances —
   arrive with at least one figure left as free text, so the compiler never sees
   them. Raising the ceiling on this project is upstream recognition work far
   more than it is figure work.
-- Of the 3,516 the compiler attempted, **1,606 compiled (45.7%)** — of which 215
-  are owed to the `nextNeighbors` retry described in §10.1, which lifted the rate
-  from 39.6%. Those 215 came out of `figureRefused` (198) and `mismatch` (17).
+- Of the 3,574 the compiler attempted, **1,950 compiled (54.6%)**. The rate has
+  moved twice: the `nextNeighbors` retry described in §10.1 took it from 39.6%
+  to 45.7% (+215, drawn from `figureRefused` 198 and `mismatch` 17), and then
+  merging `compendium_core` `main` plus the side-opening hey took it to 54.6%
+  (+344). **That +344 was attributed by measurement rather than assumed.**
+  Re-running the sweep with the side-opening recognition forced off gives 1,917,
+  so the hey work is worth **+33 compiled** — it also moved 10 dances from
+  refusal to mismatch, and 43 out of `figureRefused` altogether. The other
+  **+311 is upstream**: #1159 changed the import dialect so an unqualified
+  `Hey (...)` reads as `full`, and #1156 corrected the `form_short_waves`
+  centre hand.
+- **The dialect fix mattered far more than its one-line diff suggests.** Of the
+  1,393 bare `Hey (...)` lines in the corpus, **1,390 state seven or more
+  passes** — they are full heys — and every one of them used to import as
+  `half`. Only 162 hey lines anywhere carry an explicit fraction. A full hey is
+  a positional identity and a half hey is not, so this was not a coverage
+  problem alone: it silently applied the wrong figure.
 - **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
@@ -759,13 +780,17 @@ see §12). Numbers move as figures land — re-measure rather than cite these.
   **diagonal `right_left_through` is the highest-value unblock** — it also gates
   the hey diagonals.
 - **The assumed-progression rule's cost was measured, and it is a minority
-  one.** Every one of the 3,516 attempted dances was recompiled with each figure
+  one.** ⚠️ *Measured at the 3,516-attempted / 1,606-compiled baseline, before
+  the core merge; the shape of the finding survives but the absolute figures do
+  not.* Every one of the 3,516 attempted dances was recompiled with each figure
   flagged in turn. The positional placement landed for 1,391; a *different*
   placement landed for **416** where it did not; and **1,709 compiled under no
-  placement at all**. So a perfect oracle would reach about 51%, and half the
-  failures are genuine geometry. This refuted a plausible earlier reading — that
-  the large `whoMismatch` bucket was mostly progression misplacement measured
-  from a wrong baseline.
+  placement at all**. So a perfect oracle would have reached about 51% *at that
+  baseline* — the compiler has since passed that figure by other means, which
+  is the point: the ceiling the probe measured was a ceiling on progression
+  placement, not on the compiler. Half the failures were genuine geometry. This
+  refuted a plausible earlier reading — that the large `whoMismatch` bucket was
+  mostly progression misplacement measured from a wrong baseline.
 - **The `nextNeighbors` retry captures 215 of those 416**, a little over half,
   without searching. The remainder are spread thinly: among the 416, the
   progression belongs mid-dance far more often than at either end, and the move
