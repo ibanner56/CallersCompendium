@@ -593,6 +593,37 @@ void main() {
       expect(yielded, 1);
     },
   );
+
+  test(
+    'escaped duplicate hashes keys are rejected before later chunks are read',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> duplicateHashes() async* {
+        yielded++;
+        yield Uint8List.fromList(utf8.encode(r'{"hashes":[],"hash\u0065s":['));
+        yielded++;
+        yield Uint8List.fromList(utf8.encode('0' * (maxMissingHashes + 1)));
+      }
+
+      final response = await app.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/blobs/missing'),
+          headers: {
+            'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+            'content-type': 'application/json',
+          },
+          body: duplicateHashes(),
+        ),
+      );
+      expect(response.statusCode, 400);
+      expect(yielded, 1);
+    },
+  );
 }
 
 extension on HttpClientResponse {

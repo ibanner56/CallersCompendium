@@ -506,6 +506,8 @@ class _MissingHashScanner {
   var _stringIsKey = false;
   var _keyAscii = true;
   var _key = StringBuffer();
+  var _keyUnicodeDigits = 0;
+  var _keyUnicodeValue = 0;
   var _pendingHashesKey = false;
   var _seenHashesKey = false;
   var _expectingHashValue = false;
@@ -547,9 +549,38 @@ class _MissingHashScanner {
   }
 
   void _consumeStringByte(int byte) {
+    if (_keyUnicodeDigits > 0) {
+      final digit = _hexDigit(byte);
+      if (digit < 0) {
+        _keyAscii = false;
+        _keyUnicodeDigits = 0;
+        return;
+      }
+      _keyUnicodeValue = (_keyUnicodeValue << 4) | digit;
+      _keyUnicodeDigits--;
+      if (_keyUnicodeDigits == 0) {
+        _appendDecodedKeyChar(_keyUnicodeValue);
+      }
+      return;
+    }
     if (_escaped) {
       _escaped = false;
-      _keyAscii = false;
+      if (_stringIsKey) {
+        if (byte == 0x75) {
+          _keyUnicodeDigits = 4;
+          _keyUnicodeValue = 0;
+        } else {
+          switch (byte) {
+            case 0x22:
+            case 0x2f:
+            case 0x5c:
+              _key.writeCharCode(byte);
+              break;
+            default:
+              _keyAscii = false;
+          }
+        }
+      }
       return;
     }
     if (byte == 0x5c) {
@@ -575,6 +606,21 @@ class _MissingHashScanner {
     }
   }
 
+  void _appendDecodedKeyChar(int charCode) {
+    if (charCode > 0x7f || charCode < 0x20) {
+      _keyAscii = false;
+    } else {
+      _key.writeCharCode(charCode);
+    }
+  }
+
+  static int _hexDigit(int byte) {
+    if (byte >= 0x30 && byte <= 0x39) return byte - 0x30;
+    if (byte >= 0x41 && byte <= 0x46) return byte - 0x41 + 10;
+    if (byte >= 0x61 && byte <= 0x66) return byte - 0x61 + 10;
+    return -1;
+  }
+
   void _startString() {
     _inString = true;
     _escaped = false;
@@ -584,6 +630,8 @@ class _MissingHashScanner {
         _contexts.last.expectingKey;
     _keyAscii = true;
     _key = StringBuffer();
+    _keyUnicodeDigits = 0;
+    _keyUnicodeValue = 0;
     _startHashValue();
   }
 
