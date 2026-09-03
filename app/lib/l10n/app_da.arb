@@ -3460,6 +3460,58 @@
   "@exportShareProgramJson": {
     "x-sourceSha256": "ca5ee6339b52619e756521f9a2fb118cf0180e677fecf93134e7cff9d21a2c56"
   },
+  "exportJsonDialogTitle": "Eksportér JSON",
+  "@exportJsonDialogTitle": {
+    "x-sourceSha256": "ff25653ee9e47f2a68ebc26cc2431ae8edc54c7b8305d1283357c64ae7cfb087"
+  },
+  "exportJsonDialogMessage": "Vælg, hvordan denne JSON-fil skal leveres.",
+  "@exportJsonDialogMessage": {
+    "x-sourceSha256": "66fb82a14bf9e6f1cb38d2b337866225990ee2409e525be8b42155155074be38"
+  },
+  "exportJsonSave": "Gem",
+  "@exportJsonSave": {
+    "x-sourceSha256": "1509f561f2416598629b886ad7d3c05a7e221e4e0675c84bbff4ee6d9e03913d"
+  },
+  "exportJsonCopy": "Kopiér rå JSON",
+  "@exportJsonCopy": {
+    "x-sourceSha256": "b84951fe170acdb2e7250f6da76f0ce5e3e11e2d75d7c3a85e126614c469c428"
+  },
+  "exportJsonShare": "Del",
+  "@exportJsonShare": {
+    "x-sourceSha256": "29887a5ff9846ccc23327565a07e17fa6dcaea6211f1898ae825f84ae38f4223"
+  },
+  "exportJsonCancel": "Annuller",
+  "@exportJsonCancel": {
+    "x-sourceSha256": "19766ed6ccb2f4a32778eed80d1928d2c87a18d7c275ccb163ec6709d3eb2e27"
+  },
+  "exportJsonCopied": "JSON kopieret til udklipsholderen.",
+  "@exportJsonCopied": {
+    "x-sourceSha256": "d9814e4e8f9d7701928f694eace852e1ad1c2a6128ed7780d0480cc5d6e5858f"
+  },
+  "exportJsonSaved": "\"{fileName}\" gemt.",
+  "@exportJsonSaved": {
+    "x-sourceSha256": "f4b1e3424a0a122b103d8c5432e17d716a4fa549ff7aebe828aab898feef6bf6"
+  },
+  "exportJsonSavedGeneric": "JSON-fil gemt.",
+  "@exportJsonSavedGeneric": {
+    "x-sourceSha256": "1e704d84de560410ab7df1e301c5c801ba4cb9737b1c50e5035aea28a3332391"
+  },
+  "exportJsonSavedTo": "\"{fileName}\" gemt i {destination}.",
+  "@exportJsonSavedTo": {
+    "x-sourceSha256": "9690800e4667ee82849220789d0aec9e12689716721d794acc087d5e47e45987"
+  },
+  "exportJsonSaveError": "Denne JSON-fil kunne ikke gemmes.",
+  "@exportJsonSaveError": {
+    "x-sourceSha256": "cd336815e788ba6ab889976444cec7a6843ba0f3be2c3457e64534311ec1eec5"
+  },
+  "exportJsonCopyError": "Denne JSON kunne ikke kopieres.",
+  "@exportJsonCopyError": {
+    "x-sourceSha256": "159ab339dfb1438dbe333d8dcc696d0419c15b5ec9927adc1979470fc77c45dc"
+  },
+  "exportJsonShareError": "Denne JSON-fil kunne ikke deles.",
+  "@exportJsonShareError": {
+    "x-sourceSha256": "e2711d9c115c07956febe653b88e38d1f556475549b928245ac1d3c16668abb9"
+  },
   "exportShareSetListError": "Kunne ikke dele denne sætliste",
   "@exportShareSetListError": {
     "x-sourceSha256": "eca98fb71a1d0f8be402ff1f37e099cb659c71b411cba34baef5d6285c233297"

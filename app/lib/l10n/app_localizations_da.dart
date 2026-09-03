@@ -3313,6 +3313,50 @@ class AppLocalizationsDa extends AppLocalizations {
   String get exportShareProgramJson => 'Eksportér som JSON-fil';
 
   @override
+  String get exportJsonDialogTitle => 'Eksportér JSON';
+
+  @override
+  String get exportJsonDialogMessage =>
+      'Vælg, hvordan denne JSON-fil skal leveres.';
+
+  @override
+  String get exportJsonSave => 'Gem';
+
+  @override
+  String get exportJsonCopy => 'Kopiér rå JSON';
+
+  @override
+  String get exportJsonShare => 'Del';
+
+  @override
+  String get exportJsonCancel => 'Annuller';
+
+  @override
+  String get exportJsonCopied => 'JSON kopieret til udklipsholderen.';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\" gemt.';
+  }
+
+  @override
+  String get exportJsonSavedGeneric => 'JSON-fil gemt.';
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\" gemt i $destination.';
+  }
+
+  @override
+  String get exportJsonSaveError => 'Denne JSON-fil kunne ikke gemmes.';
+
+  @override
+  String get exportJsonCopyError => 'Denne JSON kunne ikke kopieres.';
+
+  @override
+  String get exportJsonShareError => 'Denne JSON-fil kunne ikke deles.';
+
+  @override
   String get exportShareSetListError => 'Kunne ikke dele denne sætliste';
 
   @override

@@ -1000,6 +1000,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                   key: ValueKey('picker-tile-${entry.dance.id}'),
                   entry: entry,
                   onTap: () => _handleAdd(entry.dance.id),
+                  showChevron: false,
                 ),
               ),
               // Persistent in-program marker: visible whenever the dance

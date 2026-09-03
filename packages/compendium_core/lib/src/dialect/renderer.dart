@@ -1295,7 +1295,7 @@ class FigureRenderer {
     if (endFacing is! String || !_swingRenderedEndFacings.contains(endFacing)) {
       return '';
     }
-    return ' facing ${_gateFacingPhrase(endFacing)}';
+    return ', end facing ${_gateFacingPhrase(endFacing)}';
   }
 
   /// ContraDB `libfigure` down/up-the-hall ender wording
@@ -1441,6 +1441,55 @@ class FigureRenderer {
         'move': move,
         'end_facing': _swingEndFacingClause(params['endFacing']),
       }, '{who} {prefix} {move}{end_facing}');
+    },
+    // Give-and-take's `give` flag changes the spoken move name. The canonical
+    // template keeps the full "give & take" vocabulary; display omits "give &"
+    // for take-only figures.
+    'give_and_take': (r, def, params, dialect, verbose, decimals) {
+      final who = r._subjectWho(params, dialect);
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final verb = params['give'] == false ? 'take' : move;
+      final whom = r._displaySubject(params['whom'], dialect);
+      return _displayTemplate({
+        'who': who,
+        'move': move,
+        'verb': verb,
+        'whom': whom,
+      }, '{who} {verb} {whom}');
+    },
+    // ContraDB's figure-eight wording puts the fraction before the move and
+    // expands above/below into the direction plus the opposite pair.
+    'figure_8': (r, def, params, dialect, verbose, decimals) {
+      final who = r._subjectWho(params, dialect);
+      final half = r._renderValue(
+        'half',
+        params['half'],
+        def.params['half'],
+        dialect,
+        verbose,
+        decimals,
+        false,
+      );
+      final move = r._renderMoveName(def.id, def.displayName, params, dialect);
+      final direction = params['dir'];
+      final directionWho = params['who'] ?? def.params['who']?.defaultValue;
+      final directionClause = switch (direction) {
+        'above' => 'up between ${r._invertPair(directionWho, dialect)}',
+        'below' => 'down between ${r._invertPair(directionWho, dialect)}',
+        'across' => 'across',
+        null || 'none' || ParamVocab.unspecified => '',
+        _ => _displayChoice(direction),
+      };
+      final lead = params['lead'] == 'onesRole2'
+          ? ''
+          : r._displaySubject(params['lead'], dialect);
+      return _displayTemplate({
+        'who': who,
+        'half': half,
+        'move': move,
+        'direction': directionClause,
+        'lead': lead.isEmpty ? '' : '$lead leading',
+      }, '{who} {half} {move} {direction}[, {lead}]');
     },
     // The unified gate (taxonomy v22 — was ContraDB `gate` + TCB
     // `rotation_gate`). Word order, preserved from both predecessors:
@@ -1712,8 +1761,9 @@ class FigureRenderer {
     // is NOT baked in here — it is composed by `renderSummary` via
     // [_balancePlacement]`[box_circulate] = leading` (PR2's default-shown-balance
     // handling), so `render()` shows the bare "box circulate - … cross while …
-    // loop right" and only the summary prepends "balance &". `who` (partners)
-    // is outside ContraDB's invert domain, so the loop pair renders "others"
+    // loop right" and only the summary prepends "balance &". `who` defaults to
+    // role2s, so the loop pair renders role1s. An explicitly authored partners
+    // subject remains outside the invert domain and renders "others"
     // (ContraDB's own empty-subject fallback).
     'box_circulate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
@@ -2123,7 +2173,7 @@ class FigureRenderer {
     // "our extensions/splits — leave as-is"), so the leading phrase is fixed
     // PRODUCT wording that intentionally diverges from the byte-stable canonical
     // (`form short waves` / `pass the ocean`). Center hand = the `centerHand`
-    // param (default 'right'); side hand = its OPPOSITE (right<->left), mirroring
+    // param (default 'left'); side hand = its OPPOSITE (right<->left), mirroring
     // ContraDB's `sside_hand = stringParamHand(!center_hand)` derivation — never
     // hardcoded, so display tracks the data. Unknown/`*` centerHand best-effort
     // humanizes (never blank-drops, no dangling connective). v21 (#296) appends

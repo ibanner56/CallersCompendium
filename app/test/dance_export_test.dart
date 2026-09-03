@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
+import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -197,6 +198,9 @@ void main() {
                     return XFile('/tmp/$fileName');
                   },
                   shareInvoker: (params) async => shared.add(params),
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => JsonExportChoice.share,
+                  ),
                 ),
               ],
             ),
@@ -356,6 +360,41 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text("Couldn't share this dance"), findsOneWidget);
+    });
+
+    testWidgets('guards JSON export when a referenced tag is missing', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: _dance().copyWith(tagIds: const ['missing-tag']),
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => JsonExportChoice.copy,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export dance as JSON'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't share this JSON file."), findsOneWidget);
     });
 
     testWidgets('share receives a non-null sharePositionOrigin', (

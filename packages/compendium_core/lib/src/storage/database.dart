@@ -234,6 +234,12 @@ const String promenadeTurnCircleWordingCanonicalRebuildDoneKey =
 const String compactDosidoSeesawCanonicalRebuildDoneKey =
     '__compact_dosido_seesaw_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed by taxonomy v33.
+/// The v33 defaults and figure-eight canonical template change effective
+/// canonical text for existing figures without rewriting their source JSON.
+const String taxonomyV33CanonicalRebuildDoneKey =
+    '__taxonomy_v33_canonical_rebuild_done__';
+
 /// Settings marker containing the shareable-text normalization algorithm and
 /// exact scope that has been backfilled successfully.
 const String shareableTextNormalisationScopeKey =

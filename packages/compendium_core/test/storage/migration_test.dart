@@ -21,7 +21,10 @@ import 'dart:io';
 
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
-    show VenueProvenanceCompanion, VenuesCompanion;
+    show
+        VenueProvenanceCompanion,
+        VenuesCompanion,
+        taxonomyV33CanonicalRebuildDoneKey;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -137,6 +140,133 @@ void main() {
 
       await db.close();
     });
+  });
+
+  group('taxonomy v33 canonical rebuild', () {
+    test(
+      'normalizes legacy assumed subjects and refreshes effective defaults',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        await repos.dances.create(
+          Dance(
+            id: 'v33-canonical',
+            title: 'v33 canonical',
+            figures: [
+              Figure(
+                move: 'box_circulate',
+                params: {'who': 'partners'},
+                assumedSubject: true,
+              ),
+              Figure(move: 'figure_8'),
+              Figure(move: 'box_circulate', params: {'who': 'partners'}),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+
+        final beforeJson =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable.withString('v33-canonical')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(beforeJson, contains('"assumedSubject":true'));
+        expect(beforeJson, contains('"who":"partners"'));
+        for (final key in [
+          purgeCorruptionRepairDoneKey,
+          inversePairNormalisationDoneKey,
+          starPromenadeHandRemovalDoneKey,
+          gripSingleFileCanonicalInclusionDoneKey,
+          promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+          compactDosidoSeesawCanonicalRebuildDoneKey,
+          chainHandBackfillDoneKey,
+        ]) {
+          await repos.settings.set(key, 'done');
+        }
+        await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = CASE idx '
+          'WHEN 0 THEN ? WHEN 1 THEN ? WHEN 2 THEN ? END WHERE dance_id = ?',
+          variables: [
+            Variable.withString('partners box circulate'),
+            Variable.withString('ones figure 8 half'),
+            Variable.withString('partners box circulate'),
+            Variable.withString('v33-canonical'),
+          ],
+          updates: {db.danceFigures},
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable.withString(
+              'partners box circulate ones figure 8 half partners box circulate',
+            ),
+            Variable.withString('v33-canonical'),
+          ],
+        );
+        final marker = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ?',
+              variables: [
+                Variable.withString(taxonomyV33CanonicalRebuildDoneKey),
+              ],
+            )
+            .get();
+        expect(marker, isEmpty);
+
+        await repos.ensureMigrated();
+
+        final rows = await db
+            .customSelect(
+              'SELECT idx, canonical_text FROM dance_figures '
+              'WHERE dance_id = ? ORDER BY idx',
+              variables: [Variable.withString('v33-canonical')],
+            )
+            .get();
+        expect(rows.map((row) => row.read<String>('canonical_text')).toList(), [
+          'role2s box circulate',
+          'ones half figure 8',
+          'partners box circulate',
+        ]);
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable.withString('v33-canonical')],
+            )
+            .getSingle();
+        expect(
+          fts.read<String>('figures_text'),
+          'role2s box circulate ones half figure 8 partners box circulate',
+        );
+        final afterJson =
+            (await db
+                    .customSelect(
+                      'SELECT figures_json FROM dances WHERE id = ?',
+                      variables: [Variable.withString('v33-canonical')],
+                    )
+                    .getSingle())
+                .read<String>('figures_json');
+        expect(afterJson, isNot(beforeJson));
+        expect(afterJson, isNot(contains('"assumedSubject":true')));
+        expect(afterJson, contains('"who":"partners"'));
+
+        final completed = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ?',
+              variables: [
+                Variable.withString(taxonomyV33CanonicalRebuildDoneKey),
+              ],
+            )
+            .getSingle();
+        expect(completed.read<String>('value_json'), '"done"');
+      },
+    );
   });
 
   group('purge-corruption repair (#429/#466)', () {

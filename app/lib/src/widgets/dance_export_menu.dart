@@ -11,6 +11,7 @@ import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
 import '../utils/safe_name.dart';
 import '../export/dance_share_bundle.dart';
+import '../export/json_export.dart';
 import '../export/share_file.dart';
 
 /// Actions offered by the [DanceExportMenu].
@@ -60,6 +61,7 @@ class DanceExportMenu extends StatelessWidget {
     this.shareInvoker,
     this.bundleFileWriter,
     this.pdfLayouter,
+    this.jsonExportDelivery,
   });
 
   final Dance dance;
@@ -82,6 +84,10 @@ class DanceExportMenu extends StatelessWidget {
 
   /// Test seam for the print/save call; defaults to [Printing.layoutPdf].
   final PdfLayouter? pdfLayouter;
+
+  /// Shared JSON delivery seam. When absent, the legacy share/file seams above
+  /// are used for Share while Save, Copy, and the choice dialog use defaults.
+  final JsonExportDelivery? jsonExportDelivery;
 
   String _plainText(AppLocalizations l10n) => danceToPlainText(
     dance,
@@ -116,6 +122,21 @@ class DanceExportMenu extends StatelessWidget {
     Rect? origin, {
     String extension = danceShareBundleExtension,
   }) async {
+    final bundle = _buildBundle(extension: extension);
+    final writeFile = bundleFileWriter ?? writeBundleTempFile;
+    final xfile = await writeFile(bundle.json, bundle.fileName);
+    final share = shareInvoker ?? SharePlus.instance.share;
+    await share(
+      ShareParams(
+        files: [xfile],
+        fileNameOverrides: [bundle.fileName],
+        subject: dance.title,
+        sharePositionOrigin: origin,
+      ),
+    );
+  }
+
+  ({String json, String fileName}) _buildBundle({required String extension}) {
     final json = buildDanceShareBundle(
       dance,
       choreographerFor: (id) => choreographersById[id],
@@ -127,17 +148,65 @@ class DanceExportMenu extends StatelessWidget {
       dance.title,
       extension: extension,
     );
-    final writeFile = bundleFileWriter ?? writeBundleTempFile;
-    final xfile = await writeFile(json, fileName);
-    final share = shareInvoker ?? SharePlus.instance.share;
-    await share(
-      ShareParams(
-        files: [xfile],
-        fileNameOverrides: [fileName],
-        subject: dance.title,
-        sharePositionOrigin: origin,
-      ),
+    return (json: json, fileName: fileName);
+  }
+
+  JsonExportDelivery get _jsonDelivery {
+    final delivery = jsonExportDelivery;
+    if (delivery == null) {
+      return JsonExportDelivery(
+        shareInvoker: shareInvoker,
+        bundleFileWriter: bundleFileWriter,
+      );
+    }
+    return JsonExportDelivery(
+      choicePicker: delivery.choicePicker,
+      saveInvoker: delivery.saveInvoker,
+      clipboardWriter: delivery.clipboardWriter,
+      shareInvoker: delivery.shareInvoker ?? shareInvoker,
+      bundleFileWriter: delivery.bundleFileWriter ?? bundleFileWriter,
     );
+  }
+
+  Future<void> _exportJson(BuildContext context, Rect? origin) async {
+    final bundle = _buildBundle(extension: danceShareJsonExtension);
+    final delivery = _jsonDelivery;
+    final choice = await delivery.choose(context);
+    if (choice == null || !context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    switch (choice) {
+      case JsonExportChoice.save:
+        await _guard(messenger, l10n.exportJsonSaveError, () async {
+          final result = await delivery.save(bundle.json, bundle.fileName);
+          if (result == null || !context.mounted) return;
+          final message = result.fileName == null
+              ? l10n.exportJsonSavedGeneric
+              : result.path.isEmpty
+              ? l10n.exportJsonSaved(result.fileName!)
+              : l10n.exportJsonSavedTo(result.fileName!, result.path);
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        });
+      case JsonExportChoice.copy:
+        await _guard(messenger, l10n.exportJsonCopyError, () async {
+          await delivery.copy(bundle.json);
+          if (context.mounted) {
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.exportJsonCopied)),
+            );
+          }
+        });
+      case JsonExportChoice.share:
+        await _guard(messenger, l10n.exportJsonShareError, () {
+          return delivery.share(
+            json: bundle.json,
+            fileName: bundle.fileName,
+            subject: dance.title,
+            sharePositionOrigin: origin,
+          );
+        });
+    }
   }
 
   Future<void> _exportPdf(AppLocalizations l10n) async {
@@ -187,8 +256,8 @@ class DanceExportMenu extends StatelessWidget {
       case _ExportAction.shareJson:
         await _guard(
           messenger,
-          l10n.exportShareDanceError,
-          () => _shareBundle(origin, extension: danceShareJsonExtension),
+          l10n.exportJsonShareError,
+          () => _exportJson(context, origin),
         );
       case _ExportAction.pdf:
         await _guard(messenger, l10n.exportDanceError, () => _exportPdf(l10n));

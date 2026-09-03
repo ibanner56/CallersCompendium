@@ -4418,6 +4418,74 @@
   "@exportShareProgramJson": {
     "description": "Program export-menu item: share the program and its dances as a plain .json file, the same content as the .ccshare bundle but in a format any device can open."
   },
+  "exportJsonDialogTitle": "Export JSON",
+  "@exportJsonDialogTitle": {
+    "description": "Title of the dialog shown before delivering a canonical dance or program JSON export."
+  },
+  "exportJsonDialogMessage": "Choose how to deliver this JSON file.",
+  "@exportJsonDialogMessage": {
+    "description": "Message in the JSON export delivery-choice dialog."
+  },
+  "exportJsonSave": "Save",
+  "@exportJsonSave": {
+    "description": "JSON export delivery-choice button that opens a native file-save flow."
+  },
+  "exportJsonCopy": "Copy raw JSON",
+  "@exportJsonCopy": {
+    "description": "JSON export delivery-choice button that copies the exact canonical JSON string."
+  },
+  "exportJsonShare": "Share",
+  "@exportJsonShare": {
+    "description": "JSON export delivery-choice button that invokes the existing OS share flow."
+  },
+  "exportJsonCancel": "Cancel",
+  "@exportJsonCancel": {
+    "description": "JSON export delivery-choice button that produces no output."
+  },
+  "exportJsonCopied": "JSON copied to clipboard.",
+  "@exportJsonCopied": {
+    "description": "Snackbar confirming that the exact JSON export string was copied."
+  },
+  "exportJsonSaved": "\"{fileName}\" saved.",
+  "@exportJsonSaved": {
+    "description": "Snackbar confirming a JSON export was saved when no destination is returned.",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "dance.json"
+      }
+    }
+  },
+  "exportJsonSavedGeneric": "JSON file saved.",
+  "@exportJsonSavedGeneric": {
+    "description": "Snackbar confirming a JSON export was saved when the platform does not return a displayable filename."
+  },
+  "exportJsonSavedTo": "\"{fileName}\" saved to {destination}.",
+  "@exportJsonSavedTo": {
+    "description": "Snackbar confirming a JSON export and naming the destination returned by the platform save API.",
+    "placeholders": {
+      "fileName": {
+        "type": "String",
+        "example": "dance.json"
+      },
+      "destination": {
+        "type": "String",
+        "example": "/Users/example/Downloads/dance.json"
+      }
+    }
+  },
+  "exportJsonSaveError": "Couldn't save this JSON file.",
+  "@exportJsonSaveError": {
+    "description": "Snackbar shown when saving a JSON export fails."
+  },
+  "exportJsonCopyError": "Couldn't copy this JSON.",
+  "@exportJsonCopyError": {
+    "description": "Snackbar shown when copying a JSON export fails."
+  },
+  "exportJsonShareError": "Couldn't share this JSON file.",
+  "@exportJsonShareError": {
+    "description": "Snackbar shown when sharing a JSON export fails."
+  },
   "exportShareSetListError": "Couldn't share this set list",
   "@exportShareSetListError": {
     "description": "Snackbar shown when sharing a set list fails."

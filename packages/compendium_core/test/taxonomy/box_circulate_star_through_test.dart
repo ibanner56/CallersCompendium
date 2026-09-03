@@ -21,9 +21,9 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('contraTaxonomyVersion is 32', () {
-    expect(contraTaxonomyVersion, 32);
-    expect(tax.version, 32);
+  test('contraTaxonomyVersion is 33', () {
+    expect(contraTaxonomyVersion, 33);
+    expect(tax.version, 33);
   });
 
   group('box_circulate', () {
@@ -36,7 +36,7 @@ void main() {
       );
       expect(def.params.containsKey('places'), isFalse);
       final defaults = tax.effectiveParams(Figure(move: 'box_circulate'));
-      expect(defaults['who'], 'partners');
+      expect(defaults['who'], 'role2s');
       expect(defaults['hand'], 'right');
       expect(defaults['balance'], false);
       expect(defaults['beats'], 4);
@@ -54,7 +54,7 @@ void main() {
       );
       expect(
         renderer.renderCanonical(Figure(move: 'box_circulate')),
-        'partners box circulate',
+        'role2s box circulate',
       );
     });
 

@@ -346,9 +346,10 @@ Program _program({
 );
 
 class _EditorHost extends StatefulWidget {
-  const _EditorHost({required this.onResult});
+  const _EditorHost({required this.onResult, this.programId});
 
   final ValueChanged<Object?> onResult;
+  final String? programId;
 
   @override
   State<_EditorHost> createState() => _EditorHostState();
@@ -361,14 +362,17 @@ class _EditorHostState extends State<_EditorHost> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final result = await Navigator.of(context).push<Object?>(
-        MaterialPageRoute<Object?>(builder: (_) => const ProgramEditorScreen()),
+        MaterialPageRoute<Object?>(
+          builder: (_) => ProgramEditorScreen(programId: widget.programId),
+        ),
       );
       if (mounted) widget.onResult(result);
     });
   }
 
   @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  Widget build(BuildContext context) =>
+      const SizedBox(key: ValueKey('editor-sentinel'));
 }
 
 void main() {
@@ -738,6 +742,51 @@ void main() {
       expect(find.byKey(const ValueKey('program-preview-d1')), findsNothing);
     },
   );
+
+  testWidgets('closing a wide dance preview stays in the program editor', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    final results = <Object?>[];
+    final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
+    addTearDown(dialect.dispose);
+    await tester.binding.setSurfaceSize(const Size(1200, 2000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) => RepositoriesScope(
+          repositories: repos,
+          child: ActiveDialectScope(notifier: dialect, child: child!),
+        ),
+        home: _EditorHost(onResult: results.add, programId: 'p1'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-view-details')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('program-preview-d1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('dance-detail-close')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('dance-detail-close')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('program-preview-d1')), findsNothing);
+    expect(find.byKey(const ValueKey('program-title')), findsOneWidget);
+    expect(find.byKey(const ValueKey('editor-sentinel')), findsNothing);
+    expect(results, isEmpty);
+  });
 
   testWidgets(
     'holding a dance slot in compact layout opens read-only details',

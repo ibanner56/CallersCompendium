@@ -282,6 +282,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             key: ValueKey('program-preview-$danceId'),
             danceId: danceId,
             readOnly: true,
+            onClose: _clearPreview,
             onPreviewNavigate: (target) => _showSavedPreview(
               target,
               _previewPane!,
@@ -294,6 +295,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               'program-online-preview-${online.result.source.name}-${online.result.id}',
             ),
             data: online.detail,
+            onClose: _clearPreview,
             onPreviewNavigate: (target) => _showSavedPreview(
               target,
               _previewPane!,

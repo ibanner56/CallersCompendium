@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/program_pdf.dart';
+import 'package:compendium_app/src/export/json_export.dart';
 import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 import 'package:compendium_app/src/widgets/program_export_menu.dart';
@@ -121,8 +122,11 @@ Widget _shareBundleMenu(
   Program program,
   Map<String, Venue> venuesById,
   Directory dir,
-  void Function(ShareParams) onShare,
-) => MaterialApp(
+  void Function(ShareParams) onShare, {
+  JsonExportChoice? choice = JsonExportChoice.share,
+  Future<JsonSaveResult?> Function(String json, String fileName)? saveInvoker,
+  JsonClipboardWriter? clipboardWriter,
+}) => MaterialApp(
   localizationsDelegates: testLocalizationsDelegates,
   supportedLocales: testSupportedLocales,
   home: Scaffold(
@@ -139,6 +143,11 @@ Widget _shareBundleMenu(
             return XFile(file.path, mimeType: 'application/json');
           },
           shareInvoker: (params) async => onShare(params),
+          jsonExportDelivery: JsonExportDelivery(
+            choicePicker: (_) async => choice,
+            saveInvoker: saveInvoker,
+            clipboardWriter: clipboardWriter,
+          ),
         ),
       ],
     ),
@@ -1081,6 +1090,158 @@ void main() {
       expect(archive.dances.map((d) => d.id).toSet(), {'d1', 'd2'});
     });
 
+    testWidgets('Save delivers exact JSON and reports the destination', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('save_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      String? savedJson;
+      String? savedName;
+      var shares = 0;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => shares++,
+          choice: JsonExportChoice.save,
+          saveInvoker: (json, fileName) async {
+            savedJson = json;
+            savedName = fileName;
+            return JsonSaveResult(
+              path: '${dir.path}/$fileName',
+              fileName: fileName,
+            );
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(savedName, 'Friday_Contra.json');
+      expect(jsonDecode(savedJson!)['programs'], isNotEmpty);
+      expect(shares, 0);
+      expect(
+        find.text(
+          '"Friday_Contra.json" saved to ${dir.path}/Friday_Contra.json.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('Save uses a generic confirmation without a display filename', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('save_json_generic_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) {},
+          choice: JsonExportChoice.save,
+          saveInvoker: (json, fileName) async =>
+              const JsonSaveResult(path: '/document/msf:123', fileName: null),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('JSON file saved.'), findsOneWidget);
+      expect(find.text('"Export JSON" saved.'), findsNothing);
+    });
+
+    testWidgets('Copy delivers raw JSON without sharing', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('copy_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      String? copiedJson;
+      var shares = 0;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => shares++,
+          choice: JsonExportChoice.copy,
+          clipboardWriter: (json) async => copiedJson = json,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(copiedJson, isNotNull);
+      expect(copiedJson, startsWith('{'));
+      expect(copiedJson, contains('"programs"'));
+      expect(shares, 0);
+      expect(find.text('JSON copied to clipboard.'), findsOneWidget);
+    });
+
+    testWidgets('Cancel produces no JSON delivery side effect', (tester) async {
+      final dir = Directory.systemTemp.createTempSync('cancel_json_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      var saves = 0;
+      var copies = 0;
+      var shares = 0;
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) => shares++,
+          choice: null,
+          saveInvoker: (json, fileName) async {
+            saves++;
+            return null;
+          },
+          clipboardWriter: (_) async => copies++,
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(saves, 0);
+      expect(copies, 0);
+      expect(shares, 0);
+      expect(find.text('JSON copied to clipboard.'), findsNothing);
+    });
+
+    testWidgets('Copy failure is surfaced as a localized error', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('copy_failure_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) {},
+          choice: JsonExportChoice.copy,
+          clipboardWriter: (_) async => throw Exception('clipboard failed'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Couldn't copy this JSON."), findsOneWidget);
+    });
+
     testWidgets('emits the same payload as the .ccshare action', (
       tester,
     ) async {
@@ -1142,6 +1303,9 @@ void main() {
                       return XFile(file.path, mimeType: 'application/json');
                     },
                     shareInvoker: (params) async => captured = params,
+                    jsonExportDelivery: JsonExportDelivery(
+                      choicePicker: (_) async => JsonExportChoice.share,
+                    ),
                   ),
                 ],
               ),

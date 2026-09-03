@@ -35,10 +35,22 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Added
+
+- **JSON export delivery choices** — choose to save, copy the raw JSON, share
+  through the OS, or cancel when exporting a dance or program as JSON.
+
 ### Fixed
+
+- **Program editor dance previews** — closing a wide preview no longer exits the
+  editor.
 
 - **CallersBox imports** — recognize 16-beat heys without an explicit duration
   and preserve supported bracketed balance-wave annotations.
+- **Dance figures** — correct shared rendering, taxonomy defaults, and
+  CallersBox/ContraDB imports reported in issue #1160.
+- **Program dance picker** — remove the misleading detail chevron from rows
+  whose tap action adds or replaces a dance.
 
 ## [0.3.0] - 2026-09-01
 
