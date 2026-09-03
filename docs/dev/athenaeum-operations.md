@@ -73,7 +73,9 @@ The vhost must preserve `Authorization`, allow a 32 MiB wire body (the
 application enforces the 16 MiB decoded manifest limit), avoid decompressing
 request bodies, overwrite `X-Forwarded-For` with the connecting client
 address, and proxy only over loopback. The application trusts that header only
-when the socket peer is loopback; it otherwise uses the peer address. The
+when the socket peer is loopback; Apache derives it from the underlying
+connection peer (`CONN_REMOTE_ADDR`) even if host-level `mod_remoteip` is
+enabled, and the application otherwise uses its peer address. The
 limits are independent: 10 failures per IP per minute, a burst of 20 failures
 per IP, 1,000 failures per minute server-wide, and 60 store creations per
 minute. A saturated server-wide failure budget must not block authenticated
@@ -130,7 +132,7 @@ host loopback while preserving the configured hostname for Host/SNI.
   manifest, and writes only the manifest bytes to stdout:
   ```sh
   printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
-    athenaeum --data-dir /var/lib/athenaeum --break-glass \
+    /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
     --break-glass-device-id device-one > /secure/incident/manifest.bin
   ```
   Use a secure terminal and output path; do not put the sync ID or returned

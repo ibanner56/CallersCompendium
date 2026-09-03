@@ -31,7 +31,7 @@ separate audit row first, and writes the selected manifest bytes to stdout:
 
 ```sh
 printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
-  athenaeum --data-dir /var/lib/athenaeum --break-glass \
+  /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
   --break-glass-device-id device-one > /secure/incident/manifest.bin
 ```
 

@@ -14,6 +14,8 @@ the app and of `compendium_core`; version headings below refer to
   trusted real-client address resolution, and safe operational alerts.
 - Add a supported break-glass manifest read command that records its separate
   audit row before access.
+- Use Apache's underlying connection peer for forwarded-address trust even when
+  host-level remote-IP rewriting is enabled.
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
