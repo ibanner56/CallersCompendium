@@ -298,7 +298,7 @@ class AthenaeumStore {
       };
       for (final queuedEpoch in epochs) {
         _database.execute(
-          'INSERT INTO deletion_jobs (id_key, epoch, queued_at) '
+          'INSERT OR IGNORE INTO deletion_jobs (id_key, epoch, queued_at) '
           'VALUES (?, ?, ?)',
           [idKey, queuedEpoch, DateTime.now().millisecondsSinceEpoch ~/ 1000],
         );

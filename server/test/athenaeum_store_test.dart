@@ -87,6 +87,22 @@ void main() {
     expect(database.select('SELECT * FROM deletion_jobs'), hasLength(1));
     expect(store.lookup(idKey), isNull);
 
+    final recreated = store.create(idKey);
+    store.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: 'e' * 64,
+      body: Uint8List.fromList([3]),
+    );
+    store.putBlob(
+      idKey: idKey,
+      epoch: recreated.epoch,
+      hash: 'f' * 64,
+      body: Uint8List.fromList([4]),
+    );
+    store.deleteStore(idKey);
+    expect(database.select('SELECT * FROM deletion_jobs'), hasLength(2));
+
     failDelete = false;
     store.retryPendingDeletions();
     expect(blobFile.existsSync(), isFalse);
