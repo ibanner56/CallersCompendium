@@ -31,4 +31,6 @@ the app and of `compendium_core`; version headings below refer to
 - Preflight manifest and blob quotas before reading request bodies, keep pending
   filesystem deletions charged against blob and byte quotas (including failed
   whole-store removals), sweep stale epochs, bound request-path deletion
-  retries, and keep periodic cleanup alive across transient failures.
+  retries (including post-manifest collection), preserve epochs that regain
+  stale refs, prioritize immediate store cleanup, and keep periodic cleanup
+  alive across transient failures.

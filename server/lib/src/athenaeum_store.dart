@@ -323,7 +323,12 @@ class AthenaeumStore {
     ];
   }
 
-  void collectGarbage(String idKey, String epoch, {DateTime? now}) {
+  void collectGarbage(
+    String idKey,
+    String epoch, {
+    DateTime? now,
+    int? retryMaxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
     final cutoff =
         (now ?? _clock()).subtract(uploadGracePeriod).millisecondsSinceEpoch ~/
         1000;
@@ -382,7 +387,9 @@ class AthenaeumStore {
       }
       _database.execute('COMMIT');
       inTransaction = false;
-      retryPendingBlobDeletions(maxJobs: maxPendingDeletionRetriesPerSweep);
+      if (retryMaxJobs != null) {
+        retryPendingBlobDeletions(maxJobs: retryMaxJobs);
+      }
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
@@ -419,6 +426,7 @@ class AthenaeumStore {
           row['id_key'] as String,
           row['epoch'] as String,
           now: current,
+          retryMaxJobs: null,
         );
       } on Object catch (error) {
         stderr.writeln(
@@ -682,6 +690,7 @@ class AthenaeumStore {
 
   void deleteStore(String idKey) {
     late final String epoch;
+    late final Set<String> epochs;
     var inTransaction = false;
     try {
       _database.execute('BEGIN IMMEDIATE');
@@ -696,12 +705,14 @@ class AthenaeumStore {
         return;
       }
       epoch = rows.single['epoch'] as String;
-      final epochs = <String>{
+      epochs = <String>{
         epoch,
         for (final row in _database.select(
           'SELECT epoch FROM manifests WHERE id_key = ? '
-          'UNION SELECT epoch FROM blob_refs WHERE id_key = ?',
-          [idKey, idKey],
+          'UNION SELECT epoch FROM blob_refs WHERE id_key = ? '
+          'UNION SELECT epoch FROM blob_deletion_jobs WHERE id_key = ? '
+          'UNION SELECT epoch FROM deletion_jobs WHERE id_key = ?',
+          [idKey, idKey, idKey, idKey],
         ))
           row['epoch'] as String,
       };
@@ -724,6 +735,9 @@ class AthenaeumStore {
         rethrow;
       }
     }
+    for (final queuedEpoch in epochs) {
+      _retryPendingDirectory(idKey, queuedEpoch);
+    }
     retryPendingDeletions();
   }
 
@@ -737,31 +751,46 @@ class AthenaeumStore {
     for (final row in rows) {
       final idKey = row['id_key'] as String;
       final epoch = row['epoch'] as String;
-      final directory = Directory(p.join(blobDirectory.path, idKey, epoch));
-      try {
-        _deleteDirectory(directory);
-      } on FileSystemException {
-        continue;
-      }
-      var inTransaction = false;
-      try {
-        _database.execute('BEGIN IMMEDIATE');
-        inTransaction = true;
-        _database.execute(
-          'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
-          [idKey, epoch],
-        );
-        _database.execute('COMMIT');
-        inTransaction = false;
-      } catch (error) {
-        try {
-          if (inTransaction) _database.execute('ROLLBACK');
-        } finally {
-          rethrow;
-        }
-      }
+      _retryPendingDirectory(idKey, epoch);
     }
     retryPendingBlobDeletions(maxJobs: maxJobs);
+  }
+
+  void _retryPendingDirectory(String idKey, String epoch) {
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final refs = _database.select(
+        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
+        'UNION SELECT 1 FROM blob_refs WHERE id_key = ? AND epoch = ? LIMIT 1',
+        [idKey, epoch, idKey, epoch],
+      );
+      if (refs.isNotEmpty) {
+        _database.execute('COMMIT');
+        inTransaction = false;
+        return;
+      }
+      try {
+        _deleteDirectory(Directory(p.join(blobDirectory.path, idKey, epoch)));
+      } on FileSystemException {
+        _database.execute('ROLLBACK');
+        inTransaction = false;
+        return;
+      }
+      _database.execute(
+        'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
+        [idKey, epoch],
+      );
+      _database.execute('COMMIT');
+      inTransaction = false;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
   }
 
   void retryPendingBlobDeletions({

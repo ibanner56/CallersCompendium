@@ -31,8 +31,10 @@ retention, and break-glass procedures are specified for W12.
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in bounded batches on
 requests and server start, and the hourly sweep drains the remainder. Pending
-physical files remain charged against recreated-store quotas. Stores are reaped
-after 30 days without an authenticated request.
+physical files remain charged against recreated-store quotas, and an epoch that
+gains a stale upload is preserved until its refs are gone. Store deletion also
+prioritizes all directories belonging to that store before background retries.
+Stores are reaped after 30 days without an authenticated request.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
 can be published safely; `DELETE /v1/store` bypasses that grace period. The
 break-glass access database makes a derived store key eligible for nulling after

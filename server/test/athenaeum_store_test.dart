@@ -805,12 +805,218 @@ void main() {
       idKey,
     ]);
     store.collectGarbage(idKey, created.epoch);
+    expect(attempts, maxPendingDeletionRetriesPerRequest);
     attempts = 0;
 
     store.retryPendingDeletions();
 
     expect(attempts, maxPendingDeletionRetriesPerRequest);
     expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(17));
+  });
+
+  test('sweep drains the blob retry backlog once after epoch collection', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-sweep-retry-bound-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    var attempts = 0;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+      deleteFile: (_) {
+        attempts++;
+        throw const FileSystemException('injected file failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    for (var storeIndex = 0; storeIndex < 2; storeIndex++) {
+      final idKey = (storeIndex == 0 ? '2' : '3') * 64;
+      final created = store.create(idKey);
+      for (
+        var index = 0;
+        index < maxPendingDeletionRetriesPerRequest + 1;
+        index++
+      ) {
+        final hash = (storeIndex * 32 + index)
+            .toRadixString(16)
+            .padLeft(64, '0');
+        store.putBlob(
+          idKey: idKey,
+          epoch: created.epoch,
+          hash: hash,
+          body: Uint8List.fromList([index]),
+        );
+      }
+      database.execute(
+        'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?',
+        [
+          now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+          idKey,
+        ],
+      );
+    }
+
+    store.sweep(now: now);
+
+    expect(attempts, 2 * (maxPendingDeletionRetriesPerRequest + 1));
+  });
+
+  test('directory retries preserve epochs that gain stale refs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-stale-directory-job-',
+    );
+    final database = sqlite3.openInMemory();
+    var directoryAttempts = 0;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      deleteDirectory: (_) {
+        directoryAttempts++;
+        throw const FileSystemException('injected directory failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'e' * 64;
+    final oldStore = store.create(idKey);
+    store.deleteStore(idKey);
+    final recreated = store.create(idKey);
+    directoryAttempts = 0;
+    store.putBlob(
+      idKey: idKey,
+      epoch: oldStore.epoch,
+      hash: 'f' * 64,
+      body: Uint8List.fromList([1]),
+    );
+
+    store.retryPendingDeletions();
+
+    expect(directoryAttempts, 0);
+    expect(database.select('SELECT * FROM deletion_jobs'), hasLength(1));
+    expect(
+      store.blobFile(idKey, oldStore.epoch, 'f' * 64).existsSync(),
+      isTrue,
+    );
+    expect(recreated.epoch, isNot(oldStore.epoch));
+  });
+
+  test('store deletion discovers stale blob-only epochs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-stale-blob-job-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      deleteFile: (_) {
+        throw const FileSystemException('injected file failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = '1' * 64;
+    final oldStore = store.create(idKey);
+    store.deleteStore(idKey);
+    final recreated = store.create(idKey);
+    final hash = '2' * 64;
+    store.putBlob(
+      idKey: idKey,
+      epoch: oldStore.epoch,
+      hash: hash,
+      body: Uint8List.fromList([1]),
+    );
+    database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ? AND epoch = ?',
+      [
+        DateTime.now()
+                .subtract(const Duration(days: 2))
+                .millisecondsSinceEpoch ~/
+            1000,
+        idKey,
+        oldStore.epoch,
+      ],
+    );
+    store.collectGarbage(idKey, oldStore.epoch);
+    expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+
+    store.deleteStore(idKey);
+
+    expect(store.blobFile(idKey, oldStore.epoch, hash).existsSync(), isFalse);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), isEmpty);
+    expect(recreated.epoch, isNot(oldStore.epoch));
+  });
+
+  test('store deletion prioritizes all of its directories', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-priority-delete-',
+    );
+    final database = sqlite3.openInMemory();
+    var failDelete = true;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      deleteDirectory: (directory) {
+        if (failDelete) {
+          throw const FileSystemException('injected directory failure');
+        }
+        if (directory.existsSync()) {
+          directory.deleteSync(recursive: true);
+        }
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    for (
+      var index = 0;
+      index < maxPendingDeletionRetriesPerRequest + 1;
+      index++
+    ) {
+      final idKey = (index.toRadixString(16)) * 64;
+      store.create(idKey);
+      store.deleteStore(idKey);
+    }
+    final targetId = 'a' * 64;
+    final target = store.create(targetId);
+    final targetFile = store.blobFile(targetId, target.epoch, 'b' * 64);
+    targetFile.parent.createSync(recursive: true);
+    targetFile.writeAsBytesSync([1]);
+
+    failDelete = false;
+    store.deleteStore(targetId);
+
+    expect(targetFile.existsSync(), isFalse);
   });
 
   test('retention purges continue after an epoch cleanup failure', () {
