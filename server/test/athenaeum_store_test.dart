@@ -1314,16 +1314,16 @@ void main() {
       },
     );
     expect(
-      recovered!.database.select('SELECT * FROM blob_deletion_jobs'),
+      recovered.database.select('SELECT * FROM blob_deletion_jobs'),
       hasLength(1),
     );
     expect(orphan.existsSync(), isTrue);
 
     failDelete = false;
-    recovered!.retryPendingBlobDeletions();
+    recovered.retryPendingBlobDeletions();
     expect(orphan.existsSync(), isFalse);
     expect(
-      recovered!.database.select('SELECT * FROM blob_deletion_jobs'),
+      recovered.database.select('SELECT * FROM blob_deletion_jobs'),
       isEmpty,
     );
   });
