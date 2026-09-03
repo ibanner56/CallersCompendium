@@ -319,7 +319,6 @@ jobs:
       - name: Test app
         working-directory: app
         run: flutter test
-
       # Save the prebuilt only on a miss, and only once the build hook has
       # actually produced the library. The guard matters: a fetch failure — the
       # very flake #939 is about — leaves an empty download directory behind, and
