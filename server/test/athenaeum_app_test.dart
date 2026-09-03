@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:callers_compendium_server/callers_compendium_server.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
+import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:test/test.dart';
 
@@ -393,6 +394,15 @@ void main() {
         );
         expect(response.statusCode, 404);
       }
+      expect(
+        (await _send(
+          'GET',
+          '/v1/store',
+          syncId: 'global-final-café-staple',
+          headers: {'x-test-ip': 'address-final'},
+        )).statusCode,
+        429,
+      );
       expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
       final missingBlob = await _send(
         'GET',
@@ -448,6 +458,36 @@ void main() {
     final fetched = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
     expect(await fetched.bodyBytes(), equals(bytes));
   });
+
+  test(
+    'streaming body limits cancel input at the first oversized chunk',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> oversizedBody() async* {
+        yielded++;
+        yield Uint8List(maxBlobBytes + 1);
+        yielded++;
+        yield Uint8List(1);
+      }
+
+      final request = Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/${'d' * 64}'),
+        headers: {
+          'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+          'content-type': 'application/octet-stream',
+        },
+        body: oversizedBody(),
+      );
+      final response = await app.call(request);
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
 }
 
 extension on HttpClientResponse {
