@@ -634,6 +634,10 @@ void main() {
     store.collectGarbage(idKey, created.epoch, now: now);
     expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isTrue);
     expect(
+      store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
+      isTrue,
+    );
+    expect(
       () => store.putBlob(
         idKey: idKey,
         epoch: created.epoch,
