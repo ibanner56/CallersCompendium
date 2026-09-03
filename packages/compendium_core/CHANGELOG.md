@@ -32,7 +32,8 @@ core version. They are left that way deliberately — do not renumber them.
   tombstones, review candidates, and publication history, with lifecycle-safe
   repository operations.
 - Add shared Device Sync ID normalization, EFF diceware generation, advisory
-  strength scoring, base64url credential encoding, and HMAC storage-key helpers.
+  ranked strength scoring, base64url credential encoding, and HMAC storage-key
+  helpers.
 
 ## [0.3.0] - 2026-09-01
 

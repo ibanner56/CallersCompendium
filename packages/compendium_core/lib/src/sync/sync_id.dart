@@ -19,6 +19,29 @@ const int syncIdMaxCodePoints = 131;
 /// The strength at which the client should show its advisory warning.
 const double syncIdStrengthWarningBits = 40;
 
+/// One-based common-credential guess ranks from the SecLists 10k list.
+///
+/// This deliberately covers only high-frequency words: an unknown user word is
+/// scored conservatively below the EFF long-list estimate.
+const Map<String, int> _commonCredentialWordGuessRanks = {
+  'password': 1,
+  'qwerty': 5,
+  'dragon': 7,
+  'football': 10,
+  'letmein': 11,
+  'monkey': 12,
+  'trustno1': 29,
+  'sunshine': 47,
+  'pepper': 51,
+  'access': 53,
+  'hello': 66,
+  'orange': 68,
+  'freedom': 70,
+  'computer': 71,
+  'secret': 97,
+  'welcome': 155,
+};
+
 /// A normalized, structurally valid Device Sync identifier.
 class SyncId {
   SyncId._(this.value, this.words);
@@ -140,17 +163,17 @@ double estimateSyncIdStrengthBits(String value) {
 }
 
 double _estimateWordGuessBits(String word) {
-  const alphabetBits = 4.7;
-  const maxWordBits = 13.0;
+  final commonRank = _commonCredentialWordGuessRanks[word];
+  if (commonRank != null) return log(commonRank) / ln2;
+  if (effLongWordlist.contains(word)) {
+    return log(effLongWordlist.length) / ln2;
+  }
+
   final codePoints = word.runes.length;
   final distinctCodePoints = word.runes.toSet().length;
-  final lengthBits = min(maxWordBits, codePoints * alphabetBits);
-
-  // A repeated character is cheap to guess regardless of its length. This
-  // keeps the meter useful for human-chosen words without rejecting them.
-  if (distinctCodePoints == 1) return min(2.0, lengthBits);
-  if (distinctCodePoints * 2 <= codePoints) return lengthBits * 0.65;
-  return lengthBits;
+  if (distinctCodePoints == 1) return 1;
+  if (distinctCodePoints * 2 <= codePoints) return 6;
+  return 9;
 }
 
 /// Encodes the normalized ID as an unpadded RFC 4648 base64url token.

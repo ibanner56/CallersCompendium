@@ -76,6 +76,10 @@ void main() {
         estimateSyncIdStrengthBits('password-password-password-password'),
         lessThan(syncIdStrengthWarningBits),
       );
+      expect(
+        estimateSyncIdStrengthBits('password-qwerty-letmein-welcome'),
+        lessThan(syncIdStrengthWarningBits),
+      );
       expect(SyncId.parse('a-b-c-d').isBelowStrengthWarning, isTrue);
     });
   });

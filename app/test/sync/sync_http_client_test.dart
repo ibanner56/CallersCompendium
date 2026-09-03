@@ -157,6 +157,14 @@ void main() {
         ),
         throwsArgumentError,
       );
+      expect(
+        () => SyncHttpClient(
+          endpoint: endpoint,
+          syncId: 'one-two-three-four',
+          requestTimeout: syncRequestTimeout + const Duration(seconds: 1),
+        ),
+        throwsArgumentError,
+      );
     });
 
     test(
@@ -480,6 +488,15 @@ void main() {
       expect(
         requests.single.headers.value('authorization'),
         'Bearer ${encodeSyncCredential('one-two-three-four')}',
+      );
+
+      final blobResponse = await client.putBlob('hash', [1, 2, 3]);
+      expect(blobResponse.kind, SyncResponseKind.notModified);
+      expect(requests, hasLength(2));
+      expect(requests[1].uri.path, '/v1/blobs/hash');
+      expect(
+        requests[1].headers.value('content-type'),
+        'application/octet-stream',
       );
     });
 

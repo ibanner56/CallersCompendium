@@ -3030,7 +3030,9 @@ score MUST be computed over the **normalised** ID of the rule below, not the
 string as typed: normalisation lowercases and applies NFC before the ID is
 hashed, so an estimator run on the raw string credits case and Unicode-form
 distinctions that collapse to the same credential, and reports a strength the
-user does not have.
+user does not have. Generated EFF words receive the uniform 7,776-word score;
+user-entered common credential words use their ranked guess positions, and
+other user words receive a conservative lower estimate.
 
 **Nothing rejects an ID for weakness.** The server enforces only the
 *structural* rule and returns `403` for a violation of it:
