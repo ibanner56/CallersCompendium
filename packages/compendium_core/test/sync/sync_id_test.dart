@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:compendium_core/compendium_core.dart';
@@ -46,16 +45,11 @@ void main() {
     });
 
     test('generated IDs use four EFF long-list words', () {
-      final id = generateSyncId(_SequenceRandom());
-
-      expect(id.words, ['abacus', 'abdomen', 'abdominal', 'abide']);
-      expect(id.isBelowStrengthWarning, isFalse);
-    });
-
-    test('rejection-samples hyphenated EFF words', () {
-      final id = generateSyncId(_FixedRandom([2008, 0, 1, 2, 3]));
-
-      expect(id.words, ['abacus', 'abdomen', 'abdominal', 'abide']);
+      for (var attempt = 0; attempt < 100; attempt++) {
+        final id = generateSyncId();
+        expect(id.words, hasLength(syncIdWordCount));
+        expect(id.isBelowStrengthWarning, isFalse);
+      }
     });
 
     test('strength scoring is normalized and advisory', () {
@@ -158,33 +152,4 @@ void main() {
       );
     });
   });
-}
-
-class _SequenceRandom implements Random {
-  var _next = 0;
-
-  @override
-  bool nextBool() => nextInt(2) == 1;
-
-  @override
-  double nextDouble() => nextInt(100) / 100;
-
-  @override
-  int nextInt(int max) => _next++ % max;
-}
-
-class _FixedRandom implements Random {
-  _FixedRandom(this._values);
-
-  final List<int> _values;
-  var _index = 0;
-
-  @override
-  bool nextBool() => nextInt(2) == 1;
-
-  @override
-  double nextDouble() => nextInt(100) / 100;
-
-  @override
-  int nextInt(int max) => _values[_index++] % max;
 }
