@@ -142,6 +142,7 @@ void main() {
         '{"version":2}',
         'dance.json',
         isDesktop: () => true,
+        isMacOS: () => false,
         saveLocationPicker: pickLocation,
       );
 
@@ -151,6 +152,34 @@ void main() {
       expect(await File(second.path).readAsString(), '{"version":2}');
     },
   );
+
+  test('macOS save writes back to the exact selected path', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'json-macos-save-test',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final path = '${directory.path}/dance.json';
+    await File(path).writeAsString('{"version":1}');
+
+    final result = await saveJsonBundle(
+      '{"version":2}',
+      'dance.json',
+      isDesktop: () => true,
+      isMacOS: () => true,
+      saveLocationPicker:
+          ({
+            suggestedName,
+            acceptedTypeGroups,
+            initialDirectory,
+            canCreateDirectories,
+          }) async => FileSaveLocation(path),
+    );
+
+    expect(result!.path, path);
+    expect(result.fileName, 'dance.json');
+    expect(await File(path).readAsString(), '{"version":2}');
+    expect(await File('${directory.path}/dance (1).json').exists(), isFalse);
+  });
 
   test(
     'mobile save stages exact JSON and returns platform destination',
@@ -176,7 +205,7 @@ void main() {
         },
         mobileSaveFile: (path) async {
           sourcePath = path;
-          return 'content://downloads/dance.json';
+          return 'content://downloads/renamed-dance.json';
         },
       );
 
@@ -184,8 +213,8 @@ void main() {
       expect(stagedName, 'dance.json');
       expect(sourcePath, '${directory.path}/dance.json');
       expect(result, isNotNull);
-      expect(result!.path, 'content://downloads/dance.json');
-      expect(result.fileName, 'dance.json');
+      expect(result!.path, 'content://downloads/renamed-dance.json');
+      expect(result.fileName, 'renamed-dance.json');
       expect(await File(sourcePath!).exists(), isFalse);
     },
   );

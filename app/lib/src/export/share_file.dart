@@ -70,6 +70,7 @@ Future<JsonSaveResult?> saveJsonBundle(
   String json,
   String fileName, {
   bool Function()? isDesktop,
+  bool Function()? isMacOS,
   JsonSaveLocationPicker? saveLocationPicker,
   JsonMobileSaveFile? mobileSaveFile,
   BundleFileWriter? stageFile,
@@ -80,7 +81,9 @@ Future<JsonSaveResult?> saveJsonBundle(
       acceptedTypeGroups: const [_jsonTypeGroup],
     );
     if (location == null) return null;
-    final destination = await _collisionSafePath(location.path);
+    final destination = (isMacOS ?? (() => Platform.isMacOS))()
+        ? location.path
+        : await _collisionSafePath(location.path);
     await File(destination).writeAsString(json, flush: true);
     return JsonSaveResult(path: destination, fileName: p.basename(destination));
   }
@@ -89,7 +92,10 @@ Future<JsonSaveResult?> saveJsonBundle(
   try {
     final savedPath = await (mobileSaveFile ?? _saveMobileFile)(staged.path);
     if (savedPath == null) return null;
-    return JsonSaveResult(path: savedPath, fileName: fileName);
+    return JsonSaveResult(
+      path: savedPath,
+      fileName: _fileNameFromSavePath(savedPath, fileName),
+    );
   } finally {
     final stagedFile = File(staged.path);
     if (await stagedFile.exists()) {
@@ -117,6 +123,14 @@ Future<String?> _saveMobileFile(String sourceFilePath) =>
         mimeTypesFilter: const ['application/json'],
       ),
     );
+
+String _fileNameFromSavePath(String savedPath, String fallback) {
+  final uriPath = Uri.tryParse(savedPath)?.path;
+  final fileName = p.basename(
+    uriPath == null || uriPath.isEmpty ? savedPath : uriPath,
+  );
+  return fileName.isEmpty ? fallback : fileName;
+}
 
 Future<String> _collisionSafePath(String path) async {
   if (!await File(path).exists()) return path;
