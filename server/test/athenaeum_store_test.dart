@@ -1024,6 +1024,7 @@ void main() {
       'athenaeum-directory-retry-rotation-',
     );
     final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
     var failDelete = true;
     final failedIds = <String>{};
     final store = AthenaeumStore(
@@ -1033,6 +1034,7 @@ void main() {
       ),
       database: database,
       breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
       deleteDirectory: (directory) {
         final shouldFail = failedIds.any(directory.path.contains);
         if (failDelete || shouldFail) {
@@ -1058,10 +1060,9 @@ void main() {
     targetFile.parent.createSync(recursive: true);
     targetFile.writeAsBytesSync([1]);
     store.deleteStore(targetId);
-    database.execute(
-      'UPDATE deletion_jobs SET queued_at = CASE WHEN id_key = ? THEN 1 ELSE 0 END',
-      [targetId],
-    );
+    database.execute('UPDATE deletion_jobs SET queued_at = ?', [
+      now.millisecondsSinceEpoch ~/ 1000,
+    ]);
 
     failDelete = false;
     store.retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerRequest);

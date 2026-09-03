@@ -773,7 +773,7 @@ class AthenaeumStore {
       ') AND NOT EXISTS ('
       'SELECT 1 FROM blob_refs '
       'WHERE id_key = jobs.id_key AND epoch = jobs.epoch'
-      ') ORDER BY queued_at LIMIT ?',
+      ') ORDER BY queued_at, rowid LIMIT ?',
       [maxJobs],
     );
     for (final row in rows) {
@@ -805,9 +805,10 @@ class AthenaeumStore {
         _database.execute('ROLLBACK');
         inTransaction = false;
         _database.execute(
-          'UPDATE deletion_jobs SET queued_at = ? '
-          'WHERE id_key = ? AND epoch = ?',
-          [_clock().millisecondsSinceEpoch ~/ 1000, idKey, epoch],
+          'UPDATE deletion_jobs SET queued_at = ('
+          'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
+          ') WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
         );
         return;
       }
@@ -831,7 +832,7 @@ class AthenaeumStore {
   }) {
     final rows = _database.select(
       'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
-      'ORDER BY queued_at LIMIT ?',
+      'ORDER BY queued_at, rowid LIMIT ?',
       [maxJobs],
     );
     for (final row in rows) {
@@ -852,9 +853,11 @@ class AthenaeumStore {
             _database.execute('ROLLBACK');
             inTransaction = false;
             _database.execute(
-              'UPDATE blob_deletion_jobs SET queued_at = ? '
-              'WHERE id_key = ? AND epoch = ? AND hash = ?',
-              [_clock().millisecondsSinceEpoch ~/ 1000, idKey, epoch, hash],
+              'UPDATE blob_deletion_jobs SET queued_at = ('
+              'SELECT COALESCE(MAX(queued_at), -1) + 1 '
+              'FROM blob_deletion_jobs'
+              ') WHERE id_key = ? AND epoch = ? AND hash = ?',
+              [idKey, epoch, hash],
             );
             continue;
           }
