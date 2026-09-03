@@ -325,10 +325,14 @@ class SyncHttpClient {
   }
 
   bool _isAllowedRedirect(Uri uri) =>
+      _isDefaultPort(uri) &&
       _sameOrigin(endpoint, uri) &&
       uri.userInfo.isEmpty &&
       !uri.hasFragment &&
       !uri.hasQuery;
+
+  bool _isDefaultPort(Uri uri) =>
+      _effectivePort(uri) == (uri.scheme.toLowerCase() == 'https' ? 443 : 80);
 
   bool _sameOrigin(Uri a, Uri b) =>
       a.scheme.toLowerCase() == b.scheme.toLowerCase() &&
@@ -435,6 +439,9 @@ class SyncHttpClient {
       final delay = HttpDate.parse(trimmed).difference(DateTime.now().toUtc());
       return delay.isNegative ? Duration.zero : delay;
     } on FormatException {
+      // diagnostics: silent — malformed Retry-After is treated as absent.
+      return null;
+    } on HttpException {
       // diagnostics: silent — malformed Retry-After is treated as absent.
       return null;
     }

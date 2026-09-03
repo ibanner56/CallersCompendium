@@ -3121,7 +3121,7 @@ request is issued, against all of:
 | Scheme | https (or `localhost`/`127.0.0.1` under the same exemption as above) |
 | Origin | **identical to the configured endpoint's** scheme, host and port |
 | Userinfo | absent |
-| Port | the scheme default, or the endpoint's own explicit port |
+| Port | the scheme default |
 | Hop count | capped |
 
 A hop failing any of these MUST be refused rather than followed, and the

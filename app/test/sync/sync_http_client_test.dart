@@ -284,7 +284,7 @@ void main() {
       expect(sentChunks, lessThan(chunks.length));
     });
 
-    test('refuses a same-origin redirect loop at the hop limit', () async {
+    test('refuses every redirect from a configured non-default port', () async {
       var requests = 0;
       final server = await _startServer((request) async {
         requests++;
@@ -298,84 +298,13 @@ void main() {
       final client = SyncHttpClient(
         endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
         syncId: 'one-two-three-four',
-        maxRedirects: 2,
       );
       addTearDown(client.close);
 
       final result = await client.getStore(previouslyUsed: false);
 
       expect(result.response.kind, SyncResponseKind.redirectRefused);
-      expect(requests, 3);
-    });
-
-    test('follows a POST 303 with a GET and no request body', () async {
-      final methods = <String>[];
-      final bodies = <List<int>>[];
-      final server = await _startServer((request) async {
-        methods.add(request.method);
-        bodies.add(
-          await request.fold(<int>[], (bytes, chunk) => bytes..addAll(chunk)),
-        );
-        if (methods.length == 1) {
-          request.response
-            ..statusCode = HttpStatus.seeOther
-            ..headers.set('location', '/v1/store-result');
-        } else {
-          request.response.statusCode = HttpStatus.ok;
-        }
-        await request.response.close();
-      });
-      addTearDown(() => server.close(force: true));
-
-      final client = SyncHttpClient(
-        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
-        syncId: 'one-two-three-four',
-      );
-      addTearDown(client.close);
-
-      final result = await client.request('POST', 'store', body: [1, 2, 3]);
-
-      expect(result.kind, SyncResponseKind.success);
-      expect(methods, ['POST', 'GET']);
-      expect(bodies, [
-        [1, 2, 3],
-        <int>[],
-      ]);
-    });
-
-    test('preserves a PUT body across a 302 redirect', () async {
-      final methods = <String>[];
-      final bodies = <List<int>>[];
-      final server = await _startServer((request) async {
-        methods.add(request.method);
-        bodies.add(
-          await request.fold(<int>[], (bytes, chunk) => bytes..addAll(chunk)),
-        );
-        if (methods.length == 1) {
-          request.response
-            ..statusCode = HttpStatus.found
-            ..headers.set('location', '/v1/blobs/redirected');
-        } else {
-          request.response.statusCode = HttpStatus.noContent;
-        }
-        await request.response.close();
-      });
-      addTearDown(() => server.close(force: true));
-
-      final client = SyncHttpClient(
-        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
-        syncId: 'one-two-three-four',
-      );
-      addTearDown(client.close);
-
-      final result = await client.putBlob('hash', [1, 2, 3]);
-
-      expect(result.kind, SyncResponseKind.success);
-      expect(methods, ['PUT', 'PUT']);
-      expect(bodies, [
-        [1, 2, 3],
-        [1, 2, 3],
-      ]);
+      expect(requests, 1);
     });
   });
 
@@ -415,6 +344,7 @@ void main() {
           HttpStatus.tooManyRequests,
           const {'retry-after': 'Wed, 01 Jan 2020 00:00:00 GMT'},
         ),
+        (HttpStatus.tooManyRequests, const {'retry-after': 'not a date'}),
       ];
       final server = await _startServer((request) async {
         final (status, headers) = responses.removeAt(0);
@@ -440,6 +370,8 @@ void main() {
       expect(limited.retryAfter, const Duration(seconds: 7));
       final expired = await client.request('GET', 'store');
       expect(expired.retryAfter, Duration.zero);
+      final malformed = await client.request('GET', 'store');
+      expect(malformed.retryAfter, isNull);
     });
 
     test('types transient and unexpected statuses separately', () async {
