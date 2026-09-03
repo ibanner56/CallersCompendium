@@ -910,6 +910,9 @@ void main() {
 
     expect(directoryAttempts, 0);
     expect(database.select('SELECT * FROM deletion_jobs'), hasLength(1));
+    final metadata = store.metadata(recreated);
+    expect(metadata.blobs, 1);
+    expect(metadata.bytes, 1);
     expect(
       store.blobFile(idKey, oldStore.epoch, 'f' * 64).existsSync(),
       isTrue,
