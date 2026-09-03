@@ -613,6 +613,39 @@ void main() {
   );
 
   test(
+    'JSON depth limits cancel input before retaining later chunks',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      Stream<List<int>> overlyDeepJson() async* {
+        yielded++;
+        yield Uint8List.fromList(
+          utf8.encode('{"hashes":${'[' * maxJsonDepth}'),
+        );
+        yielded++;
+        yield Uint8List.fromList(utf8.encode("0${']' * maxJsonDepth}"));
+      }
+
+      final response = await app.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/blobs/missing'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': 'application/json',
+          },
+          body: overlyDeepJson(),
+        ),
+      );
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
     'escaped duplicate hashes keys are rejected before later chunks are read',
     () async {
       expect(

@@ -632,6 +632,9 @@ class _MissingHashScanner {
   }
 
   void _startContainer({required bool object}) {
+    if (_contexts.length >= maxJsonDepth) {
+      throw const _RequestFailure(413, 'JSON nesting depth exceeds limit');
+    }
     final isHashesValue = _expectingHashValue;
     _startHashValue();
     if (isHashesValue && !object) {
@@ -718,21 +721,26 @@ class _FailureBudget {
   _FailureBudget(AthenaeumBudgetLimits limits) : _limits = limits;
 
   final AthenaeumBudgetLimits _limits;
-  final Map<String, _TokenBucket> _perIp = {};
+  final Map<String, _TokenBucket> _perIp = <String, _TokenBucket>{};
   final List<DateTime> _global = [];
 
   bool allow(String address) {
     final now = DateTime.now();
     _prune(_global, now);
-    final bucket = _perIp.putIfAbsent(
-      address,
-      () => _TokenBucket(
+    _perIp.removeWhere((_, bucket) => bucket.isInactive(now));
+    if (_global.length >= _limits.serverWideFailuresPerMinute) return false;
+    var bucket = _perIp[address];
+    if (bucket == null) {
+      if (_perIp.length >= maxFailedResolutionsServerWide) {
+        _perIp.remove(_perIp.keys.first);
+      }
+      bucket = _TokenBucket(
         capacity: _limits.perIpFailureBurst,
         refillPerMinute: _limits.perIpFailuresPerMinute,
-      ),
-    );
-    if (_global.length >= _limits.serverWideFailuresPerMinute ||
-        !bucket.tryTake(now)) {
+      );
+      _perIp[address] = bucket;
+    }
+    if (!bucket.tryTake(now)) {
       return false;
     }
     _global.add(now);
@@ -766,6 +774,8 @@ class _TokenBucket {
     _tokens -= 1;
     return true;
   }
+
+  bool isInactive(DateTime now) => now.difference(_updatedAt).inSeconds >= 60;
 }
 
 class _CreationBudget {
