@@ -267,7 +267,14 @@ class AthenaeumApp {
       } on StoreQuotaExceeded catch (error) {
         throw _RequestFailure(507, error.message);
       }
-      store.collectGarbage(identity.idKey, current.epoch);
+      try {
+        store.collectGarbage(identity.idKey, current.epoch);
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum post-manifest garbage collection failed '
+          '(${error.runtimeType})',
+        );
+      }
       return Response(
         created ? 201 : 200,
         headers: {
@@ -378,9 +385,9 @@ class AthenaeumApp {
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
-      
+
       _validateBlobAllowList(body);
-      
+
       late final bool created;
       try {
         created = store.putBlob(

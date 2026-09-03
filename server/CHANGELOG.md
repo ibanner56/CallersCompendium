@@ -29,5 +29,6 @@ the app and of `compendium_core`; version headings below refer to
 - Delete stores immediately regardless of upload grace, and remove old
   unreferenced blobs after manifest publication or the hourly sweep.
 - Preflight manifest and blob quotas before reading request bodies, keep pending
-  filesystem deletions charged against byte quotas, sweep stale epochs, and
-  keep periodic cleanup alive across transient failures.
+  filesystem deletions charged against blob and byte quotas (including failed
+  whole-store removals), sweep stale epochs, bound request-path deletion
+  retries, and keep periodic cleanup alive across transient failures.

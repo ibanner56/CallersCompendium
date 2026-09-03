@@ -633,6 +633,9 @@ void main() {
     ]);
     store.collectGarbage(idKey, created.epoch, now: now);
     expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isTrue);
+    final metadata = store.metadata(store.lookup(idKey)!);
+    expect(metadata.blobs, 1);
+    expect(metadata.bytes, 3);
     expect(
       store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
       isTrue,
@@ -645,6 +648,170 @@ void main() {
         body: Uint8List.fromList([4]),
       ),
       throwsA(isA<StoreQuotaExceeded>()),
+    );
+  });
+
+  test('failed store deletion remains charged across recreation', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-pending-store-quota-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 1, maxBytes: 3),
+      deleteDirectory: (_) {
+        throw const FileSystemException('injected directory failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = '6' * 64;
+    final first = store.create(idKey);
+    final hash = '7' * 64;
+    store.putBlob(
+      idKey: idKey,
+      epoch: first.epoch,
+      hash: hash,
+      body: Uint8List.fromList([1, 2, 3]),
+    );
+    store.deleteStore(idKey);
+    final recreated = store.create(idKey);
+
+    final metadata = store.metadata(recreated);
+    expect(metadata.blobs, 1);
+    expect(metadata.bytes, 3);
+    expect(
+      () => store.putBlob(
+        idKey: idKey,
+        epoch: recreated.epoch,
+        hash: '8' * 64,
+        body: Uint8List.fromList([4]),
+      ),
+      throwsA(isA<StoreQuotaExceeded>()),
+    );
+  });
+
+  test('request-path deletion retries are bounded', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-retry-bound-',
+    );
+    final database = sqlite3.openInMemory();
+    var attempts = 0;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      deleteFile: (_) {
+        attempts++;
+        throw const FileSystemException('injected file failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = '9' * 64;
+    final created = store.create(idKey);
+    final uploadedAt =
+        DateTime.now()
+            .subtract(const Duration(days: 2))
+            .millisecondsSinceEpoch ~/
+        1000;
+    for (
+      var index = 0;
+      index < maxPendingDeletionRetriesPerRequest + 1;
+      index++
+    ) {
+      final hash = index.toRadixString(16).padLeft(64, '0');
+      store.putBlob(
+        idKey: idKey,
+        epoch: created.epoch,
+        hash: hash,
+        body: Uint8List.fromList([index]),
+      );
+    }
+    database.execute('UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?', [
+      uploadedAt,
+      idKey,
+    ]);
+    store.collectGarbage(idKey, created.epoch);
+    attempts = 0;
+
+    store.retryPendingDeletions();
+
+    expect(attempts, maxPendingDeletionRetriesPerRequest);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(17));
+  });
+
+  test('retention purges continue after an epoch cleanup failure', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-retention-isolation-',
+    );
+    final database = sqlite3.openInMemory();
+    final breakGlassDatabase = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: breakGlassDatabase,
+      clock: () => now,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'a' * 64;
+    final created = store.create(idKey);
+    database.execute(
+      'INSERT INTO manifests '
+      '(id_key, epoch, device_id, etag, written_at, body) '
+      'VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        idKey,
+        created.epoch,
+        'poisoned',
+        'b' * 64,
+        0,
+        Uint8List.fromList([0]),
+      ],
+    );
+    store.recordBreakGlassAccess(
+      'café-horse-battery-staple',
+      accessedAt: now.subtract(const Duration(days: 31)),
+    );
+    store.recordDiagnostic(
+      status: 400,
+      idKey: idKey,
+      hash: null,
+      recordedAt: now.subtract(const Duration(days: 31)),
+    );
+
+    store.sweep(now: now);
+
+    final accessRows = breakGlassDatabase.select(
+      'SELECT id_key, accessed_at FROM break_glass_access',
+    );
+    expect(accessRows, hasLength(1));
+    expect(accessRows.single['id_key'], isNull);
+    expect(
+      store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+      isEmpty,
     );
   });
 

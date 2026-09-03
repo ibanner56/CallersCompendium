@@ -1365,6 +1365,80 @@ void main() {
     expect(blobFile.existsSync(), isFalse);
   });
 
+  test(
+    'manifest publication succeeds when post-publication GC fails',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'athenaeum-manifest-gc-failure-',
+      );
+      final customStore = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: directory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: sqlite3.openInMemory(),
+        breakGlassDatabase: sqlite3.openInMemory(),
+        diagnosticDatabase: sqlite3.openInMemory(),
+      );
+      final customApp = AthenaeumApp(
+        config: customStore.config,
+        store: customStore,
+      );
+      addTearDown(() async {
+        customStore.close();
+        await directory.delete(recursive: true);
+      });
+
+      final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+      expect(
+        (await customApp.call(
+          Request(
+            'POST',
+            Uri.parse('http://127.0.0.1/v1/store'),
+            headers: {'authorization': authorization},
+          ),
+        )).statusCode,
+        201,
+      );
+      final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+      final epoch = customStore.lookup(idKey)!.epoch;
+      customStore.database.execute(
+        'INSERT INTO manifests '
+        '(id_key, epoch, device_id, etag, written_at, body) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          idKey,
+          epoch,
+          'poisoned',
+          'a' * 64,
+          0,
+          Uint8List.fromList([0]),
+        ],
+      );
+      final manifest = SyncManifest(
+        deviceId: 'device-one',
+        epoch: epoch,
+        writtenAt: DateTime.utc(2026, 9, 3),
+        records: const {},
+      );
+
+      final response = await customApp.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/manifests/device-one'),
+          headers: {
+            'authorization': authorization,
+            'content-type': 'application/json',
+          },
+          body: encodeSyncManifestUtf8(manifest),
+        ),
+      );
+
+      expect(response.statusCode, 201);
+      expect(customStore.manifest(idKey, epoch, 'device-one'), isNotNull);
+    },
+  );
+
   test('DELETE /v1/store removes a grace-protected blob immediately', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final bytes = Uint8List.fromList([4, 5, 6]);

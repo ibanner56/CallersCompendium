@@ -43,6 +43,8 @@ const int maxStoreCreationsPerMinute = 60;
 const int maxFailedResolutionsPerIp = 10;
 const int maxFailedResolutionsPerIpBurst = 20;
 const int maxFailedResolutionsServerWide = 1000;
+const int maxPendingDeletionRetriesPerRequest = 16;
+const int maxPendingDeletionRetriesPerSweep = 1000;
 
 final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
@@ -182,11 +184,12 @@ class AthenaeumStore {
       'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs WHERE id_key = ?',
       [store.idKey],
     );
+    final pending = _pendingDeletionUsage(store.idKey);
     return StoreMetadata(
       epoch: store.epoch,
       devices: [for (final row in deviceRows) row['device_id'] as String],
-      blobs: (blobRows.single['count'] as int?) ?? 0,
-      bytes: byteRows.single['bytes'] as int,
+      blobs: ((blobRows.single['count'] as int?) ?? 0) + pending.blobs,
+      bytes: (byteRows.single['bytes'] as int) + pending.bytes,
       maxBlobs: quotaLimits.maxBlobs,
       maxBytes: quotaLimits.maxBytes,
     );
@@ -379,7 +382,7 @@ class AthenaeumStore {
       }
       _database.execute('COMMIT');
       inTransaction = false;
-      retryPendingBlobDeletions();
+      retryPendingBlobDeletions(maxJobs: maxPendingDeletionRetriesPerSweep);
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');
@@ -398,21 +401,50 @@ class AthenaeumStore {
         .map((row) => row['id_key'] as String)
         .toList();
     for (final idKey in expired) {
-      deleteStore(idKey);
+      try {
+        deleteStore(idKey);
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum store deletion failed (${error.runtimeType})',
+        );
+      }
     }
     final epochs = _database.select(
       'SELECT id_key, epoch FROM blob_refs '
       'UNION SELECT id_key, epoch FROM manifests',
     );
     for (final row in epochs) {
-      collectGarbage(
-        row['id_key'] as String,
-        row['epoch'] as String,
-        now: current,
+      try {
+        collectGarbage(
+          row['id_key'] as String,
+          row['epoch'] as String,
+          now: current,
+        );
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum garbage collection failed (${error.runtimeType})',
+        );
+      }
+    }
+    try {
+      purgeExpiredBreakGlassAccess(now: current);
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum break-glass retention failed (${error.runtimeType})',
       );
     }
-    purgeExpiredBreakGlassAccess(now: current);
-    purgeExpiredDiagnostics(now: current);
+    try {
+      purgeExpiredDiagnostics(now: current);
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum diagnostic retention failed (${error.runtimeType})',
+      );
+    }
+    try {
+      retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerSweep);
+    } on Object catch (error) {
+      stderr.writeln('Athenaeum deletion retry failed (${error.runtimeType})');
+    }
   }
 
   int blobUploadLimit(String idKey, String epoch, String hash) {
@@ -425,7 +457,12 @@ class AthenaeumStore {
               [idKey],
             ).single['count']
             as int;
-    if (count >= quotaLimits.maxBlobs) {
+    final pending = _pendingDeletionUsage(
+      idKey,
+      excludingEpoch: epoch,
+      excludingHash: hash,
+    );
+    if (count + pending.blobs >= quotaLimits.maxBlobs) {
       throw const StoreQuotaExceeded('blob quota exhausted');
     }
     final aggregateBytes =
@@ -435,13 +472,7 @@ class AthenaeumStore {
               [idKey],
             ).single['bytes']
             as int;
-    final bytesUsed =
-        max(current.bytesUsed, aggregateBytes) +
-        _pendingBlobDeletionBytes(
-          idKey,
-          excludingEpoch: epoch,
-          excludingHash: hash,
-        );
+    final bytesUsed = max(current.bytesUsed, aggregateBytes) + pending.bytes;
     if (bytesUsed >= quotaLimits.maxBytes) {
       throw const StoreQuotaExceeded('byte quota exhausted');
     }
@@ -449,12 +480,12 @@ class AthenaeumStore {
     return min(maxBlobBytes, quotaLimits.maxBytes - bytesUsed);
   }
 
-  int _pendingBlobDeletionBytes(
+  _DeletionUsage _pendingDeletionUsage(
     String idKey, {
     String? excludingEpoch,
     String? excludingHash,
   }) {
-    var bytes = 0;
+    var usage = const _DeletionUsage();
     final rows = _database.select(
       'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
       [idKey],
@@ -465,9 +496,21 @@ class AthenaeumStore {
       if (epoch == excludingEpoch && hash == excludingHash) continue;
       if (blobRef(idKey, epoch, hash) != null) continue;
       final file = blobFile(idKey, epoch, hash);
-      if (file.existsSync()) bytes += file.lengthSync();
+      if (file.existsSync()) {
+        usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+      }
     }
-    return bytes;
+    final directoryRows = _database.select(
+      'SELECT epoch FROM deletion_jobs WHERE id_key = ?',
+      [idKey],
+    );
+    for (final row in directoryRows) {
+      final directory = Directory(
+        p.join(blobDirectory.path, idKey, row['epoch'] as String),
+      );
+      usage = usage.add(usage: _directoryUsage(directory));
+    }
+    return usage;
   }
 
   void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
@@ -564,14 +607,13 @@ class AthenaeumStore {
                 [idKey],
               ).single['bytes']
               as int;
-      final bytesUsed =
-          max(current.bytesUsed, aggregateBytes) +
-          _pendingBlobDeletionBytes(
-            idKey,
-            excludingEpoch: epoch,
-            excludingHash: hash,
-          );
-      if (count >= quotaLimits.maxBlobs) {
+      final pending = _pendingDeletionUsage(
+        idKey,
+        excludingEpoch: epoch,
+        excludingHash: hash,
+      );
+      final bytesUsed = max(current.bytesUsed, aggregateBytes) + pending.bytes;
+      if (count + pending.blobs >= quotaLimits.maxBlobs) {
         throw const StoreQuotaExceeded('blob quota exhausted');
       }
       if (bytesUsed > quotaLimits.maxBytes - body.length) {
@@ -682,9 +724,12 @@ class AthenaeumStore {
     retryPendingDeletions();
   }
 
-  void retryPendingDeletions() {
+  void retryPendingDeletions({
+    int maxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
     final rows = _database.select(
-      'SELECT id_key, epoch FROM deletion_jobs ORDER BY queued_at',
+      'SELECT id_key, epoch FROM deletion_jobs ORDER BY queued_at LIMIT ?',
+      [maxJobs],
     );
     for (final row in rows) {
       final idKey = row['id_key'] as String;
@@ -713,12 +758,16 @@ class AthenaeumStore {
         }
       }
     }
-    retryPendingBlobDeletions();
+    retryPendingBlobDeletions(maxJobs: maxJobs);
   }
 
-  void retryPendingBlobDeletions() {
+  void retryPendingBlobDeletions({
+    int maxJobs = maxPendingDeletionRetriesPerRequest,
+  }) {
     final rows = _database.select(
-      'SELECT id_key, epoch, hash FROM blob_deletion_jobs ORDER BY queued_at',
+      'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
+      'ORDER BY queued_at LIMIT ?',
+      [maxJobs],
     );
     for (final row in rows) {
       final idKey = row['id_key'] as String;
@@ -763,6 +812,17 @@ class AthenaeumStore {
 
   static void _deleteFileSync(File file) => file.deleteSync();
 
+  _DeletionUsage _directoryUsage(Directory directory) {
+    if (!directory.existsSync()) return const _DeletionUsage();
+    var usage = const _DeletionUsage();
+    for (final entity in directory.listSync(recursive: true)) {
+      if (entity is File) {
+        usage = usage.add(bytes: entity.lengthSync(), blobs: 1);
+      }
+    }
+    return usage;
+  }
+
   static void validateDeviceId(String value) {
     if (!_deviceIdPattern.hasMatch(value)) {
       throw const FormatException('invalid device id');
@@ -796,6 +856,19 @@ class StoreQuotaExceeded implements Exception {
   const StoreQuotaExceeded(this.message);
 
   final String message;
+}
+
+class _DeletionUsage {
+  const _DeletionUsage({this.blobs = 0, this.bytes = 0});
+
+  final int blobs;
+  final int bytes;
+
+  _DeletionUsage add({_DeletionUsage? usage, int blobs = 0, int bytes = 0}) =>
+      _DeletionUsage(
+        blobs: this.blobs + (usage?.blobs ?? blobs),
+        bytes: this.bytes + (usage?.bytes ?? bytes),
+      );
 }
 
 class StoreRow {
