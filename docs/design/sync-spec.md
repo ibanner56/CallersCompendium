@@ -2874,6 +2874,13 @@ so — the grace rule above is scoped to the manifest `PUT` and the sweep, and a
 server reading it as universal would leave a wiped store's contents on disk for
 a day while reporting success.
 
+On startup, the server MUST reconcile final blob files in the prescribed
+`blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` layout that have no matching
+`blob_refs` row into the durable blob-deletion queue before retrying cleanup.
+This covers a process crash after a blob is renamed into place but before its
+metadata transaction commits, so the orphan cannot escape later TTL or wipe
+cleanup.
+
 **Ordinary logs are in scope for both retention promises.** The server, and any
 proxy in front of it, MUST NOT log blob bodies, manifest bodies, or decoded
 record content, at any level, including debug. Error paths — `400`, `422`, and
@@ -2912,7 +2919,7 @@ Break-glass access MUST write to a **separate database** holding exactly:
 
 | Column | Retention |
 | --- | --- |
-| `id_key` | `HMAC-SHA256(pepper, syncID)`, never plaintext. Nulled after 30 days. |
+| `id_key` | Derived sync storage path: `HMAC-SHA256(pepper, syncID)`, never plaintext. Nulled after 30 days. |
 | `accessed_at` | Retained. |
 
 Separate so that reaping a store cannot destroy evidence of access to it. Its

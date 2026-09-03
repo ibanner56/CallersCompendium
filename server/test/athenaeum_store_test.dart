@@ -1280,6 +1280,54 @@ void main() {
     );
   });
 
+  test('startup queues crash-orphaned blob files for cleanup', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-orphan-recovery-',
+    );
+    final config = AthenaeumConfig(
+      dataDirectory: dataDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    AthenaeumStore? recovered;
+    addTearDown(() {
+      recovered?.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final initial = AthenaeumStore(config: config);
+    final idKey = '5' * 64;
+    final created = initial.create(idKey);
+    final hash = '6' * 64;
+    final orphan = initial.blobFile(idKey, created.epoch, hash);
+    orphan.parent.createSync(recursive: true);
+    orphan.writeAsBytesSync([1], flush: true);
+    initial.close();
+
+    var failDelete = true;
+    recovered = AthenaeumStore(
+      config: config,
+      deleteFile: (file) {
+        if (failDelete) {
+          throw const FileSystemException('injected recovery failure');
+        }
+        file.deleteSync();
+      },
+    );
+    expect(
+      recovered!.database.select('SELECT * FROM blob_deletion_jobs'),
+      hasLength(1),
+    );
+    expect(orphan.existsSync(), isTrue);
+
+    failDelete = false;
+    recovered!.retryPendingBlobDeletions();
+    expect(orphan.existsSync(), isFalse);
+    expect(
+      recovered!.database.select('SELECT * FROM blob_deletion_jobs'),
+      isEmpty,
+    );
+  });
+
   test('store deletion prioritizes all of its directories', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-priority-delete-',

@@ -42,6 +42,7 @@ the app and of `compendium_core`; version headings below refer to
   persisting diagnostics for credentials that do not resolve to a store.
 - Keep committed store deletion successful when post-commit cleanup encounters
   a database error, scope pending-reference accounting to queued directories,
-  index linkable break-glass records for bounded retention purges, and index
-  store activity timestamps for hourly expiry scans, and clear redundant
-  per-blob cleanup jobs after successful whole-directory deletion.
+  index linkable break-glass records for bounded retention purges, index store
+  activity timestamps for hourly expiry scans, clear redundant per-blob cleanup
+  jobs after successful whole-directory deletion, and reconcile crash-orphaned
+  final blob files into the durable cleanup queue at startup.

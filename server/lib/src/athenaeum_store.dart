@@ -48,6 +48,7 @@ const int maxPendingDeletionRetriesPerSweep = 1000;
 
 final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
+final RegExp _epochPattern = RegExp(r'^[0-9a-f]{32}$');
 
 class AthenaeumStore {
   AthenaeumStore({
@@ -101,6 +102,7 @@ class AthenaeumStore {
       'CREATE INDEX IF NOT EXISTS diagnostic_events_recorded_at_idx '
       'ON diagnostic_events (recorded_at)',
     );
+    _reconcileOrphanedBlobFiles();
     retryPendingDeletions();
   }
 
@@ -135,6 +137,34 @@ class AthenaeumStore {
 
   Directory get blobDirectory =>
       Directory(p.join(config.dataDirectory, 'blobs'));
+
+  void _reconcileOrphanedBlobFiles() {
+    if (!blobDirectory.existsSync()) return;
+    final queuedAt = _clock().millisecondsSinceEpoch ~/ 1000;
+    for (final entity in blobDirectory.listSync(recursive: true)) {
+      if (entity is! File) continue;
+      final segments = p.split(
+        p.relative(entity.path, from: blobDirectory.path),
+      );
+      if (segments.length != 5) continue;
+      final idKey = segments[0];
+      final epoch = segments[1];
+      final hash = segments[4];
+      if (!_hashPattern.hasMatch(idKey) ||
+          !_epochPattern.hasMatch(epoch) ||
+          !_hashPattern.hasMatch(hash) ||
+          segments[2] != hash.substring(0, 2) ||
+          segments[3] != hash.substring(2, 4)) {
+        continue;
+      }
+      if (blobRef(idKey, epoch, hash) != null) continue;
+      _database.execute(
+        'INSERT OR IGNORE INTO blob_deletion_jobs '
+        '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
+        [idKey, epoch, hash, queuedAt],
+      );
+    }
+  }
 
   void close() {
     _database.close();
