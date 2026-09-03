@@ -122,7 +122,13 @@ class AthenaeumApp {
   Handler get handler => call;
 
   Future<Response> call(Request request) async {
-    store.retryPendingDeletions();
+    try {
+      store.retryPendingDeletions();
+    } on Object catch (error) {
+      stderr.writeln(
+        'Athenaeum request cleanup retry failed (${error.runtimeType})',
+      );
+    }
     final segments = request.url.pathSegments;
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});

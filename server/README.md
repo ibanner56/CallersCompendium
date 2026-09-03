@@ -31,6 +31,8 @@ retention, and break-glass procedures are specified for W12.
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in a larger bounded
 batch on requests and server start, and the hourly sweep drains the remainder.
+Request-path retry failures are isolated so they do not change protocol
+responses.
 Startup reconciliation also queues crash-orphaned final blob files and temporary
 upload artifacts for the same cleanup path. Pending physical files remain
 charged against recreated-store quotas, and an epoch that gains a stale upload

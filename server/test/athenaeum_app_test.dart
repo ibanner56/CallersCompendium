@@ -1343,6 +1343,50 @@ void main() {
     },
   );
 
+  test('request cleanup failures do not abort the request', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-request-cleanup-failure-',
+    );
+    final database = sqlite3.openInMemory();
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    customStore.create(idKey);
+    database.execute(
+      'CREATE TRIGGER fail_request_cleanup '
+      'BEFORE DELETE ON deletion_jobs '
+      "BEGIN SELECT RAISE(ABORT, 'injected cleanup failure'); END",
+    );
+    customStore.deleteStore(idKey);
+
+    final response = await customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+        },
+      ),
+    );
+    expect(response.statusCode, 404);
+  });
+
   test('manifest PUT collects old unreferenced blobs', () async {
     final created = await _send('POST', '/v1/store', syncId: syncId);
     final createdBody =

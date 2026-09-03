@@ -46,4 +46,5 @@ the app and of `compendium_core`; version headings below refer to
   activity timestamps for hourly expiry scans, clear redundant per-blob cleanup
   jobs after successful whole-directory deletion, and reconcile crash-orphaned
   final blob files and temporary upload artifacts into the durable cleanup queue
-  at startup.
+  at startup, while isolating request-path cleanup failures from protocol
+  responses.
