@@ -1248,25 +1248,36 @@ void main() {
 
     final idKey = '3' * 64;
     final created = store.create(idKey);
-    final hash = '4' * 64;
-    store.putBlob(
-      idKey: idKey,
-      epoch: created.epoch,
-      hash: hash,
-      body: Uint8List.fromList([1]),
-    );
+    for (
+      var index = 0;
+      index < maxPendingDeletionRetriesPerRequest + 1;
+      index++
+    ) {
+      store.putBlob(
+        idKey: idKey,
+        epoch: created.epoch,
+        hash: index.toRadixString(16).padLeft(64, '0'),
+        body: Uint8List.fromList([1]),
+      );
+    }
     database.execute(
       'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ? AND epoch = ?',
       [0, idKey, created.epoch],
     );
     store.collectGarbage(idKey, created.epoch, now: now, retryMaxJobs: null);
-    expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+    expect(
+      database.select('SELECT * FROM blob_deletion_jobs'),
+      hasLength(maxPendingDeletionRetriesPerRequest + 1),
+    );
 
     store.deleteStore(idKey);
 
     expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
     expect(database.select('SELECT * FROM blob_deletion_jobs'), isEmpty);
-    expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isFalse);
+    expect(
+      store.blobFile(idKey, created.epoch, '0'.padLeft(64, '0')).existsSync(),
+      isFalse,
+    );
   });
 
   test('store deletion prioritizes all of its directories', () {
