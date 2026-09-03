@@ -26,6 +26,13 @@ class AthenaeumDiagnosticEvent {
   final String? idKey;
   final String? hash;
   final Duration retention = const Duration(days: 30);
+
+  Map<String, Object?> toJson() => {
+    'status': status,
+    'idKey': idKey,
+    'hash': hash,
+    'retentionDays': retention.inDays,
+  };
 }
 
 class AthenaeumSweepController {

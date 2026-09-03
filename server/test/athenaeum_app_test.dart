@@ -952,6 +952,71 @@ void main() {
     expect(app.store.lookup(idKey), isNull);
   });
 
+  test(
+    'aggregate store quotas return 507 before persistent allocation',
+    () async {
+      final created = await _send('POST', '/v1/store', syncId: syncId);
+      final createdBody =
+          jsonDecode(await created.body()) as Map<String, Object?>;
+      final epoch = createdBody['epoch']! as String;
+      final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+      app.store.database.execute(
+        'UPDATE stores SET bytes_used = ? WHERE id_key = ?',
+        [maxStoreBytes, idKey],
+      );
+      final bytes = Uint8List.fromList([1, 2, 3]);
+      final hash = sha256.convert(bytes).toString();
+      final response = await _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      );
+      expect(response.statusCode, 507);
+      expect(app.store.blobFile(idKey, epoch, hash).existsSync(), isFalse);
+
+      app.store.database.execute(
+        'UPDATE stores SET bytes_used = 0 WHERE id_key = ?',
+        [idKey],
+      );
+      for (var index = 0; index < maxStoreDevices; index++) {
+        final manifest = SyncManifest(
+          deviceId: 'quota-device-$index',
+          epoch: epoch,
+          writtenAt: DateTime.utc(2026, 9, 3),
+          records: const {},
+        );
+        expect(
+          (await _send(
+            'PUT',
+            '/v1/manifests/quota-device-$index',
+            syncId: syncId,
+            body: encodeSyncManifestUtf8(manifest),
+            contentType: 'application/json',
+          )).statusCode,
+          201,
+        );
+      }
+      final overDeviceLimit = SyncManifest(
+        deviceId: 'quota-device-over-cap',
+        epoch: epoch,
+        writtenAt: DateTime.utc(2026, 9, 3),
+        records: const {},
+      );
+      expect(
+        (await _send(
+          'PUT',
+          '/v1/manifests/quota-device-over-cap',
+          syncId: syncId,
+          body: encodeSyncManifestUtf8(overDeviceLimit),
+          contentType: 'application/json',
+        )).statusCode,
+        507,
+      );
+    },
+  );
+
   test('rejection diagnostics contain only derived identifiers', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final events = <AthenaeumDiagnosticEvent>[];
@@ -981,7 +1046,10 @@ void main() {
     );
     expect(events.single.hash, hash);
     expect(events.single.retention, const Duration(days: 30));
-    expect(events.single.idKey, isNot(encodeSyncCredential(syncId)));
+    final serialized = jsonEncode(events.single.toJson());
+    expect(serialized, isNot(contains(encodeSyncCredential(syncId))));
+    expect(serialized, isNot(contains(syncId)));
+    expect(serialized, isNot(contains('1,2,3')));
   });
 
   test('sweep controller cancels its hourly callback on shutdown', () {
