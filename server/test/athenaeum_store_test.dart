@@ -1092,7 +1092,7 @@ void main() {
       database: database,
       breakGlassDatabase: sqlite3.openInMemory(),
       deleteDirectory: (_) {
-        throw StateError('injected directory failure');
+        throw const FileSystemException('injected directory failure');
       },
       operationalFailureSink: (source, error) => failures.add((source, error)),
     );
@@ -1114,7 +1114,8 @@ void main() {
       contains(
         predicate<(String, Object)>(
           (failure) =>
-              failure.$1 == 'deletion_retry' && failure.$2 is StateError,
+              failure.$1 == 'deletion_retry' &&
+              failure.$2 is FileSystemException,
         ),
       ),
     );

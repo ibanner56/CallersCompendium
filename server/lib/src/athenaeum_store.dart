@@ -903,9 +903,10 @@ class AthenaeumStore {
       }
       try {
         _deleteDirectory(Directory(p.join(blobDirectory.path, idKey, epoch)));
-      } on FileSystemException {
+      } on FileSystemException catch (error) {
         _database.execute('ROLLBACK');
         inTransaction = false;
+        _reportOperationalFailure('deletion_retry', error);
         _database.execute(
           'UPDATE deletion_jobs SET queued_at = ('
           'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
