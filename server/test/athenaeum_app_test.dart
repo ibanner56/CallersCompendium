@@ -1082,6 +1082,67 @@ void main() {
     );
   });
 
+  test('streaming byte quota rejects before buffering later chunks', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'athenaeum-stream-quota-',
+    );
+    final customStore = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: directory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 3),
+    );
+    final customApp = AthenaeumApp(
+      config: customStore.config,
+      store: customStore,
+    );
+    addTearDown(() async {
+      customStore.close();
+      await directory.delete(recursive: true);
+    });
+    final authorization = ['Bearer', encodeSyncCredential(syncId)].join(' ');
+    expect(
+      (await customApp.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/store'),
+          headers: {'authorization': authorization},
+        ),
+      )).statusCode,
+      201,
+    );
+    final firstChunk = Uint8List.fromList([1, 2, 3, 4]);
+    final hash = sha256.convert(firstChunk).toString();
+    var yielded = 0;
+    Stream<List<int>> body() async* {
+      yielded++;
+      yield firstChunk;
+      yielded++;
+      yield Uint8List.fromList([5]);
+    }
+
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': authorization,
+          'content-type': 'application/octet-stream',
+        },
+        body: body(),
+      ),
+    );
+    expect(response.statusCode, 507);
+    expect(yielded, 1);
+    final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
+    final epoch = customStore.lookup(idKey)!.epoch;
+    expect(customStore.blobFile(idKey, epoch, hash).existsSync(), isFalse);
+  });
+
   test('production diagnostics persist and expire safely', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final hash = 'a' * 64;
