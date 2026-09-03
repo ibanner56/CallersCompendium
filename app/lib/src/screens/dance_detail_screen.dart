@@ -626,14 +626,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     );
   }
 
-  Widget _reimportButton(DanceDetailData detail) => IconButton(
-    key: const ValueKey('reimport-dance'),
-    tooltip: AppLocalizations.of(context).danceReimport,
-    icon: const Icon(Icons.refresh),
-    onPressed: widget.onReimport == null
-        ? null
-        : () => widget.onReimport!(detail),
-  );
+  Widget _reimportButton(DanceDetailData detail) => widget.onReimport == null
+      ? const SizedBox.shrink()
+      : IconButton(
+          key: const ValueKey('reimport-dance'),
+          tooltip: AppLocalizations.of(context).danceReimport,
+          icon: const Icon(Icons.refresh),
+          onPressed: () => widget.onReimport!(detail),
+        );
 
   /// Read-only saved previews expose re-import without exposing the other
   /// collection mutations in [_fullActions] or [_overflowMenu].
@@ -1080,8 +1080,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         builder: (context) {
                           // Per-formation label colour (issue #367): highlight
                           // only when the user overrode this shape.
-                          final color = FormationColorsScope.of(context)
-                              ?.overrideFor(dance.formation.shape);
+                          final color = FormationColorsScope.of(
+                            context,
+                          )?.overrideFor(dance.formation.shape);
                           final text = Text(
                             formationLabel(l10n, dance.formation),
                           );
