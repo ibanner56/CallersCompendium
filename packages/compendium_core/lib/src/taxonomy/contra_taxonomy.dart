@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 32;
+const int contraTaxonomyVersion = 33;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -306,7 +306,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'box_circulate',
       displayName: 'box circulate',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
+        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
@@ -1204,7 +1204,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'half': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {half}',
+      renderTemplate: '{who} {half} {move}',
       // ContraDB figure8GoodBeats: `beats === half_or_full * 16` (an exact
       // equality, and figure8Change auto-sets it on a fraction flip): half
       // (0.5) -> 8, full (1.0) -> 16.
@@ -1579,7 +1579,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
-        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
+        'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },

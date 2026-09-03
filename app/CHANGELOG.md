@@ -47,6 +47,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - **CallersBox imports** — recognize 16-beat heys without an explicit duration
   and preserve supported bracketed balance-wave annotations.
+- **Dance figures** — correct shared rendering, taxonomy defaults, and
+  CallersBox/ContraDB imports reported in issue #1160.
 - **Program dance picker** — remove the misleading detail chevron from rows
   whose tap action adds or replaces a dance.
 

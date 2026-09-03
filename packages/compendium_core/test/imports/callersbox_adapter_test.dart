@@ -1047,6 +1047,121 @@ void main() {
       });
 
       test(
+        'right shoulder round → swing folds into a 16-beat meltdown swing',
+        () async {
+          final figures = await figuresFor([
+            '(8) Neighbor right shoulder round',
+            '(8) Neighbor swing',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'swing');
+          expect(figures.single.params['prefix'], 'meltdown');
+          expect(figures.single.params['beats'], 16);
+        },
+      );
+
+      test(
+        'the 19800 setup is consumed so the meltdown preserves 16 beats',
+        () async {
+          final figures = await figuresFor([
+            '(2) Women cast back || Men go forward',
+            '(6) N2 neighbor right shoulder round',
+            '(8) N2 neighbor swing',
+          ]);
+          expect(figures, hasLength(1));
+          expect(figures.single.move, 'swing');
+          expect(figures.single.params['prefix'], 'meltdown');
+          expect(figures.single.params['beats'], 16);
+        },
+      );
+
+      test(
+        'a shoulder-round subject mismatch blocks the meltdown fold',
+        () async {
+          final figures = await figuresFor([
+            '(8) Neighbor right shoulder round',
+            '(8) Partner swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'shoulder_round');
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], isNull);
+        },
+      );
+
+      test(
+        'omitted shoulder-round and swing subjects with different defaults stay separate',
+        () async {
+          final figures = await figuresFor([
+            '(8) Right shoulder round',
+            '(8) Swing',
+          ]);
+          expect(figures, hasLength(2));
+          expect(figures[0].move, 'shoulder_round');
+          expect(figures[1].move, 'swing');
+          expect(figures[1].params['prefix'], isNull);
+        },
+      );
+
+      test('promenade keeps the major-set annotation', () async {
+        final figures = await figuresFor([
+          '(8) Neighbor promenade clockwise around the major set',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'promenade');
+        expect(figures.single.params['who'], 'neighbors');
+        expect(figures.single.params['turn'], 'clockwise');
+        expect(figures.single.note, contains('around the major set'));
+      });
+
+      test('balance wave → slide folds into a balanced Rory O\'More', () async {
+        final figures = await figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Slide right along set',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'rory_o_more');
+        expect(figures.single.params['balance'], isTrue);
+        expect(figures.single.params['slide'], 'right');
+        expect(figures.single.params['beats'], 8);
+      });
+
+      test('down the hall → turn alone folds into a hall ender', () async {
+        final figures = await figuresFor([
+          '(8) Go down the hall',
+          '(4) Turn alone',
+        ]);
+        expect(figures, hasLength(1));
+        expect(figures.single.move, 'down_the_hall');
+        expect(figures.single.params['ender'], 'turnAlone');
+        expect(figures.single.params['beats'], 12);
+      });
+
+      test('a stated turn-alone subject prevents the hall fold', () async {
+        final figures = await figuresFor([
+          '(8) Go down the hall',
+          '(4) Ones turn alone',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'down_the_hall');
+        expect(figures[0].params['ender'], 'none');
+        expect(figures[1].move, 'turn_alone');
+        expect(figures[1].params['who'], 'ones');
+      });
+
+      test('a non-adjacent hall and turn alone remain separate', () async {
+        final figures = await figuresFor([
+          '(8) Go down the hall',
+          '(4) Circle left',
+          '(4) Turn alone',
+        ]);
+        expect(figures, hasLength(3));
+        expect(figures[0].move, 'down_the_hall');
+        expect(figures[1].move, 'circle');
+        expect(figures[2].move, 'turn_alone');
+      });
+
+      test(
         'a balance with no following mergeable move stays separate',
         () async {
           final figures = await figuresFor([

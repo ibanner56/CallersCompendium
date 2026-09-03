@@ -257,6 +257,7 @@ void main() {
         gripSingleFileCanonicalInclusionDoneKey,
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         compactDosidoSeesawCanonicalRebuildDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
         chainHandBackfillDoneKey,
       ]) {
         await repos.settings.set(key, 'done');

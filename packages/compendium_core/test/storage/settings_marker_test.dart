@@ -35,6 +35,9 @@ void main() {
     await SettingsRepository(
       db,
     ).set(compactDosidoSeesawCanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV33CanonicalRebuildDoneKey, 'done');
   });
   tearDown(() => db.close());
 

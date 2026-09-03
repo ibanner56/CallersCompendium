@@ -355,6 +355,66 @@ void main() {
     });
   });
 
+  group('issue #1160 display corrections', () {
+    test('swing end facing uses a comma-prefixed clause', () {
+      final figure = Figure(
+        move: 'swing',
+        params: {'who': 'partners', 'endFacing': 'down'},
+      );
+      expect(
+        renderer.render(figure, Dialect.canonical),
+        'partner swing, end facing down the hall',
+      );
+      expect(renderer.renderCanonical(figure), 'partners swing');
+    });
+
+    test('take-only give-and-take omits the give wording in display', () {
+      final figure = Figure(move: 'give_and_take', params: {'give': false});
+      expect(renderer.render(figure, Dialect.canonical), 'role1s take partner');
+      expect(renderer.renderCanonical(figure), 'role1s give & take partners');
+    });
+
+    test('give-and-take honors a custom move substitution', () {
+      final dialect = Dialect(
+        name: 'Custom give-and-take',
+        moves: {'give_and_take': 'hand off and receive'},
+      );
+      expect(
+        renderer.render(Figure(move: 'give_and_take'), dialect),
+        'role1s hand off and receive partner',
+      );
+      expect(
+        renderer.render(
+          Figure(move: 'give_and_take', params: {'give': false}),
+          dialect,
+        ),
+        'role1s take partner',
+      );
+    });
+
+    test('figure eight puts fraction first and describes its direction', () {
+      final figure = Figure(
+        move: 'figure_8',
+        params: {'who': 'ones', 'half': 'half', 'dir': 'below'},
+      );
+      expect(
+        renderer.render(figure, Dialect.canonical),
+        'ones half figure 8 down between twos',
+      );
+      expect(renderer.renderCanonical(figure), 'ones half figure 8');
+    });
+
+    test('figure eight direction uses the effective default subject', () {
+      expect(
+        renderer.render(
+          Figure(move: 'figure_8', params: {'dir': 'below'}),
+          Dialect.canonical,
+        ),
+        'ones half figure 8 down between twos',
+      );
+    });
+  });
+
   group('verbose (spoken-friendly) rendering', () {
     test('spells out mixed-turn rotations, no glyphs', () {
       expect(
@@ -448,14 +508,14 @@ void main() {
           Figure(move: 'figure_8', params: {'half': 'threeQuarter'}),
           larks,
         ),
-        'ones figure 8 three quarters',
+        'ones three quarters figure 8',
       );
       expect(
         renderer.renderVerbose(
           Figure(move: 'figure_8', params: {'half': 'full'}),
           larks,
         ),
-        'ones figure 8 the whole way',
+        'ones the whole way figure 8',
       );
     });
 
@@ -697,7 +757,7 @@ void main() {
     });
 
     group('rendered figures', () {
-      // `_renderValue` (template path): figure_8 renders `{who} {move} {half}`.
+      // `_renderValue` (template path): figure_8 renders `{who} {half} {move}`.
       final templateFigure = Figure(
         move: 'figure_8',
         params: {'who': 'twosRole2'},
@@ -717,11 +777,11 @@ void main() {
       test('template path reads the dialect term', () {
         expect(
           renderer.render(templateFigure, larks),
-          'second robin figure 8 half',
+          'second robin half figure 8',
         );
         expect(
           renderer.render(templateFigure, leads),
-          'second follow figure 8 half',
+          'second follow half figure 8',
         );
       });
 
@@ -745,7 +805,7 @@ void main() {
       test('a substitution wins on the template and base-line paths', () {
         expect(
           renderer.render(templateFigure, reworded),
-          'robin two figure 8 half',
+          'robin two half figure 8',
         );
         expect(renderer.render(baseLineFigure, reworded), 'robin two swing');
       });
@@ -757,21 +817,20 @@ void main() {
         }
       });
 
-      // THE property that keeps this a display fix instead of a migration:
-      // canonicalText feeds `dance_fts`, the `dance_figures` projection and the
-      // dedupe key, so it must stay byte-for-byte identical. The display branch
-      // is gated on `!forCanonical` precisely for this.
-      test('canonical render is BYTE-IDENTICAL (no migration)', () {
-        expect(
-          renderer.renderCanonical(templateFigure),
-          'twos role2 figure 8 half',
-        );
-        expect(renderer.renderCanonical(baseLineFigure), 'twos role2 swing');
-        expect(
-          renderer.renderCanonical(dolphinFigure),
-          'ones dolphin hey right',
-        );
-      });
+      test(
+        'canonical render uses the intentional v33 figure-eight template',
+        () {
+          expect(
+            renderer.renderCanonical(templateFigure),
+            'twos role2 half figure 8',
+          );
+          expect(renderer.renderCanonical(baseLineFigure), 'twos role2 swing');
+          expect(
+            renderer.renderCanonical(dolphinFigure),
+            'ones dolphin hey right',
+          );
+        },
+      );
 
       test('canonical render ignores a dialect substitution as well', () {
         // renderCanonical always passes Dialect.canonical, but assert the
@@ -908,7 +967,7 @@ void main() {
           move: 'pull_by_direction',
           params: {'balance': true},
         ),
-        'partners box circulate': Figure(
+        'role2s box circulate': Figure(
           move: 'box_circulate',
           params: {'balance': true},
         ),
@@ -1162,11 +1221,11 @@ void main() {
         final f = Figure(move: 'box_circulate', params: {'balance': true});
         expect(
           renderer.renderSummary(f, d),
-          'balance & box circulate - partner cross while others loop right',
+          'balance & box circulate - role2s cross while role1s loop right',
         );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'balance and box circulate - partner cross while others loop right',
+          'balance and box circulate - role2s cross while role1s loop right',
         );
       });
       test('box_circulate shows balance BY DEFAULT (unset balance)', () {
@@ -1176,20 +1235,20 @@ void main() {
         final f = Figure(move: 'box_circulate');
         expect(
           renderer.renderSummary(f, d),
-          'balance & box circulate - partner cross while others loop right',
+          'balance & box circulate - role2s cross while role1s loop right',
         );
         expect(
           renderer.renderSummary(f, d, verbose: true),
-          'balance and box circulate - partner cross while others loop right',
+          'balance and box circulate - role2s cross while role1s loop right',
         );
         // canonical is untouched by the display default.
-        expect(renderer.renderCanonical(f), 'partners box circulate');
+        expect(renderer.renderCanonical(f), 'role2s box circulate');
       });
       test('box_circulate explicit balance:false suppresses the prefix', () {
         final f = Figure(move: 'box_circulate', params: {'balance': false});
         expect(
           renderer.renderSummary(f, d),
-          'box circulate - partner cross while others loop right',
+          'box circulate - role2s cross while role1s loop right',
         );
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
@@ -1927,7 +1986,7 @@ void main() {
         'slice left couple straight': Figure(move: 'slice'),
         'ones mad robin once': Figure(move: 'mad_robin'),
         'role2s revolving door right partners': Figure(move: 'revolving_door'),
-        'partners box circulate': Figure(move: 'box_circulate'),
+        'role2s box circulate': Figure(move: 'box_circulate'),
         // Explicit-param variants prove the display reword never leaks into
         // the search/dedupe text.
         'partners zig zag right': Figure(
@@ -2174,7 +2233,7 @@ void main() {
       // Every touched move keeps its OLD canonical template expansion — the
       // byte-stable dedupe/FTS key — that the PR3 display reword replaces.
       final cases = <String, Figure>{
-        'partners box circulate': Figure(move: 'box_circulate'),
+        'role2s box circulate': Figure(move: 'box_circulate'),
         'partners cross trails across neighbors': Figure(move: 'cross_trails'),
         'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
         'ones facing star clockwise 3 places': Figure(move: 'facing_star'),
@@ -2221,13 +2280,13 @@ void main() {
         test('default base line carries the cross/loop clause, no balance', () {
           expect(
             renderer.render(Figure(move: 'box_circulate'), d),
-            'box circulate - partner cross while others loop right',
+            'box circulate - role2s cross while role1s loop right',
           );
         });
         test('summary still prepends the (default-shown) balance', () {
           expect(
             renderer.renderSummary(Figure(move: 'box_circulate'), d),
-            'balance & box circulate - partner cross while others loop right',
+            'balance & box circulate - role2s cross while role1s loop right',
           );
         });
         test('explicit balance:false suppresses the summary prefix', () {
@@ -2236,7 +2295,7 @@ void main() {
               Figure(move: 'box_circulate', params: {'balance': false}),
               d,
             ),
-            'box circulate - partner cross while others loop right',
+            'box circulate - role2s cross while role1s loop right',
           );
         });
       },

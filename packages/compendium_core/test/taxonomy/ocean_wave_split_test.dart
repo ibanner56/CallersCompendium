@@ -63,7 +63,7 @@ void main() {
             reason: '$key remains shared by the split moves',
           );
         }
-        final expectedCenterHand = id == 'form_short_waves' ? 'left' : 'right';
+        const expectedCenterHand = 'left';
         expect(
           tax.resolve(id)!.params['centerHand']!.defaultValue,
           expectedCenterHand,

@@ -925,7 +925,11 @@ has to be judged in its own context.
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
   outside (→ down/up the hall `moving`), circulate (→ box circulate, balance
-  folded), hall + turn as couples (→ `ender: turnCouple`), pass the ocean +
+  folded), hall + turn as couples (→ `ender: turnCouple`), hall + turn alone
+  (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
+  (→ meltdown swing with adjacent source beats), balance wave + slide
+  (→ balanced Rory O'More), and directed promenade around the major set
+  (→ structured turn plus a preserved note), pass the ocean +
   trailing balance wave (→ `pass_the_ocean` / `form_short_waves` /
   `form_a_long_wave` / `form_long_waves` with `balance: true`, beats summed;
   #577), diagonal chain /
@@ -1089,7 +1093,8 @@ has to be judged in its own context.
   **Out (→ custom
   for now, tracked on #295):** cast off,
   two-hand turn & other ECD figures, promenade
-  CW/CCW around the major set, non-duple formations, and
+  CW/CCW around the major set when the line cannot be recognized, non-duple
+  formations, and
   anything with leftover prose. Coverage improves iteratively — measured against
   the full corpus (design target ≥80% of lines structured over time). (`||`
   simultaneity is no longer in this list — see "Simultaneous-action fan-out

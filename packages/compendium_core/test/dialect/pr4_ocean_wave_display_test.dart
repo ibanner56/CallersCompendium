@@ -122,11 +122,11 @@ void main() {
   });
 
   group('pass_the_ocean display', () {
-    test('default (centerHand right -> side left)', () {
+    test('default (centerHand left -> side right)', () {
       expect(
         renderer.render(Figure(move: 'pass_the_ocean'), d),
-        'pass through to an ocean wave - role2s catch right hands in the '
-        'center, neighbor take left hands on the sides',
+        'pass through to an ocean wave - role2s catch left hands in the '
+        'center, neighbor take right hands on the sides',
       );
     });
 
@@ -136,8 +136,8 @@ void main() {
           Figure(move: 'pass_the_ocean', params: {'balance': true}),
           d,
         ),
-        'pass through to an ocean wave - role2s catch right hands in the '
-        'center, neighbor take left hands on the sides and balance',
+        'pass through to an ocean wave - role2s catch left hands in the '
+        'center, neighbor take right hands on the sides and balance',
       );
     });
 
@@ -147,8 +147,8 @@ void main() {
           Figure(move: 'pass_the_ocean', params: {'dir': 'rightDiagonal'}),
           d,
         ),
-        'pass through to a right diagonal ocean wave - role2s catch right '
-        'hands in the center, neighbor take left hands on the sides',
+        'pass through to a right diagonal ocean wave - role2s catch left '
+        'hands in the center, neighbor take right hands on the sides',
       );
     });
 
@@ -162,14 +162,14 @@ void main() {
       );
     });
 
-    test('centerHand left flips the derived side hand to right', () {
+    test('centerHand right flips the derived side hand to left', () {
       expect(
         renderer.render(
-          Figure(move: 'pass_the_ocean', params: {'centerHand': 'left'}),
+          Figure(move: 'pass_the_ocean', params: {'centerHand': 'right'}),
           d,
         ),
-        'pass through to an ocean wave - role2s catch left hands in the '
-        'center, neighbor take right hands on the sides',
+        'pass through to an ocean wave - role2s catch right hands in the '
+        'center, neighbor take left hands on the sides',
       );
     });
 

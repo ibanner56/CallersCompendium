@@ -109,7 +109,7 @@ void main() {
       // balance, so `balance` is left absent (the CallersBox merge folds a
       // preceding balance line in as true); `hand`/`who` fall to MoveDef
       // defaults.
-      'Box circulate': (move: 'box_circulate', params: {'who': 'partners'}),
+      'Box circulate': (move: 'box_circulate', params: {}),
       'Partners box circulate': (
         move: 'box_circulate',
         params: {'who': 'partners'},
@@ -416,9 +416,11 @@ void main() {
       });
     });
 
-    // An OMITTED subject → the recognizer defaults `who` AND flags it assumed.
-    // The defaulted value still matches the recognizer's `?? default`.
-    final defaulted = <String, ({String site, String move, String who})>{
+    // An OMITTED subject normally gets the recognizer's historical default and
+    // is flagged assumed. Box circulate is the exception: it leaves `who`
+    // absent so the taxonomy default remains authoritative across versioned
+    // default changes.
+    final defaulted = <String, ({String site, String move, String? who})>{
       // Issue examples first.
       'Balance and swing': (site: 'swing', move: 'swing', who: 'partners'),
       'Allemande left 1 1/2': (
@@ -452,7 +454,7 @@ void main() {
       'Box circulate': (
         site: 'box_circulate',
         move: 'box_circulate',
-        who: 'partners',
+        who: null,
       ),
       'Gate counterclockwise 3/4': (
         site: 'gate',

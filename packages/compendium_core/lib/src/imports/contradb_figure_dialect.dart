@@ -287,6 +287,8 @@ FigureMatch? _swing(String text) {
     // swing prefix — bail so the correct recognizer handles it.
     if (!s.eat('&')) return null;
     params['prefix'] = 'balance';
+  } else if (s.eat('meltdown')) {
+    params['prefix'] = 'meltdown';
   }
   if (s.peek() == 'long') {
     s.take();
