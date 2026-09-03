@@ -866,6 +866,10 @@ class AthenaeumStore {
         return;
       }
       _database.execute(
+        'DELETE FROM blob_deletion_jobs WHERE id_key = ? AND epoch = ?',
+        [idKey, epoch],
+      );
+      _database.execute(
         'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
         [idKey, epoch],
       );

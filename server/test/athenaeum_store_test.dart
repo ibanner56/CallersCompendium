@@ -1226,6 +1226,49 @@ void main() {
     expect(recreated.epoch, isNot(oldStore.epoch));
   });
 
+  test('successful directory deletion clears redundant blob jobs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-directory-job-cleanup-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = '3' * 64;
+    final created = store.create(idKey);
+    final hash = '4' * 64;
+    store.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: hash,
+      body: Uint8List.fromList([1]),
+    );
+    database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ? AND epoch = ?',
+      [0, idKey, created.epoch],
+    );
+    store.collectGarbage(idKey, created.epoch, now: now, retryMaxJobs: null);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+
+    store.deleteStore(idKey);
+
+    expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
+    expect(database.select('SELECT * FROM blob_deletion_jobs'), isEmpty);
+    expect(store.blobFile(idKey, created.epoch, hash).existsSync(), isFalse);
+  });
+
   test('store deletion prioritizes all of its directories', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-priority-delete-',

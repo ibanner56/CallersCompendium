@@ -43,4 +43,5 @@ the app and of `compendium_core`; version headings below refer to
 - Keep committed store deletion successful when post-commit cleanup encounters
   a database error, scope pending-reference accounting to queued directories,
   index linkable break-glass records for bounded retention purges, and index
-  store activity timestamps for hourly expiry scans.
+  store activity timestamps for hourly expiry scans, and clear redundant
+  per-blob cleanup jobs after successful whole-directory deletion.
