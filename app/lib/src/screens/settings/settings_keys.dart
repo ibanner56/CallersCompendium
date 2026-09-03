@@ -109,3 +109,11 @@ const String kMatrixExactBeatCollisionKey = 'matrix_exact_beat_collision';
 /// **travels in local backups** — validated on restore against the codec (see
 /// `backup_settings_schema.dart`) so a malformed blob can never reach the app.
 const String kProgramMatrixColumnsKey = 'program_matrix_columns';
+
+/// Key used to persist the Device Sync bearer credential. It is generated or
+/// entered locally and is never included in backups or sync record content.
+const String kSyncIdKey = 'sync_id';
+
+/// Key used to persist this installation's Device Sync routing identifier. It
+/// is minted locally and is never adopted from a peer or included in backups.
+const String kSyncDeviceIdKey = 'sync_device_id';

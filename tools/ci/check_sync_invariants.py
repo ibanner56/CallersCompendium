@@ -157,15 +157,15 @@ SYNC_ID_DEF_RE = re.compile(
     re.MULTILINE,
 )
 SYNC_ID_IMPORT_RE = re.compile(
-    r"^\s*import\s+[^;\n]*(?:normalizeSyncId|sync[_-]?normaliz)",
+    r"^\s*import\s+[^;]*(?:normalizeSyncId|sync[_-]?normaliz)",
     re.MULTILINE | re.IGNORECASE,
 )
 IMPORT_RE = re.compile(
-    r"^\s*import\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;\n]*)\s*;",
+    r"^\s*import\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;]*)\s*;",
     re.MULTILINE,
 )
 EXPORT_RE = re.compile(
-    r"^\s*export\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;\n]*)\s*;",
+    r"^\s*export\s+['\"](?P<uri>[^'\"]+)['\"](?P<clause>[^;]*)\s*;",
     re.MULTILINE,
 )
 
@@ -704,7 +704,7 @@ def _imported_uris(source: str, symbol: str) -> list[tuple[str, int]]:
     comments_blank = blank_comments(source)
     for match in IMPORT_RE.finditer(comments_blank):
         clause = match.group("clause")
-        show = re.search(r"\bshow\b(?P<names>.*)", clause, re.IGNORECASE)
+        show = re.search(r"\bshow\b(?P<names>[\s\S]*)", clause, re.IGNORECASE)
         if show and not re.search(
             rf"\b{re.escape(symbol)}\b", show.group("names")
         ):
@@ -722,7 +722,7 @@ def _exported_uris(source: str, symbol: str) -> list[str]:
     comments_blank = blank_comments(source)
     for match in EXPORT_RE.finditer(comments_blank):
         clause = match.group("clause")
-        show = re.search(r"\bshow\b(?P<names>.*)", clause, re.IGNORECASE)
+        show = re.search(r"\bshow\b(?P<names>[\s\S]*)", clause, re.IGNORECASE)
         if show and not re.search(
             rf"\b{re.escape(symbol)}\b", show.group("names")
         ):

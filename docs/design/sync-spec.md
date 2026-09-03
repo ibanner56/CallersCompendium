@@ -344,12 +344,12 @@ nothing naming the property that makes them one set. The classification is where
 a second credential, if one is ever added, inherits all five instead of
 rediscovering them.
 
-Neither `protocolIdentifier` nor `accessControlData` is added to the Dart
-`EgressClass` enum by this design. Both are specified here and land with their
-first registry entry, which is **W5**'s: W5 owns `sync_id` and `sync_device_id`
-as persisted settings keys and therefore owns their classifications. An enum
-member with no entries is not exercised by the registry ratchets, so adding it
-early buys nothing and risks a member nothing checks.
+`protocolIdentifier` and `accessControlData` are represented by the Dart
+`EgressClass` enum. Their first registry entries land with **W5**:
+`sync_id` and `sync_device_id` are persisted settings keys, so W5 owns their
+classifications. The access-control value is persisted locally under that
+classification, while the server and any proxy must never retain it
+recoverably.
 
 The serialiser MUST filter by classification; the archive codec does not do this
 and MUST NOT be relied on for it. The registry uses snake_case `table.column`
@@ -3030,7 +3030,9 @@ score MUST be computed over the **normalised** ID of the rule below, not the
 string as typed: normalisation lowercases and applies NFC before the ID is
 hashed, so an estimator run on the raw string credits case and Unicode-form
 distinctions that collapse to the same credential, and reports a strength the
-user does not have.
+user does not have. Generated EFF words receive the uniform 7,776-word score;
+user-entered common credential words use their ranked guess positions, and
+other user words receive a conservative lower estimate.
 
 **Nothing rejects an ID for weakness.** The server enforces only the
 *structural* rule and returns `403` for a violation of it:
@@ -3119,13 +3121,17 @@ request is issued, against all of:
 | Scheme | https (or `localhost`/`127.0.0.1` under the same exemption as above) |
 | Origin | **identical to the configured endpoint's** scheme, host and port |
 | Userinfo | absent |
-| Port | the scheme default, or the endpoint's own explicit port |
+| Port | the scheme default |
 | Hop count | capped |
 
 A hop failing any of these MUST be refused rather than followed, and the
 `Authorization` header of §5.1 MUST NOT be sent to any origin other than the
 configured endpoint's. A client MAY instead refuse cross-origin redirects
 outright; it MUST NOT follow one while still carrying the credential.
+
+Each request MUST have a **30-second** cancellable deadline covering both the
+response-header wait and body consumption. A deadline expiry is a transient
+transport failure, not an HTTP response.
 
 **The origin rule is the load-bearing one.** The other four bound what a hop may
 look like; only this one bounds *where the sync ID can go*. A redirect chain
