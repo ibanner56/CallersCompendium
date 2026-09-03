@@ -198,6 +198,7 @@ void main() {
         );
         expect(requests, 2);
       },
+      timeout: const Timeout(Duration(seconds: 1)),
     );
 
     test('enforces the absolute decoded response-size cap', () async {
