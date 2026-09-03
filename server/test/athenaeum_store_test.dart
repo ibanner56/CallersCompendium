@@ -663,7 +663,7 @@ void main() {
       ),
       database: database,
       breakGlassDatabase: sqlite3.openInMemory(),
-      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 1, maxBytes: 3),
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 1, maxBytes: 100),
       deleteDirectory: (_) {
         throw const FileSystemException('injected directory failure');
       },
@@ -801,6 +801,10 @@ void main() {
       hash: null,
       recordedAt: now.subtract(const Duration(days: 31)),
     );
+    breakGlassDatabase.execute(
+      'CREATE TRIGGER fail_break_glass BEFORE UPDATE ON break_glass_access '
+      "BEGIN SELECT RAISE(ABORT, 'injected retention failure'); END",
+    );
 
     store.sweep(now: now);
 
@@ -808,7 +812,7 @@ void main() {
       'SELECT id_key, accessed_at FROM break_glass_access',
     );
     expect(accessRows, hasLength(1));
-    expect(accessRows.single['id_key'], isNull);
+    expect(accessRows.single['id_key'], isNotNull);
     expect(
       store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
       isEmpty,
