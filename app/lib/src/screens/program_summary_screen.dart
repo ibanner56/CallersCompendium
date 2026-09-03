@@ -233,8 +233,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // retired once its last reader became stream-driven (issue #768).
   }
 
-  Future<void> _beginReimport(DanceDetailData detail) =>
-      _reimport.open(context, detail);
+  Future<void> _beginReimport(
+    BuildContext routeContext,
+    DanceDetailData detail,
+  ) => _reimport.open(routeContext, detail);
 
   /// The live Collection reference data for this pane (issue #768).
   ///
@@ -955,9 +957,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               key: ValueKey('summary-slot-${slot.id}'),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => DanceDetailScreen(
+                  builder: (routeContext) => DanceDetailScreen(
                     danceId: danceId,
-                    onReimport: _beginReimport,
+                    onReimport: (detail) =>
+                        _beginReimport(routeContext, detail),
                   ),
                 ),
               ),
