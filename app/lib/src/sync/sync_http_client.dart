@@ -209,7 +209,7 @@ class SyncHttpClient {
     var redirectBody = body;
     var redirectContentType = contentType;
     var redirectHeaders = extraHeaders;
-    final deadline = DateTime.now().add(requestTimeout);
+    final elapsed = Stopwatch()..start();
     for (var redirects = 0; ; redirects++) {
       final request = http.Request(redirectMethod, current)
         ..followRedirects = false
@@ -222,15 +222,15 @@ class SyncHttpClient {
       if (ifNoneMatch != null) request.headers['If-None-Match'] = ifNoneMatch;
       if (redirectBody != null) request.bodyBytes = redirectBody;
 
-      final response = await _beforeDeadline(_client.send(request), deadline);
+      final response = await _beforeDeadline(_client.send(request), elapsed);
       if (!_isRedirect(response.statusCode)) {
-        return _beforeDeadline(_readResponse(response, decodedLimit), deadline);
+        return _beforeDeadline(_readResponse(response, decodedLimit), elapsed);
       }
 
       try {
         await _beforeDeadline(
           _discardBoundedBody(response, decodedLimit),
-          deadline,
+          elapsed,
         );
       } on SyncEndpointException {
         // diagnostics: silent — redirect response is discarded and surfaced as
@@ -292,8 +292,8 @@ class SyncHttpClient {
     _client.close();
   }
 
-  Future<T> _beforeDeadline<T>(Future<T> operation, DateTime deadline) {
-    final remaining = deadline.difference(DateTime.now());
+  Future<T> _beforeDeadline<T>(Future<T> operation, Stopwatch elapsed) {
+    final remaining = requestTimeout - elapsed.elapsed;
     if (remaining <= Duration.zero) {
       _cancelTimedOutRequest();
       return Future<T>.error(
