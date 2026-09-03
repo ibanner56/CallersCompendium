@@ -18,7 +18,8 @@ The pepper is required, is never stored in SQLite, and must be at least 256
 bits of cryptographically secure randomness. Set `ATHENAEUM_PEPPER` instead of
 `--pepper` when passing it as a command-line argument is undesirable.
 
-The service listens on `127.0.0.1:33333` unless `--host` and `--port` are
-provided. This local listener is for C2/client development; production TLS,
+The service listens on `127.0.0.1:33333` unless the loopback-only `--host`
+(`127.0.0.1` or `localhost`) and `--port` are provided. Public listener
+addresses are rejected. This local listener is for C2/client development; production TLS,
 proxy forwarding, address handling, logging, alerting, retention, and
 break-glass procedures are specified for W16.

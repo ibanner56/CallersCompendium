@@ -1,136 +1,100 @@
-/// Privacy classification for fields persisted by the Athenaeum service.
+import 'package:compendium_core/compendium_core.dart';
+
+/// Privacy classification for fields persisted by Athenaeum.
 ///
-/// This registry is deliberately separate from the client upload allow-list:
-/// it describes server persistence, while uploads are checked against the
-/// shared [compendium_core] registries.
-enum ServerDataCategory { accessControl, protocol, metadata, sharedContent }
-
-enum ServerDataSubject { none, syncParticipant, sharedCollection }
-
-enum ServerDataEgress { serverInternal, authenticatedResponse }
-
-class ServerFieldClassification {
-  const ServerFieldClassification({
-    required this.category,
-    required this.subject,
-    required this.egress,
-    this.note,
-  });
-
-  final ServerDataCategory category;
-  final ServerDataSubject subject;
-  final ServerDataEgress egress;
-  final String? note;
-}
-
-/// Every persisted SQLite/configuration field must appear here.
-const Map<String, ServerFieldClassification> serverFieldClassifications = {
-  'stores.id_key': ServerFieldClassification(
-    category: ServerDataCategory.accessControl,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+/// This registry describes server persistence. W11's upload allow-list remains
+/// generated from the shared client registries.
+const Map<String, DataClassification> serverFieldClassifications = {
+  'stores.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
     note: 'HMAC-derived store address; plaintext sync IDs are never persisted.',
   ),
-  'stores.epoch': ServerFieldClassification(
-    category: ServerDataCategory.protocol,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'stores.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
   ),
-  'stores.created_at': ServerFieldClassification(
-    category: ServerDataCategory.metadata,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'stores.created_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'stores.last_seen': ServerFieldClassification(
-    category: ServerDataCategory.metadata,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'stores.last_seen': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'stores.bytes_used': ServerFieldClassification(
-    category: ServerDataCategory.metadata,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'stores.bytes_used': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
   ),
-  'manifests.id_key': ServerFieldClassification(
-    category: ServerDataCategory.accessControl,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'manifests.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'manifests.epoch': ServerFieldClassification(
-    category: ServerDataCategory.protocol,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'manifests.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'manifests.device_id': ServerFieldClassification(
-    category: ServerDataCategory.protocol,
-    subject: ServerDataSubject.syncParticipant,
-    egress: ServerDataEgress.authenticatedResponse,
+  'manifests.device_id': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.protocolIdentifier,
+    isIdentity: true,
+    note: 'Opaque routing identifier; never adopted from a peer.',
   ),
-  'manifests.etag': ServerFieldClassification(
-    category: ServerDataCategory.protocol,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'manifests.etag': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
   ),
-  'manifests.written_at': ServerFieldClassification(
-    category: ServerDataCategory.metadata,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'manifests.written_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
   ),
-  'manifests.body': ServerFieldClassification(
-    category: ServerDataCategory.sharedContent,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'manifests.body': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
+    note: 'Contains only the protocol manifest, not record content.',
   ),
-  'blob_refs.id_key': ServerFieldClassification(
-    category: ServerDataCategory.accessControl,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'blob_refs.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'blob_refs.epoch': ServerFieldClassification(
-    category: ServerDataCategory.protocol,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'blob_refs.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'blob_refs.hash': ServerFieldClassification(
-    category: ServerDataCategory.protocol,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'blob_refs.hash': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
   ),
-  'blob_refs.size': ServerFieldClassification(
-    category: ServerDataCategory.metadata,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.authenticatedResponse,
+  'blob_refs.size': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.shareable,
   ),
-  'blob_refs.uploaded_at': ServerFieldClassification(
-    category: ServerDataCategory.metadata,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
+  'blob_refs.uploaded_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
   ),
-  'config.pepper': ServerFieldClassification(
-    category: ServerDataCategory.accessControl,
-    subject: ServerDataSubject.sharedCollection,
-    egress: ServerDataEgress.serverInternal,
-    note: 'Deployment secret; it is required at startup and never persisted.',
+  'config.pepper': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Deployment secret; required at startup and never persisted.',
   ),
 };
-
-const List<String> serverSqliteFields = [
-  'stores.id_key',
-  'stores.epoch',
-  'stores.created_at',
-  'stores.last_seen',
-  'stores.bytes_used',
-  'manifests.id_key',
-  'manifests.epoch',
-  'manifests.device_id',
-  'manifests.etag',
-  'manifests.written_at',
-  'manifests.body',
-  'blob_refs.id_key',
-  'blob_refs.epoch',
-  'blob_refs.hash',
-  'blob_refs.size',
-  'blob_refs.uploaded_at',
-];
 
 const List<String> serverConfigurationFields = ['config.pepper'];

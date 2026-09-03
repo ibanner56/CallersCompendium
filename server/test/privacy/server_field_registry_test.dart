@@ -7,7 +7,7 @@ void main() {
     expect(serverFieldClassifications.keys.toSet(), equals(expected));
     for (final field in expected) {
       final classification = serverFieldClassifications[field]!;
-      expect(classification.category, isNotNull, reason: field);
+      expect(classification.term, isNotNull, reason: field);
       expect(classification.subject, isNotNull, reason: field);
       expect(classification.egress, isNotNull, reason: field);
     }

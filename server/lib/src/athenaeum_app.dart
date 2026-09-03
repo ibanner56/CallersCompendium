@@ -11,20 +11,37 @@ import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
 
+class AthenaeumBudgetLimits {
+  const AthenaeumBudgetLimits({
+    this.perIpFailuresPerMinute = maxFailedResolutionsPerIp,
+    this.perIpFailureBurst = maxFailedResolutionsPerIpBurst,
+    this.serverWideFailuresPerMinute = maxFailedResolutionsServerWide,
+    this.creationsPerMinute = maxStoreCreationsPerMinute,
+  });
+
+  final int perIpFailuresPerMinute;
+  final int perIpFailureBurst;
+  final int serverWideFailuresPerMinute;
+  final int creationsPerMinute;
+}
+
 class AthenaeumApp {
   AthenaeumApp({
     required AthenaeumConfig config,
     AthenaeumStore? store,
     ClientAddressResolver? clientAddressResolver,
+    AthenaeumBudgetLimits budgetLimits = const AthenaeumBudgetLimits(),
   }) : config = config,
        store = store ?? AthenaeumStore(config: config),
-       _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress;
+       _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress,
+       _failureBudget = _FailureBudget(budgetLimits),
+       _creationBudget = _CreationBudget(budgetLimits);
 
   final AthenaeumConfig config;
   final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
-  final _FailureBudget _failureBudget = _FailureBudget();
-  final _CreationBudget _creationBudget = _CreationBudget();
+  final _FailureBudget _failureBudget;
+  final _CreationBudget _creationBudget;
 
   Handler get handler => call;
 
@@ -63,9 +80,11 @@ class AthenaeumApp {
       if (body.isNotEmpty) {
         throw const _RequestFailure(400, 'store creation has no body');
       }
-      if (!_creationBudget.allow()) {
-        return _rateLimitedResponse();
+      final existing = store.lookup(identity.idKey);
+      if (existing != null) {
+        return _failedResolution(request, 409, 'store already exists');
       }
+      if (!_creationBudget.allow()) return _rateLimitedResponse();
       try {
         final created = store.create(identity.idKey);
         return _jsonResponse(201, store.metadata(created).toJson());
@@ -105,7 +124,7 @@ class AthenaeumApp {
     if (request.method == 'GET') {
       final manifest = store.manifest(identity.idKey, current.epoch, deviceId);
       if (manifest == null) {
-        return _failedResolution(request, 404, 'manifest not found');
+        return _jsonResponse(404, {'error': 'manifest not found'});
       }
       if (request.headers['if-none-match'] == '"${manifest.etag}"') {
         return Response(304, headers: {'etag': '"${manifest.etag}"'});
@@ -121,6 +140,9 @@ class AthenaeumApp {
     }
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/json');
+      if (_declaredLengthExceeds(request, maxManifestBytes)) {
+        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+      }
       final body = await _readBody(request, maxManifestBytes);
       final manifest = _decodeManifest(body);
       if (manifest.deviceId != deviceId) {
@@ -166,7 +188,11 @@ class AthenaeumApp {
       if (current == null) {
         return _failedResolution(request, 404, 'store not found');
       }
+      if (_declaredLengthExceeds(request, maxManifestBytes)) {
+        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+      }
       final body = await _readBody(request, maxManifestBytes);
+      _validateMissingHashCount(body);
       final decoded = _decodeJson(body);
       if (decoded is! Map || decoded['hashes'] is! List) {
         throw const _RequestFailure(400, 'hashes must be an array');
@@ -201,11 +227,11 @@ class AthenaeumApp {
     final reference = store.blobRef(identity.idKey, current.epoch, hash);
     if (request.method == 'GET') {
       if (reference == null) {
-        return _failedResolution(request, 404, 'blob not found');
+        return _jsonResponse(404, {'error': 'blob not found'});
       }
       final file = store.blobFile(identity.idKey, current.epoch, hash);
       if (!file.existsSync()) {
-        return _failedResolution(request, 404, 'blob not found');
+        return _jsonResponse(404, {'error': 'blob not found'});
       }
       return Response(
         200,
@@ -218,17 +244,20 @@ class AthenaeumApp {
     }
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/octet-stream');
+      if (_declaredLengthExceeds(request, maxBlobBytes)) {
+        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+      }
       final body = await _readBody(request, maxBlobBytes);
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
-      store.putBlob(
+      final created = store.putBlob(
         idKey: identity.idKey,
         epoch: current.epoch,
         hash: hash,
         body: body,
       );
-      return Response(200);
+      return Response(created ? 201 : 200);
     }
     return _methodNotAllowed();
   }
@@ -292,6 +321,7 @@ class AthenaeumApp {
     if (encoding != null && encoding != 'gzip') {
       throw const _RequestFailure(415, 'unsupported content encoding');
     }
+
     final compressed = _ByteCounter();
     Stream<List<int>> input = _countingStream(request.read(), compressed);
     if (encoding == 'gzip') input = gzip.decoder.bind(input);
@@ -301,11 +331,15 @@ class AthenaeumApp {
         encoding != 'gzip' &&
         declaredLength != null &&
         declaredLength > maxBytes;
+    final iterator = StreamIterator(input);
     try {
-      await for (final chunk in input) {
+      while (await iterator.moveNext()) {
+        final chunk = iterator.current;
         size += chunk.length;
         if (size > maxBytes || size > maxGzipBytes) {
+          await iterator.cancel();
           tooLarge = true;
+          break;
         } else if (!tooLarge) {
           output.add(chunk);
         }
@@ -325,6 +359,13 @@ class AthenaeumApp {
       );
     }
     return output.takeBytes();
+  }
+
+  static bool _declaredLengthExceeds(Request request, int maxBytes) {
+    final length = int.tryParse(request.headers['content-length'] ?? '');
+    return length != null &&
+        request.headers['content-encoding']?.toLowerCase() != 'gzip' &&
+        length > maxBytes;
   }
 
   static Stream<List<int>> _countingStream(
@@ -352,6 +393,7 @@ class AthenaeumApp {
 
   static Object? _decodeJson(Uint8List body) {
     try {
+      _validateJsonDepthBytes(body);
       final value = jsonDecode(utf8.decode(body, allowMalformed: false));
       try {
         validateJsonDepth(value);
@@ -363,6 +405,71 @@ class AthenaeumApp {
       throw _RequestFailure(400, error.message);
     } on JsonUnsupportedObjectError {
       throw const _RequestFailure(400, 'invalid JSON');
+    }
+  }
+
+  static void _validateMissingHashCount(Uint8List body) {
+    final text = utf8.decode(body, allowMalformed: false);
+    final key = text.indexOf('"hashes"');
+    if (key == -1) return;
+    final start = text.indexOf('[', key + 8);
+    if (start == -1) return;
+    var depth = 0;
+    var inString = false;
+    var escaped = false;
+    var count = 0;
+    for (var index = start; index < text.length; index++) {
+      final character = text.codeUnitAt(index);
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (character == 0x5c) {
+          escaped = true;
+        } else if (character == 0x22) {
+          inString = false;
+        }
+        continue;
+      }
+      if (character == 0x22) {
+        if (depth == 1) count++;
+        inString = true;
+      } else if (character == 0x5b) {
+        depth++;
+      } else if (character == 0x5d) {
+        depth--;
+        if (depth == 0) break;
+      }
+      if (count > maxMissingHashes) {
+        throw const _RequestFailure(413, 'too many hashes');
+      }
+    }
+  }
+
+  static void _validateJsonDepthBytes(Uint8List body) {
+    var depth = 0;
+    var inString = false;
+    var escaped = false;
+    for (final byte in body) {
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (byte == 0x5c) {
+          escaped = true;
+        } else if (byte == 0x22) {
+          inString = false;
+        }
+        continue;
+      }
+      if (byte == 0x22) {
+        inString = true;
+      } else if (byte == 0x5b || byte == 0x7b) {
+        depth++;
+        if (depth > maxJsonDepth) {
+          throw const _RequestFailure(413, 'JSON nesting depth exceeds limit');
+        }
+      } else if (byte == 0x5d || byte == 0x7d) {
+        depth--;
+      }
     }
   }
 
@@ -418,6 +525,9 @@ class _RequestFailure implements Exception {
 }
 
 class _FailureBudget {
+  _FailureBudget(AthenaeumBudgetLimits limits) : _limits = limits;
+
+  final AthenaeumBudgetLimits _limits;
   final Map<String, _TokenBucket> _perIp = {};
   final List<DateTime> _global = [];
 
@@ -427,11 +537,11 @@ class _FailureBudget {
     final bucket = _perIp.putIfAbsent(
       address,
       () => _TokenBucket(
-        capacity: maxFailedResolutionsPerIpBurst,
-        refillPerMinute: maxFailedResolutionsPerIp,
+        capacity: _limits.perIpFailureBurst,
+        refillPerMinute: _limits.perIpFailuresPerMinute,
       ),
     );
-    if (_global.length >= maxFailedResolutionsServerWide ||
+    if (_global.length >= _limits.serverWideFailuresPerMinute ||
         !bucket.tryTake(now)) {
       return false;
     }
@@ -469,12 +579,16 @@ class _TokenBucket {
 }
 
 class _CreationBudget {
+  _CreationBudget(AthenaeumBudgetLimits limits)
+    : _limit = limits.creationsPerMinute;
+
+  final int _limit;
   final List<DateTime> _timestamps = [];
 
   bool allow() {
     final now = DateTime.now();
     _timestamps.removeWhere((value) => now.difference(value).inSeconds >= 60);
-    if (_timestamps.length >= maxStoreCreationsPerMinute) return false;
+    if (_timestamps.length >= _limit) return false;
     _timestamps.add(now);
     return true;
   }

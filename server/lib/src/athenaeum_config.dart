@@ -15,7 +15,9 @@ class AthenaeumConfig {
         'must contain at least 256 bits',
       );
     }
-    if (host.isEmpty || port < 1 || port > 65535) {
+    if (!const {'127.0.0.1', 'localhost'}.contains(host.toLowerCase()) ||
+        port < 1 ||
+        port > 65535) {
       throw ArgumentError('invalid listener configuration');
     }
   }

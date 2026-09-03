@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 
 import 'athenaeum_config.dart';
+import 'athenaeum_schema.dart';
 
 const int maxBlobBytes = 1024 * 1024;
 const int maxManifestBytes = 16 * 1024 * 1024;
@@ -28,36 +29,9 @@ class AthenaeumStore {
     Directory(config.dataDirectory).createSync(recursive: true);
     _database.execute('PRAGMA foreign_keys = ON');
     _database.execute('PRAGMA journal_mode = WAL');
-    _database.execute('''
-      CREATE TABLE IF NOT EXISTS stores (
-        id_key TEXT PRIMARY KEY,
-        epoch TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        last_seen INTEGER NOT NULL,
-        bytes_used INTEGER NOT NULL
-      )
-    ''');
-    _database.execute('''
-      CREATE TABLE IF NOT EXISTS manifests (
-        id_key TEXT NOT NULL,
-        epoch TEXT NOT NULL,
-        device_id TEXT NOT NULL,
-        etag TEXT NOT NULL,
-        written_at INTEGER NOT NULL,
-        body BLOB NOT NULL,
-        PRIMARY KEY (id_key, epoch, device_id)
-      )
-    ''');
-    _database.execute('''
-      CREATE TABLE IF NOT EXISTS blob_refs (
-        id_key TEXT NOT NULL,
-        epoch TEXT NOT NULL,
-        hash TEXT NOT NULL,
-        size INTEGER NOT NULL,
-        uploaded_at INTEGER NOT NULL,
-        PRIMARY KEY (id_key, epoch, hash)
-      )
-    ''');
+    for (final table in athenaeumTableSchemas) {
+      _database.execute(table.createSql());
+    }
   }
 
   final AthenaeumConfig config;
@@ -193,20 +167,28 @@ class AthenaeumStore {
     ];
   }
 
-  void putBlob({
+  bool putBlob({
     required String idKey,
     required String epoch,
     required String hash,
     required Uint8List body,
   }) {
     final existing = blobRef(idKey, epoch, hash);
-    if (existing != null) return;
+    if (existing != null) return false;
     final file = blobFile(idKey, epoch, hash);
     file.parent.createSync(recursive: true);
-    final temporary = File('${file.path}.$pid.tmp');
+    final temporary = File(
+      '${file.path}.$pid.${DateTime.now().microsecondsSinceEpoch}.tmp',
+    );
     temporary.writeAsBytesSync(body, flush: true);
     temporary.renameSync(file.path);
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    _database.execute('BEGIN IMMEDIATE');
+    final claimed = blobRef(idKey, epoch, hash);
+    if (claimed != null) {
+      _database.execute('ROLLBACK');
+      return false;
+    }
     _database.execute(
       'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
       'VALUES (?, ?, ?, ?, ?)',
@@ -217,6 +199,8 @@ class AthenaeumStore {
       'WHERE id_key = ? AND epoch = ?',
       [body.length, now, idKey, epoch],
     );
+    _database.execute('COMMIT');
+    return true;
   }
 
   File blobFile(String idKey, String epoch, String hash) {

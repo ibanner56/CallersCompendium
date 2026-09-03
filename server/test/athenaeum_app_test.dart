@@ -21,7 +21,11 @@ void main() {
       dataDirectory: dataDirectory.path,
       pepper: List<int>.filled(32, 0x42),
     );
-    app = AthenaeumApp(config: config, clientAddressResolver: (_) => 'test');
+    app = AthenaeumApp(
+      config: config,
+      clientAddressResolver: (request) =>
+          request.headers['x-test-ip'] ?? 'test',
+    );
     server = await shelf_io.serve(app.handler, InternetAddress.loopbackIPv4, 0);
     client = HttpClient();
     _activeClient = client;
@@ -83,7 +87,15 @@ void main() {
       body: blobBytes,
       contentType: 'application/octet-stream',
     );
-    expect(blobPut.statusCode, 200);
+    expect(blobPut.statusCode, 201);
+    final duplicateBlobPut = await _send(
+      'PUT',
+      '/v1/blobs/$hash',
+      syncId: syncId,
+      body: blobBytes,
+      contentType: 'application/octet-stream',
+    );
+    expect(duplicateBlobPut.statusCode, 200);
     final blobGet = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
     expect(blobGet.statusCode, 200);
     expect(await blobGet.bodyBytes(), equals(blobBytes));
@@ -264,7 +276,7 @@ void main() {
       body: bytes,
       contentType: 'application/octet-stream',
     );
-    expect(upload.statusCode, 200);
+    expect(upload.statusCode, 201);
     final otherStore = await _send(
       'POST',
       '/v1/store',
@@ -360,6 +372,82 @@ void main() {
       expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
     }
   });
+
+  test(
+    'server-wide shedding preserves existing-store and resource behavior',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      for (
+        var attempt = 0;
+        attempt < maxFailedResolutionsServerWide;
+        attempt++
+      ) {
+        final response = await _send(
+          'GET',
+          '/v1/store',
+          syncId: 'global-$attempt-café-staple',
+          headers: {'x-test-ip': 'address-$attempt'},
+        );
+        expect(response.statusCode, 404);
+      }
+      expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
+      final missingBlob = await _send(
+        'GET',
+        '/v1/blobs/${'c' * 64}',
+        syncId: syncId,
+      );
+      expect(missingBlob.statusCode, 404);
+    },
+  );
+
+  test('creation cap does not hide an existing-store conflict', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    for (var attempt = 0; attempt < maxStoreCreationsPerMinute - 1; attempt++) {
+      expect(
+        (await _send(
+          'POST',
+          '/v1/store',
+          syncId: 'creation-$attempt-café-staple',
+        )).statusCode,
+        201,
+      );
+    }
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 409);
+  });
+
+  test('concurrent identical blob uploads are idempotent', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = Uint8List.fromList(List<int>.generate(128, (i) => i));
+    final hash = sha256.convert(bytes).toString();
+    final responses = await Future.wait(
+      List.generate(
+        8,
+        (_) => _send(
+          'PUT',
+          '/v1/blobs/$hash',
+          syncId: syncId,
+          body: bytes,
+          contentType: 'application/octet-stream',
+        ),
+      ),
+    );
+    expect(
+      responses.where((response) => response.statusCode == 201),
+      hasLength(1),
+    );
+    expect(
+      responses.where((response) => response.statusCode == 200),
+      hasLength(7),
+    );
+    for (final response in responses) {
+      await response.drain<void>();
+    }
+    final fetched = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
+    expect(await fetched.bodyBytes(), equals(bytes));
+  });
 }
 
 extension on HttpClientResponse {
@@ -387,7 +475,10 @@ Future<HttpClientResponse> _send(
   request.headers.set('authorization', 'Bearer $token');
   if (contentType != null) request.headers.set('content-type', contentType);
   headers.forEach(request.headers.set);
-  if (body != null) request.add(body);
+  if (body != null) {
+    request.contentLength = body.length;
+    request.add(body);
+  }
   return request.close();
 }
 
