@@ -998,6 +998,28 @@ void main() {
         'source': 'request',
         'errorType': 'StoreQuotaExceeded',
       });
+      final failingAlertApp = _AuthenticatedApp(
+        AthenaeumApp(
+          config: app.config,
+          store: customStore,
+          alertSink: (_) => throw StateError('injected alert failure'),
+        ),
+        credential,
+      );
+      expect(
+        (await failingAlertApp.call(
+          Request(
+            'PUT',
+            Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+            headers: {
+              'authorization': '******',
+              'content-type': 'application/octet-stream',
+            },
+            body: bytes,
+          ),
+        )).statusCode,
+        507,
+      );
     } finally {
       customStore.close();
     }

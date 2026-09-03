@@ -23,6 +23,20 @@ The pepper is required, is never stored in SQLite, and must be at least 256
 bits of cryptographically secure randomness. Set `ATHENAEUM_PEPPER` instead of
 `--pepper` when passing it as a command-line argument is undesirable.
 
+### Break-glass reads
+
+After incident approval, use the supported break-glass command rather than
+querying SQLite directly. It accepts the raw sync ID on stdin, records the
+separate audit row first, and writes the selected manifest bytes to stdout:
+
+```sh
+printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
+  athenaeum --data-dir /var/lib/athenaeum --break-glass \
+  --break-glass-device-id device-one > /secure/incident/manifest.bin
+```
+
+Keep the input, output, and audit evidence in approved secure locations.
+
 Generate the pepper once and persist it in a secret store before starting the
 service. Reuse that same value for every restart of a data directory. The
 service listens on `127.0.0.1:33333` unless the loopback-only `--host`

@@ -12,6 +12,8 @@ the app and of `compendium_core`; version headings below refer to
 
 - Add the W16 Linux host-network Docker and Apache deployment reference,
   trusted real-client address resolution, and safe operational alerts.
+- Add a supported break-glass manifest read command that records its separate
+  audit row before access.
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.

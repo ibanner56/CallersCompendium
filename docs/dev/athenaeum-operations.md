@@ -124,10 +124,19 @@ host loopback while preserving the configured hostname for Host/SNI.
   "not found". Search ordinary access/error/container logs for its credential,
   sync ID, and content; all must be absent.
 - **Break-glass:** obtain an incident/ticket approval before access. Record the
-  operator, reason, approval reference, and UTC time in the ticket, perform one
-  read, then inspect the separate break-glass database for exactly one row with
-  the derived `id_key` and timestamp. Never write this audit row to the ordinary
-  store.
+  operator, reason, approval reference, and UTC time in the ticket, then use
+  the supported command below. It accepts the raw sync ID on stdin, writes the
+  separate audit row before looking up the store or reading the requested
+  manifest, and writes only the manifest bytes to stdout:
+  ```sh
+  printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
+    athenaeum --data-dir /var/lib/athenaeum --break-glass \
+    --break-glass-device-id device-one > /secure/incident/manifest.bin
+  ```
+  Use a secure terminal and output path; do not put the sync ID or returned
+  content in shell history, ordinary logs, or chat. Inspect the separate
+  break-glass database for exactly one row with the derived `id_key` and
+  timestamp. Never write this audit row to the ordinary store.
 - **Lost ID:** a lost sync ID cannot be recovered by design. Verify ownership
   through the normal support process, explain that the server stores only a
   one-way derived key, and direct the user to create a new store.

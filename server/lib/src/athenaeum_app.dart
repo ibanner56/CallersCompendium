@@ -22,6 +22,20 @@ void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
   stderr.writeln(jsonEncode({'alert': alert.toJson()}));
 }
 
+void _deliverOperationalAlert(
+  AthenaeumOperationalAlertSink sink,
+  AthenaeumOperationalAlert alert,
+) {
+  try {
+    sink(alert);
+  } on Object catch (error) {
+    stderr.writeln(
+      'Athenaeum operational alert delivery failed '
+      '(${error.runtimeType})',
+    );
+  }
+}
+
 class AthenaeumDiagnosticEvent {
   const AthenaeumDiagnosticEvent({
     required this.status,
@@ -83,7 +97,8 @@ class AthenaeumSweepController {
       try {
         _sweep();
       } catch (error) {
-        _alertSink(
+        _deliverOperationalAlert(
+          _alertSink,
           AthenaeumOperationalAlert(
             kind: 'sweep_failure',
             source: 'hourly_sweep',
@@ -138,7 +153,8 @@ class AthenaeumApp {
            AthenaeumStore(
              config: config,
              operationalFailureSink: (source, error) {
-               (alertSink ?? _writeOperationalAlert)(
+               _deliverOperationalAlert(
+                 alertSink ?? _writeOperationalAlert,
                  AthenaeumOperationalAlert(
                    kind: 'sweep_failure',
                    source: source,
@@ -196,7 +212,8 @@ class AthenaeumApp {
       };
     } on _RequestFailure catch (error) {
       if (error.status == 507) {
-        _alertSink(
+        _deliverOperationalAlert(
+          _alertSink,
           const AthenaeumOperationalAlert(
             kind: 'quota_exhaustion',
             source: 'request',

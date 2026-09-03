@@ -4,3 +4,4 @@
 **/.fvm
 **/*.sqlite
 **/*.sqlite-*
+**/data

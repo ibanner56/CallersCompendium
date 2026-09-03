@@ -339,6 +339,7 @@ void main() {
     final database = sqlite3.openInMemory();
     final breakGlassDatabase = sqlite3.openInMemory();
     var failDelete = true;
+    final failures = <(String, Object)>[];
     final now = DateTime.utc(2026, 9, 3, 12);
     final store = AthenaeumStore(
       config: AthenaeumConfig(
@@ -348,6 +349,7 @@ void main() {
       database: database,
       breakGlassDatabase: breakGlassDatabase,
       clock: () => now,
+      operationalFailureSink: (source, error) => failures.add((source, error)),
       deleteFile: (file) {
         if (failDelete) {
           throw const FileSystemException('injected file failure');
@@ -370,6 +372,18 @@ void main() {
     ]);
     store.collectGarbage(idKey, created.epoch, now: now);
     expect(database.select('SELECT * FROM blob_deletion_jobs'), hasLength(1));
+    expect(failures, isEmpty);
+    store.retryPendingBlobDeletions(reportFailures: true);
+    expect(
+      failures,
+      contains(
+        predicate<(String, Object)>(
+          (failure) =>
+              failure.$1 == 'blob_deletion_retry' &&
+              failure.$2 is FileSystemException,
+        ),
+      ),
+    );
 
     failDelete = false;
     expect(
@@ -1028,6 +1042,7 @@ void main() {
     final database = sqlite3.openInMemory();
     final now = DateTime.utc(2026, 9, 3, 12);
     var attempts = 0;
+    final failures = <(String, Object)>[];
     final store = AthenaeumStore(
       config: AthenaeumConfig(
         dataDirectory: dataDirectory.path,
@@ -1040,6 +1055,7 @@ void main() {
         attempts++;
         throw const FileSystemException('injected file failure');
       },
+      operationalFailureSink: (source, error) => failures.add((source, error)),
     );
     addTearDown(() {
       store.close();
@@ -1076,6 +1092,17 @@ void main() {
     store.sweep(now: now);
 
     expect(attempts, 2 * (maxPendingDeletionRetriesPerRequest + 1));
+    expect(failures, isNotEmpty);
+    expect(
+      failures,
+      everyElement(
+        predicate<(String, Object)>(
+          (failure) =>
+              failure.$1 == 'blob_deletion_retry' &&
+              failure.$2 is FileSystemException,
+        ),
+      ),
+    );
   });
 
   test('sweep reports real deletion failures to the operational sink', () {

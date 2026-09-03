@@ -524,7 +524,10 @@ class AthenaeumStore {
       _reportOperationalFailure('diagnostic_retention', error);
     }
     try {
-      retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerSweep);
+      retryPendingDeletions(
+        maxJobs: maxPendingDeletionRetriesPerSweep,
+        reportFailures: true,
+      );
     } on Object catch (error) {
       _reportOperationalFailure('deletion_retry', error);
     }
@@ -866,6 +869,7 @@ class AthenaeumStore {
 
   void retryPendingDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
+    bool reportFailures = false,
   }) {
     final rows = _database.select(
       'SELECT id_key, epoch FROM deletion_jobs '
@@ -875,12 +879,16 @@ class AthenaeumStore {
     for (final row in rows) {
       final idKey = row['id_key'] as String;
       final epoch = row['epoch'] as String;
-      _retryPendingDirectory(idKey, epoch);
+      _retryPendingDirectory(idKey, epoch, reportFailure: reportFailures);
     }
-    retryPendingBlobDeletions(maxJobs: maxJobs);
+    retryPendingBlobDeletions(maxJobs: maxJobs, reportFailures: reportFailures);
   }
 
-  void _retryPendingDirectory(String idKey, String epoch) {
+  void _retryPendingDirectory(
+    String idKey,
+    String epoch, {
+    bool reportFailure = false,
+  }) {
     var inTransaction = false;
     try {
       _database.execute('BEGIN IMMEDIATE');
@@ -906,7 +914,9 @@ class AthenaeumStore {
       } on FileSystemException catch (error) {
         _database.execute('ROLLBACK');
         inTransaction = false;
-        _reportOperationalFailure('deletion_retry', error);
+        if (reportFailure) {
+          _reportOperationalFailure('deletion_retry', error);
+        }
         _database.execute(
           'UPDATE deletion_jobs SET queued_at = ('
           'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
@@ -936,6 +946,7 @@ class AthenaeumStore {
 
   void retryPendingBlobDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
+    bool reportFailures = false,
   }) {
     final rows = _database.select(
       'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
@@ -960,9 +971,12 @@ class AthenaeumStore {
           for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
             _deleteFile(file);
           }
-        } on FileSystemException {
+        } on FileSystemException catch (error) {
           _database.execute('ROLLBACK');
           inTransaction = false;
+          if (reportFailures) {
+            _reportOperationalFailure('blob_deletion_retry', error);
+          }
           _database.execute(
             'UPDATE blob_deletion_jobs SET queued_at = ('
             'SELECT COALESCE(MAX(queued_at), -1) + 1 '

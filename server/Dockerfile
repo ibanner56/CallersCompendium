@@ -13,16 +13,18 @@ RUN printf '%s\n' \
     '  - server' > /workspace/pubspec.yaml
 COPY pubspec.lock /workspace/pubspec.lock
 RUN dart pub get
-RUN dart compile exe server/bin/athenaeum.dart -o /out/athenaeum
+RUN dart build cli \
+    --target server/bin/athenaeum.dart \
+    --output /out
 
 FROM dart:3.12.0
 
 RUN mkdir -p /var/lib/athenaeum \
     && chown -R nobody:nogroup /var/lib/athenaeum
-COPY --from=build /out/athenaeum /usr/local/bin/athenaeum
+COPY --from=build /out/bundle /opt/athenaeum
 
 USER nobody
 VOLUME ["/var/lib/athenaeum"]
 EXPOSE 33333
-ENTRYPOINT ["/usr/local/bin/athenaeum"]
+ENTRYPOINT ["/opt/athenaeum/bin/athenaeum"]
 CMD ["--data-dir", "/var/lib/athenaeum"]
