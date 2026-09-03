@@ -83,6 +83,10 @@ class AthenaeumStore {
       'CREATE INDEX IF NOT EXISTS blob_deletion_jobs_queued_at_idx '
       'ON blob_deletion_jobs (queued_at)',
     );
+    _database.execute(
+      'CREATE INDEX IF NOT EXISTS stores_last_seen_idx '
+      'ON stores (last_seen)',
+    );
     for (final table in breakGlassTableSchemas) {
       _breakGlassDatabase.execute(table.createSql());
     }

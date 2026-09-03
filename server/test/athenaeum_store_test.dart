@@ -31,7 +31,7 @@ void main() {
         .select(
           "SELECT name FROM sqlite_master WHERE type = 'index' "
           "AND name IN ('deletion_jobs_queued_at_idx', "
-          "'blob_deletion_jobs_queued_at_idx')",
+          "'blob_deletion_jobs_queued_at_idx', 'stores_last_seen_idx')",
         )
         .map((row) => row['name'] as String)
         .toSet();
@@ -40,6 +40,7 @@ void main() {
       equals({
         'deletion_jobs_queued_at_idx',
         'blob_deletion_jobs_queued_at_idx',
+        'stores_last_seen_idx',
       }),
     );
     final breakGlassIndexes = breakGlassDatabase
@@ -1413,6 +1414,11 @@ void main() {
 
     final idKey = 'a' * 64;
     final created = store.create(idKey);
+    database.execute(
+      'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
+      'VALUES (?, ?, ?, ?, ?)',
+      [idKey, created.epoch, 'c' * 64, 1, 0],
+    );
     database.execute(
       'INSERT INTO manifests '
       '(id_key, epoch, device_id, etag, written_at, body) '

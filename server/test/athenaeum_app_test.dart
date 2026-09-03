@@ -1447,6 +1447,11 @@ void main() {
       final idKey = deriveIncomingSyncIdKey(syncId, customStore.config.pepper);
       final epoch = customStore.lookup(idKey)!.epoch;
       customStore.database.execute(
+        'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [idKey, epoch, 'b' * 64, 1, 0],
+      );
+      customStore.database.execute(
         'INSERT INTO manifests '
         '(id_key, epoch, device_id, etag, written_at, body) '
         'VALUES (?, ?, ?, ?, ?, ?)',
