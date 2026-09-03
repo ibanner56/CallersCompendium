@@ -1137,6 +1137,18 @@ void main() {
         expect(figures.single.params['beats'], 12);
       });
 
+      test('a stated turn-alone subject prevents the hall fold', () async {
+        final figures = await figuresFor([
+          '(8) Go down the hall',
+          '(4) Ones turn alone',
+        ]);
+        expect(figures, hasLength(2));
+        expect(figures[0].move, 'down_the_hall');
+        expect(figures[0].params['ender'], 'none');
+        expect(figures[1].move, 'turn_alone');
+        expect(figures[1].params['who'], 'ones');
+      });
+
       test('a non-adjacent hall and turn alone remain separate', () async {
         final figures = await figuresFor([
           '(8) Go down the hall',

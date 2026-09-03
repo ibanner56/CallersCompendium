@@ -1112,12 +1112,7 @@ _Match? _boxCirculate(List<String> w) {
   final who2 = who ?? _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match(
-    'box_circulate',
-    {'who': who2 ?? 'partners'},
-    null,
-    who2 == null,
-  );
+  return _Match('box_circulate', {'who': ?who2}, null, who2 == null);
 }
 
 // Takes a TCB rotation-gate direction token (clockwise/cw, counterclockwise/ccw

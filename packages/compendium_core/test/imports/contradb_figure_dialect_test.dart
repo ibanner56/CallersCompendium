@@ -33,6 +33,11 @@ void main() {
       expect(f.params['prefix'], 'balance');
     });
 
+    test('balance and meltdown are mutually exclusive prefixes', () {
+      final f = _parse('partners balance & meltdown swing');
+      expect(f.isCustom, isTrue);
+    });
+
     test('meltdown swing → swing with meltdown prefix', () {
       final f = _parse('next neighbors meltdown swing');
       expect(f.isCustom, isFalse);

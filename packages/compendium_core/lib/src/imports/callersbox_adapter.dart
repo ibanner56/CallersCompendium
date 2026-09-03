@@ -728,7 +728,9 @@ class CallersBoxAdapter implements SourceAdapter {
           continue;
         }
         // TCB writes the turn-alone hall ender as its own adjacent line.
-        if (_isHall(current) && next.move == 'turn_alone') {
+        if (_isHall(current) &&
+            next.move == 'turn_alone' &&
+            _sameEffectiveWho(current, next)) {
           merged.add(_foldEnderIntoHall(current, next, 'turnAlone'));
           i += 2;
           continue;
@@ -1000,6 +1002,12 @@ class CallersBoxAdapter implements SourceAdapter {
     final explicit = figure.params['who'];
     if (explicit != null) return explicit;
     return contraTaxonomy.resolve(figure.move)?.params['who']?.defaultValue;
+  }
+
+  static bool _sameEffectiveWho(Figure first, Figure second) {
+    final firstWho = _effectiveWho(first);
+    final secondWho = _effectiveWho(second);
+    return firstWho == null || secondWho == null || firstWho == secondWho;
   }
 
   static Figure? _foldBalanceWaveIntoRory(Figure balanceWave, Figure slide) {

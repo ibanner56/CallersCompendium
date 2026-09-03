@@ -1472,8 +1472,7 @@ class FigureRenderer {
       );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final direction = params['dir'];
-      final directionWho =
-          params['who'] ?? def.params['who']?.defaultValue;
+      final directionWho = params['who'] ?? def.params['who']?.defaultValue;
       final directionClause = switch (direction) {
         'above' => 'up between ${r._invertPair(directionWho, dialect)}',
         'below' => 'down between ${r._invertPair(directionWho, dialect)}',
@@ -2173,7 +2172,7 @@ class FigureRenderer {
     // "our extensions/splits — leave as-is"), so the leading phrase is fixed
     // PRODUCT wording that intentionally diverges from the byte-stable canonical
     // (`form short waves` / `pass the ocean`). Center hand = the `centerHand`
-    // param (default 'right'); side hand = its OPPOSITE (right<->left), mirroring
+    // param (default 'left'); side hand = its OPPOSITE (right<->left), mirroring
     // ContraDB's `sside_hand = stringParamHand(!center_hand)` derivation — never
     // hardcoded, so display tracks the data. Unknown/`*` centerHand best-effort
     // humanizes (never blank-drops, no dangling connective). v21 (#296) appends
