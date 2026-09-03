@@ -369,10 +369,12 @@ jobs:
           path: .dart_tool/hooks_runner/shared/sqlite3
           key: sqlite3-prebuilt-v2-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Analyze server
-        run: dart analyze server
+        working-directory: server
+        run: dart analyze .
         if: steps.server-package.outputs.present == 'true'
       - name: Test server
-        run: dart test server/test
+        working-directory: server
+        run: dart test test
         if: steps.server-package.outputs.present == 'true'
       # Save the prebuilt only on a miss, and only once the build hook has
       # actually produced the library. The guard matters: a fetch failure — the
