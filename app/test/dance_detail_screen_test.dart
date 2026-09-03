@@ -1,7 +1,9 @@
 import 'package:compendium_core/compendium_core.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher_platform_interface/url_launcher_platform_interface.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
@@ -12,6 +14,8 @@ import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
+import 'package:compendium_app/src/export/dance_share_bundle.dart';
+import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
@@ -60,6 +64,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   bool requirePerformedForHistory = false,
   Size surfaceSize = const Size(1200, 2400),
   DialectLibraryController? dialectLibrary,
+  JsonExportDelivery? jsonExportDelivery,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -88,7 +93,10 @@ Future<ValueNotifier<bool>> _pumpDetail(
           ),
         ),
       ),
-      home: DanceDetailScreen(danceId: danceId),
+      home: DanceDetailScreen(
+        danceId: danceId,
+        jsonExportDelivery: jsonExportDelivery,
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -371,6 +379,136 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Dance copied to clipboard.'), findsOneWidget);
       expect(clipboardText, contains('Narrow Dance'));
+    });
+
+    testWidgets('overflow JSON Save writes the canonical payload only', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      final dance = _dance(id: 'd1', title: 'Narrow Dance');
+      await repos.dances.create(dance);
+      final library = await buildLibrary(repos);
+      String? savedJson;
+      String? savedName;
+      var copies = 0;
+      var shares = 0;
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        jsonExportDelivery: JsonExportDelivery(
+          choicePicker: (_) async => JsonExportChoice.save,
+          saveInvoker: (json, fileName) async {
+            savedJson = json;
+            savedName = fileName;
+            return JsonSaveResult(
+              path: '/Documents/$fileName',
+              fileName: fileName,
+            );
+          },
+          clipboardWriter: (_) async => copies++,
+          shareInvoker: (_) async => shares++,
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(savedName, 'Narrow_Dance.json');
+      final actual = jsonDecode(savedJson!) as Map<String, dynamic>;
+      final expected =
+          jsonDecode(
+                buildDanceShareBundle(
+                  dance,
+                  choreographerFor: (_) => null,
+                  tagFor: (_) => null,
+                  publishedSourceFor: (_) => null,
+                  customFieldFor: (_) => null,
+                ),
+              )
+              as Map<String, dynamic>;
+      actual.remove('exportedAt');
+      expected.remove('exportedAt');
+      expect(actual, expected);
+      expect(copies, 0);
+      expect(shares, 0);
+      expect(
+        find.text('"Narrow_Dance.json" saved to /Documents/Narrow_Dance.json.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('overflow JSON Share preserves the share contract', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+      ShareParams? shared;
+      String? stagedJson;
+      String? stagedName;
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+        jsonExportDelivery: JsonExportDelivery(
+          choicePicker: (_) async => JsonExportChoice.share,
+          bundleFileWriter: (json, fileName) async {
+            stagedJson = json;
+            stagedName = fileName;
+            return XFile('/tmp/$fileName', mimeType: 'application/json');
+          },
+          shareInvoker: (params) async => shared = params,
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(stagedJson, isNotNull);
+      expect(stagedName, 'Narrow_Dance.json');
+      expect(shared, isNotNull);
+      expect(shared!.files!.single.mimeType, 'application/json');
+      expect(shared!.fileNameOverrides, ['Narrow_Dance.json']);
+      expect(shared!.subject, 'Narrow Dance');
+      expect(shared!.sharePositionOrigin, isNotNull);
+    });
+
+    testWidgets('overflow JSON opens a real choice dialog after popup closes', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Narrow Dance'));
+      final library = await buildLibrary(repos);
+
+      await _pumpDetail(
+        tester,
+        repos,
+        'd1',
+        surfaceSize: const Size(360, 800),
+        dialectLibrary: library,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('dance-actions-overflow')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('overflow-share-dance-json')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Export JSON'), findsOneWidget);
+      expect(find.text('Copy raw JSON'), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('Export JSON'), findsNothing);
     });
 
     testWidgets('overflow dialect switch still changes the active dialect', (

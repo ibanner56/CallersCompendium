@@ -3351,6 +3351,52 @@ class AppLocalizationsDe extends AppLocalizations {
   String get exportShareProgramJson => 'Als JSON-Datei exportieren';
 
   @override
+  String get exportJsonDialogTitle => 'JSON exportieren';
+
+  @override
+  String get exportJsonDialogMessage =>
+      'Wählen Sie, wie diese JSON-Datei bereitgestellt werden soll.';
+
+  @override
+  String get exportJsonSave => 'Speichern';
+
+  @override
+  String get exportJsonCopy => 'Rohes JSON kopieren';
+
+  @override
+  String get exportJsonShare => 'Teilen';
+
+  @override
+  String get exportJsonCancel => 'Abbrechen';
+
+  @override
+  String get exportJsonCopied => 'JSON in die Zwischenablage kopiert.';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\" gespeichert.';
+  }
+
+  @override
+  String get exportJsonSavedGeneric => 'JSON-Datei gespeichert.';
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\" in $destination gespeichert.';
+  }
+
+  @override
+  String get exportJsonSaveError =>
+      'Diese JSON-Datei konnte nicht gespeichert werden.';
+
+  @override
+  String get exportJsonCopyError => 'Dieses JSON konnte nicht kopiert werden.';
+
+  @override
+  String get exportJsonShareError =>
+      'Diese JSON-Datei konnte nicht geteilt werden.';
+
+  @override
   String get exportShareSetListError =>
       'Diese Setliste konnte nicht geteilt werden';
 

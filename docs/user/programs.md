@@ -315,8 +315,11 @@ menu:
 - **Share (program + dances)** — writes one file holding the program *and* every
   dance it uses, so another caller gets the dances too, not just a list of titles.
 - **Copy set list** — puts the same text on your clipboard.
-- **Export as JSON file** — the same file as **Share (program + dances)**, named
-  `.json` so a device without the app can still open it.
+- **Export as JSON file** — opens a choice to **Save**, **Copy raw JSON**,
+  **Share**, or **Cancel**. The file is the same as **Share (program + dances)**,
+  named `.json` so a device without the app can still open it. **Save** uses a
+  native file destination on desktop and the platform document-save flow on
+  Android and iOS; cancelling either dialog produces no output.
 - **Export / print PDF** — builds a PDF and opens your system's print dialog.
 
 A set list is titles, event details, and slot notes by default. When you share,
@@ -324,10 +327,11 @@ copy, or export as PDF the app asks **"Include figures?"** — choose **Set list
 only** to keep titles and notes, or **Set list and figures** to append a full
 figure card for each dance after the set list. If none of the program's dances
 have structured figures the question is skipped automatically. If your program is
-linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF
-and the two file exports ask before including any of those personal details, and
-leave them out unless you say otherwise. A venue's street address is never
-included in any export, with or without a prompt.
+linked to a [venue](./glossary.md#venue) with contact people recorded, the PDF,
+JSON, and `.ccshare` file exports ask before including any of those personal
+details, before any JSON delivery choice, and leave them out unless you say
+otherwise. A venue's street address is never included in any export, with or
+without a prompt.
 
 [Share, print & export](./sharing.md#share-a-program) covers all of this in
 detail, including what a shared bundle contains and what never leaves your

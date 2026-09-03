@@ -3335,6 +3335,52 @@ class AppLocalizationsNl extends AppLocalizations {
   String get exportShareProgramJson => 'Exporteren als JSON-bestand';
 
   @override
+  String get exportJsonDialogTitle => 'JSON exporteren';
+
+  @override
+  String get exportJsonDialogMessage =>
+      'Kies hoe je dit JSON-bestand wilt leveren.';
+
+  @override
+  String get exportJsonSave => 'Opslaan';
+
+  @override
+  String get exportJsonCopy => 'Ruwe JSON kopiëren';
+
+  @override
+  String get exportJsonShare => 'Delen';
+
+  @override
+  String get exportJsonCancel => 'Annuleren';
+
+  @override
+  String get exportJsonCopied => 'JSON naar klembord gekopieerd.';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\" opgeslagen.';
+  }
+
+  @override
+  String get exportJsonSavedGeneric => 'JSON-bestand opgeslagen.';
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\" opgeslagen in $destination.';
+  }
+
+  @override
+  String get exportJsonSaveError =>
+      'Dit JSON-bestand kon niet worden opgeslagen.';
+
+  @override
+  String get exportJsonCopyError => 'Deze JSON kon niet worden gekopieerd.';
+
+  @override
+  String get exportJsonShareError =>
+      'Dit JSON-bestand kon niet worden gedeeld.';
+
+  @override
   String get exportShareSetListError => 'Deze setlijst kon niet worden gedeeld';
 
   @override
