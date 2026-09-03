@@ -51,7 +51,7 @@ const Map<String, Operation> defaults = {
   'figure_8': FigureEight(lead: 'onesRole2'),
   'form_a_long_wave': FormALongWave(),
   'form_long_waves': FormLongWaves(who: WhoSet.role1s),
-  'form_short_waves': FormShortWaves(centerHand: Hand.right),
+  'form_short_waves': FormShortWaves(centerHand: Hand.left),
   'gate': Gate(),
   'give_and_take': GiveAndTake(),
   'hey': HeyForFour(pass1: WhoSet.role2s, length: HeyLength.half),

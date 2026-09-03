@@ -1999,12 +1999,12 @@ To be defined later with worked examples.
     example on record.
   - `balance` — flag, default `false`. **No end-state effect** (styling), as `petronella`'s.
   - `center` — dancer set, default `role2s`. Who the source says ends in the two centre cells.
-  - `centerHand` — handedness, default `right` (the CallersCompendium baseline's stated value).
+  - `centerHand` — handedness, default `left` (the CallersCompendium baseline's stated value).
     The hand the **centre pair** joins — not the hand the wave is
     named for, which is the outer join alternation makes its opposite.
     *(User-ruled: `centerHand` names the centre join, and the canonical duple-improper
     wave is `centerHand: left` — role2s joining left in the middle, neighbours right on the
-    sides.)* ⚠️ **This default is known-broken upstream** and is honoured anyway — see *the
+    sides.)* This default used to read `right`, which contradicted `center` — see *the
     one-bit problem* below.
   - `sides` — dancer set, default `neighbors`. Who the source says the facing pairs are.
   - `beats` — int, default 4. Timing only.
@@ -2014,10 +2014,11 @@ To be defined later with worked examples.
   geometry. That makes two of them redundant — and therefore useful: they are **checked against
   the resulting arrangement rather than trusted**, and a contradiction is `whoMismatch`.
 
-  ⚠️ **The baseline's two defaults contradict each other, and we honour them anyway.**
-  `centerHand: right` and `center: role2s` cannot both hold from a duple-improper start — the
-  canonical wave there is `centerHand: left` — so a record that omits `centerHand` is refused
-  for a contradiction between two values it never stated:
+  ✅ **The two defaults used to contradict each other, and we honoured them anyway.**
+  The baseline once paired `centerHand: right` with `center: role2s`, which cannot both hold
+  from a duple-improper start — the canonical wave there is `centerHand: left` — so a record
+  that omitted `centerHand` was refused for a contradiction between two values it never
+  stated:
 
   ```
   REFUSED whoMismatch: form_short_waves names center:role2s with the ends giving left
@@ -2025,16 +2026,18 @@ To be defined later with worked examples.
   the figure names disagree
   ```
 
-  This is a defect in the upstream taxonomy, filed with its maintainer, and it is reproduced
-  here deliberately: `compendium_rubric` verifies choreography *against* that taxonomy, so
-  silently substituting a better default would make this compiler answer for a dance the
-  record does not describe. `test/io/known_upstream_defects_test.dart` locks the behaviour so
-  the day the default is fixed upstream, that test fails and points here.
+  That was a defect in the upstream taxonomy, and it was reproduced here deliberately:
+  `compendium_rubric` verifies choreography *against* that taxonomy, so silently substituting
+  a better default would have made this compiler answer for a dance the record does not
+  describe. A pin in `test/io/known_upstream_defects_test.dart` locked the behaviour so that
+  the day the default was corrected, that test would fail and point here. It did —
+  `compendium_core` #1156 changed the default to `left` — and the pin was retired with the
+  defect.
 
   The `Hand? centerHand` field remains nullable, and when it is absent `center` derives the
   hand (falling back to the canonical wave — centre **left**, sides right — when `center`
-  fails to discriminate). That path is now reachable only by constructing the figure
-  directly; it is what the fix should restore to the parser.
+  fails to discriminate). The parser never leaves it absent, because upstream owns what an
+  omitted parameter means; that path is reached by constructing the figure directly.
 - **preconditions:**
   - `dir` other than `across` → `unsupportedParam`.
   - No complete hands four → `unresolvableDancerSet`.
@@ -2109,9 +2112,9 @@ To be defined later with worked examples.
     on a record's behalf can make it contradict itself over a value it never stated. TCB writes
     exactly such a record: *"Balance long wave (NR, women face in)"*. The baseline's default is
     honoured regardless, by the same ruling that governs `form_short_waves`'s `centerHand`: this
-    compiler verifies against the upstream taxonomy rather than improving on it. Unlike
-    `centerHand`, this one does not self-refuse — the anchors downgrade to
-    `anchorMismatch`, a warning, so the figure still runs.
+    compiler verifies against the upstream taxonomy rather than improving on it. Here the
+    anchors downgrade to `anchorMismatch`, a warning, so the figure still runs rather than
+    refusing itself over a value the record never stated.
   - **Worked case:** duple improper, robins facing in ⟺ everyone holds their **neighbours** by
     the **right**. `whom: nextNeighbors` is impossible from there — nobody in a long wave holds
     hands across a grouping boundary — so it warns.
@@ -2220,10 +2223,11 @@ To be defined later with worked examples.
 ### `pass_the_ocean`
 
 - **summary:** Facing couples **pass across the set** and land in a **wave of four**.
-- **params** (mirror `form_short_waves` exactly): `dir` (default `across`), `balance`, `center`
-  (default `role2s`), `centerHand` (default `right`, the baseline's value — and unlike
-  `form_short_waves`, that default is *consistent* here, because step 1 crosses everyone over
-  before the wave forms), `sides` (default `neighbors`), `beats` (default 4).
+- **params** (mirror `form_short_waves`' names): `dir` (default `across`), `balance`, `center`
+  (default `role2s`), `centerHand` (default `right`, the baseline's value — and note this is the
+  *opposite* of `form_short_waves`' `left`, which is correct rather than a discrepancy: step 1
+  crosses everyone over before the wave forms), `sides` (default `neighbors`), `beats`
+  (default 4).
 - **effect — three composed steps:**
   1. `reflectBands(columns: true)` — everyone crosses over. Each rank keeps its two dancers and
      they trade columns. *(This is the user-confirmed decoding of the verifier's

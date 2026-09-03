@@ -73,7 +73,7 @@ List<_CorneredBand> _corneredBands(Formation formation) => [
 /// [centerHand] drives, inverted to give the hand the facing pairs join. When
 /// it is absent [center] drives instead — it names the same bit from the other
 /// side. Note that the JSON parser fills [centerHand] from `compendium_core`'s
-/// `right` default, so that second path is reached only by direct
+/// `left` default, so that second path is reached only by direct
 /// construction; see [FormShortWaves.centerHand].
 ///
 /// **Which role ends in the middle is an output, not an input.** The offset is
@@ -108,12 +108,13 @@ final class FormShortWaves extends Operation {
   /// manufacture a contradiction with the parameter it did state. When it is
   /// `null`, [center] derives the hand instead — see [_outerHand].
   ///
-  /// **The JSON parser no longer produces `null` here.** `compendium_core`'s
-  /// taxonomy declares a `right` default and, by ruling, that default governs
-  /// what an omitted parameter means, so a parsed record always arrives with a
-  /// hand. The sentinel is kept because the figure is constructible directly —
-  /// tests and any future caller that genuinely knows nothing about the hand
-  /// still get the `center`-derived behaviour rather than an invented one.
+  /// **The JSON parser does not produce `null` here.** `compendium_core`'s
+  /// taxonomy declares a `left` default — the canonical duple-improper wave —
+  /// and by ruling that default governs what an omitted parameter means, so a
+  /// parsed record always arrives with a hand. The sentinel is kept because the
+  /// figure is constructible directly: tests and any future caller that
+  /// genuinely knows nothing about the hand still get the `center`-derived
+  /// behaviour rather than an invented one.
   final Hand? centerHand;
 
   /// Who the source says the facing pairs are. Verified, not trusted.

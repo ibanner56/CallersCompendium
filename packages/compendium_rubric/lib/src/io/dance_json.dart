@@ -496,10 +496,11 @@ Operation _buildFormShortWaves(_Params p) => FormShortWaves(
   dir: p.enumOr(['dir'], Direction.fromKey, Direction.across),
   balance: p.boolOr(['balance'], false),
   center: p.enumOr(['center'], WhoSet.fromKey, WhoSet.role2s),
-  // Core's stated default. The figure still treats `null` as a distinct
-  // "unspecified" state -- see [FormShortWaves.centerHand] -- but a record
-  // parsed from core's schema never reaches it, because core fills the hand.
-  centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.right),
+  // Core's stated default, which is now the canonical duple-improper wave.
+  // Honoured rather than derived because upstream owns what an omitted
+  // parameter means; the figure keeps its `center`-derives-hand path for
+  // direct construction. See [FormShortWaves.centerHand].
+  centerHand: p.enumOr(['centerHand'], Hand.fromKey, Hand.left),
   sides: p.enumOr(['sides'], WhoSet.fromKey, WhoSet.neighbors),
 );
 

@@ -579,7 +579,6 @@ Worked most recently on `hey` (`ops/figures/hey.dart`). In order:
 | `test/ops/value_semantics_test.dart` | **every figure**: `==`, `hashCode`, `toString`, and that each param participates |
 | `test/io/parser_defaults_test.dart` | **every registry entry** and its defaults |
 | `test/io/core_taxonomy_alignment_test.dart` | **every move**, cross-checked against `compendium_core`'s taxonomy |
-| `test/io/known_upstream_defects_test.dart` | upstream taxonomy bugs we reproduce on purpose — **written to fail when fixed** |
 | `test/golden/*.json` + `golden_dances_test.dart` | whole real dances, end to end |
 | `test/io/callersbox_integration_test.dart` | the `compendium_core` seam — one committed Caller's Box payload, imported and compiled |
 
@@ -632,11 +631,16 @@ test catches, not whether undoing your own work reddens it.
 7. **`compendium_core` is consumed, never modified.** *(User-ruled.)* It owns
    the dance representation and the taxonomy; this package verifies
    choreography against them. An alignment mismatch is always fixed here — and
-   where upstream is genuinely wrong, the defect is reproduced and pinned in
+   where upstream is genuinely wrong, the defect is reproduced and pinned in a
    `test/io/known_upstream_defects_test.dart` rather than papered over, because
    silently substituting a better answer means answering for a dance the record
-   does not describe. Note this is a **narrowing of rule 1**: §1.1 still governs
-   the *legacy .NET project*, but `compendium_core` is upstream, not legacy.
+   does not describe. Such a pin is **written to fail when the defect is
+   fixed**, so an upstream correction lands as a red test rather than as a
+   silent change in what this compiler believes — which is exactly how the one
+   pin this package has held so far was retired (§12). **The register is
+   currently empty**, and the file is recreated when there is something to put
+   in it. Note this is a **narrowing of rule 1**: §1.1 still governs the
+   *legacy .NET project*, but `compendium_core` is upstream, not legacy.
 8. **Ask before pushing.**
 
 ---
@@ -673,14 +677,21 @@ test catches, not whether undoing your own work reddens it.
   default matches the taxonomy's. The check is deliberately mapping-free: it
   builds each figure from an empty param map and again from
   `Taxonomy.effectiveParams`, and compares the two Operations.
-- ⚠️ **One reproduced upstream defect.** `form_short_waves`'s baseline defaults
-  `centerHand: right` and `center: role2s` are mutually inconsistent from a
-  duple-improper start, so a record omitting `centerHand` refuses itself with
-  `whoMismatch`. Honouring it is user-ruled (rule 7); the issue is filed with
-  the taxonomy's maintainer. `test/io/known_upstream_defects_test.dart` pins the
-  behaviour and carries the instructions for backing it out once fixed —
-  restore `optionalEnum` for `centerHand` in `dance_json.dart`; the figure
-  already implements the `center`-derives-hand path.
+- ✅ **The one reproduced upstream defect has been fixed upstream and retired.**
+  `form_short_waves`'s baseline defaults used to declare `centerHand: right`
+  alongside `center: role2s`, which cannot both hold from a duple-improper
+  start, so a record omitting `centerHand` refused itself with `whoMismatch`.
+  Honouring it was user-ruled (rule 7) and pinned in a test written to fail on
+  the day it was corrected. It did: `compendium_core` #1156 changed the default
+  to `left`, the pin went red on the merge, and the parser now simply carries
+  that default. The pin's own note prescribed restoring `optionalEnum` so
+  `center` derived the hand — **that instruction was not followed, and
+  deliberately.** It was written when the default was wrong, and deriving was
+  the workaround for it. With the default correct, rule 7 says upstream owns
+  what an omitted parameter means, and deriving would have broken the alignment
+  invariant (an omitted param must build the same figure as the stated default)
+  for no gain. The figure keeps its `center`-derives-hand path for direct
+  construction.
 - **`hey` has a full `docs/taxonomy.md` entry** and is out of the Held table.
 - **`hey` is covered by a golden.** `last_hey.json` (Caller's Box #14417) is the
   first sourced dance containing one. Two things had to be settled to land it:
