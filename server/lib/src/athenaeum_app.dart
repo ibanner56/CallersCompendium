@@ -12,9 +12,15 @@ import 'athenaeum_store.dart';
 typedef ClientAddressResolver = String Function(Request request);
 typedef AthenaeumDiagnosticLogger =
     void Function(AthenaeumDiagnosticEvent event);
+typedef AthenaeumOperationalAlertSink =
+    void Function(AthenaeumOperationalAlert alert);
 typedef AthenaeumPeriodicTimer =
     Timer Function(Duration interval, void Function(Timer timer) callback);
 typedef AthenaeumSweep = void Function();
+
+void _writeOperationalAlert(AthenaeumOperationalAlert alert) {
+  stderr.writeln(jsonEncode({'alert': alert.toJson()}));
+}
 
 class AthenaeumDiagnosticEvent {
   const AthenaeumDiagnosticEvent({
@@ -36,18 +42,39 @@ class AthenaeumDiagnosticEvent {
   };
 }
 
+class AthenaeumOperationalAlert {
+  const AthenaeumOperationalAlert({
+    required this.kind,
+    required this.source,
+    required this.errorType,
+  });
+
+  final String kind;
+  final String source;
+  final String errorType;
+
+  Map<String, String> toJson() => {
+    'kind': kind,
+    'source': source,
+    'errorType': errorType,
+  };
+}
+
 class AthenaeumSweepController {
   AthenaeumSweepController(
     this.store, {
     AthenaeumPeriodicTimer? schedule,
     this.interval = const Duration(hours: 1),
     AthenaeumSweep? sweep,
+    AthenaeumOperationalAlertSink? alertSink,
   }) : _schedule = schedule ?? Timer.periodic,
-       _sweep = sweep ?? store.sweep;
+       _sweep = sweep ?? store.sweep,
+       _alertSink = alertSink ?? _writeOperationalAlert;
 
   final AthenaeumStore store;
   final AthenaeumPeriodicTimer _schedule;
   final AthenaeumSweep _sweep;
+  final AthenaeumOperationalAlertSink _alertSink;
   final Duration interval;
   Timer? _timer;
 
@@ -56,7 +83,13 @@ class AthenaeumSweepController {
       try {
         _sweep();
       } catch (error) {
-        stderr.writeln('Athenaeum sweep failed (${error.runtimeType})');
+        _alertSink(
+          AthenaeumOperationalAlert(
+            kind: 'sweep_failure',
+            source: 'hourly_sweep',
+            errorType: error.runtimeType.toString(),
+          ),
+        );
       }
     });
   }
@@ -98,11 +131,31 @@ class AthenaeumApp {
     ClientAddressResolver? clientAddressResolver,
     AthenaeumBudgetLimits budgetLimits = const AthenaeumBudgetLimits(),
     AthenaeumDiagnosticLogger? diagnosticLogger,
+    AthenaeumOperationalAlertSink? alertSink,
   }) : config = config,
-       store = store ?? AthenaeumStore(config: config),
-       _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress,
+       store =
+           store ??
+           AthenaeumStore(
+             config: config,
+             operationalFailureSink: (source, error) {
+               (alertSink ?? _writeOperationalAlert)(
+                 AthenaeumOperationalAlert(
+                   kind: 'sweep_failure',
+                   source: source,
+                   errorType: error.runtimeType.toString(),
+                 ),
+               );
+             },
+           ),
+       _clientAddressResolver =
+           clientAddressResolver ??
+           ((request) => _defaultClientAddress(
+             request,
+             trustForwardedHeaders: config.trustForwardedHeadersFromLoopback,
+           )),
        _failureBudget = _FailureBudget(budgetLimits),
        _creationBudget = _CreationBudget(budgetLimits) {
+    _alertSink = alertSink ?? _writeOperationalAlert;
     _diagnosticLogger =
         diagnosticLogger ??
         (event) => this.store.recordDiagnostic(
@@ -117,6 +170,7 @@ class AthenaeumApp {
   final ClientAddressResolver _clientAddressResolver;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
+  late final AthenaeumOperationalAlertSink _alertSink;
   late final AthenaeumDiagnosticLogger _diagnosticLogger;
 
   Handler get handler => call;
@@ -141,6 +195,15 @@ class AthenaeumApp {
         _ => _jsonResponse(404, {'error': 'not found'}),
       };
     } on _RequestFailure catch (error) {
+      if (error.status == 507) {
+        _alertSink(
+          const AthenaeumOperationalAlert(
+            kind: 'quota_exhaustion',
+            source: 'request',
+            errorType: 'StoreQuotaExceeded',
+          ),
+        );
+      }
       _logFailure(request, error);
       return _jsonResponse(error.status, {'error': error.message});
     }
@@ -851,7 +914,22 @@ class AthenaeumApp {
   static Response _methodNotAllowed(Iterable<String> methods) =>
       Response(405, headers: {'allow': methods.join(', ')});
 
-  static String _defaultClientAddress(Request request) => 'unknown';
+  static String _defaultClientAddress(
+    Request request, {
+    required bool trustForwardedHeaders,
+  }) {
+    final connection = request.context['shelf.io.connection_info'];
+    final peer = connection is HttpConnectionInfo
+        ? connection.remoteAddress
+        : null;
+    if (peer == null) return 'unknown';
+    final forwarded = request.headers['x-forwarded-for'];
+    if (trustForwardedHeaders && peer.isLoopback && forwarded != null) {
+      final candidate = forwarded.split(',').first.trim();
+      if (InternetAddress.tryParse(candidate) != null) return candidate;
+    }
+    return peer.address;
+  }
 }
 
 class _BlobEnvelopeShape {

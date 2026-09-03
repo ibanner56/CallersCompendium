@@ -7,6 +7,7 @@ class AthenaeumConfig {
     required List<int> pepper,
     this.host = '127.0.0.1',
     this.port = 33333,
+    this.trustForwardedHeadersFromLoopback = true,
   }) : pepper = List.unmodifiable(pepper) {
     if (this.pepper.length < 32) {
       throw ArgumentError.value(
@@ -27,6 +28,7 @@ class AthenaeumConfig {
     String? pepper,
     String host = '127.0.0.1',
     int port = 33333,
+    bool trustForwardedHeadersFromLoopback = true,
   }) {
     final encoded = pepper ?? const String.fromEnvironment('ATHENAEUM_PEPPER');
     if (encoded.isEmpty) {
@@ -38,6 +40,7 @@ class AthenaeumConfig {
       pepper: decoded,
       host: host,
       port: port,
+      trustForwardedHeadersFromLoopback: trustForwardedHeadersFromLoopback,
     );
   }
 
@@ -45,6 +48,10 @@ class AthenaeumConfig {
   final List<int> pepper;
   final String host;
   final int port;
+
+  /// Forwarded client-address headers are trusted only when the socket peer is
+  /// loopback. This is enabled for the Apache-on-host deployment topology.
+  final bool trustForwardedHeadersFromLoopback;
 
   static List<int> _decodePepper(String value) {
     if (RegExp(r'^(?:[0-9a-fA-F]{2}){32,}$').hasMatch(value)) {

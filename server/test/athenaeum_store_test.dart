@@ -1078,6 +1078,48 @@ void main() {
     expect(attempts, 2 * (maxPendingDeletionRetriesPerRequest + 1));
   });
 
+  test('sweep reports real deletion failures to the operational sink', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-sweep-alert-',
+    );
+    final database = sqlite3.openInMemory();
+    final failures = <(String, Object)>[];
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      deleteDirectory: (_) {
+        throw StateError('injected directory failure');
+      },
+      operationalFailureSink: (source, error) => failures.add((source, error)),
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'a' * 64;
+    store.create(idKey);
+    database.execute('UPDATE stores SET last_seen = 0 WHERE id_key = ?', [
+      idKey,
+    ]);
+
+    store.sweep(now: DateTime.utc(2026, 9, 3));
+
+    expect(
+      failures,
+      contains(
+        predicate<(String, Object)>(
+          (failure) =>
+              failure.$1 == 'deletion_retry' && failure.$2 is StateError,
+        ),
+      ),
+    );
+  });
+
   test('sweep drains the global retry queue once after expired stores', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-sweep-store-retry-bound-',

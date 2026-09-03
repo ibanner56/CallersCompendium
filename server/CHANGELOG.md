@@ -10,6 +10,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Added
 
+- Add the W16 Linux host-network Docker and Apache deployment reference,
+  trusted real-client address resolution, and safe operational alerts.
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
