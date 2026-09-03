@@ -19,12 +19,20 @@ boundary_response=$(mktemp)
 created_credentials=$(mktemp)
 cleanup_failures=$(mktemp)
 apache_config=${ATHENAEUM_APACHE_CONFIG:?set ATHENAEUM_APACHE_CONFIG to the active Apache vhost}
+apachectl_bin=${ATHENAEUM_APACHECTL:-apachectl}
+
+curl_local() {
+  curl \
+    --resolve "${host}:${https_port}:127.0.0.1" \
+    --resolve "${host}:${http_port}:127.0.0.1" \
+    "$@"
+}
 
 cleanup() {
   set +e
   if [ -s "$created_credentials" ]; then
     while IFS= read -r token; do
-      status=$(curl --silent --max-time 10 --request DELETE \
+      status=$(curl_local --silent --max-time 10 --request DELETE \
         --header "Authorization: Bearer ${token}" \
         --output /dev/null --write-out '%{http_code}' \
         "https://${host}:${https_port}/v1/store" 2>/dev/null || printf '000')
@@ -47,12 +55,13 @@ cleanup() {
 trap cleanup EXIT
 
 https_url="https://${host}:${https_port}"
+"$apachectl_bin" -t >/dev/null
 
 expect_status() {
   expected=$1
   label=$2
   shift 2
-  status=$(curl --silent --show-error --max-time 10 --max-redirs 0 \
+  status=$(curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --output /dev/null --write-out '%{http_code}' "$@")
   if [ "$status" != "$expected" ]; then
     echo "${label}: expected HTTP ${expected}, got ${status}" >&2
@@ -65,7 +74,7 @@ expect_json_status() {
   label=$2
   output=$3
   shift 3
-  status=$(curl --silent --show-error --max-time 10 --max-redirs 0 \
+  status=$(curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --output "$output" --write-out '%{http_code}' "$@")
   if [ "$status" != "$expected" ] || ! grep -Eq '"error"' "$output"; then
     echo "${label}: expected Athenaeum JSON HTTP ${expected}, got ${status}" >&2
@@ -74,7 +83,7 @@ expect_json_status() {
 }
 
 http_status=$(
-  curl --silent --show-error --max-time 10 --max-redirs 0 \
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --output "$http_body" --write-out '%{http_code}' \
     "http://${host}:${http_port}/v1/store" || true
 )
@@ -138,7 +147,7 @@ expect_status 429 "server-wide failure budget" \
 echo "server-wide failure budget: passed"
 
 https_post_status=$(
-  curl --silent --show-error --max-time 10 --max-redirs 0 \
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --request POST --header "Authorization: Bearer ${credential}" \
     --dump-header "$https_headers" --output "$https_post_body" \
     --write-out '%{http_code}' "https://${host}:${https_port}/v1/store"
@@ -171,7 +180,7 @@ expect_status 429 "store creation budget" \
 echo "store-creation budget: passed"
 
 https_get_status=$(
-  curl --silent --show-error --max-time 10 --max-redirs 0 \
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --request GET --header "Authorization: Bearer ${credential}" \
     --output "$https_get_body" --write-out '%{http_code}' \
     "https://${host}:${https_port}/v1/store"

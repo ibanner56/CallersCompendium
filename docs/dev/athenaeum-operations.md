@@ -100,7 +100,8 @@ configuration to ensure no request decompression directive is enabled;
 the successful gzip upload then exercises the backend's own gzip decoder.
 Run it against a freshly restarted staging container because the failure
 and creation budgets are in memory. Save the labeled output as release
-evidence.
+evidence. The harness uses curl `--resolve` to connect both listeners to
+host loopback while preserving the configured hostname for Host/SNI.
 
 ## Operations
 
