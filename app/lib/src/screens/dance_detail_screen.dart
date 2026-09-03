@@ -68,6 +68,7 @@ class DanceDetailScreen extends StatefulWidget {
     this.onReimport,
     this.readOnly = false,
     this.onPreviewNavigate,
+    this.onClose,
   }) : previewData = null,
        onImport = null;
 
@@ -87,7 +88,8 @@ class DanceDetailScreen extends StatefulWidget {
        onNavigateTo = null,
        onReimport = null,
        readOnly = false,
-       onPreviewNavigate = null;
+       onPreviewNavigate = null,
+       onClose = null;
 
   /// Read-only presentation for an online result. Unlike [preview], this
   /// intentionally exposes neither an import nor any collection mutation.
@@ -95,6 +97,7 @@ class DanceDetailScreen extends StatefulWidget {
     super.key,
     required DanceDetailData data,
     this.onPreviewNavigate,
+    this.onClose,
   }) : danceId = null,
        previewData = data,
        onImport = null,
@@ -122,6 +125,9 @@ class DanceDetailScreen extends StatefulWidget {
 
   /// Replaces this read-only preview with a linked saved dance preview.
   final void Function(String danceId)? onPreviewNavigate;
+
+  /// Closes an embedded detail view instead of popping the surrounding route.
+  final VoidCallback? onClose;
 
   /// Optional callback invoked after a soft-delete is undone (restored).
   /// The Collection screen passes `() => _boot()` here so the list reloads.
@@ -867,6 +873,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           return Scaffold(
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
+              leading: widget.onClose == null
+                  ? null
+                  : IconButton(
+                      key: const ValueKey('dance-detail-close'),
+                      tooltip: l10n.commonClose,
+                      icon: const Icon(Icons.close),
+                      onPressed: widget.onClose,
+                    ),
               actions: [
                 if (!_isPreview && !_isReadOnly && detail != null)
                   compact
@@ -950,9 +964,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         builder: (context) {
                           // Per-formation label colour (issue #367): highlight
                           // only when the user overrode this shape.
-                          final color = FormationColorsScope.of(
-                            context,
-                          )?.overrideFor(dance.formation.shape);
+                          final color = FormationColorsScope.of(context)
+                              ?.overrideFor(dance.formation.shape);
                           final text = Text(
                             formationLabel(l10n, dance.formation),
                           );

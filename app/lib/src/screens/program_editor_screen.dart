@@ -220,9 +220,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPersistent = persistent;
     });
     try {
-      final preview = await _onlineServiceFor(
-        result.source,
-      ).loadPreview(_repos, result);
+      final preview = await _onlineServiceFor(result.source)
+          .loadPreview(_repos, result);
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
         _previewOnline = preview;
@@ -236,9 +235,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
-        _previewError = AppLocalizations.of(
-          context,
-        ).onlineLoadError(result.source.label);
+        _previewError = AppLocalizations.of(context)
+            .onlineLoadError(result.source.label);
         _previewLoading = false;
       });
     }
@@ -282,6 +280,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             key: ValueKey('program-preview-$danceId'),
             danceId: danceId,
             readOnly: true,
+            onClose: _clearPreview,
             onPreviewNavigate: (target) => _showSavedPreview(
               target,
               _previewPane!,
@@ -294,6 +293,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               'program-online-preview-${online.result.source.name}-${online.result.id}',
             ),
             data: online.detail,
+            onClose: _clearPreview,
             onPreviewNavigate: (target) => _showSavedPreview(
               target,
               _previewPane!,
@@ -356,9 +356,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    AppLocalizations.of(
-                      context,
-                    ).onlineLoadError(result.source.label),
+                    AppLocalizations.of(context)
+                        .onlineLoadError(result.source.label),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -1605,9 +1604,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       l10n.programsMarkedAllPerformed,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
   }
 
   // --- Persistence ----------------------------------------------------------
@@ -1722,9 +1720,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
     }
   }
 
