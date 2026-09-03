@@ -1337,6 +1337,41 @@ void main() {
     );
   });
 
+  test('startup temporary artifacts count toward quota', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-temporary-quota-',
+    );
+    final config = AthenaeumConfig(
+      dataDirectory: dataDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    AthenaeumStore? recovered;
+    addTearDown(() {
+      recovered?.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final initial = AthenaeumStore(config: config);
+    final idKey = '8' * 64;
+    final created = initial.create(idKey);
+    final hash = '9' * 64;
+    final temporary = File(
+      '${initial.blobFile(idKey, created.epoch, hash).path}.123.456.abc.tmp',
+    );
+    temporary.parent.createSync(recursive: true);
+    temporary.writeAsBytesSync([1, 2], flush: true);
+    initial.close();
+
+    recovered = AthenaeumStore(
+      config: config,
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 10, maxBytes: 3),
+      deleteFile: (_) {
+        throw const FileSystemException('injected recovery failure');
+      },
+    );
+    expect(recovered.blobUploadLimit(idKey, created.epoch, 'a' * 64), 1);
+  });
+
   test('store deletion prioritizes all of its directories', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-priority-delete-',

@@ -34,9 +34,9 @@ batch on requests and server start, and the hourly sweep drains the remainder.
 Request-path retry failures are isolated so they do not change protocol
 responses.
 Startup reconciliation also queues crash-orphaned final blob files and temporary
-upload artifacts for the same cleanup path. Pending physical files remain
-charged against recreated-store quotas, and an epoch that gains a stale upload
-is preserved until its refs are gone. Store deletion also prioritizes all
+upload artifacts for the same cleanup path. Every pending physical file remains
+charged against recreated-store quotas, and an epoch that gains a stale upload is
+preserved until its refs are gone. Store deletion also prioritizes all
 directories belonging to that store before background retries.
 Stores are reaped after 30 days without an authenticated request.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload

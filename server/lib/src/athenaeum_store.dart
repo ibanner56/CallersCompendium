@@ -602,11 +602,17 @@ class AthenaeumStore {
     for (final row in rows) {
       final epoch = row['epoch'] as String;
       final hash = row['hash'] as String;
-      if (epoch == excludingEpoch && hash == excludingHash) continue;
-      if (blobRef(idKey, epoch, hash) != null) continue;
-      final file = blobFile(idKey, epoch, hash);
-      if (file.existsSync() && accountedPaths.add(file.path)) {
-        usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+      final isExcluded = epoch == excludingEpoch && hash == excludingHash;
+      if (!isExcluded && blobRef(idKey, epoch, hash) == null) {
+        final file = blobFile(idKey, epoch, hash);
+        if (file.existsSync() && accountedPaths.add(file.path)) {
+          usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+        }
+      }
+      for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
+        if (accountedPaths.add(file.path)) {
+          usage = usage.add(bytes: file.lengthSync(), blobs: 1);
+        }
       }
     }
     for (final row in directoryRows) {
