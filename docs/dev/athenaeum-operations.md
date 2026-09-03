@@ -22,6 +22,21 @@ the loopback-only forwarded-address trust boundary.
    sudo chmod 600 /root/athenaeum.env
    ```
 
+   Reserve the listener port across host restarts without discarding any
+   existing reservations:
+
+   ```sh
+   reserved=$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)
+   case ",$reserved," in
+     *,33333,*) ;;
+     *) reserved="${reserved:+$reserved,}33333" ;;
+   esac
+   printf 'net.ipv4.ip_local_reserved_ports=%s\n' "$reserved" |
+     sudo tee /etc/sysctl.d/99-athenaeum-port.conf >/dev/null
+   sudo sysctl --system
+   grep -Eq '(^|,)33333(,|$)' /proc/sys/net/ipv4/ip_local_reserved_ports
+   ```
+
 3. Build the image from the repository root:
 
    ```sh
@@ -37,6 +52,7 @@ the loopback-only forwarded-address trust boundary.
    ```sh
    docker run --detach --name athenaeum \
      --network host \
+     --restart unless-stopped \
      --read-only \
      --tmpfs /tmp:rw,noexec,nosuid,size=64m \
      --mount type=bind,src=/var/lib/athenaeum,dst=/var/lib/athenaeum \
@@ -47,24 +63,27 @@ the loopback-only forwarded-address trust boundary.
    Use a Docker/host secret manager instead of the env file in production; do
    not put the pepper in command history or an image layer. The service runs as
    the unprivileged `nobody` user.
-   Port `33333` is reserved for this service and must not be published or
-   exposed on a non-loopback interface.
+   Verify the reservation before every first start with
+   `grep -w 33333 /proc/sys/net/ipv4/ip_local_reserved_ports`. Port `33333`
+   must not be published or exposed on a non-loopback interface.
 
 ## Proxy and security contract
 
-The vhost must preserve `Authorization`, accept bodies up to 16 MiB, avoid
-decompressing request bodies, overwrite `X-Forwarded-For` with the connecting
-client address, and proxy only over loopback. The application trusts that
-header only when the socket peer is loopback; it otherwise uses the peer
-address. The limits are independent: 10 failures per IP per minute, a burst of
-20 failures per IP, 1,000 failures per minute server-wide, and 60 store
-creations per minute. A saturated server-wide failure budget must not block
-authenticated access to an existing store.
+The vhost must preserve `Authorization`, allow a 32 MiB wire body (the
+application enforces the 16 MiB decoded manifest limit), avoid decompressing
+request bodies, overwrite `X-Forwarded-For` with the connecting client
+address, and proxy only over loopback. The application trusts that header only
+when the socket peer is loopback; it otherwise uses the peer address. The
+limits are independent: 10 failures per IP per minute, a burst of 20 failures
+per IP, 1,000 failures per minute server-wide, and 60 store creations per
+minute. A saturated server-wide failure budget must not block authenticated
+access to an existing store.
 
 Use a no-redirect probe after every Apache change:
 
 ```sh
 ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
+  ATHENAEUM_APACHE_CONFIG=/etc/apache2/sites-enabled/athenaeum.conf \
   sh server/deploy/smoke_test.sh sync.example.invalid
 curl --max-time 10 --max-redirs 0 --include http://sync.example.invalid/v1/store
 curl --max-time 10 --include https://sync.example.invalid/v1/store
@@ -76,9 +95,12 @@ an Athenaeum response). The script then exercises real client buckets and
 forwarded-header overwrite through Apache, the 1,000-failure and 60-creation
 budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
 authenticated Athenaeum create/lookup responses over HTTPS with
-`Strict-Transport-Security`. Run it against a freshly restarted staging
-container because the failure and creation budgets are in memory. Save the
-labeled output as release evidence.
+`Strict-Transport-Security`. The harness also inspects the active vhost
+configuration to ensure no request decompression directive is enabled;
+the successful gzip upload then exercises the backend's own gzip decoder.
+Run it against a freshly restarted staging container because the failure
+and creation budgets are in memory. Save the labeled output as release
+evidence.
 
 ## Operations
 

@@ -1,9 +1,17 @@
 FROM dart:3.12.0 AS build
 
 WORKDIR /workspace
-COPY pubspec.yaml pubspec.lock /workspace/
 COPY packages/compendium_core /workspace/packages/compendium_core
 COPY server /workspace/server
+RUN printf '%s\n' \
+    'name: callers_compendium_server_workspace' \
+    'publish_to: none' \
+    'environment:' \
+    '  sdk: ^3.12.0' \
+    'workspace:' \
+    '  - packages/compendium_core' \
+    '  - server' > /workspace/pubspec.yaml
+COPY pubspec.lock /workspace/pubspec.lock
 RUN dart pub get
 RUN dart compile exe server/bin/athenaeum.dart -o /out/athenaeum
 
