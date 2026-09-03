@@ -310,7 +310,7 @@ void main() {
     final idKey = 'a' * 64;
     final first = store.create(idKey);
     store.deleteStore(idKey);
-    store.create(idKey);
+    final recreated = store.create(idKey);
 
     expect(
       store.putBlob(
@@ -324,7 +324,7 @@ void main() {
     expect(
       () => store.putBlob(
         idKey: idKey,
-        epoch: first.epoch,
+        epoch: recreated.epoch,
         hash: 'c' * 64,
         body: Uint8List.fromList([2]),
       ),
