@@ -300,6 +300,34 @@ void main() {
       expect(unknownEnvelopeFieldResponse.statusCode, 422);
       await unknownEnvelopeFieldResponse.drain<void>();
 
+      final malformedEnvelope = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"choreographer","id":"malformed",'
+          '"updatedAt":"2026-09-03T00:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-09-03T00:00:00.000Z",'
+          '"body":{"email":"malformed-private@example.com"},}',
+        ),
+      );
+      final malformedEnvelopeHash = sha256
+          .convert(malformedEnvelope)
+          .toString();
+      final malformedEnvelopeResponse = await _send(
+        'PUT',
+        '/v1/blobs/$malformedEnvelopeHash',
+        syncId: syncId,
+        body: malformedEnvelope,
+        contentType: 'application/octet-stream',
+      );
+      expect(malformedEnvelopeResponse.statusCode, 422);
+      await malformedEnvelopeResponse.drain<void>();
+      final malformedEnvelopeGet = await _send(
+        'GET',
+        '/v1/blobs/$malformedEnvelopeHash',
+        syncId: syncId,
+      );
+      expect(malformedEnvelopeGet.statusCode, 404);
+      await malformedEnvelopeGet.drain<void>();
+
       final futureShareable = _recordBlob(
         version: 99,
         kind: 'choreographer',

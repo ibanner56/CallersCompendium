@@ -442,7 +442,10 @@ class AthenaeumApp {
     try {
       decoded = jsonDecode(utf8.decode(body, allowMalformed: false));
     } on FormatException {
-      return;
+      throw const _RequestFailure(
+        422,
+        'blob contains an invalid record envelope',
+      );
     }
     if (decoded is! Map ||
         envelope.hasDuplicateKey ||
