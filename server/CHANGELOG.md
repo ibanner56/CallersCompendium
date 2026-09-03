@@ -40,3 +40,6 @@ the app and of `compendium_core`; version headings below refer to
   alive across transient failures.
 - Skip unnecessary manifest decoding during garbage collection and avoid
   persisting diagnostics for credentials that do not resolve to a store.
+- Keep committed store deletion successful when post-commit cleanup encounters
+  a database error, scope pending-reference accounting to queued directories,
+  and index linkable break-glass records for bounded retention purges.

@@ -86,6 +86,10 @@ class AthenaeumStore {
     for (final table in breakGlassTableSchemas) {
       _breakGlassDatabase.execute(table.createSql());
     }
+    _breakGlassDatabase.execute(
+      'CREATE INDEX IF NOT EXISTS break_glass_access_linkable_idx '
+      'ON break_glass_access (accessed_at) WHERE id_key IS NOT NULL',
+    );
     for (final table in diagnosticTableSchemas) {
       _diagnosticDatabase.execute(table.createSql());
     }
@@ -534,7 +538,10 @@ class AthenaeumStore {
     );
     if (directoryRows.isNotEmpty) {
       final liveRows = _database.select(
-        'SELECT epoch, hash FROM blob_refs WHERE id_key = ?',
+        'SELECT refs.epoch, refs.hash FROM blob_refs AS refs '
+        'INNER JOIN deletion_jobs AS jobs '
+        'ON jobs.id_key = refs.id_key AND jobs.epoch = refs.epoch '
+        'WHERE refs.id_key = ?',
         [idKey],
       );
       for (final row in liveRows) {
@@ -783,9 +790,25 @@ class AthenaeumStore {
       }
     }
     for (final queuedEpoch in epochs) {
-      _retryPendingDirectory(idKey, queuedEpoch);
+      try {
+        _retryPendingDirectory(idKey, queuedEpoch);
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum post-delete directory cleanup failed '
+          '(${error.runtimeType})',
+        );
+      }
     }
-    if (retryGlobal) retryPendingDeletions();
+    if (retryGlobal) {
+      try {
+        retryPendingDeletions();
+      } on Object catch (error) {
+        stderr.writeln(
+          'Athenaeum post-delete cleanup retry failed '
+          '(${error.runtimeType})',
+        );
+      }
+    }
   }
 
   void retryPendingDeletions({

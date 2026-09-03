@@ -29,8 +29,9 @@ proxy forwarding, and address handling are specified for W16. Logging, alerting,
 retention, and break-glass procedures are specified for W12.
 
 Store deletion removes the epoch directory immediately when possible; a
-durable cleanup record retries failed filesystem removal in bounded batches on
-requests and server start, and the hourly sweep drains the remainder. Pending
+durable cleanup record retries failed filesystem removal in a larger bounded
+batch on requests and server start, and the hourly sweep drains the remainder.
+Pending
 physical files remain charged against recreated-store quotas, and an epoch that
 gains a stale upload is preserved until its refs are gone. Store deletion also
 prioritizes all directories belonging to that store before background retries.

@@ -13,12 +13,14 @@ void main() {
       'athenaeum-queue-index-test-',
     );
     final database = sqlite3.openInMemory();
+    final breakGlassDatabase = sqlite3.openInMemory();
     final store = AthenaeumStore(
       config: AthenaeumConfig(
         dataDirectory: dataDirectory.path,
         pepper: List<int>.filled(32, 0x42),
       ),
       database: database,
+      breakGlassDatabase: breakGlassDatabase,
     );
     addTearDown(() {
       store.close();
@@ -40,6 +42,14 @@ void main() {
         'blob_deletion_jobs_queued_at_idx',
       }),
     );
+    final breakGlassIndexes = breakGlassDatabase
+        .select(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'break_glass_access_linkable_idx'",
+        )
+        .map((row) => row['name'] as String)
+        .toSet();
+    expect(breakGlassIndexes, {'break_glass_access_linkable_idx'});
   });
 
   test('ref-protected directory jobs rotate behind eligible jobs', () {
@@ -659,6 +669,43 @@ void main() {
     expect(() => store.deleteStore(idKey), throwsA(isA<SqliteException>()));
     expect(store.lookup(idKey), isNotNull);
     expect(store.manifest(idKey, created.epoch, 'device-one'), isNotNull);
+  });
+
+  test('store deletion remains successful when post-commit cleanup fails', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-delete-cleanup-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      deleteDirectory: (directory) => directory.deleteSync(recursive: true),
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'b' * 64;
+    final created = store.create(idKey);
+    store.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: 'c' * 64,
+      body: Uint8List.fromList([1]),
+    );
+    database.execute(
+      'CREATE TRIGGER fail_cleanup_job_delete '
+      'BEFORE DELETE ON deletion_jobs '
+      "BEGIN SELECT RAISE(ABORT, 'injected cleanup failure'); END",
+    );
+
+    expect(() => store.deleteStore(idKey), returnsNormally);
+    expect(store.lookup(idKey), isNull);
+    expect(database.select('SELECT * FROM deletion_jobs'), hasLength(1));
   });
 
   test('filesystem deletion failures remain queued for retry', () {
