@@ -33,6 +33,14 @@ void main() {
       expect(f.params['prefix'], 'balance');
     });
 
+    test('meltdown swing → swing with meltdown prefix', () {
+      final f = _parse('next neighbors meltdown swing');
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'swing');
+      expect(f.params['who'], 'nextNeighbors');
+      expect(f.params['prefix'], 'meltdown');
+    });
+
     test('long swing → 16 beats', () {
       final f = _parse('partners long swing');
       expect(f.move, 'swing');

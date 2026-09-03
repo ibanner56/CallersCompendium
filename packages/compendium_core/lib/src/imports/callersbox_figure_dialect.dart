@@ -1272,11 +1272,30 @@ FigureMatch? _chainAnnotation(String scrubbed) {
 /// See [_chainAnnotation]. `promenade` has no note of its own (no collision),
 /// but shares the same mechanism for consistency.
 FigureMatch? _promenadeAnnotation(String scrubbed) {
-  final base = _annotatedMatch(scrubbed, _promenadeAnchor, 'promenade');
-  if (base == null) return null;
-  final note = _joinAnnotations(base.annotations);
-  if (note == null) return null;
-  return _withAnnotationNote(base.match, note);
+  final wholeSet = RegExp(
+    r'\s+around\s+(?:the\s+)?major\s+set\s*$',
+    caseSensitive: false,
+  ).hasMatch(scrubbed);
+  final normalized = scrubbed.replaceFirst(
+    RegExp(r'\s+around\s+(?:the\s+)?major\s+set\s*$', caseSensitive: false),
+    '',
+  );
+  final annotated = _annotatedMatch(normalized, _promenadeAnchor, 'promenade');
+  final match =
+      annotated?.match ??
+      (wholeSet
+          ? recognizeSharedFigureLine(
+              normalized,
+              recognitionNormalize: _stripAnnotations,
+            )
+          : null);
+  if (match == null || match.moveId != 'promenade') return null;
+  final annotationNote = annotated == null
+      ? null
+      : _joinAnnotations(annotated.annotations);
+  final notes = [?annotationNote, if (wholeSet) 'around the major set'];
+  if (notes.isEmpty) return null;
+  return _withAnnotationNote(match, notes.join('; '));
 }
 
 /// See [_chainAnnotation]. The anchor accepts both `right and left through`

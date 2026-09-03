@@ -288,6 +288,9 @@ FigureMatch? _swing(String text) {
     if (!s.eat('&')) return null;
     params['prefix'] = 'balance';
   }
+  if (s.eat('meltdown')) {
+    params['prefix'] = 'meltdown';
+  }
   if (s.peek() == 'long') {
     s.take();
     params['beats'] = 16;

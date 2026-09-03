@@ -36,6 +36,8 @@ core version. They are left that way deliberately — do not renumber them.
 
 - Correct CallersBox parsing for bare 16-beat heys and supported bracketed
   balance-wave annotations.
+- Correct shared figure rendering, taxonomy defaults, and source-specific
+  CallersBox/ContraDB imports reported in issue #1160.
 
 ## [0.3.0] - 2026-09-01
 

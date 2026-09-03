@@ -107,6 +107,7 @@ export 'src/storage/database.dart'
         chainHandBackfillDoneKey,
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         compactDosidoSeesawCanonicalRebuildDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
         shareableTextNormalisationScopeKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,

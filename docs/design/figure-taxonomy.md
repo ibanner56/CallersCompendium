@@ -1576,6 +1576,13 @@ fails a PR that moves the constant without adding the matching entry.
   text and FTS rows use the display names, existing derived rows are rebuilt
   once under `compactDosidoSeesawCanonicalRebuildDoneKey`; stored figure JSON
   and the SQLite schema are unchanged.
+- v33 (#1160): corrects the `pass_the_ocean.centerHand` default to `left` and
+  the `box_circulate.who` default to `role2s`, and changes the figure-eight
+  canonical template to `{who} {half} {move}`. Existing derived canonical and
+  FTS rows are rebuilt once under
+  `taxonomyV33CanonicalRebuildDoneKey`; stored `figures_json` and the SQLite
+  schema remain unchanged. Display-only wording fixes for swings, give-and-
+  take, and figure-eight direction/target prose do not alter canonical text.
 
 ## Open questions (to resolve during implementation, with user input)
 

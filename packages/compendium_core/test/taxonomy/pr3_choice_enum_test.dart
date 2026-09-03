@@ -44,7 +44,7 @@ void main() {
       'slice left couple straight': Figure(move: 'slice'),
       'ones contra corners': Figure(move: 'contra_corners'),
       'everyone turn alone': Figure(move: 'turn_alone'),
-      'ones figure 8 half': Figure(move: 'figure_8'),
+      'ones half figure 8': Figure(move: 'figure_8'),
       'ones poussette neighbors half clockwise': Figure(move: 'poussette'),
       "everyone Rory O'More right": Figure(move: 'rory_o_more'),
     };
@@ -72,7 +72,7 @@ void main() {
         renderer.renderCanonical(
           Figure(move: 'figure_8', params: {'half': 'full'}),
         ),
-        'ones figure 8 full',
+        'ones full figure 8',
       );
     });
   });
