@@ -65,11 +65,12 @@ stored by the sync service you configure so it can be synchronized.
 
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
-logged. The derived sync ID in that log remains linkable for 30 days of
-access; after that it becomes a timestamp-only aggregate row. Ordinary
-diagnostic events that contain store-derived metadata are retained for no more
-than 30 days and never include request bodies, record content, or bearer
-credentials.
+logged. The derived sync ID in that log becomes eligible for nulling after 30
+days of access and is nulled by the next hourly sweep; after that it becomes a
+timestamp-only aggregate row. Ordinary diagnostic events that contain
+store-derived metadata become eligible for removal after 30 days and are
+removed by the next hourly sweep. They never include request bodies, record
+content, or bearer credentials.
 
 Device Sync does not transfer structured venue street address, city, region,
 country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
@@ -150,9 +151,11 @@ When Device Sync is enabled, the configured sync service holds the selected
 content for as long as the store receives authenticated activity, then reaps it
 after 30 days of disuse. Unreferenced uploads are protected for 24 hours while
 they can still be published, but deleting the store removes them immediately.
-The access log's linkable derived sync ID expires 30 days after access; it
-retains a timestamp-only aggregate row after that. Ordinary diagnostic events
-have a separate 30-day bound and contain no content or bearer credentials.
+The access log's linkable derived sync ID becomes eligible for nulling 30 days
+after access and is nulled by the next hourly sweep; it retains a timestamp-only
+aggregate row after that. Ordinary diagnostic events become eligible for
+removal after 30 days and are removed by the next hourly sweep. They contain no
+content or bearer credentials.
 
 ### 8. Open source
 

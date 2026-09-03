@@ -33,6 +33,7 @@ durable cleanup record retries failed filesystem removal on the next request or
 server start. Stores are reaped after 30 days without an authenticated request.
 Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
 can be published safely; `DELETE /v1/store` bypasses that grace period. The
-break-glass access database keeps a derived store key for 30 days after access,
-then retains only its timestamp, and ordinary diagnostic events have a bounded
-30-day retention.
+break-glass access database makes a derived store key eligible for nulling after
+30 days and nulls it by the next hourly sweep, then retains only its timestamp.
+Ordinary diagnostic events become eligible for removal after 30 days and are
+removed by the next hourly sweep.
