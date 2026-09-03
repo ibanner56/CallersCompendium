@@ -42,8 +42,13 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ### Fixed
 
+- **Program editor dance previews** — closing a wide preview no longer exits the
+  editor.
+
 - **CallersBox imports** — recognize 16-beat heys without an explicit duration
   and preserve supported bracketed balance-wave annotations.
+- **Program dance picker** — remove the misleading detail chevron from rows
+  whose tap action adds or replaces a dance.
 
 ## [0.3.0] - 2026-09-01
 

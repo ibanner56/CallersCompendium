@@ -70,6 +70,7 @@ class DanceDetailScreen extends StatefulWidget {
     this.readOnly = false,
     this.onPreviewNavigate,
     this.jsonExportDelivery,
+    this.onClose,
   }) : previewData = null,
        onImport = null;
 
@@ -90,6 +91,7 @@ class DanceDetailScreen extends StatefulWidget {
        onReimport = null,
        readOnly = false,
        onPreviewNavigate = null,
+       onClose = null,
        jsonExportDelivery = null;
 
   /// Read-only presentation for an online result. Unlike [preview], this
@@ -98,6 +100,7 @@ class DanceDetailScreen extends StatefulWidget {
     super.key,
     required DanceDetailData data,
     this.onPreviewNavigate,
+    this.onClose,
   }) : danceId = null,
        previewData = data,
        onImport = null,
@@ -126,6 +129,9 @@ class DanceDetailScreen extends StatefulWidget {
 
   /// Replaces this read-only preview with a linked saved dance preview.
   final void Function(String danceId)? onPreviewNavigate;
+
+  /// Closes an embedded detail view instead of popping the surrounding route.
+  final VoidCallback? onClose;
 
   /// Optional callback invoked after a soft-delete is undone (restored).
   /// The Collection screen passes `() => _boot()` here so the list reloads.
@@ -968,6 +974,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           return Scaffold(
             appBar: AppBar(
               title: Text(l10n.danceScreenTitle),
+              leading: widget.onClose == null
+                  ? null
+                  : IconButton(
+                      key: const ValueKey('dance-detail-close'),
+                      tooltip: l10n.commonClose,
+                      icon: const Icon(Icons.close),
+                      onPressed: widget.onClose,
+                    ),
               actions: [
                 if (!_isPreview && !_isReadOnly && detail != null)
                   compact
