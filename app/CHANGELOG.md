@@ -35,6 +35,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Added
+
+- **JSON export delivery choices** — choose to save, copy the raw JSON, share
+  through the OS, or cancel when exporting a dance or program as JSON.
+
 ### Fixed
 
 - **CallersBox imports** — recognize 16-beat heys without an explicit duration

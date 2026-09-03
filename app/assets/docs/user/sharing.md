@@ -23,7 +23,7 @@ Open a dance and choose **Export**. Five actions:
 | **Share dance (text)** | Hands a plain-text dance card to your system's share sheet — email, messages, notes, whatever you have |
 | **Share dance file** | Packages the dance and its referenced metadata into a `.ccshare` file for another Caller's Compendium user |
 | **Copy dance** | Puts the same text on your clipboard, and confirms with "Dance copied to clipboard." |
-| **Export dance as JSON** | The same package, named `.json` instead — for a recipient without the app or for inspection |
+| **Export dance as JSON** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient without the app or for inspection |
 | **Export / print PDF** | Builds a PDF and opens your system's print dialog |
 
 **Export / print PDF** is a real print path, not a save-to-PDF shortcut: your
@@ -68,7 +68,7 @@ Open a program and choose **Export**. Five actions:
 | **Share set list (text)** | Hands a plain-text set list to your system's share sheet |
 | **Share (program + dances)** | Packages the program *and* its dances into one file to hand to another caller |
 | **Copy set list** | Puts the set list text on your clipboard, and confirms with "Set list copied to clipboard." |
-| **Export as JSON file** | The same package, named `.json` instead — for a recipient who doesn't have the app, or when you want to read the file yourself |
+| **Export as JSON file** | Opens a choice to **Save**, **Copy raw JSON**, **Share**, or **Cancel**. The same package is named `.json` for a recipient who doesn't have the app, or when you want to read the file yourself |
 | **Export / print PDF** | Builds a PDF set list and opens your system's print dialog |
 
 The set list — text and PDF alike — is titles, event details, and slot notes by
@@ -123,8 +123,16 @@ cannot spot them for you.
 
 **Export as JSON file** builds *exactly* the same content as **Share (program +
 dances)** — same program, same dances with their full figures, same
-choreographers, same venue, same privacy rules. The only difference is the name
-on the file: `.json` instead of `.ccshare`.
+choreographers, same venue, same privacy rules. You then choose **Save**,
+**Copy raw JSON**, **Share**, or **Cancel**. The only difference in the file
+itself is the name: `.json` instead of `.ccshare`.
+
+On desktop, **Save** opens a native file-save dialog. On Android and iOS it
+opens the platform's document-save flow so you can choose a user-accessible
+location. If the platform reports the destination, the confirmation names it.
+The native save flow handles an existing filename rather than silently
+overwriting an earlier export. Dismissing the choice dialog or the save dialog
+produces no file, clipboard change, or share.
 
 That matters on the receiving end. A `.ccshare` file is registered to Caller's
 Compendium, so a device that has the app opens it straight into import review —
@@ -184,9 +192,9 @@ leave, and one thing asks you first.
 
 ### Included only if you say so
 
-If you export a program as a **PDF** or share it as **program + dances**, and that
-program is linked to a venue that has contact people recorded, the app stops and
-asks:
+If you export a program as a **PDF**, JSON, or share it as **program + dances**,
+and that program is linked to a venue that has contact people recorded, the app
+stops and asks before any delivery choice:
 
 > **Include venue contact details in this export?**
 > These are personal contact details for the venue. They're left out of this
@@ -199,7 +207,7 @@ contacts, each with a name, phone, and email. **Every box starts unticked.**
 - Choose **Continue** with nothing ticked and the export goes ahead with all
   contact details removed.
 - Choose **Cancel**, or dismiss the dialog, and the whole export is called off —
-  nothing is written, printed, or shared.
+  nothing is written, copied, printed, or shared.
 
 Whatever you leave unticked is genuinely absent from the file, not hidden inside
 it. The venue's other details — its name, website, schedule, price, sponsor,

@@ -5330,6 +5330,78 @@ abstract class AppLocalizations {
   /// **'Export as JSON file'**
   String get exportShareProgramJson;
 
+  /// Title of the dialog shown before delivering a canonical dance or program JSON export.
+  ///
+  /// In en, this message translates to:
+  /// **'Export JSON'**
+  String get exportJsonDialogTitle;
+
+  /// Message in the JSON export delivery-choice dialog.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose how to deliver this JSON file.'**
+  String get exportJsonDialogMessage;
+
+  /// JSON export delivery-choice button that opens a native file-save flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get exportJsonSave;
+
+  /// JSON export delivery-choice button that copies the exact canonical JSON string.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy raw JSON'**
+  String get exportJsonCopy;
+
+  /// JSON export delivery-choice button that invokes the existing OS share flow.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get exportJsonShare;
+
+  /// JSON export delivery-choice button that produces no output.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get exportJsonCancel;
+
+  /// Snackbar confirming that the exact JSON export string was copied.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON copied to clipboard.'**
+  String get exportJsonCopied;
+
+  /// Snackbar confirming a JSON export was saved when no destination is returned.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{fileName}\" saved.'**
+  String exportJsonSaved(String fileName);
+
+  /// Snackbar confirming a JSON export and naming the destination returned by the platform save API.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{fileName}\" saved to {destination}.'**
+  String exportJsonSavedTo(String fileName, String destination);
+
+  /// Snackbar shown when saving a JSON export fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save this JSON file.'**
+  String get exportJsonSaveError;
+
+  /// Snackbar shown when copying a JSON export fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t copy this JSON.'**
+  String get exportJsonCopyError;
+
+  /// Snackbar shown when sharing a JSON export fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t share this JSON file.'**
+  String get exportJsonShareError;
+
   /// Snackbar shown when sharing a set list fails.
   ///
   /// In en, this message translates to:

@@ -3215,6 +3215,46 @@ class AppLocalizationsJa extends AppLocalizations {
   String get exportShareProgramJson => 'JSONファイルとして書き出す';
 
   @override
+  String get exportJsonDialogTitle => 'JSONを書き出す';
+
+  @override
+  String get exportJsonDialogMessage => 'このJSONファイルの送信方法を選択してください。';
+
+  @override
+  String get exportJsonSave => '保存';
+
+  @override
+  String get exportJsonCopy => '生のJSONをコピー';
+
+  @override
+  String get exportJsonShare => '共有';
+
+  @override
+  String get exportJsonCancel => 'キャンセル';
+
+  @override
+  String get exportJsonCopied => 'JSONをクリップボードにコピーしました。';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\"を保存しました。';
+  }
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\"を$destinationに保存しました。';
+  }
+
+  @override
+  String get exportJsonSaveError => 'このJSONファイルを保存できませんでした。';
+
+  @override
+  String get exportJsonCopyError => 'このJSONをコピーできませんでした。';
+
+  @override
+  String get exportJsonShareError => 'このJSONファイルを共有できませんでした。';
+
+  @override
   String get exportShareSetListError => 'このセットリストを共有できませんでした';
 
   @override

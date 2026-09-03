@@ -46,6 +46,7 @@ dependencies:
   wakelock_plus: ^1.6.1
   window_manager: ^0.5.2
   file_selector: ^1.1.0
+  flutter_file_dialog: ^3.3.2
   http: ^1.2.2
   # In-app User Guide: render the bundled Markdown guides (headings, lists,
   # tables, fenced code, links). `flutter_markdown_plus` is the maintained

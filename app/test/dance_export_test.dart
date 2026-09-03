@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'package:compendium_app/src/export/dance_pdf.dart';
+import 'package:compendium_app/src/export/json_export.dart';
 import 'package:compendium_app/src/widgets/dance_export_menu.dart';
 
 import 'support/l10n_harness.dart';
@@ -197,6 +198,9 @@ void main() {
                     return XFile('/tmp/$fileName');
                   },
                   shareInvoker: (params) async => shared.add(params),
+                  jsonExportDelivery: JsonExportDelivery(
+                    choicePicker: (_) async => JsonExportChoice.share,
+                  ),
                 ),
               ],
             ),

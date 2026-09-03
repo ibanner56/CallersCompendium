@@ -19,6 +19,7 @@ import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/dance_share_bundle.dart';
 import '../export/export_labels_l10n.dart';
+import '../export/json_export.dart';
 import '../export/share_file.dart';
 import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
@@ -68,6 +69,7 @@ class DanceDetailScreen extends StatefulWidget {
     this.onReimport,
     this.readOnly = false,
     this.onPreviewNavigate,
+    this.jsonExportDelivery,
   }) : previewData = null,
        onImport = null;
 
@@ -87,7 +89,8 @@ class DanceDetailScreen extends StatefulWidget {
        onNavigateTo = null,
        onReimport = null,
        readOnly = false,
-       onPreviewNavigate = null;
+       onPreviewNavigate = null,
+       jsonExportDelivery = null;
 
   /// Read-only presentation for an online result. Unlike [preview], this
   /// intentionally exposes neither an import nor any collection mutation.
@@ -102,7 +105,8 @@ class DanceDetailScreen extends StatefulWidget {
        onDeleted = null,
        onNavigateTo = null,
        onReimport = null,
-       readOnly = true;
+       readOnly = true,
+       jsonExportDelivery = null;
 
   /// Id of the persisted dance to load, or `null` in preview mode (see
   /// [DanceDetailScreen.preview]).
@@ -141,6 +145,9 @@ class DanceDetailScreen extends StatefulWidget {
   /// Opens the owner-controlled re-import flow for this saved dance. The list
   /// owns routed navigation; the collection shell owns its split-pane preview.
   final Future<void> Function(DanceDetailData detail)? onReimport;
+
+  /// Shared JSON delivery seam for the compact overflow export.
+  final JsonExportDelivery? jsonExportDelivery;
 
   /// App-bar action layout breakpoint (logical pixels). Below this width the
   /// screen collapses its secondary actions (dialect switch, Export, Duplicate,
@@ -786,6 +793,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       width: 1,
       height: 1,
     );
+    if (extension == danceShareJsonExtension) {
+      await _exportDanceJson(detail, origin);
+      return;
+    }
     try {
       final json = buildDanceShareBundle(
         detail.dance,
@@ -816,6 +827,89 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       messenger.showSnackBar(
         SnackBar(content: Text(l10n.exportShareDanceError)),
       );
+    }
+  }
+
+  JsonExportDelivery get _jsonDelivery =>
+      widget.jsonExportDelivery ?? const JsonExportDelivery();
+
+  Future<void> _exportDanceJson(DanceDetailData detail, Rect? origin) async {
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    late final String json;
+    late final String fileName;
+    try {
+      json = buildDanceShareBundle(
+        detail.dance,
+        choreographerFor: (id) => detail.choreographersById[id],
+        tagFor: (id) => detail.tagsById[id],
+        publishedSourceFor: (id) => detail.sourcesById[id],
+        customFieldFor: (id) => detail.customFieldsById[id],
+      );
+      fileName = danceShareBundleFileName(
+        detail.dance.title,
+        extension: danceShareJsonExtension,
+      );
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'dance_detail_screen._buildJsonExport',
+      );
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.exportJsonShareError)),
+      );
+      return;
+    }
+
+    final choice = await _jsonDelivery.choose(context);
+    if (choice == null || !mounted) return;
+
+    switch (choice) {
+      case JsonExportChoice.save:
+        await _guardJsonDelivery(messenger, l10n.exportJsonSaveError, () async {
+          final result = await _jsonDelivery.save(json, fileName);
+          if (result == null || !mounted) return;
+          final message = result.path.isEmpty
+              ? l10n.exportJsonSaved(result.fileName)
+              : l10n.exportJsonSavedTo(result.fileName, result.path);
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        });
+      case JsonExportChoice.copy:
+        await _guardJsonDelivery(messenger, l10n.exportJsonCopyError, () async {
+          await _jsonDelivery.copy(json);
+          if (mounted) {
+            messenger.showSnackBar(
+              SnackBar(content: Text(l10n.exportJsonCopied)),
+            );
+          }
+        });
+      case JsonExportChoice.share:
+        await _guardJsonDelivery(messenger, l10n.exportJsonShareError, () {
+          return _jsonDelivery.share(
+            json: json,
+            fileName: fileName,
+            subject: detail.dance.title,
+            sharePositionOrigin: origin,
+          );
+        });
+    }
+  }
+
+  Future<void> _guardJsonDelivery(
+    ScaffoldMessengerState messenger,
+    String failureMessage,
+    Future<void> Function() action,
+  ) async {
+    try {
+      await action();
+    } on Object catch (e, stackTrace) {
+      logCaughtError(
+        e,
+        stackTrace,
+        source: 'dance_detail_screen._guardJsonDelivery',
+      );
+      messenger.showSnackBar(SnackBar(content: Text(failureMessage)));
     }
   }
 

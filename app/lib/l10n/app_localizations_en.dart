@@ -3303,6 +3303,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportShareProgramJson => 'Export as JSON file';
 
   @override
+  String get exportJsonDialogTitle => 'Export JSON';
+
+  @override
+  String get exportJsonDialogMessage => 'Choose how to deliver this JSON file.';
+
+  @override
+  String get exportJsonSave => 'Save';
+
+  @override
+  String get exportJsonCopy => 'Copy raw JSON';
+
+  @override
+  String get exportJsonShare => 'Share';
+
+  @override
+  String get exportJsonCancel => 'Cancel';
+
+  @override
+  String get exportJsonCopied => 'JSON copied to clipboard.';
+
+  @override
+  String exportJsonSaved(String fileName) {
+    return '\"$fileName\" saved.';
+  }
+
+  @override
+  String exportJsonSavedTo(String fileName, String destination) {
+    return '\"$fileName\" saved to $destination.';
+  }
+
+  @override
+  String get exportJsonSaveError => 'Couldn\'t save this JSON file.';
+
+  @override
+  String get exportJsonCopyError => 'Couldn\'t copy this JSON.';
+
+  @override
+  String get exportJsonShareError => 'Couldn\'t share this JSON file.';
+
+  @override
   String get exportShareSetListError => 'Couldn\'t share this set list';
 
   @override
