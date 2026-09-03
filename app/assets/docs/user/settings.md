@@ -235,6 +235,26 @@ role names and wording the app uses when it describes dances.
 - Custom dialects can be edited, renamed, or deleted.
 - One dialect is active at a time.
 
+### Dance details & shorthands
+
+- **Canonical figure text** (off by default) — allow dance details to show
+  canonical role and move names. When it is off, dance details open in your
+  active dialect and do not show the in-detail **Canonical** switch.
+- **Open dance details in canonical terms** — when enabled, and canonical figure
+  text is enabled, dance details open in canonical wording. When canonical
+  figure text is disabled, this preference is retained but ignored until the
+  gate is enabled again. On an existing installation, the first detail open
+  initializes the new gate off and converts an older canonical default to the
+  active-dialect default; later changes to the gate never overwrite this
+  preference.
+- **Free-text entry** — when on, adding a figure lets you type a whole line
+  (for example "neighbor balance & swing") instead of building it field by field.
+- **Figure shorthands** — map short tokens to one or more figures you can insert
+  during free-text entry. See
+  [Figure shorthands](./authoring.md#figure-shorthands).
+- **Walkthrough snippets** — manage your personal, per-figure walkthrough
+  wording. These settings are independent of canonical figure text.
+
 This is just the entry point — see [Dialect](./dialects.md) for the full story on
 choosing and customizing wording.
 
@@ -291,20 +311,12 @@ setup.
 
 - **Collection sort order** — the default order for your library when you open it.
   You can still change the sort while browsing.
-- **Open dance details in canonical terms** — when on, dances open showing their
-  canonical role and move names instead of your active dialect. You can still
-  switch views on the dance while it is open.
 
 ### Dance-authoring defaults
 
 These help if you write your own dances. Keep in mind you can override any of them
 per dance. [Write & edit dances](./authoring.md) covers them in context.
 
-- **Free-text entry** — when on, adding a figure lets you type a whole line
-  (for example "neighbor balance & swing") instead of building it field by field.
-- **Figure shorthands** — map short tokens to one or more figures you can insert
-  during free-text entry. See
-  [Figure shorthands](./authoring.md#figure-shorthands).
 - **Form**, **Formation**, and **Progression** — the starting choices for a new
   dance.
 - **Default phrase structure** — leave blank for the standard 4×16 A1 A2 B1 B2, or
@@ -318,12 +330,6 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   figure's move or a parameter that affects timing recalculates its beat count
   immediately, even overwriting a beat count you typed in by hand. When off, a
   beat count you've edited is never changed automatically.
-- **Walkthrough snippets** — a personal, per-figure library of your own
-  walkthrough wording. The app saves the text you write for a figure and offers it
-  again wherever that figure appears. Manage the whole library from here: review
-  it, **Edit snippet**, or delete one. Deleting removes the saved default only —
-  dances keep any walkthrough text you already wrote. See
-  [Walkthrough](./authoring.md#walkthrough).
 
 ## Updates
 

@@ -144,6 +144,10 @@ const String kDefaultProgramBandKey = 'default_program_band';
 /// [DanceDetailRendering.activeDialect] (the historical default).
 const String kDefaultDanceDetailRenderingKey = 'default_dance_detail_rendering';
 
+/// Key used to persist whether canonical figure text is available in dance
+/// details. Absent/invalid ⇒ off, preserving the active-dialect-only behavior.
+const String kCanonicalFigureTextKey = 'canonical_figure_text';
+
 /// The user's preferred STARTING rendering for the dance-detail figure table
 /// (ROADMAP G.6b).
 ///
@@ -168,6 +172,27 @@ DanceDetailRendering danceDetailRenderingFromStored(Object? stored) {
     }
   }
   return DanceDetailRendering.activeDialect;
+}
+
+/// Initializes the canonical-text gate for an existing installation.
+///
+/// Presence is checked before decoding so this migration runs once, even when
+/// the stored value is malformed. A legacy canonical child preference is reset
+/// only during that first initialization.
+Future<void> initializeCanonicalFigureTextGate(
+  SettingsRepository settings,
+) async {
+  if (await settings.contains(kCanonicalFigureTextKey)) return;
+  final storedRendering = await settings.get(kDefaultDanceDetailRenderingKey);
+  if (storedRendering == DanceDetailRendering.canonical.name) {
+    await settings.set(
+      kDefaultDanceDetailRenderingKey,
+      DanceDetailRendering.activeDialect.name,
+    );
+  }
+  // Mark the migration complete only after the legacy child has been handled,
+  // so an interrupted migration remains retryable.
+  await settings.set(kCanonicalFigureTextKey, false);
 }
 
 /// Key used to persist the default dance FORM for new dances (ROADMAP DD.1).

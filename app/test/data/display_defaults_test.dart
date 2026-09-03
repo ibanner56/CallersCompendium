@@ -4,12 +4,87 @@ import 'package:compendium_app/src/search/program_sort.dart';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/test_repositories.dart';
+
 void main() {
   group('danceDetailRenderingFromStored', () {
     test('round-trips every rendering via .name', () {
       for (final rendering in DanceDetailRendering.values) {
         expect(danceDetailRenderingFromStored(rendering.name), rendering);
       }
+    });
+
+    group('canonical figure text gate initialization', () {
+      test(
+        'initializes absent gate and resets a legacy canonical child',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set(
+            kDefaultDanceDetailRenderingKey,
+            DanceDetailRendering.canonical.name,
+          );
+
+          await initializeCanonicalFigureTextGate(repos.settings);
+
+          expect(await repos.settings.get(kCanonicalFigureTextKey), isFalse);
+          expect(
+            await repos.settings.get(kDefaultDanceDetailRenderingKey),
+            DanceDetailRendering.activeDialect.name,
+          );
+        },
+      );
+
+      test('does not reset the child when the gate is already false', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kCanonicalFigureTextKey, false);
+        await repos.settings.set(
+          kDefaultDanceDetailRenderingKey,
+          DanceDetailRendering.canonical.name,
+        );
+
+        await initializeCanonicalFigureTextGate(repos.settings);
+
+        expect(
+          await repos.settings.get(kDefaultDanceDetailRenderingKey),
+          DanceDetailRendering.canonical.name,
+        );
+      });
+
+      test('preserves canonical child when the gate is enabled', () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kCanonicalFigureTextKey, true);
+        await repos.settings.set(
+          kDefaultDanceDetailRenderingKey,
+          DanceDetailRendering.canonical.name,
+        );
+
+        await initializeCanonicalFigureTextGate(repos.settings);
+
+        expect(
+          await repos.settings.get(kDefaultDanceDetailRenderingKey),
+          DanceDetailRendering.canonical.name,
+        );
+      });
+
+      test(
+        'malformed present gate is not treated as first initialization',
+        () async {
+          final repos = openTestRepositories();
+          await repos.settings.set(kCanonicalFigureTextKey, 'invalid');
+          await repos.settings.set(
+            kDefaultDanceDetailRenderingKey,
+            DanceDetailRendering.canonical.name,
+          );
+
+          await initializeCanonicalFigureTextGate(repos.settings);
+
+          expect(await repos.settings.get(kCanonicalFigureTextKey), 'invalid');
+          expect(
+            await repos.settings.get(kDefaultDanceDetailRenderingKey),
+            DanceDetailRendering.canonical.name,
+          );
+        },
+      );
     });
 
     test(

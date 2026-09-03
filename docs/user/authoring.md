@@ -58,8 +58,8 @@ Enter. Press Escape when you are done.
 
 ### Free-text entry
 
-Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Defaults** ▸
-**Dance-authoring defaults** and the same box accepts a whole line at a time
+Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Dialect** ▸
+**Dance details & shorthands** and the same box accepts a whole line at a time
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. The app tells you how many figures it added and invites you to
@@ -71,8 +71,8 @@ dropped.
 ### Figure shorthands
 
 If you type the same run of figures over and over, teach it to the app once.
-Choose **Figure shorthands** in **Settings** ▸ **Defaults** ▸ **Dance-authoring
-defaults**, then **New shorthand**:
+Choose **Figure shorthands** in **Settings** ▸ **Dialect** ▸ **Dance details &
+shorthands**, then **New shorthand**:
 
 - **Shorthand** is the exact line you will type during free-text entry. It is
   matched without regard to capitals, so `NBS` and `nbs` are the same shorthand.
@@ -196,9 +196,9 @@ Two things follow from that:
   **Update your saved snippet?** — choose **Use everywhere** to update the default,
   or **Just this dance** to keep the change local.
 
-Your whole library of snippets lives at **Settings** ▸ **Defaults** ▸
-**Walkthrough snippets**, where you can review and edit them. Editing one there
-updates the default used everywhere.
+Your whole library of snippets lives at **Settings** ▸ **Dialect** ▸ **Dance
+details & shorthands** ▸ **Walkthrough snippets**, where you can review and edit
+them. Editing one there updates the default used everywhere.
 
 ### More details
 

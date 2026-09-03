@@ -8,7 +8,6 @@ import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
-import '../../data/walkthrough_snippet_library_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
@@ -21,8 +20,6 @@ import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
 import '../../widgets/section_header.dart';
-import '../shorthand_mappings_screen.dart';
-import '../walkthrough_snippets_screen.dart';
 import 'settings_keys.dart';
 
 /// The Defaults settings section: owns all Display/Program/Dance-authoring
@@ -46,15 +43,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// `null` = not yet loaded, shown as `title` until the read resolves.
   SortDefaultSetting<ProgramSort>? _defaultProgramSort;
 
-  /// Default dance-detail rendering (ROADMAP G.6b). `null` = not yet loaded;
-  /// the view shows active-dialect (today's default) until the read resolves.
-  DanceDetailRendering? _defaultDanceDetailRendering;
   bool _defaultsRequested = false;
   // Separate per-setting guards: a user changing one default before its read
   // resolves must not suppress seeding the *other* default from storage.
   bool _defaultSortUserSet = false;
   bool _defaultProgramSortUserSet = false;
-  bool _defaultRenderingUserSet = false;
 
   /// Default caller/band for new programs (ROADMAP G.3). Free text seeded once
   /// from storage into these controllers; a late read must not clobber text the
@@ -103,10 +96,9 @@ class _DefaultsSectionState extends State<DefaultsSection> {
 
   /// The opt-in "Free-text entry" dance-authoring toggle (issue #419). Defaults
   /// to `false` (off) until the read resolves and on any read failure, so the
-  /// feature is strictly opt-in. A late storage read must not clobber a toggle
-  /// the user flipped first, hence its own user-set guard.
+  /// feature is strictly opt-in. This value is used only by the starting-figures
+  /// editor, which remains in Defaults.
   bool _freeTextEntry = false;
-  bool _freeTextEntryUserSet = false;
 
   /// Lazily loads the persisted Display defaults the first time the Defaults
   /// section is built. Mirrors [_ensureAutoSizeLoaded]: a late read must not
@@ -157,25 +149,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
             () => _defaultProgramSort = const SortDefaultSetting.concrete(
               ProgramSort.title,
             ),
-          );
-        });
-    repos.settings
-        .get(kDefaultDanceDetailRenderingKey)
-        .then((stored) {
-          if (!mounted || _defaultRenderingUserSet) return;
-          setState(() {
-            _defaultDanceDetailRendering = danceDetailRenderingFromStored(
-              stored,
-            );
-          });
-        })
-        .catchError((_) {
-          // diagnostics: silent — default-rendering read failed; falls back
-          // to the active-dialect default.
-          if (!mounted || _defaultRenderingUserSet) return;
-          setState(
-            () => _defaultDanceDetailRendering =
-                DanceDetailRendering.activeDialect,
           );
         });
     repos.settings
@@ -295,13 +268,13 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     repos.settings
         .get(kFreeTextEntryKey)
         .then((stored) {
-          if (!mounted || _freeTextEntryUserSet) return;
+          if (!mounted) return;
           setState(() => _freeTextEntry = stored is bool ? stored : false);
         })
         .catchError((_) {
           // diagnostics: silent — free-text-entry read failed; falls back to
           // the built-in off default.
-          if (!mounted || _freeTextEntryUserSet) return;
+          if (!mounted) return;
           setState(() => _freeTextEntry = false);
         });
   }
@@ -351,17 +324,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     _defaultDancePhraseUserSet = true;
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kDefaultDancePhraseStructureKey, value.trim());
-  }
-
-  /// Persists the "Free-text entry" toggle (#419). Marks it user-set so a late
-  /// storage read can't clobber the flip.
-  Future<void> _onFreeTextEntryChanged(bool value) async {
-    setState(() {
-      _freeTextEntryUserSet = true;
-      _freeTextEntry = value;
-    });
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kFreeTextEntryKey, value);
   }
 
   /// Persists the current starting-figures template as a `figures_json` string
@@ -473,17 +435,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     );
   }
 
-  Future<void> _onDefaultDanceDetailRenderingChanged(
-    DanceDetailRendering value,
-  ) async {
-    setState(() {
-      _defaultRenderingUserSet = true;
-      _defaultDanceDetailRendering = value;
-    });
-    final repos = RepositoriesScope.of(context);
-    await repos.settings.set(kDefaultDanceDetailRenderingKey, value.name);
-  }
-
   @override
   Widget build(BuildContext context) {
     _ensureDefaultsLoaded(context);
@@ -500,10 +451,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           _defaultProgramSort ??
           const SortDefaultSetting.concrete(ProgramSort.title),
       onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
-      defaultDanceDetailRendering:
-          _defaultDanceDetailRendering ?? DanceDetailRendering.activeDialect,
-      onDefaultDanceDetailRenderingChanged:
-          _onDefaultDanceDetailRenderingChanged,
       defaultDanceForm: _defaultDanceForm ?? DanceForm.contra,
       onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
       defaultDanceFormationShape:
@@ -514,7 +461,6 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       dancePhraseController: _defaultDancePhrase,
       onDefaultDancePhraseChanged: _onDefaultDancePhraseChanged,
       freeTextEntry: _freeTextEntry,
-      onFreeTextEntryChanged: _onFreeTextEntryChanged,
       danceFigureTemplateDrafts: _defaultDanceFigureDrafts,
       onDanceFigureTemplateChanged: () {
         setState(() {});
@@ -577,8 +523,6 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultCollectionSortChanged,
     required this.defaultProgramSort,
     required this.onDefaultProgramSortChanged,
-    required this.defaultDanceDetailRendering,
-    required this.onDefaultDanceDetailRenderingChanged,
     required this.defaultDanceForm,
     required this.onDefaultDanceFormChanged,
     required this.defaultDanceFormationShape,
@@ -588,7 +532,6 @@ class _DefaultsView extends StatelessWidget {
     required this.dancePhraseController,
     required this.onDefaultDancePhraseChanged,
     required this.freeTextEntry,
-    required this.onFreeTextEntryChanged,
     required this.danceFigureTemplateDrafts,
     required this.onDanceFigureTemplateChanged,
     required this.onDanceFigureTemplateAdd,
@@ -613,8 +556,6 @@ class _DefaultsView extends StatelessWidget {
   final SortDefaultSetting<ProgramSort> defaultProgramSort;
   final ValueChanged<SortDefaultSetting<ProgramSort>>
   onDefaultProgramSortChanged;
-  final DanceDetailRendering defaultDanceDetailRendering;
-  final ValueChanged<DanceDetailRendering> onDefaultDanceDetailRenderingChanged;
   final DanceForm defaultDanceForm;
   final ValueChanged<DanceForm> onDefaultDanceFormChanged;
   final FormationShape defaultDanceFormationShape;
@@ -629,7 +570,6 @@ class _DefaultsView extends StatelessWidget {
   /// governs the Settings starting-figures editor, keeping the toggle's effect
   /// consistent with the dance editor it sits above.
   final bool freeTextEntry;
-  final ValueChanged<bool> onFreeTextEntryChanged;
 
   /// The live draft list backing the starting-figures template editor (ROADMAP
   /// DD.2), plus callbacks mirroring the dance editor's [FigureListEditor]
@@ -768,18 +708,6 @@ class _DefaultsView extends StatelessWidget {
             ],
           ),
         ),
-        SwitchListTile(
-          key: const ValueKey('defaults-dance-detail-canonical'),
-          value: defaultDanceDetailRendering == DanceDetailRendering.canonical,
-          onChanged: (value) => onDefaultDanceDetailRenderingChanged(
-            value
-                ? DanceDetailRendering.canonical
-                : DanceDetailRendering.activeDialect,
-          ),
-          title: Text(l10n.settingsDefaultsCanonicalTitle),
-          subtitle: Text(l10n.settingsDefaultsCanonicalSubtitle),
-          isThreeLine: true,
-        ),
         SectionHeader(title: l10n.settingsDefaultsCollectionCardHeader),
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -886,38 +814,6 @@ class _DefaultsView extends StatelessWidget {
           },
         ),
         SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
-        SwitchListTile(
-          key: const ValueKey('defaults-free-text-entry'),
-          value: freeTextEntry,
-          onChanged: onFreeTextEntryChanged,
-          title: Text(l10n.settingsDefaultsFreeTextEntryTitle),
-          subtitle: Text(l10n.settingsDefaultsFreeTextEntrySubtitle),
-        ),
-        Builder(
-          builder: (context) {
-            final controller = ShorthandMappingsScope.maybeOf(context);
-            if (controller == null) return const SizedBox.shrink();
-            final count = controller.mappings.length;
-            return ListTile(
-              key: const ValueKey('defaults-figure-shorthands'),
-              enabled: freeTextEntry,
-              title: Text(l10n.settingsDefaultsFigureShorthandsTitle),
-              subtitle: Text(
-                count == 0
-                    ? l10n.settingsDefaultsFigureShorthandsEmptySubtitle
-                    : l10n.settingsDefaultsFigureShorthandsCountSubtitle(count),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: freeTextEntry
-                  ? () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ShorthandMappingsScreen(),
-                      ),
-                    )
-                  : null,
-            );
-          },
-        ),
         ListTile(
           title: Text(l10n.settingsDefaultsFormTitle),
           subtitle: Text(l10n.settingsDefaultsFormSubtitle),
@@ -1079,28 +975,6 @@ class _DefaultsView extends StatelessWidget {
                 l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
               ),
               isThreeLine: true,
-            );
-          },
-        ),
-        Builder(
-          builder: (context) {
-            final controller = WalkthroughSnippetLibraryScope.maybeOf(context);
-            if (controller == null) return const SizedBox.shrink();
-            final count = controller.library.length;
-            return ListTile(
-              key: const ValueKey('defaults-walkthrough-snippets'),
-              title: Text(l10n.settingsWalkthroughSnippetsTitle),
-              subtitle: Text(
-                count == 0
-                    ? l10n.settingsWalkthroughSnippetsSubtitle
-                    : l10n.settingsWalkthroughSnippetsCount(count),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const WalkthroughSnippetsScreen(),
-                ),
-              ),
             );
           },
         ),

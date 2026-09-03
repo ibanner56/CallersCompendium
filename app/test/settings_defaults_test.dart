@@ -121,14 +121,15 @@ void main() {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
 
-    // Both Display-defaults controls render.
+    // Display defaults retains collection sorting; dance-detail rendering
+    // belongs to Dialect's dance-details subsection.
     expect(
       find.byKey(const ValueKey('defaults-collection-sort')),
       findsOneWidget,
     );
     expect(
       find.byKey(const ValueKey('defaults-dance-detail-canonical')),
-      findsOneWidget,
+      findsNothing,
     );
   });
 
@@ -147,12 +148,8 @@ void main() {
       const SortDefaultSetting.concrete(CollectionSort.title),
     );
     expect(
-      tester
-          .widget<SwitchListTile>(
-            find.byKey(const ValueKey('defaults-dance-detail-canonical')),
-          )
-          .value,
-      isFalse,
+      find.byKey(const ValueKey('defaults-dance-detail-canonical')),
+      findsNothing,
     );
   });
 
@@ -177,29 +174,6 @@ void main() {
     expect(
       await repos.settings.get(kDefaultCollectionSortKey),
       CollectionSort.author.name,
-    );
-  });
-
-  testWidgets('toggling canonical default persists it', (tester) async {
-    final repos = openTestRepositories();
-    await _pumpDefaults(tester, repos);
-
-    await tester.tap(
-      find.byKey(const ValueKey('defaults-dance-detail-canonical')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      tester
-          .widget<SwitchListTile>(
-            find.byKey(const ValueKey('defaults-dance-detail-canonical')),
-          )
-          .value,
-      isTrue,
-    );
-    expect(
-      await repos.settings.get(kDefaultDanceDetailRenderingKey),
-      DanceDetailRendering.canonical.name,
     );
   });
 
@@ -230,11 +204,6 @@ void main() {
       kDefaultCollectionSortKey,
       CollectionSort.author.name,
     );
-    await repos.settings.set(
-      kDefaultDanceDetailRenderingKey,
-      DanceDetailRendering.canonical.name,
-    );
-
     await _pumpDefaults(tester, repos);
 
     expect(
@@ -246,12 +215,8 @@ void main() {
       const SortDefaultSetting.concrete(CollectionSort.author),
     );
     expect(
-      tester
-          .widget<SwitchListTile>(
-            find.byKey(const ValueKey('defaults-dance-detail-canonical')),
-          )
-          .value,
-      isTrue,
+      find.byKey(const ValueKey('defaults-dance-detail-canonical')),
+      findsNothing,
     );
   });
 
@@ -883,51 +848,7 @@ void main() {
     });
   });
 
-  group('Free-text entry toggle (#419)', () {
-    const toggleKey = ValueKey('defaults-free-text-entry');
-
-    testWidgets('renders in the Dance-authoring section, off by default', (
-      tester,
-    ) async {
-      final repos = openTestRepositories();
-      await _pumpDefaults(tester, repos);
-      await _scrollTo(tester, toggleKey);
-
-      expect(find.text('Free-text entry'), findsOneWidget);
-      expect(
-        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
-        isFalse,
-      );
-    });
-
-    testWidgets('toggling it on persists the preference', (tester) async {
-      final repos = openTestRepositories();
-      await _pumpDefaults(tester, repos);
-      await _scrollTo(tester, toggleKey);
-
-      await tester.tap(find.byKey(toggleKey));
-      await tester.pumpAndSettle();
-
-      expect(
-        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
-        isTrue,
-      );
-      expect(await repos.settings.get(kFreeTextEntryKey), isTrue);
-    });
-
-    testWidgets('a saved preference reflects on reload', (tester) async {
-      final repos = openTestRepositories();
-      await repos.settings.set(kFreeTextEntryKey, true);
-
-      await _pumpDefaults(tester, repos);
-      await _scrollTo(tester, toggleKey);
-
-      expect(
-        tester.widget<SwitchListTile>(find.byKey(toggleKey)).value,
-        isTrue,
-      );
-    });
-
+  group('Starting figures free-text entry (#419)', () {
     testWidgets('when on, the template editor Add opens a free-text field', (
       tester,
     ) async {
@@ -981,8 +902,6 @@ void main() {
       await tester.pumpAndSettle();
 
       const orderedKeys = [
-        ValueKey('defaults-free-text-entry'),
-        ValueKey('defaults-figure-shorthands'),
         ValueKey('defaults-dance-form'),
         ValueKey('defaults-dance-formation'),
         ValueKey('defaults-dance-progression'),
@@ -990,7 +909,6 @@ void main() {
         ValueKey('figure-add'), // Starting figures editor
         ValueKey('move-defaults-add'), // Move defaults editor
         ValueKey('defaults-aggressive-beats-update'),
-        ValueKey('defaults-walkthrough-snippets'),
       ];
 
       final tops = [

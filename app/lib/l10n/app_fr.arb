@@ -476,6 +476,18 @@
   "@settingsDialectHeader": {
     "x-sourceSha256": "f4792f7b616d4e24f07af28d2deea083621ce6a8e78fb83716e64c65078bc8d6"
   },
+  "settingsDialectDanceDetailsHeader": "Détails de la danse et abréviations",
+  "@settingsDialectDanceDetailsHeader": {
+    "x-sourceSha256": "e57fecfc79262b31fc400248ab3c80ea51fc859e4314166c868c38db46d472e0"
+  },
+  "settingsDialectCanonicalFigureTextTitle": "Texte canonique des figures",
+  "@settingsDialectCanonicalFigureTextTitle": {
+    "x-sourceSha256": "b3c23962a9d5684ec623599a54e279ce77dc36bb157f96f1e19b2e19938f34e1"
+  },
+  "settingsDialectCanonicalFigureTextSubtitle": "Lorsqu’elle est activée, cette option permet aux détails de la danse d’afficher les noms canoniques des rôles et des figures, et le sélecteur Canonique est disponible pour les dialectes non canoniques. Désactivée par défaut.",
+  "@settingsDialectCanonicalFigureTextSubtitle": {
+    "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
+  },
   "settingsDialectNewButton": "Nouveau dialecte",
   "@settingsDialectNewButton": {
     "x-sourceSha256": "185d728af8efa1495bb12ca9389e9904eebb024c700b94df58a74e02b9ed1d6e"
@@ -656,9 +668,9 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Activé : une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt que votre dialecte actif. Vous pouvez toujours changer de vue pendant que la danse est ouverte.",
+  "settingsDefaultsCanonicalSubtitle": "Lorsque le texte canonique des figures est activé, une danse s’ouvre avec les noms de rôles et de mouvements canoniques plutôt qu’avec votre dialecte actif. Lorsqu’il est désactivé, les détails s’ouvrent dans votre dialecte actif et ce réglage est conservé.",
   "@settingsDefaultsCanonicalSubtitle": {
-    "x-sourceSha256": "fe95b6d2b485134a9500ac36c5d39b84f899d3838d0f83d31e0f93c2e00b8e49"
+    "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },
   "settingsDefaultsCollectionCardHeader": "Champs de la carte de collection",
   "@settingsDefaultsCollectionCardHeader": {

@@ -439,6 +439,17 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDialectHeader => 'Dialekte';
 
   @override
+  String get settingsDialectDanceDetailsHeader => 'Tanzdetails und Kurzformen';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle =>
+      'Kanonischer Figurentext';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'Wenn aktiviert, können Tanzdetails kanonische Rollen- und Bewegungsnamen anzeigen, und der Schalter „Kanonisch“ ist bei nichtkanonischen Dialekten verfügbar. Standardmäßig aus.';
+
+  @override
   String get settingsDialectNewButton => 'Neuer Dialekt';
 
   @override
@@ -595,7 +606,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Wenn aktiviert, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Sie können die Ansicht noch wechseln, während der Tanz geöffnet ist.';
+      'Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in Ihrem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.';
 
   @override
   String get settingsDefaultsCollectionCardHeader =>

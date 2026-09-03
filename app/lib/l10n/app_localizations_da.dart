@@ -437,6 +437,17 @@ class AppLocalizationsDa extends AppLocalizations {
   String get settingsDialectHeader => 'Dialekter';
 
   @override
+  String get settingsDialectDanceDetailsHeader =>
+      'Dansedetaljer og forkortelser';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => 'Kanonisk figurtekst';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.';
+
+  @override
   String get settingsDialectNewButton => 'Ny dialekt';
 
   @override
@@ -590,7 +601,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Når aktiveret åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Du kan stadig skifte visning, mens dansen er åben.';
+      'Når Kanonisk figurtekst er aktiveret, åbner en dans med kanoniske rolle- og bevægelsesnavne i stedet for din aktive dialekt. Når den er deaktiveret, åbnes detaljer i din aktive dialekt, og denne indstilling bevares.';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'Felter på samlingskort';

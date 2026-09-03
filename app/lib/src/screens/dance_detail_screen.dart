@@ -219,6 +219,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// Seeded from the saved default dance-detail rendering (ROADMAP G.6b) on
   /// first load; the in-view toggle overrides it for this session.
   bool _canonicalView = false;
+  bool _canonicalFigureTextEnabled = false;
 
   /// Whether the user has flipped the in-view canonical⇄dialect toggle this
   /// session. Guards the saved-default seed against clobbering a user change
@@ -285,8 +286,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     _subscribe();
   }
 
-  /// Reads the saved default dance-detail rendering (ROADMAP G.6b) once per
-  /// mount and seeds [_canonicalView] from it.
+  /// Reads the canonical-text gate and saved default dance-detail rendering
+  /// (ROADMAP G.6b) once per mount and seeds [_canonicalView] from them.
   ///
   /// **One-shot, and outside the stream.** This is a preference, not part of
   /// the record: it decides the initial state of a control the user can then
@@ -309,13 +310,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _seedCanonicalDefault() async {
     if (_canonicalUserSet) return;
     try {
+      await initializeCanonicalFigureTextGate(_repos.settings);
+      final storedGate = await _repos.settings.get(kCanonicalFigureTextKey);
       final storedRendering = await _repos.settings.get(
         kDefaultDanceDetailRenderingKey,
       );
       if (!_canonicalUserSet) {
+        _canonicalFigureTextEnabled = storedGate is bool && storedGate;
         _canonicalView =
+            _canonicalFigureTextEnabled &&
             danceDetailRenderingFromStored(storedRendering) ==
-            DanceDetailRendering.canonical;
+                DanceDetailRendering.canonical;
       }
     } catch (_) {
       // diagnostics: silent — rendering preference read failed; keeps historical default (active dialect).
@@ -1050,7 +1055,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // When the active dialect is already canonical, _canonicalView is a no-op
     // (both sides of the toggle are identical).  In that case hide the toggle.
     final isCanonicalDialect = activeDialect == Dialect.canonical;
-    final dialect = _canonicalView ? Dialect.canonical : activeDialect;
+    final dialect = _canonicalFigureTextEnabled && _canonicalView
+        ? Dialect.canonical
+        : activeDialect;
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -1173,7 +1180,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           children: [
             Text(l10n.danceSectionFigures, style: theme.textTheme.titleMedium),
             const Spacer(),
-            if (!isCanonicalDialect)
+            if (_canonicalFigureTextEnabled && !isCanonicalDialect)
               _DialectToggle(
                 canonical: _canonicalView,
                 onChanged: (value) => setState(() {

@@ -427,6 +427,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get settingsDialectHeader => 'ダイアレクト';
 
   @override
+  String get settingsDialectDanceDetailsHeader => 'ダンスの詳細と略称';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => '標準フィガー表記';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'オンにすると、ダンスの詳細に標準的な役割名と動きの名前を表示でき、標準以外のダイアレクトでは「標準」スイッチを使用できます。デフォルトではオフです。';
+
+  @override
   String get settingsDialectNewButton => '新しいダイアレクト';
 
   @override
@@ -576,7 +586,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'オンにすると、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが表示されます。ダンスを開いている間もビューを切り替えられます。';
+      '「標準フィガー表記」がオンの場合、アクティブなダイアレクトではなく正式なロール名とムーブ名でダンスが開きます。オフの場合、詳細はアクティブなダイアレクトで開き、この設定は保持されます。';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'コレクションカードの項目';

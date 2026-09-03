@@ -63,6 +63,7 @@ Future<ValueNotifier<bool>> _pumpDetail(
   CompendiumRepositories repos,
   String danceId, {
   Dialect? activeDialect,
+  bool? canonicalFigureText = true,
   bool requirePerformedForHistory = false,
   Size surfaceSize = const Size(1200, 2400),
   DialectLibraryController? dialectLibrary,
@@ -70,6 +71,9 @@ Future<ValueNotifier<bool>> _pumpDetail(
   bool readOnly = false,
   Future<void> Function(DanceDetailData detail)? onReimport,
 }) async {
+  if (canonicalFigureText != null) {
+    await repos.settings.set(kCanonicalFigureTextKey, canonicalFigureText);
+  }
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final notifier = ValueNotifier<Dialect>(activeDialect ?? Dialect.larksRobins);
@@ -660,7 +664,7 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
 
     // No toggle interaction: the detail opens showing canonical tokens
     // instead of the active Larks/Robins dialect.
@@ -690,7 +694,7 @@ void main() {
     );
     final handle = tester.ensureSemantics();
 
-    await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
 
     // Sighted users still see the terse, glyph-bearing display text.
     expect(find.text('neighbor allemande left 1½'), findsOneWidget);
@@ -712,7 +716,7 @@ void main() {
     final repos = openTestRepositories();
     await repos.dances.create(_dance(id: 'd1', status: DanceStatus.broken));
 
-    await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
 
     expect(find.text('Broken'), findsOneWidget);
   });
@@ -1027,7 +1031,13 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.larksRobins);
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      activeDialect: Dialect.larksRobins,
+      canonicalFigureText: true,
+    );
 
     // Active dialect = Larks/Robins: role2s → robins.
     expect(find.text('robins chain'), findsOneWidget);
@@ -1061,6 +1071,7 @@ void main() {
         name: 'Gents/Ladies',
         roles: const {'role1': RoleTerm('Gent'), 'role2': RoleTerm('Lady')},
       ),
+      canonicalFigureText: true,
     );
 
     // role2s → Ladies in Gents/Ladies dialect.
@@ -1082,12 +1093,91 @@ void main() {
       ),
     );
 
-    await _pumpDetail(tester, repos, 'd1', activeDialect: Dialect.canonical);
+    await _pumpDetail(
+      tester,
+      repos,
+      'd1',
+      activeDialect: Dialect.canonical,
+      canonicalFigureText: true,
+    );
 
     // Toggle is hidden when active dialect is already canonical.
     expect(find.byKey(const ValueKey('dialect-toggle')), findsNothing);
     // Canonical role tokens shown.
     expect(find.text('role2s chain'), findsOneWidget);
+  });
+
+  testWidgets('canonical figure text gate off opens in the active dialect', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: false);
+
+    expect(find.text('robins chain'), findsOneWidget);
+    expect(find.text('role2s chain'), findsNothing);
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsNothing);
+  });
+
+  testWidgets('opening a detail migrates the legacy canonical default', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(
+      kDefaultDanceDetailRenderingKey,
+      DanceDetailRendering.canonical.name,
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: null);
+
+    expect(await repos.settings.get(kCanonicalFigureTextKey), isFalse);
+    expect(
+      await repos.settings.get(kDefaultDanceDetailRenderingKey),
+      DanceDetailRendering.activeDialect.name,
+    );
+    expect(find.text('robins chain'), findsOneWidget);
+    expect(find.text('role2s chain'), findsNothing);
+  });
+
+  testWidgets('changing the gate does not update an already-open detail', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        figures: [
+          Figure(move: 'chain', params: {'who': 'role2s', 'beats': 16}),
+        ],
+      ),
+    );
+    await repos.settings.set(kDefaultDanceDetailRenderingKey, 'canonical');
+
+    await _pumpDetail(tester, repos, 'd1', canonicalFigureText: true);
+    expect(find.text('role2s chain'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
+
+    await repos.settings.set(kCanonicalFigureTextKey, false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('role2s chain'), findsOneWidget);
+    expect(find.byKey(const ValueKey('dialect-toggle')), findsOneWidget);
   });
 
   // ── relatedDance links ─────────────────────────────────────────────────────

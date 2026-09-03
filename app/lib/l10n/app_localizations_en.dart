@@ -434,6 +434,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDialectHeader => 'Dialects';
 
   @override
+  String get settingsDialectDanceDetailsHeader => 'Dance details & shorthands';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => 'Canonical figure text';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.';
+
+  @override
   String get settingsDialectNewButton => 'New dialect';
 
   @override
@@ -586,7 +596,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.';
+      'When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.';
 
   @override
   String get settingsDefaultsCollectionCardHeader => 'Collection card fields';

@@ -476,6 +476,18 @@
   "@settingsDialectHeader": {
     "x-sourceSha256": "f4792f7b616d4e24f07af28d2deea083621ce6a8e78fb83716e64c65078bc8d6"
   },
+  "settingsDialectDanceDetailsHeader": "Tanzdetails und Kurzformen",
+  "@settingsDialectDanceDetailsHeader": {
+    "x-sourceSha256": "e57fecfc79262b31fc400248ab3c80ea51fc859e4314166c868c38db46d472e0"
+  },
+  "settingsDialectCanonicalFigureTextTitle": "Kanonischer Figurentext",
+  "@settingsDialectCanonicalFigureTextTitle": {
+    "x-sourceSha256": "b3c23962a9d5684ec623599a54e279ce77dc36bb157f96f1e19b2e19938f34e1"
+  },
+  "settingsDialectCanonicalFigureTextSubtitle": "Wenn aktiviert, können Tanzdetails kanonische Rollen- und Bewegungsnamen anzeigen, und der Schalter „Kanonisch“ ist bei nichtkanonischen Dialekten verfügbar. Standardmäßig aus.",
+  "@settingsDialectCanonicalFigureTextSubtitle": {
+    "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
+  },
   "settingsDialectNewButton": "Neuer Dialekt",
   "@settingsDialectNewButton": {
     "x-sourceSha256": "185d728af8efa1495bb12ca9389e9904eebb024c700b94df58a74e02b9ed1d6e"
@@ -656,9 +668,9 @@
   "@settingsDefaultsCanonicalTitle": {
     "x-sourceSha256": "befaeb6d65d4ce394b461aa5bb7f03f2090f47c63c139de5874d0180529e0886"
   },
-  "settingsDefaultsCanonicalSubtitle": "Wenn aktiviert, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Sie können die Ansicht noch wechseln, während der Tanz geöffnet ist.",
+  "settingsDefaultsCanonicalSubtitle": "Wenn Kanonischer Figurentext aktiviert ist, wird ein Tanz mit kanonischen Rollen- und Bewegungsnamen statt Ihrem aktiven Dialekt geöffnet. Wenn es deaktiviert ist, werden Details in Ihrem aktiven Dialekt geöffnet und diese Einstellung bleibt erhalten.",
   "@settingsDefaultsCanonicalSubtitle": {
-    "x-sourceSha256": "fe95b6d2b485134a9500ac36c5d39b84f899d3838d0f83d31e0f93c2e00b8e49"
+    "x-sourceSha256": "9cb58d4d250e5cdbed4498e9ce089565a361d376f60a50e4c943fb6dad7fb30a"
   },
   "settingsDefaultsCollectionCardHeader": "Felder der Sammlungskarte",
   "@settingsDefaultsCollectionCardHeader": {

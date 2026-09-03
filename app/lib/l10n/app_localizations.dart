@@ -824,6 +824,24 @@ abstract class AppLocalizations {
   /// **'Dialects'**
   String get settingsDialectHeader;
 
+  /// Settings subsection header for canonical dance-detail text and figure-entry preferences.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance details & shorthands'**
+  String get settingsDialectDanceDetailsHeader;
+
+  /// Opt-in gate controlling whether canonical figure text and the in-detail Canonical switch are available.
+  ///
+  /// In en, this message translates to:
+  /// **'Canonical figure text'**
+  String get settingsDialectCanonicalFigureTextTitle;
+
+  /// Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.'**
+  String get settingsDialectCanonicalFigureTextSubtitle;
+
   /// Label of the button (and title of the prompt) that creates a new custom dialect.
   ///
   /// In en, this message translates to:
@@ -1097,7 +1115,7 @@ abstract class AppLocalizations {
   /// Explanation for the canonical-terms default toggle.
   ///
   /// In en, this message translates to:
-  /// **'When on, a dance opens showing canonical role and move names instead of your active dialect. You can still switch views on the dance while it is open.'**
+  /// **'When Canonical figure text is on, a dance opens showing canonical role and move names instead of your active dialect. When it is off, details open in your active dialect and this preference is retained.'**
   String get settingsDefaultsCanonicalSubtitle;
 
   /// Section header for the collection-card field-visibility preference (#767).

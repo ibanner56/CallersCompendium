@@ -73,6 +73,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'decimal_turns': _preference,
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
+  'canonical_figure_text': _preference,
 
   // -- Regional -------------------------------------------------------------
   'app_locale': _preference,

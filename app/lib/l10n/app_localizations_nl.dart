@@ -434,6 +434,16 @@ class AppLocalizationsNl extends AppLocalizations {
   String get settingsDialectHeader => 'Dialecten';
 
   @override
+  String get settingsDialectDanceDetailsHeader => 'Dansdetails en afkortingen';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => 'Canonieke figuurtekst';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'Als dit is ingeschakeld, kunnen dansdetails canonieke rol- en bewegingsnamen tonen en is de schakelaar Canoniek beschikbaar voor niet-canonieke dialecten. Standaard uit.';
+
+  @override
   String get settingsDialectNewButton => 'Nieuw dialect';
 
   @override
@@ -588,7 +598,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDefaultsCanonicalSubtitle =>
-      'Als ingeschakeld, opent een dans met canonieke rol- en bewegingsnamen in plaats van je actieve dialect. Je kunt nog steeds van weergave wisselen terwijl de dans open is.';
+      'Als Canonieke figuurtekst is ingeschakeld, opent een dans met canonieke rol- en bewegingsnamen in plaats van je actieve dialect. Als het is uitgeschakeld, worden details in je actieve dialect geopend en blijft deze voorkeur behouden.';
 
   @override
   String get settingsDefaultsCollectionCardHeader =>

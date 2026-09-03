@@ -39,6 +39,9 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 - **JSON export delivery choices** — choose to save, copy the raw JSON, share
   through the OS, or cancel when exporting a dance or program as JSON.
+- **Dialect dance-detail settings** — manage canonical figure text availability,
+  dance-detail opening terms, free-text entry, figure shorthands, and walkthrough
+  snippets together under Dialect. Canonical figure text is off by default.
 
 - **Dance choreography re-import** — refresh figures, formation, and progression
   from every saved dance detail view, including read-only Program Editor previews,
