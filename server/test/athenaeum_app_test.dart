@@ -173,6 +173,27 @@ void main() {
       expect(rejectedFetch.statusCode, 404);
       await rejectedFetch.drain<void>();
 
+      final invalidEntityId = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'kind': 'choreographer',
+            'id': 7,
+            'body': {'email': 'invalid-id-private@example.com'},
+          }),
+        ),
+      );
+      final invalidEntityIdHash = sha256.convert(invalidEntityId).toString();
+      final invalidEntityIdResponse = await _send(
+        'PUT',
+        '/v1/blobs/$invalidEntityIdHash',
+        syncId: syncId,
+        body: invalidEntityId,
+        contentType: 'application/octet-stream',
+      );
+      expect(invalidEntityIdResponse.statusCode, 422);
+      await invalidEntityIdResponse.drain<void>();
+
       final futureShareable = _recordBlob(
         version: 99,
         kind: 'choreographer',
@@ -283,6 +304,53 @@ void main() {
       );
       expect(jsonOpaqueGet.statusCode, 200);
       expect(await jsonOpaqueGet.bodyBytes(), equals(jsonOpaque));
+
+      final deepOpaque = Uint8List.fromList(
+        utf8.encode(
+          '{"payload":${'[' * (maxJsonDepth + 1)}0${']' * (maxJsonDepth + 1)}}',
+        ),
+      );
+      final deepOpaqueHash = sha256.convert(deepOpaque).toString();
+      final deepOpaquePut = await _send(
+        'PUT',
+        '/v1/blobs/$deepOpaqueHash',
+        syncId: syncId,
+        body: deepOpaque,
+        contentType: 'application/octet-stream',
+      );
+      expect(deepOpaquePut.statusCode, 201);
+      final deepOpaqueGet = await _send(
+        'GET',
+        '/v1/blobs/$deepOpaqueHash',
+        syncId: syncId,
+      );
+      expect(deepOpaqueGet.statusCode, 200);
+      expect(await deepOpaqueGet.bodyBytes(), equals(deepOpaque));
+
+      final deepRecord = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"choreographer","id":"deep","body":'
+          '{"id":"deep","name":"Deep","nested":'
+          '${'[' * (maxJsonDepth + 1)}0${']' * (maxJsonDepth + 1)}}}',
+        ),
+      );
+      final deepRecordHash = sha256.convert(deepRecord).toString();
+      final deepRecordPut = await _send(
+        'PUT',
+        '/v1/blobs/$deepRecordHash',
+        syncId: syncId,
+        body: deepRecord,
+        contentType: 'application/octet-stream',
+      );
+      expect(deepRecordPut.statusCode, 413);
+      await deepRecordPut.drain<void>();
+      final deepRecordGet = await _send(
+        'GET',
+        '/v1/blobs/$deepRecordHash',
+        syncId: syncId,
+      );
+      expect(deepRecordGet.statusCode, 404);
+      await deepRecordGet.drain<void>();
     },
   );
 

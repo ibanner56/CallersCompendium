@@ -418,6 +418,9 @@ class AthenaeumApp {
   }
 
   static void _validateBlobAllowList(Uint8List body) {
+    if (!_hasBlobEnvelopeShape(body)) return;
+    _validateJsonDepthBytes(body);
+
     Object? decoded;
     try {
       decoded = jsonDecode(utf8.decode(body, allowMalformed: false));
@@ -425,12 +428,11 @@ class AthenaeumApp {
       return;
     }
     if (decoded is! Map) return;
-    if (!decoded.containsKey('v')) return;
 
     final kindValue = decoded['kind'];
     final idValue = decoded['id'];
     final rawBody = decoded['body'];
-    if (kindValue is! String || idValue is! String || rawBody is! Map) {
+    if (kindValue is! String || rawBody is! Map) {
       return;
     }
     final recordBody = <String, Object?>{};
@@ -443,15 +445,91 @@ class AthenaeumApp {
     if (kind == null) {
       throw const _RequestFailure(422, 'blob contains an unknown record kind');
     }
+    final String? settingsKey = idValue is String ? idValue : null;
+    if (kind == SyncRecordKind.setting && settingsKey == null) {
+      throw const _RequestFailure(422, 'blob contains an invalid settings key');
+    }
     final validation = validateShareableRecordBody(
       kind,
       recordBody,
-      settingsKey: kind == SyncRecordKind.setting ? idValue : null,
+      settingsKey: kind == SyncRecordKind.setting ? settingsKey : null,
     );
     if (!validation.isValid) {
       throw const _RequestFailure(422, 'blob contains a non-shareable field');
     }
   }
+
+  static bool _hasBlobEnvelopeShape(Uint8List body) {
+    String source;
+    try {
+      source = utf8.decode(body, allowMalformed: false);
+    } on FormatException {
+      return false;
+    }
+    var first = 0;
+    while (first < source.length &&
+        _isJsonWhitespace(source.codeUnitAt(first))) {
+      first++;
+    }
+    if (first >= source.length || source.codeUnitAt(first) != 0x7b) {
+      return false;
+    }
+
+    final keys = <String>{};
+    var depth = 0;
+    var inString = false;
+    var escaped = false;
+    var stringStart = -1;
+    for (var index = first; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (code == 0x5c) {
+          escaped = true;
+        } else if (code == 0x22) {
+          inString = false;
+          if (depth == 1) {
+            var next = index + 1;
+            while (next < source.length &&
+                _isJsonWhitespace(source.codeUnitAt(next))) {
+              next++;
+            }
+            if (next < source.length && source.codeUnitAt(next) == 0x3a) {
+              try {
+                final key = jsonDecode(
+                  source.substring(stringStart, index + 1),
+                );
+                if (key is String) {
+                  if (key == 'v' ||
+                      key == 'kind' ||
+                      key == 'id' ||
+                      key == 'body') {
+                    keys.add(key);
+                  }
+                }
+              } on FormatException {
+                // The complete JSON decode below handles malformed blobs.
+              }
+            }
+          }
+        }
+        continue;
+      }
+      if (code == 0x22) {
+        inString = true;
+        stringStart = index;
+      } else if (code == 0x7b || code == 0x5b) {
+        depth++;
+      } else if (code == 0x7d || code == 0x5d) {
+        depth--;
+      }
+    }
+    return keys.length == 4;
+  }
+
+  static bool _isJsonWhitespace(int code) =>
+      code == 0x20 || code == 0x09 || code == 0x0a || code == 0x0d;
 
   static SyncRecordKind? _recordKind(String value) {
     for (final kind in SyncRecordKind.values) {
