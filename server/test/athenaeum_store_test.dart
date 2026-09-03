@@ -699,6 +699,64 @@ void main() {
     );
   });
 
+  test('overlapping blob and store deletion jobs charge a file once', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-overlapping-deletion-quota-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 2, maxBytes: 4),
+      deleteDirectory: (_) {
+        throw const FileSystemException('injected directory failure');
+      },
+      deleteFile: (_) {
+        throw const FileSystemException('injected file failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'b' * 64;
+    final created = store.create(idKey);
+    final hash = 'c' * 64;
+    store.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: hash,
+      body: Uint8List.fromList([1, 2, 3]),
+    );
+    database.execute('UPDATE blob_refs SET uploaded_at = ? WHERE id_key = ?', [
+      now.subtract(const Duration(days: 2)).millisecondsSinceEpoch ~/ 1000,
+      idKey,
+    ]);
+    store.collectGarbage(idKey, created.epoch, now: now);
+    store.deleteStore(idKey);
+    final recreated = store.create(idKey);
+
+    final metadata = store.metadata(recreated);
+    expect(metadata.blobs, 1);
+    expect(metadata.bytes, 3);
+    expect(
+      store.putBlob(
+        idKey: idKey,
+        epoch: recreated.epoch,
+        hash: 'd' * 64,
+        body: Uint8List.fromList([4]),
+      ),
+      isTrue,
+    );
+  });
+
   test('request-path deletion retries are bounded', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-retry-bound-',

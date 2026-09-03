@@ -486,6 +486,7 @@ class AthenaeumStore {
     String? excludingHash,
   }) {
     var usage = const _DeletionUsage();
+    final accountedPaths = <String>{};
     final rows = _database.select(
       'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
       [idKey],
@@ -496,7 +497,7 @@ class AthenaeumStore {
       if (epoch == excludingEpoch && hash == excludingHash) continue;
       if (blobRef(idKey, epoch, hash) != null) continue;
       final file = blobFile(idKey, epoch, hash);
-      if (file.existsSync()) {
+      if (file.existsSync() && accountedPaths.add(file.path)) {
         usage = usage.add(bytes: file.lengthSync(), blobs: 1);
       }
     }
@@ -508,7 +509,9 @@ class AthenaeumStore {
       final directory = Directory(
         p.join(blobDirectory.path, idKey, row['epoch'] as String),
       );
-      usage = usage.add(usage: _directoryUsage(directory));
+      usage = usage.add(
+        usage: _directoryUsage(directory, accountedPaths: accountedPaths),
+      );
     }
     return usage;
   }
@@ -812,11 +815,14 @@ class AthenaeumStore {
 
   static void _deleteFileSync(File file) => file.deleteSync();
 
-  _DeletionUsage _directoryUsage(Directory directory) {
+  _DeletionUsage _directoryUsage(
+    Directory directory, {
+    required Set<String> accountedPaths,
+  }) {
     if (!directory.existsSync()) return const _DeletionUsage();
     var usage = const _DeletionUsage();
     for (final entity in directory.listSync(recursive: true)) {
-      if (entity is File) {
+      if (entity is File && accountedPaths.add(entity.path)) {
         usage = usage.add(bytes: entity.lengthSync(), blobs: 1);
       }
     }
