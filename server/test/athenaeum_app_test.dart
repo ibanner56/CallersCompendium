@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -554,6 +555,40 @@ void main() {
         body: oversizedBody(),
       );
       final response = await app.call(request);
+      expect(response.statusCode, 413);
+      expect(yielded, 1);
+    },
+  );
+
+  test(
+    'missing-hash limits cancel input before retaining later chunks',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      var yielded = 0;
+      final firstChunk = utf8.encode(
+        '{"hashes":[${List<int>.filled(maxMissingHashes + 1, 0).join(',')}]',
+      );
+      Stream<List<int>> oversizedHashes() async* {
+        yielded++;
+        yield Uint8List.fromList(firstChunk);
+        yielded++;
+        yield Uint8List.fromList([0x7d]);
+      }
+
+      final response = await app.call(
+        Request(
+          'POST',
+          Uri.parse('http://127.0.0.1/v1/blobs/missing'),
+          headers: {
+            'authorization': 'Bearer ${encodeSyncCredential(syncId)}',
+            'content-type': 'application/json',
+          },
+          body: oversizedHashes(),
+        ),
+      );
       expect(response.statusCode, 413);
       expect(yielded, 1);
     },

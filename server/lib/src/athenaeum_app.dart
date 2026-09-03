@@ -195,8 +195,12 @@ class AthenaeumApp {
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
         return _jsonResponse(413, {'error': 'request body exceeds limit'});
       }
-      final body = await _readBody(request, maxManifestBytes);
-      _validateMissingHashCount(body);
+      final hashScanner = _MissingHashScanner();
+      final body = await _readBody(
+        request,
+        maxManifestBytes,
+        onChunk: hashScanner.add,
+      );
       final decoded = _decodeJson(body);
       if (decoded is! Map || decoded['hashes'] is! List) {
         throw const _RequestFailure(400, 'hashes must be an array');
@@ -322,7 +326,11 @@ class AthenaeumApp {
     }
   }
 
-  static Future<Uint8List> _readBody(Request request, int maxBytes) async {
+  static Future<Uint8List> _readBody(
+    Request request,
+    int maxBytes, {
+    void Function(List<int> chunk)? onChunk,
+  }) async {
     final declaredLength = int.tryParse(
       request.headers['content-length'] ?? '',
     );
@@ -354,11 +362,17 @@ class AthenaeumApp {
           tooLarge = true;
           break;
         } else if (!tooLarge) {
+          onChunk?.call(chunk);
           output.add(chunk);
         }
       }
-    } on FormatException {
-      throw const _RequestFailure(400, 'malformed compressed body');
+    } catch (error, stackTrace) {
+      if (error is FormatException) {
+        await iterator.cancel();
+        throw const _RequestFailure(400, 'malformed compressed body');
+      }
+      await iterator.cancel();
+      Error.throwWithStackTrace(error, stackTrace);
     }
     if (tooLarge) {
       throw const _RequestFailure(413, 'request body exceeds limit');
@@ -410,53 +424,6 @@ class AthenaeumApp {
       throw _RequestFailure(400, error.message);
     } on JsonUnsupportedObjectError {
       throw const _RequestFailure(400, 'invalid JSON');
-    }
-  }
-
-  static void _validateMissingHashCount(Uint8List body) {
-    final text = utf8.decode(body, allowMalformed: false);
-    final key = text.indexOf('"hashes"');
-    if (key == -1) return;
-    final start = text.indexOf('[', key + 8);
-    if (start == -1) return;
-    var depth = 0;
-    var inString = false;
-    var escaped = false;
-    var count = 0;
-    var expectingValue = true;
-    for (var index = start; index < text.length; index++) {
-      final character = text.codeUnitAt(index);
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-        } else if (character == 0x5c) {
-          escaped = true;
-        } else if (character == 0x22) {
-          inString = false;
-        }
-        continue;
-      }
-      if (character == 0x22) {
-        inString = true;
-        if (depth == 1 && expectingValue) {
-          count++;
-          expectingValue = false;
-        }
-      } else if (character == 0x5b) {
-        depth++;
-        if (depth > 1 && expectingValue) expectingValue = false;
-      } else if (character == 0x5d) {
-        if (depth == 1) break;
-        depth--;
-      } else if (character == 0x2c && depth == 1) {
-        expectingValue = true;
-      } else if (depth == 1 && expectingValue && character > 0x20) {
-        count++;
-        expectingValue = false;
-      }
-      if (count > maxMissingHashes) {
-        throw const _RequestFailure(413, 'too many hashes');
-      }
     }
   }
 
@@ -530,6 +497,170 @@ class _Identity {
 
 class _ByteCounter {
   int value = 0;
+}
+
+class _MissingHashScanner {
+  final List<_JsonContext> _contexts = [];
+  var _inString = false;
+  var _escaped = false;
+  var _stringIsKey = false;
+  var _keyAscii = true;
+  var _key = StringBuffer();
+  var _pendingHashesKey = false;
+  var _seenHashesKey = false;
+  var _expectingHashValue = false;
+  var _hashArrayDepth = 0;
+  var _hashArrayExpectingValue = false;
+  var _inPrimitive = false;
+  var _count = 0;
+
+  void add(List<int> bytes) {
+    for (final byte in bytes) {
+      if (_inString) {
+        _consumeStringByte(byte);
+        continue;
+      }
+      if (_inPrimitive) {
+        if (_isDelimiter(byte)) {
+          _inPrimitive = false;
+        } else {
+          continue;
+        }
+      }
+      if (byte <= 0x20) continue;
+      if (byte == 0x22) {
+        _startString();
+      } else if (byte == 0x7b) {
+        _startContainer(object: true);
+      } else if (byte == 0x5b) {
+        _startContainer(object: false);
+      } else if (byte == 0x7d || byte == 0x5d) {
+        _endContainer();
+      } else if (byte == 0x3a) {
+        _consumeColon();
+      } else if (byte == 0x2c) {
+        _consumeComma();
+      } else {
+        _startPrimitive();
+      }
+    }
+  }
+
+  void _consumeStringByte(int byte) {
+    if (_escaped) {
+      _escaped = false;
+      _keyAscii = false;
+      return;
+    }
+    if (byte == 0x5c) {
+      _escaped = true;
+    } else if (byte == 0x22) {
+      _inString = false;
+      if (_stringIsKey) {
+        final key = _keyAscii ? _key.toString() : null;
+        _pendingHashesKey = key == 'hashes';
+        if (_pendingHashesKey) {
+          if (_seenHashesKey) {
+            throw const _RequestFailure(400, 'duplicate hashes key');
+          }
+          _seenHashesKey = true;
+        }
+      }
+    } else if (_stringIsKey) {
+      if (byte > 0x7f || byte < 0x20) {
+        _keyAscii = false;
+      } else {
+        _key.writeCharCode(byte);
+      }
+    }
+  }
+
+  void _startString() {
+    _inString = true;
+    _escaped = false;
+    _stringIsKey =
+        _contexts.isNotEmpty &&
+        _contexts.last.object &&
+        _contexts.last.expectingKey;
+    _keyAscii = true;
+    _key = StringBuffer();
+    _startHashValue();
+  }
+
+  void _startContainer({required bool object}) {
+    final isHashesValue = _expectingHashValue;
+    _startHashValue();
+    if (isHashesValue && !object) {
+      _expectingHashValue = false;
+      _hashArrayDepth = 1;
+      _hashArrayExpectingValue = true;
+    } else if (_hashArrayDepth > 0) {
+      if (_hashArrayDepth == 1 && _hashArrayExpectingValue) {
+        _countHashElement();
+        _hashArrayExpectingValue = false;
+      }
+      _hashArrayDepth++;
+    }
+    _contexts.add(_JsonContext(object));
+  }
+
+  void _endContainer() {
+    if (_hashArrayDepth > 0) {
+      _hashArrayDepth--;
+      if (_hashArrayDepth == 0) _hashArrayExpectingValue = false;
+    }
+    if (_contexts.isNotEmpty) _contexts.removeLast();
+  }
+
+  void _consumeColon() {
+    if (_contexts.isEmpty || !_contexts.last.object) return;
+    _contexts.last.expectingKey = false;
+    if (_pendingHashesKey) {
+      _expectingHashValue = true;
+      _pendingHashesKey = false;
+    }
+  }
+
+  void _consumeComma() {
+    if (_hashArrayDepth == 1) _hashArrayExpectingValue = true;
+    if (_contexts.isNotEmpty && _contexts.last.object) {
+      _contexts.last.expectingKey = true;
+    }
+  }
+
+  void _startPrimitive() {
+    _startHashValue();
+    _inPrimitive = true;
+  }
+
+  void _startHashValue() {
+    if (_expectingHashValue) _expectingHashValue = false;
+    if (_hashArrayDepth == 1 && _hashArrayExpectingValue) {
+      _countHashElement();
+      _hashArrayExpectingValue = false;
+    }
+  }
+
+  void _countHashElement() {
+    _count++;
+    if (_count > maxMissingHashes) {
+      throw const _RequestFailure(413, 'too many hashes');
+    }
+  }
+
+  static bool _isDelimiter(int byte) =>
+      byte <= 0x20 ||
+      byte == 0x2c ||
+      byte == 0x3a ||
+      byte == 0x5d ||
+      byte == 0x7d;
+}
+
+class _JsonContext {
+  _JsonContext(this.object) : expectingKey = object;
+
+  final bool object;
+  bool expectingKey;
 }
 
 class _RequestFailure implements Exception {
