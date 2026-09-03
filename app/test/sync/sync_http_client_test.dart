@@ -334,6 +334,41 @@ void main() {
         <int>[],
       ]);
     });
+
+    test('preserves a PUT body across a 302 redirect', () async {
+      final methods = <String>[];
+      final bodies = <List<int>>[];
+      final server = await _startServer((request) async {
+        methods.add(request.method);
+        bodies.add(
+          await request.fold(<int>[], (bytes, chunk) => bytes..addAll(chunk)),
+        );
+        if (methods.length == 1) {
+          request.response
+            ..statusCode = HttpStatus.found
+            ..headers.set('location', '/v1/blobs/redirected');
+        } else {
+          request.response.statusCode = HttpStatus.noContent;
+        }
+        await request.response.close();
+      });
+      addTearDown(() => server.close(force: true));
+
+      final client = SyncHttpClient(
+        endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
+        syncId: 'one-two-three-four',
+      );
+      addTearDown(client.close);
+
+      final result = await client.putBlob('hash', [1, 2, 3]);
+
+      expect(result.kind, SyncResponseKind.success);
+      expect(methods, ['PUT', 'PUT']);
+      expect(bodies, [
+        [1, 2, 3],
+        [1, 2, 3],
+      ]);
+    });
   });
 
   group('SyncHttpClient outcomes', () {

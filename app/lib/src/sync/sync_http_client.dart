@@ -340,11 +340,13 @@ class SyncHttpClient {
     return uri.scheme.toLowerCase() == 'https' ? 443 : 80;
   }
 
-  bool _redirectChangesToGet(int statusCode, String method) =>
-      method != 'HEAD' &&
-      (statusCode == HttpStatus.movedPermanently ||
-          statusCode == HttpStatus.found ||
-          statusCode == HttpStatus.seeOther);
+  bool _redirectChangesToGet(int statusCode, String method) {
+    if (method == 'HEAD') return false;
+    if (statusCode == HttpStatus.seeOther) return true;
+    return method == 'POST' &&
+        (statusCode == HttpStatus.movedPermanently ||
+            statusCode == HttpStatus.found);
+  }
 
   Future<SyncHttpResponse> _readResponse(
     http.StreamedResponse response,
