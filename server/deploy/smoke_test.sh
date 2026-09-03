@@ -13,6 +13,7 @@ large_body=$(mktemp)
 oversized_body=$(mktemp)
 raw_body=$(mktemp)
 compressed_body=$(mktemp)
+boundary_response=$(mktemp)
 created_credentials=$(mktemp)
 
 cleanup() {
@@ -26,6 +27,7 @@ cleanup() {
   fi
   rm -f "$http_body" "$https_headers" "$https_post_body" "$https_get_body" \
     "$large_body" "$oversized_body" "$raw_body" "$compressed_body" \
+    "$boundary_response" \
     "$created_credentials"
 }
 trap cleanup EXIT
@@ -40,6 +42,19 @@ expect_status() {
     --output /dev/null --write-out '%{http_code}' "$@")
   if [ "$status" != "$expected" ]; then
     echo "${label}: expected HTTP ${expected}, got ${status}" >&2
+    exit 1
+  fi
+}
+
+expect_json_status() {
+  expected=$1
+  label=$2
+  output=$3
+  shift 3
+  status=$(curl --silent --show-error --max-time 10 --max-redirs 0 \
+    --output "$output" --write-out '%{http_code}' "$@")
+  if [ "$status" != "$expected" ] || ! grep -Eq '"error"' "$output"; then
+    echo "${label}: expected Athenaeum JSON HTTP ${expected}, got ${status}" >&2
     exit 1
   fi
 }
@@ -153,14 +168,14 @@ echo "checking 16 MiB request boundary"
 dd if=/dev/zero of="$large_body" bs=1048576 count=16 2>/dev/null
 dd if=/dev/zero of="$oversized_body" bs=1048576 count=16 2>/dev/null
 printf '\0' >> "$oversized_body"
-expect_status 400 "16 MiB body reaches Athenaeum" \
+expect_json_status 400 "16 MiB body reaches Athenaeum" "$boundary_response" \
   --request PUT --header "Authorization: Bearer ${credential}" \
   --header 'Content-Type: application/json' \
-  --data-binary "@${large_body}" "${https_url}/v1/manifests/w16"
+  --data-binary "@${large_body}" "${https_url}/v1/manifests/device-one"
 expect_status 413 "body over 16 MiB is refused" \
   --request PUT --header "Authorization: Bearer ${credential}" \
   --header 'Content-Type: application/json' \
-  --data-binary "@${oversized_body}" "${https_url}/v1/manifests/w16"
+  --data-binary "@${oversized_body}" "${https_url}/v1/manifests/device-one"
 echo "16 MiB request boundary: passed"
 
 echo "checking compressed-body preservation"
