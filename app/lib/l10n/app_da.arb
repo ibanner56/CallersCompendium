@@ -484,7 +484,7 @@
   "@settingsDialectCanonicalFigureTextTitle": {
     "x-sourceSha256": "b3c23962a9d5684ec623599a54e279ce77dc36bb157f96f1e19b2e19938f34e1"
   },
-  "settingsDialectCanonicalFigureTextSubtitle": "Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Fra som standard.",
+  "settingsDialectCanonicalFigureTextSubtitle": "Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.",
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
   },

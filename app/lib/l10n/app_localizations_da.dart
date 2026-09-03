@@ -445,7 +445,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDialectCanonicalFigureTextSubtitle =>
-      'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Fra som standard.';
+      'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.';
 
   @override
   String get settingsDialectNewButton => 'Ny dialekt';
