@@ -205,7 +205,10 @@ Two settings decide what you see before you touch anything:
 - **Open dance details in canonical terms** decides whether a dance opens showing
   your dialect or the shared canonical wording, when canonical figure text is
   enabled. If the gate is off, details open in your active dialect and the child
-  preference is retained for later.
+  preference is retained for later. On an existing installation, the first
+  detail open initializes the new gate off and converts an older canonical
+  default to the active-dialect default; later changes to the gate never
+  overwrite this preference.
 
 For a full tour of everything under Settings, see the
 [Settings guide](./settings.md).

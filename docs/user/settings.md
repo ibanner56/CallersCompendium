@@ -243,7 +243,10 @@ role names and wording the app uses when it describes dances.
 - **Open dance details in canonical terms** — when enabled, and canonical figure
   text is enabled, dance details open in canonical wording. When canonical
   figure text is disabled, this preference is retained but ignored until the
-  gate is enabled again.
+  gate is enabled again. On an existing installation, the first detail open
+  initializes the new gate off and converts an older canonical default to the
+  active-dialect default; later changes to the gate never overwrite this
+  preference.
 - **Free-text entry** — when on, adding a figure lets you type a whole line
   (for example "neighbor balance & swing") instead of building it field by field.
 - **Figure shorthands** — map short tokens to one or more figures you can insert
