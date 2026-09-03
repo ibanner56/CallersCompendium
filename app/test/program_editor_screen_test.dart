@@ -778,6 +778,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('program-preview-d1')), findsOneWidget);
     expect(find.byKey(const ValueKey('dance-detail-close')), findsOneWidget);
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('dance-detail-close')));
     await tester.pumpAndSettle();
@@ -815,6 +816,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const ValueKey('edit-dance')), findsNothing);
+      expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
     },
   );
 

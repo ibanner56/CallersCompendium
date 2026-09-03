@@ -239,14 +239,7 @@ bool isShareableWirePath(
   SyncRecordKind kind,
   String path, {
   String? settingsKey,
-}) {
-  if (kind == SyncRecordKind.setting &&
-      path == 'value' &&
-      settingsKey != null) {
-    return classifySettingsKey(settingsKey)?.egress == EgressClass.shareable;
-  }
-  return generatedShareableWirePaths[kind]?.contains(path) ?? false;
-}
+}) => _isShareableWireSegments(kind, path.split('.'), settingsKey: settingsKey);
 
 /// Returns the registry fields represented by a wire path.
 List<String> sourceFieldsForWirePath(SyncRecordKind kind, String path) {
@@ -258,9 +251,7 @@ List<String> sourceFieldsForWirePath(SyncRecordKind kind, String path) {
 
 /// Returns whether [path] is a structural ancestor of an admitted path.
 bool hasShareableWireDescendant(SyncRecordKind kind, String path) =>
-    generatedShareableWirePaths[kind]!.any(
-      (candidate) => candidate.startsWith('$path.'),
-    );
+    _hasShareableWireDescendant(kind, path.split('.'));
 
 /// The result W11 can map to a `422` without accepting or rewriting input.
 class SyncBodyValidation {
@@ -359,7 +350,7 @@ SyncBodyValidation validateShareableRecordBody(
   Map<String, Object?> body, {
   String? settingsKey,
 }) {
-  final invalid = _firstInvalid(kind, '', body, settingsKey: settingsKey);
+  final invalid = _firstInvalid(kind, const [], body, settingsKey: settingsKey);
   return invalid == null
       ? const SyncBodyValidation.valid()
       : SyncBodyValidation.invalid(invalid);
@@ -367,14 +358,16 @@ SyncBodyValidation validateShareableRecordBody(
 
 String? _firstInvalid(
   SyncRecordKind kind,
-  String path,
+  List<String> segments,
   Object? value, {
   String? settingsKey,
 }) {
-  final hasPath = path.isNotEmpty;
+  final path = segments.join('.');
+  final hasPath = segments.isNotEmpty;
   final isShareable =
-      hasPath && isShareableWirePath(kind, path, settingsKey: settingsKey);
-  final hasDescendants = hasPath && hasShareableWireDescendant(kind, path);
+      hasPath &&
+      _isShareableWireSegments(kind, segments, settingsKey: settingsKey);
+  final hasDescendants = hasPath && _hasShareableWireDescendant(kind, segments);
   if (hasPath && !isShareable && !hasDescendants) {
     return path;
   }
@@ -382,12 +375,10 @@ String? _firstInvalid(
   if (value is Map) {
     for (final entry in value.entries) {
       if (entry.key is! String) return path;
-      final childPath = path.isEmpty
-          ? entry.key as String
-          : '$path.${entry.key}';
+      final childSegments = [...segments, entry.key as String];
       final invalid = _firstInvalid(
         kind,
-        childPath,
+        childSegments,
         entry.value,
         settingsKey: settingsKey,
       );
@@ -395,11 +386,56 @@ String? _firstInvalid(
     }
   } else if (value is List) {
     for (final item in value) {
-      final invalid = _firstInvalid(kind, path, item, settingsKey: settingsKey);
+      final invalid = _firstInvalid(
+        kind,
+        segments,
+        item,
+        settingsKey: settingsKey,
+      );
       if (invalid != null) return invalid;
     }
   }
   return null;
+}
+
+bool _isShareableWireSegments(
+  SyncRecordKind kind,
+  List<String> segments, {
+  String? settingsKey,
+}) {
+  if (kind == SyncRecordKind.setting &&
+      _sameSegments(segments, const ['value']) &&
+      settingsKey != null) {
+    return classifySettingsKey(settingsKey)?.egress == EgressClass.shareable;
+  }
+  return generatedShareableWirePaths[kind]?.any(
+        (candidate) => _sameSegments(candidate.split('.'), segments),
+      ) ??
+      false;
+}
+
+bool _hasShareableWireDescendant(SyncRecordKind kind, List<String> segments) =>
+    generatedShareableWirePaths[kind]?.any((candidate) {
+      final candidateSegments = candidate.split('.');
+      return candidateSegments.length > segments.length &&
+          _startsWithSegments(candidateSegments, segments);
+    }) ??
+    false;
+
+bool _sameSegments(List<String> left, List<String> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index++) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
+}
+
+bool _startsWithSegments(List<String> value, List<String> prefix) {
+  if (prefix.length > value.length) return false;
+  for (var index = 0; index < prefix.length; index++) {
+    if (value[index] != prefix[index]) return false;
+  }
+  return true;
 }
 
 const _omitted = Object();

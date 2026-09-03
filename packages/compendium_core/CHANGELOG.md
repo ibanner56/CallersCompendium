@@ -41,6 +41,8 @@ core version. They are left that way deliberately — do not renumber them.
   balance-wave annotations.
 - Correct shared figure rendering, taxonomy defaults, and source-specific
   CallersBox/ContraDB imports reported in issue #1160.
+- Ensure Device Sync body validation distinguishes literal dotted keys from
+  nested wire paths.
 
 ## [0.3.0] - 2026-09-01
 

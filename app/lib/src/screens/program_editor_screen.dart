@@ -20,6 +20,7 @@ import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/callersbox_online.dart';
 import '../data/contradb_online.dart';
+import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/validation_issue_labels.dart';
 import '../data/venue_entity_mode_scope.dart';
@@ -30,6 +31,7 @@ import '../export/export_labels_l10n.dart';
 import '../export/program_matrix_pdf.dart';
 import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
+import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart' show formationLabel;
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
@@ -40,6 +42,7 @@ import '../widgets/collection_picker.dart';
 import '../widgets/venue_picker.dart';
 import 'dance_editor_screen.dart';
 import 'dance_detail_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'perform_program_screen.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_matrix_table.dart';
@@ -86,6 +89,7 @@ class ProgramEditorScreen extends StatefulWidget {
     this.onNavigateTo,
     this.callersBoxOnline,
     this.contraDbOnline,
+    this.reimportPicker,
   });
 
   final String? programId;
@@ -103,6 +107,7 @@ class ProgramEditorScreen extends StatefulWidget {
   /// network-backed services and supplied by widget tests.
   final OnlineSearchService? callersBoxOnline;
   final OnlineSearchService? contraDbOnline;
+  final ImportPicker? reimportPicker;
 
   /// Width (of the builder's own constraints) at/above which the picker shows
   /// as a persistent right pane instead of a modal sheet.
@@ -119,6 +124,7 @@ class ProgramEditorScreen extends StatefulWidget {
 class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     with SingleTickerProviderStateMixin {
   late CompendiumRepositories _repos;
+  late DanceReimportCoordinator _reimport;
   late final TabController _tabController;
   final _formKey = GlobalKey<FormState>();
   final _moreDetailsController = ExpansibleController();
@@ -282,6 +288,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             key: ValueKey('program-preview-$danceId'),
             danceId: danceId,
             readOnly: true,
+            onReimport: _beginReimport,
             onClose: _clearPreview,
             onPreviewNavigate: (target) => _showSavedPreview(
               target,
@@ -331,6 +338,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             key: ValueKey('program-preview-sheet-$danceId'),
             danceId: danceId,
             readOnly: true,
+            onReimport: _beginReimport,
             onPreviewNavigate: (target) {
               Navigator.of(sheetContext).pop();
               unawaited(_openSavedPreviewSheet(target));
@@ -545,6 +553,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     if (!_loaded && _loadError == null && _data == null) {
       _repos = RepositoriesScope.of(context);
+      _reimport = DanceReimportCoordinator(
+        repos: _repos,
+        callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
+        contraDb: widget.contraDbOnline ?? ContraDbOnline(),
+        picker: widget.reimportPicker ?? pickImportFile,
+      );
       _load();
     } else if (_loaded &&
         _subscribedTrackAllCallers != null &&
@@ -552,6 +566,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       unawaited(_resubscribePicker());
     }
   }
+
+  Future<void> _beginReimport(DanceDetailData detail) =>
+      _reimport.open(context, detail);
 
   /// Re-opens the picker's subscription under the current caller filter.
   ///
@@ -1755,7 +1772,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<String>(
-          builder: (_) => ProgramEditorScreen(programId: copy.id),
+          builder: (_) => ProgramEditorScreen(
+            programId: copy.id,
+            callersBoxOnline: widget.callersBoxOnline,
+            contraDbOnline: widget.contraDbOnline,
+            reimportPicker: widget.reimportPicker,
+          ),
         ),
       );
     }

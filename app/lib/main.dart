@@ -64,9 +64,11 @@ import 'src/diagnostics/crash_log_store.dart';
 import 'src/diagnostics/crash_reporter.dart';
 import 'src/diagnostics/error_log.dart';
 import 'src/licenses.dart';
+import 'src/search/dance_detail_data.dart';
 import 'src/screens/app_shell.dart';
 import 'src/screens/contradb_program_import_screen.dart';
 import 'src/screens/dance_detail_screen.dart';
+import 'src/screens/dance_reimport_flow.dart';
 import 'src/screens/import_review_screen.dart';
 import 'src/screens/online_import_variation_dialog.dart';
 import 'src/screens/settings_screen.dart'
@@ -666,6 +668,16 @@ class _CompendiumAppState extends State<CompendiumApp> {
     );
   }
 
+  Future<void> _beginIncomingReimport(DanceDetailData detail) async {
+    final context = _navigatorKey.currentContext;
+    if (context == null || !context.mounted) return;
+    await DanceReimportCoordinator(
+      repos: _appData.repositories,
+      callersBox: CallersBoxOnline(jsonFetcher: widget.incomingUrlFetcher),
+      contraDb: ContraDbOnline(htmlFetcher: widget.incomingUrlFetcher),
+    ).open(context, detail);
+  }
+
   Future<void> _openIncomingDancePreview(SharedDanceLink link) async {
     final navigator = _navigatorKey.currentState;
     final navContext = _navigatorKey.currentContext;
@@ -756,7 +768,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (imported.danceCount == 1 && danceId != null) {
       await navigator.push<void>(
         MaterialPageRoute<void>(
-          builder: (_) => DanceDetailScreen(danceId: danceId),
+          builder: (_) => DanceDetailScreen(
+            danceId: danceId,
+            onReimport: _beginIncomingReimport,
+          ),
         ),
       );
     }
