@@ -259,17 +259,12 @@ class AthenaeumApp {
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
-      late final bool created;
-      try {
-        created = store.putBlob(
-          idKey: identity.idKey,
-          epoch: current.epoch,
-          hash: hash,
-          body: body,
-        );
-      } on StoreEpochMismatch {
-        throw const _RequestFailure(409, 'stale blob epoch');
-      }
+      final created = store.putBlob(
+        idKey: identity.idKey,
+        epoch: current.epoch,
+        hash: hash,
+        body: body,
+      );
       return Response(created ? 201 : 200);
     }
     return _methodNotAllowed(const ['GET', 'PUT']);

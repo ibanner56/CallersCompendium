@@ -206,10 +206,6 @@ class AthenaeumStore {
     try {
       _database.execute('BEGIN IMMEDIATE');
       inTransaction = true;
-      final current = lookup(idKey);
-      if (current == null || current.epoch != epoch) {
-        throw const StoreEpochMismatch();
-      }
       if (blobRef(idKey, epoch, hash) != null) {
         _database.execute('ROLLBACK');
         inTransaction = false;
@@ -268,14 +264,33 @@ class AthenaeumStore {
   }
 
   void deleteStore(String idKey) {
-    final rows = _database.select('SELECT epoch FROM stores WHERE id_key = ?', [
-      idKey,
-    ]);
-    if (rows.isEmpty) return;
-    final epoch = rows.single['epoch'] as String;
-    _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
-    _database.execute('DELETE FROM blob_refs WHERE id_key = ?', [idKey]);
-    _database.execute('DELETE FROM stores WHERE id_key = ?', [idKey]);
+    late final String epoch;
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final rows = _database.select(
+        'SELECT epoch FROM stores WHERE id_key = ?',
+        [idKey],
+      );
+      if (rows.isEmpty) {
+        _database.execute('ROLLBACK');
+        inTransaction = false;
+        return;
+      }
+      epoch = rows.single['epoch'] as String;
+      _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
+      _database.execute('DELETE FROM blob_refs WHERE id_key = ?', [idKey]);
+      _database.execute('DELETE FROM stores WHERE id_key = ?', [idKey]);
+      _database.execute('COMMIT');
+      inTransaction = false;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
     final directory = Directory(p.join(blobDirectory.path, idKey, epoch));
     if (directory.existsSync()) directory.deleteSync(recursive: true);
   }

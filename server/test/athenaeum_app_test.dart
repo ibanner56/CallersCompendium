@@ -264,6 +264,15 @@ void main() {
         headers: {'content-encoding': 'gzip'},
       );
       expect(expansion.statusCode, 413);
+      final malformedGzip = await _send(
+        'PUT',
+        '/v1/blobs/${'c' * 64}',
+        syncId: syncId,
+        body: Uint8List.fromList([0x1f, 0x8b, 0x08]),
+        contentType: 'application/octet-stream',
+        headers: {'content-encoding': 'gzip'},
+      );
+      expect(malformedGzip.statusCode, 400);
     },
   );
 
@@ -513,8 +522,9 @@ void main() {
         hash: 'a' * 64,
         body: Uint8List(0),
       ),
-      throwsA(isA<StoreEpochMismatch>()),
+      returnsNormally,
     );
+    expect(app.store.blobFile(idKey, epoch, 'a' * 64).existsSync(), isTrue);
   });
 
   test('method-not-allowed responses advertise the route methods', () async {

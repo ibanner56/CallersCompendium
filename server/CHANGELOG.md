@@ -13,3 +13,8 @@ the app and of `compendium_core`; version headings below refer to
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
+
+### Fixed
+
+- Serialize store deletion, preserve stale-epoch blob uploads for later
+  collection, and return `400` for malformed gzip request bodies.
