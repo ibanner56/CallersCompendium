@@ -124,7 +124,8 @@ class DanceDetailScreen extends StatefulWidget {
   /// collection refresh).
   final Future<void> Function()? onImport;
 
-  /// Hides every mutation affordance while retaining the detail body.
+  /// Hides mutation affordances while retaining the detail body. A persisted
+  /// read-only view may still expose [onReimport] as its sole mutation.
   final bool readOnly;
 
   /// Replaces this read-only preview with a linked saved dance preview.
@@ -614,13 +615,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           onPressed: _duplicate,
         ),
         _addToProgramButton(detail),
-        if (widget.onReimport != null)
-          IconButton(
-            key: const ValueKey('reimport-dance'),
-            tooltip: l10n.danceReimport,
-            icon: const Icon(Icons.refresh),
-            onPressed: () => widget.onReimport!(detail),
-          ),
+        _reimportButton(detail),
         IconButton(
           key: const ValueKey('delete-dance'),
           tooltip: l10n.danceDeleteTooltip,
@@ -630,6 +625,24 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       ],
     );
   }
+
+  Widget _reimportButton(DanceDetailData detail) => IconButton(
+    key: const ValueKey('reimport-dance'),
+    tooltip: AppLocalizations.of(context).danceReimport,
+    icon: const Icon(Icons.refresh),
+    onPressed: widget.onReimport == null
+        ? null
+        : () => widget.onReimport!(detail),
+  );
+
+  /// Read-only saved previews expose re-import without exposing the other
+  /// collection mutations in [_fullActions] or [_overflowMenu].
+  Widget _readOnlyActions(DanceDetailData detail) => widget.onReimport == null
+      ? const SizedBox.shrink()
+      : Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [_reimportButton(detail)],
+        );
 
   /// Narrow layout: primary actions stay as icon buttons; the rest collapse
   /// into the overflow menu.
@@ -983,8 +996,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                       onPressed: widget.onClose,
                     ),
               actions: [
-                if (!_isPreview && !_isReadOnly && detail != null)
-                  compact
+                if (!_isPreview && detail != null)
+                  _isReadOnly
+                      ? _readOnlyActions(detail)
+                      : compact
                       ? _compactActions(context, detail)
                       : _fullActions(context, detail),
               ],
@@ -1065,9 +1080,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         builder: (context) {
                           // Per-formation label colour (issue #367): highlight
                           // only when the user overrode this shape.
-                          final color = FormationColorsScope.of(
-                            context,
-                          )?.overrideFor(dance.formation.shape);
+                          final color = FormationColorsScope.of(context)
+                              ?.overrideFor(dance.formation.shape);
                           final text = Text(
                             formationLabel(l10n, dance.formation),
                           );

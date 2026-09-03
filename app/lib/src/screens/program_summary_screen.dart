@@ -9,12 +9,17 @@ import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
 import '../data/repositories_scope.dart';
 import '../data/app_theme_scope.dart';
+import '../data/callersbox_online.dart';
+import '../data/contradb_online.dart';
+import '../data/import_io.dart';
+import '../data/online_search.dart';
 import '../data/set_list_color_coding_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
 import '../data/calling_history_caller_filter.dart';
 import '../data/venue_label.dart';
 import '../diagnostics/error_log.dart';
 import '../search/collection_data.dart';
+import '../search/dance_detail_data.dart';
 import '../search/facet_labels.dart';
 import '../theme/set_list_accents.dart';
 import '../utils/confirm_delete.dart';
@@ -22,6 +27,7 @@ import '../utils/undo_snack_bar.dart';
 import '../widgets/program_export_menu.dart';
 import '../widgets/program_status_chip.dart';
 import 'dance_detail_screen.dart';
+import 'dance_reimport_flow.dart';
 import 'perform_program_screen.dart';
 import 'program_editor_screen.dart';
 
@@ -41,9 +47,18 @@ import 'program_editor_screen.dart';
 /// in place, or popping if the builder deleted the program), **Delete** pops
 /// back to the list, and **Duplicate** re-targets this screen at the new copy.
 class ProgramSummaryScreen extends StatefulWidget {
-  const ProgramSummaryScreen({super.key, required this.programId});
+  const ProgramSummaryScreen({
+    super.key,
+    required this.programId,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+    this.reimportPicker,
+  });
 
   final String programId;
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+  final ImportPicker? reimportPicker;
 
   @override
   State<ProgramSummaryScreen> createState() => _ProgramSummaryScreenState();
@@ -83,6 +98,9 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
       onOpenBuilder: _openBuilder,
       onDeleted: () => Navigator.of(context).pop(),
       onNavigateTo: (id) => setState(() => _programId = id),
+      callersBoxOnline: widget.callersBoxOnline,
+      contraDbOnline: widget.contraDbOnline,
+      reimportPicker: widget.reimportPicker,
     );
   }
 }
@@ -112,6 +130,9 @@ class ProgramSummaryPane extends StatefulWidget {
     required this.onNavigateTo,
     this.showAppBar = false,
     this.prominentPerform = false,
+    this.callersBoxOnline,
+    this.contraDbOnline,
+    this.reimportPicker,
   });
 
   final String programId;
@@ -127,6 +148,9 @@ class ProgramSummaryPane extends StatefulWidget {
   /// Renders a prominent full-width "Perform this program" button (Perform-first)
   /// in place of the compact perform icon button, for the narrow read view.
   final bool prominentPerform;
+  final OnlineSearchService? callersBoxOnline;
+  final OnlineSearchService? contraDbOnline;
+  final ImportPicker? reimportPicker;
 
   @override
   State<ProgramSummaryPane> createState() => _ProgramSummaryPaneState();
@@ -134,6 +158,7 @@ class ProgramSummaryPane extends StatefulWidget {
 
 class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   late CompendiumRepositories _repos;
+  late DanceReimportCoordinator _reimport;
   bool _started = false;
 
   /// Last-seen "track calling history for all callers" setting (issue #583),
@@ -185,8 +210,15 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
+      _reimport = DanceReimportCoordinator(
+        repos: _repos,
+        callersBox: widget.callersBoxOnline ?? CallersBoxOnline(),
+        contraDb: widget.contraDbOnline ?? ContraDbOnline(),
+        picker: widget.reimportPicker ?? pickImportFile,
+      );
       _load();
     }
+
     // This pane was the app's only BOTH-channels subscriber — it renders
     // program data *and* dance fields (`dance?.level`, the slot titles), so it
     // went stale from either side. Both subscriptions are gone: the watched
@@ -195,6 +227,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // Writes made here no longer broadcast either — `ProgramsRefreshScope` was
     // retired once its last reader became stream-driven (issue #768).
   }
+
+  Future<void> _beginReimport(DanceDetailData detail) =>
+      _reimport.open(context, detail);
 
   /// The live Collection reference data for this pane (issue #768).
   ///
@@ -915,7 +950,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               key: ValueKey('summary-slot-${slot.id}'),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => DanceDetailScreen(danceId: danceId),
+                  builder: (_) => DanceDetailScreen(
+                    danceId: danceId,
+                    onReimport: _beginReimport,
+                  ),
                 ),
               ),
               child: ExcludeSemantics(

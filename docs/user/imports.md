@@ -411,7 +411,9 @@ whole import if it was not what you wanted.
 
 ### Refresh choreography on one saved dance
 
-Open a dance and choose **Re-import choreography**. Select Caller's Box,
+From any saved dance detail view — including Collection, a Program Summary,
+global search, a post-import result, or a saved Program Editor preview — choose
+**Re-import choreography**. Select Caller's Box,
 ContraDB, or a Caller's Compendium JSON file. Online searches use the saved
 dance title and always show their results for you to choose from; the app never
 selects an online match automatically. JSON must contain exactly one dance and

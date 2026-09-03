@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
+import 'package:compendium_app/src/screens/dance_detail_screen.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/screens/program_summary_screen.dart';
 import 'package:compendium_app/src/screens/user_guide/user_guide_screen.dart';
@@ -218,6 +219,29 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('command-palette')), findsOneWidget);
+  });
+
+  testWidgets('global search opens a saved dance with re-import available', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      Dance(
+        id: 'd1',
+        title: 'Petronella',
+        createdAt: DateTime.utc(2026, 1, 1),
+        updatedAt: DateTime.utc(2026, 1, 1),
+      ),
+    );
+    await _pump(tester, repos, size: const Size(1200, 900));
+
+    await tester.tap(find.byKey(const ValueKey('global-search-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('command-result-dance-d1')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DanceDetailScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
   });
 
   testWidgets(

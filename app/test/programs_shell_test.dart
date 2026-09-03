@@ -272,6 +272,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DanceDetailScreen), findsOneWidget);
+      expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
     },
   );
 

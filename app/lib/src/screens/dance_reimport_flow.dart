@@ -5,8 +5,9 @@ import '../../l10n/app_localizations.dart';
 import '../data/dance_reimport.dart';
 import '../data/import_io.dart';
 import '../data/online_search.dart';
-import '../data/repositories_scope.dart';
+import '../diagnostics/error_log.dart';
 import '../search/dance_detail_data.dart';
+import 'dance_detail_screen.dart';
 
 enum _ReimportSource { callersBox, contraDb, json }
 
@@ -16,6 +17,7 @@ enum _ReimportSource { callersBox, contraDb, json }
 Future<DanceDetailData?> selectReimportDance(
   BuildContext context, {
   required Dance target,
+  required CompendiumRepositories repos,
   required OnlineSearchService callersBox,
   required OnlineSearchService contraDb,
   ImportPicker picker = pickImportFile,
@@ -43,7 +45,6 @@ Future<DanceDetailData?> selectReimportDance(
     ),
   );
   if (source == null || !context.mounted) return null;
-  final repos = RepositoriesScope.of(context);
   if (source == _ReimportSource.json) {
     final payload = await picker();
     if (payload == null) return null;
@@ -105,4 +106,131 @@ Future<DanceDetailData?> selectReimportDance(
   );
   if (selected == null || !context.mounted) return null;
   return (await service.loadPreview(repos, selected)).detail;
+}
+
+/// Owns the routed re-import flow shared by saved-detail owners.
+///
+/// The owner supplies the repositories and online services so route callers
+/// retain control of their data lifecycle and tests can inject deterministic
+/// seams. Collection's wide split pane intentionally keeps its embedded preview
+/// implementation; this coordinator is for owners that push a standard preview
+/// route.
+class DanceReimportCoordinator {
+  const DanceReimportCoordinator({
+    required this.repos,
+    required this.callersBox,
+    required this.contraDb,
+    this.picker = pickImportFile,
+  });
+
+  final CompendiumRepositories repos;
+  final OnlineSearchService callersBox;
+  final OnlineSearchService contraDb;
+  final ImportPicker picker;
+
+  Future<void> open(BuildContext context, DanceDetailData target) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final preview = await selectReimportDance(
+        context,
+        target: target.dance,
+        repos: repos,
+        callersBox: callersBox,
+        contraDb: contraDb,
+        picker: picker,
+      );
+      if (!context.mounted || preview == null) return;
+
+      var importing = false;
+      final committed = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (previewContext) => DanceDetailScreen.preview(
+            data: preview,
+            onImport: () async {
+              if (importing) return;
+              importing = true;
+              try {
+                final result = await replaceDanceChoreography(
+                  repos,
+                  targetDanceId: target.dance.id,
+                  incoming: preview.dance,
+                  expectedUpdatedAt: target.dance.updatedAt,
+                );
+                if (!previewContext.mounted) return;
+                if (result == DanceReimportResult.replaced) {
+                  Navigator.of(previewContext).pop(true);
+                } else {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        result == DanceReimportResult.targetMissing
+                            ? AppLocalizations.of(context)
+                                  .danceReimportTargetMissing
+                            : AppLocalizations.of(context)
+                                  .danceReimportTargetChanged,
+                      ),
+                    ),
+                  );
+                }
+              } catch (error, stackTrace) {
+                logCaughtErrorTypeOnly(
+                  error,
+                  stackTrace,
+                  source: 'dance_reimport_flow.DanceReimportCoordinator.open',
+                );
+                if (previewContext.mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        AppLocalizations.of(context).danceReimportSourceFailed,
+                      ),
+                    ),
+                  );
+                }
+              } finally {
+                importing = false;
+              }
+            },
+          ),
+        ),
+      );
+      if (context.mounted && committed == true) {
+        messenger.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context).danceReimported)),
+        );
+      }
+    } on DanceReimportJsonException catch (error) {
+      logCaughtErrorTypeOnly(
+        error,
+        StackTrace.current,
+        source: 'dance_reimport_flow.DanceReimportCoordinator.open',
+      );
+      if (context.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              error.programBearing
+                  ? AppLocalizations.of(context).danceReimportProgramArchive
+                  : AppLocalizations.of(context).danceReimportInvalidJson,
+            ),
+          ),
+        );
+      }
+    } catch (error, stackTrace) {
+      logCaughtErrorTypeOnly(
+        error,
+        stackTrace,
+        source: 'dance_reimport_flow.DanceReimportCoordinator.open',
+      );
+      if (context.mounted) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).danceReimportSourceFailed,
+            ),
+          ),
+        );
+      }
+    }
+  }
 }

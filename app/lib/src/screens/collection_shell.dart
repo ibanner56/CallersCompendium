@@ -243,6 +243,7 @@ class _CollectionShellState extends State<CollectionShell> {
       final preview = await selectReimportDance(
         context,
         target: detail.dance,
+        repos: RepositoriesScope.of(context),
         callersBox: _callersBox,
         contraDb: _contraDb,
         picker: widget.importPicker ?? pickImportFile,
@@ -360,9 +361,8 @@ class _CollectionShellState extends State<CollectionShell> {
       _onlinePreviewLoading = true;
     });
     try {
-      final preview = await _serviceFor(
-        result.source,
-      ).loadPreview(repos, result);
+      final preview = await _serviceFor(result.source)
+          .loadPreview(repos, result);
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
         _onlinePreview = preview;
