@@ -116,6 +116,445 @@ void main() {
     );
   });
 
+  test(
+    'blob allow-list rejects non-shareable fields and tolerates new versions',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+
+      final shareable = _recordBlob(
+        kind: 'choreographer',
+        id: 'c1',
+        body: {'id': 'c1', 'name': 'Alice Choreo'},
+      );
+      final shareableHash = sha256.convert(shareable).toString();
+      final accepted = await _send(
+        'PUT',
+        '/v1/blobs/$shareableHash',
+        syncId: syncId,
+        body: shareable,
+        contentType: 'application/octet-stream',
+      );
+      expect(accepted.statusCode, 201);
+      final acceptedFetch = await _send(
+        'GET',
+        '/v1/blobs/$shareableHash',
+        syncId: syncId,
+      );
+      expect(acceptedFetch.statusCode, 200);
+      expect(await acceptedFetch.bodyBytes(), equals(shareable));
+
+      final nonShareable = _recordBlob(
+        kind: 'choreographer',
+        id: 'c2',
+        body: {
+          'id': 'c2',
+          'name': 'Private Choreo',
+          'email': 'private@example.com',
+        },
+      );
+      final nonShareableHash = sha256.convert(nonShareable).toString();
+      final rejected = await _send(
+        'PUT',
+        '/v1/blobs/$nonShareableHash',
+        syncId: syncId,
+        body: nonShareable,
+        contentType: 'application/octet-stream',
+      );
+      expect(rejected.statusCode, 422);
+      await rejected.drain<void>();
+      final rejectedFetch = await _send(
+        'GET',
+        '/v1/blobs/$nonShareableHash',
+        syncId: syncId,
+      );
+      expect(rejectedFetch.statusCode, 404);
+      await rejectedFetch.drain<void>();
+
+      final dottedKey = _recordBlob(
+        kind: 'dance',
+        id: 'dotted-key',
+        body: {'formation.shape': 'private'},
+      );
+      final dottedKeyHash = sha256.convert(dottedKey).toString();
+      final dottedKeyResponse = await _send(
+        'PUT',
+        '/v1/blobs/$dottedKeyHash',
+        syncId: syncId,
+        body: dottedKey,
+        contentType: 'application/octet-stream',
+      );
+      expect(dottedKeyResponse.statusCode, 422);
+      await dottedKeyResponse.drain<void>();
+      final dottedKeyGet = await _send(
+        'GET',
+        '/v1/blobs/$dottedKeyHash',
+        syncId: syncId,
+      );
+      expect(dottedKeyGet.statusCode, 404);
+      await dottedKeyGet.drain<void>();
+
+      final invalidEntityId = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'kind': 'choreographer',
+            'id': 7,
+            'updatedAt': '2026-09-03T00:00:00.000Z',
+            'deletedAt': null,
+            'existenceAt': '2026-09-03T00:00:00.000Z',
+            'body': {'email': 'invalid-id-private@example.com'},
+          }),
+        ),
+      );
+      final invalidEntityIdHash = sha256.convert(invalidEntityId).toString();
+      final invalidEntityIdResponse = await _send(
+        'PUT',
+        '/v1/blobs/$invalidEntityIdHash',
+        syncId: syncId,
+        body: invalidEntityId,
+        contentType: 'application/octet-stream',
+      );
+      expect(invalidEntityIdResponse.statusCode, 422);
+      await invalidEntityIdResponse.drain<void>();
+
+      final duplicateBody = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"choreographer","id":"duplicate-body",'
+          '"updatedAt":"2026-09-03T00:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-09-03T00:00:00.000Z",'
+          '"body":{"email":"duplicate-private@example.com"},'
+          '"body":{"id":"duplicate-body","name":"Public"}}',
+        ),
+      );
+      final duplicateBodyHash = sha256.convert(duplicateBody).toString();
+      final duplicateBodyResponse = await _send(
+        'PUT',
+        '/v1/blobs/$duplicateBodyHash',
+        syncId: syncId,
+        body: duplicateBody,
+        contentType: 'application/octet-stream',
+      );
+      expect(duplicateBodyResponse.statusCode, 422);
+      await duplicateBodyResponse.drain<void>();
+
+      final duplicateNestedBody = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"dance","id":"duplicate-nested",'
+          '"updatedAt":"2026-09-03T00:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-09-03T00:00:00.000Z",'
+          '"body":{"id":"duplicate-nested",'
+          '"formation":{"secret":"duplicate-private"},'
+          '"formation":{"shape":"longways"}}}',
+        ),
+      );
+      final duplicateNestedBodyHash = sha256
+          .convert(duplicateNestedBody)
+          .toString();
+      final duplicateNestedBodyResponse = await _send(
+        'PUT',
+        '/v1/blobs/$duplicateNestedBodyHash',
+        syncId: syncId,
+        body: duplicateNestedBody,
+        contentType: 'application/octet-stream',
+      );
+      expect(duplicateNestedBodyResponse.statusCode, 422);
+      await duplicateNestedBodyResponse.drain<void>();
+      final duplicateNestedBodyGet = await _send(
+        'GET',
+        '/v1/blobs/$duplicateNestedBodyHash',
+        syncId: syncId,
+      );
+      expect(duplicateNestedBodyGet.statusCode, 404);
+      await duplicateNestedBodyGet.drain<void>();
+
+      final invalidBodyType = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'kind': 'choreographer',
+            'id': 'invalid-body',
+            'updatedAt': '2026-09-03T00:00:00.000Z',
+            'deletedAt': null,
+            'existenceAt': '2026-09-03T00:00:00.000Z',
+            'body': [
+              {'email': 'invalid-body-private@example.com'},
+            ],
+          }),
+        ),
+      );
+      final invalidBodyTypeHash = sha256.convert(invalidBodyType).toString();
+      final invalidBodyTypeResponse = await _send(
+        'PUT',
+        '/v1/blobs/$invalidBodyTypeHash',
+        syncId: syncId,
+        body: invalidBodyType,
+        contentType: 'application/octet-stream',
+      );
+      expect(invalidBodyTypeResponse.statusCode, 422);
+      await invalidBodyTypeResponse.drain<void>();
+
+      final unknownEnvelopeField = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'kind': 'choreographer',
+            'id': 'unknown-envelope-field',
+            'updatedAt': '2026-09-03T00:00:00.000Z',
+            'deletedAt': null,
+            'existenceAt': '2026-09-03T00:00:00.000Z',
+            'body': {'id': 'unknown-envelope-field', 'name': 'Public'},
+            'email': 'unknown-envelope-private@example.com',
+          }),
+        ),
+      );
+      final unknownEnvelopeFieldHash = sha256
+          .convert(unknownEnvelopeField)
+          .toString();
+      final unknownEnvelopeFieldResponse = await _send(
+        'PUT',
+        '/v1/blobs/$unknownEnvelopeFieldHash',
+        syncId: syncId,
+        body: unknownEnvelopeField,
+        contentType: 'application/octet-stream',
+      );
+      expect(unknownEnvelopeFieldResponse.statusCode, 422);
+      await unknownEnvelopeFieldResponse.drain<void>();
+
+      final malformedEnvelope = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"choreographer","id":"malformed",'
+          '"updatedAt":"2026-09-03T00:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-09-03T00:00:00.000Z",'
+          '"body":{"email":"malformed-private@example.com"},}',
+        ),
+      );
+      final malformedEnvelopeHash = sha256
+          .convert(malformedEnvelope)
+          .toString();
+      final malformedEnvelopeResponse = await _send(
+        'PUT',
+        '/v1/blobs/$malformedEnvelopeHash',
+        syncId: syncId,
+        body: malformedEnvelope,
+        contentType: 'application/octet-stream',
+      );
+      expect(malformedEnvelopeResponse.statusCode, 422);
+      await malformedEnvelopeResponse.drain<void>();
+      final malformedEnvelopeGet = await _send(
+        'GET',
+        '/v1/blobs/$malformedEnvelopeHash',
+        syncId: syncId,
+      );
+      expect(malformedEnvelopeGet.statusCode, 404);
+      await malformedEnvelopeGet.drain<void>();
+
+      final futureShareable = _recordBlob(
+        version: 99,
+        kind: 'choreographer',
+        id: 'c3',
+        body: {'id': 'c3', 'name': 'Future Choreo'},
+      );
+      final futureShareableHash = sha256.convert(futureShareable).toString();
+      final futureAccepted = await _send(
+        'PUT',
+        '/v1/blobs/$futureShareableHash',
+        syncId: syncId,
+        body: futureShareable,
+        contentType: 'application/octet-stream',
+      );
+      expect(futureAccepted.statusCode, 201);
+
+      final futureNonShareable = _recordBlob(
+        version: 99,
+        kind: 'choreographer',
+        id: 'c4',
+        body: {
+          'id': 'c4',
+          'name': 'Future Choreo',
+          'email': 'future-private@example.com',
+        },
+      );
+      final futureNonShareableHash = sha256
+          .convert(futureNonShareable)
+          .toString();
+      final futureRejected = await _send(
+        'PUT',
+        '/v1/blobs/$futureNonShareableHash',
+        syncId: syncId,
+        body: futureNonShareable,
+        contentType: 'application/octet-stream',
+      );
+      expect(futureRejected.statusCode, 422);
+      await futureRejected.drain<void>();
+
+      final unknownKind = _recordBlob(
+        version: 99,
+        kind: 'futureKind',
+        id: 'future-1',
+        body: {'secret': 'must not cross the boundary'},
+      );
+      final unknownKindHash = sha256.convert(unknownKind).toString();
+      final unknownKindResponse = await _send(
+        'PUT',
+        '/v1/blobs/$unknownKindHash',
+        syncId: syncId,
+        body: unknownKind,
+        contentType: 'application/octet-stream',
+      );
+      expect(unknownKindResponse.statusCode, 422);
+      await unknownKindResponse.drain<void>();
+      final unknownKindFetch = await _send(
+        'GET',
+        '/v1/blobs/$unknownKindHash',
+        syncId: syncId,
+      );
+      expect(unknownKindFetch.statusCode, 404);
+      await unknownKindFetch.drain<void>();
+
+      final opaque = Uint8List.fromList([0, 1, 2, 255]);
+      final opaqueHash = sha256.convert(opaque).toString();
+      final opaquePut = await _send(
+        'PUT',
+        '/v1/blobs/$opaqueHash',
+        syncId: syncId,
+        body: opaque,
+        contentType: 'application/octet-stream',
+      );
+      expect(opaquePut.statusCode, 201);
+      final opaqueGet = await _send(
+        'GET',
+        '/v1/blobs/$opaqueHash',
+        syncId: syncId,
+      );
+      expect(opaqueGet.statusCode, 200);
+      expect(await opaqueGet.bodyBytes(), equals(opaque));
+
+      final jsonOpaque = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'kind': 'choreographer',
+            'id': 'json-opaque',
+            'body': {
+              'id': 'json-opaque',
+              'name': 'Opaque JSON',
+              'email': 'opaque@example.com',
+            },
+          }),
+        ),
+      );
+      final jsonOpaqueHash = sha256.convert(jsonOpaque).toString();
+      final jsonOpaquePut = await _send(
+        'PUT',
+        '/v1/blobs/$jsonOpaqueHash',
+        syncId: syncId,
+        body: jsonOpaque,
+        contentType: 'application/octet-stream',
+      );
+      expect(jsonOpaquePut.statusCode, 201);
+      final jsonOpaqueGet = await _send(
+        'GET',
+        '/v1/blobs/$jsonOpaqueHash',
+        syncId: syncId,
+      );
+      expect(jsonOpaqueGet.statusCode, 200);
+      expect(await jsonOpaqueGet.bodyBytes(), equals(jsonOpaque));
+
+      final deepOpaque = Uint8List.fromList(
+        utf8.encode(
+          '{"payload":${'[' * (maxJsonDepth + 1)}0${']' * (maxJsonDepth + 1)}}',
+        ),
+      );
+      final deepOpaqueHash = sha256.convert(deepOpaque).toString();
+      final deepOpaquePut = await _send(
+        'PUT',
+        '/v1/blobs/$deepOpaqueHash',
+        syncId: syncId,
+        body: deepOpaque,
+        contentType: 'application/octet-stream',
+      );
+      expect(deepOpaquePut.statusCode, 201);
+      final deepOpaqueGet = await _send(
+        'GET',
+        '/v1/blobs/$deepOpaqueHash',
+        syncId: syncId,
+      );
+      expect(deepOpaqueGet.statusCode, 200);
+      expect(await deepOpaqueGet.bodyBytes(), equals(deepOpaque));
+
+      final deepRecord = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"choreographer","id":"deep","body":'
+          '{"id":"deep","name":"Deep","nested":'
+          '${'[' * (maxJsonDepth + 1)}0${']' * (maxJsonDepth + 1)}}}',
+        ),
+      );
+      final deepRecordHash = sha256.convert(deepRecord).toString();
+      final deepRecordPut = await _send(
+        'PUT',
+        '/v1/blobs/$deepRecordHash',
+        syncId: syncId,
+        body: deepRecord,
+        contentType: 'application/octet-stream',
+      );
+      expect(deepRecordPut.statusCode, 413);
+      await deepRecordPut.drain<void>();
+      final deepRecordGet = await _send(
+        'GET',
+        '/v1/blobs/$deepRecordHash',
+        syncId: syncId,
+      );
+      expect(deepRecordGet.statusCode, 404);
+      await deepRecordGet.drain<void>();
+    },
+  );
+
+  test(
+    'blob allow-list resolves settings keys through the shared registry',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      settingsPrefixClassifications['test_shareable:'] =
+          const DataClassification(
+            term: DpvTerm.nonPersonal,
+            subject: DataSubject.appUser,
+            egress: EgressClass.shareable,
+          );
+      addTearDown(
+        () => settingsPrefixClassifications.remove('test_shareable:'),
+      );
+
+      Future<HttpClientResponse> putSetting(String id, String value) {
+        final body = _recordBlob(
+          kind: 'setting',
+          id: id,
+          body: {'value': value},
+        );
+        final hash = sha256.convert(body).toString();
+        return _send(
+          'PUT',
+          '/v1/blobs/$hash',
+          syncId: syncId,
+          body: body,
+          contentType: 'application/octet-stream',
+        );
+      }
+
+      expect((await putSetting('custom_dialects', 'exact')).statusCode, 201);
+      expect(
+        (await putSetting('test_shareable:one', 'prefix')).statusCode,
+        201,
+      );
+      final unknown = await putSetting('unknown_runtime_key', 'secret');
+      expect(unknown.statusCode, 422);
+      await unknown.drain<void>();
+    },
+  );
+
   test('GET and POST store lifecycle remain distinct', () async {
     final missingOne = await _send('GET', '/v1/store', syncId: syncId);
     final missingTwo = await _send('GET', '/v1/store', syncId: syncId);
@@ -913,3 +1352,22 @@ late HttpClient _activeClient;
 late HttpServer _activeServer;
 
 Uri _uri(String path) => Uri.http('127.0.0.1:${_activeServer.port}', path);
+
+Uint8List _recordBlob({
+  int version = 1,
+  required String kind,
+  required String id,
+  required Map<String, Object?> body,
+}) => Uint8List.fromList(
+  utf8.encode(
+    jsonEncode({
+      'v': version,
+      'kind': kind,
+      'id': id,
+      'updatedAt': '2026-09-03T00:00:00.000Z',
+      'deletedAt': null,
+      'existenceAt': '2026-09-03T00:00:00.000Z',
+      'body': body,
+    }),
+  ),
+);

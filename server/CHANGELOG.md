@@ -13,6 +13,8 @@ the app and of `compendium_core`; version headings below refer to
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
+- Validate recognizable record blobs against the shared generated privacy
+  allow-list while tolerating newer envelope versions.
 
 ### Fixed
 

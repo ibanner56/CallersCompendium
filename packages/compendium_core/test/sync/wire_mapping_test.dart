@@ -255,6 +255,13 @@ void main() {
       settingsPrefixClassifications.remove('test_shareable:');
     }
   });
+
+  test('does not treat dotted keys as nested wire paths', () {
+    final validation = validateShareableRecordBody(SyncRecordKind.dance, {
+      'formation.shape': 'private',
+    });
+    expect(validation.isValid, isFalse);
+  });
 }
 
 List<Object?> _valuesAtPath(Object? value, List<String> segments) {
