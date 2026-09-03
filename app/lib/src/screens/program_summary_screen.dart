@@ -70,7 +70,12 @@ class _ProgramSummaryScreenState extends State<ProgramSummaryScreen> {
   Future<void> _openBuilder() async {
     final result = await Navigator.of(context).push<String>(
       MaterialPageRoute<String>(
-        builder: (_) => ProgramEditorScreen(programId: _programId),
+        builder: (_) => ProgramEditorScreen(
+          programId: _programId,
+          callersBoxOnline: widget.callersBoxOnline,
+          contraDbOnline: widget.contraDbOnline,
+          reimportPicker: widget.reimportPicker,
+        ),
       ),
     );
     if (!mounted) return;

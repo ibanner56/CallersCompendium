@@ -172,7 +172,12 @@ class _AppShellState extends State<AppShell> {
       CommandResultKind.program => (
         1,
         MaterialPageRoute<void>(
-          builder: (_) => ProgramSummaryScreen(programId: result.id),
+          builder: (_) => ProgramSummaryScreen(
+            programId: result.id,
+            callersBoxOnline: widget.callersBoxOnline,
+            contraDbOnline: widget.contraDbOnline,
+            reimportPicker: widget.reimportPicker,
+          ),
         ),
       ),
     };

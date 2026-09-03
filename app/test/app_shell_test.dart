@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/require_performed_for_history_scope.dart';
 import 'package:compendium_app/src/screens/app_shell.dart';
@@ -26,6 +27,7 @@ Future<void> _pump(
   WidgetTester tester,
   CompendiumRepositories repos, {
   required Size size,
+  ImportPicker? reimportPicker,
 }) async {
   await tester.binding.setSurfaceSize(size);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -71,7 +73,7 @@ Future<void> _pump(
           ),
         ),
       ),
-      home: const AppShell(),
+      home: AppShell(reimportPicker: reimportPicker),
     ),
   );
   await tester.pumpAndSettle();
@@ -266,7 +268,13 @@ void main() {
           updatedAt: DateTime.utc(2026, 1, 1),
         ),
       );
-      await _pump(tester, repos, size: const Size(1200, 900));
+      final reimportPicker = () async => null;
+      await _pump(
+        tester,
+        repos,
+        size: const Size(1200, 900),
+        reimportPicker: reimportPicker,
+      );
 
       await tester.tap(find.byKey(const ValueKey('global-search-button')));
       await tester.pumpAndSettle();
@@ -291,6 +299,21 @@ void main() {
       expect(find.text('Edit program'), findsOneWidget);
       expect(find.byKey(const ValueKey('summary-perform')), findsOneWidget);
       expect(find.text('Perform this program'), findsOneWidget);
+      expect(
+        tester
+            .widget<ProgramSummaryScreen>(find.byType(ProgramSummaryScreen))
+            .reimportPicker,
+        same(reimportPicker),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('open-builder')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<ProgramEditorScreen>(find.byType(ProgramEditorScreen))
+            .reimportPicker,
+        same(reimportPicker),
+      );
     },
   );
 
