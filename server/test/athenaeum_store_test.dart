@@ -1355,6 +1355,12 @@ void main() {
     final idKey = '8' * 64;
     final created = initial.create(idKey);
     final hash = '9' * 64;
+    initial.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: hash,
+      body: Uint8List.fromList([3, 4]),
+    );
     final temporary = File(
       '${initial.blobFile(idKey, created.epoch, hash).path}.123.456.abc.tmp',
     );
@@ -1364,7 +1370,7 @@ void main() {
 
     recovered = AthenaeumStore(
       config: config,
-      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 10, maxBytes: 3),
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 10, maxBytes: 5),
       deleteFile: (_) {
         throw const FileSystemException('injected recovery failure');
       },
