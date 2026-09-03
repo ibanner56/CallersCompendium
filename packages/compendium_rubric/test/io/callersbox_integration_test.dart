@@ -364,6 +364,98 @@ void main() {
     });
   });
 
+  group('the nextNeighbors fallback placement', () {
+    core.Figure figure(String move, [Map<String, Object?> params = const {}]) =>
+        core.Figure(move: move, params: params);
+
+    test('lands on the figure before the first nextNeighbors reach', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('circle'),
+          figure('swing'),
+          figure('do_si_do', {'who': 'nextNeighbors'}),
+          figure('swing', {'who': 'partners'}),
+        ],
+      );
+      expect(nextNeighborsProgressionIndex(dance), 1);
+    });
+
+    test('reads only the first reach, not the last', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('circle'),
+          figure('do_si_do', {'who': 'nextNeighbors'}),
+          figure('star'),
+          figure('swing', {'who': 'nextNeighbors'}),
+        ],
+      );
+      expect(nextNeighborsProgressionIndex(dance), 0);
+    });
+
+    test('accepts the singular spelling upstream also allows', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('circle'),
+          figure('swing', {'who': 'nextNeighbor'}),
+        ],
+      );
+      expect(nextNeighborsProgressionIndex(dance), 0);
+    });
+
+    test('has nowhere to go when the opening figure is the first reach', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('swing', {'who': 'nextNeighbors'}),
+          figure('circle'),
+        ],
+      );
+      expect(nextNeighborsProgressionIndex(dance), isNull);
+    });
+
+    test('declines a dance that never reaches for the next couple', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('circle'),
+          figure('swing', {'who': 'partners'}),
+        ],
+      );
+      expect(nextNeighborsProgressionIndex(dance), isNull);
+    });
+
+    test('a flagged source is never second-guessed', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          core.Figure(move: 'circle', progression: true),
+          figure('swing', {'who': 'nextNeighbors'}),
+        ],
+      );
+      final bridged = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+      expect(bridged.assumedProgressionAt, isNull);
+      expect(bridged.warnings, isEmpty);
+    });
+
+    test('the retry still warns, and says why it was needed', () {
+      final dance = _shapedLike(
+        shape: core.FormationShape.dupleImproper,
+        figures: [
+          figure('circle'),
+          figure('swing'),
+          figure('do_si_do', {'who': 'nextNeighbors'}),
+        ],
+      );
+      final bridged = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+      expect(bridged.assumedProgressionAt, 1);
+      expect(bridged.warnings.single.kind, WarningKind.assumedProgression);
+      expect(bridged.warnings.single.detail, contains('nextNeighbors'));
+    });
+  });
+
   group('local corpus sweep', () {
     final corpus = Platform.environment['RUBRIC_TCB_CORPUS'];
 

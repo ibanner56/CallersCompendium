@@ -267,15 +267,52 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     );
   }
 
-  final bridged = bridgeCoreDance(dance);
-  switch (parseDance(bridged.record)) {
-    case Err(:final error):
-      return finish(
-        DanceOutcome.unsupported,
-        detail: '$error',
-        extra: bridged.warnings,
+  // One compile with the positional assumption. If the assumption is the only
+  // thing in the way, try the single alternative the record itself names.
+  // *(User-ruled.)* The retry is deliberately not a search: exactly two
+  // placements are ever tried, both chosen by reading the figures rather than
+  // the formation, and a second failure is reported as the first one's.
+  //
+  // A crash is never retried. The compiler throwing is a defect here, and a
+  // second placement that happens to land would bury it.
+  var attempt = _attempt(bridgeCoreDance(dance));
+  if (attempt.outcome != DanceOutcome.compiled &&
+      attempt.outcome != DanceOutcome.crashed) {
+    final fallback = bridgeCoreDance(dance, useNextNeighborsFallback: true);
+    if (fallback.assumedProgressionAt != null &&
+        fallback.assumedProgressionAt != attempt.assumedAt) {
+      final retry = _attempt(fallback);
+      if (retry.outcome == DanceOutcome.compiled) attempt = retry;
+    }
+  }
+  return finish(
+    attempt.outcome,
+    detail: attempt.detail,
+    extra: attempt.warnings,
+    assumedAt: attempt.assumedAt,
+  );
+}
+
+/// The outcome of compiling one bridged reading of a dance.
+typedef _Attempt = ({
+  DanceOutcome outcome,
+  String? detail,
+  List<Warning> warnings,
+  int? assumedAt,
+});
+
+_Attempt _attempt(BridgedDance bridged) {
+  _Attempt done(DanceOutcome outcome, {String? detail, List<Warning>? extra}) =>
+      (
+        outcome: outcome,
+        detail: detail,
+        warnings: extra ?? bridged.warnings,
         assumedAt: bridged.assumedProgressionAt,
       );
+
+  switch (parseDance(bridged.record)) {
+    case Err(:final error):
+      return done(DanceOutcome.unsupported, detail: '$error');
     case Ok(:final value):
       final CompileResult result;
       try {
@@ -284,34 +321,23 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
         // Deliberately unfiltered: what is being caught is "the compiler threw
         // at all", and narrowing the clause would let some other escaping type
         // end the sweep. The outcome keeps it loud.
-        return finish(
-          DanceOutcome.crashed,
-          detail: '$error',
-          extra: bridged.warnings,
-          assumedAt: bridged.assumedProgressionAt,
-        );
+        return done(DanceOutcome.crashed, detail: '$error');
       }
       final warnings = [...bridged.warnings, ...result.warnings];
       return switch (result) {
-        Compiled() => finish(
-          DanceOutcome.compiled,
-          extra: warnings,
-          assumedAt: bridged.assumedProgressionAt,
-        ),
-        Mismatch() => finish(
+        Compiled() => done(DanceOutcome.compiled, extra: warnings),
+        Mismatch() => done(
           DanceOutcome.mismatch,
           detail: 'ran, but the set landed elsewhere',
           extra: warnings,
-          assumedAt: bridged.assumedProgressionAt,
         ),
-        CompileError(:final opIndex, :final opName, :final error) => finish(
+        CompileError(:final opIndex, :final opName, :final error) => done(
           DanceOutcome.figureRefused,
           detail: opIndex == null
               ? '${error.kind.name}: ${error.message}'
               : 'figure ${opIndex + 1} ($opName) '
                     '${error.kind.name}: ${error.message}',
           extra: warnings,
-          assumedAt: bridged.assumedProgressionAt,
         ),
       };
   }
@@ -336,9 +362,21 @@ class BridgedDance {
 /// The translation is deliberately thin — four fields, because those are the
 /// four [parseDance] looks at — and it does exactly one thing the source did
 /// not: it may supply the progression flag. See [assumedProgressionIndex].
-BridgedDance bridgeCoreDance(core.Dance dance) {
+///
+/// Set [useNextNeighborsFallback] to place the progression by
+/// [nextNeighborsProgressionIndex] instead. That is the retry
+/// [runCoreDance] makes when the positional rule does not compile; it is not a
+/// better rule, only a second guess, and it warns just as loudly.
+BridgedDance bridgeCoreDance(
+  core.Dance dance, {
+  bool useNextNeighborsFallback = false,
+}) {
   final flagged = dance.figures.any((figure) => figure.progression);
-  final assumedAt = flagged ? null : assumedProgressionIndex(dance);
+  final assumedAt = flagged
+      ? null
+      : (useNextNeighborsFallback
+            ? nextNeighborsProgressionIndex(dance)
+            : assumedProgressionIndex(dance));
   final warnings = <Warning>[
     if (assumedAt != null)
       Warning(
@@ -347,7 +385,10 @@ BridgedDance bridgeCoreDance(core.Dance dance) {
         detail:
             'the source flagged no figure as the progression, so figure '
             '${assumedAt + 1} (${dance.figures[assumedAt].move}) was assumed '
-            'to be it',
+            'to be it'
+            '${useNextNeighborsFallback ? ', because the positional rule did '
+                      'not compile and this is the figure before the first '
+                      'nextNeighbors reach' : ''}',
       ),
   ];
 
@@ -408,4 +449,31 @@ int? assumedProgressionIndex(core.Dance dance) {
   }
 
   return dance.figures.length - 1;
+}
+
+/// The one alternative placement the *record itself* suggests, for when the
+/// positional rule of [assumedProgressionIndex] does not compile.
+///
+/// A figure that reaches for `nextNeighbors` is naming the couple this hands
+/// four has not met yet, so the progression must already have happened when it
+/// is danced. The figure **immediately before the first such mention** is
+/// therefore the latest point the progression can sit and still leave that
+/// reach meaning what it says. *(User-ruled.)*
+///
+/// This reads the figures' parameters, not the compiled state: it is the same
+/// kind of positional reasoning as [assumedProgressionIndex], with the record
+/// supplying the landmark instead of the formation. Nothing here inspects where
+/// dancers ended up, which the compiler forbids as a basis for progression.
+///
+/// Returns `null` when no figure mentions `nextNeighbors`, or when the first
+/// mention is the opening figure and so has nothing before it.
+int? nextNeighborsProgressionIndex(core.Dance dance) {
+  for (var index = 0; index < dance.figures.length; index++) {
+    final mentions = dance.figures[index].params.values.any(
+      (value) => value == 'nextNeighbors' || value == 'nextNeighbor',
+    );
+    if (!mentions) continue;
+    return index == 0 ? null : index - 1;
+  }
+  return null;
 }

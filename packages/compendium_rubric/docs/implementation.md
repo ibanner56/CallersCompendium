@@ -515,6 +515,26 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
 > This is a property of the *bridge*, not of the compiler. The compiler's own
 > rule is untouched: an unflagged record still refuses with
 > `unperformedProgression`. **The bridge assumes; the compiler never infers.**
+>
+> **One retry, and only one** *(user-ruled).* When the positional placement does
+> not compile, `runCoreDance` tries a second: the figure **immediately before the
+> first `nextNeighbors` reach** (`nextNeighborsProgressionIndex`). A figure
+> reaching for the next couple is naming people this hands four has not met yet,
+> so the progression must already have happened — which makes the figure before
+> it the latest point the progression can sit and still leave that reach meaning
+> what it says.
+>
+> This stays inside rule 5 because the landmark comes from the *record*: it reads
+> figure parameters, exactly as the positional rule reads formation and move
+> names. Nothing looks at where the dancers ended up. It is also not a search —
+> two placements are ever tried, never more — which matters, because 155 of the
+> 416 dances a perfect oracle would rescue admit **more than one** working
+> placement, and a search would have no principled way to choose among them.
+>
+> Two things the retry deliberately will not do: it never second-guesses a
+> source that *did* flag a figure, and it never retries a **crash**. The compiler
+> throwing is a defect here, and a second placement that happened to land would
+> bury it.
 
 ---
 
@@ -646,7 +666,7 @@ test catches, not whether undoing your own work reddens it.
 
 ## 15. Current state and known debt
 
-- **989 tests green; `analyze` clean; `format` clean.**
+- **996 tests green; `analyze` clean; `format` clean.**
 - **46 figures registered**, plus 3 upstream aliases resolved to them.
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
@@ -708,32 +728,33 @@ see §12). Numbers move as figures land — re-measure rather than cite these.
   arrive with at least one figure left as free text, so the compiler never sees
   them. Raising the ceiling on this project is upstream recognition work far
   more than it is figure work.
-- Of the 3,516 the compiler attempted, **1,391 compiled (39.6%)**.
+- Of the 3,516 the compiler attempted, **1,606 compiled (45.7%)** — of which 215
+  are owed to the `nextNeighbors` retry described in §10.1, which lifted the rate
+  from 39.6%. Those 215 came out of `figureRefused` (198) and `mismatch` (17).
 - **Vocabulary coverage is high**: 44 of the 49 moves this package advertises are
   exercised by real choreography. The genuine backlog named by the corpus is
   `butterfly_whirl`, `contra_corners`, `promenade`, `revolving_door` and `slice`.
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
   for a figure this common — the likely explanation is that core's adapter does
   not recognise its wording. Worth confirming; it would be an upstream finding.
-- Refusals are dominated by `whoMismatch` (73%), then `unsupportedParam` (13%)
-  and `unresolvableDancerSet` (12.5%). Among deferred parameters, **diagonal
-  `right_left_through` is the highest-value unblock** — it also gates the hey
-  diagonals.
-- **The assumed-progression rule costs about 12%, and that has been measured.**
-  Every one of the 3,516 attempted dances was recompiled with each figure
-  flagged in turn. The assumed placement lands for 1,391; a *different* placement
-  lands for **416** where the assumption does not; and **1,709 compile under no
-  placement at all**. So a perfect oracle would take the compile rate from 39.6%
-  to about 51%, and the remaining half of the failures are genuine geometry, not
-  a misplaced progression. This refutes a plausible earlier reading — that the
-  large `whoMismatch` bucket was mostly progression misplacement measured from a
-  wrong baseline. It is a real contributor and a minority one.
-- **The corpus does not suggest a better rule.** Among the 416 the rule loses,
-  the progression belongs mid-dance far more often than at either end, and the
-  move that carries it is spread thinly across a dozen figures — `pass_through`,
-  `star`, `swing`, `allemande` and `chain` lead, none of them decisively. No
-  positional rule in sight beats "the last figure". Closing the gap would mean
-  *searching* for a placement that compiles, and that is **inferring progression
-  from state**, which §13 rule 5 forbids. Raise it as a decision rather than
-  implementing it. (155 of the 416 admit more than one working placement, so a
-  search would also have to answer which one it meant.)
+- Refusals are dominated by `whoMismatch`, then `unsupportedParam` and
+  `unresolvableDancerSet` — measured at roughly 73/13/12.5 percent *before* the
+  `nextNeighbors` retry landed, which cut the refusal count by 198 and will have
+  taken the `whoMismatch` share down with it. Among deferred parameters,
+  **diagonal `right_left_through` is the highest-value unblock** — it also gates
+  the hey diagonals.
+- **The assumed-progression rule's cost was measured, and it is a minority
+  one.** Every one of the 3,516 attempted dances was recompiled with each figure
+  flagged in turn. The positional placement landed for 1,391; a *different*
+  placement landed for **416** where it did not; and **1,709 compiled under no
+  placement at all**. So a perfect oracle would reach about 51%, and half the
+  failures are genuine geometry. This refuted a plausible earlier reading — that
+  the large `whoMismatch` bucket was mostly progression misplacement measured
+  from a wrong baseline.
+- **The `nextNeighbors` retry captures 215 of those 416**, a little over half,
+  without searching. The remainder are spread thinly: among the 416, the
+  progression belongs mid-dance far more often than at either end, and the move
+  carrying it is diffuse — `pass_through`, `star`, `swing`, `allemande` and
+  `chain` lead, none decisively. There is no second landmark of the
+  `nextNeighbors` rule's quality visible in the data, so closing the rest would
+  mean searching, which §13 rule 5 forbids.
