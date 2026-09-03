@@ -487,7 +487,7 @@ a sixth, `accessControlData`, for the sync ID itself — recorded below the tabl
 | In a request path or envelope | Never | Yes, to the configured endpoint only | Yes, in `Authorization`, to that origin only |
 | Adopted from a peer | N/A | Never — each installation mints its own | Never — entered or generated locally |
 | Content | Any local value | Opaque random bytes, derived from nothing | May be user-chosen, so may carry personal content |
-| Retention | Local only | Stated, bounded, and disclosed | Never retained recoverably; never logged |
+| Retention | Local only | Stated, bounded, and disclosed | By server/proxy: never retained recoverably; never logged. Local persistence follows the settings classification. |
 
 A later Copilot round found that `sync_id` had the same defect the device ID
 had, one row down in the same table: it was `deviceScoped` while being the
@@ -552,7 +552,7 @@ transmitting it *is* the authorisation for the request carrying it:
 | --- | --- |
 | `sync_enabled` | Each installation opts in for itself. |
 | `sync_endpoint` | Syncing it would let one device silently redirect another. |
-| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but is never stored recoverably, never logged, never adopted, and never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. |
+| `sync_id` (`accessControlData`) | The bearer credential. It travels in an `Authorization` header on every request, but the server/proxy never stores it recoverably, logs it, or adopts it. Local persistence follows the settings classification, and it is never sent to any origin but the configured endpoint's — including across a redirect, which §8 permits only within that origin. |
 | `sync_device_id` (`protocolIdentifier`) | Travels as a routing key, but is never *adopted*: two devices sharing an ID collide in the manifest namespace. |
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |

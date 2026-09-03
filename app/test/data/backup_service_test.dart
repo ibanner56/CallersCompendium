@@ -10,7 +10,12 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.d
 import 'package:compendium_app/src/data/reduce_motion_scope.dart'
     show kReduceMotionKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kSortIgnoreArticlesKey, kAppThemeKey, kPerformTextScaleKey;
+    show
+        kSortIgnoreArticlesKey,
+        kAppThemeKey,
+        kPerformTextScaleKey,
+        kSyncDeviceIdKey,
+        kSyncIdKey;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
 import 'package:compendium_app/src/data/window_service.dart'
@@ -51,6 +56,8 @@ Future<void> _seed(CompendiumRepositories repos) async {
   // Device-local / metadata keys that must NOT travel in a backup.
   await repos.settings.set(kWindowFrameKey, 'some-geometry');
   await repos.settings.set(kLastBackupAtKey, '2020-01-01T00:00:00.000Z');
+  await repos.settings.set(kSyncIdKey, 'one-two-three-four');
+  await repos.settings.set(kSyncDeviceIdKey, 'device-identifier');
 }
 
 void main() {
@@ -75,6 +82,8 @@ void main() {
       // Denylisted keys are never carried in the settings map.
       expect(doc.settings.containsKey(kWindowFrameKey), isFalse);
       expect(doc.settings.containsKey(kLastBackupAtKey), isFalse);
+      expect(doc.settings.containsKey(kSyncIdKey), isFalse);
+      expect(doc.settings.containsKey(kSyncDeviceIdKey), isFalse);
       expect(doc.settings.containsKey(kCustomDialectsKey), isFalse);
       expect(doc.settings.containsKey(kCustomThemesKey), isFalse);
     },
