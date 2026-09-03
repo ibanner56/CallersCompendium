@@ -742,7 +742,7 @@ class _FailureBudget {
     var bucket = _perIp[address];
     if (bucket == null) {
       if (_perIp.length >= maxFailedResolutionsServerWide) {
-        _perIp.remove(_perIp.keys.first);
+        return false;
       }
       bucket = _TokenBucket(
         capacity: _limits.perIpFailureBurst,

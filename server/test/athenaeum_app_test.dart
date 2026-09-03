@@ -443,6 +443,33 @@ void main() {
     }
   });
 
+  test('failure-budget churn cannot reset an active address bucket', () async {
+    final customApp = AthenaeumApp(
+      config: app.config,
+      clientAddressResolver: (request) => request.headers['x-test-ip']!,
+      budgetLimits: const AthenaeumBudgetLimits(
+        perIpFailureBurst: maxFailedResolutionsPerIpBurst,
+        serverWideFailuresPerMinute: 2000,
+      ),
+    );
+    Future<Response> failedRequest(String address) => customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer %%%bad', 'x-test-ip': address},
+      ),
+    );
+
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      expect((await failedRequest('target')).statusCode, 401);
+    }
+    for (var attempt = 0; attempt < 999; attempt++) {
+      expect((await failedRequest('other-$attempt')).statusCode, 401);
+    }
+    expect((await failedRequest('new-address')).statusCode, 429);
+    expect((await failedRequest('target')).statusCode, 429);
+  });
+
   test(
     'server-wide shedding preserves existing-store and resource behavior',
     () async {
