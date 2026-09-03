@@ -101,6 +101,53 @@ DanceListEntry _richEntry() => DanceListEntry(
 );
 
 void main() {
+  testWidgets('shows the drill-in chevron by default', (tester) async {
+    await _pump(tester, _entry());
+
+    expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+  });
+
+  testWidgets('can hide the drill-in chevron without a trailing placeholder', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: _entry(),
+            onTap: () {},
+            showChevron: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+    expect(tester.widget<ListTile>(find.byType(ListTile)).trailing, isNull);
+  });
+
+  testWidgets('hiding the chevron preserves row actions', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: Scaffold(
+          body: DanceListTile(
+            entry: _entry(),
+            onTap: () {},
+            onDuplicate: () {},
+            showChevron: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('dance-actions-d1')), findsOneWidget);
+    expect(find.byIcon(Icons.chevron_right), findsNothing);
+  });
+
   testWidgets('rating indicator shows the value with a semantic label', (
     tester,
   ) async {

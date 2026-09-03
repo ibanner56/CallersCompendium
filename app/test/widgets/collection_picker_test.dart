@@ -624,6 +624,14 @@ void main() {
       await _pumpPicker(tester, repos, onAddDance: added.add);
       await tester.pumpAndSettle();
 
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('picker-tile-a')),
+          matching: find.byIcon(Icons.chevron_right),
+        ),
+        findsNothing,
+      );
+
       await _tapVisible(tester, find.byKey(const ValueKey('picker-tile-a')));
 
       expect(added, ['a']);
