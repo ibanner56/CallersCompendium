@@ -183,7 +183,6 @@ Future<void> initializeCanonicalFigureTextGate(
   SettingsRepository settings,
 ) async {
   if (await settings.contains(kCanonicalFigureTextKey)) return;
-  await settings.set(kCanonicalFigureTextKey, false);
   final storedRendering = await settings.get(kDefaultDanceDetailRenderingKey);
   if (storedRendering == DanceDetailRendering.canonical.name) {
     await settings.set(
@@ -191,6 +190,9 @@ Future<void> initializeCanonicalFigureTextGate(
       DanceDetailRendering.activeDialect.name,
     );
   }
+  // Mark the migration complete only after the legacy child has been handled,
+  // so an interrupted migration remains retryable.
+  await settings.set(kCanonicalFigureTextKey, false);
 }
 
 /// Key used to persist the default dance FORM for new dances (ROADMAP DD.1).
