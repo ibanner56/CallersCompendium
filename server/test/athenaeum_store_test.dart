@@ -1071,6 +1071,71 @@ void main() {
     expect(targetFile.existsSync(), isFalse);
   });
 
+  test('blob retry batches rotate failed jobs', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-blob-retry-rotation-',
+    );
+    final database = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
+    var failDelete = true;
+    final failedHashes = <String>{};
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      clock: () => now,
+      deleteFile: (file) {
+        final shouldFail = failedHashes.any(file.path.endsWith);
+        if (failDelete || shouldFail) {
+          throw const FileSystemException('injected blob failure');
+        }
+        file.deleteSync();
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'b' * 64;
+    final epoch = store.create(idKey).epoch;
+    final queuedAt = now.millisecondsSinceEpoch ~/ 1000;
+    for (
+      var index = 0;
+      index < maxPendingDeletionRetriesPerRequest + 1;
+      index++
+    ) {
+      final hash = index.toRadixString(16).padLeft(64, '0');
+      if (index < maxPendingDeletionRetriesPerRequest) {
+        failedHashes.add(hash);
+      }
+      final file = store.blobFile(idKey, epoch, hash);
+      file.parent.createSync(recursive: true);
+      file.writeAsBytesSync([1]);
+      database.execute(
+        'INSERT INTO blob_deletion_jobs (id_key, epoch, hash, queued_at) '
+        'VALUES (?, ?, ?, ?)',
+        [idKey, epoch, hash, queuedAt],
+      );
+    }
+
+    failDelete = false;
+    store.retryPendingBlobDeletions(
+      maxJobs: maxPendingDeletionRetriesPerRequest,
+    );
+    store.retryPendingBlobDeletions(
+      maxJobs: maxPendingDeletionRetriesPerRequest,
+    );
+
+    final targetHash = maxPendingDeletionRetriesPerRequest
+        .toRadixString(16)
+        .padLeft(64, '0');
+    expect(store.blobFile(idKey, epoch, targetHash).existsSync(), isFalse);
+  });
+
   test('retention purges continue after an epoch cleanup failure', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-retention-isolation-',
