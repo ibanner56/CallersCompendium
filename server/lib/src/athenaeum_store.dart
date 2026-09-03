@@ -128,7 +128,7 @@ class AthenaeumStore {
     );
   }
 
-  void putManifest({
+  bool putManifest({
     required String idKey,
     required String epoch,
     required String deviceId,
@@ -144,6 +144,11 @@ class AthenaeumStore {
       if (current == null || current.epoch != epoch) {
         throw const StoreEpochMismatch();
       }
+      final existed = _database.select(
+        'SELECT 1 FROM manifests WHERE id_key = ? AND epoch = ? '
+        'AND device_id = ?',
+        [idKey, epoch, deviceId],
+      ).isNotEmpty;
       _database.execute(
         'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
         'VALUES (?, ?, ?, ?, ?, ?) '
@@ -153,6 +158,7 @@ class AthenaeumStore {
       );
       _database.execute('COMMIT');
       inTransaction = false;
+      return !existed;
     } catch (error) {
       try {
         if (inTransaction) _database.execute('ROLLBACK');

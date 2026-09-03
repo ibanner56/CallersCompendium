@@ -155,8 +155,9 @@ class AthenaeumApp {
       if (manifest.epoch != current.epoch) {
         throw const _RequestFailure(409, 'stale manifest epoch');
       }
+      late final bool created;
       try {
-        store.putManifest(
+        created = store.putManifest(
           idKey: identity.idKey,
           epoch: current.epoch,
           deviceId: deviceId,
@@ -168,7 +169,7 @@ class AthenaeumApp {
         throw const _RequestFailure(409, 'stale manifest epoch');
       }
       return Response(
-        201,
+        created ? 201 : 200,
         headers: {
           'content-type': 'application/json',
           'etag': '"${rawBodyHash(body)}"',

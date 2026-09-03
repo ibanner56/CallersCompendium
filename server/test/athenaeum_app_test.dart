@@ -63,6 +63,14 @@ void main() {
       contentType: 'application/json; charset=utf-8',
     );
     expect(manifestPut.statusCode, 201);
+    final repeatedManifestPut = await _send(
+      'PUT',
+      '/v1/manifests/device-one',
+      syncId: syncId,
+      body: manifestBytes,
+      contentType: 'application/json; charset=utf-8',
+    );
+    expect(repeatedManifestPut.statusCode, 200);
     final manifestGet = await _send(
       'GET',
       '/v1/manifests/device-one',

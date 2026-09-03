@@ -19,6 +19,14 @@ void main() {
     );
   });
 
+  test('decodes an unambiguous hexadecimal pepper before base64', () {
+    final config = AthenaeumConfig.fromEnvironment(
+      dataDirectory: '.',
+      pepper: '00' * 32,
+    );
+    expect(config.pepper, List<int>.filled(32, 0));
+  });
+
   test('only allows loopback listener hosts', () {
     expect(
       () => AthenaeumConfig(

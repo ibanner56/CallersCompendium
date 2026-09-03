@@ -47,19 +47,19 @@ class AthenaeumConfig {
   final int port;
 
   static List<int> _decodePepper(String value) {
-    try {
-      final bytes = base64.decode(value);
-      if (bytes.length >= 32) return bytes;
-    } on FormatException {
-      // A hexadecimal deployment secret is also accepted for shell-friendly
-      // configuration, but neither representation has a built-in fallback.
-    }
     if (RegExp(r'^(?:[0-9a-fA-F]{2}){32,}$').hasMatch(value)) {
       final result = <int>[];
       for (var index = 0; index < value.length; index += 2) {
         result.add(int.parse(value.substring(index, index + 2), radix: 16));
       }
       if (result.length >= 32) return result;
+    }
+    try {
+      final bytes = base64.decode(value);
+      if (bytes.length >= 32) return bytes;
+    } on FormatException {
+      // A hexadecimal deployment secret is also accepted for shell-friendly
+      // configuration, but neither representation has a built-in fallback.
     }
     throw const FormatException(
       'pepper must be at least 32-byte base64 or hex',

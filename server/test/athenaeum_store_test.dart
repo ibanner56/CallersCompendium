@@ -6,6 +6,40 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('duplicate blob uploads preserve the original uploaded timestamp', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = '0' * 64;
+    final created = store.create(idKey);
+    final hash = '1' * 64;
+    final body = Uint8List.fromList([2]);
+    expect(
+      store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
+      isTrue,
+    );
+    final first = store.blobRef(idKey, created.epoch, hash)!;
+    expect(
+      store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
+      isFalse,
+    );
+    final second = store.blobRef(idKey, created.epoch, hash)!;
+    expect(second.uploadedAt, first.uploadedAt);
+  });
+
   test('store deletion rolls back all metadata when a delete fails', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-store-test-',
