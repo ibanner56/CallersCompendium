@@ -218,7 +218,6 @@ STEPS: tuple[Step, ...] = (
         (("dart", "format", "--output=none", "--set-exit-if-changed", "."),),
         fast=False,
         needs_binary="dart",
-        needs_path=ROOT / "server" / "pubspec.yaml",
     ),
     Step(
         "flutter-version",
@@ -295,6 +294,7 @@ STEPS: tuple[Step, ...] = (
         ),
         fast=False,
         needs_binary="dart",
+        needs_path=ROOT / "server" / "pubspec.yaml",
     ),
 )
 
