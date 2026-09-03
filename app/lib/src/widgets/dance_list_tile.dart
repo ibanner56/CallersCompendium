@@ -32,6 +32,7 @@ class DanceListTile extends StatelessWidget {
     this.onLongPress,
     this.selected = false,
     this.selectionMode = false,
+    this.showChevron = true,
     this.selectedForBatch = false,
     this.onDelete,
     this.onDuplicate,
@@ -60,6 +61,10 @@ class DanceListTile extends StatelessWidget {
   /// Whether the list is in batch multi-select mode. When true the leading
   /// widget is a [Checkbox] and the trailing chevron is hidden.
   final bool selectionMode;
+
+  /// Whether to show the normal drill-in chevron. Defaults to true so callers
+  /// that override [onTap] retain the existing affordance unless they opt out.
+  final bool showChevron;
 
   /// Whether this row is currently checked in batch multi-select mode.
   final bool selectedForBatch;
@@ -258,12 +263,15 @@ class DanceListTile extends StatelessWidget {
   }
 
   /// Trailing content for a normal (non-selection) row: the row action overflow
-  /// (⋮) menu when any action callback is wired, followed by the drill-in
-  /// chevron. Falls back to the chevron alone when no actions are provided.
-  Widget _buildTrailing(AppLocalizations l10n) {
+  /// (⋮) menu when any action callback is wired, followed by the optional
+  /// drill-in chevron. Returns null when neither is needed.
+  Widget? _buildTrailing(AppLocalizations l10n) {
     final hasActions =
         onDelete != null || onDuplicate != null || onAddToProgram != null;
-    if (!hasActions) return const Icon(Icons.chevron_right);
+    if (!hasActions) {
+      return showChevron ? const Icon(Icons.chevron_right) : null;
+    }
+    if (!showChevron) return _actionsMenu(l10n);
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [_actionsMenu(l10n), const Icon(Icons.chevron_right)],
