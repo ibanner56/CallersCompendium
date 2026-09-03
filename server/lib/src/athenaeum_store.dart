@@ -516,14 +516,23 @@ class AthenaeumStore {
   }) {
     var usage = const _DeletionUsage();
     final accountedPaths = <String>{};
-    final liveRows = _database.select(
-      'SELECT epoch, hash FROM blob_refs WHERE id_key = ?',
+    final directoryRows = _database.select(
+      'SELECT epoch FROM deletion_jobs WHERE id_key = ?',
       [idKey],
     );
-    for (final row in liveRows) {
-      accountedPaths.add(
-        blobFile(idKey, row['epoch'] as String, row['hash'] as String).path,
+    if (directoryRows.isNotEmpty) {
+      final liveRows = _database.select(
+        'SELECT epoch, hash FROM blob_refs WHERE id_key = ?',
+        [idKey],
       );
+      for (final row in liveRows) {
+        accountedPaths.add(
+          blobFile(idKey, row['epoch'] as String, row['hash'] as String).path,
+        );
+      }
+      if (excludingEpoch != null && excludingHash != null) {
+        accountedPaths.add(blobFile(idKey, excludingEpoch, excludingHash).path);
+      }
     }
     final rows = _database.select(
       'SELECT epoch, hash FROM blob_deletion_jobs WHERE id_key = ?',
@@ -539,10 +548,6 @@ class AthenaeumStore {
         usage = usage.add(bytes: file.lengthSync(), blobs: 1);
       }
     }
-    final directoryRows = _database.select(
-      'SELECT epoch FROM deletion_jobs WHERE id_key = ?',
-      [idKey],
-    );
     for (final row in directoryRows) {
       final directory = Directory(
         p.join(blobDirectory.path, idKey, row['epoch'] as String),

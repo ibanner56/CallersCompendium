@@ -699,6 +699,42 @@ void main() {
     );
   });
 
+  test('same-epoch replacement excludes a pending directory file', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-pending-replacement-quota-',
+    );
+    final database = sqlite3.openInMemory();
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      breakGlassDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBlobs: 1, maxBytes: 3),
+      deleteDirectory: (_) {
+        throw const FileSystemException('injected directory failure');
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = '8' * 64;
+    final created = store.create(idKey);
+    final hash = '9' * 64;
+    final body = Uint8List.fromList([1, 2, 3]);
+    store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body);
+    store.deleteStore(idKey);
+    store.create(idKey);
+
+    expect(
+      store.putBlob(idKey: idKey, epoch: created.epoch, hash: hash, body: body),
+      isTrue,
+    );
+  });
+
   test('overlapping blob and store deletion jobs charge a file once', () {
     final dataDirectory = Directory.systemTemp.createTempSync(
       'athenaeum-overlapping-deletion-quota-',
