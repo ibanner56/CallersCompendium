@@ -89,6 +89,22 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
   ),
+  'deletion_jobs.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
+  'deletion_jobs.epoch': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Identifies the epoch directory awaiting filesystem cleanup.',
+  ),
+  'deletion_jobs.queued_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+  ),
   'blob_files.body': DataClassification(
     term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.thirdParty,

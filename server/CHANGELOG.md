@@ -16,5 +16,6 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Fixed
 
-- Serialize store deletion, preserve stale-epoch blob uploads for later
-  collection, and return `400` for malformed gzip request bodies.
+- Serialize store deletion with durable filesystem cleanup retries, preserve
+  stale-epoch blob uploads for later collection, and return `400` for malformed
+  gzip request bodies.

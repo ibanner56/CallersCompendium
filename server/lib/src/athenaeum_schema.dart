@@ -41,6 +41,11 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
     'size': 'INTEGER NOT NULL',
     'uploaded_at': 'INTEGER NOT NULL',
   }, tableConstraint: 'PRIMARY KEY (id_key, epoch, hash)'),
+  AthenaeumTableSchema('deletion_jobs', {
+    'id_key': 'TEXT NOT NULL',
+    'epoch': 'TEXT NOT NULL',
+    'queued_at': 'INTEGER NOT NULL',
+  }, tableConstraint: 'PRIMARY KEY (id_key, epoch)'),
 ];
 
 List<String> get serverSqliteFields => [

@@ -47,4 +47,49 @@ void main() {
     expect(store.lookup(idKey), isNotNull);
     expect(store.manifest(idKey, created.epoch, 'device-one'), isNotNull);
   });
+
+  test('filesystem deletion failures remain queued for retry', () {
+    final dataDirectory = Directory.systemTemp.createTempSync(
+      'athenaeum-store-test-',
+    );
+    final database = sqlite3.openInMemory();
+    var failDelete = true;
+    final store = AthenaeumStore(
+      config: AthenaeumConfig(
+        dataDirectory: dataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      ),
+      database: database,
+      deleteDirectory: (directory) {
+        if (failDelete) {
+          throw const FileSystemException('injected filesystem failure');
+        }
+        directory.deleteSync(recursive: true);
+      },
+    );
+    addTearDown(() {
+      store.close();
+      dataDirectory.deleteSync(recursive: true);
+    });
+
+    final idKey = 'd' * 64;
+    final created = store.create(idKey);
+    store.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: 'e' * 64,
+      body: Uint8List.fromList([2]),
+    );
+    final blobFile = store.blobFile(idKey, created.epoch, 'e' * 64);
+
+    store.deleteStore(idKey);
+    expect(blobFile.existsSync(), isTrue);
+    expect(database.select('SELECT * FROM deletion_jobs'), hasLength(1));
+    expect(store.lookup(idKey), isNull);
+
+    failDelete = false;
+    store.retryPendingDeletions();
+    expect(blobFile.existsSync(), isFalse);
+    expect(database.select('SELECT * FROM deletion_jobs'), isEmpty);
+  });
 }

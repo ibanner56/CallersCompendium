@@ -10,6 +10,8 @@ import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'athenaeum_config.dart';
 import 'athenaeum_schema.dart';
 
+typedef DirectoryDelete = void Function(Directory directory);
+
 const int maxBlobBytes = 1024 * 1024;
 const int maxManifestBytes = 16 * 1024 * 1024;
 const int maxMissingHashes = 10000;
@@ -24,19 +26,25 @@ final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
 
 class AthenaeumStore {
-  AthenaeumStore({required AthenaeumConfig config, sqlite3.Database? database})
-    : config = config,
-      _database = database ?? _openDatabase(config.dataDirectory) {
+  AthenaeumStore({
+    required AthenaeumConfig config,
+    sqlite3.Database? database,
+    DirectoryDelete? deleteDirectory,
+  }) : config = config,
+       _database = database ?? _openDatabase(config.dataDirectory),
+       _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively {
     Directory(config.dataDirectory).createSync(recursive: true);
     _database.execute('PRAGMA foreign_keys = ON');
     _database.execute('PRAGMA journal_mode = WAL');
     for (final table in athenaeumTableSchemas) {
       _database.execute(table.createSql());
     }
+    retryPendingDeletions();
   }
 
   final AthenaeumConfig config;
   final sqlite3.Database _database;
+  final DirectoryDelete _deleteDirectory;
 
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
@@ -282,6 +290,10 @@ class AthenaeumStore {
       _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
       _database.execute('DELETE FROM blob_refs WHERE id_key = ?', [idKey]);
       _database.execute('DELETE FROM stores WHERE id_key = ?', [idKey]);
+      _database.execute(
+        'INSERT INTO deletion_jobs (id_key, epoch, queued_at) VALUES (?, ?, ?)',
+        [idKey, epoch, DateTime.now().millisecondsSinceEpoch ~/ 1000],
+      );
       _database.execute('COMMIT');
       inTransaction = false;
     } catch (error) {
@@ -291,7 +303,43 @@ class AthenaeumStore {
         rethrow;
       }
     }
-    final directory = Directory(p.join(blobDirectory.path, idKey, epoch));
+    retryPendingDeletions();
+  }
+
+  void retryPendingDeletions() {
+    final rows = _database.select(
+      'SELECT id_key, epoch FROM deletion_jobs ORDER BY queued_at',
+    );
+    for (final row in rows) {
+      final idKey = row['id_key'] as String;
+      final epoch = row['epoch'] as String;
+      final directory = Directory(p.join(blobDirectory.path, idKey, epoch));
+      try {
+        _deleteDirectory(directory);
+      } on FileSystemException {
+        continue;
+      }
+      var inTransaction = false;
+      try {
+        _database.execute('BEGIN IMMEDIATE');
+        inTransaction = true;
+        _database.execute(
+          'DELETE FROM deletion_jobs WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
+        );
+        _database.execute('COMMIT');
+        inTransaction = false;
+      } catch (error) {
+        try {
+          if (inTransaction) _database.execute('ROLLBACK');
+        } finally {
+          rethrow;
+        }
+      }
+    }
+  }
+
+  static void _deleteDirectoryRecursively(Directory directory) {
     if (directory.existsSync()) directory.deleteSync(recursive: true);
   }
 
