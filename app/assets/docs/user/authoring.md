@@ -58,8 +58,8 @@ Enter. Press Escape when you are done.
 
 ### Free-text entry
 
-Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Defaults** ▸
-**Dance-authoring defaults** and the same box accepts a whole line at a time
+Turn on **Free-text entry** in [Settings](./settings.md) ▸ **Dialect** ▸
+**Dance details & shorthands** and the same box accepts a whole line at a time
 instead of one move at a time. Type `neighbor balance & swing` and you get both
 figures; type `16 circle left 3/4` and you get a sixteen-beat circle left
 three-quarters. The app tells you how many figures it added and invites you to
@@ -71,8 +71,8 @@ dropped.
 ### Figure shorthands
 
 If you type the same run of figures over and over, teach it to the app once.
-Choose **Figure shorthands** in **Settings** ▸ **Defaults** ▸ **Dance-authoring
-defaults**, then **New shorthand**:
+Choose **Figure shorthands** in **Settings** ▸ **Dialect** ▸ **Dance details &
+shorthands**, then **New shorthand**:
 
 - **Shorthand** is the exact line you will type during free-text entry. It is
   matched without regard to capitals, so `NBS` and `nbs` are the same shorthand.

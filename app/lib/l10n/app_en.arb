@@ -580,6 +580,18 @@
   "@settingsDialectHeader": {
     "description": "Dialect settings section header for the dialect library."
   },
+  "settingsDialectDanceDetailsHeader": "Dance details & shorthands",
+  "@settingsDialectDanceDetailsHeader": {
+    "description": "Settings subsection header for canonical dance-detail text and figure-entry preferences."
+  },
+  "settingsDialectCanonicalFigureTextTitle": "Canonical figure text",
+  "@settingsDialectCanonicalFigureTextTitle": {
+    "description": "Opt-in gate controlling whether canonical figure text and the in-detail Canonical switch are available."
+  },
+  "settingsDialectCanonicalFigureTextSubtitle": "When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.",
+  "@settingsDialectCanonicalFigureTextSubtitle": {
+    "description": "Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed."
+  },
   "settingsDialectNewButton": "New dialect",
   "@settingsDialectNewButton": {
     "description": "Label of the button (and title of the prompt) that creates a new custom dialect."

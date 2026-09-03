@@ -27,6 +27,7 @@ import 'src/data/custom_themes_scope.dart';
 import 'src/data/date_format_scope.dart';
 import 'src/data/dialect_library_controller.dart';
 import 'src/data/dialect_library_scope.dart';
+import 'src/data/display_defaults.dart';
 import 'src/data/first_day_of_week_scope.dart';
 import 'src/data/formation_colors_controller.dart';
 import 'src/data/formation_colors_scope.dart';
@@ -1007,6 +1008,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
   /// startup sequence so a backup restore (ROADMAP G.5) can re-run exactly this
   /// step — via [reloadFromSettings] — to refresh the UI without a relaunch.
   Future<void> _loadPreferences() async {
+    await initializeCanonicalFigureTextGate(_appData.repositories.settings);
     // Load the persisted dialect library (custom dialects + active-name ref),
     // migrating any legacy single-dialect blob one time, then seed the notifier
     // with the resolved active dialect (defaults to Larks/Robins when unset).

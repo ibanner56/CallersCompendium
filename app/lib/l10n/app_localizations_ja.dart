@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -425,6 +426,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'ダイアレクト';
+
+  @override
+  String get settingsDialectDanceDetailsHeader => 'ダンスの詳細と略称';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => '標準フィガー表記';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'オンにすると、ダンスの詳細に標準的な役割名と動きの名前を表示でき、標準以外のダイアレクトでは「標準」スイッチを使用できます。デフォルトではオフです。';
 
   @override
   String get settingsDialectNewButton => '新しいダイアレクト';

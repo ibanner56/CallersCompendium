@@ -1,6 +1,8 @@
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
+import 'package:compendium_app/src/data/display_defaults.dart'
+    show kCanonicalFigureTextKey;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
     show kProgramMatrixColumnsKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
@@ -43,6 +45,23 @@ void main() {
       expect(validateBackupSettingValue(kAggressiveBeatsUpdateKey, 1), isFalse);
       expect(
         validateBackupSettingValue(kAggressiveBeatsUpdateKey, null),
+        isFalse,
+      );
+    });
+
+    test('canonical figure text gate accepts only bools', () {
+      expect(validateBackupSettingValue(kCanonicalFigureTextKey, true), isTrue);
+      expect(
+        validateBackupSettingValue(kCanonicalFigureTextKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kCanonicalFigureTextKey, 'true'),
+        isFalse,
+      );
+      expect(validateBackupSettingValue(kCanonicalFigureTextKey, 1), isFalse);
+      expect(
+        validateBackupSettingValue(kCanonicalFigureTextKey, null),
         isFalse,
       );
     });

@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -440,6 +441,18 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'Dialectes';
+
+  @override
+  String get settingsDialectDanceDetailsHeader =>
+      'Détails de la danse et abréviations';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle =>
+      'Texte canonique des figures';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'Lorsqu’elle est activée, cette option permet aux détails de la danse d’afficher les noms canoniques des rôles et des figures, et le sélecteur Canonique est disponible pour les dialectes non canoniques. Désactivée par défaut.';
 
   @override
   String get settingsDialectNewButton => 'Nouveau dialecte';
@@ -4604,8 +4617,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           'Cet import contient $count éléments — plus que prévu pour un partage normal.',
-      one:
-          'Cet import contient 1 élément — plus que prévu pour un partage normal.',
+      one: 'Cet import contient 1 élément — plus que prévu pour un partage normal.',
     );
     return '$_temp0';
   }
@@ -5341,8 +5353,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count figures ajoutées. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
-      one:
-          '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
+      one: '1 figure ajoutée. Saisissez-en une autre ou appuyez sur Échap pour terminer.',
     );
     return '$_temp0';
   }
@@ -5901,8 +5912,7 @@ class AppLocalizationsFr extends AppLocalizations {
       locale: localeName,
       other:
           '$count paires de contraste inférieures au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
-      one:
-          '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
+      one: '1 paire de contraste inférieure au WCAG AA. Vous pouvez quand même enregistrer, mais certains textes pourraient être difficiles à lire.',
     );
     return '$_temp0';
   }

@@ -9,6 +9,7 @@ import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'display_defaults.dart'
     show
+        kCanonicalFigureTextKey,
         kDefaultCollectionSortKey,
         kDefaultDanceDetailRenderingKey,
         kDefaultDanceFiguresTemplateKey,
@@ -79,6 +80,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kUpdateAutoCheckKey,
     kUpdateBetaChannelKey,
     kMatrixExactBeatCollisionKey,
+    kCanonicalFigureTextKey,
   ])
     key: _isBool,
 

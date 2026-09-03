@@ -1,5 +1,6 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
+
 import 'app_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -435,6 +436,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDialectHeader => 'Dialekter';
+
+  @override
+  String get settingsDialectDanceDetailsHeader =>
+      'Dansedetaljer og forkortelser';
+
+  @override
+  String get settingsDialectCanonicalFigureTextTitle => 'Kanonisk figurtekst';
+
+  @override
+  String get settingsDialectCanonicalFigureTextSubtitle =>
+      'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Fra som standard.';
 
   @override
   String get settingsDialectNewButton => 'Ny dialekt';
@@ -4536,8 +4548,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Denne import indeholder $count elementer – mere end forventet for en normal deling.',
-      one:
-          'Denne import indeholder 1 element – mere end forventet for en normal deling.',
+      one: 'Denne import indeholder 1 element – mere end forventet for en normal deling.',
     );
     return '$_temp0';
   }
@@ -5261,8 +5272,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           'Tilføjede $count figurer. Skriv en anden, eller tryk Escape for at afslutte.',
-      one:
-          'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
+      one: 'Tilføjede 1 figur. Skriv en anden, eller tryk Escape for at afslutte.',
     );
     return '$_temp0';
   }
@@ -5813,8 +5823,7 @@ class AppLocalizationsDa extends AppLocalizations {
       locale: localeName,
       other:
           '$count kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
-      one:
-          '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
+      one: '1 kontrastpar under WCAG AA. Du kan stadig gemme, men noget tekst kan være svær at læse.',
     );
     return '$_temp0';
   }

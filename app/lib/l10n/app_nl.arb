@@ -476,6 +476,18 @@
   "@settingsDialectHeader": {
     "x-sourceSha256": "f4792f7b616d4e24f07af28d2deea083621ce6a8e78fb83716e64c65078bc8d6"
   },
+  "settingsDialectDanceDetailsHeader": "Dansdetails en afkortingen",
+  "@settingsDialectDanceDetailsHeader": {
+    "x-sourceSha256": "e57fecfc79262b31fc400248ab3c80ea51fc859e4314166c868c38db46d472e0"
+  },
+  "settingsDialectCanonicalFigureTextTitle": "Canonieke figuurtekst",
+  "@settingsDialectCanonicalFigureTextTitle": {
+    "x-sourceSha256": "b3c23962a9d5684ec623599a54e279ce77dc36bb157f96f1e19b2e19938f34e1"
+  },
+  "settingsDialectCanonicalFigureTextSubtitle": "Als dit is ingeschakeld, kunnen dansdetails canonieke rol- en bewegingsnamen tonen en is de schakelaar Canoniek beschikbaar voor niet-canonieke dialecten. Standaard uit.",
+  "@settingsDialectCanonicalFigureTextSubtitle": {
+    "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
+  },
   "settingsDialectNewButton": "Nieuw dialect",
   "@settingsDialectNewButton": {
     "x-sourceSha256": "185d728af8efa1495bb12ca9389e9904eebb024c700b94df58a74e02b9ed1d6e"

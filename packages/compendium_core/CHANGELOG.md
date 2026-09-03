@@ -22,6 +22,8 @@ core version. They are left that way deliberately — do not renumber them.
 
 ### Added
 
+- **Portable canonical figure-text preference classification** — classify the
+  app's canonical dance-detail availability gate as a shareable user preference.
 - Add RFC 8785 canonical JSON and lowercase-hex SHA-256 helpers for Device Sync
   wire content and body hashes.
 - Add the generated Device Sync privacy allow-list, fail-closed body validation,

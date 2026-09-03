@@ -179,12 +179,14 @@ Sometimes you want to see a dance in the plain, shared wording — to compare no
 with another caller, or to double-check what a figure really is underneath your
 own phrasing.
 
-On the dance card and in Perform mode, the **Show canonical terms** control (shown
-as a **Canonical** switch on the dance card) flips the current view between your
-dialect and the shared canonical wording. It changes only what is on screen right
-then — it doesn't change your active dialect or touch the saved dance. When your
-active dialect is already **Canonical**, the toggle isn't shown, because there
-would be nothing to switch between.
+On the dance card, the **Show canonical terms** control (shown as a **Canonical**
+switch) flips the current view between your dialect and the shared canonical
+wording. Enable **Canonical figure text** in **Settings › Dialect › Dance details
+& shorthands** first; when it is off, dance details stay in your active dialect
+and the switch is hidden. The control changes only what is on screen right then —
+it doesn't change your active dialect or touch the saved dance. When your active
+dialect is already **Canonical**, the toggle isn't shown, because there would be
+nothing to switch between. Perform mode's own canonical view setting is separate.
 
 This pairs naturally with Perform mode: you can call from your own words and, if a
 dancer or another caller asks, flip to the canonical wording for a moment without
@@ -197,11 +199,13 @@ Two settings decide what you see before you touch anything:
 
 - **Your active dialect** (in **Settings › Dialect**) is the wording every screen
   uses by default.
-- **Open dance details in canonical terms** (in **Settings › Defaults**, under
-  *Display defaults*) decides whether a dance opens showing your dialect or the
-  shared canonical wording. Leave it off to always open in your own words; turn it
-  on if you prefer to start from the neutral wording. Either way, the on-screen
-  toggle still lets you switch a dance while it is open.
+- **Canonical figure text** (in **Settings › Dialect › Dance details &
+  shorthands**) controls whether dance details may show canonical wording. It is
+  off by default.
+- **Open dance details in canonical terms** decides whether a dance opens showing
+  your dialect or the shared canonical wording, when canonical figure text is
+  enabled. If the gate is off, details open in your active dialect and the child
+  preference is retained for later.
 
 For a full tour of everything under Settings, see the
 [Settings guide](./settings.md).
