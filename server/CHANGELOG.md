@@ -19,5 +19,3 @@ the app and of `compendium_core`; version headings below refer to
 - Serialize store deletion with durable filesystem cleanup retries, preserve
   stale-epoch blob uploads for later collection, and return `400` for malformed
   gzip request bodies.
-- Enforce the per-client and per-store request-rate limits with bounded
-  `429` responses while keeping failed-resolution and creation budgets separate.

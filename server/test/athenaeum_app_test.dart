@@ -17,9 +17,7 @@ void main() {
   late HttpClient client;
   const syncId = 'café-horse-battery-staple';
 
-  Future<void> startServer({
-    AthenaeumBudgetLimits budgetLimits = const AthenaeumBudgetLimits(),
-  }) async {
+  setUp(() async {
     dataDirectory = await Directory.systemTemp.createTemp('athenaeum-test-');
     final config = AthenaeumConfig(
       dataDirectory: dataDirectory.path,
@@ -29,15 +27,12 @@ void main() {
       config: config,
       clientAddressResolver: (request) =>
           request.headers['x-test-ip'] ?? 'test',
-      budgetLimits: budgetLimits,
     );
     server = await shelf_io.serve(app.handler, InternetAddress.loopbackIPv4, 0);
     client = HttpClient();
     _activeClient = client;
     _activeServer = server;
-  }
-
-  setUp(startServer);
+  });
 
   tearDown(() async {
     client.close(force: true);
@@ -411,51 +406,6 @@ void main() {
       attempt++
     ) {
       expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
-    }
-  });
-
-  test('request rate limits apply independently to IP and store', () async {
-    const smallRequestLimit = 3;
-    client.close(force: true);
-    await server.close(force: true);
-    app.store.close();
-    await dataDirectory.delete(recursive: true);
-    await startServer(
-      budgetLimits: const AthenaeumBudgetLimits(
-        requestsPerIpPerMinute: 3,
-        requestBurstPerIp: smallRequestLimit,
-        requestsPerStorePerMinute: smallRequestLimit,
-      ),
-    );
-    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
-    for (var attempt = 0; attempt < smallRequestLimit - 1; attempt++) {
-      expect((await _send('GET', '/v1/store', syncId: syncId)).statusCode, 200);
-    }
-    final ipLimited = await _send('GET', '/v1/store', syncId: syncId);
-    expect(ipLimited.statusCode, 429);
-    expect(ipLimited.headers.value('retry-after'), '60');
-
-    const secondSyncId = 'second-café-horse-staple';
-    expect(
-      (await _send(
-        'POST',
-        '/v1/store',
-        syncId: secondSyncId,
-        headers: {'x-test-ip': 'store-create'},
-      )).statusCode,
-      201,
-    );
-    for (var attempt = 0; attempt <= smallRequestLimit; attempt++) {
-      final response = await _send(
-        'GET',
-        '/v1/store',
-        syncId: secondSyncId,
-        headers: {'x-test-ip': 'request-$attempt'},
-      );
-      expect(response.statusCode, attempt < smallRequestLimit ? 200 : 429);
-      if (attempt == smallRequestLimit) {
-        expect(response.headers.value('retry-after'), '60');
-      }
     }
   });
 
