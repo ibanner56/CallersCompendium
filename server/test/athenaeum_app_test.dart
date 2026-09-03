@@ -194,6 +194,109 @@ void main() {
       expect(invalidEntityIdResponse.statusCode, 422);
       await invalidEntityIdResponse.drain<void>();
 
+      final duplicateBody = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"choreographer","id":"duplicate-body",'
+          '"updatedAt":"2026-09-03T00:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-09-03T00:00:00.000Z",'
+          '"body":{"email":"duplicate-private@example.com"},'
+          '"body":{"id":"duplicate-body","name":"Public"}}',
+        ),
+      );
+      final duplicateBodyHash = sha256.convert(duplicateBody).toString();
+      final duplicateBodyResponse = await _send(
+        'PUT',
+        '/v1/blobs/$duplicateBodyHash',
+        syncId: syncId,
+        body: duplicateBody,
+        contentType: 'application/octet-stream',
+      );
+      expect(duplicateBodyResponse.statusCode, 422);
+      await duplicateBodyResponse.drain<void>();
+
+      final duplicateNestedBody = Uint8List.fromList(
+        utf8.encode(
+          '{"v":1,"kind":"dance","id":"duplicate-nested",'
+          '"updatedAt":"2026-09-03T00:00:00.000Z","deletedAt":null,'
+          '"existenceAt":"2026-09-03T00:00:00.000Z",'
+          '"body":{"id":"duplicate-nested",'
+          '"formation":{"secret":"duplicate-private"},'
+          '"formation":{"shape":"longways"}}}',
+        ),
+      );
+      final duplicateNestedBodyHash = sha256
+          .convert(duplicateNestedBody)
+          .toString();
+      final duplicateNestedBodyResponse = await _send(
+        'PUT',
+        '/v1/blobs/$duplicateNestedBodyHash',
+        syncId: syncId,
+        body: duplicateNestedBody,
+        contentType: 'application/octet-stream',
+      );
+      expect(duplicateNestedBodyResponse.statusCode, 422);
+      await duplicateNestedBodyResponse.drain<void>();
+      final duplicateNestedBodyGet = await _send(
+        'GET',
+        '/v1/blobs/$duplicateNestedBodyHash',
+        syncId: syncId,
+      );
+      expect(duplicateNestedBodyGet.statusCode, 404);
+      await duplicateNestedBodyGet.drain<void>();
+
+      final invalidBodyType = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'kind': 'choreographer',
+            'id': 'invalid-body',
+            'updatedAt': '2026-09-03T00:00:00.000Z',
+            'deletedAt': null,
+            'existenceAt': '2026-09-03T00:00:00.000Z',
+            'body': [
+              {'email': 'invalid-body-private@example.com'},
+            ],
+          }),
+        ),
+      );
+      final invalidBodyTypeHash = sha256.convert(invalidBodyType).toString();
+      final invalidBodyTypeResponse = await _send(
+        'PUT',
+        '/v1/blobs/$invalidBodyTypeHash',
+        syncId: syncId,
+        body: invalidBodyType,
+        contentType: 'application/octet-stream',
+      );
+      expect(invalidBodyTypeResponse.statusCode, 422);
+      await invalidBodyTypeResponse.drain<void>();
+
+      final unknownEnvelopeField = Uint8List.fromList(
+        utf8.encode(
+          jsonEncode({
+            'v': 1,
+            'kind': 'choreographer',
+            'id': 'unknown-envelope-field',
+            'updatedAt': '2026-09-03T00:00:00.000Z',
+            'deletedAt': null,
+            'existenceAt': '2026-09-03T00:00:00.000Z',
+            'body': {'id': 'unknown-envelope-field', 'name': 'Public'},
+            'email': 'unknown-envelope-private@example.com',
+          }),
+        ),
+      );
+      final unknownEnvelopeFieldHash = sha256
+          .convert(unknownEnvelopeField)
+          .toString();
+      final unknownEnvelopeFieldResponse = await _send(
+        'PUT',
+        '/v1/blobs/$unknownEnvelopeFieldHash',
+        syncId: syncId,
+        body: unknownEnvelopeField,
+        contentType: 'application/octet-stream',
+      );
+      expect(unknownEnvelopeFieldResponse.statusCode, 422);
+      await unknownEnvelopeFieldResponse.drain<void>();
+
       final futureShareable = _recordBlob(
         version: 99,
         kind: 'choreographer',

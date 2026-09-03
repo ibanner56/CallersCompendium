@@ -11,6 +11,16 @@ import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
 
+const _blobEnvelopeKeys = <String>{
+  'v',
+  'kind',
+  'id',
+  'updatedAt',
+  'deletedAt',
+  'existenceAt',
+  'body',
+};
+
 class AthenaeumBudgetLimits {
   const AthenaeumBudgetLimits({
     this.perIpFailuresPerMinute = maxFailedResolutionsPerIp,
@@ -418,8 +428,15 @@ class AthenaeumApp {
   }
 
   static void _validateBlobAllowList(Uint8List body) {
-    if (!_hasBlobEnvelopeShape(body)) return;
+    final envelope = _inspectBlobEnvelope(body);
+    if (!envelope.recognizable) return;
     _validateJsonDepthBytes(body);
+    if (_hasDuplicateJsonKeys(body)) {
+      throw const _RequestFailure(
+        422,
+        'blob contains an invalid record envelope',
+      );
+    }
 
     Object? decoded;
     try {
@@ -427,13 +444,24 @@ class AthenaeumApp {
     } on FormatException {
       return;
     }
-    if (decoded is! Map) return;
+    if (decoded is! Map ||
+        envelope.hasDuplicateKey ||
+        envelope.hasUnknownKey ||
+        envelope.keys.length != _blobEnvelopeKeys.length) {
+      throw const _RequestFailure(
+        422,
+        'blob contains an invalid record envelope',
+      );
+    }
 
     final kindValue = decoded['kind'];
     final idValue = decoded['id'];
     final rawBody = decoded['body'];
     if (kindValue is! String || rawBody is! Map) {
-      return;
+      throw const _RequestFailure(
+        422,
+        'blob contains an invalid record envelope',
+      );
     }
     final recordBody = <String, Object?>{};
     for (final entry in rawBody.entries) {
@@ -459,12 +487,12 @@ class AthenaeumApp {
     }
   }
 
-  static bool _hasBlobEnvelopeShape(Uint8List body) {
+  static _BlobEnvelopeShape _inspectBlobEnvelope(Uint8List body) {
     String source;
     try {
       source = utf8.decode(body, allowMalformed: false);
     } on FormatException {
-      return false;
+      return const _BlobEnvelopeShape();
     }
     var first = 0;
     while (first < source.length &&
@@ -472,10 +500,12 @@ class AthenaeumApp {
       first++;
     }
     if (first >= source.length || source.codeUnitAt(first) != 0x7b) {
-      return false;
+      return const _BlobEnvelopeShape();
     }
 
     final keys = <String>{};
+    var hasDuplicateKey = false;
+    var hasUnknownKey = false;
     var depth = 0;
     var inString = false;
     var escaped = false;
@@ -501,11 +531,10 @@ class AthenaeumApp {
                   source.substring(stringStart, index + 1),
                 );
                 if (key is String) {
-                  if (key == 'v' ||
-                      key == 'kind' ||
-                      key == 'id' ||
-                      key == 'body') {
-                    keys.add(key);
+                  if (!_blobEnvelopeKeys.contains(key)) {
+                    hasUnknownKey = true;
+                  } else if (!keys.add(key)) {
+                    hasDuplicateKey = true;
                   }
                 }
               } on FormatException {
@@ -525,7 +554,61 @@ class AthenaeumApp {
         depth--;
       }
     }
-    return keys.length == 4;
+    return _BlobEnvelopeShape(
+      keys: keys,
+      hasDuplicateKey: hasDuplicateKey,
+      hasUnknownKey: hasUnknownKey,
+    );
+  }
+
+  static bool _hasDuplicateJsonKeys(Uint8List body) {
+    final source = utf8.decode(body, allowMalformed: false);
+    final contexts = <Set<String>?>[];
+    var inString = false;
+    var escaped = false;
+    var stringStart = -1;
+    for (var index = 0; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      if (inString) {
+        if (escaped) {
+          escaped = false;
+        } else if (code == 0x5c) {
+          escaped = true;
+        } else if (code == 0x22) {
+          inString = false;
+          final context = contexts.isNotEmpty ? contexts.last : null;
+          if (context != null) {
+            var next = index + 1;
+            while (next < source.length &&
+                _isJsonWhitespace(source.codeUnitAt(next))) {
+              next++;
+            }
+            if (next < source.length && source.codeUnitAt(next) == 0x3a) {
+              try {
+                final key = jsonDecode(
+                  source.substring(stringStart, index + 1),
+                );
+                if (key is String && !context.add(key)) return true;
+              } on FormatException {
+                // The complete JSON decode below handles malformed blobs.
+              }
+            }
+          }
+        }
+        continue;
+      }
+      if (code == 0x22) {
+        inString = true;
+        stringStart = index;
+      } else if (code == 0x7b) {
+        contexts.add(<String>{});
+      } else if (code == 0x5b) {
+        contexts.add(null);
+      } else if (code == 0x7d || code == 0x5d) {
+        if (contexts.isNotEmpty) contexts.removeLast();
+      }
+    }
+    return false;
   }
 
   static bool _isJsonWhitespace(int code) =>
@@ -602,6 +685,24 @@ class AthenaeumApp {
       Response(405, headers: {'allow': methods.join(', ')});
 
   static String _defaultClientAddress(Request request) => 'unknown';
+}
+
+class _BlobEnvelopeShape {
+  const _BlobEnvelopeShape({
+    this.keys = const <String>{},
+    this.hasDuplicateKey = false,
+    this.hasUnknownKey = false,
+  });
+
+  final Set<String> keys;
+  final bool hasDuplicateKey;
+  final bool hasUnknownKey;
+
+  bool get recognizable =>
+      keys.contains('v') &&
+      keys.contains('kind') &&
+      keys.contains('id') &&
+      keys.contains('body');
 }
 
 class _AuthResult {
