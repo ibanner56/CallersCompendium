@@ -23,3 +23,7 @@ The service listens on `127.0.0.1:33333` unless the loopback-only `--host`
 addresses are rejected. This local listener is for C2/client development; production TLS,
 proxy forwarding, address handling, logging, alerting, retention, and
 break-glass procedures are specified for W16.
+
+Store deletion removes the epoch directory immediately when possible; a
+durable cleanup record retries failed filesystem removal on the next request or
+server start.
