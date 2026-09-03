@@ -624,6 +624,30 @@ void main() {
       expect(yielded, 1);
     },
   );
+
+  test(
+    'nested hashes extension fields remain opaque to the request scanner',
+    () async {
+      expect(
+        (await _send('POST', '/v1/store', syncId: syncId)).statusCode,
+        201,
+      );
+      final response = await _send(
+        'POST',
+        '/v1/blobs/missing',
+        syncId: syncId,
+        contentType: 'application/json',
+        body: Uint8List.fromList(
+          utf8.encode(
+            '{"extension":{"hashes":[${List.filled(10001, '0').join(',')}]},'
+            '"hashes":[]}',
+          ),
+        ),
+      );
+      expect(response.statusCode, 200);
+      expect(await response.body(), '{"missing":[]}');
+    },
+  );
 }
 
 extension on HttpClientResponse {

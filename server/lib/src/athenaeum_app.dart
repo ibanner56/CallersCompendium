@@ -589,7 +589,7 @@ class _MissingHashScanner {
       _inString = false;
       if (_stringIsKey) {
         final key = _keyAscii ? _key.toString() : null;
-        _pendingHashesKey = key == 'hashes';
+        _pendingHashesKey = _contexts.length == 1 && key == 'hashes';
         if (_pendingHashesKey) {
           if (_seenHashesKey) {
             throw const _RequestFailure(400, 'duplicate hashes key');
