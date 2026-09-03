@@ -294,6 +294,7 @@ void main() {
     );
     final database = sqlite3.openInMemory();
     final breakGlassDatabase = sqlite3.openInMemory();
+    final now = DateTime.utc(2026, 9, 3, 12);
     final store = AthenaeumStore(
       config: AthenaeumConfig(
         dataDirectory: dataDirectory.path,
@@ -301,6 +302,7 @@ void main() {
       ),
       database: database,
       breakGlassDatabase: breakGlassDatabase,
+      clock: () => now,
       quotaLimits: const AthenaeumQuotaLimits(maxBytes: 1),
     );
     addTearDown(() {
@@ -330,6 +332,10 @@ void main() {
       ),
       throwsA(isA<StoreQuotaExceeded>()),
     );
+    final staleFile = store.blobFile(idKey, first.epoch, 'b' * 64);
+    expect(staleFile.existsSync(), isTrue);
+    store.sweep(now: now.add(const Duration(hours: 25)));
+    expect(staleFile.existsSync(), isFalse);
   });
 
   test('sweep removes stores past the rolling disuse TTL', () {

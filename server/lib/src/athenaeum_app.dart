@@ -323,10 +323,25 @@ class AthenaeumApp {
     }
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/octet-stream');
+      late final int quotaLimit;
+      try {
+        quotaLimit = store.blobUploadLimit(identity.idKey, current.epoch, hash);
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale blob epoch');
+      }
       if (_declaredLengthExceeds(request, maxBlobBytes)) {
         throw const _RequestFailure(413, 'request body exceeds limit');
       }
-      final body = await _readBody(request, maxBlobBytes);
+      if (_declaredLengthExceeds(request, quotaLimit)) {
+        throw const _RequestFailure(507, 'byte quota exhausted');
+      }
+      final body = await _readBody(
+        request,
+        maxBlobBytes,
+        quotaBytes: quotaLimit,
+      );
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
@@ -438,6 +453,7 @@ class AthenaeumApp {
     Request request,
     int maxBytes, {
     void Function(List<int> chunk)? onChunk,
+    int? quotaBytes,
   }) async {
     final declaredLength = int.tryParse(
       request.headers['content-length'] ?? '',
@@ -469,6 +485,10 @@ class AthenaeumApp {
           await iterator.cancel();
           tooLarge = true;
           break;
+        }
+        if (quotaBytes != null && size > quotaBytes) {
+          await iterator.cancel();
+          throw const _RequestFailure(507, 'byte quota exhausted');
         } else if (!tooLarge) {
           onChunk?.call(chunk);
           output.add(chunk);

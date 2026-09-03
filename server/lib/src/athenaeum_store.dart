@@ -369,8 +369,11 @@ class AthenaeumStore {
     for (final idKey in expired) {
       deleteStore(idKey);
     }
-    final activeStores = _database.select('SELECT id_key, epoch FROM stores');
-    for (final row in activeStores) {
+    final epochs = _database.select(
+      'SELECT id_key, epoch FROM blob_refs '
+      'UNION SELECT id_key, epoch FROM manifests',
+    );
+    for (final row in epochs) {
       collectGarbage(
         row['id_key'] as String,
         row['epoch'] as String,
@@ -379,6 +382,33 @@ class AthenaeumStore {
     }
     purgeExpiredBreakGlassAccess(now: current);
     purgeExpiredDiagnostics(now: current);
+  }
+
+  int blobUploadLimit(String idKey, String epoch, String hash) {
+    if (blobRef(idKey, epoch, hash) != null) return maxBlobBytes;
+    final current = lookup(idKey);
+    if (current == null) throw const StoreEpochMismatch();
+    final count =
+        _database.select(
+              'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ?',
+              [idKey],
+            ).single['count']
+            as int;
+    if (count >= quotaLimits.maxBlobs) {
+      throw const StoreQuotaExceeded('blob quota exhausted');
+    }
+    final aggregateBytes =
+        _database.select(
+              'SELECT COALESCE(SUM(size), 0) AS bytes FROM blob_refs '
+              'WHERE id_key = ?',
+              [idKey],
+            ).single['bytes']
+            as int;
+    final bytesUsed = max(current.bytesUsed, aggregateBytes);
+    if (bytesUsed >= quotaLimits.maxBytes) {
+      throw const StoreQuotaExceeded('byte quota exhausted');
+    }
+    return min(maxBlobBytes, quotaLimits.maxBytes - bytesUsed);
   }
 
   void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
