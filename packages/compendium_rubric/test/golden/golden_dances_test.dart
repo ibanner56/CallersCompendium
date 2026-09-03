@@ -889,5 +889,116 @@ void main() {
 
       expect(parsed.requiredHandsFour, 2);
     });
+
+    // The Carousel is the first golden whose hey opens on the *side*, and it
+    // is the dance the reading was derived from. Its A2 allemande leaves the
+    // partners standing on the same side of the set, and `pass1: partners`
+    // therefore names a pass that cannot happen in the middle -- two dancers
+    // on one side can only pass each other there.
+    //
+    // That makes the compile itself the assertion: read as a centre opening,
+    // `pass1` resolves to two non-spanning pairs rather than one spanning
+    // pair, and the figure refuses. This dance did not compile before the
+    // side opening was modelled.
+    test('The Carousel opens its hey on the side and lands progressed', () {
+      final parsed = parseFixture('test/golden/the_carousel.json');
+
+      expect(parsed.name, 'The Carousel');
+      expect(parsed.formation, FormationType.dupleImproper);
+      expect(parsed.figures[2].name, 'hey');
+      expect(parsed.figures[5].progression, isTrue);
+      expect(parsed.requiredHandsFour, 2);
+      expect(
+        compile(parsed).isSuccess,
+        isTrue,
+        reason: 'The Carousel did not land',
+      );
+    });
+
+    test('and its pass2 is read as a selector, so no anchor is checked', () {
+      // On a side opening `pass2` picks out which pair meets in the middle --
+      // it has to, because after the allemande *both* role pairs span the set
+      // and nothing else could choose between them. Checking it as an anchor
+      // would be checking it against itself, so `lint` skips that check; a
+      // spurious `anchorMismatch` here would mean it had stopped skipping.
+      final parsed = parseFixture('test/golden/the_carousel.json');
+
+      expect(
+        compile(parsed).warnings.map((w) => w.kind),
+        isNot(contains(WarningKind.anchorMismatch)),
+      );
+    });
+
+    test('and without pass2 the figure refuses rather than guessing', () {
+      // The selector is load-bearing, not decorative. Drop it and there is no
+      // longer anything in the record that says which of the two spanning
+      // pairs takes the centre, so the hey must refuse -- picking one would
+      // answer for a dance the record does not describe.
+      final parsed = parseFixture('test/golden/the_carousel.json');
+      final hey = parsed.figures[2].operation as HeyForFour;
+      final outcome = compile(
+        _withHey(
+          parsed,
+          2,
+          HeyForFour(
+            length: hey.length,
+            pass1: hey.pass1,
+            shoulder: hey.shoulder,
+          ),
+        ),
+      );
+
+      expect(outcome, isA<CompileError>());
+      expect((outcome as CompileError).kind, ErrorKind.unresolvableDancerSet);
+    });
+
+    test('and shortening it to a half is deferred, not quietly danced', () {
+      // Last Hey's twin assertion shortens its hey to a half and checks the
+      // dance stops landing, because a full hey is a positional identity and
+      // its presence is otherwise untestable end to end. **That argument does
+      // not transfer here, and this test deliberately does not make it.**
+      // Opening on the side shifts every pass by one, so where a half hey
+      // stops is not pinned by any worked example and this compiler refuses
+      // to guess. Shortening The Carousel's hey therefore hits the deferral
+      // before any geometry is computed -- asserting only that it "no longer
+      // lands" would read as a claim about the weave while actually testing
+      // my own refusal.
+      //
+      // So this pins the deferral itself, which is worth pinning on a real
+      // dance: a side-opening half hey must not silently compile. The weave
+      // is guarded where it can be, in `test/ops/hey_test.dart`, against the
+      // exact post-allemande state this dance produces.
+      final parsed = parseFixture('test/golden/the_carousel.json');
+      final hey = parsed.figures[2].operation as HeyForFour;
+      final outcome = compile(
+        _withHey(
+          parsed,
+          2,
+          HeyForFour(
+            length: HeyLength.half,
+            pass1: hey.pass1,
+            shoulder: hey.shoulder,
+            pass2: hey.pass2,
+          ),
+        ),
+      );
+
+      expect(outcome, isA<CompileError>());
+      expect((outcome as CompileError).kind, ErrorKind.unsupportedParam);
+    });
   });
 }
+
+/// [dance] with the figure at [index] replaced by [hey], preserving its
+/// progression flag. Used by the hey goldens, whose assertions are all of the
+/// form "substitute a different hey and the dance stops landing".
+Dance _withHey(Dance dance, int index, HeyForFour hey) => Dance(
+  name: dance.name,
+  formation: dance.formation,
+  success: dance.success,
+  figures: [
+    ...dance.figures.take(index),
+    OperationInvocation(hey, progression: dance.figures[index].progression),
+    ...dance.figures.skip(index + 1),
+  ],
+);

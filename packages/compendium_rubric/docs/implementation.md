@@ -611,6 +611,18 @@ deleted — the obvious guard cannot fail. `last_hey.json`'s guard substitutes a
 **half** hey and requires a `Mismatch`, which does bite. Ask what mutation a
 test catches, not whether undoing your own work reddens it.
 
+**…and check that the substitute fails for the reason you claim.** The same
+half-hey substitution was carried over to `the_carousel.json` and *passed on the
+first run* — against the side-opening deferral, before any geometry was
+computed. It would have gone green no matter what the weave did. A guard
+inherited from a sibling fixture is not verified by the sibling; it has to be
+made to fail *there*. The test now pins the deferral and says in as many words
+that Last Hey's argument does not transfer to it. Where a side-opening hey's
+weave *can* be guarded is the unit layer, on the state the dance actually
+reaches — `test/ops/hey_test.dart` §'HeyForFour opening on the side', which
+opens with a precondition test asserting the state really is side-on, so the
+rest cannot pass for the wrong reason.
+
 ---
 
 ## 13. Standing rules (carried across sessions)
@@ -670,7 +682,7 @@ test catches, not whether undoing your own work reddens it.
 
 ## 15. Current state and known debt
 
-- **1,003 tests green; `analyze` clean; `format` clean.**
+- **1,007 tests green; `analyze` clean; `format` clean.**
 - **46 figures registered**, plus 3 upstream aliases resolved to them.
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
@@ -705,6 +717,16 @@ test catches, not whether undoing your own work reddens it.
   the adapter. (The *taxonomy's* `length` default is still `half`; that is the
   schema's answer for a param nobody stated, which is a different question from
   how TCB's prose reads.)
+- **`hey` has a second golden, for the side opening.** `the_carousel.json`
+  (Caller's Box #10324) is the record the side-opening reading was derived from,
+  and it went in verbatim — it already flagged its B2 neighbour swing as the
+  progression. Its A2 `role2s` allemande leaves the partners sharing a side, so
+  `pass1: partners` names a pass that cannot happen in the middle; read as a
+  centre opening the figure refuses, which makes **the compile itself** the
+  load-bearing assertion here. It also carries the worked example of `pass2` as
+  a *selector* rather than an anchor: after that allemande both role pairs span
+  the set, so nothing but `pass2` can choose the centres, and removing it is
+  required to refuse with `unresolvableDancerSet` rather than pick one.
 - **Deferred, with worked examples still needed** (Held table): `promenade`,
   `butterfly_whirl`, `arch_and_dive` (progression half only), `revolving_door`,
   `slice`, `contra_corners`, `dolphin_hey`, `orbit` couple-`who` (the
