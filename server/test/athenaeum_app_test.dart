@@ -666,6 +666,54 @@ void main() {
       expect(await response.body(), '{"missing":[]}');
     },
   );
+
+  test('ordinary requests retry queued filesystem cleanup', () async {
+    final customDirectory = await Directory.systemTemp.createTemp(
+      'athenaeum-request-retry-',
+    );
+    var failDelete = true;
+    final customConfig = AthenaeumConfig(
+      dataDirectory: customDirectory.path,
+      pepper: List<int>.filled(32, 0x42),
+    );
+    final customStore = AthenaeumStore(
+      config: customConfig,
+      deleteDirectory: (directory) {
+        if (failDelete) {
+          throw const FileSystemException('injected filesystem failure');
+        }
+        directory.deleteSync(recursive: true);
+      },
+    );
+    final customApp = AthenaeumApp(config: customConfig, store: customStore);
+    addTearDown(() async {
+      customStore.close();
+      await customDirectory.delete(recursive: true);
+    });
+
+    final idKey = deriveIncomingSyncIdKey(syncId, customConfig.pepper);
+    final created = customStore.create(idKey);
+    customStore.putBlob(
+      idKey: idKey,
+      epoch: created.epoch,
+      hash: 'f' * 64,
+      body: Uint8List.fromList([5]),
+    );
+    final blobFile = customStore.blobFile(idKey, created.epoch, 'f' * 64);
+    customStore.deleteStore(idKey);
+    expect(blobFile.existsSync(), isTrue);
+
+    failDelete = false;
+    final response = await customApp.call(
+      Request(
+        'GET',
+        Uri.parse('http://127.0.0.1/v1/store'),
+        headers: {'authorization': 'Bearer ${encodeSyncCredential(syncId)}'},
+      ),
+    );
+    expect(response.statusCode, 404);
+    expect(blobFile.existsSync(), isFalse);
+  });
 }
 
 extension on HttpClientResponse {

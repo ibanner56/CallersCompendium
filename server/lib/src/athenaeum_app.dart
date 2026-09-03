@@ -46,6 +46,7 @@ class AthenaeumApp {
   Handler get handler => call;
 
   Future<Response> call(Request request) async {
+    store.retryPendingDeletions();
     final segments = request.url.pathSegments;
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});
