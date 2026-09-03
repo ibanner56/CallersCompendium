@@ -348,25 +348,6 @@ jobs:
           cache: true
       - run: flutter pub get --enforce-lockfile
         if: steps.server-package.outputs.present == 'true'
-      # package:sqlite3's build hook writes its prebuilt outside the pub cache.
-      # Restore it by version so server tests can initialize SQLite reliably.
-      - name: Resolve the pinned sqlite3 version (cache key input)
-        id: sqlite3
-        if: steps.server-package.outputs.present == 'true'
-        run: |
-          version="$(awk '/^  sqlite3:/{f=1} f&&/^    version:/{gsub(/[" ]/,"",$2); print $2; exit}' pubspec.lock)"
-          if [ -z "$version" ]; then
-            echo "::error::could not resolve the sqlite3 version from pubspec.lock"
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Cache the sqlite3 prebuilt native library
-        id: sqlite3_cache
-        if: steps.server-package.outputs.present == 'true'
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .dart_tool/hooks_runner/shared/sqlite3
-          key: sqlite3-prebuilt-${{ runner.os }}-${{ runner.arch }}-${{ steps.sqlite3.outputs.version }}
       - name: Analyze server
         run: dart analyze server
         if: steps.server-package.outputs.present == 'true'
