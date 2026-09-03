@@ -309,6 +309,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   Future<void> _seedCanonicalDefault() async {
     if (_canonicalUserSet) return;
     try {
+      await initializeCanonicalFigureTextGate(_repos.settings);
       final storedGate = await _repos.settings.get(kCanonicalFigureTextKey);
       final storedRendering = await _repos.settings.get(
         kDefaultDanceDetailRenderingKey,
