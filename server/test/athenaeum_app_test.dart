@@ -875,6 +875,140 @@ void main() {
     expect(response.statusCode, 404);
     expect(blobFile.existsSync(), isFalse);
   });
+
+  test('manifest PUT collects old unreferenced blobs', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final createdBody =
+        jsonDecode(await created.body()) as Map<String, Object?>;
+    final epoch = createdBody['epoch']! as String;
+    final bytes = Uint8List.fromList([9, 8, 7]);
+    final hash = sha256.convert(bytes).toString();
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      )).statusCode,
+      201,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final blobFile = app.store.blobFile(idKey, epoch, hash);
+    app.store.database.execute(
+      'UPDATE blob_refs SET uploaded_at = ? '
+      'WHERE id_key = ? AND epoch = ? AND hash = ?',
+      [
+        DateTime.utc(2026, 9, 1).millisecondsSinceEpoch ~/ 1000,
+        idKey,
+        epoch,
+        hash,
+      ],
+    );
+    expect(blobFile.existsSync(), isTrue);
+
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: const {},
+    );
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/manifests/device-one',
+        syncId: syncId,
+        body: encodeSyncManifestUtf8(manifest),
+        contentType: 'application/json',
+      )).statusCode,
+      201,
+    );
+    expect(blobFile.existsSync(), isFalse);
+  });
+
+  test('DELETE /v1/store removes a grace-protected blob immediately', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final bytes = Uint8List.fromList([4, 5, 6]);
+    final hash = sha256.convert(bytes).toString();
+    expect(
+      (await _send(
+        'PUT',
+        '/v1/blobs/$hash',
+        syncId: syncId,
+        body: bytes,
+        contentType: 'application/octet-stream',
+      )).statusCode,
+      201,
+    );
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final epoch = app.store.lookup(idKey)!.epoch;
+    final file = app.store.blobFile(idKey, epoch, hash);
+    expect(file.existsSync(), isTrue);
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    expect(file.existsSync(), isFalse);
+    expect(app.store.lookup(idKey), isNull);
+  });
+
+  test('rejection diagnostics contain only derived identifiers', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final events = <AthenaeumDiagnosticEvent>[];
+    final customApp = AthenaeumApp(
+      config: app.config,
+      store: app.store,
+      diagnosticLogger: events.add,
+    );
+    final hash = 'a' * 64;
+    final response = await customApp.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          'content-type': 'application/octet-stream',
+        },
+        body: Uint8List.fromList([1, 2, 3]),
+      ),
+    );
+    expect(response.statusCode, 400);
+    expect(events, hasLength(1));
+    expect(events.single.status, 400);
+    expect(
+      events.single.idKey,
+      deriveIncomingSyncIdKey(syncId, app.config.pepper),
+    );
+    expect(events.single.hash, hash);
+    expect(events.single.retention, const Duration(days: 30));
+    expect(events.single.idKey, isNot(encodeSyncCredential(syncId)));
+  });
+
+  test('sweep controller cancels its hourly callback on shutdown', () {
+    final timer = _FakeTimer();
+    late void Function() fire;
+    var sweeps = 0;
+    final controller = AthenaeumSweepController(
+      app.store,
+      schedule: (interval, callback) {
+        expect(interval, const Duration(hours: 1));
+        fire = () {
+          if (timer.isActive) {
+            sweeps++;
+            callback(timer);
+          }
+        };
+        return timer;
+      },
+    );
+    controller.start();
+    fire();
+    expect(sweeps, 1);
+    controller.stop();
+    expect(timer.isActive, isFalse);
+    fire();
+    expect(sweeps, 1);
+  });
 }
 
 extension on HttpClientResponse {
@@ -911,5 +1045,18 @@ Future<HttpClientResponse> _send(
 
 late HttpClient _activeClient;
 late HttpServer _activeServer;
+
+class _FakeTimer implements Timer {
+  var _cancelled = false;
+
+  @override
+  void cancel() => _cancelled = true;
+
+  @override
+  bool get isActive => !_cancelled;
+
+  @override
+  int get tick => 0;
+}
 
 Uri _uri(String path) => Uri.http('127.0.0.1:${_activeServer.port}', path);

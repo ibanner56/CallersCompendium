@@ -10,6 +10,45 @@ import 'athenaeum_config.dart';
 import 'athenaeum_store.dart';
 
 typedef ClientAddressResolver = String Function(Request request);
+typedef AthenaeumDiagnosticLogger =
+    void Function(AthenaeumDiagnosticEvent event);
+typedef AthenaeumPeriodicTimer =
+    Timer Function(Duration interval, void Function(Timer timer) callback);
+
+class AthenaeumDiagnosticEvent {
+  const AthenaeumDiagnosticEvent({
+    required this.status,
+    required this.idKey,
+    required this.hash,
+  });
+
+  final int status;
+  final String? idKey;
+  final String? hash;
+  final Duration retention = const Duration(days: 30);
+}
+
+class AthenaeumSweepController {
+  AthenaeumSweepController(
+    this.store, {
+    AthenaeumPeriodicTimer? schedule,
+    this.interval = const Duration(hours: 1),
+  }) : _schedule = schedule ?? Timer.periodic;
+
+  final AthenaeumStore store;
+  final AthenaeumPeriodicTimer _schedule;
+  final Duration interval;
+  Timer? _timer;
+
+  void start() {
+    _timer ??= _schedule(interval, (_) => store.sweep());
+  }
+
+  void stop() {
+    _timer?.cancel();
+    _timer = null;
+  }
+}
 
 class AthenaeumBudgetLimits {
   const AthenaeumBudgetLimits({
@@ -31,17 +70,20 @@ class AthenaeumApp {
     AthenaeumStore? store,
     ClientAddressResolver? clientAddressResolver,
     AthenaeumBudgetLimits budgetLimits = const AthenaeumBudgetLimits(),
+    AthenaeumDiagnosticLogger? diagnosticLogger,
   }) : config = config,
        store = store ?? AthenaeumStore(config: config),
        _clientAddressResolver = clientAddressResolver ?? _defaultClientAddress,
        _failureBudget = _FailureBudget(budgetLimits),
-       _creationBudget = _CreationBudget(budgetLimits);
+       _creationBudget = _CreationBudget(budgetLimits),
+       _diagnosticLogger = diagnosticLogger ?? _discardDiagnostic;
 
   final AthenaeumConfig config;
   final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
+  final AthenaeumDiagnosticLogger _diagnosticLogger;
 
   Handler get handler => call;
 
@@ -59,6 +101,7 @@ class AthenaeumApp {
         _ => _jsonResponse(404, {'error': 'not found'}),
       };
     } on _RequestFailure catch (error) {
+      _logFailure(request, error);
       return _jsonResponse(error.status, {'error': error.message});
     }
   }
@@ -176,7 +219,10 @@ class AthenaeumApp {
         );
       } on StoreEpochMismatch {
         throw const _RequestFailure(409, 'stale manifest epoch');
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
       }
+      store.collectGarbage(identity.idKey, current.epoch);
       return Response(
         created ? 201 : 200,
         headers: {
@@ -270,12 +316,17 @@ class AthenaeumApp {
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
-      final created = store.putBlob(
-        idKey: identity.idKey,
-        epoch: current.epoch,
-        hash: hash,
-        body: body,
-      );
+      late final bool created;
+      try {
+        created = store.putBlob(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          hash: hash,
+          body: body,
+        );
+      } on StoreQuotaExceeded catch (error) {
+        throw _RequestFailure(507, error.message);
+      }
       return Response(created ? 201 : 200);
     }
     return _methodNotAllowed(const ['GET', 'PUT']);
@@ -321,6 +372,28 @@ class AthenaeumApp {
   Response _failureResponse(String address, int status, String message) {
     if (!_failureBudget.allow(address)) return _rateLimitedResponse();
     return _jsonResponse(status, {'error': message});
+  }
+
+  void _logFailure(Request request, _RequestFailure error) {
+    String? idKey;
+    final authorization = request.headers['authorization'];
+    if (authorization != null && authorization.startsWith('Bearer ')) {
+      try {
+        final syncId = decodeSyncCredential(authorization.substring(7));
+        validateSyncId(syncId);
+        idKey = deriveIncomingSyncIdKey(syncId, config.pepper);
+      } on FormatException {
+        idKey = null;
+      }
+    }
+    String? hash;
+    final segments = request.url.pathSegments;
+    if (segments.length == 3 && _validHash(segments[2])) {
+      hash = segments[2];
+    }
+    _diagnosticLogger(
+      AthenaeumDiagnosticEvent(status: error.status, idKey: idKey, hash: hash),
+    );
   }
 
   static void _requireContentType(Request request, String expected) {
@@ -480,6 +553,8 @@ class AthenaeumApp {
       Response(405, headers: {'allow': methods.join(', ')});
 
   static String _defaultClientAddress(Request request) => 'unknown';
+
+  static void _discardDiagnostic(AthenaeumDiagnosticEvent event) {}
 }
 
 class _AuthResult {

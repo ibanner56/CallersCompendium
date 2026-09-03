@@ -66,7 +66,10 @@ stored by the sync service you configure so it can be synchronized.
 The service operator can read the plaintext synchronized store if they choose to.
 A break-glass access path exists for abuse investigations, and every use is
 logged. The derived sync ID in that log remains linkable for 30 days of
-inactivity; after that it becomes a timestamp-only aggregate row.
+access; after that it becomes a timestamp-only aggregate row. Ordinary
+diagnostic events that contain store-derived metadata are retained for no more
+than 30 days and never include request bodies, record content, or bearer
+credentials.
 
 Device Sync does not transfer structured venue street address, city, region,
 country, postal or ZIP code, or contact name, phone, or email fields. **Freeform
@@ -144,8 +147,12 @@ Your local data remains under your control:
   content.
 
 When Device Sync is enabled, the configured sync service holds the selected
-content. The access log's linkable derived sync ID expires after 30 days of
-inactivity; it retains a timestamp-only aggregate row after that.
+content for as long as the store receives authenticated activity, then reaps it
+after 30 days of disuse. Unreferenced uploads are protected for 24 hours while
+they can still be published, but deleting the store removes them immediately.
+The access log's linkable derived sync ID expires 30 days after access; it
+retains a timestamp-only aggregate row after that. Ordinary diagnostic events
+have a separate 30-day bound and contain no content or bearer credentials.
 
 ### 8. Open source
 

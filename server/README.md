@@ -30,4 +30,9 @@ retention, and break-glass procedures are specified for W12.
 
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal on the next request or
-server start.
+server start. Stores are reaped after 30 days without an authenticated request.
+Unreferenced blobs remain temporary roots for 24 hours so an in-flight upload
+can be published safely; `DELETE /v1/store` bypasses that grace period. The
+break-glass access database keeps a derived store key for 30 days after access,
+then retains only its timestamp, and ordinary diagnostic events have a bounded
+30-day retention.

@@ -21,11 +21,13 @@ Future<void> main(List<String> arguments) async {
   );
   final app = AthenaeumApp(config: config);
   final server = await shelf_io.serve(app.handler, config.host, config.port);
+  final sweeper = AthenaeumSweepController(app.store)..start();
   stdout.writeln(
     'Athenaeum listening on ${server.address.address}:${server.port}',
   );
   late StreamSubscription<ProcessSignal> shutdownSubscription;
   shutdownSubscription = ProcessSignal.sigterm.watch().listen((_) async {
+    sweeper.stop();
     await server.close(force: true);
     app.store.close();
     await shutdownSubscription.cancel();

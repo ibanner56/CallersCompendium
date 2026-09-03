@@ -105,6 +105,18 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
   ),
+  'break_glass_access.id_key': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Peppered pseudonymous store key; nulled after 30 days.',
+  ),
+  'break_glass_access.accessed_at': DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.none,
+    egress: EgressClass.deviceScoped,
+    note: 'Retained audit timestamp without a linkable store key.',
+  ),
   'blob_files.body': DataClassification(
     term: DpvTerm.unclassifiedPersonal,
     subject: DataSubject.thirdParty,

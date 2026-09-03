@@ -11,12 +11,19 @@ import 'athenaeum_config.dart';
 import 'athenaeum_schema.dart';
 
 typedef DirectoryDelete = void Function(Directory directory);
+typedef FileDelete = void Function(File file);
 
 const int maxBlobBytes = 1024 * 1024;
 const int maxManifestBytes = 16 * 1024 * 1024;
 const int maxMissingHashes = 10000;
 const int maxJsonDepth = 32;
 const int maxGzipBytes = 32 * 1024 * 1024;
+const int maxStoreBlobs = 100000;
+const int maxStoreBytes = 250 * 1024 * 1024;
+const int maxStoreDevices = 32;
+const Duration storeDisuseTtl = Duration(days: 30);
+const Duration uploadGracePeriod = Duration(hours: 24);
+const Duration breakGlassLinkabilityPeriod = Duration(days: 30);
 const int maxStoreCreationsPerMinute = 60;
 const int maxFailedResolutionsPerIp = 10;
 const int maxFailedResolutionsPerIpBurst = 20;
@@ -29,32 +36,55 @@ class AthenaeumStore {
   AthenaeumStore({
     required AthenaeumConfig config,
     sqlite3.Database? database,
+    sqlite3.Database? breakGlassDatabase,
     DirectoryDelete? deleteDirectory,
+    FileDelete? deleteFile,
+    DateTime Function()? clock,
   }) : config = config,
        _database = database ?? _openDatabase(config.dataDirectory),
-       _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively {
+       _breakGlassDatabase =
+           breakGlassDatabase ?? _openBreakGlassDatabase(config.dataDirectory),
+       _deleteDirectory = deleteDirectory ?? _deleteDirectoryRecursively,
+       _deleteFile = deleteFile ?? _deleteFileSync,
+       _clock = clock ?? DateTime.now {
     Directory(config.dataDirectory).createSync(recursive: true);
     _database.execute('PRAGMA foreign_keys = ON');
     _database.execute('PRAGMA journal_mode = WAL');
     for (final table in athenaeumTableSchemas) {
       _database.execute(table.createSql());
     }
+    for (final table in breakGlassTableSchemas) {
+      _breakGlassDatabase.execute(table.createSql());
+    }
     retryPendingDeletions();
   }
 
   final AthenaeumConfig config;
   final sqlite3.Database _database;
+  final sqlite3.Database _breakGlassDatabase;
   final DirectoryDelete _deleteDirectory;
+  final FileDelete _deleteFile;
+  final DateTime Function() _clock;
 
   static sqlite3.Database _openDatabase(String dataDirectory) {
     Directory(dataDirectory).createSync(recursive: true);
     return sqlite3.sqlite3.open(p.join(dataDirectory, 'athenaeum.sqlite'));
   }
 
+  static sqlite3.Database _openBreakGlassDatabase(String dataDirectory) {
+    Directory(dataDirectory).createSync(recursive: true);
+    return sqlite3.sqlite3.open(
+      p.join(dataDirectory, 'athenaeum-break-glass.sqlite'),
+    );
+  }
+
   Directory get blobDirectory =>
       Directory(p.join(config.dataDirectory, 'blobs'));
 
-  void close() => _database.close();
+  void close() {
+    _database.close();
+    _breakGlassDatabase.close();
+  }
 
   StoreRow? lookup(String idKey) {
     final rows = _database.select(
@@ -67,7 +97,7 @@ class AthenaeumStore {
   }
 
   StoreRow create(String idKey) {
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final now = _clock().millisecondsSinceEpoch ~/ 1000;
     final epoch = _randomEpoch();
     var inTransaction = false;
     try {
@@ -95,7 +125,7 @@ class AthenaeumStore {
 
   void touch(String idKey) {
     _database.execute('UPDATE stores SET last_seen = ? WHERE id_key = ?', [
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      _clock().millisecondsSinceEpoch ~/ 1000,
       idKey,
     ]);
   }
@@ -153,6 +183,17 @@ class AthenaeumStore {
         'AND device_id = ?',
         [idKey, epoch, deviceId],
       ).isNotEmpty;
+      if (!existed) {
+        final count =
+            _database.select(
+                  'SELECT COUNT(*) AS count FROM manifests WHERE id_key = ? AND epoch = ?',
+                  [idKey, epoch],
+                ).single['count']
+                as int;
+        if (count >= maxStoreDevices) {
+          throw const StoreQuotaExceeded('device quota exhausted');
+        }
+      }
       _database.execute(
         'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
         'VALUES (?, ?, ?, ?, ?, ?) '
@@ -211,6 +252,112 @@ class AthenaeumStore {
     ];
   }
 
+  void collectGarbage(String idKey, String epoch, {DateTime? now}) {
+    final cutoff =
+        (now ?? _clock()).subtract(uploadGracePeriod).millisecondsSinceEpoch ~/
+        1000;
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final referenced = <String>{};
+      final manifests = _database.select(
+        'SELECT body FROM manifests WHERE id_key = ? AND epoch = ?',
+        [idKey, epoch],
+      );
+      for (final row in manifests) {
+        final decoded = jsonDecode(utf8.decode(row['body'] as List<int>));
+        if (decoded is! Map || decoded['records'] is! Map) continue;
+        final records = decoded['records'] as Map;
+        for (final kind in records.values) {
+          if (kind is! Map) continue;
+          for (final hash in kind.values) {
+            if (hash is String && _hashPattern.hasMatch(hash)) {
+              referenced.add(hash);
+            }
+          }
+        }
+      }
+      final stale = _database.select(
+        'SELECT hash, size FROM blob_refs '
+        'WHERE id_key = ? AND epoch = ? AND uploaded_at < ?',
+        [idKey, epoch, cutoff],
+      );
+      for (final row in stale) {
+        final hash = row['hash'] as String;
+        if (referenced.contains(hash)) continue;
+        _validateHash(hash);
+        final file = blobFile(idKey, epoch, hash);
+        if (file.existsSync()) _deleteFile(file);
+        _database.execute(
+          'DELETE FROM blob_refs WHERE id_key = ? AND epoch = ? AND hash = ?',
+          [idKey, epoch, hash],
+        );
+        _database.execute(
+          'UPDATE stores SET bytes_used = MAX(0, bytes_used - ?) '
+          'WHERE id_key = ? AND epoch = ?',
+          [row['size'], idKey, epoch],
+        );
+      }
+      _database.execute('COMMIT');
+      inTransaction = false;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
+  }
+
+  void sweep({DateTime? now}) {
+    final current = now ?? _clock();
+    final cutoff =
+        current.subtract(storeDisuseTtl).millisecondsSinceEpoch ~/ 1000;
+    final expired = _database
+        .select('SELECT id_key FROM stores WHERE last_seen < ?', [cutoff])
+        .map((row) => row['id_key'] as String)
+        .toList();
+    for (final idKey in expired) {
+      deleteStore(idKey);
+    }
+    final activeStores = _database.select('SELECT id_key, epoch FROM stores');
+    for (final row in activeStores) {
+      collectGarbage(
+        row['id_key'] as String,
+        row['epoch'] as String,
+        now: current,
+      );
+    }
+    purgeExpiredBreakGlassAccess(now: current);
+  }
+
+  void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
+    final now = accessedAt ?? _clock();
+    purgeExpiredBreakGlassAccess(now: now);
+    final idKey = Hmac(
+      sha256,
+      config.pepper,
+    ).convert(utf8.encode(syncId)).toString();
+    _breakGlassDatabase.execute(
+      'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
+      [idKey, now.millisecondsSinceEpoch ~/ 1000],
+    );
+  }
+
+  void purgeExpiredBreakGlassAccess({DateTime? now}) {
+    final cutoff =
+        (now ?? _clock())
+            .subtract(breakGlassLinkabilityPeriod)
+            .millisecondsSinceEpoch ~/
+        1000;
+    _breakGlassDatabase.execute(
+      'UPDATE break_glass_access SET id_key = NULL '
+      'WHERE id_key IS NOT NULL AND accessed_at < ?',
+      [cutoff],
+    );
+  }
+
   bool putBlob({
     required String idKey,
     required String epoch,
@@ -229,16 +376,31 @@ class AthenaeumStore {
         inTransaction = false;
         return false;
       }
+      final current = lookup(idKey);
+      if (current != null && current.epoch == epoch) {
+        final count =
+            _database.select(
+                  'SELECT COUNT(*) AS count FROM blob_refs WHERE id_key = ? AND epoch = ?',
+                  [idKey, epoch],
+                ).single['count']
+                as int;
+        if (count >= maxStoreBlobs) {
+          throw const StoreQuotaExceeded('blob quota exhausted');
+        }
+        if (current.bytesUsed > maxStoreBytes - body.length) {
+          throw const StoreQuotaExceeded('byte quota exhausted');
+        }
+      }
       file = blobFile(idKey, epoch, hash);
       file.parent.createSync(recursive: true);
       final nonce = Random.secure().nextInt(1 << 32).toRadixString(16);
       temporary = File(
-        '${file.path}.$pid.${DateTime.now().microsecondsSinceEpoch}.$nonce.tmp',
+        '${file.path}.$pid.${_clock().microsecondsSinceEpoch}.$nonce.tmp',
       );
       temporary.writeAsBytesSync(body, flush: true);
       temporary.renameSync(file.path);
       published = true;
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final now = _clock().millisecondsSinceEpoch ~/ 1000;
       _database.execute(
         'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
         'VALUES (?, ?, ?, ?, ?)',
@@ -281,6 +443,10 @@ class AthenaeumStore {
     );
   }
 
+  sqlite3.Database get breakGlassDatabase => _breakGlassDatabase;
+
+  sqlite3.Database get database => _database;
+
   void deleteStore(String idKey) {
     late final String epoch;
     var inTransaction = false;
@@ -310,7 +476,7 @@ class AthenaeumStore {
         _database.execute(
           'INSERT OR IGNORE INTO deletion_jobs (id_key, epoch, queued_at) '
           'VALUES (?, ?, ?)',
-          [idKey, queuedEpoch, DateTime.now().millisecondsSinceEpoch ~/ 1000],
+          [idKey, queuedEpoch, _clock().millisecondsSinceEpoch ~/ 1000],
         );
       }
       _database.execute('DELETE FROM manifests WHERE id_key = ?', [idKey]);
@@ -365,6 +531,8 @@ class AthenaeumStore {
     if (directory.existsSync()) directory.deleteSync(recursive: true);
   }
 
+  static void _deleteFileSync(File file) => file.deleteSync();
+
   static void validateDeviceId(String value) {
     if (!_deviceIdPattern.hasMatch(value)) {
       throw const FormatException('invalid device id');
@@ -392,6 +560,12 @@ class StoreAlreadyExists implements Exception {
 
 class StoreEpochMismatch implements Exception {
   const StoreEpochMismatch();
+}
+
+class StoreQuotaExceeded implements Exception {
+  const StoreQuotaExceeded(this.message);
+
+  final String message;
 }
 
 class StoreRow {

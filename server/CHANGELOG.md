@@ -13,6 +13,8 @@ the app and of `compendium_core`; version headings below refer to
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
+- Add 30-day store retention, 24-hour upload grace-period garbage collection,
+  aggregate store quotas, and a privacy-safe break-glass access log.
 
 ### Fixed
 
@@ -22,3 +24,5 @@ the app and of `compendium_core`; version headings below refer to
 - Return `200` for existing manifest updates, decode hexadecimal peppers
   unambiguously, preserve blob upload timestamps on duplicate writes, and
   refund failed store-creation reservations.
+- Delete stores immediately regardless of upload grace, and remove old
+  unreferenced blobs after manifest publication or the hourly sweep.

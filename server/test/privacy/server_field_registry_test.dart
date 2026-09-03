@@ -5,6 +5,7 @@ void main() {
   test('every persisted server field has all three classifications', () {
     final expected = {
       ...serverSqliteFields,
+      ...serverBreakGlassSqliteFields,
       ...serverFilesystemFields,
       ...serverConfigurationFields,
     };

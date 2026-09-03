@@ -48,8 +48,20 @@ const List<AthenaeumTableSchema> athenaeumTableSchemas = [
   }, tableConstraint: 'PRIMARY KEY (id_key, epoch)'),
 ];
 
+const List<AthenaeumTableSchema> breakGlassTableSchemas = [
+  AthenaeumTableSchema('break_glass_access', {
+    'id_key': 'TEXT',
+    'accessed_at': 'INTEGER NOT NULL',
+  }),
+];
+
 List<String> get serverSqliteFields => [
   for (final table in athenaeumTableSchemas)
+    for (final column in table.columns.keys) '${table.name}.$column',
+];
+
+List<String> get serverBreakGlassSqliteFields => [
+  for (final table in breakGlassTableSchemas)
     for (final column in table.columns.keys) '${table.name}.$column',
 ];
 
