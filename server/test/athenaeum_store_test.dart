@@ -1059,11 +1059,12 @@ void main() {
     targetFile.writeAsBytesSync([1]);
     store.deleteStore(targetId);
     database.execute(
-      'UPDATE deletion_jobs SET queued_at = CASE WHEN id_key = ? THEN 0 ELSE 1 END',
+      'UPDATE deletion_jobs SET queued_at = CASE WHEN id_key = ? THEN 1 ELSE 0 END',
       [targetId],
     );
 
     failDelete = false;
+    store.retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerRequest);
     store.retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerRequest);
 
     expect(targetFile.existsSync(), isFalse);
