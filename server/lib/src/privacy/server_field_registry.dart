@@ -129,7 +129,9 @@ const Map<String, DataClassification> serverFieldClassifications = {
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Peppered pseudonymous store key; nulled after 30 days.',
+    note:
+        'Peppered pseudonymous store key; eligible after 30 days and nulled by '
+        'the next hourly sweep.',
   ),
   'break_glass_access.accessed_at': DataClassification(
     term: DpvTerm.nonPersonal,
@@ -146,7 +148,9 @@ const Map<String, DataClassification> serverFieldClassifications = {
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Peppered pseudonymous store key retained for at most 30 days.',
+    note:
+        'Peppered pseudonymous store key; eligible after 30 days and removed by '
+        'the next hourly sweep.',
   ),
   'diagnostic_events.hash': DataClassification(
     term: DpvTerm.nonPersonal,
@@ -157,7 +161,9 @@ const Map<String, DataClassification> serverFieldClassifications = {
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
-    note: 'Diagnostic event timestamp retained for at most 30 days.',
+    note:
+        'Diagnostic event timestamp; eligible after 30 days and removed by the '
+        'next hourly sweep.',
   ),
   'blob_files.body': DataClassification(
     term: DpvTerm.unclassifiedPersonal,
