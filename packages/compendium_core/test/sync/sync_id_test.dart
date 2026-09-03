@@ -33,6 +33,16 @@ void main() {
 
       expect(SyncId.parse('${'a' * 32}-b-c-d').value, '${'a' * 32}-b-c-d');
       expect(() => SyncId.parse('${'a' * 33}-b-c-d'), throwsFormatException);
+      expect(
+        () => SyncId.parse('${'a' * 33}-${'b' * 32}-${'c' * 32}-${'d' * 32}'),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            'sync ID must not exceed 131 Unicode code points',
+          ),
+        ),
+      );
     });
 
     test('generated IDs use four EFF long-list words', () {

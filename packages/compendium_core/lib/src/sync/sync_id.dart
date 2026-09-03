@@ -63,10 +63,14 @@ String normalizeSyncId(String value) => nfc(value.trim()).toLowerCase();
 void validateSyncId(String value) {
   final normalized = normalizeSyncId(value);
   final words = normalized.split('-');
-  if (words.length != syncIdWordCount ||
-      normalized.runes.length > syncIdMaxCodePoints) {
+  if (words.length != syncIdWordCount) {
     throw const FormatException(
       'sync ID must contain exactly four hyphen-separated words',
+    );
+  }
+  if (normalized.runes.length > syncIdMaxCodePoints) {
+    throw const FormatException(
+      'sync ID must not exceed 131 Unicode code points',
     );
   }
   for (final word in words) {

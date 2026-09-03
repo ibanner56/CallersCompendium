@@ -138,7 +138,7 @@ void main() {
       );
     });
 
-    test('aborts an oversized gzip response while inflating', () async {
+    test('aborts a gzip response exceeding the decompression ratio', () async {
       final compressed = gzip.encode(List<int>.filled(1024 * 1024, 0x61));
       var sentChunks = 0;
       final chunks = [
@@ -165,7 +165,6 @@ void main() {
       final client = SyncHttpClient(
         endpoint: Uri.parse('http://127.0.0.1:${server.port}/'),
         syncId: 'one-two-three-four',
-        maxResponseBytes: 100,
       );
       addTearDown(client.close);
 
