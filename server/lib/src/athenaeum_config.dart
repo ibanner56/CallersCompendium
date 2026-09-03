@@ -54,7 +54,7 @@ class AthenaeumConfig {
       // A hexadecimal deployment secret is also accepted for shell-friendly
       // configuration, but neither representation has a built-in fallback.
     }
-    if (RegExp(r'^[0-9a-fA-F]{64,}$').hasMatch(value)) {
+    if (RegExp(r'^(?:[0-9a-fA-F]{2}){32,}$').hasMatch(value)) {
       final result = <int>[];
       for (var index = 0; index < value.length; index += 2) {
         result.add(int.parse(value.substring(index, index + 2), radix: 16));

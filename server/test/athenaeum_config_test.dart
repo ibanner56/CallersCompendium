@@ -12,6 +12,11 @@ void main() {
       () => AthenaeumConfig.fromEnvironment(dataDirectory: '.', pepper: ''),
       throwsArgumentError,
     );
+    expect(
+      () =>
+          AthenaeumConfig.fromEnvironment(dataDirectory: '.', pepper: 'a' * 65),
+      throwsFormatException,
+    );
   });
 
   test('only allows loopback listener hosts', () {

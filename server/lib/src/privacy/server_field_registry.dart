@@ -89,6 +89,14 @@ const Map<String, DataClassification> serverFieldClassifications = {
     subject: DataSubject.none,
     egress: EgressClass.deviceScoped,
   ),
+  'blob_files.body': DataClassification(
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.thirdParty,
+    egress: EgressClass.shareable,
+    note:
+        'Opaque record payload stored by content hash; may contain third-party '
+        'data and is intentionally shareable through Device Sync.',
+  ),
   'config.pepper': DataClassification(
     term: DpvTerm.nonPersonal,
     subject: DataSubject.none,

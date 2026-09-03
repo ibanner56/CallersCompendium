@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -127,13 +128,30 @@ class AthenaeumStore {
     required int writtenAt,
     required Uint8List body,
   }) {
-    _database.execute(
-      'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
-      'VALUES (?, ?, ?, ?, ?, ?) '
-      'ON CONFLICT (id_key, epoch, device_id) DO UPDATE SET '
-      'etag = excluded.etag, written_at = excluded.written_at, body = excluded.body',
-      [idKey, epoch, deviceId, etag, writtenAt, body],
-    );
+    var inTransaction = false;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final current = lookup(idKey);
+      if (current == null || current.epoch != epoch) {
+        throw const StoreEpochMismatch();
+      }
+      _database.execute(
+        'INSERT INTO manifests (id_key, epoch, device_id, etag, written_at, body) '
+        'VALUES (?, ?, ?, ?, ?, ?) '
+        'ON CONFLICT (id_key, epoch, device_id) DO UPDATE SET '
+        'etag = excluded.etag, written_at = excluded.written_at, body = excluded.body',
+        [idKey, epoch, deviceId, etag, writtenAt, body],
+      );
+      _database.execute('COMMIT');
+      inTransaction = false;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        rethrow;
+      }
+    }
   }
 
   void deleteManifest(String idKey, String epoch, String deviceId) {
@@ -158,8 +176,16 @@ class AthenaeumStore {
 
   List<String> missingBlobs(String idKey, String epoch, List<String> hashes) {
     final present = <String>{};
-    for (final hash in hashes) {
-      if (blobRef(idKey, epoch, hash) != null) present.add(hash);
+    const batchSize = 500;
+    for (var offset = 0; offset < hashes.length; offset += batchSize) {
+      final batch = hashes.skip(offset).take(batchSize).toList();
+      final placeholders = List<String>.filled(batch.length, '?').join(', ');
+      final rows = _database.select(
+        'SELECT hash FROM blob_refs WHERE id_key = ? AND epoch = ? '
+        'AND hash IN ($placeholders)',
+        [idKey, epoch, ...batch],
+      );
+      present.addAll(rows.map((row) => row['hash'] as String));
     }
     return [
       for (final hash in hashes)
@@ -173,34 +199,58 @@ class AthenaeumStore {
     required String hash,
     required Uint8List body,
   }) {
-    final existing = blobRef(idKey, epoch, hash);
-    if (existing != null) return false;
-    final file = blobFile(idKey, epoch, hash);
-    file.parent.createSync(recursive: true);
-    final temporary = File(
-      '${file.path}.$pid.${DateTime.now().microsecondsSinceEpoch}.tmp',
-    );
-    temporary.writeAsBytesSync(body, flush: true);
-    temporary.renameSync(file.path);
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    _database.execute('BEGIN IMMEDIATE');
-    final claimed = blobRef(idKey, epoch, hash);
-    if (claimed != null) {
-      _database.execute('ROLLBACK');
-      return false;
+    var inTransaction = false;
+    var published = false;
+    File? file;
+    File? temporary;
+    try {
+      _database.execute('BEGIN IMMEDIATE');
+      inTransaction = true;
+      final current = lookup(idKey);
+      if (current == null || current.epoch != epoch) {
+        throw const StoreEpochMismatch();
+      }
+      if (blobRef(idKey, epoch, hash) != null) {
+        _database.execute('ROLLBACK');
+        inTransaction = false;
+        return false;
+      }
+      file = blobFile(idKey, epoch, hash);
+      file.parent.createSync(recursive: true);
+      final nonce = Random.secure().nextInt(1 << 32).toRadixString(16);
+      temporary = File(
+        '${file.path}.$pid.${DateTime.now().microsecondsSinceEpoch}.$nonce.tmp',
+      );
+      temporary.writeAsBytesSync(body, flush: true);
+      temporary.renameSync(file.path);
+      published = true;
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      _database.execute(
+        'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [idKey, epoch, hash, body.length, now],
+      );
+      _database.execute(
+        'UPDATE stores SET bytes_used = bytes_used + ?, last_seen = ? '
+        'WHERE id_key = ? AND epoch = ?',
+        [body.length, now, idKey, epoch],
+      );
+      _database.execute('COMMIT');
+      inTransaction = false;
+      return true;
+    } catch (error) {
+      try {
+        if (inTransaction) _database.execute('ROLLBACK');
+      } finally {
+        if (published && file != null && file.existsSync()) {
+          file.deleteSync();
+        }
+        if (temporary != null && temporary.existsSync()) {
+          temporary.deleteSync();
+        }
+        rethrow;
+      }
     }
-    _database.execute(
-      'INSERT INTO blob_refs (id_key, epoch, hash, size, uploaded_at) '
-      'VALUES (?, ?, ?, ?, ?)',
-      [idKey, epoch, hash, body.length, now],
-    );
-    _database.execute(
-      'UPDATE stores SET bytes_used = bytes_used + ?, last_seen = ? '
-      'WHERE id_key = ? AND epoch = ?',
-      [body.length, now, idKey, epoch],
-    );
-    _database.execute('COMMIT');
-    return true;
   }
 
   File blobFile(String idKey, String epoch, String hash) {
@@ -243,8 +293,9 @@ class AthenaeumStore {
   }
 
   static String _randomEpoch() {
-    final random = AthenaeumConfig.generatePepper();
-    return random.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
+    final random = Random.secure();
+    final bytes = List<int>.generate(16, (_) => random.nextInt(256));
+    return bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
   }
 }
 
@@ -252,6 +303,10 @@ class StoreAlreadyExists implements Exception {
   const StoreAlreadyExists(this.store);
 
   final StoreRow store;
+}
+
+class StoreEpochMismatch implements Exception {
+  const StoreEpochMismatch();
 }
 
 class StoreRow {

@@ -53,7 +53,7 @@
       "Create and lookup remain distinct and issue fresh epochs correctly.",
       "Blobs are immutable and stale epochs are rejected.",
       "ETag, content type, credential decoding, and budget accounting pass.",
-      "A live test deployment is available before W6 client-engine work begins."
+      "A live loopback test deployment is available before W6 client-engine work begins."
     ],
     "summary": "The Shelf Athenaeum service is implemented with shared W5 identity derivation, epoch-scoped storage, typed endpoints, allocation-safe limits, and live loopback coverage.",
     "evidence": [
@@ -61,7 +61,7 @@
       "server/test/athenaeum_app_test.dart covers distinct GET/POST creation, fresh epochs, duplicate creation conflicts, concurrent creators, and delete/recreate reset behavior.",
       "server/lib/src/athenaeum_store.dart namespaces SQLite rows and blob paths by id_key and epoch; tests cover stale manifest rejection, immutable duplicate blobs, cross-store isolation, and concurrent identical uploads.",
       "server/test/athenaeum_app_test.dart covers strong ETags/304, content-type handling, malformed credential 401s, all four failure-resolution outcomes, saturated existing-store access, and separate creation limits.",
-      "server/bin/athenaeum.dart and server/test/athenaeum_app_test.dart provide a real loopback listening endpoint for the C2 HTTP round trip; server tests, analyzers, core tests, and available preflight gates pass."
+      "server/bin/athenaeum.dart and server/test/athenaeum_app_test.dart provide a real loopback listening endpoint for the C2 HTTP round trip; server tests, analyzers, core tests, and available preflight gates pass. The loopback-only interpretation is the W10/W16 boundary; public deployment remains W16."
     ]
   }
 }

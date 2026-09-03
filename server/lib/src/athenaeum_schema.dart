@@ -47,3 +47,5 @@ List<String> get serverSqliteFields => [
   for (final table in athenaeumTableSchemas)
     for (final column in table.columns.keys) '${table.name}.$column',
 ];
+
+const List<String> serverFilesystemFields = ['blob_files.body'];

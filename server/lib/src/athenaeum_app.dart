@@ -100,7 +100,7 @@ class AthenaeumApp {
       store.deleteStore(identity.idKey);
       return Response(204);
     }
-    return _methodNotAllowed();
+    return _methodNotAllowed(const ['GET', 'POST', 'DELETE']);
   }
 
   Future<Response> _manifestRoute(
@@ -154,14 +154,18 @@ class AthenaeumApp {
       if (manifest.epoch != current.epoch) {
         throw const _RequestFailure(409, 'stale manifest epoch');
       }
-      store.putManifest(
-        idKey: identity.idKey,
-        epoch: current.epoch,
-        deviceId: deviceId,
-        etag: rawBodyHash(body),
-        writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
-        body: body,
-      );
+      try {
+        store.putManifest(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          deviceId: deviceId,
+          etag: rawBodyHash(body),
+          writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
+          body: body,
+        );
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale manifest epoch');
+      }
       return Response(
         201,
         headers: {
@@ -174,12 +178,12 @@ class AthenaeumApp {
       store.deleteManifest(identity.idKey, current.epoch, deviceId);
       return Response(204);
     }
-    return _methodNotAllowed();
+    return _methodNotAllowed(const ['GET', 'PUT', 'DELETE']);
   }
 
   Future<Response> _blobRoute(Request request, List<String> segments) async {
     if (segments.length == 3 && segments[2] == 'missing') {
-      if (request.method != 'POST') return _methodNotAllowed();
+      if (request.method != 'POST') return _methodNotAllowed(const ['POST']);
       _requireContentType(request, 'application/json');
       final auth = await _authenticate(request);
       if (auth.response != null) return auth.response!;
@@ -238,7 +242,7 @@ class AthenaeumApp {
         body: file.readAsBytesSync(),
         headers: {
           'content-type': 'application/octet-stream',
-          'cache-control': 'public, max-age=31536000, immutable',
+          'cache-control': 'private, max-age=31536000, immutable',
         },
       );
     }
@@ -251,15 +255,20 @@ class AthenaeumApp {
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
-      final created = store.putBlob(
-        idKey: identity.idKey,
-        epoch: current.epoch,
-        hash: hash,
-        body: body,
-      );
+      late final bool created;
+      try {
+        created = store.putBlob(
+          idKey: identity.idKey,
+          epoch: current.epoch,
+          hash: hash,
+          body: body,
+        );
+      } on StoreEpochMismatch {
+        throw const _RequestFailure(409, 'stale blob epoch');
+      }
       return Response(created ? 201 : 200);
     }
-    return _methodNotAllowed();
+    return _methodNotAllowed(const ['GET', 'PUT']);
   }
 
   Future<_AuthResult> _authenticate(Request request) async {
@@ -336,7 +345,11 @@ class AthenaeumApp {
       while (await iterator.moveNext()) {
         final chunk = iterator.current;
         size += chunk.length;
-        if (size > maxBytes || size > maxGzipBytes) {
+        final expansionExceeded =
+            encoding == 'gzip' &&
+            compressed.value > 0 &&
+            size > compressed.value * 10;
+        if (size > maxBytes || size > maxGzipBytes || expansionExceeded) {
           await iterator.cancel();
           tooLarge = true;
           break;
@@ -349,14 +362,6 @@ class AthenaeumApp {
     }
     if (tooLarge) {
       throw const _RequestFailure(413, 'request body exceeds limit');
-    }
-    if (encoding == 'gzip' &&
-        compressed.value > 0 &&
-        size > compressed.value * 10) {
-      throw const _RequestFailure(
-        413,
-        'compressed request expansion exceeds limit',
-      );
     }
     return output.takeBytes();
   }
@@ -418,6 +423,7 @@ class AthenaeumApp {
     var inString = false;
     var escaped = false;
     var count = 0;
+    var expectingValue = true;
     for (var index = start; index < text.length; index++) {
       final character = text.codeUnitAt(index);
       if (inString) {
@@ -431,13 +437,22 @@ class AthenaeumApp {
         continue;
       }
       if (character == 0x22) {
-        if (depth == 1) count++;
         inString = true;
+        if (depth == 1 && expectingValue) {
+          count++;
+          expectingValue = false;
+        }
       } else if (character == 0x5b) {
         depth++;
+        if (depth > 1 && expectingValue) expectingValue = false;
       } else if (character == 0x5d) {
+        if (depth == 1) break;
         depth--;
-        if (depth == 0) break;
+      } else if (character == 0x2c && depth == 1) {
+        expectingValue = true;
+      } else if (depth == 1 && expectingValue && character > 0x20) {
+        count++;
+        expectingValue = false;
       }
       if (count > maxMissingHashes) {
         throw const _RequestFailure(413, 'too many hashes');
@@ -488,8 +503,8 @@ class AthenaeumApp {
     headers: {'content-type': 'application/json', 'retry-after': '60'},
   );
 
-  static Response _methodNotAllowed() =>
-      Response(405, headers: {'allow': 'GET, POST, PUT, DELETE'});
+  static Response _methodNotAllowed(Iterable<String> methods) =>
+      Response(405, headers: {'allow': methods.join(', ')});
 
   static String _defaultClientAddress(Request request) => 'unknown';
 }

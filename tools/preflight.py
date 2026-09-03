@@ -284,6 +284,16 @@ STEPS: tuple[Step, ...] = (
         fast=False,
         needs_binary="flutter",
     ),
+    Step(
+        "server-tests",
+        "Athenaeum server analyzer and endpoint suite",
+        (
+            ("dart", "analyze", "server"),
+            ("dart", "test", "server/test"),
+        ),
+        fast=False,
+        needs_binary="dart",
+    ),
 )
 
 

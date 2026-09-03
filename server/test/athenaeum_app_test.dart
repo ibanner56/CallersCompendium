@@ -100,6 +100,10 @@ void main() {
     final blobGet = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
     expect(blobGet.statusCode, 200);
     expect(await blobGet.bodyBytes(), equals(blobBytes));
+    expect(
+      blobGet.headers.value('cache-control'),
+      'private, max-age=31536000, immutable',
+    );
   });
 
   test('GET and POST store lifecycle remain distinct', () async {
@@ -116,6 +120,20 @@ void main() {
     final afterBody = jsonDecode(await after.body()) as Map<String, Object?>;
     expect(afterBody['epoch'], before['epoch']);
     expect(afterBody['devices'], isEmpty);
+  });
+
+  test('normalized sync IDs resolve to the same store', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final before = jsonDecode(await created.body()) as Map<String, Object?>;
+    for (final equivalent in [
+      ' CAFÉ-HORSE-BATTERY-STAPLE ',
+      ' cafe\u0301-horse-battery-staple ',
+    ]) {
+      final response = await _send('GET', '/v1/store', syncId: equivalent);
+      final body = jsonDecode(await response.body()) as Map<String, Object?>;
+      expect(response.statusCode, 200);
+      expect(body['epoch'], before['epoch']);
+    }
   });
 
   test(
@@ -148,6 +166,7 @@ void main() {
           jsonDecode(await recreated.body()) as Map<String, Object?>;
       expect(recreated.statusCode, 201);
       expect(recreatedBody['epoch'], isNot(beforeBody['epoch']));
+      expect(recreatedBody['epoch'], hasLength(32));
     },
   );
 
@@ -221,9 +240,7 @@ void main() {
 
       final tooManyHashes = Uint8List.fromList(
         utf8.encode(
-          jsonEncode({
-            'hashes': List<String>.filled(maxMissingHashes + 1, 'a' * 64),
-          }),
+          jsonEncode({'hashes': List<int>.filled(maxMissingHashes + 1, 0)}),
         ),
       );
       final tooMany = await _send(
@@ -457,6 +474,59 @@ void main() {
     }
     final fetched = await _send('GET', '/v1/blobs/$hash', syncId: syncId);
     expect(await fetched.bodyBytes(), equals(bytes));
+  });
+
+  test('epoch changes are rejected at the write boundary', () async {
+    final created = await _send('POST', '/v1/store', syncId: syncId);
+    final createdBody =
+        jsonDecode(await created.body()) as Map<String, Object?>;
+    final epoch = createdBody['epoch']! as String;
+    final manifest = SyncManifest(
+      deviceId: 'device-one',
+      epoch: epoch,
+      writtenAt: DateTime.utc(2026, 9, 3),
+      records: const {},
+    );
+    expect(
+      (await _send('DELETE', '/v1/store', syncId: syncId)).statusCode,
+      204,
+    );
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final idKey = deriveIncomingSyncIdKey(syncId, app.config.pepper);
+    final body = encodeSyncManifestUtf8(manifest);
+    expect(
+      () => app.store.putManifest(
+        idKey: idKey,
+        epoch: epoch,
+        deviceId: manifest.deviceId,
+        etag: rawBodyHash(body),
+        writtenAt: manifest.writtenAt.millisecondsSinceEpoch ~/ 1000,
+        body: body,
+      ),
+      throwsA(isA<StoreEpochMismatch>()),
+    );
+    expect(
+      () => app.store.putBlob(
+        idKey: idKey,
+        epoch: epoch,
+        hash: 'a' * 64,
+        body: Uint8List(0),
+      ),
+      throwsA(isA<StoreEpochMismatch>()),
+    );
+  });
+
+  test('method-not-allowed responses advertise the route methods', () async {
+    final store = await _send('PUT', '/v1/store', syncId: syncId);
+    expect(store.statusCode, 405);
+    expect(store.headers.value('allow'), 'GET, POST, DELETE');
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final blob = await _send('POST', '/v1/blobs/${'a' * 64}', syncId: syncId);
+    expect(blob.statusCode, 405);
+    expect(blob.headers.value('allow'), 'GET, PUT');
+    final missing = await _send('GET', '/v1/blobs/missing', syncId: syncId);
+    expect(missing.statusCode, 405);
+    expect(missing.headers.value('allow'), 'POST');
   });
 
   test(

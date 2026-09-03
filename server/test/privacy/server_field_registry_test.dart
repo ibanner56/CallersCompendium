@@ -3,7 +3,11 @@ import 'package:test/test.dart';
 
 void main() {
   test('every persisted server field has all three classifications', () {
-    final expected = {...serverSqliteFields, ...serverConfigurationFields};
+    final expected = {
+      ...serverSqliteFields,
+      ...serverFilesystemFields,
+      ...serverConfigurationFields,
+    };
     expect(serverFieldClassifications.keys.toSet(), equals(expected));
     for (final field in expected) {
       final classification = serverFieldClassifications[field]!;
