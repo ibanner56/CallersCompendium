@@ -1161,7 +1161,9 @@ class CompendiumRepositories {
   }
 
   /// Rebuilds canonical/FTS text after taxonomy v33 changed seeded defaults
-  /// and the figure-eight canonical template.
+  /// and the figure-eight canonical template. It also removes the old parser's
+  /// explicit `partners` value from assumed bare `box_circulate` figures so the
+  /// new taxonomy default can take effect without touching explicit subjects.
   Future<bool> _emitTaxonomyV33CanonicalTextIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
@@ -1173,6 +1175,25 @@ class CompendiumRepositories {
         )
         .get();
     if (done.isNotEmpty) return alreadyRebuilt;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    for (final dance in allDances) {
+      final normalised = dances.normaliseTaxonomyV33Public(dance);
+      if (identical(normalised, dance)) continue;
+      // Rewrite only figures_json; the bulk rebuild below refreshes all derived
+      // rows after the source normalization completes.
+      // normalization-structure-exempt: derived maintenance writes encoded
+      // figures already produced from the canonical dance model.
+      await db.customUpdate(
+        'UPDATE ${db.dances.actualTableName} SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(normalised.figures)),
+          Variable<String>(dance.id),
+        ],
+        updates: {db.dances},
+        updateKind: UpdateKind.update,
+      );
+    }
 
     if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
     await _writeSweepMarker(taxonomyV33CanonicalRebuildDoneKey, '"done"');

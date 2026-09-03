@@ -131,6 +131,51 @@ class DanceRepository {
     return stripped != null ? dance.copyWith(figures: stripped) : dance;
   }
 
+  /// Removes the legacy explicit `partners` subject from imported bare
+  /// `box_circulate` figures, retaining the taxonomy default as authoritative.
+  /// Explicitly authored `partners` figures are preserved.
+  Dance normaliseTaxonomyV33Public(Dance dance) {
+    List<Figure>? normalised;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _normaliseTaxonomyV33Figure(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  Figure _normaliseTaxonomyV33Figure(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _normaliseTaxonomyV33Figure(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'box_circulate' ||
+        !figure.assumedSubject ||
+        figure.params['who'] != 'partners') {
+      return figure;
+    }
+    return figure.copyWith(
+      params: {...figure.params}..remove('who'),
+      assumedSubject: false,
+    );
+  }
+
   /// Strips a single figure's retired `star_promenade.hand`, recursing into
   /// `meanwhile` sub-figures. Returns the original [figure] unchanged when
   /// nothing needs stripping.

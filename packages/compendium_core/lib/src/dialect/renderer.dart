@@ -1761,8 +1761,9 @@ class FigureRenderer {
     // is NOT baked in here — it is composed by `renderSummary` via
     // [_balancePlacement]`[box_circulate] = leading` (PR2's default-shown-balance
     // handling), so `render()` shows the bare "box circulate - … cross while …
-    // loop right" and only the summary prepends "balance &". `who` (partners)
-    // is outside ContraDB's invert domain, so the loop pair renders "others"
+    // loop right" and only the summary prepends "balance &". `who` defaults to
+    // role2s, so the loop pair renders role1s. An explicitly authored partners
+    // subject remains outside the invert domain and renders "others"
     // (ContraDB's own empty-subject fallback).
     'box_circulate': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);

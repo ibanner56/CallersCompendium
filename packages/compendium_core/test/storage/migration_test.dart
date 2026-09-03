@@ -144,7 +144,7 @@ void main() {
 
   group('taxonomy v33 canonical rebuild', () {
     test(
-      'refreshes effective defaults without rewriting figures_json',
+      'normalizes legacy assumed subjects and refreshes effective defaults',
       () async {
         final db = CompendiumDatabase(NativeDatabase.memory());
         final repos = CompendiumRepositories(db, contraTaxonomy);
@@ -155,8 +155,13 @@ void main() {
             id: 'v33-canonical',
             title: 'v33 canonical',
             figures: [
-              Figure(move: 'box_circulate'),
+              Figure(
+                move: 'box_circulate',
+                params: {'who': 'partners'},
+                assumedSubject: true,
+              ),
               Figure(move: 'figure_8'),
+              Figure(move: 'box_circulate', params: {'who': 'partners'}),
             ],
             createdAt: DateTime.utc(2026),
             updatedAt: DateTime.utc(2026),
@@ -171,7 +176,8 @@ void main() {
                     )
                     .getSingle())
                 .read<String>('figures_json');
-        expect(beforeJson, isNot(contains('"who"')));
+        expect(beforeJson, contains('"assumedSubject":true'));
+        expect(beforeJson, contains('"who":"partners"'));
         for (final key in [
           purgeCorruptionRepairDoneKey,
           inversePairNormalisationDoneKey,
@@ -186,10 +192,11 @@ void main() {
         await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
         await db.customUpdate(
           'UPDATE dance_figures SET canonical_text = CASE idx '
-          'WHEN 0 THEN ? WHEN 1 THEN ? END WHERE dance_id = ?',
+          'WHEN 0 THEN ? WHEN 1 THEN ? WHEN 2 THEN ? END WHERE dance_id = ?',
           variables: [
             Variable.withString('partners box circulate'),
             Variable.withString('ones figure 8 half'),
+            Variable.withString('partners box circulate'),
             Variable.withString('v33-canonical'),
           ],
           updates: {db.danceFigures},
@@ -197,7 +204,9 @@ void main() {
         await db.customUpdate(
           'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
           variables: [
-            Variable.withString('partners box circulate ones figure 8 half'),
+            Variable.withString(
+              'partners box circulate ones figure 8 half partners box circulate',
+            ),
             Variable.withString('v33-canonical'),
           ],
         );
@@ -223,6 +232,7 @@ void main() {
         expect(rows.map((row) => row.read<String>('canonical_text')).toList(), [
           'role2s box circulate',
           'ones half figure 8',
+          'partners box circulate',
         ]);
         final fts = await db
             .customSelect(
@@ -232,7 +242,7 @@ void main() {
             .getSingle();
         expect(
           fts.read<String>('figures_text'),
-          'role2s box circulate ones half figure 8',
+          'role2s box circulate ones half figure 8 partners box circulate',
         );
         final afterJson =
             (await db
@@ -242,7 +252,9 @@ void main() {
                     )
                     .getSingle())
                 .read<String>('figures_json');
-        expect(afterJson, beforeJson);
+        expect(afterJson, isNot(beforeJson));
+        expect(afterJson, isNot(contains('"assumedSubject":true')));
+        expect(afterJson, contains('"who":"partners"'));
 
         final completed = await db
             .customSelect(

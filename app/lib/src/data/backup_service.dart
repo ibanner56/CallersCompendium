@@ -14,6 +14,12 @@ import '../screens/settings/settings_keys.dart'
     show kSyncDeviceIdKey, kSyncIdKey;
 import 'window_service.dart' show kWindowFrameKey;
 
+/// App-side declaration used by the settings classification ratchet. The
+/// storage-owned constant has the same value and remains the migration source
+/// of truth.
+const String kTaxonomyV33CanonicalRebuildDoneKey =
+    '__taxonomy_v33_canonical_rebuild_done__';
+
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
 /// Four reasons a key is excluded:
@@ -22,10 +28,11 @@ import 'window_service.dart' show kWindowFrameKey;
 ///   blobs would be redundant (and could disagree with the typed sections):
 ///   [kCustomDialectsKey], [kActiveDialectRefKey], [kActiveDialectKey],
 ///   [kCustomThemesKey], [kActiveCustomThemeKey].
-/// - **device-local / backup metadata** — geometry and backup bookkeeping that
+/// - **installation state / backup metadata** — geometry and backup bookkeeping
+///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
 ///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
-///   [taxonomyV33CanonicalRebuildDoneKey].
+///   [kTaxonomyV33CanonicalRebuildDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
@@ -39,7 +46,7 @@ const Set<String> kBackupSettingsDenylist = {
   kWindowFrameKey,
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
-  taxonomyV33CanonicalRebuildDoneKey,
+  kTaxonomyV33CanonicalRebuildDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
 };
