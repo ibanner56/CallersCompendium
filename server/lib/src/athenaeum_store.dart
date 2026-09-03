@@ -37,6 +37,7 @@ const int maxStoreDevices = 32;
 const Duration storeDisuseTtl = Duration(days: 30);
 const Duration uploadGracePeriod = Duration(hours: 24);
 const Duration breakGlassLinkabilityPeriod = Duration(days: 30);
+const Duration diagnosticRetentionPeriod = Duration(days: 30);
 const int maxStoreCreationsPerMinute = 60;
 const int maxFailedResolutionsPerIp = 10;
 const int maxFailedResolutionsPerIpBurst = 20;
@@ -366,6 +367,7 @@ class AthenaeumStore {
       );
     }
     purgeExpiredBreakGlassAccess(now: current);
+    purgeExpiredDiagnostics(now: current);
   }
 
   void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
@@ -396,7 +398,7 @@ class AthenaeumStore {
   void purgeExpiredDiagnostics({DateTime? now}) {
     final cutoff =
         (now ?? _clock())
-            .subtract(breakGlassLinkabilityPeriod)
+            .subtract(diagnosticRetentionPeriod)
             .millisecondsSinceEpoch ~/
         1000;
     _diagnosticDatabase.execute(

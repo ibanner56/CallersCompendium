@@ -203,7 +203,7 @@ class AthenaeumApp {
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/json');
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
-        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+        throw const _RequestFailure(413, 'request body exceeds limit');
       }
       final depthScanner = _MissingHashScanner();
       final body = await _readBody(
@@ -264,7 +264,7 @@ class AthenaeumApp {
         return _failedResolution(request, 404, 'store not found');
       }
       if (_declaredLengthExceeds(request, maxManifestBytes)) {
-        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+        throw const _RequestFailure(413, 'request body exceeds limit');
       }
       final hashScanner = _MissingHashScanner();
       final body = await _readBody(
@@ -324,7 +324,7 @@ class AthenaeumApp {
     if (request.method == 'PUT') {
       _requireContentType(request, 'application/octet-stream');
       if (_declaredLengthExceeds(request, maxBlobBytes)) {
-        return _jsonResponse(413, {'error': 'request body exceeds limit'});
+        throw const _RequestFailure(413, 'request body exceeds limit');
       }
       final body = await _readBody(request, maxBlobBytes);
       if (rawBodyHash(body) != hash) {

@@ -283,6 +283,18 @@ void main() {
           .single['id_key'],
       isNull,
     );
+
+    store.recordDiagnostic(
+      status: 400,
+      idKey: '1' * 64,
+      hash: '2' * 64,
+      recordedAt: now,
+    );
+    store.sweep(now: now.add(const Duration(days: 31)));
+    expect(
+      store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+      isEmpty,
+    );
   });
 
   test('aggregate device and byte quotas reject before allocation', () {

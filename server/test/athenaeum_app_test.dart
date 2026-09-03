@@ -1114,6 +1114,33 @@ void main() {
     );
   });
 
+  test('declared oversized bodies produce safe diagnostics', () async {
+    expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
+    final hash = 'b' * 64;
+    final response = await app.call(
+      Request(
+        'PUT',
+        Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+        headers: {
+          'authorization': ['Bearer', encodeSyncCredential(syncId)].join(' '),
+          'content-type': 'application/octet-stream',
+          'content-length': '${maxBlobBytes + 1}',
+        },
+      ),
+    );
+    expect(response.statusCode, 413);
+    final rows = app.store.diagnosticDatabase.select(
+      'SELECT status, id_key, hash FROM diagnostic_events',
+    );
+    expect(rows, hasLength(1));
+    expect(rows.single['status'], 413);
+    expect(
+      rows.single['id_key'],
+      deriveIncomingSyncIdKey(syncId, app.config.pepper),
+    );
+    expect(rows.single['hash'], hash);
+  });
+
   test('rejection diagnostics contain only derived identifiers', () async {
     expect((await _send('POST', '/v1/store', syncId: syncId)).statusCode, 201);
     final events = <AthenaeumDiagnosticEvent>[];
