@@ -4456,6 +4456,10 @@
       }
     }
   },
+  "exportJsonSavedGeneric": "JSON file saved.",
+  "@exportJsonSavedGeneric": {
+    "description": "Snackbar confirming a JSON export was saved when the platform does not return a displayable filename."
+  },
   "exportJsonSavedTo": "\"{fileName}\" saved to {destination}.",
   "@exportJsonSavedTo": {
     "description": "Snackbar confirming a JSON export and naming the destination returned by the platform save API.",

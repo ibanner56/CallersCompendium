@@ -3362,6 +3362,9 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get exportJsonSavedGeneric => 'JSON-bestand opgeslagen.';
+
+  @override
   String exportJsonSavedTo(String fileName, String destination) {
     return '\"$fileName\" opgeslagen in $destination.';
   }

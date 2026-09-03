@@ -881,10 +881,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         await _guardJsonDelivery(messenger, l10n.exportJsonSaveError, () async {
           final result = await _jsonDelivery.save(json, fileName);
           if (result == null || !mounted) return;
-          final message = result.fileName == null || result.path.isEmpty
-              ? l10n.exportJsonSaved(
-                  result.fileName ?? l10n.exportJsonDialogTitle,
-                )
+          final message = result.fileName == null
+              ? l10n.exportJsonSavedGeneric
+              : result.path.isEmpty
+              ? l10n.exportJsonSaved(result.fileName!)
               : l10n.exportJsonSavedTo(result.fileName!, result.path);
           messenger.showSnackBar(SnackBar(content: Text(message)));
         });

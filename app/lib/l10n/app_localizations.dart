@@ -5378,6 +5378,12 @@ abstract class AppLocalizations {
   /// **'\"{fileName}\" saved.'**
   String exportJsonSaved(String fileName);
 
+  /// Snackbar confirming a JSON export was saved when the platform does not return a displayable filename.
+  ///
+  /// In en, this message translates to:
+  /// **'JSON file saved.'**
+  String get exportJsonSavedGeneric;
+
   /// Snackbar confirming a JSON export and naming the destination returned by the platform save API.
   ///
   /// In en, this message translates to:

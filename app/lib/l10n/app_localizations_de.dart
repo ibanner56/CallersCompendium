@@ -3378,6 +3378,9 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String get exportJsonSavedGeneric => 'JSON-Datei gespeichert.';
+
+  @override
   String exportJsonSavedTo(String fileName, String destination) {
     return '\"$fileName\" in $destination gespeichert.';
   }

@@ -3340,6 +3340,9 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get exportJsonSavedGeneric => 'JSON-fil gemt.';
+
+  @override
   String exportJsonSavedTo(String fileName, String destination) {
     return '\"$fileName\" gemt i $destination.';
   }

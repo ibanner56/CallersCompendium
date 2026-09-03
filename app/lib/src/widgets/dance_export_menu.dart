@@ -181,10 +181,10 @@ class DanceExportMenu extends StatelessWidget {
         await _guard(messenger, l10n.exportJsonSaveError, () async {
           final result = await delivery.save(bundle.json, bundle.fileName);
           if (result == null || !context.mounted) return;
-          final message = result.fileName == null || result.path.isEmpty
-              ? l10n.exportJsonSaved(
-                  result.fileName ?? l10n.exportJsonDialogTitle,
-                )
+          final message = result.fileName == null
+              ? l10n.exportJsonSavedGeneric
+              : result.path.isEmpty
+              ? l10n.exportJsonSaved(result.fileName!)
               : l10n.exportJsonSavedTo(result.fileName!, result.path);
           messenger.showSnackBar(SnackBar(content: Text(message)));
         });

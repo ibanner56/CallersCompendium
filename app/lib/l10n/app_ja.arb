@@ -3492,6 +3492,10 @@
   "@exportJsonSaved": {
     "x-sourceSha256": "f4b1e3424a0a122b103d8c5432e17d716a4fa549ff7aebe828aab898feef6bf6"
   },
+  "exportJsonSavedGeneric": "JSONファイルを保存しました。",
+  "@exportJsonSavedGeneric": {
+    "x-sourceSha256": "1e704d84de560410ab7df1e301c5c801ba4cb9737b1c50e5035aea28a3332391"
+  },
   "exportJsonSavedTo": "\"{fileName}\"を{destination}に保存しました。",
   "@exportJsonSavedTo": {
     "x-sourceSha256": "9690800e4667ee82849220789d0aec9e12689716721d794acc087d5e47e45987"

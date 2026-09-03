@@ -1132,6 +1132,32 @@ void main() {
       );
     });
 
+    testWidgets('Save uses a generic confirmation without a display filename', (
+      tester,
+    ) async {
+      final dir = Directory.systemTemp.createTempSync('save_json_generic_test');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      await tester.pumpWidget(
+        _shareBundleMenu(
+          _program(),
+          const {},
+          dir,
+          (_) {},
+          choice: JsonExportChoice.save,
+          saveInvoker: (json, fileName) async =>
+              const JsonSaveResult(path: '/document/msf:123', fileName: null),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Export as JSON file'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('JSON file saved.'), findsOneWidget);
+      expect(find.text('"Export JSON" saved.'), findsNothing);
+    });
+
     testWidgets('Copy delivers raw JSON without sharing', (tester) async {
       final dir = Directory.systemTemp.createTempSync('copy_json_test');
       addTearDown(() => dir.deleteSync(recursive: true));
