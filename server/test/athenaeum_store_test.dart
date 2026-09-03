@@ -1301,6 +1301,13 @@ void main() {
     final orphan = initial.blobFile(idKey, created.epoch, hash);
     orphan.parent.createSync(recursive: true);
     orphan.writeAsBytesSync([1], flush: true);
+    final temporaryHash = '7' * 64;
+    final temporary = File(
+      '${initial.blobFile(idKey, created.epoch, temporaryHash).path}'
+      '.123.456.abc.tmp',
+    );
+    temporary.parent.createSync(recursive: true);
+    temporary.writeAsBytesSync([2], flush: true);
     initial.close();
 
     var failDelete = true;
@@ -1315,13 +1322,15 @@ void main() {
     );
     expect(
       recovered.database.select('SELECT * FROM blob_deletion_jobs'),
-      hasLength(1),
+      hasLength(2),
     );
     expect(orphan.existsSync(), isTrue);
+    expect(temporary.existsSync(), isTrue);
 
     failDelete = false;
     recovered.retryPendingBlobDeletions();
     expect(orphan.existsSync(), isFalse);
+    expect(temporary.existsSync(), isFalse);
     expect(
       recovered.database.select('SELECT * FROM blob_deletion_jobs'),
       isEmpty,

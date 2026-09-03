@@ -49,6 +49,9 @@ const int maxPendingDeletionRetriesPerSweep = 1000;
 final RegExp _deviceIdPattern = RegExp(r'^[A-Za-z0-9_-]{1,64}$');
 final RegExp _hashPattern = RegExp(r'^[0-9a-f]{64}$');
 final RegExp _epochPattern = RegExp(r'^[0-9a-f]{32}$');
+final RegExp _temporaryBlobPattern = RegExp(
+  r'^([0-9a-f]{64})\.[0-9]+\.[0-9]+\.[0-9a-f]+\.tmp$',
+);
 
 class AthenaeumStore {
   AthenaeumStore({
@@ -149,15 +152,20 @@ class AthenaeumStore {
       if (segments.length != 5) continue;
       final idKey = segments[0];
       final epoch = segments[1];
-      final hash = segments[4];
+      final filename = segments[4];
+      final temporaryMatch = _temporaryBlobPattern.firstMatch(filename);
+      final hash = temporaryMatch?.group(1) ?? filename;
       if (!_hashPattern.hasMatch(idKey) ||
           !_epochPattern.hasMatch(epoch) ||
           !_hashPattern.hasMatch(hash) ||
           segments[2] != hash.substring(0, 2) ||
-          segments[3] != hash.substring(2, 4)) {
+          segments[3] != hash.substring(2, 4) ||
+          (temporaryMatch == null && filename != hash)) {
         continue;
       }
-      if (blobRef(idKey, epoch, hash) != null) continue;
+      if (temporaryMatch == null && blobRef(idKey, epoch, hash) != null) {
+        continue;
+      }
       _database.execute(
         'INSERT OR IGNORE INTO blob_deletion_jobs '
         '(id_key, epoch, hash, queued_at) VALUES (?, ?, ?, ?)',
@@ -932,22 +940,25 @@ class AthenaeumStore {
         _database.execute('BEGIN IMMEDIATE');
         inTransaction = true;
         final currentRef = blobRef(idKey, epoch, hash);
-        if (currentRef == null) {
-          final file = blobFile(idKey, epoch, hash);
-          try {
+        try {
+          if (currentRef == null) {
+            final file = blobFile(idKey, epoch, hash);
             if (file.existsSync()) _deleteFile(file);
-          } on FileSystemException {
-            _database.execute('ROLLBACK');
-            inTransaction = false;
-            _database.execute(
-              'UPDATE blob_deletion_jobs SET queued_at = ('
-              'SELECT COALESCE(MAX(queued_at), -1) + 1 '
-              'FROM blob_deletion_jobs'
-              ') WHERE id_key = ? AND epoch = ? AND hash = ?',
-              [idKey, epoch, hash],
-            );
-            continue;
           }
+          for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
+            _deleteFile(file);
+          }
+        } on FileSystemException {
+          _database.execute('ROLLBACK');
+          inTransaction = false;
+          _database.execute(
+            'UPDATE blob_deletion_jobs SET queued_at = ('
+            'SELECT COALESCE(MAX(queued_at), -1) + 1 '
+            'FROM blob_deletion_jobs'
+            ') WHERE id_key = ? AND epoch = ? AND hash = ?',
+            [idKey, epoch, hash],
+          );
+          continue;
         }
         _database.execute(
           'DELETE FROM blob_deletion_jobs '
@@ -971,6 +982,15 @@ class AthenaeumStore {
   }
 
   static void _deleteFileSync(File file) => file.deleteSync();
+
+  Iterable<File> _temporaryBlobFiles(String idKey, String epoch, String hash) {
+    final directory = blobFile(idKey, epoch, hash).parent;
+    if (!directory.existsSync()) return const <File>[];
+    return directory.listSync().whereType<File>().where((file) {
+      final match = _temporaryBlobPattern.firstMatch(p.basename(file.path));
+      return match?.group(1) == hash;
+    });
+  }
 
   _DeletionUsage _directoryUsage(
     Directory directory, {

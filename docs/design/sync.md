@@ -3638,11 +3638,10 @@ fanned into `blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` with nothing checking
 it. The
 guard belongs on every path, not on the one that happens to compute a hash.
 
-At startup, the server reconciles final files in this layout that lack a
-matching `blob_refs` row into the durable blob-deletion queue before retrying
-cleanup. This covers a crash after a blob rename but before its metadata
-transaction commits, so an orphan cannot escape later TTL or store-wipe
-cleanup.
+At startup, the server reconciles final files that lack a matching `blob_refs`
+row and temporary upload artifacts in this layout into the durable blob-deletion
+queue before retrying cleanup. This covers crashes before or after a blob rename,
+so an orphan cannot escape later TTL or store-wipe cleanup.
 
 **Stating that as a list of methods got it wrong twice**, which is the argument
 for stating it as a property. The draft said "on `GET` and `DELETE` as well as

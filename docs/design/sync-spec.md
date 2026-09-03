@@ -2874,12 +2874,13 @@ so — the grace rule above is scoped to the manifest `PUT` and the sweep, and a
 server reading it as universal would leave a wiped store's contents on disk for
 a day while reporting success.
 
-On startup, the server MUST reconcile final blob files in the prescribed
-`blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` layout that have no matching
-`blob_refs` row into the durable blob-deletion queue before retrying cleanup.
-This covers a process crash after a blob is renamed into place but before its
-metadata transaction commits, so the orphan cannot escape later TTL or wipe
-cleanup.
+On startup, the server MUST reconcile final blob files and temporary upload
+artifacts in the prescribed
+`blobs/<id_key>/<epoch>/<aa>/<bb>/<hash>` layout into the durable blob-deletion
+queue before retrying cleanup. Final files are queued when they have no matching
+`blob_refs` row; temporary artifacts are queued regardless, because no upload is
+active during startup. This covers process crashes before or after a blob rename,
+so an orphan cannot escape later TTL or wipe cleanup.
 
 **Ordinary logs are in scope for both retention promises.** The server, and any
 proxy in front of it, MUST NOT log blob bodies, manifest bodies, or decoded

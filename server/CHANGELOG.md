@@ -45,4 +45,5 @@ the app and of `compendium_core`; version headings below refer to
   index linkable break-glass records for bounded retention purges, index store
   activity timestamps for hourly expiry scans, clear redundant per-blob cleanup
   jobs after successful whole-directory deletion, and reconcile crash-orphaned
-  final blob files into the durable cleanup queue at startup.
+  final blob files and temporary upload artifacts into the durable cleanup queue
+  at startup.
