@@ -2022,6 +2022,29 @@ void main() {
     );
   });
 
+  test(
+    'unknown stores do not create diagnostics from valid credentials',
+    () async {
+      final response = await app.call(
+        Request(
+          'GET',
+          Uri.parse('http://127.0.0.1/v1/blobs/not-a-hash'),
+          headers: {
+            'authorization': [
+              'Bearer',
+              encodeSyncCredential('café-horse-battery-other'),
+            ].join(' '),
+          },
+        ),
+      );
+      expect(response.statusCode, 400);
+      expect(
+        app.store.diagnosticDatabase.select('SELECT * FROM diagnostic_events'),
+        isEmpty,
+      );
+    },
+  );
+
   test('sweep controller cancels its hourly callback on shutdown', () {
     final timer = _FakeTimer();
     late void Function() fire;

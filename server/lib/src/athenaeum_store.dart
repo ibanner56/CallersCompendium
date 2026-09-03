@@ -352,26 +352,30 @@ class AthenaeumStore {
       final candidates = <String>{
         for (final row in stale) row['hash'] as String,
       };
-      final manifestRows = _database.select(
-        'SELECT rowid FROM manifests WHERE id_key = ? AND epoch = ?',
-        [idKey, epoch],
-      );
-      for (final manifestRow in manifestRows) {
-        final body =
-            _database.select('SELECT body FROM manifests WHERE rowid = ?', [
-                  manifestRow['rowid'],
-                ]).single['body']
-                as List<int>;
-        final decoded = jsonDecode(utf8.decode(body));
-        if (decoded is! Map || decoded['records'] is! Map) continue;
-        final records = decoded['records'] as Map;
-        for (final kind in records.values) {
-          if (kind is! Map) continue;
-          for (final hash in kind.values) {
-            if (hash is String && _hashPattern.hasMatch(hash)) {
-              candidates.remove(hash);
+      if (candidates.isNotEmpty) {
+        final manifestRows = _database.select(
+          'SELECT rowid FROM manifests WHERE id_key = ? AND epoch = ?',
+          [idKey, epoch],
+        );
+        for (final manifestRow in manifestRows) {
+          final body =
+              _database.select('SELECT body FROM manifests WHERE rowid = ?', [
+                    manifestRow['rowid'],
+                  ]).single['body']
+                  as List<int>;
+          final decoded = jsonDecode(utf8.decode(body));
+          if (decoded is! Map || decoded['records'] is! Map) continue;
+          final records = decoded['records'] as Map;
+          for (final kind in records.values) {
+            if (kind is! Map) continue;
+            for (final hash in kind.values) {
+              if (hash is String && _hashPattern.hasMatch(hash)) {
+                candidates.remove(hash);
+              }
             }
+            if (candidates.isEmpty) break;
           }
+          if (candidates.isEmpty) break;
         }
       }
       for (final row in stale) {

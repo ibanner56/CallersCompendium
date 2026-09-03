@@ -223,10 +223,53 @@ void main() {
     );
     store.collectGarbage(idKey, created.epoch, now: now);
     expect(
+      store.blobFile(idKey, created.epoch, reachableHash).existsSync(),
+      isTrue,
+    );
+    expect(
       store.blobFile(idKey, created.epoch, recentHash).existsSync(),
       isFalse,
     );
   });
+
+  test(
+    'garbage collection skips manifest parsing without stale candidates',
+    () {
+      final dataDirectory = Directory.systemTemp.createTempSync(
+        'athenaeum-gc-empty-candidates-',
+      );
+      final database = sqlite3.openInMemory();
+      final store = AthenaeumStore(
+        config: AthenaeumConfig(
+          dataDirectory: dataDirectory.path,
+          pepper: List<int>.filled(32, 0x42),
+        ),
+        database: database,
+      );
+      addTearDown(() {
+        store.close();
+        dataDirectory.deleteSync(recursive: true);
+      });
+
+      final idKey = '0' * 64;
+      final epoch = 'epoch-without-stale-blobs';
+      database.execute(
+        'INSERT INTO manifests '
+        '(id_key, epoch, device_id, etag, written_at, body) '
+        'VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          idKey,
+          epoch,
+          'device-one',
+          '1' * 64,
+          0,
+          Uint8List.fromList([0xff]),
+        ],
+      );
+
+      expect(() => store.collectGarbage(idKey, epoch), returnsNormally);
+    },
+  );
 
   test('garbage collection rolls back metadata without losing files', () {
     final dataDirectory = Directory.systemTemp.createTempSync(

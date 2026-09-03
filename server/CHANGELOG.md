@@ -38,3 +38,5 @@ the app and of `compendium_core`; version headings below refer to
   retries (including post-manifest collection), preserve epochs that regain
   stale refs, prioritize immediate store cleanup, and keep periodic cleanup
   alive across transient failures.
+- Skip unnecessary manifest decoding during garbage collection and avoid
+  persisting diagnostics for credentials that do not resolve to a store.

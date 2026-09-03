@@ -468,6 +468,7 @@ class AthenaeumApp {
       hash = segments[2];
     }
     if (idKey == null) return;
+    if (store.lookup(idKey) == null) return;
     try {
       _diagnosticLogger(
         AthenaeumDiagnosticEvent(
