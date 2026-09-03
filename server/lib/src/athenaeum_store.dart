@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:compendium_core/compendium_core.dart';
 import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -335,10 +336,7 @@ class AthenaeumStore {
   void recordBreakGlassAccess(String syncId, {DateTime? accessedAt}) {
     final now = accessedAt ?? _clock();
     purgeExpiredBreakGlassAccess(now: now);
-    final idKey = Hmac(
-      sha256,
-      config.pepper,
-    ).convert(utf8.encode(syncId)).toString();
+    final idKey = deriveIncomingSyncIdKey(syncId, config.pepper);
     _breakGlassDatabase.execute(
       'INSERT INTO break_glass_access (id_key, accessed_at) VALUES (?, ?)',
       [idKey, now.millisecondsSinceEpoch ~/ 1000],
@@ -611,8 +609,8 @@ class StoreMetadata {
     'quota': {
       'blobs': blobs,
       'bytes': bytes,
-      'maxBlobs': 100000,
-      'maxBytes': 250 * 1024 * 1024,
+      'maxBlobs': maxStoreBlobs,
+      'maxBytes': maxStoreBytes,
     },
   };
 }
