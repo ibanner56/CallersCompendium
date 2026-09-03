@@ -964,8 +964,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         builder: (context) {
                           // Per-formation label colour (issue #367): highlight
                           // only when the user overrode this shape.
-                          final color = FormationColorsScope.of(context)
-                              ?.overrideFor(dance.formation.shape);
+                          final color = FormationColorsScope.of(
+                            context,
+                          )?.overrideFor(dance.formation.shape);
                           final text = Text(
                             formationLabel(l10n, dance.formation),
                           );
