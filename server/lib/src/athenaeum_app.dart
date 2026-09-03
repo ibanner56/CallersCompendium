@@ -270,6 +270,7 @@ class AthenaeumApp {
       if (rawBodyHash(body) != hash) {
         throw const _RequestFailure(400, 'blob body hash does not match path');
       }
+      _validateBlobAllowList(body);
       final created = store.putBlob(
         idKey: identity.idKey,
         epoch: current.epoch,
@@ -414,6 +415,49 @@ class AthenaeumApp {
     } on FormatException catch (error) {
       throw _RequestFailure(400, error.message);
     }
+  }
+
+  static void _validateBlobAllowList(Uint8List body) {
+    Object? decoded;
+    try {
+      decoded = jsonDecode(utf8.decode(body, allowMalformed: false));
+    } on FormatException {
+      return;
+    }
+    if (decoded is! Map) return;
+    if (!decoded.containsKey('v')) return;
+
+    final kindValue = decoded['kind'];
+    final idValue = decoded['id'];
+    final rawBody = decoded['body'];
+    if (kindValue is! String || idValue is! String || rawBody is! Map) {
+      return;
+    }
+    final recordBody = <String, Object?>{};
+    for (final entry in rawBody.entries) {
+      if (entry.key is! String) return;
+      recordBody[entry.key as String] = entry.value;
+    }
+
+    final kind = _recordKind(kindValue);
+    if (kind == null) {
+      throw const _RequestFailure(422, 'blob contains an unknown record kind');
+    }
+    final validation = validateShareableRecordBody(
+      kind,
+      recordBody,
+      settingsKey: kind == SyncRecordKind.setting ? idValue : null,
+    );
+    if (!validation.isValid) {
+      throw const _RequestFailure(422, 'blob contains a non-shareable field');
+    }
+  }
+
+  static SyncRecordKind? _recordKind(String value) {
+    for (final kind in SyncRecordKind.values) {
+      if (kind.name == value) return kind;
+    }
+    return null;
   }
 
   static Object? _decodeJson(Uint8List body) {
