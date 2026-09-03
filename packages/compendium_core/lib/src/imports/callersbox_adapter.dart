@@ -588,7 +588,11 @@ class CallersBoxAdapter implements SourceAdapter {
     // Route through the shared parser: recognised moves become structured
     // figures; the rest fall back to custom. Empty when the line is empty
     // after scrubbing.
-    return parseFigureLines(text, beats: beats, frontEnd: tcbFigureFrontEnd);
+    return parseFigureLines(
+      text,
+      beats: beats,
+      frontEnd: tcbFigureFrontEnd,
+    ).map(_preserveBalanceWaveBracketNote).toList();
   }
 
   // --- Cross-line merge (PR3b) -----------------------------------------------
@@ -930,6 +934,7 @@ class CallersBoxAdapter implements SourceAdapter {
     final extra = decoded == null
         ? const <String, Object?>{}
         : _compatibleFormParams(wave.move, decoded);
+    final balanceNote = decoded?.note ?? balance.note;
     return wave.copyWith(
       params: {
         ...wave.params,
@@ -938,7 +943,7 @@ class CallersBoxAdapter implements SourceAdapter {
         'balance': true,
         'beats': ?beats,
       },
-      note: combineFigureNotes(wave.note, balance.note),
+      note: combineFigureNotes(wave.note, balanceNote),
     );
   }
 
@@ -1104,15 +1109,17 @@ class CallersBoxAdapter implements SourceAdapter {
     final text = f.params['text'];
     if (text is! String) return null;
     final lower = text.toLowerCase();
-    // `[…]` is TCB's "who does it" annotation — a different payload we do not
-    // model here, so a line carrying one stays custom.
-    if (lower.contains('[')) return null;
+    final hasSquareBrackets = text.contains('[') || text.contains(']');
+    final squareNote = _canonicalBalanceWaveBracketNote(text);
+    if (hasSquareBrackets && squareNote == null) {
+      return null;
+    }
     final annotations = RegExp(
       r'\(([^)]*)\)',
     ).allMatches(lower).map((m) => m.group(1)!.trim()).toList();
     if (annotations.length > 1) return null;
     final head = lower
-        .replaceAll(RegExp(r'\([^)]*\)'), ' ')
+        .replaceAll(RegExp(r'\([^)]*\)|\[[^\[\]]{0,120}\]'), ' ')
         .split(RegExp(r'[^a-z0-9]+'))
         .where((w) => w.isNotEmpty)
         .toList();
@@ -1122,7 +1129,7 @@ class CallersBoxAdapter implements SourceAdapter {
       if (annotation == null || annotation.isEmpty) {
         // No stated hands: the MoveDef defaults describe the wave, exactly as a
         // bare "Form a wave" line already does.
-        return _asFormFigure(f, 'form_short_waves', const {});
+        return _asFormFigure(f, 'form_short_waves', const {}, note: squareNote);
       }
       final parts = _splitAnnotation(annotation);
       if (parts.length != 2) return null;
@@ -1133,11 +1140,12 @@ class CallersBoxAdapter implements SourceAdapter {
       if (sides == null || center == null || sides.hand == center.hand) {
         return null;
       }
+
       return _asFormFigure(f, 'form_short_waves', {
         'sides': sides.who,
         'center': center.who,
         'centerHand': center.hand,
-      });
+      }, note: squareNote);
     }
 
     if (_sameWords(head, const ['balance', 'long', 'wave'])) {
@@ -1151,9 +1159,50 @@ class CallersBoxAdapter implements SourceAdapter {
         'whom': whom.who,
         'hand': whom.hand,
         'who': facing.group(1)!,
-      });
+      }, note: squareNote);
     }
     return null;
+  }
+
+  /// Adds a supported balance-wave bracket note before cross-line folds run.
+  /// Balance-wave promotion happens after those folds, so the note must already
+  /// be on the custom source figure for either fold direction to preserve it.
+  static Figure _preserveBalanceWaveBracketNote(Figure f) {
+    if (!f.isCustom || !_isBalanceWaveLine(f)) return f;
+    final text = f.params['text'];
+    if (text is! String) return f;
+    final note = _canonicalBalanceWaveBracketNote(text);
+    return note == null
+        ? f
+        : f.copyWith(note: combineFigureNotes(f.note, note));
+  }
+
+  /// Returns the canonical note for exactly one supported, clause-final square
+  /// annotation, or `null` for no annotation and every unsupported shape.
+  static String? _canonicalBalanceWaveBracketNote(String text) {
+    // Stop after the second match: one is supported, while more than one
+    // remains custom without allocating for every untrusted annotation.
+    final squareAnnotations = _balanceWaveSquareAnnotation
+        .allMatches(text)
+        .take(2)
+        .toList();
+    if (squareAnnotations.length != 1) return null;
+    final annotation = squareAnnotations.single;
+    final prefix = text.substring(0, annotation.start);
+    final suffix = text.substring(annotation.end);
+    if (prefix.contains('[') ||
+        prefix.contains(']') ||
+        suffix.contains('[') ||
+        suffix.contains(']') ||
+        suffix.trim().isNotEmpty) {
+      return null;
+    }
+    final body = annotation.group(1)!.trim();
+    final relation = _balanceWaveBracketRelation.firstMatch(body);
+    if (relation == null) return null;
+    final who = resolveDancerSetPhrase(relation.group(2)!);
+    if (who == null) return null;
+    return '${relation.group(1)!.toLowerCase()} $who';
   }
 
   /// The comma-separated fields of a TCB annotation, lowercased and trimmed.
@@ -1182,14 +1231,23 @@ class CallersBoxAdapter implements SourceAdapter {
   static Figure _asFormFigure(
     Figure f,
     String move,
-    Map<String, Object?> params,
-  ) => Figure(
+    Map<String, Object?> params, {
+    String? note,
+  }) => Figure(
     move: move,
     params: {...params, 'balance': true, 'beats': f.beats},
-    note: f.note,
+    note: combineFigureNotes(f.note, note),
     progression: f.progression,
     walkthroughOverride: f.walkthroughOverride,
     wordingOverride: f.wordingOverride,
+  );
+
+  static final RegExp _balanceWaveSquareAnnotation = RegExp(
+    r'\[([^\[\]]{0,120})\]',
+  );
+  static final RegExp _balanceWaveBracketRelation = RegExp(
+    r'^(with|around)\s+(.+)$',
+    caseSensitive: false,
   );
 
   static bool _sameWords(List<String> a, List<String> b) {
