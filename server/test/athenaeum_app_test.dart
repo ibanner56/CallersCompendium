@@ -998,6 +998,21 @@ void main() {
         'source': 'request',
         'errorType': 'StoreQuotaExceeded',
       });
+      expect(
+        (await customApp.call(
+          Request(
+            'PUT',
+            Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+            headers: {
+              'authorization': '******',
+              'content-type': 'application/octet-stream',
+            },
+            body: bytes,
+          ),
+        )).statusCode,
+        507,
+      );
+      expect(alerts, hasLength(1));
       final failingAlertApp = _AuthenticatedApp(
         AthenaeumApp(
           config: app.config,

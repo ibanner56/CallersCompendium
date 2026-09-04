@@ -61,17 +61,56 @@ class AthenaeumOperationalAlert {
     required this.kind,
     required this.source,
     required this.errorType,
+    this.count = 1,
   });
 
   final String kind;
   final String source;
   final String errorType;
+  final int count;
 
-  Map<String, String> toJson() => {
+  Map<String, Object> toJson() => {
     'kind': kind,
     'source': source,
     'errorType': errorType,
+    if (count > 1) 'count': count,
   };
+
+  AthenaeumOperationalAlert withCount(int value) => AthenaeumOperationalAlert(
+    kind: kind,
+    source: source,
+    errorType: errorType,
+    count: value,
+  );
+}
+
+class _OperationalAlertLimiter {
+  static const _window = Duration(minutes: 1);
+
+  _OperationalAlertLimiter(this.sink);
+
+  final AthenaeumOperationalAlertSink sink;
+  final Map<String, _AlertBucket> _buckets = {};
+
+  void add(AthenaeumOperationalAlert alert) {
+    final key = '${alert.kind}:${alert.source}:${alert.errorType}';
+    final now = DateTime.now();
+    final bucket = _buckets[key];
+    if (bucket == null || now.difference(bucket.lastEmitted) >= _window) {
+      final count = (bucket?.suppressed ?? 0) + 1;
+      _buckets[key] = _AlertBucket(lastEmitted: now);
+      _deliverOperationalAlert(sink, alert.withCount(count));
+    } else {
+      bucket.suppressed++;
+    }
+  }
+}
+
+class _AlertBucket {
+  _AlertBucket({required this.lastEmitted});
+
+  final DateTime lastEmitted;
+  int suppressed = 0;
 }
 
 class AthenaeumSweepController {
@@ -83,12 +122,14 @@ class AthenaeumSweepController {
     AthenaeumOperationalAlertSink? alertSink,
   }) : _schedule = schedule ?? Timer.periodic,
        _sweep = sweep ?? store.sweep,
-       _alertSink = alertSink ?? _writeOperationalAlert;
+       _alertLimiter = _OperationalAlertLimiter(
+         alertSink ?? _writeOperationalAlert,
+       );
 
   final AthenaeumStore store;
   final AthenaeumPeriodicTimer _schedule;
   final AthenaeumSweep _sweep;
-  final AthenaeumOperationalAlertSink _alertSink;
+  final _OperationalAlertLimiter _alertLimiter;
   final Duration interval;
   Timer? _timer;
 
@@ -97,8 +138,7 @@ class AthenaeumSweepController {
       try {
         _sweep();
       } catch (error) {
-        _deliverOperationalAlert(
-          _alertSink,
+        _alertLimiter.add(
           AthenaeumOperationalAlert(
             kind: 'sweep_failure',
             source: 'hourly_sweep',
@@ -148,21 +188,6 @@ class AthenaeumApp {
     AthenaeumDiagnosticLogger? diagnosticLogger,
     AthenaeumOperationalAlertSink? alertSink,
   }) : config = config,
-       store =
-           store ??
-           AthenaeumStore(
-             config: config,
-             operationalFailureSink: (source, error) {
-               _deliverOperationalAlert(
-                 alertSink ?? _writeOperationalAlert,
-                 AthenaeumOperationalAlert(
-                   kind: 'sweep_failure',
-                   source: source,
-                   errorType: error.runtimeType.toString(),
-                 ),
-               );
-             },
-           ),
        _clientAddressResolver =
            clientAddressResolver ??
            ((request) => _defaultClientAddress(
@@ -172,6 +197,21 @@ class AthenaeumApp {
        _failureBudget = _FailureBudget(budgetLimits),
        _creationBudget = _CreationBudget(budgetLimits) {
     _alertSink = alertSink ?? _writeOperationalAlert;
+    _alertLimiter = _OperationalAlertLimiter(_alertSink);
+    this.store =
+        store ??
+        AthenaeumStore(
+          config: config,
+          operationalFailureSink: (source, error) {
+            _alertLimiter.add(
+              AthenaeumOperationalAlert(
+                kind: 'sweep_failure',
+                source: source,
+                errorType: error.runtimeType.toString(),
+              ),
+            );
+          },
+        );
     _diagnosticLogger =
         diagnosticLogger ??
         (event) => this.store.recordDiagnostic(
@@ -182,11 +222,12 @@ class AthenaeumApp {
   }
 
   final AthenaeumConfig config;
-  final AthenaeumStore store;
+  late final AthenaeumStore store;
   final ClientAddressResolver _clientAddressResolver;
   final _FailureBudget _failureBudget;
   final _CreationBudget _creationBudget;
   late final AthenaeumOperationalAlertSink _alertSink;
+  late final _OperationalAlertLimiter _alertLimiter;
   late final AthenaeumDiagnosticLogger _diagnosticLogger;
 
   Handler get handler => call;
@@ -212,8 +253,7 @@ class AthenaeumApp {
       };
     } on _RequestFailure catch (error) {
       if (error.status == 507) {
-        _deliverOperationalAlert(
-          _alertSink,
+        _alertLimiter.add(
           const AthenaeumOperationalAlert(
             kind: 'quota_exhaustion',
             source: 'request',

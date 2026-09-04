@@ -113,8 +113,11 @@ host loopback while preserving the configured hostname for Host/SNI.
   written. Restrict log access to operators.
 - **Alerts:** route JSON lines with `alert.kind` of `quota_exhaustion` or
   `sweep_failure` from container stderr to the on-call notification path.
-  Alert payloads contain only a category, source, and exception type; they
-  never contain user content, bearer credentials, sync IDs, or device IDs.
+  Repeated alerts with the same kind, source, and exception type are limited to
+  one notification per minute; the next notification includes the aggregate
+  count. Payloads contain only a category, source, exception type, and optional
+  count; they never contain user content, bearer credentials, sync IDs, or
+  device IDs.
 - **Quota probe:** in a staging deployment, create data until the service
   returns `507`, record the UTC timestamp and alert/incident URL, then remove
   the staging store.

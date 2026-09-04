@@ -20,6 +20,7 @@ created_credentials=$(mktemp)
 cleanup_failures=$(mktemp)
 apache_config=${ATHENAEUM_APACHE_CONFIG:?set ATHENAEUM_APACHE_CONFIG to the active Apache vhost}
 apachectl_bin=${ATHENAEUM_APACHECTL:-apachectl}
+run_id=$(od -An -N8 -tx1 /dev/urandom | tr -d '[:space:]')
 
 curl_local() {
   curl \
@@ -36,7 +37,7 @@ cleanup() {
         --header "Authorization: Bearer ${token}" \
         --output /dev/null --write-out '%{http_code}' \
         "https://${host}:${https_port}/v1/store" 2>/dev/null || printf '000')
-      if [ "$status" != 204 ]; then
+      if [ "$status" != 204 ] && [ "$status" != 404 ]; then
         printf '%s\n' "$token" >> "$cleanup_failures"
       fi
     done < "$created_credentials"
@@ -146,6 +147,7 @@ expect_status 429 "server-wide failure budget" \
   "${https_url}/v1/store"
 echo "server-wide failure budget: passed"
 
+printf '%s\n' "$credential" >> "$created_credentials"
 https_post_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --request POST --header "Authorization: Bearer ${credential}" \
@@ -159,7 +161,6 @@ case "$https_post_status" in
     exit 1
     ;;
 esac
-printf '%s\n' "$credential" >> "$created_credentials"
 
 encode_id() {
   printf '%s' "$1" | base64 | tr '+/' '-_' | tr -d '=[:space:]'
@@ -167,13 +168,14 @@ encode_id() {
 
 echo "checking store-creation budget (60 successes, 61st refusal)"
 for index in $(seq 1 59); do
-  token=$(encode_id "w16-smoke-${index}-store")
+  token=$(encode_id "w16-smoke-${run_id}${index}-store")
+  printf '%s\n' "$token" >> "$created_credentials"
   expect_status 201 "store creation ${index}" \
     --request POST --header "Authorization: Bearer ${token}" \
     "${https_url}/v1/store"
-  printf '%s\n' "$token" >> "$created_credentials"
 done
-extra_token=$(encode_id 'w16-over-budget-store')
+extra_token=$(encode_id "w16-over-budget-${run_id}-store")
+printf '%s\n' "$extra_token" >> "$created_credentials"
 expect_status 429 "store creation budget" \
   --request POST --header "Authorization: Bearer ${extra_token}" \
   "${https_url}/v1/store"

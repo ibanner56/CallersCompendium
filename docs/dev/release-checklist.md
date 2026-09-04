@@ -213,20 +213,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  **not** part of this release-blocking gate yet; note any known issues found
  informally in the known-issues list (§9) rather than blocking on them.
 
-## 8. Tag & publish
-- [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
-- [ ] Annotated tag created on the exact reviewed commit: `vX.Y.Z-beta` or
-  `vX.Y.Z`.
-- [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
-- [ ] Post-publish: download each artifact FROM the release and re-launch once
- (catches broken uploads).
-
-## 9. Post-release
-- [ ] Roadmap updated (what shipped, what's still open).
-- [ ] Known-issues list published with the release.
-- [ ] Feedback channel for testers is stated in the release notes.
-
-## 10. Device Sync operational readiness (W16 - Gate)
+## 8. Device Sync operational readiness (W16 - Gate)
 - [ ] The compatible Athenaeum server was deployed and smoke-tested before any
   beta or public client distribution. Record the image digest and deployment
   timestamp.
@@ -240,3 +227,16 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
   30-day retention removal with log-content absence, one authorized break-glass
   access with exactly one separate audit row, and the lost-ID "not recoverable"
   support response.
+
+## 9. Tag & publish
+- [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
+- [ ] Annotated tag created on the exact reviewed commit: `vX.Y.Z-beta` or
+  `vX.Y.Z`.
+- [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
+- [ ] Post-publish: download each artifact FROM the release and re-launch once
+ (catches broken uploads).
+
+## 10. Post-release
+- [ ] Roadmap updated (what shipped, what's still open).
+- [ ] Known-issues list published with the release.
+- [ ] Feedback channel for testers is stated in the release notes.

@@ -16,6 +16,8 @@ the app and of `compendium_core`; version headings below refer to
   audit row before access.
 - Use Apache's underlying connection peer for forwarded-address trust even when
   host-level remote-IP rewriting is enabled.
+- Bound repeated operational alerts to one notification per kind and source
+  each minute, carrying an aggregate count for subsequent notifications.
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
@@ -54,3 +56,6 @@ the app and of `compendium_core`; version headings below refer to
   final blob files and temporary upload artifacts into the durable cleanup queue
   at startup, charge pending physical files against quotas, and isolate
   request-path cleanup failures from protocol responses.
+- Preserve smoke-test cleanup credentials across ambiguous create responses,
+  generate unique per-run test stores, and keep release-gate ordering before
+  tagging and publication.

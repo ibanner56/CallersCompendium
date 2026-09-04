@@ -43,7 +43,8 @@ service listens on `127.0.0.1:33333` unless the loopback-only `--host`
 (`127.0.0.1` or `localhost`) and `--port` are provided. Public listener
 addresses are rejected. This local listener is for C2/client development;
 production TLS, proxy forwarding, and address handling are specified for W16.
-Logging, alerting, retention, and break-glass procedures are specified for W12.
+Logging, alerting, retention, and break-glass procedures are specified in the
+W16 operations runbook.
 
 For production, reserve port `33333` on the Linux host and run the container
 with host networking. Apache must proxy only HTTPS `/v1/` requests to
