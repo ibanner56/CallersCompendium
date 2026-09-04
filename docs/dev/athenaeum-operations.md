@@ -26,15 +26,27 @@ the loopback-only forwarded-address trust boundary.
    existing reservations:
 
    ```sh
+   port_reserved() {
+     awk -v reserved="$1" -v port=33333 '
+       BEGIN {
+         count = split(reserved, entries, ",")
+         for (i = 1; i <= count; i++) {
+           bounds = split(entries[i], range, "-")
+           low = range[1] + 0
+           high = (bounds == 2 ? range[2] : range[1]) + 0
+           if (low <= port && port <= high) exit 0
+         }
+         exit 1
+       }'
+   }
    reserved=$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)
-   case ",$reserved," in
-     *,33333,*) ;;
-     *) reserved="${reserved:+$reserved,}33333" ;;
-   esac
+   if ! port_reserved "$reserved"; then
+     reserved="${reserved:+$reserved,}33333"
+   fi
    printf 'net.ipv4.ip_local_reserved_ports=%s\n' "$reserved" |
      sudo tee /etc/sysctl.d/99-athenaeum-port.conf >/dev/null
    sudo sysctl --system
-   grep -Eq '(^|,)33333(,|$)' /proc/sys/net/ipv4/ip_local_reserved_ports
+   port_reserved "$(cat /proc/sys/net/ipv4/ip_local_reserved_ports)"
    ```
 
 3. Build the image from the repository root:
@@ -63,8 +75,8 @@ the loopback-only forwarded-address trust boundary.
    Use a Docker/host secret manager instead of the env file in production; do
    not put the pepper in command history or an image layer. The service runs as
    the unprivileged `nobody` user.
-   Verify the reservation before every first start with
-   `grep -w 33333 /proc/sys/net/ipv4/ip_local_reserved_ports`. Port `33333`
+   Verify the reservation before every first start with the range-aware
+   `port_reserved` check from step 2 (not an exact-token grep). Port `33333`
    must not be published or exposed on a non-loopback interface.
 
 ## Proxy and security contract
