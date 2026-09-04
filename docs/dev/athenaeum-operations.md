@@ -92,8 +92,10 @@ curl --max-time 10 --include https://sync.example.invalid/v1/store
 ```
 
 The credential must be new and belong to a disposable test store; the script
-deletes stores it creates. The first request must be a refusal (not 3xx and not
-an Athenaeum response). The script then exercises real client buckets and
+deletes stores it creates. If cleanup is rate-limited after the failure-budget
+probe, it retries after the rolling 60-second window before reporting failure.
+The first request must be a refusal (not 3xx and not an Athenaeum response).
+The script then exercises real client buckets and
 forwarded-header overwrite through Apache, the 1,000-failure and 60-creation
 budgets, the inclusive 16 MiB boundary, compressed-body preservation, and
 authenticated Athenaeum create/lookup responses over HTTPS with

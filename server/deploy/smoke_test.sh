@@ -37,6 +37,13 @@ cleanup() {
         --header "Authorization: Bearer ${token}" \
         --output /dev/null --write-out '%{http_code}' \
         "https://${host}:${https_port}/v1/store" 2>/dev/null || printf '000')
+      if [ "$status" = 429 ]; then
+        sleep 60
+        status=$(curl_local --silent --max-time 10 --request DELETE \
+          --header "Authorization: Bearer ${token}" \
+          --output /dev/null --write-out '%{http_code}' \
+          "https://${host}:${https_port}/v1/store" 2>/dev/null || printf '000')
+      fi
       if [ "$status" != 204 ] && [ "$status" != 404 ]; then
         printf '%s\n' "$token" >> "$cleanup_failures"
       fi

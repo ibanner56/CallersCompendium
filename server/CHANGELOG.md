@@ -16,8 +16,9 @@ the app and of `compendium_core`; version headings below refer to
   audit row before access.
 - Use Apache's underlying connection peer for forwarded-address trust even when
   host-level remote-IP rewriting is enabled.
-- Bound repeated operational alerts to one notification per kind and source
-  each minute, carrying an aggregate count for subsequent notifications.
+- Bound repeated operational alerts with the same kind, source, and exception
+  type to one notification each minute, carrying an aggregate count for
+  subsequent notifications.
 - Add the initial Shelf-based Device Sync server with SQLite metadata,
   epoch-namespaced immutable blobs, store and manifest endpoints, credential
   validation, and allocation-safe request limits.
