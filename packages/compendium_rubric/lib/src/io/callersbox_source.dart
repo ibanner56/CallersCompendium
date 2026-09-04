@@ -83,6 +83,7 @@ class DanceRun {
     this.moves = const {},
     this.totalFigures = 0,
     this.customFigures = 0,
+    this.blockedByDeferral = false,
     this.assumedProgressionAt,
   });
 
@@ -113,6 +114,17 @@ class DanceRun {
   final int totalFigures;
   final int customFigures;
 
+  /// Whether this dance was stopped by something **deliberately deferred**
+  /// rather than by a gap in the model.
+  ///
+  /// True for a move this compiler has not implemented, a vocabulary value it
+  /// does not model, and a parameter value inside an implemented figure that is
+  /// deferred with `unsupportedParam`. False for everything else, including an
+  /// unmodelled progression tier — that is a property of the dance, not of a
+  /// figure in it, and folding it in here would quietly widen what "deferred"
+  /// means.
+  final bool blockedByDeferral;
+
   /// The figure this run assumed was the progression, when it assumed one.
   final int? assumedProgressionAt;
 
@@ -127,6 +139,25 @@ class DanceRun {
       ran ||
       outcome == DanceOutcome.figureRefused ||
       outcome == DanceOutcome.crashed;
+
+  /// Whether this dance is inside the set the compiler is currently *aiming*
+  /// at: it parsed with no figure left as free text, and nothing in it is
+  /// deferred for later implementation. *(User-ruled scope.)*
+  ///
+  /// This is the honest denominator for a "how are we doing" number. It is not
+  /// the honest denominator for "how much of the corpus can we read", which is
+  /// what [CorpusReport.compileRate] answers — a deferral excluded here is
+  /// still a dance nobody can compile today.
+  ///
+  /// **It is a slight over-estimate of the set, in the safe direction.** A
+  /// dance that refuses at figure 2 for a genuine reason may still hold a
+  /// deferred figure 5 that was never reached, and it counts as in scope. So
+  /// the rate below is a floor, never a flattered number.
+  bool get inScope =>
+      !blockedByDeferral &&
+      outcome != DanceOutcome.unstructured &&
+      outcome != DanceOutcome.empty &&
+      outcome != DanceOutcome.adapterFailed;
 
   @override
   String toString() =>
@@ -157,6 +188,17 @@ class CorpusReport {
   /// Compiles as a fraction of the dances the compiler was handed. `0.0` when
   /// it was handed none — an empty corpus scores nothing, not everything.
   double get compileRate => attempted == 0 ? 0.0 : compiled / attempted;
+
+  /// Dances in the set this compiler is currently aiming at: parsed, no free
+  /// text, nothing deferred. See [DanceRun.inScope].
+  int get inScope => runs.where((run) => run.inScope).length;
+
+  /// Dances excluded from [inScope] because something in them is deferred.
+  int get deferred => runs.where((run) => run.blockedByDeferral).length;
+
+  /// The headline rate: compiles as a fraction of the dances this compiler is
+  /// currently *trying* to handle. *(User-ruled scope.)*
+  double get inScopeRate => inScope == 0 ? 0.0 : compiled / inScope;
 
   /// Every move id named anywhere in the corpus, including in dances that never
   /// compiled.
@@ -239,6 +281,7 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     String? detail,
     List<Warning>? extra,
     int? assumedAt,
+    bool deferred = false,
   }) => DanceRun(
     title: dance.title,
     outcome: outcome,
@@ -249,6 +292,7 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     moves: moves,
     totalFigures: draft.quality.totalFigures,
     customFigures: draft.quality.customFigures,
+    blockedByDeferral: deferred,
     assumedProgressionAt: assumedAt,
   );
 
@@ -290,6 +334,7 @@ DanceRun runCoreDance(core.StructuredDraft draft, {String label = '<draft>'}) {
     detail: attempt.detail,
     extra: attempt.warnings,
     assumedAt: attempt.assumedAt,
+    deferred: attempt.deferred,
   );
 }
 
@@ -299,20 +344,30 @@ typedef _Attempt = ({
   String? detail,
   List<Warning> warnings,
   int? assumedAt,
+  bool deferred,
 });
 
 _Attempt _attempt(BridgedDance bridged) {
-  _Attempt done(DanceOutcome outcome, {String? detail, List<Warning>? extra}) =>
-      (
-        outcome: outcome,
-        detail: detail,
-        warnings: extra ?? bridged.warnings,
-        assumedAt: bridged.assumedProgressionAt,
-      );
+  _Attempt done(
+    DanceOutcome outcome, {
+    String? detail,
+    List<Warning>? extra,
+    bool deferred = false,
+  }) => (
+    outcome: outcome,
+    detail: detail,
+    warnings: extra ?? bridged.warnings,
+    assumedAt: bridged.assumedProgressionAt,
+    deferred: deferred,
+  );
 
   switch (parseDance(bridged.record)) {
     case Err(:final error):
-      return done(DanceOutcome.unsupported, detail: '$error');
+      return done(
+        DanceOutcome.unsupported,
+        detail: '$error',
+        deferred: error.deferred,
+      );
     case Ok(:final value):
       final CompileResult result;
       try {
@@ -338,6 +393,7 @@ _Attempt _attempt(BridgedDance bridged) {
               : 'figure ${opIndex + 1} ($opName) '
                     '${error.kind.name}: ${error.message}',
           extra: warnings,
+          deferred: error.kind == ErrorKind.unsupportedParam,
         ),
       };
   }

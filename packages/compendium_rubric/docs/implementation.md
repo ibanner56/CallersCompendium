@@ -500,7 +500,12 @@ The path is `runCallersBoxPayload` → `runCoreDance` → `bridgeCoreDance` →
   ours; `empty` and `adapterFailed` are the corpus's.
 - **`CorpusReport`** makes every rate name its own denominator. A "compile rate"
   over all files and one over dances the compiler actually attempted differ by a
-  factor of three, and an unlabelled percentage invites the wrong one.
+  factor of three, and an unlabelled percentage invites the wrong one. The
+  headline rate is `inScopeRate`, whose denominator additionally drops the
+  dances a deferred figure blocked (`DanceRun.blockedByDeferral`), so the
+  number measures the compiler against what it is aiming at rather than against
+  its own backlog. See §15.1 for exactly what counts as deferred and why an
+  unmodelled progression tier deliberately does not.
 
 > **The assumed-progression rule** *(user-ruled).* `CallersBoxAdapter` never sets
 > `Figure.progression` — the Caller's Box records do not carry it. Rather than
@@ -682,7 +687,7 @@ rest cannot pass for the wrong reason.
 
 ## 15. Current state and known debt
 
-- **1,009 tests green; `analyze` clean; `format` clean.**
+- **1,015 tests green; `analyze` clean; `format` clean.**
 - **46 figures registered**, plus 3 upstream aliases resolved to them.
 - **Schema-aligned with `compendium_core`** (`test/io/core_taxonomy_alignment_test.dart`).
   Every move id resolves upstream, every advertised move parses, and every
@@ -788,11 +793,25 @@ see §12). Numbers move as figures land — re-measure rather than cite these.
   arrive with at least one figure left as free text, so the compiler never sees
   them. Raising the ceiling on this project is upstream recognition work far
   more than it is figure work.
-- Of the 3,574 the compiler attempted, **1,950 compiled (54.6%)**. The rate has
-  moved twice: the `nextNeighbors` retry described in §10.1 took it from 39.6%
-  to 45.7% (+215, drawn from `figureRefused` 198 and `mismatch` 17), and then
-  merging `compendium_core` `main` plus the side-opening hey took it to 54.6%
-  (+344). **That +344 was attributed by measurement rather than assumed.**
+- **The headline is the in-scope rate: 1,950 of 3,285, or 59.4%.** The
+  denominator is every dance that parsed *minus* the ones a deferred figure
+  blocked — 1,724 of them — because a dance the compiler has not yet been
+  taught is a backlog item, not a failure. That exclusion is carried by a
+  structured `deferred` flag on `DanceParseError` rather than by matching on
+  message text, so it cannot drift as wording changes. It is set for an
+  unimplemented move, an unmodelled vocabulary value, and an `unsupportedParam`
+  refusal inside a figure that *is* implemented. It is deliberately **not** set
+  for an unmodelled progression tier (43 dances): that is a property of the
+  dance rather than of any figure in it, so those stay in the denominator.
+  The rate is a **floor, not a flattered number** — a dance that refuses at
+  figure 2 for a genuine reason may still hide a deferred figure 5 that was
+  never reached, and it counts as in scope.
+- Against the older all-attempted denominator the same 1,950 is **54.6% of
+  3,574**. That number is kept as a secondary because the movements in it are
+  the historical record: the `nextNeighbors` retry described in §10.1 took it
+  from 39.6% to 45.7% (+215, drawn from `figureRefused` 198 and `mismatch` 17),
+  and then merging `compendium_core` `main` plus the side-opening hey took it to
+  54.6% (+344). **That +344 was attributed by measurement rather than assumed.**
   Re-running the sweep with the side-opening recognition forced off gives 1,917,
   so the hey work is worth **+33 compiled** — it also moved 10 dances from
   refusal to mismatch, and 43 out of `figureRefused` altogether. The other
@@ -811,12 +830,21 @@ see §12). Numbers move as figures land — re-measure rather than cite these.
 - **`rory_o_more` appears in none of the 24,107 dances**, which is not credible
   for a figure this common — the likely explanation is that core's adapter does
   not recognise its wording. Worth confirming; it would be an upstream finding.
-- Refusals are dominated by `whoMismatch`, then `unsupportedParam` and
-  `unresolvableDancerSet` — measured at roughly 73/13/12.5 percent *before* the
-  `nextNeighbors` retry landed, which cut the refusal count by 198 and will have
-  taken the `whoMismatch` share down with it. Among deferred parameters,
-  **diagonal `right_left_through` is the highest-value unblock** — it also gates
-  the hey diagonals.
+- **Refusals, measured fresh at the current head**: `whoMismatch` 894,
+  `unsupportedParam` 332, `unresolvableDancerSet` 23, `notAdjacent` 9. The
+  single largest genuine gap in the compiler is **`swing` raising
+  `whoMismatch` in 587 dances** — bigger than every deferred move except
+  `promenade`, and it sits squarely inside the in-scope denominator. It has not
+  been investigated; it is the highest-value next piece of work. Among deferred
+  parameters, **diagonal `right_left_through` (78 dances) is the highest-value
+  unblock** — it also gates the hey diagonals.
+- **What the 1,724 deferred dances are blocked by**, first blocker only (the
+  harness stops at the first, so each of these is a floor): unimplemented moves
+  1,082, led by `promenade` 547, `butterfly_whirl` 175, `slice` 146,
+  `meanwhile` 132, `revolving_door` 42 and `contra_corners` 40; unmodelled
+  vocabulary values 310, almost all the `shadows` who-value at 305; and
+  `unsupportedParam` refusals 332, led by `hey` 191 (105 side-opening non-full,
+  59 partial length, 27 diagonal) and `right_left_through` 78.
 - **The assumed-progression rule's cost was measured, and it is a minority
   one.** ⚠️ *Measured at the 3,516-attempted / 1,606-compiled baseline, before
   the core merge; the shape of the finding survives but the absolute figures do

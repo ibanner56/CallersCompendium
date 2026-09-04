@@ -6,12 +6,16 @@
 /// ```
 ///
 /// A directory argument expands to the `.json` files directly inside it. The
-/// point of the tool is the summary: which dances compile, and which moves the
-/// corpus names that this compiler has not implemented. That second list is the
-/// backlog, read off real choreography rather than guessed at.
+/// point of the tool is the summary. Its headline is the **in-scope rate**:
+/// how many dances compile out of the ones this compiler is actually aiming
+/// at — everything that parsed, minus what a deferred figure blocked. The
+/// all-attempted rate follows as a secondary number, and the unimplemented
+/// moves the corpus names are listed after it. That list is the backlog, read
+/// off real choreography rather than guessed at.
 ///
 /// Exit codes: `0` every attempted dance compiled, `1` some did not, `64` the
-/// inputs could not be read.
+/// inputs could not be read. Note that the exit code tracks the *attempted*
+/// set, so a corpus sweep will exit `1` as a matter of course.
 library;
 
 import 'dart:io';
@@ -120,7 +124,15 @@ void _writeSummary(CorpusReport report) {
 
   stdout.writeln('');
   stdout.writeln(
-    'compiled ${report.compiled}/${report.attempted} attempted '
+    'in scope: ${report.compiled}/${report.inScope} '
+    '(${_percent(report.inScopeRate)})',
+  );
+  stdout.writeln(
+    '  parsed dances with no free text and nothing deferred; '
+    '${report.deferred} excluded as deferred',
+  );
+  stdout.writeln(
+    'all attempted: ${report.compiled}/${report.attempted} '
     '(${_percent(report.compileRate)})',
   );
   stdout.writeln(
@@ -157,6 +169,10 @@ Imports Caller's Box JSON through compendium_core's adapter, compiles each
 dance, and reports what compiled and which moves are still unimplemented.
 A directory expands to the .json files directly inside it.
 
+The headline is the in-scope rate: how many compiled out of the dances this
+compiler is aiming at, which is everything that parsed minus the ones a
+deferred figure blocked. The all-attempted rate follows it.
+
 Options:
   -q, --quiet    summary only
   -v, --verbose  list every dance, with warnings
@@ -164,6 +180,6 @@ Options:
 
 Exit codes:
   0  every attempted dance compiled
-  1  some did not
+  1  some did not (expected on any real corpus sweep)
   64 the inputs could not be read
 ''';

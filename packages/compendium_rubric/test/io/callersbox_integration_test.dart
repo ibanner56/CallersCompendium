@@ -255,7 +255,89 @@ void main() {
       expect(report.compileRate, 0.0);
       expect(report.corpusCoverage, 0.0);
       expect(report.vocabularyCoverage, 0.0);
+      expect(report.inScopeRate, 0.0);
     });
+
+    test('the in-scope rate divides by what we are actually aiming at', () {
+      // *(User-ruled scope.)* The headline number excludes the dances nobody
+      // could compile today -- free text, and anything deferred -- so that it
+      // measures the model rather than the size of the backlog. Everything
+      // that could compile and did not stays in, including a plain mismatch.
+      final report = CorpusReport(const [
+        DanceRun(
+          title: 'lands',
+          outcome: DanceOutcome.compiled,
+          sourceId: null,
+          label: 'x',
+        ),
+        DanceRun(
+          title: 'ran and landed wrong',
+          outcome: DanceOutcome.mismatch,
+          sourceId: null,
+          label: 'x',
+        ),
+        DanceRun(
+          title: 'names a move we have not written',
+          outcome: DanceOutcome.unsupported,
+          sourceId: null,
+          label: 'x',
+          blockedByDeferral: true,
+        ),
+        DanceRun(
+          title: 'a deferred param inside a figure we do implement',
+          outcome: DanceOutcome.figureRefused,
+          sourceId: null,
+          label: 'x',
+          blockedByDeferral: true,
+        ),
+        DanceRun(
+          title: 'a figure that genuinely disagreed with the floor',
+          outcome: DanceOutcome.figureRefused,
+          sourceId: null,
+          label: 'x',
+        ),
+        DanceRun(
+          title: 'free text',
+          outcome: DanceOutcome.unstructured,
+          sourceId: null,
+          label: 'x',
+        ),
+        DanceRun(
+          title: 'withheld',
+          outcome: DanceOutcome.empty,
+          sourceId: null,
+          label: 'x',
+        ),
+      ]);
+
+      expect(report.deferred, 2);
+      // The compile, the mismatch, and the honest refusal. Not the two
+      // deferrals, the free text, or the withheld record.
+      expect(report.inScope, 3);
+      expect(report.inScopeRate, closeTo(1 / 3, 1e-9));
+      // The older rate still counts both deferred figure refusals, because it
+      // answers a different question: how much of the corpus can be read at
+      // all. The two numbers are meant to disagree.
+      expect(report.attempted, 4);
+      expect(report.compileRate, 0.25);
+    });
+
+    test(
+      'a crash is in scope, so a defect here cannot hide in the backlog',
+      () {
+        final report = CorpusReport(const [
+          DanceRun(
+            title: 'threw',
+            outcome: DanceOutcome.crashed,
+            sourceId: null,
+            label: 'x',
+          ),
+        ]);
+
+        expect(report.inScope, 1);
+        expect(report.inScopeRate, 0.0);
+      },
+    );
   });
 
   group('which figure the import assumes progresses', () {

@@ -582,4 +582,54 @@ void main() {
       );
     });
   });
+
+  group('parseDanceJson — what counts as deferred', () {
+    // The `deferred` flag is what separates the backlog from the defects in a
+    // corpus report (`CorpusReport.inScope`). It means "the record is fine and
+    // this compiler is the thing missing", so it is set only where the reason
+    // is that something is not modelled yet -- never where the record is
+    // malformed, because no amount of implementation work would fix that.
+
+    test('an unimplemented move is deferred', () {
+      final error = _parseErr(_record('{"move": "promenade"}'));
+
+      expect(error.path, 'figures[0].move');
+      expect(error.deferred, isTrue);
+    });
+
+    test('a vocabulary value with no reading here is deferred', () {
+      // `shadows` is the corpus's largest one: a real dancer set this compiler
+      // does not model, on a figure it otherwise implements.
+      final error = _parseErr(
+        _record('{"move": "swing", "params": {"who": "shadows"}}'),
+      );
+
+      expect(error.path, 'figures[0].params.who');
+      expect(error.deferred, isTrue);
+    });
+
+    test('a malformed value is NOT deferred, however it fails', () {
+      // The boundary that keeps the flag meaningful. Both of these refuse at a
+      // figure, and neither is waiting on implementation work.
+      expect(
+        _parseErr(
+          _record('{"move": "circle", "params": {"places": "many"}}'),
+        ).deferred,
+        isFalse,
+      );
+      expect(_parseErr(_record('{"move": 7}')).deferred, isFalse);
+    });
+
+    test('an unmodelled progression tier is NOT deferred', () {
+      // Deliberate, and the reason the flag is per-figure rather than
+      // per-dance: this compiler does not model a `none` or `other`
+      // progression, but that is a property of the dance rather than of any
+      // figure in it. Counting it here would widen "deferred" past the scope
+      // the user set, and would quietly shrink the denominator.
+      final error = _parseErr(_record('', progression: 'sideways'));
+
+      expect(error.path, 'progression');
+      expect(error.deferred, isFalse);
+    });
+  });
 }

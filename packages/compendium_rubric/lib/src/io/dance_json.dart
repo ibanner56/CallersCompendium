@@ -21,7 +21,7 @@ import '../ops/params.dart';
 /// which kind of problem it is looking at.
 @immutable
 class DanceParseError {
-  const DanceParseError(this.message, {this.path = ''});
+  const DanceParseError(this.message, {this.path = '', this.deferred = false});
 
   /// What went wrong.
   final String message;
@@ -29,14 +29,25 @@ class DanceParseError {
   /// Where in the record, in dotted JSON-path form (`figures[2].params.who`).
   final String path;
 
+  /// Whether the record is fine and **this compiler** is the thing missing.
+  ///
+  /// Set only where the reason is "not modelled yet" — an unimplemented move,
+  /// or a vocabulary value with no reading here. A malformed record is not
+  /// deferred, and neither is an unmodelled *progression* tier, which is a
+  /// property of the dance rather than of any figure in it. The distinction is
+  /// what lets a corpus report separate the backlog from the defects
+  /// (`CorpusReport.inScope`).
+  final bool deferred;
+
   @override
   bool operator ==(Object other) =>
       other is DanceParseError &&
       other.message == message &&
-      other.path == path;
+      other.path == path &&
+      other.deferred == deferred;
 
   @override
-  int get hashCode => Object.hash(message, path);
+  int get hashCode => Object.hash(message, path, deferred);
 
   @override
   String toString() => path.isEmpty ? message : '$path: $message';
@@ -66,8 +77,10 @@ class _Params {
   final Map<String, Object?> _raw;
   final String _path;
 
-  Never _fail(String key, String message) =>
-      throw _ParseFailure(DanceParseError(message, path: '$_path.$key'));
+  Never _fail(String key, String message, {bool deferred = false}) =>
+      throw _ParseFailure(
+        DanceParseError(message, path: '$_path.$key', deferred: deferred),
+      );
 
   /// The upstream sentinel meaning "the source states nothing here".
   ///
@@ -142,7 +155,9 @@ class _Params {
     final raw = optionalString(keys);
     if (raw == null) return fallback;
     final value = lookup(raw);
-    if (value == null) _fail(_blameKey(keys), 'unrecognized value "$raw"');
+    if (value == null) {
+      _fail(_blameKey(keys), 'unrecognized value "$raw"', deferred: true);
+    }
     return value;
   }
 
@@ -156,7 +171,9 @@ class _Params {
     final raw = optionalString(keys);
     if (raw == null) return null;
     final value = lookup(raw);
-    if (value == null) _fail(_blameKey(keys), 'unrecognized value "$raw"');
+    if (value == null) {
+      _fail(_blameKey(keys), 'unrecognized value "$raw"', deferred: true);
+    }
     return value;
   }
 
@@ -748,6 +765,7 @@ OperationInvocation _parseFigure(Object? raw, int index) {
         'unsupported move "$move"; this compiler knows '
         '${supportedMoves.join(', ')}',
         path: '$path.move',
+        deferred: true,
       ),
     );
   }
