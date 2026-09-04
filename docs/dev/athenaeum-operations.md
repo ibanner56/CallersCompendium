@@ -50,7 +50,7 @@ the loopback-only forwarded-address trust boundary.
 5. Start the container with host networking and the persistent volume:
 
    ```sh
-   docker run --detach --name athenaeum \
+   sudo docker run --detach --name athenaeum \
      --network host \
      --restart unless-stopped \
      --read-only \

@@ -174,7 +174,7 @@ for index in $(seq 1 59); do
     --request POST --header "Authorization: Bearer ${token}" \
     "${https_url}/v1/store"
 done
-extra_token=$(encode_id "w16-over-budget-${run_id}-store")
+extra_token=$(encode_id "w16-over${run_id}-budget-store")
 printf '%s\n' "$extra_token" >> "$created_credentials"
 expect_status 429 "store creation budget" \
   --request POST --header "Authorization: Bearer ${extra_token}" \
