@@ -64,8 +64,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 ### Data / Migrations
 
 - **Schema 31 → 32** — add local Device Sync state tables for baselines, aliases,
-  pending tombstones, review candidates, and publication history; existing rows
-  are backfilled with migration-safe existence timestamps.
+  pending tombstones, review candidates, and publication history; existing user
+  data is unchanged by these additive tables.
 - **Taxonomy 32 → 33** — correct figure defaults and canonical figure-eight
   wording, rebuilding derived canonical and full-text rows once without changing
   stored figure JSON or the SQLite schema. This taxonomy marker is documentary;
