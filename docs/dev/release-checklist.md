@@ -211,7 +211,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  screen-reader passes remain tracked as aspirational in
  [`accessibility-baseline.md`](../research/accessibility-baseline.md) but are
  **not** part of this release-blocking gate yet; note any known issues found
- informally in the known-issues list (§9) rather than blocking on them.
+ informally in the known-issues list (§10) rather than blocking on them.
 
 ## 8. Device Sync operational readiness (W16 - Gate)
 - [ ] The compatible Athenaeum server was deployed and smoke-tested before any
