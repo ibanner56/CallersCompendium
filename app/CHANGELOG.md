@@ -35,6 +35,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-03
+
 ### Added
 
 - **JSON export delivery choices** — choose to save, copy the raw JSON, share
@@ -58,6 +60,16 @@ from that tag, so new entries need no visible or manually maintained suffix.
   CallersBox/ContraDB imports reported in issue #1160.
 - **Program dance picker** — remove the misleading detail chevron from rows
   whose tap action adds or replaces a dance.
+
+### Data / Migrations
+
+- **Schema 31 → 32** — add local Device Sync state tables for baselines, aliases,
+  pending tombstones, review candidates, and publication history; existing user
+  data is unchanged by these additive tables.
+- **Taxonomy 32 → 33** — correct figure defaults and canonical figure-eight
+  wording, rebuilding derived canonical and full-text rows once without changing
+  stored figure JSON or the SQLite schema. This taxonomy marker is documentary;
+  it does not trigger a database migration.
 
 ## [0.3.0] - 2026-09-01
 
