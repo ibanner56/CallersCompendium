@@ -13,6 +13,8 @@ import 'athenaeum_schema.dart';
 
 typedef DirectoryDelete = void Function(Directory directory);
 typedef FileDelete = void Function(File file);
+typedef AthenaeumOperationalFailureSink =
+    void Function(String source, Object error);
 
 class AthenaeumQuotaLimits {
   const AthenaeumQuotaLimits({
@@ -64,6 +66,7 @@ class AthenaeumStore {
     DateTime Function()? clock,
     this.quotaLimits = const AthenaeumQuotaLimits(),
     this.diagnosticRowLimit = maxDiagnosticRows,
+    this.operationalFailureSink,
   }) : config = config,
        _database = database ?? _openDatabase(config.dataDirectory),
        _breakGlassDatabase =
@@ -116,6 +119,7 @@ class AthenaeumStore {
   final DirectoryDelete _deleteDirectory;
   final FileDelete _deleteFile;
   final DateTime Function() _clock;
+  final AthenaeumOperationalFailureSink? operationalFailureSink;
   final AthenaeumQuotaLimits quotaLimits;
   final int diagnosticRowLimit;
 
@@ -490,9 +494,7 @@ class AthenaeumStore {
       try {
         deleteStore(idKey, retryGlobal: false);
       } on Object catch (error) {
-        stderr.writeln(
-          'Athenaeum store deletion failed (${error.runtimeType})',
-        );
+        _reportOperationalFailure('store_deletion', error);
       }
     }
     final epochs = _database.select(
@@ -508,30 +510,36 @@ class AthenaeumStore {
           retryMaxJobs: null,
         );
       } on Object catch (error) {
-        stderr.writeln(
-          'Athenaeum garbage collection failed (${error.runtimeType})',
-        );
+        _reportOperationalFailure('garbage_collection', error);
       }
     }
     try {
       purgeExpiredBreakGlassAccess(now: current);
     } on Object catch (error) {
-      stderr.writeln(
-        'Athenaeum break-glass retention failed (${error.runtimeType})',
-      );
+      _reportOperationalFailure('break_glass_retention', error);
     }
     try {
       purgeExpiredDiagnostics(now: current);
     } on Object catch (error) {
-      stderr.writeln(
-        'Athenaeum diagnostic retention failed (${error.runtimeType})',
-      );
+      _reportOperationalFailure('diagnostic_retention', error);
     }
     try {
-      retryPendingDeletions(maxJobs: maxPendingDeletionRetriesPerSweep);
+      retryPendingDeletions(
+        maxJobs: maxPendingDeletionRetriesPerSweep,
+        reportFailures: true,
+      );
     } on Object catch (error) {
-      stderr.writeln('Athenaeum deletion retry failed (${error.runtimeType})');
+      _reportOperationalFailure('deletion_retry', error);
     }
+  }
+
+  void _reportOperationalFailure(String source, Object error) {
+    final sink = operationalFailureSink;
+    if (sink != null) {
+      sink(source, error);
+      return;
+    }
+    stderr.writeln('Athenaeum $source failed (${error.runtimeType})');
   }
 
   int blobUploadLimit(String idKey, String epoch, String hash) {
@@ -861,6 +869,7 @@ class AthenaeumStore {
 
   void retryPendingDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
+    bool reportFailures = false,
   }) {
     final rows = _database.select(
       'SELECT id_key, epoch FROM deletion_jobs '
@@ -870,12 +879,16 @@ class AthenaeumStore {
     for (final row in rows) {
       final idKey = row['id_key'] as String;
       final epoch = row['epoch'] as String;
-      _retryPendingDirectory(idKey, epoch);
+      _retryPendingDirectory(idKey, epoch, reportFailure: reportFailures);
     }
-    retryPendingBlobDeletions(maxJobs: maxJobs);
+    retryPendingBlobDeletions(maxJobs: maxJobs, reportFailures: reportFailures);
   }
 
-  void _retryPendingDirectory(String idKey, String epoch) {
+  void _retryPendingDirectory(
+    String idKey,
+    String epoch, {
+    bool reportFailure = false,
+  }) {
     var inTransaction = false;
     try {
       _database.execute('BEGIN IMMEDIATE');
@@ -898,9 +911,12 @@ class AthenaeumStore {
       }
       try {
         _deleteDirectory(Directory(p.join(blobDirectory.path, idKey, epoch)));
-      } on FileSystemException {
+      } on FileSystemException catch (error) {
         _database.execute('ROLLBACK');
         inTransaction = false;
+        if (reportFailure) {
+          _reportOperationalFailure('deletion_retry', error);
+        }
         _database.execute(
           'UPDATE deletion_jobs SET queued_at = ('
           'SELECT COALESCE(MAX(queued_at), -1) + 1 FROM deletion_jobs'
@@ -930,6 +946,7 @@ class AthenaeumStore {
 
   void retryPendingBlobDeletions({
     int maxJobs = maxPendingDeletionRetriesPerRequest,
+    bool reportFailures = false,
   }) {
     final rows = _database.select(
       'SELECT id_key, epoch, hash FROM blob_deletion_jobs '
@@ -954,9 +971,12 @@ class AthenaeumStore {
           for (final file in _temporaryBlobFiles(idKey, epoch, hash)) {
             _deleteFile(file);
           }
-        } on FileSystemException {
+        } on FileSystemException catch (error) {
           _database.execute('ROLLBACK');
           inTransaction = false;
+          if (reportFailures) {
+            _reportOperationalFailure('blob_deletion_retry', error);
+          }
           _database.execute(
             'UPDATE blob_deletion_jobs SET queued_at = ('
             'SELECT COALESCE(MAX(queued_at), -1) + 1 '

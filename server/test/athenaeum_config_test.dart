@@ -46,6 +46,24 @@ void main() {
     );
   });
 
+  test('trusts forwarded addresses only from loopback peers by default', () {
+    expect(
+      AthenaeumConfig(
+        dataDirectory: '.',
+        pepper: List<int>.filled(32, 0),
+      ).trustForwardedHeadersFromLoopback,
+      isTrue,
+    );
+    expect(
+      AthenaeumConfig(
+        dataDirectory: '.',
+        pepper: List<int>.filled(32, 0),
+        trustForwardedHeadersFromLoopback: false,
+      ).trustForwardedHeadersFromLoopback,
+      isFalse,
+    );
+  });
+
   test('generatePepper uses a full 256-bit value', () {
     expect(AthenaeumConfig.generatePepper(), hasLength(32));
   });

@@ -910,6 +910,137 @@ void main() {
   });
 
   test(
+    'forwarded addresses create independent buckets for loopback proxy peers',
+    () async {
+      final productionApp = AthenaeumApp(config: app.config, store: app.store);
+      Future<Response> failedRequest(String address) => productionApp.call(
+        _requestWithPeer(
+          InternetAddress.loopbackIPv4,
+          forwardedAddress: address,
+        ),
+      );
+
+      for (
+        var attempt = 0;
+        attempt < maxFailedResolutionsPerIpBurst;
+        attempt++
+      ) {
+        expect((await failedRequest('192.0.2.10')).statusCode, 401);
+      }
+      expect((await failedRequest('192.0.2.11')).statusCode, 401);
+      expect((await failedRequest('192.0.2.10')).statusCode, 429);
+    },
+  );
+
+  test('forwarded addresses are ignored for non-loopback peers', () async {
+    final productionApp = AthenaeumApp(config: app.config, store: app.store);
+    for (var attempt = 0; attempt < maxFailedResolutionsPerIpBurst; attempt++) {
+      final response = await productionApp.call(
+        _requestWithPeer(
+          InternetAddress('192.0.2.1'),
+          forwardedAddress: '198.51.100.$attempt',
+        ),
+      );
+      expect(response.statusCode, 401);
+    }
+    final response = await productionApp.call(
+      _requestWithPeer(
+        InternetAddress('192.0.2.1'),
+        forwardedAddress: '203.0.113.1',
+      ),
+    );
+    expect(response.statusCode, 429);
+  });
+
+  test('quota failures emit a safe operational alert', () async {
+    final customStore = AthenaeumStore(
+      config: app.config,
+      database: sqlite3.openInMemory(),
+      breakGlassDatabase: sqlite3.openInMemory(),
+      diagnosticDatabase: sqlite3.openInMemory(),
+      quotaLimits: const AthenaeumQuotaLimits(maxBytes: 0),
+    );
+    final alerts = <AthenaeumOperationalAlert>[];
+    final innerApp = AthenaeumApp(
+      config: app.config,
+      store: customStore,
+      alertSink: alerts.add,
+    );
+    final customApp = _AuthenticatedApp(innerApp, encodeSyncCredential(syncId));
+    try {
+      final credential = encodeSyncCredential(syncId);
+      expect(
+        (await customApp.call(
+          Request(
+            'POST',
+            Uri.parse('http://127.0.0.1/v1/store'),
+            headers: {'authorization': 'Bearer $credential'},
+          ),
+        )).statusCode,
+        201,
+      );
+      final bytes = Uint8List.fromList([1]);
+      final hash = sha256.convert(bytes).toString();
+      final response = await customApp.call(
+        Request(
+          'PUT',
+          Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+          headers: {
+            'authorization': 'Bearer $credential',
+            'content-type': 'application/octet-stream',
+          },
+          body: bytes,
+        ),
+      );
+      expect(response.statusCode, 507);
+      expect(alerts.single.toJson(), {
+        'kind': 'quota_exhaustion',
+        'source': 'request',
+        'errorType': 'StoreQuotaExceeded',
+      });
+      expect(
+        (await customApp.call(
+          Request(
+            'PUT',
+            Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+            headers: {
+              'authorization': '******',
+              'content-type': 'application/octet-stream',
+            },
+            body: bytes,
+          ),
+        )).statusCode,
+        507,
+      );
+      expect(alerts, hasLength(1));
+      final failingAlertApp = _AuthenticatedApp(
+        AthenaeumApp(
+          config: app.config,
+          store: customStore,
+          alertSink: (_) => throw StateError('injected alert failure'),
+        ),
+        credential,
+      );
+      expect(
+        (await failingAlertApp.call(
+          Request(
+            'PUT',
+            Uri.parse('http://127.0.0.1/v1/blobs/$hash'),
+            headers: {
+              'authorization': '******',
+              'content-type': 'application/octet-stream',
+            },
+            body: bytes,
+          ),
+        )).statusCode,
+        507,
+      );
+    } finally {
+      customStore.close();
+    }
+  });
+
+  test(
     'server-wide shedding preserves existing-store and resource behavior',
     () async {
       expect(
@@ -2159,16 +2290,18 @@ void main() {
     expect(sweeps, 1);
   });
 
-  test('sweep controller contains callback failures', () {
+  test('sweep controller contains callback failures and emits an alert', () {
     final timer = _FakeTimer();
     late void Function() fire;
     var attempts = 0;
+    final alerts = <AthenaeumOperationalAlert>[];
     final controller = AthenaeumSweepController(
       app.store,
       sweep: () {
         attempts++;
         if (attempts == 1) throw StateError('injected sweep failure');
       },
+      alertSink: alerts.add,
       schedule: (interval, callback) {
         fire = () {
           if (timer.isActive) callback(timer);
@@ -2180,6 +2313,11 @@ void main() {
     fire();
     fire();
     expect(attempts, 2);
+    expect(alerts.single.toJson(), {
+      'kind': 'sweep_failure',
+      'source': 'hourly_sweep',
+      'errorType': 'StateError',
+    });
     controller.stop();
   });
 }
@@ -2233,6 +2371,45 @@ class _FakeTimer implements Timer {
 }
 
 Uri _uri(String path) => Uri.http('127.0.0.1:${_activeServer.port}', path);
+
+Request _requestWithPeer(
+  InternetAddress peer, {
+  required String forwardedAddress,
+}) => Request(
+  'GET',
+  Uri.parse('http://127.0.0.1/v1/store'),
+  headers: {
+    'authorization': 'Bearer ******',
+    'x-forwarded-for': forwardedAddress,
+  },
+  context: {'shelf.io.connection_info': _FakeConnectionInfo(peer)},
+);
+
+class _FakeConnectionInfo implements HttpConnectionInfo {
+  _FakeConnectionInfo(this.remoteAddress);
+
+  @override
+  final InternetAddress remoteAddress;
+
+  @override
+  int get localPort => 33333;
+
+  @override
+  int get remotePort => 40000;
+
+  InternetAddress get localAddress => InternetAddress.loopbackIPv4;
+}
+
+class _AuthenticatedApp {
+  _AuthenticatedApp(this._app, String credential)
+    : _authorization = 'Bearer $credential';
+
+  final AthenaeumApp _app;
+  final String _authorization;
+
+  Future<Response> call(Request request) =>
+      _app.call(request.change(headers: {'authorization': _authorization}));
+}
 
 Uint8List _recordBlob({
   int version = 1,

@@ -2,7 +2,10 @@
 
 This package contains the self-hostable HTTP service used by Device Sync. It
 binds a loopback address by default; TLS termination and the public reverse
-proxy are deployment concerns covered by ADR-004 and W16.
+proxy are deployment concerns covered by ADR-004 and W16. The supported
+production topology is a Linux host running Apache plus a Docker container
+started with `--network host`; see
+[`docs/dev/athenaeum-operations.md`](../docs/dev/athenaeum-operations.md).
 
 ## Run locally
 
@@ -20,13 +23,35 @@ The pepper is required, is never stored in SQLite, and must be at least 256
 bits of cryptographically secure randomness. Set `ATHENAEUM_PEPPER` instead of
 `--pepper` when passing it as a command-line argument is undesirable.
 
+### Break-glass reads
+
+After incident approval, use the supported break-glass command rather than
+querying SQLite directly. It accepts the raw sync ID on stdin, records the
+separate audit row first, and writes the selected manifest bytes to stdout:
+
+```sh
+printf '%s\n' "$SYNC_ID" | docker exec -i athenaeum \
+  /opt/athenaeum/bin/athenaeum --data-dir /var/lib/athenaeum --break-glass \
+  --break-glass-device-id device-one > /secure/incident/manifest.bin
+```
+
+Keep the input, output, and audit evidence in approved secure locations.
+
 Generate the pepper once and persist it in a secret store before starting the
 service. Reuse that same value for every restart of a data directory. The
 service listens on `127.0.0.1:33333` unless the loopback-only `--host`
 (`127.0.0.1` or `localhost`) and `--port` are provided. Public listener
-addresses are rejected. This local listener is for C2/client development; production TLS,
-proxy forwarding, and address handling are specified for W16. Logging, alerting,
-retention, and break-glass procedures are specified for W12.
+addresses are rejected. This local listener is for C2/client development;
+production TLS, proxy forwarding, and address handling are specified for W16.
+Logging, alerting, retention, and break-glass procedures are specified in the
+W16 operations runbook.
+
+For production, reserve port `33333` on the Linux host and run the container
+with host networking. Apache must proxy only HTTPS `/v1/` requests to
+`127.0.0.1:33333`; the plaintext `:80` vhost must refuse `/v1` rather than
+redirecting it. The reference vhost is
+[`deploy/athenaeum.conf`](deploy/athenaeum.conf), and the image is built with
+`server/Dockerfile` from the repository root.
 
 Store deletion removes the epoch directory immediately when possible; a
 durable cleanup record retries failed filesystem removal in a larger bounded

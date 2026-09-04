@@ -211,9 +211,24 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
  screen-reader passes remain tracked as aspirational in
  [`accessibility-baseline.md`](../research/accessibility-baseline.md) but are
  **not** part of this release-blocking gate yet; note any known issues found
- informally in the known-issues list (§9) rather than blocking on them.
+ informally in the known-issues list (§10) rather than blocking on them.
 
-## 8. Tag & publish
+## 8. Device Sync operational readiness (W16 - Gate)
+- [ ] The compatible Athenaeum server was deployed and smoke-tested before any
+  beta or public client distribution. Record the image digest and deployment
+  timestamp.
+- [ ] Follow [`athenaeum-operations.md`](athenaeum-operations.md) and attach
+  evidence for the no-redirect plaintext `:80 /v1` refusal, successful HTTPS
+  request with HSTS, proxy header/body/address checks, and every documented
+  rate-limit budget. Include the labeled output from
+  `server/deploy/smoke_test.sh`, which runs these checks through the
+  host-network Apache vhost.
+- [ ] Attach live staging evidence for quota and sweep alerts reaching a human,
+  30-day retention removal with log-content absence, one authorized break-glass
+  access with exactly one separate audit row, and the lost-ID "not recoverable"
+  support response.
+
+## 9. Tag & publish
 - [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
 - [ ] Annotated tag created on the exact reviewed commit: `vX.Y.Z-beta` or
   `vX.Y.Z`.
@@ -221,7 +236,7 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Post-publish: download each artifact FROM the release and re-launch once
  (catches broken uploads).
 
-## 9. Post-release
+## 10. Post-release
 - [ ] Roadmap updated (what shipped, what's still open).
 - [ ] Known-issues list published with the release.
 - [ ] Feedback channel for testers is stated in the release notes.
