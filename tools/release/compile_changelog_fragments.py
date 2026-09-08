@@ -89,11 +89,9 @@ def _audience(
 
 def load_fragments(directory: Path) -> list[Fragment]:
     """Load, fully validate, and return fragments in deterministic ID order."""
-    if not directory.is_dir():
-        raise FragmentError(f"fragment directory not found: {directory}")
     fragments: list[Fragment] = []
     seen: set[str] = set()
-    for path in sorted(directory.glob("*.json")):
+    for path in fragment_paths(directory):
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as error:
@@ -127,18 +125,36 @@ def load_fragments(directory: Path) -> list[Fragment]:
     return fragments
 
 
+def fragment_paths(directory: Path) -> list[Path]:
+    """Return every fragment path, rejecting entries the compiler would ignore."""
+    if not directory.is_dir():
+        raise FragmentError(f"fragment directory not found: {directory}")
+    paths = sorted(directory.iterdir())
+    unexpected = [
+        path.name
+        for path in paths
+        if path.name != "README.md" and (not path.is_file() or path.suffix != ".json")
+    ]
+    if unexpected:
+        raise FragmentError(
+            f"{directory}: unexpected entries; use only JSON fragments and README.md: "
+            + ", ".join(unexpected)
+        )
+    return [path for path in paths if path.suffix == ".json"]
+
+
 def _require_managed(changelog: str, path: Path) -> None:
     if not changelog.startswith(MARKER + "\n"):
         raise FragmentError(f"{path}: missing release-managed marker")
 
 
-def _unreleased_has_list_items(changelog: str) -> bool:
+def _unreleased_has_content(changelog: str) -> bool:
     start = changelog.find("## [Unreleased]")
     if start < 0:
-        return False
+        raise FragmentError("compiled changelog has no [Unreleased] compatibility section")
     end = changelog.find("\n## ", start + len("## [Unreleased]"))
     section = changelog[start : len(changelog) if end < 0 else end]
-    return any(re.match(r"^\s*[-*+]\s+\S", line) for line in section.splitlines())
+    return section.removeprefix("## [Unreleased]").strip() not in {"", "_Nothing yet._"}
 
 
 def check_pending_state(root: Path) -> None:
@@ -150,7 +166,7 @@ def check_pending_state(root: Path) -> None:
         except OSError as error:
             raise FragmentError(f"could not read {relative_path}: {error}") from error
         _require_managed(changelog, relative_path)
-        if _unreleased_has_list_items(changelog):
+        if _unreleased_has_content(changelog):
             raise FragmentError(
                 f"{relative_path}: [Unreleased] is release-managed; add a changelog.d fragment instead"
             )
@@ -294,6 +310,7 @@ def apply_release(
 ) -> ApplyResult:
     """Compile after all inputs validate, then consume the fragments."""
     app_path, core_path = root / APP_PATH, root / CORE_PATH
+    check_pending_state(root)
     app, core = compile_changelogs(
         app_changelog=app_path.read_text(encoding="utf-8"),
         core_changelog=core_path.read_text(encoding="utf-8"),

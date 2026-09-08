@@ -149,8 +149,63 @@ def cases() -> None:
             assert "changelog.d fragment" in str(error)
         else:
             raise AssertionError("direct Unreleased edit passed")
+
+        for direct_content in ("Unexpected prose.", "### Unexpected heading"):
+            (root / "app/CHANGELOG.md").write_text(
+                APP.replace("_Nothing yet._", direct_content), encoding="utf-8"
+            )
+            try:
+                compiler.check_pending_state(root)
+            except compiler.FragmentError:
+                pass
+            else:
+                raise AssertionError(f"direct content passed: {direct_content}")
+
+        (root / "app/CHANGELOG.md").write_text(
+            APP.replace("_Nothing yet._", "- A direct edit."), encoding="utf-8"
+        )
+        write_fragment(
+            fragments,
+            "103-write-guard",
+            {
+                "id": "103-write-guard",
+                "user_visible": True,
+                "app": {"fixed": ["A write guard is present."]},
+            },
+        )
+        before = (root / "app/CHANGELOG.md").read_text(encoding="utf-8")
+        try:
+            compiler.apply_release(
+                root=root,
+                fragments=compiler.load_fragments(fragments),
+                app_version="0.2.0",
+                core_version=None,
+                release_date="2026-02-03",
+            )
+        except compiler.FragmentError:
+            pass
+        else:
+            raise AssertionError("write accepted a direct Unreleased edit")
+        assert (root / "app/CHANGELOG.md").read_text(encoding="utf-8") == before
+        assert (fragments / "103-write-guard.json").exists()
     finally:
         temporary.cleanup()
+
+    for name, create in (
+        ("unexpected-extension", lambda directory: (directory / "note.txt").write_text("x")),
+        ("nested-fragment", lambda directory: (directory / "nested").mkdir()),
+    ):
+        temporary, root = fixture_repo()
+        try:
+            create(root / "changelog.d")
+            try:
+                compiler.load_fragments(root / "changelog.d")
+            except compiler.FragmentError as error:
+                assert "unexpected entries" in str(error)
+            else:
+                raise AssertionError(f"{name} passed")
+        finally:
+            temporary.cleanup()
 
     for name, contents in (
         ("mismatch", {"id": "other", "user_visible": True, "app": {"added": ["x"]}}),

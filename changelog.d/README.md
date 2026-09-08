@@ -7,7 +7,8 @@ release preparation.
 
 Name a fragment `<id>.json`, where `<id>` is a stable, unique, lowercase
 identifier such as an issue number plus a short slug. Its `"id"` must exactly
-match the filename stem.
+match the filename stem. Keep fragments directly in `changelog.d/`: the only
+other permitted entry is this `README.md`.
 
 ```json
 {

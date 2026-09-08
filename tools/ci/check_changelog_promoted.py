@@ -9,6 +9,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "release"))
+
+from compile_changelog_fragments import FragmentError, fragment_paths
+
 SCHEMA_CONSTANT = "kCompendiumSchemaVersion"
 TAXONOMY_CONSTANT = "contraTaxonomyVersion"
 _CORE = r"(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)"
@@ -166,9 +170,7 @@ def validate(
 
 
 def _pending_fragments(directory: Path) -> list[str]:
-    if not directory.is_dir():
-        return [f"fragment directory not found: {directory}"]
-    fragments = sorted(directory.glob("*.json"))
+    fragments = fragment_paths(directory)
     if not fragments:
         return []
     return [
