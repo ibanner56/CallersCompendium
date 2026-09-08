@@ -282,8 +282,8 @@ const int kCompendiumSchemaVersion = 32;
 /// basis that every tester is on beta.6 or later.
 ///
 /// Raising this is a user-visible change: databases below the new floor stop
-/// opening. It belongs in `app/CHANGELOG.md`, stated in user-facing terms, with
-/// the release whose schema version is being adopted named as the reason.
+/// opening. It needs an app `changelog.d/` fragment, stated in user-facing
+/// terms, with the release whose schema version is being adopted named as the reason.
 const int kMinSupportedSchemaVersion = 20;
 
 /// The Caller's Compendium local database.

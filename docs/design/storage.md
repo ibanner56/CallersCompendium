@@ -128,8 +128,8 @@ for it. `onUpgrade` therefore refuses such a file outright, and
 refused and left untouched, at-floor still migrates to head.
 
 Raising the floor is **user-visible** — databases below it stop opening — so it
-belongs in `app/CHANGELOG.md` in user-facing terms, naming the release whose
-schema version is being adopted. `tools/ci/check_schema_migration.py` fails any
+needs an app entry in a `changelog.d/` fragment, naming the release whose schema
+version is being adopted. `tools/ci/check_schema_migration.py` fails any
 PR that reintroduces a per-version artefact below the floor.
 
 ## Schema version history

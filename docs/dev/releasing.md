@@ -126,59 +126,46 @@ and produces no Android artifact.
 > manifest, licensing, and a smoke test on a real build — or mark items N/A with a
 > reason. The steps below are the mechanics; the checklist is the gate.
 
-1. **Update `app/CHANGELOG.md`** so the release has real notes (this is what the
-   draft's body is generated from — see
-   [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Promote
-   the accumulated `## [Unreleased]` items into the versioned section **before**
-   tagging. The release fails fast in the `meta` job if `Unreleased` still has
-   list items. Every release, stable or beta, requires the matching shared
-   versioned section.
+1. **Compile the pending changelog fragments** so the release has real notes
+   (this is what the draft's body is generated from — see
+   [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Normal
+   PRs add independent `changelog.d/<id>.json` files; only release preparation
+   updates the two committed historical changelogs. First validate the inventory:
+
+   ```sh
+   python3 tools/release/compile_changelog_fragments.py --check
+   ```
 
    **A core entry never replaces an app entry.** `app/CHANGELOG.md` is the only
    CHANGELOG consumed to generate the published release notes. If a change
-   recorded in `packages/compendium_core/CHANGELOG.md` changes behavior visible
-   to an app user, it must also have a corresponding app `## [Unreleased]`
-   entry. The core entry records the core package version; the app entry tells
-   users what changed. This belongs in the PR that makes the behavioral change,
-   not in a release-prep diff, where the missing context may no longer be
-   recoverable.
+   recorded in a fragment's `core` object changes behavior visible to an app
+   user, the same fragment must also have an `app` entry. The core entry records
+   the core package version; the app entry tells users what changed. This belongs
+   in the behavioral-change PR, not in a release-prep diff where the context may
+   no longer be recoverable.
 
-   **If a section for this core version already exists, merge into it — do not
-   create a second one.** Successive betas in a line all render the *same*
-   heading (`v0.1.0-beta` reads `## [0.1.0]`), so after the first promotion
-   that section is already present. Renaming the `## [Unreleased]` heading with
-   `sed`/`perl` therefore produces **two** `## [0.1.0]` sections and corrupts the
-   file. Move the items across, update the existing section's date, and leave a
-   fresh empty `## [Unreleased]` above it. Count the headings before and after:
+   The compiler requires an explicit app version and release date. If a fragment
+   contains `core` entries, first ask the maintainer for the new core version,
+   update `packages/compendium_core/pubspec.yaml`, and pass that exact version.
+   It will merge an app beta/stable pair into its shared app section, create a
+   new core section only when core entries exist, preserve the historical
+   preamble and older sections, and consume fragments only after all inputs
+   validate:
 
    ```sh
-   grep -c '^## \[0\.1\.0\]' app/CHANGELOG.md   # must be 1, before and after
+   python3 tools/release/compile_changelog_fragments.py \
+     --app-version 0.2.0 --core-version 0.4.0 --date 2026-08-01 --write
    ```
 
-   `check_changelog_promoted.py` also enforces this on tag push, and names the
-   count it found. It did not always: a release branch once shipped two
-   `## [0.1.0]` headings, passed the gate, and rendered correct-looking notes —
-   because the notes render from the *first* section, so the orphaned one was
-   invisible until someone went looking for the older release's entry.
+   Review the generated diff. Do not hand-edit it: the compiler deterministically
+   orders fragment IDs, prevents duplicate category headings, and `check_changelog_promoted.py`
+   rejects a tagged commit with pending fragments or a duplicate app heading.
+   The empty `## [Unreleased]` sections remain compatibility anchors only.
 
-   Only a release whose core version is genuinely new adds a new heading. This
-   includes a patch bump such as `0.1.0` to `0.1.1`; the beta and stable tags
-   for that new core then share it.
-
-   ```md
-   ## [Unreleased]
-
-   ## [0.2.0] - 2026-08-01
-
-   ### Added
-   - …
-   ```
-
-   - The heading version must be the bare `x.y.z` (no `v`, no prerelease suffix)
-     — a bare beta tag like `v0.2.0-beta` still reads the `## [0.2.0]` section.
+   - The heading version is the bare `x.y.z` (no `v`, no prerelease suffix) —
+     a bare beta tag like `v0.2.0-beta` reads `## [0.2.0]`.
    - Do not add a build-number line: the tag deterministically supplies store
      build codes, and `app/pubspec.yaml` has no version suffix.
-   - Leave a fresh, empty `## [Unreleased]` at the top for the next cycle.
    - **Include a Data / Migrations section whenever `kCompendiumSchemaVersion`
      or `contraTaxonomyVersion` has moved** since that section was last written.
      Read both from source at tag time — they move while a release is being
@@ -207,11 +194,9 @@ and produces no Android artifact.
      so it belongs in the notes; describe what changed about recognition or
      canonical form rather than implying the database is rewritten.
 
-   **Then verify the notes are the ones you just wrote.** `--check` tests that a
-   section *exists*, not that it is *fresh*, so it returns 0 against a section
-   left over from the previous release — and the draft would then carry the
-   previous release's notes, and its migration range, under the new version's
-   banner:
+   **Then preview the compiled notes.** The compiler verifies fragment shape and
+   consumes the exact inputs shown in the generated diff; rendering remains the
+   backstop for whether the prose is true:
 
    ```sh
    python3 tools/release/gen_release_notes.py \
@@ -219,10 +204,10 @@ and produces no Android artifact.
      --changelog app/CHANGELOG.md --output release-notes-preview.md
    ```
 
-   Read `release-notes-preview.md` and confirm it describes *this* release — the right
-   version, the right migration range, the actual new work. `tools/ci/check_changelog_promoted.py`
-   gates both conditions on tag push, but read the rendered notes anyway; the
-   gate cannot judge whether the prose is true.
+   Read `release-notes-preview.md` and confirm it describes *this* release — the
+   right version, the right migration range, the actual new work. The tag gate
+   verifies no fragments remain and the expected app section exists, but cannot
+   judge whether the prose is true.
 
    > **`--version` takes the bare version; only `--tag` carries the `v`.** Both
    > tools resolve the CHANGELOG heading by splitting the version on `-`/`+` —
@@ -257,29 +242,27 @@ and produces no Android artifact.
      literals in those files, while the release workflow requires the pubspec
      core to match the tag; together that makes the static hints match the
      latest release after the tag lands.
-3. **Bump `packages/compendium_core` — if, and only if, its CHANGELOG has
-   unreleased changes.** The trigger is the literal content of
-   `## [Unreleased]` in `packages/compendium_core/CHANGELOG.md`, not a diff
-   against the previous tag and not your judgement about whether the core
-   "really" changed. Keeping that section current is a per-PR responsibility;
-   at release time you take it as written.
+3. **Bump `packages/compendium_core` — if, and only if, pending fragments have
+   `core` entries.** The fragment inventory is the trigger, not a diff against
+   the previous tag and not a judgement about whether the core "really"
+   changed. Validate it before deciding:
 
-   The core CHANGELOG is not published release notes. Before draining it,
-   confirm its user-visible entries already have corresponding entries in
-   `app/CHANGELOG.md`'s `## [Unreleased]`; do not treat a core entry as a reason
-   to omit an app entry.
+   The core CHANGELOG is not published release notes. Before compiling, confirm
+   every user-visible core outcome (`user_visible: true`) has the corresponding
+   `app` entry in the same fragment; do not treat a core entry as a reason to
+   omit an app entry.
 
    ```sh
-   awk '/^## \[Unreleased\]/{f=1;next} /^## /{f=0} f' \
-     packages/compendium_core/CHANGELOG.md | grep -c '^- '
+   find changelog.d -name '*.json' -print
    ```
 
-   `0` — stop. Do not touch the core pubspec or the core CHANGELOG. A core
+   No fragment with a `core` object — stop. Do not touch the core pubspec or the
+   core CHANGELOG. A core
    version bumped on a release with nothing to record is a false entry in the
    record, and the app depends on the core by workspace `path:`, so the bump
    buys nothing mechanically.
 
-   Non-zero — **ask the maintainer for the new core version, showing them the
+   Core entries exist — **ask the maintainer for the new core version, showing them the
    current one for context.** Do not derive it. The core's version is
    independent of both the release tag and the app version, so there is no
    correct increment to infer: only the maintainer knows whether the accumulated
@@ -294,9 +277,8 @@ and produces no Android artifact.
    - Set `version:` in `packages/compendium_core/pubspec.yaml` to that bare
      `X.Y.Z`. No `v`, no prerelease suffix — as with the app, the tag alone
      carries the channel.
-   - Drain `## [Unreleased]` into a new `## [X.Y.Z] - YYYY-MM-DD` section at the
-     top of `packages/compendium_core/CHANGELOG.md`, dated the release date, and
-     leave a fresh empty `## [Unreleased]` above it.
+   - Run the compiler with that exact `--core-version`; it creates a new
+     `## [X.Y.Z] - YYYY-MM-DD` core section and consumes the core fragments.
    - Unlike the app, **this is always a new heading.** The app's shared
      `## [X.Y.Z]` section spans a beta and its stable because the app version is
      the tag's core; the core version is not, so a beta and a later stable that
@@ -306,7 +288,7 @@ and produces no Android artifact.
    Nothing reads the core's `version:` at build time — the app resolves the core
    through the workspace `path:` dependency, so it always compiles the checked-out
    source. The bump is a record, which is exactly why it has to be deliberate.
-4. **Land the promotion on `main` first, then tag `main`'s tip.** Steps 1–3 edit
+4. **Land the compiled release preparation on `main` first, then tag `main`'s tip.** Steps 1–3 edit
    tracked files, so they go through a PR like any other change — the release is
    tagged from `main`, never from the release branch. This repo squash-merges, so
    what you want is the post-merge tip of `main` (a single-parent commit, not a
@@ -318,10 +300,9 @@ and produces no Android artifact.
    git rev-parse origin/main        # the post-merge tip — tag this
    ```
 
-   Tagging a pre-merge SHA points the release at a tree whose `## [Unreleased]`
-   is still full, so the `meta` gate fails on a CHANGELOG that looks correct in
-   your working copy. If the tag is already pushed, delete and re-push it at the
-   right commit before the draft is published.
+   Tagging a pre-merge SHA points the release at a tree with pending fragments,
+   so the `meta` gate fails before builds. If the tag is already pushed, delete
+   and re-push it at the right commit before the draft is published.
 5. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
    `vX.Y.Z-beta`; beta creates a GitHub prerelease. **Name the commit
    explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
@@ -333,7 +314,7 @@ and produces no Android artifact.
    ```
 
 6. Watch the run under **Actions → Release**. It resolves + validates metadata
-   (an unpromoted CHANGELOG fails here, fast; schema changes also require a
+   (pending fragments or a direct compatibility-queue edit fail here, fast; schema changes also require a
    current Data / Migrations range), gates on the reusable checks, builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
@@ -353,8 +334,9 @@ and produces no Android artifact.
 
 ## CHANGELOG-driven release notes
 
-> **Writing the notes:** what goes *into* the `## [x.y.z]` CHANGELOG section is
-> shaped by our release-notes guides — [First Beta](release-notes-first-beta.md)
+> **Writing the notes:** what goes into pending fragments, then into the
+> `## [x.y.z]` compiled CHANGELOG section, is shaped by our release-notes guides —
+> [First Beta](release-notes-first-beta.md)
 > (introduction-style, for `v0.1.0-beta`) and
 > [Recurring &amp; Stable](release-notes-recurring.md) (changelog-style, from the
 > second tag on).
@@ -379,7 +361,8 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   cheap `meta` job — *before* the build matrix — with a clear `::error::`.
   A beta establishes its shared `## [X.Y.Z]` section from `Unreleased`; fixes
   before stable go into that same section.
-- On every tag, `## [Unreleased]` must contain no list items. When
+- On every tag, no pending fragments may remain and `## [Unreleased]` must
+  contain no direct list items. When
   `kCompendiumSchemaVersion` changed since the previous release, the selected
   versioned section must also have a **Data / Migrations** schema range ending
   at the current version. These checks run before the build matrix.

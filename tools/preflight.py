@@ -152,8 +152,16 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "changelog-gate",
-        "the CHANGELOG promotion gate's own logic",
+        "the CHANGELOG compilation gate's own logic",
         (py("tools/ci/test_check_changelog_promoted.py"),),
+    ),
+    Step(
+        "changelog-fragments",
+        "pending JSON changelog fragments and their deterministic compiler",
+        (
+            py("tools/release/test_compile_changelog_fragments.py"),
+            py("tools/release/compile_changelog_fragments.py", "--check"),
+        ),
     ),
     Step(
         "changelog-structure",

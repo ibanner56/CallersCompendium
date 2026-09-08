@@ -1,3 +1,4 @@
+<!-- release-managed-by: tools/release/compile_changelog_fragments.py -->
 # Changelog
 
 All notable changes to Caller's Compendium (the app) are documented in this file.
@@ -34,6 +35,8 @@ from that tag, so new entries need no visible or manually maintained suffix.
   blue **Windows protected your PC** prompt.
 
 ## [Unreleased]
+
+_Nothing yet._
 
 ## [0.3.1] - 2026-09-03
 

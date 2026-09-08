@@ -1,3 +1,4 @@
+<!-- release-managed-by: tools/release/compile_changelog_fragments.py -->
 # Changelog
 
 All notable changes to the Compendium Core are documented in this file.
@@ -19,6 +20,8 @@ convention and are keyed to the release *tag* the change shipped with, not to a
 core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
+
+_Nothing yet._
 
 ## [0.4.0] - 2026-09-03
 

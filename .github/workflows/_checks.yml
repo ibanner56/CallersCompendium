@@ -139,8 +139,12 @@ jobs:
       # introduced. See tools/ci/check_version_history.py.
       - name: Test the version-history gate
         run: python3 tools/ci/test_check_version_history.py
-      - name: Test the CHANGELOG promotion gate
+      - name: Test the CHANGELOG compilation gate
         run: python3 tools/ci/test_check_changelog_promoted.py
+      - name: Test the changelog fragment compiler
+        run: python3 tools/release/test_compile_changelog_fragments.py
+      - name: Validate pending changelog fragments
+        run: python3 tools/release/compile_changelog_fragments.py --check
       # The structure gate itself runs in changelog-structure.yml, because
       # ci.yml skips this reusable job for Markdown-only PRs and both
       # changelogs are Markdown. Its

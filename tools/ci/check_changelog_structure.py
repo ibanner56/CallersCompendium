@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Structural gate for the two hand-maintained CHANGELOGs.
+"""Structural gate for the two release-managed historical CHANGELOGs.
 
-``app/CHANGELOG.md`` and ``packages/compendium_core/CHANGELOG.md`` are written
-by hand and drained at release time *as written*. Only the app CHANGELOG feeds
+``app/CHANGELOG.md`` and ``packages/compendium_core/CHANGELOG.md`` are compiled
+from pending fragments at release time. Only the app CHANGELOG feeds
 ``tools/release/gen_release_notes.py``; the core CHANGELOG is the core package's
 version record. Two structural mistakes are invisible to every other gate and
 to a rendered preview, because both of them render as valid Markdown:
