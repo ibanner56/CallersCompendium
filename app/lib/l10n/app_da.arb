@@ -1112,6 +1112,14 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
   },
+  "settingsShowIndividualPerformTimerTitle": "Vis timer til individuel Perform",
+  "@settingsShowIndividualPerformTimerTitle": {
+    "x-sourceSha256": "e9260de6229a91b26d5792f5b6bb8ea2d5332f23a8943c2e3c6157f2e2e58ef0"
+  },
+  "settingsShowIndividualPerformTimerSubtitle": "Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når Perform åbnes, og kan sættes på pause.",
+  "@settingsShowIndividualPerformTimerSubtitle": {
+    "x-sourceSha256": "a6e96b73b97352c7af7ce2535bdd76bcd3b3050c7f225d8dd093414b6d540f54"
+  },
   "settingsGeneralCallingHistoryHeader": "Kaldshistorik",
   "@settingsGeneralCallingHistoryHeader": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
@@ -3323,6 +3331,10 @@
   "performTimingSemantic": "Programtid {programTime}, slot-tid {slotTime}{hasPlanned, select, yes{, planlagt {planned, plural, =1{1 minut} other{{planned} minutter}}} other{}}{over, select, yes{, over planlagt} other{}}{paused, select, yes{, sat på pause} other{}}",
   "@performTimingSemantic": {
     "x-sourceSha256": "0d6aab8b25e52107bcf76e2f7ec28d89c963e59cec81b6762b9d60378d5b5040"
+  },
+  "performIndividualTimingSemantic": "Forløbet tid {elapsedTime}{paused, select, yes{, sat på pause} other{}}",
+  "@performIndividualTimingSemantic": {
+    "x-sourceSha256": "c6ce3b32275707f6ac8ea7b7435ae7b506f755786c7605751fecd1018539e918"
   },
   "performPlannedMin": "planlagt {planned} min",
   "@performPlannedMin": {

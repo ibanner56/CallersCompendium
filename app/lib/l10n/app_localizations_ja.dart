@@ -956,6 +956,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '各カードのサイズを調整して、ダンスまたはスロット全体がスクロールなしで画面に収まるようにします。A- / A+で自分でサイズを設定する場合はオフにしてください。';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle => '個別のPerformでタイマーを表示';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      '1曲だけをPerformしている間の経過時間を表示します。Performを開くとタイマーが開始し、一時停止できます。';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
 
   @override
@@ -3082,6 +3089,15 @@ class AppLocalizationsJa extends AppLocalizations {
       'other': '',
     });
     return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': '、一時停止中',
+      'other': '',
+    });
+    return '経過時間 $elapsedTime$_temp0';
   }
 
   @override

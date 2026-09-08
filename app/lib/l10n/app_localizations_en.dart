@@ -982,6 +982,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Show timer for individual Perform';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Show elapsed time while performing a single dance. The timer starts when Perform opens and can be paused.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling history';
 
   @override
@@ -3164,6 +3172,15 @@ class AppLocalizationsEn extends AppLocalizations {
       'other': '',
     });
     return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', paused',
+      'other': '',
+    });
+    return 'Elapsed time $elapsedTime$_temp0';
   }
 
   @override

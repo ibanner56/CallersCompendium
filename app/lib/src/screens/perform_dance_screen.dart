@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -11,7 +13,8 @@ import 'perform_a11y_prefs.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
-import 'settings_screen.dart' show kAutoSizePerformKey;
+import 'settings_screen.dart'
+    show kAutoSizePerformKey, kShowIndividualPerformTimerKey;
 
 /// Full-screen, large-print performance view for a single [Dance]
 /// (`docs/design/ux.md` §5; ROADMAP 5.1). Entered explicitly from the dance
@@ -76,6 +79,13 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
   bool _stageModeUserSet = false;
   bool _canonicalUserSet = false;
 
+  /// Individual Perform timing is display-only and starts only after the
+  /// persisted visibility preference has resolved. `null` is the loading state.
+  bool? _showIndividualPerformTimer;
+  Timer? _timer;
+  ValueNotifier<int>? _elapsed;
+  bool _paused = false;
+
   /// Dark-stage high-contrast theme, on by default (`docs/design/ux.md` §5).
   /// Persisted across sessions (issue #449) and restored on entry.
   bool _stageMode = true;
@@ -118,6 +128,12 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .catchError((_) {
           // diagnostics: silent — auto-size pref read failed; keeps on-by-default value.
         });
+    settings
+        .get(kShowIndividualPerformTimerKey)
+        .then(_resolveIndividualTimerPreference)
+        .catchError(
+          (_) => _resolveIndividualTimerPreference(null),
+        ); // diagnostics: silent — use the default-on timer behavior.
     _a11yPrefs = PerformA11yPrefsStore(settings);
     _a11yPrefs!
         .load()
@@ -134,6 +150,29 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         .catchError((_) {
           // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
         });
+  }
+
+  void _resolveIndividualTimerPreference(Object? stored) {
+    if (!mounted || _showIndividualPerformTimer != null) return;
+    final enabled = stored is bool ? stored : true;
+    if (enabled) _startIndividualTimer();
+    setState(() => _showIndividualPerformTimer = enabled);
+  }
+
+  void _startIndividualTimer() {
+    if (_timer != null) return;
+    final elapsed = _elapsed = ValueNotifier<int>(0);
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _paused) return;
+      elapsed.value++;
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _elapsed?.dispose();
+    super.dispose();
   }
 
   void _persistTextScale() {
@@ -159,6 +198,8 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
           (_) {},
         ); // diagnostics: silent — canonical-view persist failed; best-effort.
   }
+
+  void _toggleIndividualTimerPause() => setState(() => _paused = !_paused);
 
   void _decreaseTextSize() {
     setState(() {
@@ -253,6 +294,71 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
         _confirmAndExit();
       },
       child: child,
+    );
+  }
+
+  static String _formatDuration(int totalSeconds) {
+    final seconds = totalSeconds % 60;
+    final minutes = (totalSeconds ~/ 60) % 60;
+    final hours = totalSeconds ~/ 3600;
+    final ss = seconds.toString().padLeft(2, '0');
+    if (hours > 0) {
+      return '$hours:${minutes.toString().padLeft(2, '0')}:$ss';
+    }
+    return '$minutes:$ss';
+  }
+
+  Widget _buildIndividualPauseButton() {
+    final l10n = AppLocalizations.of(context);
+    final tooltip = _paused
+        ? l10n.performResumeTimers
+        : l10n.performPauseTimers;
+    return MergeSemantics(
+      child: Semantics(
+        toggled: _paused,
+        child: IconButton(
+          key: const ValueKey('perform-individual-timer-pause'),
+          tooltip: tooltip,
+          isSelected: _paused,
+          icon: const Icon(Icons.pause),
+          selectedIcon: const Icon(Icons.play_arrow),
+          onPressed: _toggleIndividualTimerPause,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIndividualTimingLine(TextTheme textTheme) {
+    final l10n = AppLocalizations.of(context);
+    final style = textTheme.bodyMedium;
+    return ValueListenableBuilder<int>(
+      valueListenable: _elapsed!,
+      builder: (context, elapsed, _) {
+        final label = l10n.performIndividualTimingSemantic(
+          _formatDuration(elapsed),
+          _paused ? 'yes' : 'no',
+        );
+        return Semantics(
+          label: label,
+          child: ExcludeSemantics(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.timer_outlined, size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatDuration(elapsed),
+                    key: const ValueKey('perform-individual-elapsed'),
+                    style: style,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -432,6 +538,25 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                 ],
               ),
             ),
+            bottomNavigationBar: _showIndividualPerformTimer == true
+                ? BottomAppBar(
+                    child: Row(
+                      children: [
+                        _buildIndividualPauseButton(),
+                        Expanded(
+                          child: Center(
+                            child: Builder(
+                              builder: (context) => _buildIndividualTimingLine(
+                                Theme.of(context).textTheme,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 48),
+                      ],
+                    ),
+                  )
+                : null,
           ),
         ),
       ),

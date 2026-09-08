@@ -991,6 +991,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Vis timer til individuel Perform';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når Perform åbnes, og kan sættes på pause.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
 
   @override
@@ -3175,6 +3183,15 @@ class AppLocalizationsDa extends AppLocalizations {
       'other': '',
     });
     return 'Programtid $programTime, slot-tid $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', sat på pause',
+      'other': '',
+    });
+    return 'Forløbet tid $elapsedTime$_temp0';
   }
 
   @override

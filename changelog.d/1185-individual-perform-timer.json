@@ -1,0 +1,9 @@
+{
+  "id": "1185-individual-perform-timer",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can track elapsed time and pause or resume while performing a single dance, with an opt-out under Program > Performance."
+    ]
+  }
+}

@@ -1778,6 +1778,18 @@ abstract class AppLocalizations {
   /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
   String get settingsGeneralAutoSizePerformSubtitle;
 
+  /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Show timer for individual Perform'**
+  String get settingsShowIndividualPerformTimerTitle;
+
+  /// Subtitle explaining the default-on individual Perform elapsed-timer toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show elapsed time while performing a single dance. The timer starts when Perform opens and can be paused.'**
+  String get settingsShowIndividualPerformTimerSubtitle;
+
   /// General settings section header for calling-history preferences.
   ///
   /// In en, this message translates to:
@@ -5117,6 +5129,12 @@ abstract class AppLocalizations {
     String over,
     String paused,
   );
+
+  /// Screen-reader label for the individual Perform elapsed-timer line.
+  ///
+  /// In en, this message translates to:
+  /// **'Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}'**
+  String performIndividualTimingSemantic(String elapsedTime, String paused);
 
   /// Visible short label for a slot's planned length in minutes on the perform-mode timing line.
   ///
