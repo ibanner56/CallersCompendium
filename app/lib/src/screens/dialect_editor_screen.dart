@@ -873,6 +873,7 @@ class _MoveSubstitutionsEditor extends StatelessWidget {
                       decoration: InputDecoration(
                         labelText: _moveLabel(id),
                         hintText: l10n.dialectEditorMoveSubHint,
+                        hintMaxLines: 4,
                       ),
                       onChanged: (_) => onEdited(),
                     ),
