@@ -304,6 +304,8 @@ def compile_changelogs(
     core_entries = _collect(fragments, "core", CATEGORIES)
     if any(core_entries.values()) and (core_version is None or not VERSION.fullmatch(core_version)):
         raise FragmentError("a valid core version is required when pending core entries exist")
+    if not any(app_entries.values()) and _section_bounds(app_changelog, app_version) is None:
+        raise FragmentError("a new app release section requires app entries")
     app_result = _replace_or_insert(
         app_changelog, version=app_version, date=release_date, entries=app_entries, categories=APP_CATEGORIES
     )
@@ -334,21 +336,45 @@ def apply_release(
         raise FragmentError(
             "core version must match packages/compendium_core/pubspec.yaml before compilation"
         )
+    fragment_paths_to_consume = [
+        root / FRAGMENTS_PATH / f"{fragment.identifier}.json" for fragment in fragments
+    ]
+    original_files = {
+        app_path: app_path.read_bytes(),
+        core_path: core_path.read_bytes(),
+        **{path: path.read_bytes() for path in fragment_paths_to_consume},
+    }
     app, core = compile_changelogs(
-        app_changelog=app_path.read_text(encoding="utf-8"),
-        core_changelog=core_path.read_text(encoding="utf-8"),
+        app_changelog=original_files[app_path].decode("utf-8"),
+        core_changelog=original_files[core_path].decode("utf-8"),
         fragments=fragments,
         app_version=app_version,
         core_version=core_version,
         release_date=release_date,
     )
     temporary_app, temporary_core = app_path.with_suffix(".md.tmp"), core_path.with_suffix(".md.tmp")
-    temporary_app.write_text(app, encoding="utf-8")
-    temporary_core.write_text(core, encoding="utf-8")
-    temporary_app.replace(app_path)
-    temporary_core.replace(core_path)
-    for fragment in fragments:
-        (root / FRAGMENTS_PATH / f"{fragment.identifier}.json").unlink()
+    try:
+        temporary_app.write_text(app, encoding="utf-8")
+        temporary_core.write_text(core, encoding="utf-8")
+        temporary_app.replace(app_path)
+        temporary_core.replace(core_path)
+        for path in fragment_paths_to_consume:
+            path.unlink()
+    except OSError as error:
+        rollback_errors: list[OSError] = []
+        for path, contents in original_files.items():
+            try:
+                path.write_bytes(contents)
+            except OSError as rollback_error:
+                rollback_errors.append(rollback_error)
+        if rollback_errors:
+            details = "; ".join(str(item) for item in rollback_errors)
+            raise FragmentError(f"release failed and rollback failed: {details}") from error
+        raise FragmentError(f"release failed; all changes rolled back: {error}") from error
+    finally:
+        for temporary in (temporary_app, temporary_core):
+            if temporary.exists():
+                temporary.unlink()
     return ApplyResult(
         app_entries=sum(len(item) for fragment in fragments for item in fragment.app.values()),
         core_entries=core_entries,

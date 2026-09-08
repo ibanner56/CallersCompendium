@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -295,6 +296,19 @@ def cases() -> None:
                 core_changelog=CORE,
                 fragments=entries,
                 app_version="0.2.0",
+                core_version="0.2.0",
+                release_date="2026-02-02",
+            )
+        except compiler.FragmentError as error:
+            assert "app entries" in str(error)
+        else:
+            raise AssertionError("core-only entries created an empty app release")
+        try:
+            compiler.compile_changelogs(
+                app_changelog=APP,
+                core_changelog=CORE,
+                fragments=entries,
+                app_version="0.2.0",
                 core_version=None,
                 release_date="2026-02-02",
             )
@@ -302,6 +316,55 @@ def cases() -> None:
             assert "core version" in str(error)
         else:
             raise AssertionError("core entries accepted without a core version")
+    finally:
+        temporary.cleanup()
+
+    temporary, root = fixture_repo()
+    try:
+        fragments = root / "changelog.d"
+        for identifier, text in (
+            ("100-first", "First entry."),
+            ("101-second", "Second entry."),
+        ):
+            write_fragment(
+                fragments,
+                identifier,
+                {
+                    "id": identifier,
+                    "user_visible": True,
+                    "app": {"added": [text]},
+                },
+            )
+        original_app = (root / "app/CHANGELOG.md").read_bytes()
+        original_core = (root / "packages/compendium_core/CHANGELOG.md").read_bytes()
+        original_fragments = {
+            path.name: path.read_bytes() for path in fragments.glob("*.json")
+        }
+        unlink = Path.unlink
+
+        def fail_second_fragment(path: Path, *args: object, **kwargs: object) -> None:
+            if path.name == "101-second.json":
+                raise OSError("simulated fragment deletion failure")
+            unlink(path, *args, **kwargs)
+
+        with mock.patch.object(Path, "unlink", fail_second_fragment):
+            try:
+                compiler.apply_release(
+                    root=root,
+                    fragments=compiler.load_fragments(fragments),
+                    app_version="0.2.0",
+                    core_version=None,
+                    release_date="2026-02-02",
+                )
+            except compiler.FragmentError as error:
+                assert "rolled back" in str(error)
+            else:
+                raise AssertionError("fragment deletion failure was accepted")
+        assert (root / "app/CHANGELOG.md").read_bytes() == original_app
+        assert (root / "packages/compendium_core/CHANGELOG.md").read_bytes() == original_core
+        assert {
+            path.name: path.read_bytes() for path in fragments.glob("*.json")
+        } == original_fragments
     finally:
         temporary.cleanup()
 
