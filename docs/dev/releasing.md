@@ -359,10 +359,10 @@ The draft release body is produced by `tools/release/gen_release_notes.py`
   conditional leg whose credentials are absent) is reported as **unsigned**.
 - If **no matching section exists**, either selected channel fails fast in the
   cheap `meta` job — *before* the build matrix — with a clear `::error::`.
-  A beta establishes its shared `## [X.Y.Z]` section from `Unreleased`; fixes
-  before stable go into that same section.
+  The compiler establishes a beta's shared `## [X.Y.Z]` section from pending
+  fragments; later pending fragments add beta-to-stable fixes to that section.
 - On every tag, no pending fragments may remain and `## [Unreleased]` must
-  contain no direct list items. When
+  remain an empty compatibility anchor. When
   `kCompendiumSchemaVersion` changed since the previous release, the selected
   versioned section must also have a **Data / Migrations** schema range ending
   at the current version. These checks run before the build matrix.

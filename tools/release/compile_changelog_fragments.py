@@ -20,6 +20,7 @@ import json
 import re
 import sys
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 
 APP_PATH = Path("app/CHANGELOG.md")
@@ -293,6 +294,10 @@ def compile_changelogs(
     """Return both release-managed changelogs without changing files."""
     if not VERSION.fullmatch(app_version) or not DATE.fullmatch(release_date):
         raise FragmentError("app version must be X.Y.Z and date must be YYYY-MM-DD")
+    try:
+        date.fromisoformat(release_date)
+    except ValueError as error:
+        raise FragmentError("release date must be a valid calendar date") from error
     _require_managed(app_changelog, APP_PATH)
     _require_managed(core_changelog, CORE_PATH)
     app_entries = _collect(fragments, "app", APP_CATEGORIES)

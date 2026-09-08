@@ -108,6 +108,22 @@ def cases() -> None:
         assert "## [0.2.0] - 2026-02-02" in core
         assert "Add export encoding." in core
 
+        try:
+            compiler.compile_changelogs(
+                app_changelog=(root / "app/CHANGELOG.md").read_text(encoding="utf-8"),
+                core_changelog=(root / "packages/compendium_core/CHANGELOG.md").read_text(
+                    encoding="utf-8"
+                ),
+                fragments=entries,
+                app_version="0.2.0",
+                core_version="0.2.0",
+                release_date="2026-02-31",
+            )
+        except compiler.FragmentError as error:
+            assert "calendar date" in str(error)
+        else:
+            raise AssertionError("impossible release date was accepted")
+
         result = compiler.apply_release(
             root=root,
             fragments=entries,
