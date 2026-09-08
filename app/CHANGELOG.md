@@ -35,6 +35,12 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Mobile figure picker** — dismissing the compact picker now leaves an existing
+  `stand still` figure unchanged and no longer reopens the picker after entering
+  a new one.
+
 ## [0.3.1] - 2026-09-03
 
 ### Added

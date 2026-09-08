@@ -684,7 +684,7 @@ class _AuthorFacetState extends State<_AuthorFacet> {
             // `NamePicker`'s tag/author fields) does not refocus: a tap on
             // the field is what reopens the sheet for the next add.
             onSelected: (a) => _add(a.id),
-            fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+            fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
               return TextField(
                 key: const ValueKey('author-facet-search'),
                 controller: controller,
