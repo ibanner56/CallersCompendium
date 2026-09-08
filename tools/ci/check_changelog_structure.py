@@ -134,8 +134,8 @@ def _check_unreleased(headings: list[Heading]) -> list[str]:
     positions = [h for h in headings if h.version is None]
     if not positions:
         return [
-            f"no '{UNRELEASED_HEADING}' section. Contributors write there and "
-            f"release prep drains it; without it, entries have nowhere to go."
+            f"no '{UNRELEASED_HEADING}' section. It is the required empty "
+            f"compatibility anchor for the release-managed changelog."
         ]
     if len(positions) > 1:
         lines = ", ".join(str(h.line) for h in positions)

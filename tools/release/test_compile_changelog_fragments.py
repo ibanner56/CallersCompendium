@@ -213,6 +213,7 @@ def cases() -> None:
     for name, create in (
         ("unexpected-extension", lambda directory: (directory / "note.txt").write_text("x")),
         ("nested-fragment", lambda directory: (directory / "nested").mkdir()),
+        ("readme-directory", lambda directory: (directory / "README.md").mkdir()),
     ):
         temporary, root = fixture_repo()
         try:

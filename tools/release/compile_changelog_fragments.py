@@ -142,7 +142,7 @@ def fragment_paths(directory: Path) -> list[Path]:
     unexpected = [
         path.name
         for path in paths
-        if path.name != "README.md" and (not path.is_file() or path.suffix != ".json")
+        if not path.is_file() or (path.name != "README.md" and path.suffix != ".json")
     ]
     if unexpected:
         raise FragmentError(

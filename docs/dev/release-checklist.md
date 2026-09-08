@@ -52,8 +52,8 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 - [ ] Every pending `changelog.d/*.json` fragment validates, has the required
  app/core audience entries, and is included in the reviewed compiler diff.
 - [ ] The required shared `## [X.Y.Z]` section exists for **both** beta and stable.
- The beta establishes it from `Unreleased`; beta-to-stable fixes are added to
- that same section.
+ The compiler establishes it from pending fragments; beta-to-stable fixes are
+ added to that same section from later pending fragments.
 - [ ] Every user-visible outcome has an `app` fragment entry, including an
  outcome caused by a `packages/compendium_core` change. The core changelog does
  **not** feed published release notes and never substitutes for the app entry.

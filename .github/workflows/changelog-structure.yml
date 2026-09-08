@@ -54,9 +54,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The gate's own suite also runs in _checks.yml with the other tool
-      # suites; repeated here because ci.yml skips on a Markdown-only PR, which
-      # is the only kind of PR this workflow is guaranteed to see.
+      # This workflow is the focused validation gate for changelog tooling and
+      # fragment-only PRs, which ci.yml may otherwise skip.
       - name: Test the changelog structure gate
         run: python3 tools/ci/test_check_changelog_structure.py
       - name: Test the changelog fragment compiler

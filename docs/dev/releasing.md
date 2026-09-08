@@ -126,6 +126,32 @@ and produces no Android artifact.
 > manifest, licensing, and a smoke test on a real build — or mark items N/A with a
 > reason. The steps below are the mechanics; the checklist is the gate.
 
+1. Ensure `app/pubspec.yaml` `version:` and the guarded `kAppVersion` are both
+   exactly `X.Y.Z`: valid no-leading-zero components, with neither build metadata
+   nor a prerelease suffix. The workflow **fails** if the tag's `X.Y.Z` core does
+   not match that exact pubspec version.
+   - **Never put a suffix in pubspec.** Both `vX.Y.Z-beta` and `vX.Y.Z` build
+     `X.Y.Z`; the tag alone selects the channel. Every release-platform Flutter
+     build receives the tag-derived identity through
+     `CALLERS_COMPENDIUM_RELEASE_VERSION`, so the updater compares
+     `X.Y.Z-beta` for beta artifacts even though pubspec remains bare.
+   - The updater keeps strict SemVer ordering without a custom comparator:
+     `X.Y.Z-beta` is newer than older cores/betas but lower than `X.Y.Z`.
+   - A bare beta core must not have any older non-identical prerelease tag. The
+     release workflow rejects `v0.1.0-beta` if tags such as
+     `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
+     below them. Choose a newer `X.Y.Z` core instead.
+   - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
+   - **Update the static build-version hints in every issue form.** GitHub issue
+     forms cannot read the latest release tag dynamically. Set every explicit
+     SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
+     bare `X.Y.Z` as `app/pubspec.yaml` — currently the default and fallback
+     hint in the beta check-in and bug-report forms. Do not write `vX.Y.Z`, a
+     beta suffix, or build metadata: reporters are supplying the app build
+     version, not its release tag. `tools/ci/check_app_version.py` checks all
+     literals in those files, while the release workflow requires the pubspec
+     core to match the tag; together that makes the static hints match the
+     latest release after the tag lands.
 2. **Compile the pending changelog fragments** so the release has real notes
    (this is what the draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Normal
@@ -216,32 +242,6 @@ and produces no Android artifact.
    > error names a heading one character off from the real one. It fails
    > plausibly rather than obviously, so check the prefix before believing the
    > message.
-1. Ensure `app/pubspec.yaml` `version:` and the guarded `kAppVersion` are both
-   exactly `X.Y.Z`: valid no-leading-zero components, with neither build metadata
-   nor a prerelease suffix. The workflow **fails** if the tag's `X.Y.Z` core does
-   not match that exact pubspec version.
-   - **Never put a suffix in pubspec.** Both `vX.Y.Z-beta` and `vX.Y.Z` build
-     `X.Y.Z`; the tag alone selects the channel. Every release-platform Flutter
-     build receives the tag-derived identity through
-     `CALLERS_COMPENDIUM_RELEASE_VERSION`, so the updater compares
-     `X.Y.Z-beta` for beta artifacts even though pubspec remains bare.
-   - The updater keeps strict SemVer ordering without a custom comparator:
-     `X.Y.Z-beta` is newer than older cores/betas but lower than `X.Y.Z`.
-   - A bare beta core must not have any older non-identical prerelease tag. The
-     release workflow rejects `v0.1.0-beta` if tags such as
-     `v0.1.0-beta.1` already exist, because strict SemVer ranks the bare beta
-     below them. Choose a newer `X.Y.Z` core instead.
-   - **Never bump `schemaVersion` in a PATCH release** (ADR-002 §7).
-   - **Update the static build-version hints in every issue form.** GitHub issue
-     forms cannot read the latest release tag dynamically. Set every explicit
-     SemVer literal in `.github/ISSUE_TEMPLATE/*.yml` and `*.yaml` to the same
-     bare `X.Y.Z` as `app/pubspec.yaml` — currently the default and fallback
-     hint in the beta check-in and bug-report forms. Do not write `vX.Y.Z`, a
-     beta suffix, or build metadata: reporters are supplying the app build
-     version, not its release tag. `tools/ci/check_app_version.py` checks all
-     literals in those files, while the release workflow requires the pubspec
-     core to match the tag; together that makes the static hints match the
-     latest release after the tag lands.
 3. **Bump `packages/compendium_core` — if, and only if, pending fragments have
    `core` entries.** The fragment inventory is the trigger, not a diff against
    the previous tag and not a judgement about whether the core "really"
