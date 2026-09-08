@@ -152,7 +152,7 @@ STEPS: tuple[Step, ...] = (
     ),
     Step(
         "changelog-gate",
-        "the CHANGELOG compilation gate's own logic",
+        "the CHANGELOG promotion gate's own logic",
         (py("tools/ci/test_check_changelog_promoted.py"),),
     ),
     Step(
