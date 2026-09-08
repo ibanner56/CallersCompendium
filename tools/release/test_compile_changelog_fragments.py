@@ -56,6 +56,9 @@ def fixture_repo() -> tuple[tempfile.TemporaryDirectory[str], Path]:
     (root / "app").mkdir()
     (root / "packages/compendium_core").mkdir(parents=True)
     (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8")
+    (root / "app/pubspec.yaml").write_text(
+        "name: compendium_app\nversion: 0.2.0\n", encoding="utf-8"
+    )
     (root / "packages/compendium_core/CHANGELOG.md").write_text(CORE, encoding="utf-8")
     (root / "packages/compendium_core/pubspec.yaml").write_text(
         "name: compendium_core\nversion: 0.2.0\n", encoding="utf-8"
@@ -188,6 +191,22 @@ def cases() -> None:
             raise AssertionError("write accepted a direct Unreleased edit")
         assert (root / "app/CHANGELOG.md").read_text(encoding="utf-8") == before
         assert (fragments / "103-write-guard.json").exists()
+        (root / "app/CHANGELOG.md").write_text(APP, encoding="utf-8")
+        before = (root / "app/CHANGELOG.md").read_text(encoding="utf-8")
+        try:
+            compiler.apply_release(
+                root=root,
+                fragments=compiler.load_fragments(fragments),
+                app_version="0.2.1",
+                core_version=None,
+                release_date="2026-02-03",
+            )
+        except compiler.FragmentError as error:
+            assert "app version" in str(error)
+        else:
+            raise AssertionError("write accepted a stale app version")
+        assert (root / "app/CHANGELOG.md").read_text(encoding="utf-8") == before
+        assert (fragments / "103-write-guard.json").exists()
     finally:
         temporary.cleanup()
 
@@ -218,6 +237,14 @@ def cases() -> None:
                 "id": "invisible-app",
                 "user_visible": False,
                 "app": {"added": ["This must be user-visible."]},
+            },
+        ),
+        (
+            "multiline-entry",
+            {
+                "id": "multiline-entry",
+                "user_visible": True,
+                "app": {"added": ["A note\n\n### Injected heading"]},
             },
         ),
     ):

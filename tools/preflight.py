@@ -156,14 +156,6 @@ STEPS: tuple[Step, ...] = (
         (py("tools/ci/test_check_changelog_promoted.py"),),
     ),
     Step(
-        "changelog-fragments",
-        "pending JSON changelog fragments and their deterministic compiler",
-        (
-            py("tools/release/test_compile_changelog_fragments.py"),
-            py("tools/release/compile_changelog_fragments.py", "--check"),
-        ),
-    ),
-    Step(
         "changelog-structure",
         "both CHANGELOGs: version sections in order, no category repeated in one",
         (

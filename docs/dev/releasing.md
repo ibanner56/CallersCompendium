@@ -126,7 +126,7 @@ and produces no Android artifact.
 > manifest, licensing, and a smoke test on a real build — or mark items N/A with a
 > reason. The steps below are the mechanics; the checklist is the gate.
 
-1. **Compile the pending changelog fragments** so the release has real notes
+2. **Compile the pending changelog fragments** so the release has real notes
    (this is what the draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Normal
    PRs add independent `changelog.d/<id>.json` files; only release preparation
@@ -154,7 +154,7 @@ and produces no Android artifact.
 
    ```sh
    python3 tools/release/compile_changelog_fragments.py \
-     --app-version 0.2.0 --core-version 0.4.0 --date 2026-08-01 --write
+     --app-version X.Y.Z --core-version A.B.C --date YYYY-MM-DD --write
    ```
 
    Review the generated diff. Do not hand-edit it: the compiler deterministically
@@ -216,7 +216,7 @@ and produces no Android artifact.
    > error names a heading one character off from the real one. It fails
    > plausibly rather than obviously, so check the prefix before believing the
    > message.
-2. Ensure `app/pubspec.yaml` `version:` and the guarded `kAppVersion` are both
+1. Ensure `app/pubspec.yaml` `version:` and the guarded `kAppVersion` are both
    exactly `X.Y.Z`: valid no-leading-zero components, with neither build metadata
    nor a prerelease suffix. The workflow **fails** if the tag's `X.Y.Z` core does
    not match that exact pubspec version.

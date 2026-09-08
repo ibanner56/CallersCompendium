@@ -188,12 +188,7 @@ jobs:
               b'tools/ci/check_core_coverage.py',
               b'tools/ci/check_core_flutter_free.py',
           }
-          fragment_only_paths = (b'changelog.d/',)
-          validation_changed = any(
-              not path.endswith(b'.md')
-              and not path.startswith(fragment_only_paths)
-              for path in paths
-          )
+          validation_changed = any(not path.endswith(b'.md') for path in paths)
           core_tests_changed = validation_changed and any(
               path.startswith(b'packages/compendium_core/')
               or path in shared_runtime_paths

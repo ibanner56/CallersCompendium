@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 APP_PATH = Path("app/CHANGELOG.md")
+APP_PUBSPEC_PATH = Path("app/pubspec.yaml")
 CORE_PATH = Path("packages/compendium_core/CHANGELOG.md")
 CORE_PUBSPEC_PATH = Path("packages/compendium_core/pubspec.yaml")
 FRAGMENTS_PATH = Path("changelog.d")
@@ -64,8 +65,16 @@ class ApplyResult:
 def _entries(value: object, *, identifier: str, audience: str, category: str) -> tuple[str, ...]:
     if not isinstance(value, list) or not value:
         raise FragmentError(f"{identifier}: {audience}.{category} must be a non-empty array")
-    if not all(isinstance(item, str) and item.strip() for item in value):
-        raise FragmentError(f"{identifier}: {audience}.{category} entries must be non-empty strings")
+    if not all(
+        isinstance(item, str)
+        and item.strip()
+        and "\n" not in item
+        and "\r" not in item
+        for item in value
+    ):
+        raise FragmentError(
+            f"{identifier}: {audience}.{category} entries must be non-empty single-line strings"
+        )
     return tuple(item.strip() for item in value)
 
 
@@ -265,7 +274,7 @@ def _pubspec_version(path: Path) -> str:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as error:
-        raise FragmentError(f"could not read core pubspec: {error}") from error
+        raise FragmentError(f"could not read pubspec: {error}") from error
     match = re.search(r"^version:\s*([^\s#]+)\s*$", text, re.MULTILINE)
     if match is None:
         raise FragmentError(f"{path}: no version field")
@@ -311,6 +320,15 @@ def apply_release(
     """Compile after all inputs validate, then consume the fragments."""
     app_path, core_path = root / APP_PATH, root / CORE_PATH
     check_pending_state(root)
+    if _pubspec_version(root / APP_PUBSPEC_PATH) != app_version:
+        raise FragmentError("app version must match app/pubspec.yaml before compilation")
+    core_entries = sum(
+        len(item) for fragment in fragments for item in fragment.core.values()
+    )
+    if core_entries and _pubspec_version(root / CORE_PUBSPEC_PATH) != core_version:
+        raise FragmentError(
+            "core version must match packages/compendium_core/pubspec.yaml before compilation"
+        )
     app, core = compile_changelogs(
         app_changelog=app_path.read_text(encoding="utf-8"),
         core_changelog=core_path.read_text(encoding="utf-8"),
@@ -319,9 +337,6 @@ def apply_release(
         core_version=core_version,
         release_date=release_date,
     )
-    core_entries = sum(len(item) for fragment in fragments for item in fragment.core.values())
-    if core_entries and _pubspec_version(root / CORE_PUBSPEC_PATH) != core_version:
-        raise FragmentError("core version must match packages/compendium_core/pubspec.yaml before compilation")
     temporary_app, temporary_core = app_path.with_suffix(".md.tmp"), core_path.with_suffix(".md.tmp")
     temporary_app.write_text(app, encoding="utf-8")
     temporary_core.write_text(core, encoding="utf-8")
