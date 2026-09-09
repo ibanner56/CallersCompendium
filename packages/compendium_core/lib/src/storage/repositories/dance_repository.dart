@@ -308,11 +308,11 @@ class DanceRepository {
     final normalisedDance = _normaliseMoveIds(dance);
     final difficultyLevelId = normalisedDance.difficultyLevelId;
     if (difficultyLevelId != null) {
-      final level = await (_db.select(
-        _db.difficultyLevels,
-      )..where(
-        (t) => t.id.equals(difficultyLevelId) & t.deletedAt.isNull(),
-      )).getSingleOrNull();
+      final level =
+          await (_db.select(_db.difficultyLevels)..where(
+                (t) => t.id.equals(difficultyLevelId) & t.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
       if (level == null) {
         throw StateError(
           'dance "${dance.id}" has an unknown difficulty level '
