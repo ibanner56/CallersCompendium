@@ -105,12 +105,21 @@ class TagRepository {
   /// cases.
   @useResult
   Future<String> upsertStaged(Tag tag, {DateTime? at}) async {
-    final name = normalizeShareableText(tag.name);
-    final live =
-        await (_db.select(_db.tags)
-              ..where((t) => t.name.equals(name) & t.deletedAt.isNull()))
-            .getSingleOrNull();
-    return live?.id ?? upsert(tag, at: at);
+    final live = await idByName(tag.name);
+    return live ?? upsert(tag, at: at);
+  }
+
+  /// Returns the existing id for [name], including tombstoned rows when
+  /// [includeDeleted] is true.
+  Future<String?> idByName(String name, {bool includeDeleted = false}) async {
+    final normalized = normalizeShareableText(name);
+    final query = _db.select(_db.tags)
+      ..where(
+        (t) =>
+            t.name.equals(normalized) &
+            (includeDeleted ? const Constant(true) : t.deletedAt.isNull()),
+      );
+    return (await query.getSingleOrNull())?.id;
   }
 
   Future<Tag?> getById(String id) async {

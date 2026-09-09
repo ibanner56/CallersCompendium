@@ -1249,11 +1249,17 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
     // Capture prior tag sets so Undo can restore them.
     final priorTags = <String, List<String>>{};
+    final newlyCreatedTagIds = <String>{};
     try {
       await _repos.transaction(() async {
         final tagIds = <String, String>{};
         for (final tag in selection.stagedTags) {
+          final existed = await _repos.tags.idByName(
+            tag.name,
+            includeDeleted: true,
+          );
           tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
         }
         for (final id in selectedIds) {
           final dance = await _repos.dances.getById(id);
@@ -1331,20 +1337,34 @@ class _DanceListScreenState extends State<DanceListScreen> {
       message: message,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => _undoBatchTag(priorTags),
+      onUndo: () => _undoBatchTag(priorTags, newlyCreatedTagIds),
     );
   }
 
   /// Restores the captured [priorTags] for each affected dance (app-side undo;
-  /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchTag(Map<String, List<String>> priorTags) async {
-    for (final entry in priorTags.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
-      );
-    }
+  /// the repository has no batch-undo primitive). Tags created by this batch
+  /// are tombstoned when Undo leaves them unreferenced; adopted rows are kept.
+  Future<void> _undoBatchTag(
+    Map<String, List<String>> priorTags,
+    Set<String> newlyCreatedTagIds,
+  ) async {
+    await _repos.transaction(() async {
+      for (final entry in priorTags.entries) {
+        final dance = await _repos.dances.getById(entry.key);
+        if (dance == null) continue;
+        await _repos.dances.update(
+          dance.copyWith(
+            tagIds: entry.value,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
+      }
+      for (final id in newlyCreatedTagIds) {
+        if (!await _repos.tags.isInUse(id)) {
+          await _repos.tags.delete(id);
+        }
+      }
+    });
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,

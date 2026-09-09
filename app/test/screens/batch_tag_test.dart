@@ -334,6 +334,35 @@ void main() {
     expect(_tagIdsOf((await repos.dances.getById('d2'))!), isEmpty);
   });
 
+  testWidgets('undo tombstones an inline-created tag left unreferenced', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Undoable',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+    final tag = (await repos.tags.listAll()).single;
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
+    expect(await repos.tags.getById(tag.id), isNull);
+    expect((await repos.tags.listAllWithDeleted()).single.deleted, isTrue);
+  });
+
   testWidgets('selection checkbox and batch actions are AT-reachable', (
     tester,
   ) async {
