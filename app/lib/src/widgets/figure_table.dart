@@ -54,19 +54,19 @@ class FigureTable extends StatelessWidget {
       bool verbose = false,
       bool decimals = false,
     }) {
-      final summary = renderer.renderSummary(
-        figure,
-        dialect,
-        verbose: verbose,
-        decimals: decimals,
-      );
-      return figure.isCustom
-          ? renderer.renderFreeText(
-              summary,
+      return canonicalDiscouragedTerms
+          ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+              figure,
               dialect,
-              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+              verbose: verbose,
+              decimals: decimals,
             )
-          : summary;
+          : renderer.renderSummary(
+              figure,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+            );
     }
 
     String? lastLabel;
@@ -89,11 +89,12 @@ class FigureTable extends StatelessWidget {
           progression: sf.figure.progression,
           note: sf.figure.note == null
               ? null
-              : renderer.renderFreeText(
+              : canonicalDiscouragedTerms
+              ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
                   sf.figure.note!,
                   dialect,
-                  canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-                ),
+                )
+              : renderer.renderFreeText(sf.figure.note!, dialect),
           isImportGap:
               sf.figure.isCustom &&
               sf.figure.customOrigin == CustomOrigin.importGap,

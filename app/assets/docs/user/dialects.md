@@ -154,6 +154,13 @@ these while writing a dance, the editor gently flags it (it shows the word struc
 through) so you can reconsider — but it never blocks you or changes your text. The
 list ships with some common examples and is yours to edit, add to, or clear.
 
+For read-only dance details, shorthand summaries, Perform mode, and dance/program
+exports, the app also converts supported discouraged terms to the active dialect's
+canonical wording by default. Turn off **Canonical wording for discouraged terms**
+under **Dance details & shorthands** if you prefer to see the stored wording.
+This is display-only: saved dances, notes, search data, archives, and excluded
+metadata such as titles, tunes, and custom-field values are never changed.
+
 > **The app watches for clashes.** If two different things would end up with the
 > exact same wording, the editor warns you right away, because that would make it
 > impossible to tell them apart later. Adjust one of the words and the warning

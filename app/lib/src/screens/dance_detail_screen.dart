@@ -1095,8 +1095,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         builder: (context) {
                           // Per-formation label colour (issue #367): highlight
                           // only when the user overrode this shape.
-                          final color = FormationColorsScope.of(context)
-                              ?.overrideFor(dance.formation.shape);
+                          final color = FormationColorsScope.of(
+                            context,
+                          )?.overrideFor(dance.formation.shape);
                           final text = Text(
                             formationLabel(l10n, dance.formation),
                           );
@@ -1142,11 +1143,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 if (dance.hook.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
-                    text: _renderer.renderFreeText(
-                      dance.hook,
-                      dialect,
-                      canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-                    ),
+                    text: canonicalDiscouragedTerms
+                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                            dance.hook,
+                            dialect,
+                          )
+                        : _renderer.renderFreeText(dance.hook, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1215,11 +1217,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(
-              dance.callingNotes,
-              dialect,
-              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-            ),
+            text: canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.callingNotes,
+                    dialect,
+                  )
+                : _renderer.renderFreeText(dance.callingNotes, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1233,11 +1236,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(
-              dance.walkthrough.trim(),
-              dialect,
-              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-            ),
+            text: canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  )
+                : _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,

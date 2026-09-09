@@ -276,6 +276,7 @@ class DanceEditorForm extends StatelessWidget {
                   onAddMeanwhile: controller.addMeanwhile,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
+                  canonicalizeDiscouragedTerms: true,
                   onAddFreeText: controller.insertFreeTextFigures,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,

@@ -168,11 +168,12 @@ Future<Uint8List> buildProgramPdf(
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            fig.renderFreeText(
-              program.notes.trim(),
-              resolvedDialect,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
+            canonicalizeDiscouragedTerms
+                ? fig.renderFreeTextWithCanonicalDiscouragedTerms(
+                    program.notes.trim(),
+                    resolvedDialect,
+                  )
+                : program.notes.trim(),
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],
@@ -391,21 +392,17 @@ String _slotLine(
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
     if (_has(slot.text)) {
-      final note = renderer.renderFreeText(
-        slot.text!.trim(),
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-      );
+      final note = canonicalizeDiscouragedTerms
+          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+              slot.text!.trim(),
+              dialect,
+            )
+          : slot.text!.trim();
       buffer.write(' — $note');
     }
   } else {
-    buffer.write(
-      renderer.renderFreeText(
-        slot.text!.trim(),
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-      ),
-    );
+    // A text-only slot may be a purged dance tombstone; preserve its title.
+    buffer.write(slot.text!.trim());
   }
 
   final meta = <String>[
