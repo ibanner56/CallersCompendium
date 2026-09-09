@@ -818,6 +818,15 @@
   "@settingsDefaultsStartingProgramMoveDown": {
     "description": "Tooltip for moving a starting-program entry down."
   },
+  "settingsDefaultsStartingProgramUnavailableDance": "Unavailable dance ({id})",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "description": "Fallback label for a starting-program dance reference no longer in the collection.",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
     "description": "Text-field label for the default band prefilled into new programs."

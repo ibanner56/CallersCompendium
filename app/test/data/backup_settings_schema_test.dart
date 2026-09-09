@@ -2,7 +2,11 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
-    show kCanonicalFigureTextKey;
+    show
+        encodeStartingProgramTemplate,
+        kCanonicalFigureTextKey,
+        kDefaultStartingProgramKey,
+        StartingProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
     show kProgramMatrixColumnsKey, kShowIndividualPerformTimerKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
@@ -18,6 +22,38 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('validateBackupSettingValue (issue #609)', () {
+    test(
+      'starting program templates require the validated versioned shape',
+      () {
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            encodeStartingProgramTemplate([
+              const StartingProgramTemplateEntry(
+                danceId: 'dance-1',
+                text: 'Caller note',
+              ),
+            ]),
+          ),
+          isTrue,
+        );
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            '{"version":1,"slots":[{"id":"persisted"}]}',
+          ),
+          isFalse,
+        );
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            '{"version":1,"slots":[{}]}',
+          ),
+          isFalse,
+        );
+      },
+    );
+
     test('bool keys accept only bools', () {
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, true), isTrue);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, false), isTrue);

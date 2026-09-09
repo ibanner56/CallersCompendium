@@ -26,8 +26,9 @@ import 'support/l10n_harness.dart';
 /// Defaults section.
 Future<void> _pumpDefaults(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
+  CompendiumRepositories repos, {
+  bool expandGroups = true,
+}) async {
   await tester.binding.setSurfaceSize(const Size(1200, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -83,12 +84,14 @@ Future<void> _pumpDefaults(
 
   await tester.tap(find.byKey(const ValueKey('settings-nav-defaults')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('defaults-program-group')));
-  await tester.pumpAndSettle();
-  await tester.drag(find.byType(ListView).last, const Offset(0, -700));
-  await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
-  await tester.pumpAndSettle();
+  if (expandGroups) {
+    await tester.tap(find.byKey(const ValueKey('defaults-program-group')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+    await tester.pumpAndSettle();
+  }
 }
 
 /// Scrolls the Defaults content list until [key] is visible. The
@@ -152,6 +155,20 @@ void main() {
       expect(startingProgramTemplateFromStored('not-json'), isEmpty);
     },
   );
+
+  testWidgets('program and authoring groups start collapsed', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos, expandGroups: false);
+
+    expect(find.byKey(const ValueKey('defaults-program-caller')), findsNothing);
+    expect(find.byKey(const ValueKey('defaults-dance-form')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('defaults-program-group')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('defaults-program-caller')),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('Defaults appears as a settings section', (tester) async {
     final repos = openTestRepositories();

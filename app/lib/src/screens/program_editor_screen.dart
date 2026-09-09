@@ -227,8 +227,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPersistent = persistent;
     });
     try {
-      final preview = await _onlineServiceFor(result.source)
-          .loadPreview(_repos, result);
+      final preview = await _onlineServiceFor(
+        result.source,
+      ).loadPreview(_repos, result);
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
         _previewOnline = preview;
@@ -242,8 +243,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
-        _previewError = AppLocalizations.of(context)
-            .onlineLoadError(result.source.label);
+        _previewError = AppLocalizations.of(
+          context,
+        ).onlineLoadError(result.source.label);
         _previewLoading = false;
       });
     }
@@ -365,8 +367,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    AppLocalizations.of(context)
-                        .onlineLoadError(result.source.label),
+                    AppLocalizations.of(
+                      context,
+                    ).onlineLoadError(result.source.label),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -836,7 +839,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<List<ProgramSlot>> _loadStartingProgramSlots(
     CollectionData data,
   ) async {
-    final stored = await _repos.settings.get(kDefaultStartingProgramKey);
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultStartingProgramKey);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_editor_screen.starting_program_template',
+      );
+      return const [];
+    }
     final template = startingProgramTemplateFromStored(stored);
     final slots = <ProgramSlot>[];
     for (final entry in template) {
@@ -1652,8 +1665,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       l10n.programsMarkedAllPerformed,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
   }
 
   // --- Persistence ----------------------------------------------------------
@@ -1768,8 +1782,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
     }
   }
 

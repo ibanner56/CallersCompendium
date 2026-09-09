@@ -628,6 +628,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => 'Move down';
 
   @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Unavailable dance ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
 
   @override

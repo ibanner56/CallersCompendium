@@ -619,6 +619,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDefaultsStartingProgramMoveDown => 'Move down';
 
   @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Unavailable dance ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Default band';
 
   @override

@@ -1154,6 +1154,12 @@ abstract class AppLocalizations {
   /// **'Move down'**
   String get settingsDefaultsStartingProgramMoveDown;
 
+  /// Fallback label for a starting-program dance reference no longer in the collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable dance ({id})'**
+  String settingsDefaultsStartingProgramUnavailableDance(String id);
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:

@@ -1,4 +1,6 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
+import 'dart:async';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
@@ -9,6 +11,7 @@ import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
@@ -109,7 +112,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   final List<StartingProgramTemplateEntry> _startingProgramTemplate = [];
   bool _startingProgramTemplateUserSet = false;
   CollectionData? _collectionData;
-  bool _collectionDataRequested = false;
+  Future<CollectionData?>? _collectionDataLoad;
 
   /// The opt-in "Free-text entry" dance-authoring toggle (issue #419). Defaults
   /// to `false` (off) until the read resolves and on any read failure, so the
@@ -339,22 +342,27 @@ class _DefaultsSectionState extends State<DefaultsSection> {
     BuildContext context,
   ) async {
     if (_collectionData != null) return _collectionData;
-    if (_collectionDataRequested) {
-      while (mounted && _collectionDataRequested && _collectionData == null) {
-        await Future<void>.delayed(const Duration(milliseconds: 20));
-      }
-      return _collectionData;
-    }
-    _collectionDataRequested = true;
+    final inFlight = _collectionDataLoad;
+    if (inFlight != null) return inFlight;
     final repos = RepositoriesScope.of(context);
-    try {
-      final data = await CollectionData.load(repos);
-      if (mounted) setState(() => _collectionData = data);
-      return data;
-    } catch (_) {
-      // diagnostics: silent — the template editor remains usable for notes.
-      return null;
-    }
+    final load = () async {
+      try {
+        final data = await CollectionData.load(repos);
+        if (mounted) setState(() => _collectionData = data);
+        return data;
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'defaults_section.starting_program_picker',
+        );
+        return null;
+      } finally {
+        _collectionDataLoad = null;
+      }
+    }();
+    _collectionDataLoad = load;
+    return load;
   }
 
   Future<void> _addStartingProgramDance() async {
@@ -603,6 +611,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   @override
   Widget build(BuildContext context) {
     _ensureDefaultsLoaded(context);
+    unawaited(_ensureCollectionDataLoaded(context));
     return _DefaultsView(
       programCallerController: _defaultProgramCaller,
       onDefaultProgramCallerChanged: _onDefaultProgramCallerChanged,
@@ -617,6 +626,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           const SortDefaultSetting.concrete(ProgramSort.title),
       onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
       startingProgramTemplate: _startingProgramTemplate,
+      startingProgramDances: _collectionData?.dancesById ?? const {},
       onAddStartingProgramDance: _addStartingProgramDance,
       onAddStartingProgramText: (text) {
         _startingProgramTemplate.add(StartingProgramTemplateEntry(text: text));
@@ -782,6 +792,7 @@ class _DefaultsView extends StatelessWidget {
     required this.defaultProgramSort,
     required this.onDefaultProgramSortChanged,
     required this.startingProgramTemplate,
+    required this.startingProgramDances,
     required this.onAddStartingProgramDance,
     required this.onAddStartingProgramText,
     required this.onUpdateStartingProgramText,
@@ -832,6 +843,7 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<SortDefaultSetting<ProgramSort>>
   onDefaultProgramSortChanged;
   final List<StartingProgramTemplateEntry> startingProgramTemplate;
+  final Map<String, Dance> startingProgramDances;
   final VoidCallback onAddStartingProgramDance;
   final ValueChanged<String> onAddStartingProgramText;
   final void Function(int index, String text) onUpdateStartingProgramText;
@@ -963,6 +975,7 @@ class _DefaultsView extends StatelessWidget {
             ),
             _StartingProgramTemplateEditor(
               entries: startingProgramTemplate,
+              dancesById: startingProgramDances,
               onAddDance: onAddStartingProgramDance,
               onAddText: onAddStartingProgramText,
               onUpdateText: onUpdateStartingProgramText,
@@ -1352,6 +1365,7 @@ class _DefaultsView extends StatelessWidget {
 class _StartingProgramTemplateEditor extends StatefulWidget {
   const _StartingProgramTemplateEditor({
     required this.entries,
+    required this.dancesById,
     required this.onAddDance,
     required this.onAddText,
     required this.onUpdateText,
@@ -1361,6 +1375,7 @@ class _StartingProgramTemplateEditor extends StatefulWidget {
   });
 
   final List<StartingProgramTemplateEntry> entries;
+  final Map<String, Dance> dancesById;
   final VoidCallback onAddDance;
   final ValueChanged<String> onAddText;
   final void Function(int index, String text) onUpdateText;
@@ -1409,7 +1424,14 @@ class _StartingProgramTemplateEditorState
                 return ListTile(
                   key: ValueKey('starting-program-entry-$index'),
                   dense: true,
-                  title: Text(entry.danceId ?? entry.text ?? ''),
+                  title: Text(
+                    entry.danceId == null
+                        ? entry.text ?? ''
+                        : widget.dancesById[entry.danceId]?.title ??
+                              l10n.settingsDefaultsStartingProgramUnavailableDance(
+                                entry.danceId!,
+                              ),
+                  ),
                   subtitle: entry.danceId == null
                       ? null
                       : TextFormField(
