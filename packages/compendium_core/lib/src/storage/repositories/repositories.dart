@@ -62,7 +62,7 @@ Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
 /// constructing each repository individually.
 class CompendiumRepositories {
-  /// [settings] and [dances] exist as **test seams**, and only as that: each
+  /// [settings], [dances], and [venues] exist as **test seams**, and only as that: each
   /// defaults to the real repository, so no production call site passes either.
   ///
   /// A test that needs to count how many times a screen re-read its data
@@ -79,6 +79,7 @@ class CompendiumRepositories {
     DanceRepository? dances,
     CollectionImportEventRepository? collectionImports,
     ProgramRepository? programs,
+    VenueRepository? venues,
   }) : dances = dances ?? DanceRepository(db, taxonomy),
        choreographers = ChoreographerRepository(db),
        tags = TagRepository(db),
@@ -86,7 +87,7 @@ class CompendiumRepositories {
        customFieldDefs = CustomFieldDefRepository(db),
        programs = programs ?? ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
-       venues = VenueRepository(db),
+       venues = venues ?? VenueRepository(db),
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db),

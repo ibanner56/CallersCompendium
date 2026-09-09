@@ -76,7 +76,7 @@ void main() {
     );
   });
 
-  test('v33 difficulty levels gain initialized sync timestamps', () async {
+  test('legacy difficulty levels gain initialized sync timestamps', () async {
     final raw = sqlite3.sqlite3.openInMemory();
     addTearDown(raw.close);
 
@@ -85,6 +85,14 @@ void main() {
       33,
     );
     await historical.customSelect('SELECT 1').get();
+    await historical.customStatement('''
+      CREATE TABLE difficulty_levels (
+        id TEXT NOT NULL,
+        label TEXT NOT NULL UNIQUE,
+        position INTEGER NOT NULL,
+        PRIMARY KEY (id)
+      )
+    ''');
     await historical.customStatement(
       'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
       ['custom-level', 'Challenge', 3],

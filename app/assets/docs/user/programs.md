@@ -192,7 +192,7 @@ Here is how to read it:
 
 - **Dances are rows; moves are columns.**
 - **A pinned Formation column** next to each dance title shows its formation
-  (duple improper, Becket, triple minor, and so on), so you can spot too many
+  (Improper, Becket, triple minor, and so on), so you can spot too many
   non-improper formations stacking up in a row without losing your place
   while scrolling through moves.
 - **Four cell markers** say what is happening at each intersection. Each is an
@@ -348,9 +348,11 @@ There are two ways to think about "called," and a setting lets you choose:
 - **Any program that contains the dance** counts (the default), or
 - **only slots you marked performed** count.
 
-You mark a slot performed from within [Perform mode](./perform.md), during the
-event. The [Settings](./settings.md) toggle decides which of the two
-rules a dance's calling history follows.
+You can mark every unperformed dance slot at once from the **Program Editor**
+or a saved program's summary. Both actions offer a one-tap **Undo**; marking
+an individual slot is also available from [Perform mode](./perform.md). The
+[Settings](./settings.md) toggle decides which of the two rules a dance's
+calling history follows.
 
 ## Where to go next
 

@@ -781,42 +781,51 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.createTable(reviewQueue);
         await m.createTable(publishedRecords);
       }
-      if (from < 33) {
-        // Difficulty used to be a fixed enum persisted by name in
-        // `dances.level`. Refuse a corrupt/unsupported name instead of silently
-        // dropping it while rebuilding the table around the stable ID reference.
-        final unsupported = await customSelect(
-          "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
-          "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
-        ).get();
-        if (unsupported.isNotEmpty) {
-          final values = [
-            for (final row in unsupported) row.read<String>('level'),
-          ];
-          throw StateError(
-            'Cannot migrate dances with unsupported difficulty level name(s): '
-            '${values.join(', ')}.',
-          );
-        }
-        await m.createTable(difficultyLevels);
-        await _seedDifficultyLevels();
-        await m.alterTable(
-          TableMigration(
-            dances,
-            columnTransformer: {
-              dances.levelId: const CustomExpression<String>(
-                "CASE level "
-                "WHEN 'beginner' THEN 'difficulty-beginner' "
-                "WHEN 'intermediate' THEN 'difficulty-intermediate' "
-                "WHEN 'advanced' THEN 'difficulty-advanced' "
-                'ELSE NULL END',
-              ),
-            },
-          ),
-        );
-        await customStatement(dancesDifficultyLevelIdIndexSql);
-      }
       if (from < 34) {
+        final difficultyTableExists = (await customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'difficulty_levels'",
+        ).get()).isNotEmpty;
+        if (!difficultyTableExists) {
+          final danceColumns = await customSelect(
+            "SELECT name FROM pragma_table_info('dances')",
+          ).get();
+          final hasLegacyLevel = danceColumns.any(
+            (row) => row.read<String>('name') == 'level',
+          );
+          await m.createTable(difficultyLevels);
+          await _seedDifficultyLevels();
+          if (hasLegacyLevel) {
+            final unsupported = await customSelect(
+              "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
+              "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
+            ).get();
+            if (unsupported.isNotEmpty) {
+              final values = [
+                for (final row in unsupported) row.read<String>('level'),
+              ];
+              throw StateError(
+                'Cannot migrate dances with unsupported difficulty level '
+                'name(s): ${values.join(', ')}.',
+              );
+            }
+            await m.alterTable(
+              TableMigration(
+                dances,
+                columnTransformer: {
+                  dances.levelId: const CustomExpression<String>(
+                    "CASE level "
+                    "WHEN 'beginner' THEN 'difficulty-beginner' "
+                    "WHEN 'intermediate' THEN 'difficulty-intermediate' "
+                    "WHEN 'advanced' THEN 'difficulty-advanced' "
+                    'ELSE NULL END',
+                  ),
+                },
+              ),
+            );
+            await customStatement(dancesDifficultyLevelIdIndexSql);
+          }
+        }
         Future<void> addColumnIfMissing(GeneratedColumn<Object> column) async {
           final existing = await customSelect(
             "SELECT name FROM pragma_table_info('difficulty_levels')",
@@ -840,6 +849,19 @@ class CompendiumDatabase extends _$CompendiumDatabase {
           'WHERE deleted_at IS NULL',
           [now, now],
         );
+        // Issue #1196: distinguish purge captions from ordinary text-only
+        // program slots so display-only conversion never rewrites a tombstone.
+        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
+        // must stay literal until an explicit edit establishes their kind.
+        final programSlotColumns = await customSelect(
+          "SELECT name FROM pragma_table_info('program_slots')",
+        ).get();
+        final hasPurgeMarker = programSlotColumns.any(
+          (row) => row.read<String>('name') == programSlots.isPurgedDance.name,
+        );
+        if (!hasPurgeMarker) {
+          await m.addColumn(programSlots, programSlots.isPurgedDance);
+        }
       }
     },
     beforeOpen: (details) async {

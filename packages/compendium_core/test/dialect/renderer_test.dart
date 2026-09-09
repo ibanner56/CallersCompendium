@@ -271,6 +271,111 @@ void main() {
         'swing your neighbor',
       );
     });
+
+    test('converts supported discouraged terms only when opted in', () {
+      const note = 'Gypsy with the gents and Ravens; gyre next.';
+      expect(renderer.renderFreeText(note, larks), note);
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(note, larks),
+        'Shoulder round with the larks and Robins; shoulder round next.',
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Ladies and women, men and gent.',
+          Dialect.canonical,
+        ),
+        'Role2s and role2s, role1s and role1.',
+      );
+    });
+
+    test('preserves boundaries, names, and punctuation', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Mad Robin and gypsyism are not replacements; gypsy!',
+          larks,
+        ),
+        'Mad Robin and gypsyism are not replacements; shoulder round!',
+      );
+    });
+
+    test('does not rewrite underscore-delimited identifiers', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'men_name and women_name',
+          larks,
+        ),
+        'men_name and women_name',
+      );
+    });
+
+    test('does not rewrite a discouraged prefix in a Unicode name', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Menéndez called the dance; Gypsy、next.',
+          larks,
+        ),
+        'Menéndez called the dance; Shoulder round、next.',
+      );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Gypsy𐄀next and Gypsy𠀀next',
+          larks,
+        ),
+        'Shoulder round𐄀next and Gypsy𠀀next',
+      );
+    });
+
+    test('preserves possessive plural grammar', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          "men's and women's figures, gents' and ladies' caller notes",
+          larks,
+        ),
+        "larks' and robins' figures, larks' and robins' caller notes",
+      );
+    });
+
+    test('converts custom text before role substitution exactly once', () {
+      final ravenDialect = Dialect(
+        name: 'Ravens/Robins',
+        roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('robin')},
+      );
+      final figure = testFigure(
+        move: customMove,
+        params: const {'text': 'role1s cross'},
+      );
+
+      expect(
+        renderer.renderSummaryWithCanonicalDiscouragedTerms(
+          figure,
+          ravenDialect,
+        ),
+        'ravens cross',
+      );
+    });
+
+    test('converts wording overrides through the display summary path', () {
+      final figure = testFigure(
+        move: 'swing',
+      ).copyWith(wordingOverride: 'Gypsy with the gents');
+
+      expect(
+        renderer.renderSummaryWithCanonicalDiscouragedTerms(figure, larks),
+        'Shoulder round with the larks',
+      );
+
+      final ladyDialect = Dialect(
+        name: 'Ladies/Robins',
+        roles: const {'role1': RoleTerm('lady'), 'role2': RoleTerm('robin')},
+      );
+      expect(
+        renderer.renderSummaryWithCanonicalDiscouragedTerms(
+          testFigure(move: 'swing').copyWith(wordingOverride: 'role1s cross'),
+          ladyDialect,
+        ),
+        'ladies cross',
+      );
+    });
   });
 
   group('unknown moves', () {

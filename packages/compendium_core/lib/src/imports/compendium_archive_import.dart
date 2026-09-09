@@ -141,6 +141,7 @@ ArchiveProgramsResult buildArchivePrograms(
           position: position++,
           danceId: danceId,
           text: text,
+          isPurgedDance: slot.isPurgedDance,
           isAlt: slot.isAlt,
           guestCaller: slot.guestCaller,
           plannedMinutes: slot.plannedMinutes,

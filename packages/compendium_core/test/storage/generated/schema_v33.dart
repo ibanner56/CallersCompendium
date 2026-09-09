@@ -4,60 +4,6 @@
 //
 import 'package:drift/drift.dart';
 
-class DifficultyLevels extends Table with TableInfo {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  DifficultyLevels(this.attachedDatabase, [this._alias]);
-  late final GeneratedColumn<String> id = GeneratedColumn<String>(
-    'id',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> label = GeneratedColumn<String>(
-    'label',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL UNIQUE',
-  );
-  late final GeneratedColumn<int> position = GeneratedColumn<int>(
-    'position',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  @override
-  List<GeneratedColumn> get $columns => [id, label, position];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'difficulty_levels';
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  Never map(Map<String, dynamic> data, {String? tablePrefix}) {
-    throw UnsupportedError('TableInfo.map in schema verification code');
-  }
-
-  @override
-  DifficultyLevels createAlias(String alias) {
-    return DifficultyLevels(attachedDatabase, alias);
-  }
-
-  @override
-  List<String> get customConstraints => const ['PRIMARY KEY(id)'];
-  @override
-  bool get dontWriteConstraints => true;
-}
-
 class Dances extends Table with TableInfo {
   @override
   final GeneratedDatabase attachedDatabase;
@@ -164,13 +110,13 @@ class Dances extends Table with TableInfo {
     requiredDuringInsert: true,
     $customConstraints: 'NOT NULL',
   );
-  late final GeneratedColumn<String> levelId = GeneratedColumn<String>(
-    'level_id',
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
     aliasedName,
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    $customConstraints: 'NULL REFERENCES difficulty_levels(id)',
+    $customConstraints: 'NULL',
   );
   late final GeneratedColumn<int> mixedLevel = GeneratedColumn<int>(
     'mixed_level',
@@ -269,7 +215,7 @@ class Dances extends Table with TableInfo {
     callingNotes,
     walkthrough,
     status,
-    levelId,
+    level,
     mixedLevel,
     mixer,
     rating,
@@ -818,6 +764,14 @@ class ProgramSlots extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<int> isPurgedDance = GeneratedColumn<int>(
+    'is_purged_dance',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL CHECK (is_purged_dance IN (0, 1))',
+  );
   late final GeneratedColumn<int> isAlt = GeneratedColumn<int>(
     'is_alt',
     aliasedName,
@@ -858,6 +812,7 @@ class ProgramSlots extends Table with TableInfo {
     position,
     danceId,
     text_,
+    isPurgedDance,
     isAlt,
     guestCaller,
     plannedMinutes,
@@ -2846,7 +2801,6 @@ class DanceSubstringFts extends Table with TableInfo, VirtualTableInfo {
 
 class DatabaseAtV33 extends GeneratedDatabase {
   DatabaseAtV33(QueryExecutor e) : super(e);
-  late final DifficultyLevels difficultyLevels = DifficultyLevels(this);
   late final Dances dances = Dances(this);
   late final Choreographers choreographers = Choreographers(this);
   late final DanceAuthors danceAuthors = DanceAuthors(this);
@@ -2888,10 +2842,6 @@ class DatabaseAtV33 extends GeneratedDatabase {
     'dance_links_target_transitive',
     'CREATE INDEX dance_links_target_transitive ON dance_links (target_dance_id, transitive, kind, dance_id)',
   );
-  late final Index dancesLevelId = Index(
-    'dances_level_id',
-    'CREATE INDEX dances_level_id ON dances (level_id)',
-  );
   late final Index programsVenueId = Index(
     'programs_venue_id',
     'CREATE INDEX programs_venue_id ON programs (venue_id)',
@@ -2905,7 +2855,6 @@ class DatabaseAtV33 extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
-    difficultyLevels,
     dances,
     choreographers,
     danceAuthors,
@@ -2937,7 +2886,6 @@ class DatabaseAtV33 extends GeneratedDatabase {
     danceFiguresMoveSection,
     danceLinksDanceId,
     danceLinksTargetTransitive,
-    dancesLevelId,
     programsVenueId,
     programSlotsDanceId,
   ];

@@ -71,7 +71,7 @@ CompendiumArchive _sampleArchive() {
     authorIds: const ['c2', 'c1'],
     form: DanceForm.contra,
     formation: const Formation(
-      FormationShape.becketCw,
+      FormationShape.reverseProgressionImproper,
       detail: 'double progression',
     ),
     progression: Progression.double,
@@ -291,7 +291,7 @@ void main() {
 
       final d1 = result.archive.dances.firstWhere((d) => d.id == 'd1');
       expect(d1.authorIds, ['c2', 'c1']);
-      expect(d1.formation.shape, FormationShape.becketCw);
+      expect(d1.formation.shape, FormationShape.reverseProgressionImproper);
       expect(d1.formation.detail, 'double progression');
       expect(d1.progression, Progression.double);
       expect(d1.phraseStructure.raw, '6*8*2');
@@ -373,6 +373,48 @@ void main() {
       );
     });
 
+    test('preserves purge markers and legacy ambiguity across archives', () {
+      final archive = CompendiumArchive(
+        programs: [
+          Program(
+            id: 'purge-program',
+            title: 'Purge',
+            slots: [
+              ProgramSlot(
+                id: 'purge-slot',
+                position: 0,
+                text: 'Lady of the Lake',
+                isPurgedDance: true,
+              ),
+              ProgramSlot(
+                id: 'legacy-slot',
+                position: 1,
+                text: 'Old text',
+                isPurgedDance: null,
+              ),
+              ProgramSlot(
+                id: 'ordinary-slot',
+                position: 2,
+                text: 'Gypsy mixer',
+                isPurgedDance: false,
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+        exportedAt: DateTime.utc(2026),
+      );
+
+      final decoded = decodeArchive(encodeArchive(archive));
+
+      expect(decoded.hasErrors, isFalse);
+      expect(decoded.archive.programs.single.slots, hasLength(3));
+      expect(decoded.archive.programs.single.slots[0].isPurgedDance, isTrue);
+      expect(decoded.archive.programs.single.slots[1].isPurgedDance, isNull);
+      expect(decoded.archive.programs.single.slots[2].isPurgedDance, isFalse);
+    });
+
     test('decodes legacy enum level names to shipped IDs', () {
       final root = archiveToJson(
         CompendiumArchive(
@@ -433,6 +475,21 @@ void main() {
         );
       },
     );
+
+    test('reports an invalid purge marker instead of throwing', () {
+      final map = jsonDecode(encodeArchive(_sampleArchive())) as Map;
+      final programs = map['programs'] as List;
+      final slots = (programs.first as Map)['slots'] as List;
+      final slot = slots.first as Map;
+      slot['isPurgedDance'] = true;
+
+      final result = decodeArchive(jsonEncode(map));
+
+      expect(result.archive.programs, hasLength(1));
+      expect(result.archive.programs.single.id, 'p2');
+      expect(result.errors, hasLength(1));
+      expect(result.errors.single.entityType, 'program');
+    });
 
     test('round-trips the added dance statuses by name', () {
       for (final name in ['draft', 'variation']) {
@@ -1016,6 +1073,40 @@ void main() {
         expect(map['schemaVersion'], archiveSchemaVersionBase);
       },
     );
+    test('stamps purge-marker archives at the marker schema version', () {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Purged',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                text: 'Lady of the Lake',
+                isPurgedDance: true,
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionProgramSlotMarkers);
+    });
+
+    test('keeps a venue-less archive at the base version (back-compat)', () {
+      final map =
+          jsonDecode(
+                encodeArchive(
+                  CompendiumArchive(exportedAt: DateTime.utc(2026)),
+                ),
+              )
+              as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionBase);
+    });
 
     test('honors an explicitly higher requested schema version', () {
       final archive = CompendiumArchive(

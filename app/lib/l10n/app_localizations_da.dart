@@ -459,6 +459,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Konvertér automatisk alle frarådede termer';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Når den er slået til, bruger dansedetaljer, noter og eksporter kanonisk formulering for understøttede frarådede termer. Gemt tekst og indtastningsfelter ændres ikke. Slået til som standard.';
+
+  @override
   String get settingsDialectNewButton => 'Ny dialekt';
 
   @override
@@ -1390,7 +1398,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Avanceret';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper med omvendt progression';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1399,10 +1411,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -2387,6 +2399,14 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get programsSaveError => 'Kunne ikke gemme programmet.';
+
+  @override
+  String get programsUndoPerformedError =>
+      'Markeringen kunne ikke fortrydes; markeringerne som udført forbliver gemt.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Fortrydelsen blev gemt, men editoren kunne ikke opdateres.';
 
   @override
   String programsDuplicatedSnack(String title) {

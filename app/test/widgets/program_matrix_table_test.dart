@@ -279,17 +279,14 @@ void main() {
       expect(find.text('Formation'), findsOneWidget);
       // Per-row formation labels.
       expect(find.text('Becket (CW)'), findsOneWidget);
-      expect(find.text('Duple improper'), findsOneWidget);
+      expect(find.text('Improper'), findsOneWidget);
       // Each cell carries its own semantics label, independent of the
       // adjacent row header.
       expect(
         find.bySemanticsLabel('A, formation: Becket (CW)'),
         findsOneWidget,
       );
-      expect(
-        find.bySemanticsLabel('B, formation: Duple improper'),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel('B, formation: Improper'), findsOneWidget);
     });
 
     testWidgets('formation free-text detail is appended to the label', (
@@ -509,7 +506,7 @@ void main() {
       // (#962; formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "A, formation: Duple improper, partner swing: present, shares "
+          "A, formation: Improper, partner swing: present, shares "
           "beats with an adjacent dance, introduced here, dance's "
           "first figure",
         ),
@@ -517,7 +514,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "B, formation: Duple improper, partner swing: present, shares "
+          "B, formation: Improper, partner swing: present, shares "
           "beats with an adjacent dance, dance's first figure",
         ),
         findsOneWidget,
@@ -526,14 +523,14 @@ void main() {
       // also at the same beat span in both dances, so it collides too.
       expect(
         find.bySemanticsLabel(
-          'A, formation: Duple improper, balance: present, shares beats '
+          'A, formation: Improper, balance: present, shares beats '
           'with an adjacent dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, formation: Duple improper, balance: present, shares beats '
+          'B, formation: Improper, balance: present, shares beats '
           'with an adjacent dance',
         ),
         findsOneWidget,
@@ -557,15 +554,13 @@ void main() {
       expect(find.text('Repeated moves'), findsOneWidget);
       expect(
         find.bySemanticsLabel(
-          "A, formation: Duple improper, partner swing: present, introduced "
+          "A, formation: Improper, partner swing: present, introduced "
           "here, dance's first figure",
         ),
         findsOneWidget,
       );
       expect(
-        find.bySemanticsLabel(
-          'B, formation: Duple improper, partner swing: present',
-        ),
+        find.bySemanticsLabel('B, formation: Improper, partner swing: present'),
         findsOneWidget,
       );
       // The program debut is a distinct shape (star), not colour alone.
@@ -635,7 +630,7 @@ void main() {
       // under the default exact-beat mode (#962; formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "Alt Dance (alternate dance), formation: Duple improper, partner "
+          "Alt Dance (alternate dance), formation: Improper, partner "
           "swing: present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),
@@ -643,7 +638,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "A, formation: Duple improper, partner swing: present, shares "
+          "A, formation: Improper, partner swing: present, shares "
           "beats with an adjacent dance, introduced here, dance's "
           "first figure",
         ),
@@ -667,7 +662,7 @@ void main() {
       // Visual badge appears only for the atypical (non-duple-improper)
       // formation, keeping the common case's chip compact...
       expect(find.text('Becket (CW)'), findsOneWidget);
-      expect(find.text('Duple improper'), findsNothing);
+      expect(find.text('Improper'), findsNothing);
       // ...but screen readers always hear both dances' formation via the
       // chip's semantics, regardless of the visual shortcut.
       expect(
@@ -680,7 +675,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "B, formation: Duple improper, partner swing: present, shares "
+          "B, formation: Improper, partner swing: present, shares "
           "beats with an adjacent dance, dance's first figure",
         ),
         findsOneWidget,
@@ -794,7 +789,7 @@ void main() {
       // formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "A (first half), formation: Duple improper, partner swing: "
+          "A (first half), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "introduced here, dance's first figure",
         ),
@@ -802,7 +797,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "B (second half), formation: Duple improper, partner swing: "
+          "B (second half), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),
@@ -964,14 +959,14 @@ void main() {
       expect(find.byIcon(Icons.report), findsWidgets);
       expect(
         find.bySemanticsLabel(
-          'A, formation: Duple improper, balance: present, shares beats '
+          'A, formation: Improper, balance: present, shares beats '
           'with an adjacent dance, introduced here',
         ),
         findsOneWidget,
       );
       expect(
         find.bySemanticsLabel(
-          'B, formation: Duple improper, balance: present, shares beats '
+          'B, formation: Improper, balance: present, shares beats '
           'with an adjacent dance',
         ),
         findsOneWidget,

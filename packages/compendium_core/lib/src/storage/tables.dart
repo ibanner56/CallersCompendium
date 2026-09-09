@@ -287,6 +287,7 @@ class ProgramSlots extends Table {
   TextColumn get danceId =>
       text().nullable().references(Dances, #id, onDelete: KeyAction.setNull)();
   TextColumn get text_ => text().nullable().named('text')();
+  BoolColumn get isPurgedDance => boolean().nullable()();
   BoolColumn get isAlt => boolean().withDefault(const Constant(false))();
   TextColumn get guestCaller => text().nullable()();
   IntColumn get plannedMinutes => integer().nullable()();

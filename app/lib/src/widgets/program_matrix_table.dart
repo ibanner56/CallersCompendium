@@ -28,6 +28,7 @@ class ProgramMatrixTable extends StatefulWidget {
     required this.matrix,
     required this.taxonomy,
     required this.dialect,
+    this.formationLabelBuilder,
     this.config = MatrixColumnConfig.empty,
     this.omittedFreeTextCount = 0,
     this.altDanceIds = const {},
@@ -38,6 +39,10 @@ class ProgramMatrixTable extends StatefulWidget {
   final ProgramMatrix matrix;
   final Taxonomy taxonomy;
   final Dialect dialect;
+
+  /// Optional display transformation for formation details. Kept caller-owned
+  /// so settings/editor embeds can preserve literal text.
+  final String Function(Formation formation)? formationLabelBuilder;
 
   /// App-wide program-matrix column configuration (issue #935). Threaded in
   /// only so the on-screen column headers honour the config's **renames** —
@@ -177,6 +182,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 labels: labels,
                 altDanceIds: widget.altDanceIds,
                 hiddenColumns: widget.hiddenColumns,
+                formationLabelBuilder: widget.formationLabelBuilder,
               )
             : _wideTable(labels);
         return Column(
@@ -302,6 +308,14 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                           _FormationCell(
                             danceTitle: matrix.rows[r].title,
                             formation: matrix.rows[r].formation,
+                            label:
+                                widget.formationLabelBuilder?.call(
+                                  matrix.rows[r].formation,
+                                ) ??
+                                formationLabel(
+                                  AppLocalizations.of(context),
+                                  matrix.rows[r].formation,
+                                ),
                           ),
                         ],
                       ),
@@ -675,16 +689,20 @@ class _RowHeader extends StatelessWidget {
 /// plain (icon + text, no [FormationColorsScope] tint) since the issue chose
 /// a dedicated column over colour-coding as the primary signal.
 class _FormationCell extends StatelessWidget {
-  const _FormationCell({required this.danceTitle, required this.formation});
+  const _FormationCell({
+    required this.danceTitle,
+    required this.formation,
+    required this.label,
+  });
 
   final String danceTitle;
   final Formation formation;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final label = formationLabel(l10n, formation);
     return Semantics(
       label: l10n.programsMatrixFormationSemantic(danceTitle, label),
       excludeSemantics: true,
@@ -856,12 +874,14 @@ class _CompactMatrix extends StatelessWidget {
     required this.matrix,
     required this.labels,
     required this.altDanceIds,
+    this.formationLabelBuilder,
     this.hiddenColumns = const {},
   });
 
   final ProgramMatrix matrix;
   final List<String> labels;
   final Set<String> altDanceIds;
+  final String Function(Formation formation)? formationLabelBuilder;
 
   /// Columns hidden by the caller (#669) — see
   /// [ProgramMatrixTable.hiddenColumns]. Keyed by [MatrixColumn.moveId]. The
@@ -948,6 +968,7 @@ class _CompactMatrix extends StatelessWidget {
               summary: m,
               total: total,
               collisionMode: matrix.collisionMode,
+              formationLabelBuilder: formationLabelBuilder,
             ),
           );
         }
@@ -973,6 +994,7 @@ class _CompactMatrix extends StatelessWidget {
               summary: m,
               total: total,
               collisionMode: matrix.collisionMode,
+              formationLabelBuilder: formationLabelBuilder,
             ),
           );
         }
@@ -1095,11 +1117,13 @@ class _MoveCard extends StatelessWidget {
     required this.summary,
     required this.total,
     required this.collisionMode,
+    this.formationLabelBuilder,
   });
 
   final _MoveSummary summary;
   final int total;
   final MatrixCollisionMode collisionMode;
+  final String Function(Formation formation)? formationLabelBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -1156,6 +1180,9 @@ class _MoveCard extends StatelessWidget {
                   isAlt: d.isAlt,
                   half: d.half,
                   formation: d.formation,
+                  formationLabel:
+                      formationLabelBuilder?.call(d.formation) ??
+                      formationLabel(l10n, d.formation),
                 ),
             ],
           ),
@@ -1175,6 +1202,7 @@ class _DanceChip extends StatelessWidget {
     required this.collisionMode,
     required this.isAlt,
     required this.formation,
+    required this.formationLabel,
     this.half,
   });
 
@@ -1187,6 +1215,7 @@ class _DanceChip extends StatelessWidget {
   final bool isAlt;
   final ProgramHalf? half;
   final Formation formation;
+  final String formationLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -1206,10 +1235,9 @@ class _DanceChip extends StatelessWidget {
     // Formation (#663) is announced as a standalone composed fragment rather
     // than folding into `programsMatrixChipQualifiedTitle`, so that message
     // stays untouched (shared-file caution around #662/#669).
-    final formationLbl = formationLabel(l10n, formation);
     final whoWithFormation = l10n.programsMatrixFormationSemantic(
       who,
-      formationLbl,
+      formationLabel,
     );
     final IconData markIcon;
     final Color markColor;
@@ -1280,7 +1308,7 @@ class _DanceChip extends StatelessWidget {
               ),
               const SizedBox(width: 2),
               Text(
-                formationLbl,
+                formationLabel,
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

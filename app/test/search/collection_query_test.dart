@@ -180,7 +180,7 @@ void main() {
 
     test('fts + facets compose into a flat AndFilter', () {
       final facets = FacetSelections()
-        ..formations.add(FormationShape.becketCw)
+        ..formations.add(FormationShape.reverseProgressionImproper)
         ..tagIds.addAll(['t1', 't2']);
       final f = buildCollectionFilter(
         ftsText: 'swing',
@@ -190,7 +190,12 @@ void main() {
       expect(f, isA<AndFilter>());
       final children = (f as AndFilter).children;
       expect(children.whereType<FullTextFilter>(), hasLength(1));
-      expect(children.whereType<FormationFilter>(), hasLength(1));
+      final formationFilters = children.whereType<FormationFilter>().toList();
+      expect(formationFilters, hasLength(1));
+      expect(
+        formationFilters.single.shape,
+        FormationShape.reverseProgressionImproper,
+      );
       // The two tags collapse into one OR branch.
       expect(children.whereType<OrFilter>(), hasLength(1));
     });

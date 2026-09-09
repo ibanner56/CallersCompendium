@@ -849,6 +849,14 @@ class ProgramSlots extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
+  late final GeneratedColumn<int> isPurgedDance = GeneratedColumn<int>(
+    'is_purged_dance',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL CHECK (is_purged_dance IN (0, 1))',
+  );
   late final GeneratedColumn<int> isAlt = GeneratedColumn<int>(
     'is_alt',
     aliasedName,
@@ -889,6 +897,7 @@ class ProgramSlots extends Table with TableInfo {
     position,
     danceId,
     text_,
+    isPurgedDance,
     isAlt,
     guestCaller,
     plannedMinutes,

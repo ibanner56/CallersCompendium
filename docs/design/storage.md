@@ -456,18 +456,20 @@ can still fire.
   history. Baseline metadata uses an enforced singleton row so an empty
   manifest retains its epoch; all six tables are device-scoped except the
   retransmitted pending tombstone blob.
-- v33 (issue #1200): replaces `dances.level`'s fixed enum-name storage with
-  the `difficulty_levels` vocabulary and nullable `dances.level_id` reference.
-  The migration seeds immutable IDs for Beginner, Intermediate, and Advanced,
-  then maps every valid v32 enum name to that ID. Invalid legacy names abort
-  the migration rather than being discarded. The foreign key and repository
-  write guard reject dangling IDs; repository deletion is transactional and
-  refuses a level used by any dance, including a tombstoned dance that could be
-  restored later.
-- v34 (issue #1200): adds the Device Sync timestamp triple to
-  `difficulty_levels`. Level deletion now records a tombstone and can be
-  causally revived by a later upsert; existing seeded levels are back-filled
-  with a common live creation stamp.
+- v33 (issue #1196): adds `program_slots.is_purged_dance`, an explicit marker
+  for text captions left behind when a dance is purged. New slots use `false`
+  for ordinary text-only announcements, while pre-v33
+  rows remain `NULL` because their text-only meaning is ambiguous. New purge
+  captions are marked so ordinary text-only announcements can receive
+  display-only discouraged-term conversion without rewriting tombstone titles.
+- v34 (issue #1200): replaces `dances.level`'s fixed enum-name storage with
+  the `difficulty_levels` vocabulary and nullable `dances.level_id` reference,
+  including Device Sync timestamps. The migration seeds immutable IDs for
+  Beginner, Intermediate, and Advanced, then maps every valid legacy enum name
+  to that ID. Invalid legacy names abort the migration rather than being
+  discarded. The foreign key and repository write guard reject dangling IDs;
+  repository deletion is transactional and refuses a level used by any dance,
+  including a tombstoned dance that could be restored later.
 
 ## The delete model
 

@@ -98,7 +98,16 @@ void main() {
 
       expect(body, containsPair('difficultyLevelId', isNull));
       expect(body, containsPair('rating', isNull));
-      expect(body, containsPair('formation', containsPair('detail', isNull)));
+      expect(
+        body,
+        containsPair(
+          'formation',
+          allOf(
+            containsPair('shape', 'reverseProgressionImproper'),
+            containsPair('detail', isNull),
+          ),
+        ),
+      );
       expect(body, containsPair('authorIds', ['c1', 'c2']));
       expect(body, containsPair('tagIds', ['t1', 't2']));
       final venueBody = syncBodyForEntity(SyncRecordKind.venue, _venue());
@@ -435,7 +444,7 @@ Dance _dance() => Dance(
   id: 'd1',
   title: 'Shared Dance',
   authorIds: const ['c1', 'c2'],
-  formation: const Formation(FormationShape.becketCw),
+  formation: const Formation(FormationShape.reverseProgressionImproper),
   tagIds: const ['t1', 't2'],
   customFields: [CustomFieldValue(fieldId: 'cf', value: 1.25)],
   createdAt: _stamp,

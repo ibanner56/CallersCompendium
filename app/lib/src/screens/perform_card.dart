@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
 import '../data/decimal_turns_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
@@ -111,6 +112,9 @@ class PerformCard extends StatelessWidget {
   Widget _body(BuildContext context, double scale) {
     final mediaQuery = MediaQuery.of(context);
     final chrome = _chromeScale(scale);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
@@ -121,6 +125,9 @@ class PerformCard extends StatelessWidget {
             _Header(
               dance: dance,
               authorNames: authorNames,
+              renderer: renderer,
+              dialect: dialect,
+              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
               difficultyLevel: difficultyLevel,
               chromeScale: chrome,
             ),
@@ -137,7 +144,12 @@ class PerformCard extends StatelessWidget {
               _SectionTitle(AppLocalizations.of(context).performCallingNotes),
               SizedBox(height: AppSpacing.xs * chrome),
               Text(
-                renderer.renderFreeText(dance.callingNotes, dialect),
+                canonicalDiscouragedTerms
+                    ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                        dance.callingNotes,
+                        dialect,
+                      )
+                    : renderer.renderFreeText(dance.callingNotes, dialect),
                 style: Theme.of(
                   context,
                 ).textTheme.headlineSmall?.merge(AppTypography.performBody),
@@ -151,11 +163,14 @@ class PerformCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     if (autoSize) {
       return _FitToHeight(
         minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
-        resetToken: Object.hash(dance.id, dialect),
+        resetToken: Object.hash(dance.id, dialect, canonicalDiscouragedTerms),
         builder: _body,
         scaleCache: fitScaleCache,
       );
@@ -172,12 +187,18 @@ class PerformTextCard extends StatelessWidget {
     super.key,
     required this.text,
     required this.textScale,
+    required this.renderer,
+    required this.dialect,
+    this.canonicalizeDiscouragedTerms = false,
     this.autoSize = false,
     this.fitScaleCache,
   });
 
   final String text;
   final double textScale;
+  final FigureRenderer renderer;
+  final Dialect dialect;
+  final bool canonicalizeDiscouragedTerms;
 
   /// See [PerformCard.autoSize].
   final bool autoSize;
@@ -188,6 +209,9 @@ class PerformTextCard extends StatelessWidget {
   Widget _body(BuildContext context, double scale) {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
+    final displayText = canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
+        : text;
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
@@ -196,7 +220,7 @@ class PerformTextCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              text,
+              displayText,
               key: const ValueKey('perform-text'),
               style: theme.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -214,7 +238,7 @@ class PerformTextCard extends StatelessWidget {
       return _FitToHeight(
         minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
-        resetToken: text,
+        resetToken: Object.hash(text, canonicalizeDiscouragedTerms, dialect),
         builder: _body,
         scaleCache: fitScaleCache,
       );
@@ -801,11 +825,17 @@ class _Header extends StatelessWidget {
     required this.dance,
     required this.authorNames,
     this.difficultyLevel,
+    required this.renderer,
+    required this.dialect,
+    required this.canonicalizeDiscouragedTerms,
     this.chromeScale = 1.0,
   });
 
   final Dance dance;
   final List<String> authorNames;
+  final FigureRenderer renderer;
+  final Dialect dialect;
+  final bool canonicalizeDiscouragedTerms;
   final DifficultyLevel? difficultyLevel;
 
   /// See [_chromeScale] — shrinks this header's fixed vertical spacing together
@@ -840,7 +870,13 @@ class _Header extends StatelessWidget {
         SizedBox(height: AppSpacing.sm * chromeScale),
         _MetaRow(
           icon: formationIcon,
-          text: formationLabel(l10n, dance.formation),
+          text: formationDisplayLabel(
+            l10n,
+            dance.formation,
+            renderer,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
           // Per-formation label colour (issue #367): highlight only when the
           // user overrode this shape (override-only).
           highlightColor: FormationColorsScope.of(
@@ -969,6 +1005,9 @@ class _Figures extends StatelessWidget {
 
     final sectioned = deriveSections(figures, phraseStructure);
     final decimals = DecimalTurnsScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final children = <Widget>[];
     String? lastLabel;
     for (final sf in sectioned) {
@@ -1008,7 +1047,12 @@ class _Figures extends StatelessWidget {
           mainSpans = [
             for (final span in parseInlineEmphasis(raw))
               EmphasisSpan(
-                text: renderer.renderFreeText(span.text, dialect),
+                text: canonicalDiscouragedTerms
+                    ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                        span.text,
+                        dialect,
+                      )
+                    : renderer.renderFreeText(span.text, dialect),
                 bold: span.bold,
                 underline: span.underline,
               ),
@@ -1026,7 +1070,12 @@ class _Figures extends StatelessWidget {
         noteSpans = [
           for (final span in parseInlineEmphasis(rawNote))
             EmphasisSpan(
-              text: renderer.renderFreeText(span.text, dialect),
+              text: canonicalDiscouragedTerms
+                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      span.text,
+                      dialect,
+                    )
+                  : renderer.renderFreeText(span.text, dialect),
               bold: span.bold,
               underline: span.underline,
             ),
@@ -1034,13 +1083,21 @@ class _Figures extends StatelessWidget {
       }
       children.add(
         _FigureRow(
-          text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
+          text: canonicalDiscouragedTerms
+              ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+                  sf.figure,
+                  dialect,
+                  decimals: decimals,
+                )
+              : renderer.renderSummary(sf.figure, dialect, decimals: decimals),
           mainSpans: mainSpans,
-          verboseText: renderer.renderSummary(
-            sf.figure,
-            dialect,
-            verbose: true,
-          ),
+          verboseText: canonicalDiscouragedTerms
+              ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+                  sf.figure,
+                  dialect,
+                  verbose: true,
+                )
+              : renderer.renderSummary(sf.figure, dialect, verbose: true),
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           noteSpans: noteSpans,

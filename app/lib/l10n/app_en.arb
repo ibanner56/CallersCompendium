@@ -604,6 +604,14 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "description": "Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed."
   },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Auto-convert all discouraged terms",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "description": "Setting title for display-only conversion of discouraged dance terms."
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "description": "Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed."
+  },
   "settingsDialectNewButton": "New dialect",
   "@settingsDialectNewButton": {
     "description": "Label of the button (and title of the prompt) that creates a new custom dialect."
@@ -1749,9 +1757,13 @@
   "@commonDanceLevelAdvanced": {
     "description": "Dance difficulty value: advanced level."
   },
-  "commonFormationDupleImproper": "Duple improper",
+  "commonFormationDupleImproper": "Improper",
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
+  },
+  "commonFormationReverseProgressionImproper": "Reverse progression improper",
+  "@commonFormationReverseProgressionImproper": {
+    "description": "Formation shape value: improper formation with reverse progression."
   },
   "commonFormationBecketCw": "Becket (CW)",
   "@commonFormationBecketCw": {
@@ -1761,11 +1773,11 @@
   "@commonFormationBecketCcw": {
     "description": "Formation shape value: Becket, counter-clockwise progression (CCW)."
   },
-  "commonFormationDupleProper": "Duple proper",
+  "commonFormationDupleProper": "Proper",
   "@commonFormationDupleProper": {
     "description": "Formation shape value: duple proper."
   },
-  "commonFormationDupleIndecent": "Duple indecent",
+  "commonFormationDupleIndecent": "Indecent",
   "@commonFormationDupleIndecent": {
     "description": "Formation shape value: duple indecent."
   },
@@ -3130,6 +3142,14 @@
   "programsSaveError": "Could not save the program.",
   "@programsSaveError": {
     "description": "Snackbar shown when saving the program fails."
+  },
+  "programsUndoPerformedError": "Could not undo marking; performed marks remain saved.",
+  "@programsUndoPerformedError": {
+    "description": "Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved."
+  },
+  "programsUndoRefreshError": "Undo was saved, but the editor could not refresh.",
+  "@programsUndoRefreshError": {
+    "description": "Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward."
   },
   "programsDuplicatedSnack": "Duplicated as \"{title}\".",
   "@programsDuplicatedSnack": {

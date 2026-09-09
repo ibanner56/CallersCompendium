@@ -68,7 +68,8 @@ void main() {
       // redundant normalization snapshots, and schema 31 (#1130) added
       // transitive related-dance link groups; neither changed the taxonomy.
       // Schema 32 adds Device Sync local persistence and likewise does not
-      // change the taxonomy.
+      // change the taxonomy. Schema 33 adds a program-slot purge-caption
+      // marker and schema 34 adds difficulty vocabulary; neither changes it.
       expect(kCompendiumSchemaVersion, 34);
     });
 

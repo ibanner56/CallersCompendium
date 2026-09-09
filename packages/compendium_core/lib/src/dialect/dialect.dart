@@ -121,8 +121,12 @@ class Dialect {
   /// User-editable data with shipped defaults — not hardcoded policy.
   final List<String> discouragedTerms;
 
-  /// The canonical/no-op dialect: renders canonical vocabulary untouched.
-  static final Dialect canonical = Dialect(name: 'Canonical');
+  /// The canonical dialect: renders canonical vocabulary and flags the same
+  /// discouraged terms as the shipped display presets.
+  static final Dialect canonical = Dialect(
+    name: 'Canonical',
+    discouragedTerms: defaultDiscouragedTerms,
+  );
 
   /// Default preset (community-current positional terms) and the app's
   /// out-of-box active dialect.

@@ -85,6 +85,7 @@ const _programFields = [
   SyncWireField('slots.position', ['program_slots.position']),
   SyncWireField('slots.danceId', ['program_slots.dance_id']),
   SyncWireField('slots.text', ['program_slots.text']),
+  SyncWireField('slots.isPurgedDance', ['program_slots.is_purged_dance']),
   SyncWireField('slots.isAlt', ['program_slots.is_alt']),
   SyncWireField('slots.guestCaller', ['program_slots.guest_caller']),
   SyncWireField('slots.plannedMinutes', ['program_slots.planned_minutes']),

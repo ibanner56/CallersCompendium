@@ -13,6 +13,7 @@ Future<void> _pump(
   FacetSelections facets, {
   List<Progression> progressions = const [],
   List<DanceLevel> levels = const [],
+  List<FormationShape> formations = const [],
   List<CustomFieldDef> choiceFields = const [],
   List<PublishedSource> citedSources = const [],
   List<Choreographer> authors = const [],
@@ -41,7 +42,7 @@ Future<void> _pump(
             child: FacetPanel(
               facets: facets,
               forms: const [],
-              formations: const [],
+              formations: formations,
               progressions: progressions,
               statuses: const [],
               levels: levels,
@@ -71,6 +72,29 @@ Future<void> _pump(
 }
 
 void main() {
+  testWidgets('reverse progression formation is data-backed and selectable', (
+    tester,
+  ) async {
+    final facets = FacetSelections();
+    await _pump(
+      tester,
+      facets,
+      formations: const [FormationShape.reverseProgressionImproper],
+      onChanged: () {},
+    );
+
+    expect(find.text('Reverse progression improper'), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('formation-reverseProgressionImproper')),
+    );
+    await tester.pump();
+
+    expect(
+      facets.formations,
+      contains(FormationShape.reverseProgressionImproper),
+    );
+  });
+
   testWidgets('progression chips use the centralized progressionIcon', (
     tester,
   ) async {

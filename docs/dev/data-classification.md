@@ -215,7 +215,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 ### Database columns
 
-**216 columns**: 145 shareable, 21 device-local, 25 device-scoped, 25 derived. 26 personal data by category.
+**217 columns**: 146 shareable, 21 device-local, 25 device-scoped, 25 derived. 26 personal data by category.
 
 | Table | Column | Category | Path | Subject | Egress | Why |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -347,6 +347,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 | `program_slots` | `guest_caller` | `pd:Name` | Identifying → Name | third party | shareable | Performer credit for a public event. CONTESTED — see the performer-names section of docs/dev/data-classification.md. |
 | `program_slots` | `id` | `dpv:NonPersonalData` | NonPersonalData | — | shareable | Opaque identifier; meaningless alone, required for relational integrity across a transfer. |
 | `program_slots` | `is_alt` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
+| `program_slots` | `is_purged_dance` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `performed_at` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `planned_minutes` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
 | `program_slots` | `position` | `dpv:NonPersonalData` | NonPersonalData | — | shareable |  |
@@ -440,7 +441,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**66 settings keys**: 52 shareable, 7 device-local, 5 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**67 settings keys**: 53 shareable, 7 device-local, 5 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -456,6 +457,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | shareable |  |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |
 | `collection_tile_visible_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |

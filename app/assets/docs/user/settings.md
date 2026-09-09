@@ -206,7 +206,7 @@ There's a **High Contrast** theme for maximum legibility — see the
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
-  accent regardless of their formation, so a mixer-flagged Duple Improper reads as
+  accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra. The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
   on colour, and the accents adapt to the High Contrast theme. On by default; turn
@@ -243,6 +243,10 @@ role names and wording the app uses when it describes dances.
 - **Canonical figure text** (off by default) — allow dance details to show
   canonical role and move names. When it is off, dance details open in your
   active dialect and do not show the in-detail **Canonical** switch.
+- **Auto-convert all discouraged terms** (on by default) — show supported
+  discouraged terms in canonical wording across read-only dance details,
+  shorthands, notes, Perform mode, and exports. Saved text and entry fields are
+  unchanged.
 - **Open dance details in canonical terms** — when enabled, and canonical figure
   text is enabled, dance details open in canonical wording. When canonical
   figure text is disabled, this preference is retained but ignored until the

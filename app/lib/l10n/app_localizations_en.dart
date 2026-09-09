@@ -455,6 +455,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Auto-convert all discouraged terms';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.';
+
+  @override
   String get settingsDialectNewButton => 'New dialect';
 
   @override
@@ -1378,7 +1386,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Advanced';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Reverse progression improper';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1387,10 +1399,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -2374,6 +2386,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get programsSaveError => 'Could not save the program.';
+
+  @override
+  String get programsUndoPerformedError =>
+      'Could not undo marking; performed marks remain saved.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Undo was saved, but the editor could not refresh.';
 
   @override
   String programsDuplicatedSnack(String title) {

@@ -13,6 +13,7 @@ import '../data/online_search.dart';
 import '../data/program_ambiguous_review.dart';
 import '../data/repositories_scope.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/shorthand_mappings_scope.dart';
 import '../data/title_list_import.dart';
 import '../data/venue_entity_mode_scope.dart';
@@ -2838,9 +2839,18 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     if (authors.isNotEmpty) {
       details.add(l10n.importReviewMetadataAuthor(authors));
     }
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     details.add(
       l10n.importReviewMetadataFormation(
-        formationLabel(l10n, draft.dance.formation),
+        formationDisplayLabel(
+          l10n,
+          draft.dance.formation,
+          FigureRenderer(contraTaxonomy),
+          dialect,
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
+        ),
       ),
     );
     details.add(

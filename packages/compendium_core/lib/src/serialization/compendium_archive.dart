@@ -31,7 +31,8 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///   stamped v1 so pre-venue readers still accept them byte-compatibly.
 /// * **v3** — adds ordered `difficultyLevels` and the stable
 ///   `dance.difficultyLevelId` relationship.
-const int archiveSchemaVersion = archiveSchemaVersionDifficultyLevels;
+/// * **v4** — adds the optional `programSlot.isPurgedDance` discriminator.
+const int archiveSchemaVersion = archiveSchemaVersionProgramSlotMarkers;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -44,11 +45,14 @@ const int archiveSchemaVersionVenues = 2;
 /// and stable dance difficulty-level IDs.
 const int archiveSchemaVersionDifficultyLevels = 3;
 
+/// The envelope version introduced for explicit text-only purge captions.
+const int archiveSchemaVersionProgramSlotMarkers = 4;
+
 /// The minimum envelope version required to represent [archive] without silent
-/// data loss on an older reader: [archiveSchemaVersionDifficultyLevels] when it
-/// carries configured difficulty levels or a dance-level ID,
-/// [archiveSchemaVersionVenues] when it carries any venue data (a non-empty
-/// `venues` list, or any program with a non-null `venueId`), otherwise
+/// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
+/// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
+/// when it carries configured difficulty levels or a dance-level ID,
+/// [archiveSchemaVersionVenues] when it carries any venue data, otherwise
 /// [archiveSchemaVersionBase].
 ///
 /// The encoder stamps the wire version at `max(archive.schemaVersion, this)` so
@@ -56,10 +60,14 @@ const int archiveSchemaVersionDifficultyLevels = 3;
 /// dropping venues) while venue-less archives stay backward-compatible at v1 —
 /// and an explicitly higher requested version is still honored.
 int requiredSchemaVersion(CompendiumArchive archive) {
-  if (archive.difficultyLevels.isNotEmpty ||
-      archive.dances.any((d) => d.difficultyLevelId != null)) {
-    return archiveSchemaVersionDifficultyLevels;
-  }
+  final hasDifficulty =
+      archive.difficultyLevels.isNotEmpty ||
+      archive.dances.any((d) => d.difficultyLevelId != null);
+  final hasPurgeMarker = archive.programs.any(
+    (p) => p.slots.any((s) => s.isPurgedDance != null),
+  );
+  if (hasPurgeMarker) return archiveSchemaVersionProgramSlotMarkers;
+  if (hasDifficulty) return archiveSchemaVersionDifficultyLevels;
   return archive.venues.isNotEmpty ||
           archive.programs.any((p) => p.venueId != null)
       ? archiveSchemaVersionVenues
@@ -108,8 +116,8 @@ class CompendiumArchive {
 
   /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
   /// [archiveSchemaVersionBase]; the encoder raises the version it actually
-  /// writes to at least [requiredSchemaVersion] so a venue-bearing archive is
-  /// always advertised as v2 even when constructed with the default.
+  /// writes to at least [requiredSchemaVersion] so archives carrying new fields
+  /// advertise their required version even when constructed with the default.
   final int schemaVersion;
 
   /// When the archive was produced (UTC).

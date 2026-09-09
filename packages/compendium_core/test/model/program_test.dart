@@ -23,6 +23,26 @@ void main() {
       expect(both.text, 'call from the floor');
     });
 
+    test('requires purge markers to identify text-only captions', () {
+      final tombstone = ProgramSlot(
+        id: 's1',
+        position: 0,
+        text: 'Lady of the Lake',
+        isPurgedDance: true,
+      );
+      expect(tombstone.isPurgedDance, isTrue);
+      expect(
+        () => ProgramSlot(
+          id: 's2',
+          position: 1,
+          danceId: 'd1',
+          text: 'caption',
+          isPurgedDance: true,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects negative positions', () {
       expect(
         () => ProgramSlot(id: 's1', position: -1, danceId: 'd1'),
@@ -613,6 +633,26 @@ void main() {
         fallback: DateTime.utc(2026, 7, 20),
       );
       expect(twice.slots.single.performedAt, existing);
+    });
+
+    test('moves new performed stamps past same-second existing stamps', () {
+      final existing = DateTime.utc(2026, 3, 15);
+      final p = program(
+        eventDate: existing.add(const Duration(milliseconds: 900)),
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            performedAt: existing,
+          ),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+      );
+
+      final stamped = p.stampDanceSlotsPerformed(fallback: now);
+
+      expect(stamped.slots[1].performedAt, existing.add(existenceStampTick));
     });
 
     test('leaves free-text / note slots untouched', () {

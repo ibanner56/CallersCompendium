@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/export_labels_l10n.dart';
@@ -91,7 +92,10 @@ class DanceExportMenu extends StatelessWidget {
   /// are used for Share while Save, Copy, and the choice dialog use defaults.
   final JsonExportDelivery? jsonExportDelivery;
 
-  String _plainText(AppLocalizations l10n) => danceToPlainText(
+  String _plainText(
+    AppLocalizations l10n, {
+    required bool canonicalizeDiscouragedTerms,
+  }) => danceToPlainText(
     dance,
     dialect: dialect,
     authorNames: authorNames,
@@ -100,23 +104,41 @@ class DanceExportMenu extends StatelessWidget {
     statusLabel: statusLabel,
     renderer: renderer,
     labels: danceExportLabels(l10n),
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
   );
 
-  Future<void> _shareText(AppLocalizations l10n, Rect? origin) async {
+  Future<void> _shareText(
+    AppLocalizations l10n,
+    Rect? origin, {
+    required bool canonicalizeDiscouragedTerms,
+  }) async {
     final share = shareInvoker ?? SharePlus.instance.share;
     await share(
       ShareParams(
-        text: _plainText(l10n),
+        text: _plainText(
+          l10n,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
         subject: dance.title,
         sharePositionOrigin: origin,
       ),
     );
   }
 
-  Future<void> _copyText(BuildContext context) async {
+  Future<void> _copyText(
+    BuildContext context, {
+    required bool canonicalizeDiscouragedTerms,
+  }) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
-    await Clipboard.setData(ClipboardData(text: _plainText(l10n)));
+    await Clipboard.setData(
+      ClipboardData(
+        text: _plainText(
+          l10n,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
+      ),
+    );
     messenger.showSnackBar(SnackBar(content: Text(l10n.exportDanceCopied)));
   }
 
@@ -212,7 +234,10 @@ class DanceExportMenu extends StatelessWidget {
     }
   }
 
-  Future<void> _exportPdf(AppLocalizations l10n) async {
+  Future<void> _exportPdf(
+    AppLocalizations l10n, {
+    required bool canonicalizeDiscouragedTerms,
+  }) async {
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
     await layoutPdf(
       name: sanitizeExportName(dance.title, fallback: 'dance'),
@@ -225,6 +250,7 @@ class DanceExportMenu extends StatelessWidget {
         statusLabel: statusLabel,
         renderer: renderer,
         labels: danceExportLabels(l10n),
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
       ),
     );
   }
@@ -232,6 +258,9 @@ class DanceExportMenu extends StatelessWidget {
   Future<void> _onSelected(BuildContext context, _ExportAction action) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     // Capture the button's screen position before any await: on desktop
     // `share_plus` needs a `sharePositionOrigin` to anchor the native share
     // popover, and the render tree may have moved on by the time the async
@@ -246,7 +275,11 @@ class DanceExportMenu extends StatelessWidget {
         await _guard(
           messenger,
           l10n.exportShareDanceError,
-          () => _shareText(l10n, origin),
+          () => _shareText(
+            l10n,
+            origin,
+            canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+          ),
         );
       case _ExportAction.shareBundle:
         await _guard(
@@ -255,7 +288,10 @@ class DanceExportMenu extends StatelessWidget {
           () => _shareBundle(origin),
         );
       case _ExportAction.copyText:
-        await _copyText(context);
+        await _copyText(
+          context,
+          canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+        );
       case _ExportAction.shareJson:
         await _guard(
           messenger,
@@ -263,7 +299,14 @@ class DanceExportMenu extends StatelessWidget {
           () => _exportJson(context, origin),
         );
       case _ExportAction.pdf:
-        await _guard(messenger, l10n.exportDanceError, () => _exportPdf(l10n));
+        await _guard(
+          messenger,
+          l10n.exportDanceError,
+          () => _exportPdf(
+            l10n,
+            canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+          ),
+        );
     }
   }
 

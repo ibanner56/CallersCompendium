@@ -461,6 +461,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, können Tanzdetails kanonische Rollen- und Bewegungsnamen anzeigen, und der Schalter „Kanonisch“ ist bei nichtkanonischen Dialekten verfügbar. Standardmäßig aus.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Alle unerwünschten Begriffe automatisch umwandeln';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Wenn aktiviert, verwenden Tanzdetails, Notizen und Exporte für unterstützte unerwünschte Begriffe eine kanonische Formulierung. Gespeicherter Text und Eingabefelder bleiben unverändert. Standardmäßig aktiviert.';
+
+  @override
   String get settingsDialectNewButton => 'Neuer Dialekt';
 
   @override
@@ -1413,7 +1421,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Fortgeschritten';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper mit umgekehrter Progression';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1422,10 +1434,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -2419,6 +2431,14 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get programsSaveError => 'Programm konnte nicht gespeichert werden.';
+
+  @override
+  String get programsUndoPerformedError =>
+      'Die Markierung konnte nicht rückgängig gemacht werden; die Erledigt-Markierungen bleiben gespeichert.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Die Rücknahme wurde gespeichert, aber der Editor konnte nicht aktualisiert werden.';
 
   @override
   String programsDuplicatedSnack(String title) {

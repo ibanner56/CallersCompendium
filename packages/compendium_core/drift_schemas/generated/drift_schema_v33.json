@@ -12,59 +12,6 @@
       "references": [],
       "type": "table",
       "data": {
-        "name": "difficulty_levels",
-        "was_declared_in_moor": true,
-        "columns": [
-          {
-            "name": "id",
-            "getter_name": "id",
-            "moor_type": "string",
-            "nullable": false,
-            "customConstraints": "NOT NULL",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          },
-          {
-            "name": "label",
-            "getter_name": "label",
-            "moor_type": "string",
-            "nullable": false,
-            "customConstraints": "NOT NULL UNIQUE",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": [
-              "unique"
-            ]
-          },
-          {
-            "name": "position",
-            "getter_name": "position",
-            "moor_type": "int",
-            "nullable": false,
-            "customConstraints": "NOT NULL",
-            "default_dart": null,
-            "default_client_dart": null,
-            "dsl_features": []
-          }
-        ],
-        "is_virtual": false,
-        "without_rowid": false,
-        "constraints": [
-          "PRIMARY KEY(id)"
-        ],
-        "explicit_pk": [
-          "id"
-        ]
-      }
-    },
-    {
-      "id": 1,
-      "references": [
-        0
-      ],
-      "type": "table",
-      "data": {
         "name": "dances",
         "was_declared_in_moor": true,
         "columns": [
@@ -189,26 +136,14 @@
             "dsl_features": []
           },
           {
-            "name": "level_id",
-            "getter_name": "levelId",
+            "name": "level",
+            "getter_name": "level",
             "moor_type": "string",
             "nullable": true,
-            "customConstraints": "NULL REFERENCES difficulty_levels(id)",
+            "customConstraints": "NULL",
             "default_dart": null,
             "default_client_dart": null,
-            "dsl_features": [
-              {
-                "foreign_key": {
-                  "to": {
-                    "table": "difficulty_levels",
-                    "column": "id"
-                  },
-                  "initially_deferred": false,
-                  "on_update": null,
-                  "on_delete": null
-                }
-              }
-            ]
+            "dsl_features": []
           },
           {
             "name": "mixed_level",
@@ -322,7 +257,7 @@
       }
     },
     {
-      "id": 2,
+      "id": 1,
       "references": [],
       "type": "table",
       "data": {
@@ -443,10 +378,10 @@
       }
     },
     {
-      "id": 3,
+      "id": 2,
       "references": [
-        1,
-        2
+        0,
+        1
       ],
       "type": "table",
       "data": {
@@ -527,9 +462,9 @@
       }
     },
     {
-      "id": 4,
+      "id": 3,
       "references": [
-        1
+        0
       ],
       "type": "table",
       "data": {
@@ -651,7 +586,7 @@
       }
     },
     {
-      "id": 5,
+      "id": 4,
       "references": [],
       "type": "table",
       "data": {
@@ -820,10 +755,10 @@
       }
     },
     {
-      "id": 6,
+      "id": 5,
       "references": [
-        5,
-        1
+        4,
+        0
       ],
       "type": "table",
       "data": {
@@ -905,6 +840,16 @@
             "dsl_features": []
           },
           {
+            "name": "is_purged_dance",
+            "getter_name": "isPurgedDance",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "NULL CHECK (is_purged_dance IN (0, 1))",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
             "name": "is_alt",
             "getter_name": "isAlt",
             "moor_type": "int",
@@ -956,7 +901,7 @@
       }
     },
     {
-      "id": 7,
+      "id": 6,
       "references": [],
       "type": "table",
       "data": {
@@ -1087,10 +1032,10 @@
       }
     },
     {
-      "id": 8,
+      "id": 7,
       "references": [
-        1,
-        7
+        0,
+        6
       ],
       "type": "table",
       "data": {
@@ -1174,7 +1119,7 @@
       }
     },
     {
-      "id": 9,
+      "id": 8,
       "references": [],
       "type": "table",
       "data": {
@@ -1255,10 +1200,10 @@
       }
     },
     {
-      "id": 10,
+      "id": 9,
       "references": [
-        1,
-        9
+        0,
+        8
       ],
       "type": "table",
       "data": {
@@ -1322,9 +1267,9 @@
       }
     },
     {
-      "id": 11,
+      "id": 10,
       "references": [
-        1
+        0
       ],
       "type": "table",
       "data": {
@@ -1437,9 +1382,9 @@
       }
     },
     {
-      "id": 12,
+      "id": 11,
       "references": [
-        1
+        0
       ],
       "type": "table",
       "data": {
@@ -1540,7 +1485,7 @@
       }
     },
     {
-      "id": 13,
+      "id": 12,
       "references": [],
       "type": "table",
       "data": {
@@ -1649,10 +1594,10 @@
       }
     },
     {
-      "id": 14,
+      "id": 13,
       "references": [
-        1,
-        13
+        0,
+        12
       ],
       "type": "table",
       "data": {
@@ -1753,7 +1698,7 @@
       }
     },
     {
-      "id": 15,
+      "id": 14,
       "references": [],
       "type": "table",
       "data": {
@@ -1822,9 +1767,9 @@
       }
     },
     {
-      "id": 16,
+      "id": 15,
       "references": [
-        5
+        4
       ],
       "type": "table",
       "data": {
@@ -1925,7 +1870,7 @@
       }
     },
     {
-      "id": 17,
+      "id": 16,
       "references": [],
       "type": "table",
       "data": {
@@ -2194,9 +2139,9 @@
       }
     },
     {
-      "id": 18,
+      "id": 17,
       "references": [
-        17
+        16
       ],
       "type": "table",
       "data": {
@@ -2304,7 +2249,7 @@
       }
     },
     {
-      "id": 19,
+      "id": 18,
       "references": [],
       "type": "table",
       "data": {
@@ -2364,7 +2309,7 @@
       }
     },
     {
-      "id": 20,
+      "id": 19,
       "references": [],
       "type": "table",
       "data": {
@@ -2415,7 +2360,7 @@
       }
     },
     {
-      "id": 21,
+      "id": 20,
       "references": [],
       "type": "table",
       "data": {
@@ -2454,7 +2399,7 @@
       }
     },
     {
-      "id": 22,
+      "id": 21,
       "references": [],
       "type": "table",
       "data": {
@@ -2514,7 +2459,7 @@
       }
     },
     {
-      "id": 23,
+      "id": 22,
       "references": [],
       "type": "table",
       "data": {
@@ -2564,7 +2509,7 @@
       }
     },
     {
-      "id": 24,
+      "id": 23,
       "references": [],
       "type": "table",
       "data": {
@@ -2634,7 +2579,7 @@
       }
     },
     {
-      "id": 25,
+      "id": 24,
       "references": [],
       "type": "table",
       "data": {
@@ -2725,7 +2670,7 @@
       }
     },
     {
-      "id": 26,
+      "id": 25,
       "references": [],
       "type": "table",
       "data": {
@@ -2765,7 +2710,7 @@
       }
     },
     {
-      "id": 27,
+      "id": 26,
       "references": [],
       "type": "table",
       "data": {
@@ -2860,7 +2805,7 @@
       }
     },
     {
-      "id": 28,
+      "id": 27,
       "references": [],
       "type": "table",
       "data": {
@@ -2955,13 +2900,13 @@
       }
     },
     {
-      "id": 29,
+      "id": 28,
       "references": [
-        4
+        3
       ],
       "type": "index",
       "data": {
-        "on": 4,
+        "on": 3,
         "name": "dance_figures_move_section",
         "sql": "CREATE INDEX dance_figures_move_section ON dance_figures(move, section);",
         "unique": false,
@@ -2969,13 +2914,13 @@
       }
     },
     {
-      "id": 30,
+      "id": 29,
       "references": [
-        11
+        10
       ],
       "type": "index",
       "data": {
-        "on": 11,
+        "on": 10,
         "name": "dance_links_dance_id",
         "sql": "CREATE INDEX dance_links_dance_id ON dance_links(dance_id);",
         "unique": false,
@@ -2983,13 +2928,13 @@
       }
     },
     {
-      "id": 31,
+      "id": 30,
       "references": [
-        11
+        10
       ],
       "type": "index",
       "data": {
-        "on": 11,
+        "on": 10,
         "name": "dance_links_target_transitive",
         "sql": "CREATE INDEX dance_links_target_transitive ON dance_links(target_dance_id, transitive, kind, dance_id);",
         "unique": false,
@@ -2997,27 +2942,13 @@
       }
     },
     {
-      "id": 32,
+      "id": 31,
       "references": [
-        1
+        4
       ],
       "type": "index",
       "data": {
-        "on": 1,
-        "name": "dances_level_id",
-        "sql": "CREATE INDEX dances_level_id ON dances(level_id);",
-        "unique": false,
-        "columns": []
-      }
-    },
-    {
-      "id": 33,
-      "references": [
-        5
-      ],
-      "type": "index",
-      "data": {
-        "on": 5,
+        "on": 4,
         "name": "programs_venue_id",
         "sql": "CREATE INDEX programs_venue_id ON programs(venue_id);",
         "unique": false,
@@ -3025,13 +2956,13 @@
       }
     },
     {
-      "id": 34,
+      "id": 32,
       "references": [
-        6
+        5
       ],
       "type": "index",
       "data": {
-        "on": 6,
+        "on": 5,
         "name": "program_slots_dance_id",
         "sql": "CREATE INDEX program_slots_dance_id ON program_slots(dance_id);",
         "unique": false,
