@@ -140,7 +140,7 @@ void main() {
         callingNotes: 'Keep the transitions crisp.',
         walkthrough: 'Walk forward, turn, and return.',
         status: DanceStatus.deprecated,
-        level: DanceLevel.advanced,
+        difficultyLevelId: DifficultyLevel.advancedId,
         mixedLevel: true,
         mixer: true,
         rating: 4,

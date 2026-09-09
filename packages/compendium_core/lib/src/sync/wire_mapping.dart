@@ -31,7 +31,7 @@ const _danceFields = [
   SyncWireField('callingNotes', ['dances.calling_notes']),
   SyncWireField('walkthrough', ['dances.walkthrough']),
   SyncWireField('status', ['dances.status']),
-  SyncWireField('level', ['dances.level']),
+  SyncWireField('difficultyLevelId', ['dances.level_id']),
   SyncWireField('mixedLevel', ['dances.mixed_level']),
   SyncWireField('mixer', ['dances.mixer']),
   SyncWireField('rating', ['dances.rating']),
@@ -139,6 +139,12 @@ const _customFieldDefFields = [
   SyncWireField('shareable', ['custom_field_defs.shareable']),
 ];
 
+const _difficultyLevelFields = [
+  SyncWireField('id', ['difficulty_levels.id']),
+  SyncWireField('label', ['difficulty_levels.label']),
+  SyncWireField('position', ['difficulty_levels.position']),
+];
+
 const _venueFields = [
   SyncWireField('id', ['venues.id']),
   SyncWireField('name', ['venues.name']),
@@ -189,6 +195,7 @@ const Map<SyncRecordKind, List<SyncWireField>> syncWireFields = {
   SyncRecordKind.tag: _tagFields,
   SyncRecordKind.publishedSource: _publishedSourceFields,
   SyncRecordKind.customFieldDef: _customFieldDefFields,
+  SyncRecordKind.difficultyLevel: _difficultyLevelFields,
   SyncRecordKind.venue: _venueFields,
   SyncRecordKind.setting: _settingFields,
 };

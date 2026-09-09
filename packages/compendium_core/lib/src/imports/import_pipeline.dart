@@ -839,7 +839,7 @@ class ImportPipeline {
       _figureListEquality.equals(a.figures, b.figures) &&
       a.hook == b.hook &&
       a.callingNotes == b.callingNotes &&
-      a.level == b.level &&
+      a.difficultyLevelId == b.difficultyLevelId &&
       a.mixedLevel == b.mixedLevel &&
       a.mixer == b.mixer &&
       _stringListEquality.equals(a.tunes, b.tunes);
@@ -903,7 +903,7 @@ class ImportPipeline {
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
     status: src.status,
-    level: src.level,
+    difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,
     mixer: src.mixer,
     rating: src.rating,

@@ -1,5 +1,6 @@
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/venue_repository.dart';
@@ -25,7 +26,7 @@ class ArchiveExporter {
   /// backup is a faithful, restorable snapshot including items still within the
   /// retention window.
   ///
-  /// All seven reads run inside a single [CompendiumRepositories.db]
+  /// All eight reads run inside a single [CompendiumRepositories.db]
   /// transaction so the export sees one consistent snapshot of the dataset —
   /// without it, a write landing between two reads could produce a
   /// cross-entity-inconsistent archive (e.g. a dance referencing a
@@ -47,6 +48,7 @@ class ArchiveExporter {
         customFields: await _repos.customFieldDefs.listAll(),
         tags: await _repos.tags.listAll(),
         venues: await _repos.venues.listAll(),
+        difficultyLevels: await _repos.difficultyLevels.listAll(),
       ),
     );
   }
@@ -136,7 +138,7 @@ class ArchiveRestorer {
 
   /// Writes every archive entity in foreign-key-safe order: the entities a
   /// dance references (published sources, choreographers, tags, custom-field
-  /// defs) first, then dances, then venues, then programs (whose slots
+  /// defs, difficulty levels) first, then dances, then venues, then programs (whose slots
   /// reference dances and whose `venueId` references a venue).
   ///
   /// Choreographers, tags, and custom-field defs are upserted via methods that
@@ -174,6 +176,19 @@ class ArchiveRestorer {
     final tagRemap = <String, String>{};
     final fieldRemap = <String, String>{};
 
+    // Older archives did not carry the vocabulary. Recreate the shipped IDs
+    // before loading theirs so a legacy enum-name dance reference remains
+    // restorable after a full replace.
+    for (final level in DifficultyLevel.shipped) {
+      await _guard('difficultyLevel', level.id, errors, () async {
+        await _repos.difficultyLevels.upsert(level);
+      });
+    }
+    for (final level in archive.difficultyLevels) {
+      await _guard('difficultyLevel', level.id, errors, () async {
+        await _repos.difficultyLevels.upsert(level);
+      });
+    }
     for (final s in archive.publishedSources) {
       await _guard('publishedSource', s.id, errors, () async {
         // publishedSources.upsert returns Future<void> — it contains no
@@ -356,6 +371,7 @@ class ArchiveRestorer {
     await db.delete(db.provenance).go();
     await db.delete(db.programSlots).go();
     await db.delete(db.dances).go();
+    await db.delete(db.difficultyLevels).go();
     await db.delete(db.programs).go();
     await db.delete(db.customFieldDefs).go();
     await db.delete(db.tags).go();

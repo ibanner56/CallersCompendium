@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';
@@ -224,8 +225,8 @@ CcDanceMapping mapCallersCompanionDance(
   // fabricates ids; blank/duplicate names are dropped.
   final authorNames = splitAuthorNames(record.authors, issues: issues);
 
-  // Level → DanceLevel (+ mixedLevel), best-effort.
-  final (level, mixedLevel) = _mapLevel(record.level, issues);
+  // Level → shipped difficulty-level id (+ mixedLevel), best-effort.
+  final (difficultyLevelId, mixedLevel) = _mapLevel(record.level, issues);
 
   // Type → DanceForm, best-effort; unknown types are preserved as a note.
   final (form, typeNote) = _mapForm(record.type, issues);
@@ -291,7 +292,7 @@ CcDanceMapping mapCallersCompanionDance(
     progression: progression,
     figures: figures,
     callingNotes: notes,
-    level: level,
+    difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
     composedOn: composedOn,
@@ -394,16 +395,17 @@ Figure _withBeats(Figure figure, int beats) {
   return figure.copyWith(params: params);
 }
 
-(DanceLevel?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
+(String?, bool) _mapLevel(String? raw, List<ImportIssue> issues) {
   final value = raw?.trim().toLowerCase() ?? '';
   if (value.isEmpty) return (null, false);
   if (value.contains('mix')) return (null, true);
   const beginner = {'beginner', 'easy', 'novice', 'basic'};
   const intermediate = {'intermediate', 'medium', 'moderate'};
   const advanced = {'advanced', 'hard', 'challenging', 'difficult', 'expert'};
-  if (beginner.contains(value)) return (DanceLevel.beginner, false);
-  if (intermediate.contains(value)) return (DanceLevel.intermediate, false);
-  if (advanced.contains(value)) return (DanceLevel.advanced, false);
+  if (beginner.contains(value)) return (DifficultyLevel.beginnerId, false);
+  if (intermediate.contains(value))
+    return (DifficultyLevel.intermediateId, false);
+  if (advanced.contains(value)) return (DifficultyLevel.advancedId, false);
   issues.add(
     ImportIssue(
       severity: ImportIssueSeverity.warning,

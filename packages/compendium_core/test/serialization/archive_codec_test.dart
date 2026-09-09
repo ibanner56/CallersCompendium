@@ -91,7 +91,7 @@ CompendiumArchive _sampleArchive() {
         'A1: neighbours balance and swing.\n'
         'A2: ladies chain; star left.\nB1: partners balance and swing.',
     status: DanceStatus.active,
-    level: DanceLevel.intermediate,
+    difficultyLevelId: DifficultyLevel.intermediateId,
     mixedLevel: false,
     rating: 5,
     tunes: const ['Reel de Montreal', 'Growling Old Man'],
@@ -211,6 +211,7 @@ CompendiumArchive _sampleArchive() {
     publishedSources: [s1, s2],
     tags: tags,
     customFields: customFields,
+    difficultyLevels: DifficultyLevel.shipped,
     dances: [d1, d2, d3],
     programs: [p1, p2],
   );
@@ -302,7 +303,7 @@ void main() {
       final d2 = result.archive.dances.firstWhere((d) => d.id == 'd2');
       expect(d2.figures[0].customOrigin, CustomOrigin.userEntered);
       expect(d2.figures[1].customOrigin, CustomOrigin.importGap);
-      expect(d1.level, DanceLevel.intermediate);
+      expect(d1.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(d1.rating, 5);
       expect(d1.tunes, hasLength(2));
       expect(d1.customFields.map((v) => v.value), [
@@ -351,6 +352,82 @@ void main() {
       expect(pProv.importedAt, DateTime.utc(2025, 4, 1, 8, 0, 0));
       expect(pProv.sourceVersion, '2.3');
     });
+
+    test('round-trips ordered difficulty-level entities', () {
+      final levels = [
+        DifficultyLevel(id: 'level-z', label: 'Workshop', position: 3),
+        DifficultyLevel(id: 'level-a', label: 'Challenge', position: 4),
+      ];
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026, 7, 15),
+        difficultyLevels: levels,
+      );
+
+      final decoded = decodeArchive(encodeArchive(archive));
+
+      expect(decoded.errors, isEmpty);
+      expect(decoded.archive.difficultyLevels, levels);
+      expect(
+        decoded.archive.schemaVersion,
+        archiveSchemaVersionDifficultyLevels,
+      );
+    });
+
+    test('decodes legacy enum level names to shipped IDs', () {
+      final root = archiveToJson(
+        CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy',
+              title: 'Legacy level',
+              createdAt: DateTime.utc(2026, 7, 15),
+              updatedAt: DateTime.utc(2026, 7, 15),
+            ),
+          ],
+        ),
+      );
+      ((root['dances']! as List<Object?>).single as Map<String, Object?>)
+        ..['level'] = 'advanced';
+
+      final decoded = archiveFromJson(root);
+
+      expect(decoded.errors, isEmpty);
+      expect(
+        decoded.archive.dances.single.difficultyLevelId,
+        DifficultyLevel.advancedId,
+      );
+    });
+
+    test(
+      'reports malformed difficulty entities and unknown dance references',
+      () {
+        final root = archiveToJson(_sampleArchive());
+        root['difficultyLevels'] = [
+          {'id': 'custom', 'label': 'Custom', 'position': 3},
+          {'id': 'custom', 'label': 'Duplicate', 'position': 4},
+          {'label': 'Missing id', 'position': 5},
+        ];
+        ((root['dances']! as List<Object?>).first as Map<String, Object?>)
+          ..['difficultyLevelId'] = 'missing';
+
+        final decoded = archiveFromJson(root);
+
+        expect(decoded.archive.difficultyLevels.map((level) => level.id), [
+          'custom',
+        ]);
+        expect(
+          decoded.errors.map(
+            (error) => '${error.entityType}:${error.entityId}',
+          ),
+          containsAll([
+            'difficultyLevel:custom',
+            'difficultyLevel:null',
+            'dance:d1',
+          ]),
+        );
+      },
+    );
 
     test('round-trips the added dance statuses by name', () {
       for (final name in ['draft', 'variation']) {
@@ -597,19 +674,23 @@ void main() {
       expect(result.archive.dances, isNotEmpty);
     });
 
-    test('output is deterministic regardless of input entity order', () {
-      final a = _sampleArchive();
-      final shuffled = CompendiumArchive(
-        exportedAt: a.exportedAt,
-        choreographers: a.choreographers.reversed.toList(),
-        publishedSources: a.publishedSources.reversed.toList(),
-        tags: a.tags.reversed.toList(),
-        customFields: a.customFields.reversed.toList(),
-        dances: a.dances.reversed.toList(),
-        programs: a.programs.reversed.toList(),
-      );
-      expect(encodeArchive(shuffled), encodeArchive(a));
-    });
+    test(
+      'sorts unordered entities without changing difficulty-level order',
+      () {
+        final a = _sampleArchive();
+        final shuffled = CompendiumArchive(
+          exportedAt: a.exportedAt,
+          choreographers: a.choreographers.reversed.toList(),
+          publishedSources: a.publishedSources.reversed.toList(),
+          tags: a.tags.reversed.toList(),
+          customFields: a.customFields.reversed.toList(),
+          dances: a.dances.reversed.toList(),
+          programs: a.programs.reversed.toList(),
+          difficultyLevels: a.difficultyLevels,
+        );
+        expect(encodeArchive(shuffled), encodeArchive(a));
+      },
+    );
   });
 
   group('forward compatibility', () {
@@ -917,11 +998,19 @@ void main() {
       expect(map['schemaVersion'], archiveSchemaVersionVenues);
     });
 
-    test('keeps a venue-less archive at the base version (back-compat)', () {
-      final map =
-          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
-      expect(map['schemaVersion'], archiveSchemaVersionBase);
-    });
+    test(
+      'keeps an archive with no venue or difficulty data at the base version',
+      () {
+        final map =
+            jsonDecode(
+                  encodeArchive(
+                    CompendiumArchive(exportedAt: DateTime.utc(2026)),
+                  ),
+                )
+                as Map<String, Object?>;
+        expect(map['schemaVersion'], archiveSchemaVersionBase);
+      },
+    );
 
     test('honors an explicitly higher requested schema version', () {
       final archive = CompendiumArchive(

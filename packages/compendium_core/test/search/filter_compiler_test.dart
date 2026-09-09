@@ -202,43 +202,46 @@ void main() {
   });
 
   group('level leaves', () {
-    test('LevelFilter eq is a plain name match', () {
-      expect(pred(const LevelFilter(DanceLevel.intermediate)), 'level = ?');
+    test('LevelFilter eq is a plain ID match', () {
       expect(
-        compiler.compile(const LevelFilter(DanceLevel.intermediate)).binds,
-        ['intermediate'],
-      );
-    });
-
-    test('LevelFilter lte compiles an ordered CASE with a NULL guard', () {
-      expect(
-        pred(const LevelFilter(DanceLevel.intermediate, LevelOp.lte)),
-        'level IS NOT NULL AND (CASE level '
-        "WHEN 'beginner' THEN 0 "
-        "WHEN 'intermediate' THEN 1 "
-        "WHEN 'advanced' THEN 2 END) <= ?",
+        pred(const LevelFilter(DifficultyLevel.intermediateId)),
+        'level_id = ?',
       );
       expect(
         compiler
-            .compile(const LevelFilter(DanceLevel.intermediate, LevelOp.lte))
+            .compile(const LevelFilter(DifficultyLevel.intermediateId))
             .binds,
-        [DanceLevel.intermediate.index],
+        [DifficultyLevel.intermediateId],
       );
     });
 
-    test('LevelFilter gte compiles an ordered CASE with a NULL guard', () {
+    test('LevelFilter lte resolves the configured level position', () {
       expect(
-        pred(const LevelFilter(DanceLevel.advanced, LevelOp.gte)),
-        'level IS NOT NULL AND (CASE level '
-        "WHEN 'beginner' THEN 0 "
-        "WHEN 'intermediate' THEN 1 "
-        "WHEN 'advanced' THEN 2 END) >= ?",
+        pred(const LevelFilter(DifficultyLevel.intermediateId, LevelOp.lte)),
+        'level_id IN (SELECT id FROM difficulty_levels WHERE position <= '
+        '(SELECT position FROM difficulty_levels WHERE id = ?))',
       );
       expect(
         compiler
-            .compile(const LevelFilter(DanceLevel.advanced, LevelOp.gte))
+            .compile(
+              const LevelFilter(DifficultyLevel.intermediateId, LevelOp.lte),
+            )
             .binds,
-        [DanceLevel.advanced.index],
+        [DifficultyLevel.intermediateId],
+      );
+    });
+
+    test('LevelFilter gte resolves the configured level position', () {
+      expect(
+        pred(const LevelFilter(DifficultyLevel.advancedId, LevelOp.gte)),
+        'level_id IN (SELECT id FROM difficulty_levels WHERE position >= '
+        '(SELECT position FROM difficulty_levels WHERE id = ?))',
+      );
+      expect(
+        compiler
+            .compile(const LevelFilter(DifficultyLevel.advancedId, LevelOp.gte))
+            .binds,
+        [DifficultyLevel.advancedId],
       );
     });
 
@@ -259,11 +262,11 @@ void main() {
     test('level leaves compose under And/Or with pre-order binds', () {
       final c = compiler.compile(
         const AndFilter([
-          LevelFilter(DanceLevel.beginner, LevelOp.gte),
+          LevelFilter(DifficultyLevel.beginnerId, LevelOp.gte),
           MixedLevelFilter(false),
         ]),
       );
-      expect(c.binds, [DanceLevel.beginner.index, 0]);
+      expect(c.binds, [DifficultyLevel.beginnerId, 0]);
     });
   });
 

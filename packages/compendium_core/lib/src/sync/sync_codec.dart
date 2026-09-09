@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/published_source.dart';
 import '../model/program.dart';
 import '../model/tag.dart';
@@ -232,7 +233,7 @@ String? encodeSyncSettingsRecord(SyncSettingsRecord record) {
   return blob == null ? null : encodeSyncRecordBlob(blob);
 }
 
-/// Builds a shareable archive-shaped body for one of the seven entity kinds.
+/// Builds a shareable archive-shaped body for one of the eight entity kinds.
 Map<String, Object?> syncBodyForEntity(
   SyncRecordKind kind,
   Object entity, {
@@ -265,6 +266,9 @@ Map<String, Object?> syncBodyForEntity(
       includeShareable: true,
       includeOptionalFields: true,
     ),
+    SyncRecordKind.difficultyLevel => archiveDifficultyLevelToJson(
+      _requireEntity<DifficultyLevel>(entity, kind),
+    ),
     SyncRecordKind.venue => archiveVenueToJson(
       _requireEntity<Venue>(entity, kind),
       includeOptionalFields: true,
@@ -280,7 +284,7 @@ Map<String, Object?> syncBodyForEntity(
   );
 }
 
-/// Builds a versioned blob for one of the seven archive entity kinds.
+/// Builds a versioned blob for one of the eight archive entity kinds.
 SyncRecordBlob? syncRecordBlobForEntity(
   SyncRecordKind kind,
   Object entity, {

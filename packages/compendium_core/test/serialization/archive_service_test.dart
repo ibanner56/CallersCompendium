@@ -79,7 +79,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
       ],
       hook: 'zesty',
       callingNotes: 'teach it',
-      level: DanceLevel.intermediate,
+      difficultyLevelId: DifficultyLevel.intermediateId,
       rating: 4,
       tunes: const ['Reel'],
       customFields: [
@@ -312,6 +312,83 @@ void main() {
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
+
+    test(
+      'replace and merge preserve ordered difficulty levels and assignments',
+      () async {
+        final sourceDb = openTestDatabase();
+        addTearDown(sourceDb.close);
+        final sourceRepos = CompendiumRepositories(sourceDb, contraTaxonomy);
+        final custom = DifficultyLevel(
+          id: 'custom-workshop',
+          label: 'Workshop',
+          position: 3,
+        );
+        await sourceRepos.difficultyLevels.upsert(custom);
+        await sourceRepos.dances.create(
+          Dance(
+            id: 'd-level',
+            title: 'Levelled',
+            difficultyLevelId: custom.id,
+            createdAt: DateTime.utc(2026, 7, 15),
+            updatedAt: DateTime.utc(2026, 7, 15),
+          ),
+        );
+        final archive = await ArchiveExporter(
+          sourceRepos,
+        ).export(exportedAt: DateTime.utc(2026, 7, 15));
+
+        final targetDb = openTestDatabase();
+        addTearDown(targetDb.close);
+        final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+        final replaced = await ArchiveRestorer(targetRepos).restore(archive);
+        expect(replaced.errors, isEmpty);
+        expect(
+          await targetRepos.difficultyLevels.listAll(),
+          archive.difficultyLevels,
+        );
+        expect(
+          (await targetRepos.dances.getById('d-level'))!.difficultyLevelId,
+          custom.id,
+        );
+
+        final local = DifficultyLevel(
+          id: 'local',
+          label: 'Local only',
+          position: 3,
+        );
+        await targetRepos.difficultyLevels.upsert(local);
+        final merged = await ArchiveRestorer(targetRepos).restore(
+          CompendiumArchive(
+            exportedAt: DateTime.utc(2026, 7, 16),
+            difficultyLevels: [
+              DifficultyLevel(id: 'incoming', label: 'Incoming', position: 4),
+            ],
+            dances: [
+              Dance(
+                id: 'd-incoming',
+                title: 'Incoming dance',
+                difficultyLevelId: 'incoming',
+                createdAt: DateTime.utc(2026, 7, 16),
+                updatedAt: DateTime.utc(2026, 7, 16),
+              ),
+            ],
+          ),
+          mode: RestoreMode.merge,
+        );
+        expect(merged.errors, isEmpty);
+        expect(
+          (await targetRepos.difficultyLevels.listAll()).map(
+            (level) => level.id,
+          ),
+          containsAll(['local', 'incoming']),
+        );
+        expect(
+          (await targetRepos.dances.getById('d-incoming'))!.difficultyLevelId,
+          'incoming',
+        );
+      },
+    );
 
     test('merge revives a tombstoned program with a causal stamp', () async {
       final db = openTestDatabase();
