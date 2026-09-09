@@ -486,7 +486,7 @@ void main() {
         );
 
         // The formation label text is absent when the chip is hidden.
-        expect(find.text('Duple improper'), findsNothing);
+        expect(find.text('Improper'), findsNothing);
         expect(find.text('Rich Dance'), findsOneWidget);
       },
     );
@@ -523,7 +523,7 @@ void main() {
         expect(find.text('tag-one'), findsOneWidget);
         expect(find.text('Rich Dance'), findsOneWidget);
         expect(find.text('Alice'), findsOneWidget);
-        expect(find.text('Duple improper'), findsOneWidget);
+        expect(find.text('Improper'), findsOneWidget);
       },
     );
 
@@ -597,7 +597,7 @@ void main() {
       expect(find.text('tag-one'), findsNothing); // tags hidden
       expect(find.text('Alice'), findsNothing); // authors hidden
       // Spot-check a second chip group to confirm it's not just tags.
-      expect(find.text('Duple improper'), findsNothing); // formation hidden
+      expect(find.text('Improper'), findsNothing); // formation hidden
     });
   });
 

@@ -1580,9 +1580,13 @@
   "@commonDanceLevelAdvanced": {
     "x-sourceSha256": "9f088dbebd6c3c70a5ddbc2c943b11e4ca9acea5757b0b4f2b32479f0dbb747e"
   },
-  "commonFormationDupleImproper": "デュープルインプロパー",
+  "commonFormationDupleImproper": "インプロパー",
   "@commonFormationDupleImproper": {
-    "x-sourceSha256": "7d4809232dd29915bfa8b7a2fd009728a4c9820cd26f06637226d27a567d3680"
+    "x-sourceSha256": "808a0c372428e6e217915030f238b73e494ec4fbb18e8fd5ec2004b7237e2031"
+  },
+  "commonFormationReverseProgressionImproper": "逆進行インプロパー",
+  "@commonFormationReverseProgressionImproper": {
+    "x-sourceSha256": "9883e2a8bdb86a8f098ec334a376e1ab4a57617832057c384fd3e423d8b7dabb"
   },
   "commonFormationBecketCw": "Becket（CW）",
   "@commonFormationBecketCw": {
@@ -1592,13 +1596,13 @@
   "@commonFormationBecketCcw": {
     "x-sourceSha256": "34fbde39ef1bf1a6fb95aa5a2972258e3531c9d0fa5f4e51fde183051cac1544"
   },
-  "commonFormationDupleProper": "デュープルプロパー",
+  "commonFormationDupleProper": "プロパー",
   "@commonFormationDupleProper": {
-    "x-sourceSha256": "01c9bd784a2a4c4257c1f26406d7a632cf9375303f2a0ce5c4466f90bee64b24"
+    "x-sourceSha256": "ede828cdf3ce4a7537195a8c6c7f008db69edfea751a2682b3362681b3d36b25"
   },
-  "commonFormationDupleIndecent": "デュープルインディーセント",
+  "commonFormationDupleIndecent": "インディーセント",
   "@commonFormationDupleIndecent": {
-    "x-sourceSha256": "e4a67d69292c5a641094b10b623f5919fcdf733a7e2d243ae3a96aa53d29a35d"
+    "x-sourceSha256": "a2eef8c4f9d377392810fdb02e8d4fd912a99e71110a21ee1fbf0fbb5a7f6163"
   },
   "commonFormationTripleMinor": "トリプルマイナー",
   "@commonFormationTripleMinor": {

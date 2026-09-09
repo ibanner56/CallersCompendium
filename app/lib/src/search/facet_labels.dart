@@ -70,6 +70,8 @@ String danceLevelLabel(AppLocalizations l10n, DanceLevel level) =>
 String formationShapeLabel(AppLocalizations l10n, FormationShape shape) =>
     switch (shape) {
       FormationShape.dupleImproper => l10n.commonFormationDupleImproper,
+      FormationShape.reverseProgressionImproper =>
+        l10n.commonFormationReverseProgressionImproper,
       FormationShape.becketCw => l10n.commonFormationBecketCw,
       FormationShape.becketCcw => l10n.commonFormationBecketCcw,
       FormationShape.dupleProper => l10n.commonFormationDupleProper,

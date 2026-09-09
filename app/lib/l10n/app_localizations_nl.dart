@@ -1401,7 +1401,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Gevorderd';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper met omgekeerde progressie';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1410,10 +1414,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';

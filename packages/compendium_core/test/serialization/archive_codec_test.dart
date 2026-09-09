@@ -71,7 +71,7 @@ CompendiumArchive _sampleArchive() {
     authorIds: const ['c2', 'c1'],
     form: DanceForm.contra,
     formation: const Formation(
-      FormationShape.becketCw,
+      FormationShape.reverseProgressionImproper,
       detail: 'double progression',
     ),
     progression: Progression.double,
@@ -290,7 +290,7 @@ void main() {
 
       final d1 = result.archive.dances.firstWhere((d) => d.id == 'd1');
       expect(d1.authorIds, ['c2', 'c1']);
-      expect(d1.formation.shape, FormationShape.becketCw);
+      expect(d1.formation.shape, FormationShape.reverseProgressionImproper);
       expect(d1.formation.detail, 'double progression');
       expect(d1.progression, Progression.double);
       expect(d1.phraseStructure.raw, '6*8*2');

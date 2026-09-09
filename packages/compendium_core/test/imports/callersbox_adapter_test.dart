@@ -455,6 +455,34 @@ void main() {
         },
       );
 
+      test('classifies reverse progression improper exactly', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              formationBase: 'Duple Minor - Reverse progression improper',
+              formationDetail: 'chestnut',
+            ),
+          ),
+        );
+        expect(
+          draft.dance.formation.shape,
+          FormationShape.reverseProgressionImproper,
+        );
+        expect(draft.dance.formation.detail, 'chestnut');
+      });
+
+      test('does not broaden reverse progression matching', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(
+              formationBase:
+                  'Duple Minor - Reverse progression improper variant',
+            ),
+          ),
+        );
+        expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+      });
+
       test('normalizes unclassified formation source and detail', () async {
         final draft = await _importOne(
           jsonEncode(
