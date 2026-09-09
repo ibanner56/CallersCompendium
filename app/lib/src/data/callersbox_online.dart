@@ -129,7 +129,11 @@ class CallersBoxOnline implements OnlineSearchService {
     final jsonUrl = buildCallersBoxJsonUrl(result.id);
     final payload = await _jsonFetcher(jsonUrl);
 
-    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final pipeline = ImportPipeline(
+      repos.dances,
+      repos.choreographers,
+      difficultyLevels: repos.difficultyLevels,
+    );
     final batch = await pipeline.plan(
       CallersBoxAdapter(),
       ImportRequest(payload: payload, uri: jsonUrl),
@@ -243,7 +247,11 @@ class CallersBoxOnline implements OnlineSearchService {
         ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
         : const <int, DedupeResolution>{};
 
-    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final pipeline = ImportPipeline(
+      repos.dances,
+      repos.choreographers,
+      difficultyLevels: repos.difficultyLevels,
+    );
     final session = await pipeline.commit(
       ImportBatchResult(records: [plan]),
       now: now ?? DateTime.now().toUtc(),

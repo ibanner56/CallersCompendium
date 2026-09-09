@@ -1259,7 +1259,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _buildCommitBatch();
     widget.onCommitStateChanged?.call(true);
     setState(() => _phase = _Phase.committing);
-    final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+    final pipeline = ImportPipeline(
+      _repos.dances,
+      _repos.choreographers,
+      difficultyLevels: _repos.difficultyLevels,
+    );
     // Commit/undo routing is gated on the concrete adapter type — NOT on
     // `_isByteSource` — so only Caller's Companion `.USR` persists/undoes
     // programs. A hypothetical future dance-only byte source would fall through

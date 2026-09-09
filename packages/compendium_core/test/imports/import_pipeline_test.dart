@@ -135,7 +135,7 @@ void main() {
     });
 
     test(
-      'two-argument construction retains shipped difficulty mappings',
+      'two-argument construction preserves adapter difficulty mappings',
       () async {
         final legacyPipeline = ImportPipeline(dances, choreographers);
         final batch = await legacyPipeline.plan(
@@ -188,6 +188,28 @@ void main() {
       expect(prov.permission, 'full');
       expect(prov.license, 'CC-BY');
       expect(prov.sourceVersion, 'v3');
+    });
+
+    test('tombstoned shipped levels are cleared before commit', () async {
+      await difficultyLevels.delete(DifficultyLevel.advancedId, at: now);
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('deleted-level', 'Deleted Level Dance')
+            ..['difficultyLevelId'] = DifficultyLevel.advancedId,
+        ], difficultyLevelLabel: 'Advanced'),
+        const ImportRequest(),
+      );
+
+      final draft = batch.records.single.draft;
+      expect(draft.dance.difficultyLevelId, isNull);
+      expect(
+        draft.issues.any((issue) => issue.code == 'cc_inactive_level'),
+        isTrue,
+      );
+
+      final session = await pipeline.commit(batch, now: now, newId: nextId);
+      expect(session.records.single.succeeded, isTrue);
+      expect((await dances.listAll()).single.difficultyLevelId, isNull);
     });
 
     test('custom-figure text is searchable after commit', () async {

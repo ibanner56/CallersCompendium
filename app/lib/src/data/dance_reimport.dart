@@ -54,6 +54,7 @@ Future<ImportRecordPlan> planSingleDanceJson(
   final batch = await ImportPipeline(
     repos.dances,
     repos.choreographers,
+    difficultyLevels: repos.difficultyLevels,
   ).plan(GenericJsonAdapter(), ImportRequest(payload: payload));
   if (batch.records.length != 1) {
     throw DanceReimportJsonException.cardinality(batch.records.length);

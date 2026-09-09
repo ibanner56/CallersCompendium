@@ -293,13 +293,15 @@ class ImportPipeline {
     }
 
     final configuredLevels = _difficultyLevels == null
-        ? DifficultyLevel.shipped
+        ? null
         : await _difficultyLevels!.listAll();
     final configuredById = <String, DifficultyLevel>{
-      for (final level in configuredLevels) level.id: level,
+      for (final level in configuredLevels ?? const <DifficultyLevel>[])
+        level.id: level,
     };
     final configuredByLabel = <String, DifficultyLevel>{
-      for (final level in configuredLevels) _normalizeName(level.label): level,
+      for (final level in configuredLevels ?? const <DifficultyLevel>[])
+        _normalizeName(level.label): level,
     };
     final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
@@ -325,11 +327,13 @@ class ImportPipeline {
       StructuredDraft draft;
       try {
         draft = adapter.parse(raw);
-        draft = _resolveConfiguredDifficulty(
-          draft,
-          configuredById,
-          configuredByLabel,
-        );
+        if (_difficultyLevels != null) {
+          draft = _resolveConfiguredDifficulty(
+            draft,
+            configuredById,
+            configuredByLabel,
+          );
+        }
       } on ImportError catch (e) {
         errors.add(e);
         continue;

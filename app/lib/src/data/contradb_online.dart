@@ -91,7 +91,11 @@ class ContraDbOnline implements OnlineSearchService {
     final url = buildContraDbUrl(result.id);
     final payload = await _htmlFetcher(url);
 
-    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final pipeline = ImportPipeline(
+      repos.dances,
+      repos.choreographers,
+      difficultyLevels: repos.difficultyLevels,
+    );
     final batch = await pipeline.plan(
       ContraDbHtmlAdapter(),
       ImportRequest(payload: payload, uri: url),
@@ -199,7 +203,11 @@ class ContraDbOnline implements OnlineSearchService {
         ? {0: ambiguousResolution ?? DedupeResolution.duplicate()}
         : const <int, DedupeResolution>{};
 
-    final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+    final pipeline = ImportPipeline(
+      repos.dances,
+      repos.choreographers,
+      difficultyLevels: repos.difficultyLevels,
+    );
     final session = await pipeline.commit(
       ImportBatchResult(records: [plan]),
       now: now ?? DateTime.now().toUtc(),
