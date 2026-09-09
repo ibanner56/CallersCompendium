@@ -5576,6 +5576,10 @@
   "@danceEditorParamNotStated": {
     "x-sourceSha256": "109df22c5a753d340af3ecee225f7a2a432a65dedfb163736943dfa7af638104"
   },
+  "figureParamFacingStarBackingUp": "後退する人",
+  "@figureParamFacingStarBackingUp": {
+    "x-sourceSha256": "49f28675862c00650eb5afa2fa95181cf4958c29f0200e5a5b64a047b19d460d"
+  },
   "danceEditorParamClearTooltip": "クリア（未指定）",
   "@danceEditorParamClearTooltip": {
     "x-sourceSha256": "228a87717b50bd2f4db06933e7ccb5e5761dcad5e502f4cafec84504056b2f16"

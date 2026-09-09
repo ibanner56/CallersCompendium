@@ -5590,6 +5590,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorParamNotStated => 'nicht angegeben';
 
   @override
+  String get figureParamFacingStarBackingUp => 'rückwärts';
+
+  @override
   String get danceEditorParamClearTooltip => 'Löschen (nicht angegeben)';
 
   @override

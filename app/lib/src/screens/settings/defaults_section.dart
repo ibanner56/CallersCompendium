@@ -1107,6 +1107,7 @@ class _MoveDefaultsEditor extends StatelessWidget {
                       onChanged: (v) =>
                           onMoveParamOverrideChanged(moveId, entry.key, v),
                       dialect: dialect,
+                      moveId: moveId,
                     ),
                 ],
               ),

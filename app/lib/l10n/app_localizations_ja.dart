@@ -5330,6 +5330,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorParamNotStated => '未指定';
 
   @override
+  String get figureParamFacingStarBackingUp => '後退する人';
+
+  @override
   String get danceEditorParamClearTooltip => 'クリア（未指定）';
 
   @override

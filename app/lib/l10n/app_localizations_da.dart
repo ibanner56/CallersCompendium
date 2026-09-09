@@ -5518,6 +5518,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorParamNotStated => 'ikke angivet';
 
   @override
+  String get figureParamFacingStarBackingUp => 'bakker baglæns';
+
+  @override
   String get danceEditorParamClearTooltip => 'Ryd (ikke angivet)';
 
   @override

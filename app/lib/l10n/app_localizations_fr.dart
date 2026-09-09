@@ -5604,6 +5604,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorParamNotStated => 'non précisé';
 
   @override
+  String get figureParamFacingStarBackingUp => 'à reculons';
+
+  @override
   String get danceEditorParamClearTooltip => 'Effacer (non précisé)';
 
   @override
