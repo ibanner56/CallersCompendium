@@ -283,7 +283,6 @@ class DelayedProgramRepository extends ProgramRepository {
       _armedConditionalRollbackGate = null;
       _activeConditionalRollbackGate = gate;
       _conditionalRollbackStarted?.complete();
-      _conditionalRollbackStarted = null;
       return gate.future.then(
         (_) => super.clearPerformedAtIfMatches(
           programId: programId,
@@ -308,7 +307,6 @@ class DelayedProgramRepository extends ProgramRepository {
       _armedReadGate = null;
       _activeReadGate = gate;
       _readStarted?.complete();
-      _readStarted = null;
       await gate.future;
       _activeReadGate = null;
     }
