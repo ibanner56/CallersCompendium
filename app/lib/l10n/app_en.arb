@@ -1989,6 +1989,14 @@
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
   },
+  "collectionPickerSearchFieldHint": "Search titles, figures, notes…",
+  "@collectionPickerSearchFieldHint": {
+    "description": "Hint text of the collection picker search field, listing what is searched."
+  },
+  "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "description": "Hint text of the collection picker when its online search is limited to titles."
+  },
   "collectionSearchScopeLabel": "Search in",
   "@collectionSearchScopeLabel": {
     "description": "Label for the local collection search scope selector."
@@ -2000,6 +2008,10 @@
   "collectionSearchScopeTitle": "Title",
   "@collectionSearchScopeTitle": {
     "description": "Local collection search scope restricted to dance titles."
+  },
+  "collectionSearchScopeAuthor": "Author",
+  "@collectionSearchScopeAuthor": {
+    "description": "Collection search scope restricted to dance authors, including the online author criterion."
   },
   "collectionSearchScopeFigure": "Figure",
   "@collectionSearchScopeFigure": {
@@ -4762,7 +4774,7 @@
       }
     }
   },
-  "onlineSearchFieldHint": "Search online dances by title…",
+  "onlineSearchFieldHint": "Search online dances by title or author…",
   "@onlineSearchFieldHint": {
     "description": "Hint text for the online search field."
   },
@@ -4775,7 +4787,7 @@
       }
     }
   },
-  "onlineSearchHintByPhrase": "Type a title or add by-phrase figures to search {source}.",
+  "onlineSearchHintByPhrase": "Type a title or author, or add by-phrase figures to search {source}.",
   "@onlineSearchHintByPhrase": {
     "description": "Empty-query hint for online sources that support by-phrase figure criteria.",
     "placeholders": {
@@ -4785,9 +4797,9 @@
       }
     }
   },
-  "onlineSearchHintTitle": "Type a title to search {source}.",
+  "onlineSearchHintTitle": "Type a title or author to search {source}.",
   "@onlineSearchHintTitle": {
-    "description": "Empty-query hint for online sources that only support title search.",
+    "description": "Empty-query hint for online sources without by-phrase support.",
     "placeholders": {
       "source": {
         "type": "String",
@@ -5571,9 +5583,9 @@
   "@importErrorCallersBoxImportFailed": {
     "description": "Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown."
   },
-  "importErrorContraDbEmptyTitle": "Enter a title to search ContraDB.",
+  "importErrorContraDbEmptyTitle": "Enter a title or author to search ContraDB.",
   "@importErrorContraDbEmptyTitle": {
-    "description": "Error shown when a ContraDB search is attempted with no title."
+    "description": "Error shown when a ContraDB search is attempted with no title or author."
   },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {

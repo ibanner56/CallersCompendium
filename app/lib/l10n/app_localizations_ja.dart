@@ -1506,6 +1506,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
 
   @override
+  String get collectionPickerSearchFieldHint => 'タイトル、フィギュア、ノートを検索…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint => 'タイトルでオンラインのダンスを検索…';
+
+  @override
   String get collectionSearchScopeLabel => '検索対象';
 
   @override
@@ -1513,6 +1519,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'タイトル';
+
+  @override
+  String get collectionSearchScopeAuthor => '作者';
 
   @override
   String get collectionSearchScopeFigure => 'フィギュア';
@@ -3469,7 +3478,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'タイトルでオンラインダンスを検索…';
+  String get onlineSearchFieldHint => 'タイトルまたは作者でオンラインのダンスを検索…';
 
   @override
   String onlineResultCount(int count) {
@@ -3483,12 +3492,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'タイトルを入力するかフレーズのフィギュアを追加して$sourceを検索してください。';
+    return '$sourceを検索するには、タイトルまたは作者を入力するか、フレーズ別のフィギュアを追加してください。';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'タイトルを入力して$sourceを検索してください。';
+    return '$sourceを検索するには、タイトルまたは作者を入力してください。';
   }
 
   @override
@@ -4087,7 +4096,8 @@ class AppLocalizationsJa extends AppLocalizations {
       'The Caller\'s Boxのダンスをインポートできませんでした。';
 
   @override
-  String get importErrorContraDbEmptyTitle => 'ContraDBを検索するにはタイトルを入力してください。';
+  String get importErrorContraDbEmptyTitle =>
+      'ContraDBを検索するには、タイトルまたは作者を入力してください。';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

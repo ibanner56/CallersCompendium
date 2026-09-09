@@ -836,13 +836,12 @@ String buildCallersBoxJsonUrl(String input) {
 /// (not the JSON import path's UTF-8) and must be decoded from raw bytes.
 typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 
-/// Builds the Caller's Box title-search URL for [title], optionally combined
+/// Builds the Caller's Box title- or author-search URL, optionally combined
 /// with by-phrase figure criteria ([phrases]).
 ///
 /// The Caller's Box search surface is an HTTP GET to `index.php` (under
-/// [callersBoxPathPrefix]). It accepts a `title` query param (confirmed live;
-/// the site also accepts `author`, `formation`, `progression`, but this app
-/// searches by title) plus a set of figure-line fields for "search by phrase"
+/// [callersBoxPathPrefix]). It accepts `title` or `author` query params
+/// (confirmed live) plus a set of figure-line fields for "search by phrase"
 /// (verified live against the TCB search form, 2026):
 ///
 /// - Global (any-phrase) figure match: `pos_lines`/`pos_mode` ("figures match")
@@ -856,8 +855,9 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// for negatives ("any of these lines" — exclude if any appears). These mirror
 /// the local by-phrase semantics (AND the matches, negate the excludes).
 ///
-/// Title and phrase criteria are non-exclusive: TCB accepts both in one
-/// request, so a title box and phrase figures combine.
+/// Title or author and phrase criteria are non-exclusive: TCB accepts them in
+/// one request, so a text criterion and phrase figures combine. Title and
+/// author are mutually exclusive.
 ///
 /// LIMITATION (v1): [CallersBoxPhraseQuery.fromSelections] maps each selected
 /// move to its taxonomy display name as the TCB figure line. TCB uses its own
@@ -866,7 +866,8 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// no curated compatibility table yet; this is accepted for v1.
 ///
 /// Returns e.g.
-/// `https://www.ibiblio.org/contradance/thecallersbox/index.php?title=<encoded>`.
+/// `https://www.ibiblio.org/contradance/thecallersbox/index.php?title=<encoded>`
+/// or `...?author=<encoded>`.
 ///
 /// Pass [showAll] to append TCB's `show_all` parameter, which lifts the default
 /// 50-row cap and returns the complete match set (verified live 2026-08-06:
@@ -879,21 +880,27 @@ typedef CallersBoxSearchFetcher = Future<String> Function(String url);
 /// [parseCallersBoxMatchCount] and `CallersBoxOnline.search`.
 ///
 /// Throws a [UrlFetchException] (message safe to show) when there is nothing to
-/// search — an empty [title] and no effective [phrases].
+/// search — empty title and author values with no effective [phrases].
 String buildCallersBoxSearchUrl(
   String title, {
+  String author = '',
   CallersBoxPhraseQuery? phrases,
   String host = callersBoxHost,
   bool showAll = false,
 }) {
   final trimmed = title.trim();
+  final trimmedAuthor = author.trim();
   final hasPhrases = phrases != null && !phrases.isEmpty;
-  if (trimmed.isEmpty && !hasPhrases) {
+  if (trimmed.isNotEmpty && trimmedAuthor.isNotEmpty) {
+    throw ArgumentError('title and author cannot both be specified');
+  }
+  if (trimmed.isEmpty && trimmedAuthor.isEmpty && !hasPhrases) {
     throw const UrlFetchException(UrlFetchFailureReason.callersBoxEmptySearch);
   }
 
   final params = <String, String>{};
   if (trimmed.isNotEmpty) params['title'] = trimmed;
+  if (trimmedAuthor.isNotEmpty) params['author'] = trimmedAuthor;
   if (showAll) params['show_all'] = '';
   if (hasPhrases) {
     if (phrases.globalPos.isNotEmpty) {
@@ -1473,16 +1480,29 @@ SharedDanceLink extractSharedDanceLink(String rawShared) {
 /// [parseContraDbSearchResults]. Verified live 2026-07-17.
 const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 
-/// Fetches **ContraDB** title-search results and returns the raw JSON body, or
+/// Fetches **ContraDB** title- or choreographer-search results and returns the raw JSON body, or
 /// throws a [UrlFetchException] with a user-presentable message. See
 /// [fetchContraDbSearch] for the default implementation; tests override this
 /// seam to return a canned JSON response (or throw) so no real network call is
 /// made.
 ///
-/// Takes the raw title [query] (not a URL, unlike [CallersBoxSearchFetcher]):
+/// Takes a [ContraDbSearchRequest] (not a URL, unlike
+/// [CallersBoxSearchFetcher]):
 /// ContraDB search is a POST to a single fixed endpoint whose JSON body carries
 /// the query, so the transport — not the caller — assembles the request.
-typedef ContraDbSearchFetcher = Future<String> Function(String query);
+typedef ContraDbSearchFetcher =
+    Future<String> Function(ContraDbSearchRequest request);
+
+/// A validated ContraDB search criterion for the injected transport seam.
+///
+/// [filter] is an internal fixed vocabulary value, never user-controlled
+/// structure. It is either `title` or `choreographer`.
+class ContraDbSearchRequest {
+  const ContraDbSearchRequest({required this.query, required this.filter});
+
+  final String query;
+  final String filter;
+}
 
 /// POSTs [body] to the ContraDB search endpoint [uri] with [client].
 ///
@@ -1549,14 +1569,19 @@ Future<http.Response> _sendContraDbSearch(
   );
 }
 
-/// Default [ContraDbSearchFetcher]: POSTs the [query] as a ContraDB title-search
-/// JSON body to [contraDbSearchUrl] (with an [importFetchTimeout]) and returns
-/// the response body. Throws a [UrlFetchException] with a clear, user-presentable
-/// message for a network failure, a timeout, a non-2xx status, or an empty body.
+/// Default [ContraDbSearchFetcher]: POSTs [query] using [filter] as a ContraDB
+/// title- or choreographer-search JSON body to [contraDbSearchUrl] (with an
+/// [importFetchTimeout]) and returns the response body. Throws a
+/// [UrlFetchException] with a clear, user-presentable message for a network
+/// failure, a timeout, a non-2xx status, or an empty body.
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
-Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
+Future<String> fetchContraDbSearch(
+  String query, {
+  String filter = 'title',
+  http.Client? client,
+}) async {
   // [contraDbSearchUrl] is a hard-coded public https constant, so this guard
   // has nothing to reject today. It runs anyway because "the destination is a
   // constant" is a property of the current code rather than an invariant, and
@@ -1567,6 +1592,7 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
   // to narrow. _sendContraDbSearch additionally refuses redirects, so no
   // unvalidated hop can follow this check.
   final uri = _guardFetchUri(Uri.parse(contraDbSearchUrl));
+  final body = buildContraDbSearchBody(query, filter: filter);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
@@ -1575,7 +1601,7 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
     // or never-ending response body is bounded by [importFetchTimeout] too.
     response = await _sendContraDbSearch(
       uri,
-      buildContraDbSearchBody(query),
+      body,
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
@@ -1602,11 +1628,11 @@ Future<String> fetchContraDbSearch(String query, {http.Client? client}) async {
       statusCode: response.statusCode,
     );
   }
-  final body = response.body;
-  if (body.trim().isEmpty) {
+  final responseBody = response.body;
+  if (responseBody.trim().isEmpty) {
     throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyResponse);
   }
-  return body;
+  return responseBody;
 }
 
 /// Hosts serving The Caller's Box: the ibiblio.org mirror, which is the

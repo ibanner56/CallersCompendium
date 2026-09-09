@@ -65,10 +65,10 @@ keep.
    search is on — you are searching the archive, not your own library.)
 3. Choose which archive to search — **The Caller's Box** or **ContraDB** — from
    the online source selector.
-4. Type a dance **title** in the search box. Results appear as you type. With
-   The Caller's Box you can also narrow by the figures a dance contains, using
-   the same **By-Phrase** panel as a local search; ContraDB search is by title
-   only.
+4. Choose **Title** or **Author** in the **Search in** menu, then type a dance
+   title or author/choreographer name in the search box. Results appear as you
+   type. With The Caller's Box you can also narrow by the figures a dance
+   contains, using the same **By-Phrase** panel as a local search.
 5. Select a result to open a **preview** of that dance.
 6. If it is the one you want, choose **Import** to add it to your collection.
 

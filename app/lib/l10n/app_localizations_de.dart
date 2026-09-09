@@ -1581,6 +1581,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Titel, Autoren, Figuren, Notizen suchen…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Titel, Figuren, Notizen suchen…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Online-Tänze nach Titel suchen…';
+
+  @override
   String get collectionSearchScopeLabel => 'Suchen in';
 
   @override
@@ -1588,6 +1596,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Autor';
 
   @override
   String get collectionSearchScopeFigure => 'Figur';
@@ -3617,7 +3628,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Online-Tänze nach Titel suchen…';
+  String get onlineSearchFieldHint =>
+      'Online-Tänze nach Titel oder Autor suchen…';
 
   @override
   String onlineResultCount(int count) {
@@ -3632,12 +3644,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Geben Sie einen Titel ein oder fügen Sie Phrase-Figuren hinzu, um $source zu durchsuchen.';
+    return 'Gib einen Titel oder Autor ein oder füge Figuren für die Phrasensuche hinzu, um $source zu durchsuchen.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Geben Sie einen Titel ein, um $source zu durchsuchen.';
+    return 'Gib einen Titel oder Autor ein, um $source zu durchsuchen.';
   }
 
   @override
@@ -4281,7 +4293,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Geben Sie einen Titel ein, um ContraDB zu durchsuchen.';
+      'Gib einen Titel oder Autor ein, um ContraDB zu durchsuchen.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
