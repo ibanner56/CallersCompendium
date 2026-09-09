@@ -173,16 +173,16 @@ class FigureParamEditor extends StatelessWidget {
         current == null &&
         value != null &&
         value != ParamVocab.unspecified) {
-      // An out-of-domain value with no valid substitute available: every
-      // sentinel-admitting spec CURRENTLY IN THIS BRANCH defaults TO the
-      // sentinel, so the default rung misses too and the chain lands on
-      // `null`. (Two sentinel-admitting specs have concrete defaults:
-      // `mad_robin.who` and `promenade.turn`. For either, the default rung
-      // above does NOT miss, `current` lands on the concrete default instead
-      // of `null`, and this branch is simply never reached. That is the
-      // correct, desired self-healing behaviour for a concrete default: an
-      // out-of-domain value corrects to that declared default, the same way
-      // any ordinary non-sentinel spec does, rather than to "not stated".)
+      // An out-of-domain value with no valid substitute available: when a
+      // sentinel-admitting spec defaults to the sentinel, the default rung
+      // misses too and the chain lands on `null`. (Two sentinel-admitting specs
+      // have concrete defaults: `mad_robin.who` and `promenade.turn`. For
+      // either, the default rung above does NOT miss, `current` lands on the
+      // concrete default instead of `null`, and this branch is simply never
+      // reached. That is the correct, desired self-healing behaviour for a
+      // concrete default: an out-of-domain value corrects to that declared
+      // default, the same way any ordinary non-sentinel spec does, rather than
+      // to "not stated".)
       // Normalise the draft to the sentinel rather than leaving it
       // holding a token the field is already displaying as "not stated" —
       // that mismatch would keep rendering the bad token into the figure text

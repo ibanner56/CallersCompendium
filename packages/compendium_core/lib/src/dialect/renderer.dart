@@ -1726,8 +1726,8 @@ class FigureRenderer {
       final around = (turnWord.isEmpty && swhom.isEmpty)
           ? ''
           : ' ${[turnWord, 'around', swhom].where((p) => p.isNotEmpty).join(' ')}';
-      // Tag the subject so an import-assumed `who` (TCB never states the
-      // in-front role) is marked "(assumed)" rather than read as source fact.
+      // Render the in-front subject only when it is supplied; the explicit
+      // unspecified sentinel is omitted so an import cannot invent a role.
       final swho = r._subjectToken(
         params['who'],
         dialect,

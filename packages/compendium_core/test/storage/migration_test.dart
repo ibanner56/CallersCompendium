@@ -278,47 +278,75 @@ void main() {
         final repos = _FailingOnceRepositories(db, contraTaxonomy);
         addTearDown(db.close);
 
-        await repos.dances.create(
-          Dance(
-            id: 'v34-canonical',
-            title: 'v34 canonical',
+        final legacyFigures = [
+          Figure(
+            move: 'mad_robin',
+            params: const {'direction': 'clockwise', 'whom': 'neighbors'},
+            assumedSubject: true,
+          ),
+          Figure.meanwhile(
             figures: [
               Figure(
                 move: 'mad_robin',
-                params: const {'direction': 'clockwise', 'whom': 'neighbors'},
-                assumedSubject: true,
-              ),
-              Figure.meanwhile(
-                figures: [
-                  Figure(
-                    move: 'mad_robin',
-                    params: const {
-                      'direction': 'counterclockwise',
-                      'whom': 'partners',
-                    },
-                    assumedSubject: true,
-                  ),
-                  Figure(
-                    move: 'swing',
-                    params: const {'who': 'partners', 'beats': 16},
-                  ),
-                ],
-                beats: 8,
-              ),
-              Figure(
-                move: 'mad_robin',
                 params: const {
-                  'who': 'ones',
-                  'direction': 'clockwise',
+                  'direction': 'counterclockwise',
                   'whom': 'partners',
                 },
                 assumedSubject: true,
               ),
+              Figure(
+                move: 'swing',
+                params: const {'who': 'partners', 'beats': 16},
+              ),
             ],
+            beats: 8,
+          ),
+          Figure(
+            move: 'mad_robin',
+            params: const {
+              'who': 'ones',
+              'direction': 'clockwise',
+              'whom': 'partners',
+            },
+            assumedSubject: true,
+          ),
+        ];
+        await repos.dances.create(
+          Dance(
+            id: 'v34-canonical',
+            title: 'v34 canonical',
+            figures: legacyFigures,
             createdAt: DateTime.utc(2026),
             updatedAt: DateTime.utc(2026),
           ),
         );
+        // Seed the pre-v34 persisted shape below the repository write
+        // convergence point. This keeps the test focused on ensureMigrated's
+        // source rewrite and retry-safe rebuild rather than the later ingress
+        // guard.
+        await db.customUpdate(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(legacyFigures)),
+            Variable<String>('v34-canonical'),
+          ],
+          updates: {db.dances},
+        );
+        final legacy = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        final legacyFirst =
+            (jsonDecode(legacy.read<String>('figures_json')) as List<dynamic>)
+                    .first
+                as Map<String, dynamic>;
+        expect(
+          (legacyFirst['params'] as Map<String, dynamic>).containsKey('who'),
+          isFalse,
+        );
+        expect(legacyFirst['assumedSubject'], isTrue);
 
         for (final key in [
           purgeCorruptionRepairDoneKey,
