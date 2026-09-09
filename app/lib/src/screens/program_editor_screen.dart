@@ -1626,6 +1626,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
+    _invalidateBulkUndo();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
@@ -1993,6 +1994,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _persistedBulkUndoActionToken = null;
       }),
     );
+  }
+
+  void _invalidateBulkUndo() {
+    _bulkUndoGeneration++;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+    _pendingBulkUndoSlotIds = null;
+    _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoWasDirty = null;
+    _pendingBulkUndoEditGeneration = null;
+    _pendingBulkUndoActionToken = null;
+    _persistedBulkUndoActionToken = null;
   }
 
   Future<void> _undoMarkAllPerformed(

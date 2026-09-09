@@ -187,6 +187,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Shared renderer for the large-print Perform view (mirrors
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
   ///
@@ -237,6 +238,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     BuildContext routeContext,
     DanceDetailData detail,
   ) => _reimport.open(routeContext, detail);
+
+  void _invalidateBulkUndo() {
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+  }
+
+  void _openBuilder() {
+    _invalidateBulkUndo();
+    widget.onOpenBuilder();
+  }
 
   /// The live Collection reference data for this pane (issue #768).
   ///
@@ -548,6 +559,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    _invalidateBulkUndo();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
@@ -591,7 +603,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ? FloatingActionButton.extended(
               key: const ValueKey('open-builder'),
               heroTag: 'open-builder',
-              onPressed: widget.onOpenBuilder,
+              onPressed: _openBuilder,
               icon: const Icon(Icons.edit_note),
               label: Text(l10n.programsEditProgram),
             )
@@ -781,7 +793,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
-    showUndoSnackBar(
+    _bulkUndoSnackBar = showUndoSnackBar(
       messenger,
       message: l10n.programsMarkedAllPerformed,
       undoLabel: l10n.commonUndo,

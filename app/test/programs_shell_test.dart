@@ -620,6 +620,34 @@ void main() {
     },
   );
 
+  testWidgets('summary navigation invalidates the bulk Undo action', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      Program(
+        id: 'p1',
+        title: 'Barn Dance',
+        status: ProgramStatus.draft,
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        createdAt: _now,
+        updatedAt: _now,
+      ),
+    );
+
+    await _pumpWide(tester, repos);
+    await tester.tap(find.text('Barn Dance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('summary-perform')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(find.text('Undo', skipOffstage: false), findsNothing);
+  });
+
   testWidgets(
     'wide split-pane: an in-pane Perform adjustment that changes the slot '
     'count refreshes the coexisting program list without a manual reload',

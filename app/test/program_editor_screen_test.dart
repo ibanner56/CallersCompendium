@@ -14,6 +14,7 @@ import 'package:compendium_app/src/data/program_auto_commit_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
+import 'package:compendium_app/src/screens/perform_program_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
 import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
@@ -1548,6 +1549,29 @@ void main() {
     expect(saved.slots[0].performedAt!.isUtc, isTrue);
     // Free-text slots are not stamped.
     expect(saved.slots[1].performedAt, isNull);
+  });
+
+  testWidgets('entering Perform invalidates the bulk Undo action', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('perform-program')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(PerformProgramScreen), findsOneWidget);
+    expect(find.text('Undo', skipOffstage: false), findsNothing);
   });
 
   testWidgets(
