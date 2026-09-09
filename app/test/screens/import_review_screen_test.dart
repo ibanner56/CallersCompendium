@@ -2773,10 +2773,7 @@ void main() {
         await tester.pumpAndSettle();
 
         final dances = await repos.dances.listAll();
-        expect(
-          dances.single.difficultyLevelId,
-          'custom-workshop',
-        );
+        expect(dances.single.difficultyLevelId, 'custom-workshop');
         expect(
           (await repos.difficultyLevels.getById('custom-workshop'))?.label,
           'Workshop',
