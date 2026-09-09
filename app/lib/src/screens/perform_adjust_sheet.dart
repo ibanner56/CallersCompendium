@@ -137,7 +137,7 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
     final rawText = slot.text?.trim();
     final text =
         rawText == null ||
-            slot.isPurgedDance != false ||
+            (slot.danceId == null && slot.isPurgedDance != false) ||
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
         : FigureRenderer(

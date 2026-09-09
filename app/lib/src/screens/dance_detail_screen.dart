@@ -1543,9 +1543,16 @@ class _LinkRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final label = link.label?.trim();
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     final String display;
     if (label != null && label.isNotEmpty) {
-      display = label;
+      display = canonicalizeDiscouragedTerms
+          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(label, dialect)
+          : label;
     } else if (link.kind == LinkKind.relatedDance) {
       display = relatedDanceTitle ?? link.targetDanceId ?? '';
     } else {

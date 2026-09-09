@@ -284,16 +284,18 @@ class DanceListTile extends StatelessWidget {
   }
 
   String _renderCustomField(
-    String field, {
+    ({String label, String value}) field, {
     required FigureRenderer renderer,
     required Dialect dialect,
     required bool canonicalizeDiscouragedTerms,
   }) {
-    final separator = field.indexOf(': ');
-    if (separator < 0 || !canonicalizeDiscouragedTerms) return field;
-    final label = field.substring(0, separator + 2);
-    final value = field.substring(separator + 2);
-    return '$label${renderer.renderFreeTextWithCanonicalDiscouragedTerms(value, dialect)}';
+    final value = canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            field.value,
+            dialect,
+          )
+        : field.value;
+    return '${field.label}: $value';
   }
 
   /// Trailing content for a normal (non-selection) row: the row action overflow

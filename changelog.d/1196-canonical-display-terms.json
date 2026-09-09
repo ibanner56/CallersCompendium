@@ -6,7 +6,7 @@
       "You can show supported discouraged dance terms as canonical wording in dance details, notes, Perform mode, and exports. This display setting is on by default and never changes saved text."
     ],
     "data_migrations": [
-      "On first launch after this update, the database adds a nullable purge-caption marker for program slots; existing rows keep their legacy ambiguity and are preserved losslessly."
+      "The schema 32 to 33 migration adds a nullable purge-caption marker for program slots; existing rows keep their legacy ambiguity and are preserved losslessly."
     ]
   },
   "core": {

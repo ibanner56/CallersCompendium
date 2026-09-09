@@ -167,7 +167,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     }
     if (!widget.canonicalizeDiscouragedTerms ||
         widget.dialect == null ||
-        slot.isPurgedDance != false) {
+        (slot.danceId == null && slot.isPurgedDance != false)) {
       return text;
     }
     return FigureRenderer(
@@ -180,7 +180,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     if (text == null || text.isEmpty) return null;
     if (!widget.canonicalizeDiscouragedTerms ||
         widget.dialect == null ||
-        slot.isPurgedDance != false) {
+        (slot.danceId == null && slot.isPurgedDance != false)) {
       return text;
     }
     return FigureRenderer(
