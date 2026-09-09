@@ -1362,13 +1362,23 @@ class FigureRenderer {
     'gypsy': 'shoulder round',
     'gyre': 'shoulder round',
     'gent': _roleTerm('role1', dialect),
+    "gent's": _possessive(_roleTerm('role1', dialect)),
     'gents': _roleTerm('role1s', dialect),
+    "gents'": _possessive(_roleTerm('role1s', dialect)),
     'men': _roleTerm('role1s', dialect),
+    "men's": _possessive(_roleTerm('role1s', dialect)),
     'lady': _roleTerm('role2', dialect),
+    "lady's": _possessive(_roleTerm('role2', dialect)),
     'ladies': _roleTerm('role2s', dialect),
+    "ladies'": _possessive(_roleTerm('role2s', dialect)),
     'women': _roleTerm('role2s', dialect),
+    "women's": _possessive(_roleTerm('role2s', dialect)),
     'ravens': _roleTerm('role2s', dialect),
+    "ravens'": _possessive(_roleTerm('role2s', dialect)),
   };
+
+  static String _possessive(String term) =>
+      term.endsWith('s') ? "$term'" : "$term's";
 
   /// Human phrasing for a set-relative facing token, shared by the derived
   /// rotation-gate ending facing (issue #294) and swing's `endFacing` clause

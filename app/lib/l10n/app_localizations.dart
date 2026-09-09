@@ -845,7 +845,7 @@ abstract class AppLocalizations {
   /// Setting title for display-only conversion of discouraged dance terms.
   ///
   /// In en, this message translates to:
-  /// **'Use canonical dance terms'**
+  /// **'Auto-convert all discouraged terms'**
   String get settingsDialectCanonicalDiscouragedTermsTitle;
 
   /// Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed.

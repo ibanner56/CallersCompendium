@@ -449,7 +449,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsTitle =>
-      'Brug kanoniske dansetermer';
+      'Konvertér automatisk alle frarådede termer';
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsSubtitle =>

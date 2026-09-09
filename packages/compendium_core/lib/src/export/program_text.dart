@@ -59,6 +59,12 @@ String programToPlainText(
   Dialect? dialect,
   bool canonicalizeDiscouragedTerms = false,
 }) {
+  if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
+    throw ArgumentError(
+      'renderer and dialect are required when canonicalizeDiscouragedTerms '
+      'is enabled',
+    );
+  }
   final fmtDate = formatDate ?? _isoDate;
   final lines = <String>[];
 

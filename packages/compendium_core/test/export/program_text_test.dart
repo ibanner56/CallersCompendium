@@ -160,6 +160,17 @@ void main() {
       expect(enabled, contains('Lady of the Lake'));
     });
 
+    test('rejects canonicalization without display dependencies', () {
+      expect(
+        () => programToPlainText(
+          program(notes: 'Gypsy'),
+          titleFor: titles,
+          canonicalizeDiscouragedTerms: true,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('appends optional guest caller and planned minutes', () {
       final text = programToPlainText(
         program(
