@@ -78,8 +78,7 @@ def _entries(value: object, *, identifier: str, audience: str, category: str) ->
     if not all(
         isinstance(item, str)
         and item.strip()
-        and "\n" not in item
-        and "\r" not in item
+        and item.splitlines() == [item]
         for item in value
     ):
         raise FragmentError(
