@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
@@ -1158,9 +1159,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       textScale: _textScale,
       renderer: widget.renderer,
       dialect: dialect,
-      // A cleared dance id can represent a purged dance title, not only an
-      // announcement. Keep indistinguishable text-only slots lossless.
-      canonicalizeDiscouragedTerms: false,
+      // A slot without a dance id can represent a purged dance title, so keep
+      // that tombstone lossless. A non-null unresolved id carries caller prose.
+      canonicalizeDiscouragedTerms:
+          slot.danceId != null && CanonicalDiscouragedTermsScope.of(context),
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,
     );

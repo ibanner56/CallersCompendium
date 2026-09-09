@@ -495,6 +495,27 @@ void main() {
     expect(find.byKey(const ValueKey('perform-alt-swap')), findsNothing);
   });
 
+  testWidgets(
+    'unresolved dance-linked caller notes use the display preference',
+    (tester) async {
+      final data = await _dataWith(const []);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'missing-dance',
+            text: 'Gypsy with the gents',
+          ),
+        ]),
+      );
+
+      expect(find.text('Shoulder round with the larks'), findsOneWidget);
+    },
+  );
+
   testWidgets('entry from program editor opens the program Perform view', (
     tester,
   ) async {
