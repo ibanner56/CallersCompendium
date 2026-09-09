@@ -303,7 +303,7 @@ void main() {
         name: 'Ravens/Robins',
         roles: const {'role1': RoleTerm('raven'), 'role2': RoleTerm('robin')},
       );
-      final figure = Figure(
+      final figure = testFigure(
         move: customMove,
         params: const {'text': 'role1s cross'},
       );
@@ -318,10 +318,9 @@ void main() {
     });
 
     test('converts wording overrides through the display summary path', () {
-      final figure = Figure(
+      final figure = testFigure(
         move: 'swing',
-        wordingOverride: 'Gypsy with the gents',
-      );
+      ).copyWith(wordingOverride: 'Gypsy with the gents');
 
       expect(
         renderer.renderSummaryWithCanonicalDiscouragedTerms(figure, larks),
@@ -334,7 +333,7 @@ void main() {
       );
       expect(
         renderer.renderSummaryWithCanonicalDiscouragedTerms(
-          Figure(move: 'swing', wordingOverride: 'role1s cross'),
+          testFigure(move: 'swing').copyWith(wordingOverride: 'role1s cross'),
           ladyDialect,
         ),
         'ladies cross',

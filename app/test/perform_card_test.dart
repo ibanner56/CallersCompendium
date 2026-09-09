@@ -286,7 +286,10 @@ void main() {
       // The whole card fits: nothing to scroll.
       expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
       // …and the last section is actually laid out and visible.
-      expect(find.textContaining('ladies chain'), findsOneWidget);
+      expect(
+        find.textContaining('robins chain across the set.'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -310,7 +313,10 @@ void main() {
       // Scroll to the end and confirm the last section can be revealed.
       pos.jumpTo(pos.maxScrollExtent);
       await tester.pump();
-      expect(find.textContaining('ladies chain'), findsOneWidget);
+      expect(
+        find.textContaining('robins chain across the set.'),
+        findsOneWidget,
+      );
     },
   );
 
@@ -358,7 +364,10 @@ void main() {
       expect(revealed, isTrue);
       expect(tester.takeException(), isNull);
       expect(scrollPosition(tester).maxScrollExtent, lessThan(1.0));
-      expect(find.textContaining('ladies chain'), findsOneWidget);
+      expect(
+        find.textContaining('robins chain across the set.'),
+        findsOneWidget,
+      );
     },
   );
 
