@@ -32,12 +32,13 @@ class ChoreographerRepository {
       final current = await (_db.select(
         _db.choreographers,
       )..where((t) => t.id.equals(c.id))).getSingleOrNull();
-      final authorIndexChanged =
-          (current != null &&
-              (current.name != name || current.deletedAt != null)) ||
-          (current == null && incumbent?.deletedAt != null);
       final collidingEdit =
           current != null && incumbent != null && incumbent.id != c.id;
+      final authorIndexChanged =
+          (!collidingEdit &&
+              current != null &&
+              (current.name != name || current.deletedAt != null)) ||
+          (current == null && incumbent?.deletedAt != null);
       final id = collidingEdit
           ? c.id
           : await adoptTombstonedNaturalKey(
