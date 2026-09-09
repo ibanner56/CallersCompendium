@@ -274,7 +274,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // [_dismissFreeText] so focus is restored to the Add button rather than
     // stranded on the TextField that is about to be removed from the tree.
     if (_freeTextComposing && (!_freeTextEnabled || !widget.allowAdding)) {
-      _dismissFreeText();
+      _dismissFreeText(focusAddButton: widget.allowAdding);
     }
   }
 
@@ -505,11 +505,16 @@ class _FigureListEditorState extends State<FigureListEditor> {
   }
 
   /// Closes the free-text composer and returns focus to the Add button.
-  void _dismissFreeText() {
+  void _dismissFreeText({bool focusAddButton = true}) {
     _freeTextController.clear();
     setState(() => _freeTextComposing = false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _addButtonFocusNode.requestFocus();
+      if (!mounted) return;
+      if (focusAddButton) {
+        _addButtonFocusNode.requestFocus();
+      } else if (widget.drafts.isNotEmpty) {
+        _rowFocusNode(widget.drafts.last.id).requestFocus();
+      }
     });
   }
 

@@ -710,6 +710,11 @@ void main() {
       findsOneWidget,
     );
     expect(
+      tester.binding.focusManager.primaryFocus?.debugLabel,
+      startsWith('figure-row-'),
+    );
+    expect(tester.binding.focusManager.primaryFocus?.context, isNotNull);
+    expect(
       find.byKey(const ValueKey('meanwhile-side-free-text-field')),
       findsNothing,
     );
