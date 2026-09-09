@@ -2188,6 +2188,9 @@ void main() {
 
       expect(find.text('Could not load the program.'), findsOneWidget);
       expect(find.byKey(const ValueKey('save-program')), findsNothing);
+      expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+      expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
+      expect(find.byKey(const ValueKey('delete-program')), findsNothing);
       expect(
         (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
         isNotNull,

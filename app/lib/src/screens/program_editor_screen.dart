@@ -2455,7 +2455,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 ),
               ),
-            if (hasPersistedProgram) ...[
+            if (hasPersistedProgram && _loadError == null) ...[
               if (_slots.any((s) => s.danceId != null))
                 IconButton(
                   key: const ValueKey('mark-all-performed'),
