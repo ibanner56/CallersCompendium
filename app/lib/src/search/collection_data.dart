@@ -106,8 +106,9 @@ class CollectionData {
 
   /// The window used to collapse a burst of writes into one reload.
   ///
-  /// The value is not tied to batch tagging: `_applyBatchTags` now commits once,
-  /// while other collection operations can still produce notification bursts.
+  /// The value is not tied to batch tagging: `DanceListScreen._batchTag` now
+  /// commits once, while other collection operations can still produce
+  /// notification bursts.
   /// This window is therefore a conservative burst-coalescing choice rather
   /// than a frame-budget or per-write timing claim.
   ///
