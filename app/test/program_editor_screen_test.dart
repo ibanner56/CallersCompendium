@@ -1633,6 +1633,57 @@ void main() {
     );
   });
 
+  testWidgets(
+    'Undo cancels a replacement auto-commit while rollback is in flight',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+      delayed.programs.holdNextConditionalRollback();
+      tester
+          .widget<SnackBarAction>(find.byType(SnackBarAction))
+          .onPressed
+          .call();
+      await tester.pump();
+      delayed.programs.releaseWrite();
+      await delayed.programs.conditionalRollbackStarted;
+
+      final remote = await delayed.repos.programs.getById('p1');
+      await delayed.repos.programs.update(
+        remote!.copyWith(
+          title: 'Remote edit',
+          updatedAt: DateTime.now().toUtc(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 600));
+      delayed.programs.releaseConditionalRollback();
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Remote edit');
+      expect(saved.slots.single.performedAt, isNull);
+    },
+  );
+
   testWidgets('Undo tracks a marked write with a later edit generation', (
     tester,
   ) async {

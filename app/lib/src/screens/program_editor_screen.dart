@@ -1936,6 +1936,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final undoEditGeneration = ++_editGeneration;
       await _commitQueueTail;
       if (!mounted) return;
+      _autoCommitTimer?.cancel();
       final autoCommitPersisted =
           _autoCommitPersistedGeneration == actionEditGeneration ||
           _persistedBulkUndoActionToken == actionToken;
