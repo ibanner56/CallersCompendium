@@ -1695,6 +1695,7 @@ FigureMatch? _hall(String text, String dir, String moveId) {
   if (who != null) params['who'] = who;
   final facing = _hallFacing(s);
   if (facing != null) params['facing'] = facing;
+  params['ender'] = _hallEnder(s) ?? 'none';
   return FigureMatch(moveId, params: params, note: s.note());
 }
 
@@ -1863,6 +1864,31 @@ String? _hallFacing(_Scan s) {
     return 'forward';
   }
   if (s.eat('backward') || s.eat('backing')) return 'backward';
+  return null;
+}
+
+/// Consumes ContraDB's inline hall ender suffix, including its required
+/// connective. Unknown suffixes remain in the note rather than being
+/// interpreted as a structured ender.
+String? _hallEnder(_Scan s) {
+  final save = s.pos;
+  if (!s.eat('and')) return null;
+  if (s.eatPhrase('right hand high') && s.eatPhrase('left hand low')) {
+    return 'rightHandHigh';
+  }
+  const enders = <String, String>{
+    'turn as a couple': 'turnCouple',
+    'turn alone': 'turnAlone',
+    'bend into a ring': 'circle',
+    'form a cozy line': 'cozy',
+    'bend into a cloverleaf': 'cloverleaf',
+    'thread the needle': 'threadNeedle',
+    'slide doors': 'slidingDoors',
+  };
+  for (final entry in enders.entries) {
+    if (s.eatPhrase(entry.key)) return entry.value;
+  }
+  s.reset(save);
   return null;
 }
 
