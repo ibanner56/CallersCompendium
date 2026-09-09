@@ -1029,6 +1029,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           source: 'program_editor_screen._autoCommit',
         );
         if (!mounted) return;
+        if (_saving) return;
         final errorMessage = AppLocalizations.of(context).programsSaveError;
         if (_pendingBulkUndoSlotIds != null) {
           _showBulkUndoSnackBar(message: errorMessage);

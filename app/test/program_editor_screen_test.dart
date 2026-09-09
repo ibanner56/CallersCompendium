@@ -2025,6 +2025,49 @@ void main() {
     },
   );
 
+  testWidgets(
+    'auto-commit failure during explicit Save does not recreate Undo',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.failOnWrite = delayed.programs.writesStarted + 1;
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      delayed.programs.holdNextWrite();
+      delayed.programs.releaseWrite();
+      await delayed.programs.writeStarted;
+      await tester.pump();
+
+      expect(find.byType(SnackBarAction), findsNothing);
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+      expect(
+        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+        isNotNull,
+      );
+    },
+  );
+
   testWidgets('persisted Undo refreshes form fields before a later save', (
     tester,
   ) async {
