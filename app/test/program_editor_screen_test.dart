@@ -1687,10 +1687,7 @@ void main() {
     await delayed.programs.writeStarted;
     await tester.pumpAndSettle();
 
-    expect(find.byType(SnackBarAction), findsOneWidget);
-    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
-    await tester.pump();
-    expect(find.byType(SnackBarAction), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsNothing);
     delayed.programs.releaseWrite();
     await tester.pumpAndSettle();
 
@@ -1722,7 +1719,7 @@ void main() {
 
     expect(find.byType(SnackBarAction), findsOneWidget);
     failing.programs.failWrites = false;
-    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    await tester.tap(find.byType(SnackBarAction));
     await tester.pumpAndSettle();
 
     final saved = await failing.repos.programs.getById('p1');

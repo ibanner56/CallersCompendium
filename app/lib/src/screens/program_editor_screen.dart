@@ -168,6 +168,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _autoCommitInFlight = false;
   int? _autoCommitPersistedGeneration;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
+  Set<String>? _pendingBulkUndoSlotIds;
+  DateTime? _pendingBulkUndoTimestamp;
+  bool? _pendingBulkUndoWasDirty;
+  int? _pendingBulkUndoEditGeneration;
   int _bulkUndoGeneration = 0;
   int _editGeneration = 0;
   int _collectionDataGeneration = 0;
@@ -1642,12 +1646,31 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     if (markedSlotIds.isEmpty) return;
     _markDirty();
-    final actionEditGeneration = _editGeneration;
+    _pendingBulkUndoSlotIds = {...markedSlotIds};
+    _pendingBulkUndoTimestamp = now;
+    _pendingBulkUndoWasDirty = wasDirty;
+    _pendingBulkUndoEditGeneration = _editGeneration;
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
+    _showBulkUndoSnackBar();
+  }
+
+  void _showBulkUndoSnackBar() {
+    final markedSlotIds = _pendingBulkUndoSlotIds;
+    final actionTimestamp = _pendingBulkUndoTimestamp;
+    final wasDirty = _pendingBulkUndoWasDirty;
+    final actionEditGeneration = _pendingBulkUndoEditGeneration;
+    if (markedSlotIds == null ||
+        actionTimestamp == null ||
+        wasDirty == null ||
+        actionEditGeneration == null ||
+        !mounted) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final undoGeneration = ++_bulkUndoGeneration;
     _bulkUndoSnackBar = showUndoSnackBar(
@@ -1659,10 +1682,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (undoGeneration != _bulkUndoGeneration || _saving) return;
         _bulkUndoGeneration++;
         _bulkUndoSnackBar = null;
+        _pendingBulkUndoSlotIds = null;
+        _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoWasDirty = null;
+        _pendingBulkUndoEditGeneration = null;
         unawaited(
           _undoMarkAllPerformed(
             markedSlotIds,
-            now,
+            actionTimestamp,
             wasDirty: wasDirty,
             actionEditGeneration: actionEditGeneration,
           ),
@@ -1787,7 +1814,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    final restoreBulkUndoOnFailure = _bulkUndoSnackBar != null;
     final saveStartGeneration = _editGeneration;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
     _autoCommitTimer?.cancel();
     _editGeneration++;
     setState(() => _saving = true);
@@ -1796,7 +1826,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final draft = _draftProgram;
       if (draft == null) {
         _editGeneration = saveStartGeneration;
-        if (mounted) setState(() => _saving = false);
+        if (mounted) {
+          setState(() => _saving = false);
+          if (restoreBulkUndoOnFailure) _showBulkUndoSnackBar();
+        }
         return;
       }
       final persisted = await _persistDraft(draft);
@@ -1805,6 +1838,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _bulkUndoGeneration++;
       _bulkUndoSnackBar?.close();
       _bulkUndoSnackBar = null;
+      _pendingBulkUndoSlotIds = null;
+      _pendingBulkUndoTimestamp = null;
+      _pendingBulkUndoWasDirty = null;
+      _pendingBulkUndoEditGeneration = null;
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -1829,6 +1866,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _editGeneration = saveStartGeneration;
       }
       setState(() => _saving = false);
+      if (restoreBulkUndoOnFailure) _showBulkUndoSnackBar();
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
