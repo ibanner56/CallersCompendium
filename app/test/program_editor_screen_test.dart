@@ -1620,7 +1620,7 @@ void main() {
     tester
         .widget<SnackBarAction>(find.byType(SnackBarAction))
         .onPressed
-        ?.call();
+        .call();
     await tester.pump();
     delayed.programs.releaseWrite();
     await tester.pumpAndSettle();
