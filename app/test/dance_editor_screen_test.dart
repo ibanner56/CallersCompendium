@@ -2104,6 +2104,7 @@ void main() {
       'deduplicates staged and live tags that resolve to one natural key',
       (tester) async {
         final repos = openTestRepositories();
+        // ignore: unused_result
         await repos.tags.upsert(Tag(id: 't-live', name: 'Easy'));
         await repos.dances.create(
           _dance(id: 'd-reference', title: 'Reference', tagIds: ['t-live']),
