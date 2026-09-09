@@ -31,6 +31,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onSlotChanged,
     required this.onRemove,
     required this.onCreateDance,
+    this.reservedPerformedAt,
     this.onPickReplacementDance,
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
@@ -61,6 +62,10 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Replace the slot at [index] with [updated] (same id).
   final void Function(int index, ProgramSlot updated) onSlotChanged;
+
+  /// A performed timestamp reserved by an active bulk Undo action. A manual
+  /// re-mark must not reuse it while the inverse can still run.
+  final DateTime? reservedPerformedAt;
 
   /// Remove the slot at [index].
   final void Function(int index) onRemove;
@@ -358,7 +363,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         slot.copyWith(
           performedAt: nextStoredTimestamp(
             now: DateTime.now().toUtc(),
-            current: widget.slots.map((s) => s.performedAt),
+            current: [
+              ...widget.slots.map((s) => s.performedAt),
+              widget.reservedPerformedAt,
+            ],
           ),
         ),
       );

@@ -1431,15 +1431,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         stackTrace,
         source: 'program_editor_screen._restoreEditorAfterUndoFailure',
       );
-      if (!mounted) return;
-      _autosaveTimer?.cancel();
-      _autoCommitTimer?.cancel();
-      setState(() {
-        _loadError = _ProgramLoadError.undoRecoveryFailed;
-        _dirty = false;
-      });
-      await _clearDraft(waitForCommits: false, resetEditorState: false);
+      await _enterUndoRecoveryFailureState();
     }
+  }
+
+  Future<void> _enterUndoRecoveryFailureState() async {
+    if (!mounted) return;
+    _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    setState(() {
+      _loadError = _ProgramLoadError.undoRecoveryFailed;
+      _dirty = false;
+    });
+    await _clearDraft(waitForCommits: false, resetEditorState: false);
   }
 
   /// Renumbers positions contiguously (0..n-1) in list order.
@@ -1898,7 +1902,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted || _saving || _pickerImporting) return;
     final now = nextStoredTimestamp(
       now: DateTime.now().toUtc(),
-      current: _slots.map((s) => s.performedAt),
+      current: [..._slots.map((s) => s.performedAt), _pendingBulkUndoTimestamp],
     );
     final wasDirty = _dirty;
     final l10n = AppLocalizations.of(context);
@@ -2105,6 +2109,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           source: 'program_editor_screen._undoMarkAllPerformed.refresh',
         );
         if (mounted) {
+          await _enterUndoRecoveryFailureState();
+          if (!mounted) return;
           _showBulkUndoErrorSnackBar(
             AppLocalizations.of(context).programsUndoRefreshError,
           );
@@ -2844,6 +2850,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,
             onCreateDance: _createDanceFromSlot,
+            reservedPerformedAt: _pendingBulkUndoTimestamp,
             onPickReplacementDance: _data == null
                 ? null
                 : _pickReplacementDance,

@@ -1596,6 +1596,49 @@ void main() {
     },
   );
 
+  testWidgets('bulk Undo reserves its timestamp from a manual re-mark', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    final firstStamp = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots
+        .single
+        .performedAt;
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Clear performed'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mark performed'));
+    await tester.pump();
+    final reMarkedStamp = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots
+        .single
+        .performedAt;
+    expect(reMarkedStamp, isNot(firstStamp));
+
+    await tester.tap(find.text('Undo'));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, reMarkedStamp);
+  });
+
   testWidgets('Undo corrects a marked auto-commit that is already in flight', (
     tester,
   ) async {
@@ -2035,6 +2078,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(SnackBarAction), findsNothing);
+      expect(find.byKey(const ValueKey('save-program')), findsNothing);
+      expect(find.byKey(const ValueKey('mark-all-performed')), findsNothing);
+      expect(find.byKey(const ValueKey('duplicate-program')), findsNothing);
+      expect(find.byKey(const ValueKey('delete-program')), findsNothing);
     },
   );
 
