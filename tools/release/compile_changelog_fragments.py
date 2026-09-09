@@ -304,6 +304,8 @@ def compile_changelogs(
     core_entries = _collect(fragments, "core", CATEGORIES)
     if any(core_entries.values()) and (core_version is None or not VERSION.fullmatch(core_version)):
         raise FragmentError("a valid core version is required when pending core entries exist")
+    if any(core_entries.values()) and _section_bounds(core_changelog, core_version) is not None:
+        raise FragmentError("core version already has a changelog section; choose a new version")
     if not any(app_entries.values()) and _section_bounds(app_changelog, app_version) is None:
         raise FragmentError("a new app release section requires app entries")
     app_result = _replace_or_insert(

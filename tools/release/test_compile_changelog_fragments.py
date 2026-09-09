@@ -316,6 +316,19 @@ def cases() -> None:
             assert "core version" in str(error)
         else:
             raise AssertionError("core entries accepted without a core version")
+        try:
+            compiler.compile_changelogs(
+                app_changelog=APP,
+                core_changelog=CORE,
+                fragments=entries,
+                app_version="0.1.0",
+                core_version="0.1.0",
+                release_date="2026-02-02",
+            )
+        except compiler.FragmentError as error:
+            assert "already has a changelog section" in str(error)
+        else:
+            raise AssertionError("core entries were merged into an existing version")
     finally:
         temporary.cleanup()
 

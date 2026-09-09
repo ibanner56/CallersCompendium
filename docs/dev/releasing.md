@@ -152,7 +152,8 @@ and produces no Android artifact.
      literals in those files, while the release workflow requires the pubspec
      core to match the tag; together that makes the static hints match the
      latest release after the tag lands.
-2. **Compile the pending changelog fragments** so the release has real notes
+2. **Prepare the core version, then compile the pending fragments** so the
+   release has real notes
    (this is what the draft's body is generated from — see
    [CHANGELOG-driven release notes](#changelog-driven-release-notes)). Normal
    PRs add independent `changelog.d/<id>.json` files; only release preparation
@@ -162,6 +163,29 @@ and produces no Android artifact.
    python3 tools/release/compile_changelog_fragments.py --check
    ```
 
+   The fragment inventory is the trigger for a core bump, not a diff against
+   the previous tag. Confirm every user-visible core outcome
+   (`user_visible: true`) has the corresponding `app` entry in the same
+   fragment, then inspect the core entries before compiling:
+
+   ```sh
+   find changelog.d -name '*.json' -print
+   ```
+
+   If no fragment has a `core` object, do not touch the core pubspec or core
+   CHANGELOG. If core entries exist, ask the maintainer for a new core version,
+   showing the current value for context:
+
+   ```sh
+   grep '^version:' packages/compendium_core/pubspec.yaml
+   ```
+
+   Set `packages/compendium_core/pubspec.yaml` to that bare `X.Y.Z`, then pass
+   the same value as `--core-version`. It must be a new core version with no
+   existing section in the core CHANGELOG; unlike the app's shared beta/stable
+   section, each core bump gets its own heading. The compiler rejects an
+   existing core target rather than silently appending to a released section.
+
    **A core entry never replaces an app entry.** `app/CHANGELOG.md` is the only
    CHANGELOG consumed to generate the published release notes. If a change
    recorded in a fragment's `core` object changes behavior visible to an app
@@ -170,11 +194,8 @@ and produces no Android artifact.
    in the behavioral-change PR, not in a release-prep diff where the context may
    no longer be recoverable.
 
-   The compiler requires an explicit app version and release date. If a fragment
-   contains `core` entries, first ask the maintainer for the new core version,
-   update `packages/compendium_core/pubspec.yaml`, and pass that exact version.
-   It will merge an app beta/stable pair into its shared app section, create a
-   new core section only when core entries exist, preserve the historical
+   The compiler requires an explicit app version and release date.    It will merge an app beta/stable pair into its shared app section, create a
+   new core section when core entries exist, preserve the historical
    preamble and older sections, and consume fragments only after all inputs
    validate:
 
@@ -242,53 +263,7 @@ and produces no Android artifact.
    > error names a heading one character off from the real one. It fails
    > plausibly rather than obviously, so check the prefix before believing the
    > message.
-3. **Bump `packages/compendium_core` — if, and only if, pending fragments have
-   `core` entries.** The fragment inventory is the trigger, not a diff against
-   the previous tag and not a judgement about whether the core "really"
-   changed. Validate it before deciding:
-
-   The core CHANGELOG is not published release notes. Before compiling, confirm
-   every user-visible core outcome (`user_visible: true`) has the corresponding
-   `app` entry in the same fragment; do not treat a core entry as a reason to
-   omit an app entry.
-
-   ```sh
-   find changelog.d -name '*.json' -print
-   ```
-
-   No fragment with a `core` object — stop. Do not touch the core pubspec or the
-   core CHANGELOG. A core
-   version bumped on a release with nothing to record is a false entry in the
-   record, and the app depends on the core by workspace `path:`, so the bump
-   buys nothing mechanically.
-
-   Core entries exist — **ask the maintainer for the new core version, showing them the
-   current one for context.** Do not derive it. The core's version is
-   independent of both the release tag and the app version, so there is no
-   correct increment to infer: only the maintainer knows whether the accumulated
-   changes are a patch, a minor, or a break.
-
-   ```sh
-   grep '^version:' packages/compendium_core/pubspec.yaml   # show this, then ask
-   ```
-
-   Then, with the answer:
-
-   - Set `version:` in `packages/compendium_core/pubspec.yaml` to that bare
-     `X.Y.Z`. No `v`, no prerelease suffix — as with the app, the tag alone
-     carries the channel.
-   - Run the compiler with that exact `--core-version`; it creates a new
-     `## [X.Y.Z] - YYYY-MM-DD` core section and consumes the core fragments.
-   - Unlike the app, **this is always a new heading.** The app's shared
-     `## [X.Y.Z]` section spans a beta and its stable because the app version is
-     the tag's core; the core version is not, so a beta and a later stable that
-     both carry core changes produce two different core sections. Merge into an
-     existing core section only if you are re-cutting the same core version.
-
-   Nothing reads the core's `version:` at build time — the app resolves the core
-   through the workspace `path:` dependency, so it always compiles the checked-out
-   source. The bump is a record, which is exactly why it has to be deliberate.
-4. **Land the compiled release preparation on `main` first, then tag `main`'s tip.** Steps 1–3 edit
+3. **Land the compiled release preparation on `main` first, then tag `main`'s tip.** Steps 1–2 edit
    tracked files, so they go through a PR like any other change — the release is
    tagged from `main`, never from the release branch. This repo squash-merges, so
    what you want is the post-merge tip of `main` (a single-parent commit, not a
@@ -303,7 +278,7 @@ and produces no Android artifact.
    Tagging a pre-merge SHA points the release at a tree with pending fragments,
    so the `meta` gate fails before builds. If the tag is already pushed, delete
    and re-push it at the right commit before the draft is published.
-5. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
+4. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
    `vX.Y.Z-beta`; beta creates a GitHub prerelease. **Name the commit
    explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
    which is the release branch if you never switched off it:
@@ -313,23 +288,23 @@ and produces no Android artifact.
    git push origin v0.2.0
    ```
 
-6. Watch the run under **Actions → Release**. It resolves + validates metadata
+5. Watch the run under **Actions → Release**. It resolves + validates metadata
    (pending fragments or a direct compatibility-queue edit fail here, fast; schema changes also require a
    current Data / Migrations range), gates on the reusable checks, builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
-7. Review the draft under **Releases**: confirm the desktop binaries and, when
+6. Review the draft under **Releases**: confirm the desktop binaries and, when
    Android signing was configured, the additional Android APK; then confirm `SHA256SUMS`,
    both refreshed channel manifests (stable releases attach `stable.json` and
    `beta.json`; betas attach `beta.json`) and their `.sig` files are present and
    named correctly, **and that the notes body matches the CHANGELOG section**.
-8. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
+7. **Confirm the `verify` job is green.** This is the provenance gate (#300): it
    re-downloads every `CallersCompendium-*` binary and runs `gh attestation
    verify` for both the build provenance and the SBOM attestation. **Do not
    publish a draft whose `verify` job failed or was skipped** — a red `verify`
    means the attestations don't check out. See
    [Verifying attestations](#verifying-attestations).
-9. **Publish** the draft manually once the `verify` job is green and the draft
+8. **Publish** the draft manually once the `verify` job is green and the draft
    looks right.
 
 ## CHANGELOG-driven release notes
