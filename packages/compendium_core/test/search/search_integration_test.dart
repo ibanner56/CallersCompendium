@@ -250,7 +250,9 @@ void main() {
           _dance(
             id: 'title',
             title: 'Alice Smith Special',
-            figures: [Figure(move: 'balance', params: const {'beats': 16})],
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
           ),
         );
         await dances.create(
@@ -276,6 +278,29 @@ void main() {
             const FullTextFilter('Smith', scope: FullTextScope.author),
           ),
           ['author'],
+        );
+
+        // A choreographer rename must refresh both denormalized author indexes;
+        // otherwise the new name is invisible until a full derived rebuild.
+        // ignore: unused_result
+        await choreographers.upsert(Choreographer(id: 'c1', name: 'Bob Jones'));
+        expect(
+          await dances.search(
+            const FullTextFilter('Bo', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Jones', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Alice', scope: FullTextScope.author),
+          ),
+          isEmpty,
         );
       },
     );

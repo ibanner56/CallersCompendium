@@ -2756,6 +2756,12 @@ abstract class AppLocalizations {
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
 
+  /// Hint text of the collection picker search field, listing what is searched.
+  ///
+  /// In en, this message translates to:
+  /// **'Search titles, figures, notes…'**
+  String get collectionPickerSearchFieldHint;
+
   /// Label for the local collection search scope selector.
   ///
   /// In en, this message translates to:

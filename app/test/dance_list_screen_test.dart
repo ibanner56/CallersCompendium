@@ -860,86 +860,88 @@ void main() {
     );
   });
 
-  testWidgets('online mode exposes title and author scopes and forwards author',
-      (tester) async {
-    final repos = openTestRepositories();
-    String? callersUrl;
-    ContraDbSearchRequest? contraDbRequest;
-    final callers = CallersBoxOnline(
-      searchFetcher: (url) async {
-        callersUrl = url;
-        return '<html><body></body></html>';
-      },
-    );
-    final contraDb = ContraDbOnline(
-      searchFetcher: (request) async {
-        contraDbRequest = request;
-        return '{"numberMatching":0,"dances":[]}';
-      },
-    );
-    await repos.dances.create(
-      _dance(
-        id: 'd1',
-        title: 'Plain',
-        figures: [Figure(move: 'swing', params: const {'beats': 16})],
-      ),
-    );
+  testWidgets(
+    'online mode exposes title and author scopes and forwards author',
+    (tester) async {
+      final repos = openTestRepositories();
+      String? callersUrl;
+      ContraDbSearchRequest? contraDbRequest;
+      final callers = CallersBoxOnline(
+        searchFetcher: (url) async {
+          callersUrl = url;
+          return '<html><body></body></html>';
+        },
+      );
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async {
+          contraDbRequest = request;
+          return '{"numberMatching":0,"dances":[]}';
+        },
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Plain',
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 16}),
+          ],
+        ),
+      );
 
-    await _pumpScreen(
-      tester,
-      repos,
-      callersBoxOnline: callers,
-      contraDbOnline: contraDb,
-    );
-    await tester.pumpAndSettle();
+      await _pumpScreen(
+        tester,
+        repos,
+        callersBoxOnline: callers,
+        contraDbOnline: contraDb,
+      );
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<DropdownButtonFormField<FullTextScope>>(
-            find.byKey(const ValueKey('collection-search-scope')),
-          )
-          .initialValue,
-      FullTextScope.title,
-    );
-    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Figure').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<DropdownButtonFormField<FullTextScope>>(
+              find.byKey(const ValueKey('collection-search-scope')),
+            )
+            .initialValue,
+        FullTextScope.title,
+      );
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Figure').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
-    await tester.pumpAndSettle();
-    expect(find.text('All fields'), findsNothing);
-    expect(find.text('Figure'), findsNothing);
-    expect(find.text('Title'), findsWidgets);
-    expect(find.text('Author'), findsWidgets);
-    await tester.tap(find.text('Author').last);
-    await tester.pumpAndSettle();
-    await _search(tester, ' Alice Smith ');
-    expect(Uri.parse(callersUrl!).queryParameters, {
-      'author': 'Alice Smith',
-    });
-    final callersUrlBeforeClear = callersUrl;
-    await tester.enterText(find.byType(TextField).first, '');
-    await tester.pump(const Duration(milliseconds: 700));
-    expect(callersUrl, callersUrlBeforeClear);
-    await tester.enterText(find.byType(TextField).first, 'Alice Smith');
-    await tester.pump(const Duration(milliseconds: 700));
+      await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+      await tester.pumpAndSettle();
+      expect(find.text('All fields'), findsNothing);
+      expect(find.text('Figure'), findsNothing);
+      expect(find.text('Title'), findsWidgets);
+      expect(find.text('Author'), findsWidgets);
+      await tester.tap(find.text('Author').last);
+      await tester.pumpAndSettle();
+      await _search(tester, ' Alice Smith ');
+      expect(Uri.parse(callersUrl!).queryParameters, {'author': 'Alice Smith'});
+      final callersUrlBeforeClear = callersUrl;
+      await tester.enterText(find.byType(TextField).first, '');
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(callersUrl, callersUrlBeforeClear);
+      await tester.enterText(find.byType(TextField).first, 'Alice Smith');
+      await tester.pump(const Duration(milliseconds: 700));
 
-    await tester.tap(find.byKey(const ValueKey('online-source-selector')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('ContraDB').last);
-    await tester.pumpAndSettle();
-    expect(contraDbRequest?.query, 'Alice Smith');
-    expect(contraDbRequest?.filter, 'choreographer');
-  });
+      await tester.tap(find.byKey(const ValueKey('online-source-selector')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ContraDB').last);
+      await tester.pumpAndSettle();
+      expect(contraDbRequest?.query, 'Alice Smith');
+      expect(contraDbRequest?.filter, 'choreographer');
+    },
+  );
 
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();

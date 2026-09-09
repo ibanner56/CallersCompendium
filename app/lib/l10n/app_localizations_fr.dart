@@ -1576,6 +1576,9 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionSearchFieldHint => 'Titres, auteurs, figures, notes…';
 
   @override
+  String get collectionPickerSearchFieldHint => 'Titres, figures, notes…';
+
+  @override
   String get collectionSearchScopeLabel => 'Rechercher dans';
 
   @override

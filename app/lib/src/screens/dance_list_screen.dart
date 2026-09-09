@@ -578,15 +578,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
         (_facets.callStatuses.isNotEmpty &&
             (!mapEquals(previous.callCounts, data.callCounts) ||
                 previous.callerFilter != data.callerFilter)) ||
-        // The author sort orders by choreographer NAME (`_sortByAuthor`), not
-        // by the ids stored on the dance — so a rename reorders the results
-        // while every dance row is byte-identical. Without this the labels
-        // would update from the new snapshot and the ORDER would not, leaving
-        // a list that is visibly sorted wrongly until some unrelated write
-        // happened to force a re-search. Checked only under that sort, so a
-        // rename costs no query in the sorts it cannot reorder.
-        (_sort == CollectionSort.author &&
-            !mapEquals(previous.choreographerNames, data.choreographerNames));
+        // Both author sorting and author-scoped FTS depend on the display-name
+        // map rather than the ids stored on each dance. A rename therefore
+        // changes either the order or the result set while every dance row is
+        // byte-identical.
+        ((!_onlineEnabled && _ftsScope == FullTextScope.author) ||
+                _sort == CollectionSort.author) &&
+            !mapEquals(previous.choreographerNames, data.choreographerNames);
     setState(() {
       _data = data;
       _loadError = null;

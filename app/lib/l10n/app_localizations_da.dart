@@ -1548,6 +1548,9 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
+  String get collectionPickerSearchFieldHint => 'Søg titler, figurer, noter…';
+
+  @override
   String get collectionSearchScopeLabel => 'Søg i';
 
   @override

@@ -807,6 +807,23 @@ void main() {
       expect(results, hasLength(30));
       expect(results.every((x) => x.figuresAvailable), isTrue);
     });
+
+    test('preserves an author criterion through the show_all retry', () async {
+      final r = recording(
+        (url) => url.contains('show_all')
+            ? page(total: 68, rows: 68)
+            : page(total: 68, rows: 50),
+      );
+      await r.online.search(const OnlineSearchQuery(author: 'Alice'));
+
+      expect(r.urls, hasLength(2));
+      final first = Uri.parse(r.urls.first).queryParameters;
+      final second = {...Uri.parse(r.urls.last).queryParameters};
+      expect(first['author'], 'Alice');
+      expect(second['author'], 'Alice');
+      expect(second['show_all'], '');
+      expect(second..remove('show_all'), first);
+    });
   });
 
   group('CallersBoxOnline.loadPreview / import', () {

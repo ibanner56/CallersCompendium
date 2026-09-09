@@ -1764,6 +1764,10 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
+  "collectionPickerSearchFieldHint": "Søg titler, figurer, noter…",
+  "@collectionPickerSearchFieldHint": {
+    "x-sourceSha256": "7d4dc44ffc70ef07a637b21c1ab753ce6dac7d81af0554a06e15232186a89985"
+  },
   "collectionSearchScopeLabel": "Søg i",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"

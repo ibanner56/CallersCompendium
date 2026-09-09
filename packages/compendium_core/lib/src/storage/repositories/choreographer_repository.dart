@@ -82,8 +82,36 @@ class ChoreographerRepository {
         key: id,
         at: now,
       );
+      await _refreshAuthorIndex(id);
       return id;
     });
+  }
+
+  /// Keeps the denormalized author text in both FTS tables aligned with a
+  /// choreographer rename without rebuilding unrelated dance-derived rows.
+  Future<void> _refreshAuthorIndex(String choreographerId) async {
+    final dances = await (_db.select(
+      _db.danceAuthors,
+    )..where((t) => t.choreographerId.equals(choreographerId))).get();
+    for (final dance in dances) {
+      final row = await _db
+          .customSelect(
+            'SELECT group_concat(name, \' \') AS authors '
+            'FROM (SELECT c.name FROM dance_authors da '
+            'JOIN choreographers c ON c.id = da.choreographer_id '
+            'WHERE da.dance_id = ? AND c.deleted_at IS NULL '
+            'ORDER BY da.position)',
+            variables: [Variable<String>(dance.danceId)],
+          )
+          .getSingle();
+      final authors = row.read<String?>('authors') ?? '';
+      for (final table in const ['dance_fts', 'dance_substring_fts']) {
+        await _db.customStatement(
+          'UPDATE $table SET authors = ? WHERE dance_id = ?',
+          [authors, dance.danceId],
+        );
+      }
+    }
   }
 
   Future<Choreographer?> getById(String id) async {

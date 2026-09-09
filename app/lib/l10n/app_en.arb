@@ -1981,6 +1981,10 @@
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
   },
+  "collectionPickerSearchFieldHint": "Search titles, figures, notes…",
+  "@collectionPickerSearchFieldHint": {
+    "description": "Hint text of the collection picker search field, listing what is searched."
+  },
   "collectionSearchScopeLabel": "Search in",
   "@collectionSearchScopeLabel": {
     "description": "Label for the local collection search scope selector."

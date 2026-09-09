@@ -1536,6 +1536,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Search titles, figures, notes…';
+
+  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override

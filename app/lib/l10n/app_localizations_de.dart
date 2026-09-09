@@ -1573,6 +1573,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Titel, Autoren, Figuren, Notizen suchen…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Titel, Figuren, Notizen suchen…';
+
+  @override
   String get collectionSearchScopeLabel => 'Suchen in';
 
   @override

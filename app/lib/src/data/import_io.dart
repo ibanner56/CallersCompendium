@@ -1490,9 +1490,8 @@ const String contraDbSearchUrl = 'https://contradb.com/api/v1/dances';
 /// [CallersBoxSearchFetcher]):
 /// ContraDB search is a POST to a single fixed endpoint whose JSON body carries
 /// the query, so the transport — not the caller — assembles the request.
-typedef ContraDbSearchFetcher = Future<String> Function(
-  ContraDbSearchRequest request,
-);
+typedef ContraDbSearchFetcher =
+    Future<String> Function(ContraDbSearchRequest request);
 
 /// A validated ContraDB search criterion for the injected transport seam.
 ///
@@ -1593,6 +1592,7 @@ Future<String> fetchContraDbSearch(
   // to narrow. _sendContraDbSearch additionally refuses redirects, so no
   // unvalidated hop can follow this check.
   final uri = _guardFetchUri(Uri.parse(contraDbSearchUrl));
+  final body = buildContraDbSearchBody(query, filter: filter);
   final ownClient = client == null;
   final effectiveClient = client ?? http.Client();
   final http.Response response;
@@ -1601,7 +1601,7 @@ Future<String> fetchContraDbSearch(
     // or never-ending response body is bounded by [importFetchTimeout] too.
     response = await _sendContraDbSearch(
       uri,
-      buildContraDbSearchBody(query, filter: filter),
+      body,
       effectiveClient,
     ).timeout(importFetchTimeout);
   } on UrlFetchException {
@@ -1628,11 +1628,11 @@ Future<String> fetchContraDbSearch(
       statusCode: response.statusCode,
     );
   }
-  final body = response.body;
-  if (body.trim().isEmpty) {
+  final responseBody = response.body;
+  if (responseBody.trim().isEmpty) {
     throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyResponse);
   }
-  return body;
+  return responseBody;
 }
 
 /// Hosts serving The Caller's Box: the ibiblio.org mirror, which is the

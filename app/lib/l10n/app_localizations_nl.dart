@@ -1557,6 +1557,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Zoek titels, auteurs, figuren, notities…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Zoek titels, figuren, notities…';
+
+  @override
   String get collectionSearchScopeLabel => 'Zoeken in';
 
   @override
