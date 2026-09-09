@@ -798,6 +798,28 @@ void main() {
       expect(f.params['length'], 'half');
       expect(f.params['shoulder'], 'left');
     });
+
+    test('full hey maps all four ricochet positions', () {
+      final f = _parse(
+        'role2s start a full hey - rights in center, lefts on ends - '
+        'role2s ricochet first time, role1s ricochet first time, '
+        'role2s ricochet second time, role1s ricochet second time',
+      );
+      expect(f.params['rico1'], isTrue);
+      expect(f.params['rico2'], isTrue);
+      expect(f.params['rico3'], isTrue);
+      expect(f.params['rico4'], isTrue);
+      expect(f.note, isNull);
+    });
+
+    test('malformed ricochet suffix remains verbatim in the note', () {
+      const suffix = '- role2s maybe ricochet first time';
+      final f = _parse(
+        'role2s start a full hey - rights in center, lefts on ends $suffix',
+      );
+      expect(f.params['rico1'], isNot(true));
+      expect(f.note, suffix);
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {

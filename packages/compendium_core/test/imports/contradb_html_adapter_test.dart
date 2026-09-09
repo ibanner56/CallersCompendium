@@ -560,6 +560,23 @@ void main() {
       expect(f[6].params['prefix'], 'balance');
     });
 
+    test('structures a rendered hey ricochet', () async {
+      final draft = await _importOne(
+        _dancePage('Ricochet Hey', const [
+          (
+            16,
+            'gentlespoons start a full hey - lefts in center, rights on ends - '
+                'gentlespoons ricochet second time',
+          ),
+        ]),
+      );
+      final f = draft.dance.figures.single;
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['rico3'], isTrue);
+      expect(f.note, isNull);
+    });
+
     test('dances/81 structures every figure incl. the ocean-wave split', () async {
       final draft = await _importOne(
         _dancePage('Dance 81', const [

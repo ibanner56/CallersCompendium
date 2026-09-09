@@ -672,8 +672,8 @@ bool _eatBalanceAmp(_Scan s) {
 /// heyWords (common full/half form). Renders as: "PASS1 start a FULL|HALF hey -
 /// SH1 PLACE, SH2 PLACE". Extracts pass1, length, and the first shoulder; the
 /// shoulder/place clause is part of the render (consumed, not a note).
-/// `until`-length heys and ricochets are deferred (their extra tail, if any,
-/// survives verbatim as the note).
+/// `until`-length heys are deferred. Canonical ricochet clauses are consumed
+/// only when the complete comma-separated suffix is recognized.
 FigureMatch? _hey(String text) {
   final s = _Scan(text);
   final pass1 = _subject(s);
@@ -705,7 +705,100 @@ FigureMatch? _hey(String text) {
       s.reset(clauseSave); // not a shoulder clause — leave it as the note
     }
   }
+  final ricoSave = s.pos;
+  final ricoParams = <String, Object?>{};
+  if (_eatHeyRicochets(s, pass1, length, ricoParams)) {
+    params.addAll(ricoParams);
+  } else {
+    s.reset(ricoSave);
+  }
   return FigureMatch('hey', params: params, note: s.note());
+}
+
+/// Consumes the complete canonical ricochet suffix emitted by the renderer.
+/// If any comma-separated clause is malformed, the whole suffix is left for
+/// [FigureMatch.note] so the original tail remains intact.
+bool _eatHeyRicochets(
+  _Scan s,
+  String pass1,
+  String? length,
+  Map<String, Object?> params,
+) {
+  final save = s.pos;
+  if (!s.eat('-')) return false;
+  final slots = <int>[];
+  if (!_eatHeyRicochetClause(s, pass1, length, slots)) {
+    s.reset(save);
+    return false;
+  }
+  while (s.previousTokenEndsWith(',')) {
+    if (!_eatHeyRicochetClause(s, pass1, length, slots)) {
+      s.reset(save);
+      return false;
+    }
+  }
+  for (final slot in slots) {
+    params['rico$slot'] = true;
+  }
+  return true;
+}
+
+bool _eatHeyRicochetClause(
+  _Scan s,
+  String pass1,
+  String? length,
+  List<int> slots,
+) {
+  final who = _subject(s);
+  if (who == null || !s.eat('ricochet')) return false;
+
+  var meetingOffset = 0;
+  if (s.eat('first')) {
+    if (!s.eat('time')) return false;
+  } else if (s.eat('second')) {
+    if (!s.eat('time')) return false;
+    meetingOffset = 2;
+  } else if (length != 'half') {
+    return false;
+  }
+
+  final slot = _heyRicochetSlot(who, pass1, length, meetingOffset);
+  if (slot == null || slots.contains(slot)) return false;
+  slots.add(slot);
+  return true;
+}
+
+int? _heyRicochetSlot(
+  String who,
+  String pass1,
+  String? length,
+  int meetingOffset,
+) {
+  final center = pass1;
+  final inverted = switch (pass1) {
+    'role1s' => 'role2s',
+    'role2s' => 'role1s',
+    'ones' => 'twos',
+    'twos' => 'ones',
+    'firstCorners' => 'secondCorners',
+    'secondCorners' => 'firstCorners',
+    _ => pass1,
+  };
+  final subjectOffset = who == center
+      ? 0
+      : who == inverted
+      ? 1
+      : null;
+  if (subjectOffset == null) return null;
+  final slot = subjectOffset + meetingOffset + 1;
+  final maxSlot = switch (length) {
+    'lessThanHalf' => 1,
+    'half' => 2,
+    'betweenHalfAndFull' => 3,
+    'full' => 4,
+    _ => 4,
+  };
+  return slot <= maxSlot ? slot : null;
 }
 
 /// Terse hey shoulder word (`rights`/`lefts`) → `right`/`left`.
@@ -1801,6 +1894,10 @@ class _Scan {
 
   /// Advances one token and returns it (original casing), or null at end.
   String? take() => _i < _tokens.length ? _tokens[_i++] : null;
+
+  /// Whether the token immediately before the cursor ended with [suffix].
+  bool previousTokenEndsWith(String suffix) =>
+      _i > 0 && _tokens[_i - 1].endsWith(suffix);
 
   /// The verbatim remaining text from the current token to the end, trimmed;
   /// null when the template consumed the whole line.
