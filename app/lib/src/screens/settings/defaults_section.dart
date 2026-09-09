@@ -90,6 +90,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       FigureDraft.fromFigure(figure),
   ];
   bool _defaultMeanwhileSidesUserSet = false;
+  final List<FigureDraft> _defaultModifierDrafts = [
+    for (final figure in defaultModifierFigures())
+      FigureDraft.fromFigure(figure),
+  ];
+  bool _defaultModifierUserSet = false;
 
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), keyed by move id
   /// then param key, holding only the params the user overrode (diffs vs the
@@ -275,6 +280,21 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           /* diagnostics: silent — keep the safe two-side stand-still default */
         });
     repos.settings
+        .get(kDefaultModifierFiguresKey)
+        .then((stored) {
+          if (!mounted || _defaultModifierUserSet) return;
+          setState(() {
+            _defaultModifierDrafts
+              ..clear()
+              ..addAll(
+                modifierFiguresFromStored(stored).map(FigureDraft.fromFigure),
+              );
+          });
+        })
+        .catchError((_) {
+          /* diagnostics: silent — keep the safe two-figure modifier default */
+        });
+    repos.settings
         .get(kDefaultMoveParamOverridesKey)
         .then((stored) {
           if (!mounted || _defaultMoveParamOverridesUserSet) return;
@@ -381,6 +401,16 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       kDefaultMeanwhileSideFiguresKey,
       encodeMeanwhileSideFigures(figures),
     );
+  }
+
+  Future<void> _persistModifierDefaults() async {
+    _defaultModifierUserSet = true;
+    final figures = [
+      for (final draft in _defaultModifierDrafts) ?draft.toFigure(),
+    ];
+    await RepositoriesScope.of(
+      context,
+    ).settings.set(kDefaultModifierFiguresKey, encodeModifierFigures(figures));
   }
 
   void _groupDefaultDanceFigures(FigureDraft draft) {
@@ -625,6 +655,37 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         });
         _persistMeanwhileSideDefaults();
       },
+      modifierDrafts: _defaultModifierDrafts,
+      onModifierChanged: () {
+        setState(() {});
+        _persistModifierDefaults();
+      },
+      onModifierAdd: () {
+        if (_defaultModifierDrafts.length >= kMaxModifierFigures) return;
+        setState(() => _defaultModifierDrafts.add(FigureDraft()));
+        _persistModifierDefaults();
+      },
+      onModifierDelete: (draft) {
+        setState(() => _defaultModifierDrafts.remove(draft));
+        _persistModifierDefaults();
+      },
+      onModifierDuplicate: (draft) {
+        if (_defaultModifierDrafts.length >= kMaxModifierFigures) return;
+        setState(() {
+          final index = _defaultModifierDrafts.indexOf(draft);
+          if (index != -1) {
+            _defaultModifierDrafts.insert(index + 1, draft.clone());
+          }
+        });
+        _persistModifierDefaults();
+      },
+      onModifierReorder: (oldIndex, newIndex) {
+        setState(() {
+          final draft = _defaultModifierDrafts.removeAt(oldIndex);
+          _defaultModifierDrafts.insert(newIndex, draft);
+        });
+        _persistModifierDefaults();
+      },
       moveParamOverrides: _defaultMoveParamOverrides,
       shownMoveDefaults: _moveDefaultsShown,
       onAddMoveDefault: _onAddMoveDefault,
@@ -676,6 +737,12 @@ class _DefaultsView extends StatelessWidget {
     required this.onMeanwhileSideDelete,
     required this.onMeanwhileSideDuplicate,
     required this.onMeanwhileSideReorder,
+    required this.modifierDrafts,
+    required this.onModifierChanged,
+    required this.onModifierAdd,
+    required this.onModifierDelete,
+    required this.onModifierDuplicate,
+    required this.onModifierReorder,
     required this.moveParamOverrides,
     required this.shownMoveDefaults,
     required this.onAddMoveDefault,
@@ -734,6 +801,12 @@ class _DefaultsView extends StatelessWidget {
   final ValueChanged<FigureDraft> onMeanwhileSideDelete;
   final ValueChanged<FigureDraft> onMeanwhileSideDuplicate;
   final void Function(int oldIndex, int newIndex) onMeanwhileSideReorder;
+  final List<FigureDraft> modifierDrafts;
+  final VoidCallback onModifierChanged;
+  final VoidCallback onModifierAdd;
+  final ValueChanged<FigureDraft> onModifierDelete;
+  final ValueChanged<FigureDraft> onModifierDuplicate;
+  final void Function(int oldIndex, int newIndex) onModifierReorder;
 
   /// The per-move param overrides (ROADMAP DD.3), keyed by move id then param
   /// key. Owned by [_DefaultsSectionState]; read-only here.
@@ -1119,6 +1192,48 @@ class _DefaultsView extends StatelessWidget {
             allowDuplicating: meanwhileSideDrafts.length < kMaxMeanwhileSides,
             showPhraseStructure: false,
             keyPrefix: 'meanwhile-side',
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.settingsDefaultsModifierTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                l10n.settingsDefaultsModifierSubtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: FigureListEditor(
+            drafts: modifierDrafts,
+            taxonomy: contraTaxonomy,
+            phraseStructure: PhraseStructure.standard,
+            dialect: ActiveDialectScope.of(context),
+            freeTextEntry: freeTextEntry,
+            shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
+            onChanged: onModifierChanged,
+            onAdd: onModifierAdd,
+            onDelete: onModifierDelete,
+            onDuplicate: onModifierDuplicate,
+            onReorder: onModifierReorder,
+            allowAdding: modifierDrafts.length < kMaxModifierFigures,
+            allowDuplicating: modifierDrafts.length < kMaxModifierFigures,
+            showPhraseStructure: false,
+            keyPrefix: 'modifier-default',
           ),
         ),
         Padding(

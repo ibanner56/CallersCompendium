@@ -89,8 +89,8 @@ class DanceEditorController extends ChangeNotifier {
   String _canonicalizeNote(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
-  /// Renders every [FigureDraft.note] in [drafts] (recursing into meanwhile
-  /// [FigureDraft.meanwhileSides]) from canonical storage into the active
+  /// Renders every [FigureDraft.note] in [drafts] (recursing into structural
+  /// container children) from canonical storage into the active
   /// dialect via [_renderNote], so `draft.note` holds active-dialect text while
   /// being edited. Called once, right after each site that seeds `figureDrafts`
   /// via [FigureDraft.fromFigure] (issue #715 — figure notes were previously
@@ -100,6 +100,9 @@ class DanceEditorController extends ChangeNotifier {
       draft.note = _renderNote(draft.note);
       if (draft.meanwhileSides case final sides?) {
         _renderNotesRecursively(sides);
+      }
+      if (draft.modifierFigures case final children?) {
+        _renderNotesRecursively(children);
       }
     }
   }
@@ -1105,6 +1108,36 @@ class DanceEditorController extends ChangeNotifier {
     return group.id;
   }
 
+  /// Inserts a modifier draft, seeding its core/modifier children from the
+  /// separate Defaults preference.
+  Future<String?> addModifier() async {
+    if (_disposed) return null;
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultModifierFiguresKey);
+      // diagnostics: silent — insertion uses the safe modifier-default fallback
+    } catch (_) {}
+    if (_disposed) return null;
+    final configured = modifierFiguresFromStored(stored);
+    final children = [
+      for (final figure in configured) FigureDraft.fromFigure(figure),
+    ];
+    if (children.isEmpty) {
+      children.addAll([FigureDraft(), FigureDraft()]);
+    } else if (children.length == 1) {
+      children.add(FigureDraft());
+    }
+    final group = FigureDraft(modifierFigures: children);
+    group.params['beats'] = children.first.beats;
+    _renderNotesRecursively([group]);
+    figureDrafts.add(group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return group.id;
+  }
+
   /// Inserts the figure(s) parsed from one free-text entry line at the end of
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —
@@ -1175,6 +1208,28 @@ class DanceEditorController extends ChangeNotifier {
     final second = figureDrafts[index + 1];
     if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
     final group = FigureDraft(meanwhileSides: [first, second]);
+    group.params['beats'] = first.beats;
+    group.beatsTouched = first.beatsTouched;
+    figureDrafts
+      ..removeAt(index + 1)
+      ..removeAt(index)
+      ..insert(index, group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  /// Groups a top-level figure with the following row as an ordered modifier
+  /// container. Existing structural groups are excluded so nesting remains
+  /// alternating and bounded.
+  void groupFigureWithNextAsModifier(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || index >= figureDrafts.length - 1) return;
+    final first = figureDrafts[index];
+    final second = figureDrafts[index + 1];
+    if (first.isContainerDraft || second.isContainerDraft) return;
+    final group = FigureDraft(modifierFigures: [first, second]);
     group.params['beats'] = first.beats;
     group.beatsTouched = first.beatsTouched;
     figureDrafts

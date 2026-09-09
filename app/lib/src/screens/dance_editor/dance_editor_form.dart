@@ -274,6 +274,7 @@ class DanceEditorForm extends StatelessWidget {
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,
                   onAddMeanwhile: controller.addMeanwhile,
+                  onAddModifier: controller.addModifier,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
                   onAddFreeText: controller.insertFreeTextFigures,
@@ -282,6 +283,8 @@ class DanceEditorForm extends StatelessWidget {
                   onReorder: controller.reorderFigure,
                   showWordingOverride: true,
                   onGroupWithNext: controller.groupFigureWithNext,
+                  onGroupWithNextAsModifier:
+                      controller.groupFigureWithNextAsModifier,
                   onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
                   snippetLibraryDefaultFor: snippetLib == null
                       ? null

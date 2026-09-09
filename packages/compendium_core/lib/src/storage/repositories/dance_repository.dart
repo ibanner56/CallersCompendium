@@ -175,7 +175,7 @@ class DanceRepository {
   }
 
   Figure _normaliseTaxonomyV34Figure(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -203,7 +203,7 @@ class DanceRepository {
   }
 
   Figure _normaliseTaxonomyV33Figure(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -234,7 +234,7 @@ class DanceRepository {
   /// `meanwhile` sub-figures. Returns the original [figure] unchanged when
   /// nothing needs stripping.
   Figure _stripStarPromenadeHand(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -311,7 +311,7 @@ class DanceRepository {
   }
 
   Figure _repairLegacyCallersBoxRollAway(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? repaired;
       final subFigures = figure.subFigures;
       for (var i = 0; i < subFigures.length; i++) {
@@ -374,7 +374,7 @@ class DanceRepository {
   /// sub-figures. Returns the original [figure] unchanged when nothing needs
   /// backfilling.
   Figure _backfillChainHand(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -406,7 +406,7 @@ class DanceRepository {
   /// sub-figures. Returns the original [figure] unchanged if no sub-figures
   /// need re-routing (avoids an allocation when nothing moves).
   Figure _normaliseFigure(Figure figure) {
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       List<Figure>? subs;
       final origSubs = figure.subFigures;
       for (var i = 0; i < origSubs.length; i++) {
@@ -692,33 +692,28 @@ class DanceRepository {
     for (var i = 0; i < dance.figures.length; i++) {
       final figure = dance.figures[i];
       final section = sectioned[i].label;
-      // Flatten a meanwhile container (#590) so each concurrent side is indexed
-      // as its own `dance_figures` row: `filterByMove` then matches each
-      // constituent and each side's canonical text feeds FTS. The container is
-      // not itself a searchable move — its children are what get move-indexed;
-      // it only supplies their shared section placement. `idx` runs over the
-      // FLATTENED constituent stream (the `dance_figures` PK is `{danceId, idx}`
-      // so each row needs a distinct idx), so sides occupy consecutive slots in
-      // order.
+      // Flatten a structural container recursively to leaf rows so
+      // `filterByMove` matches each constituent without trying to JSON-encode
+      // in-memory nested Figure values. The top-level container remains in FTS
+      // as one canonical structural render, while leaves supply searchable
+      // moves and params. `idx` runs over the flattened leaf stream (the
+      // `dance_figures` PK is `{danceId, idx}` so each row needs a distinct
+      // idx), preserving child order.
       //
       // `groupIdx` is the correlation group used by the `Then` operator (#748):
-      // every row flattened from this one top-level figure — all concurrent
-      // sides of a meanwhile included — shares `groupIdx = i`, which is monotonic
-      // across top-level figures. Because concurrent sides share a group, the
-      // `a.group_idx < b.group_idx` correlation never treats two simultaneous
-      // sides as one-before-the-other, while a genuine sequence of top-level
-      // figures (distinct, increasing groups) still matches. This is what makes
-      // the sides per-constituent matchable WITHOUT the false before/after
-      // adjacency that consecutive `idx` alone would imply.
+      // every leaf flattened from this one top-level figure — including leaves
+      // below an opposite nested container — shares `groupIdx = i`, which is
+      // monotonic across top-level figures. Because simultaneous leaves share a
+      // group, the `a.group_idx < b.group_idx` correlation never treats them as
+      // one-before-the-other, while a genuine sequence of top-level figures
+      // (distinct, increasing groups) still matches.
       //
-      // Empty-container fallback (#590): a legacy/partial `{move:"meanwhile"}`
-      // that decodes to zero sub-figures must NOT vanish from the index
-      // ("nothing dropped"). When there are no constituents to flatten, index
-      // the container itself (move=meanwhile, its own canonical text/section/
-      // beats) so the dance stays searchable by that figure.
       final subFigures = figure.subFigures;
-      final constituents = figure.isMeanwhile && subFigures.isNotEmpty
-          ? subFigures
+      if (figure.isContainer && subFigures.isNotEmpty) {
+        canonicalTexts.add(_renderer.renderCanonical(figure));
+      }
+      final constituents = figure.isContainer && subFigures.isNotEmpty
+          ? _leafFigures(figure)
           : <Figure>[figure];
       for (final part in constituents) {
         final canonicalText = _renderer.renderCanonical(part);
@@ -766,6 +761,11 @@ class DanceRepository {
         values,
       );
     }
+  }
+
+  List<Figure> _leafFigures(Figure figure) {
+    if (!figure.isContainer || figure.subFigures.isEmpty) return [figure];
+    return [for (final child in figure.subFigures) ..._leafFigures(child)];
   }
 
   /// Author display names for [dance]'s `authorIds`, in position order. Uses

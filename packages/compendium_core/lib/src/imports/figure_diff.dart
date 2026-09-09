@@ -80,11 +80,11 @@ const int kMaxFigureDiffLines = 200;
 /// `beats`), care of [Taxonomy.effectiveParams]'s already-graceful
 /// unknown-move handling (never throws, never returns null).
 String figureCanonicalKey(Figure figure, Taxonomy taxonomy) {
-  if (figure.isMeanwhile) {
-    final sideKeys = figure.subFigures.map(
-      (side) => figureCanonicalKey(side, taxonomy),
+  if (figure.isContainer) {
+    final childKeys = figure.subFigures.map(
+      (child) => figureCanonicalKey(child, taxonomy),
     );
-    return 'meanwhile(${sideKeys.join('|')})';
+    return '${figure.move}(${childKeys.join('|')})';
   }
   if (figure.isCustom) {
     final rawText = figure.params['text'];

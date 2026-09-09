@@ -52,17 +52,38 @@ void main() {
       );
     });
 
-    test('rejects a nested meanwhile (flat only)', () {
+    test('allows one opposite modifier level', () {
+      final nested = Figure.meanwhile(figures: [sideA, sideB], beats: 8);
+      final modifier = Figure.modifier(figures: [sideA, nested], beats: 8);
+      expect(modifier.isModifier, isTrue);
+      expect(modifier.subFigures.singleWhere((f) => f.isMeanwhile), nested);
+    });
+
+    test('rejects same-kind nested containers', () {
       final nested = Figure.meanwhile(figures: [sideA, sideB], beats: 8);
       expect(
         () => Figure.meanwhile(figures: [sideA, nested], beats: 8),
+        throwsArgumentError,
+      );
+      final modifier = Figure.modifier(figures: [sideA, sideB], beats: 8);
+      expect(
+        () => Figure.modifier(figures: [sideA, modifier], beats: 8),
+        throwsArgumentError,
+      );
+    });
+
+    test('rejects a third container level', () {
+      final nested = Figure.modifier(figures: [sideA, sideB], beats: 8);
+      final root = Figure.meanwhile(figures: [sideA, nested], beats: 8);
+      expect(
+        () => Figure.modifier(figures: [sideA, root], beats: 8),
         throwsArgumentError,
       );
     });
   });
 
   group('subFigures accessor', () {
-    test('is empty for a non-meanwhile figure', () {
+    test('is empty for a non-container figure', () {
       expect(Figure(move: 'swing').subFigures, isEmpty);
       expect(
         Figure(move: 'custom', params: const {'text': 'x'}).subFigures,
@@ -110,6 +131,17 @@ void main() {
       ], PhraseStructure.parse(''));
       // The swing starts at 4 (the container's shared beats), not 8.
       expect(sections[1].startBeat, 4);
+    });
+
+    test('does not recurse into either legal nested container kind', () {
+      final meanwhile = Figure.meanwhile(figures: [sideA, sideB], beats: 4);
+      final modifier = Figure.modifier(figures: [sideA, sideB], beats: 4);
+      final sections = deriveSections([
+        Figure.modifier(figures: [sideA, meanwhile], beats: 8),
+        modifier,
+      ], PhraseStructure.parse(''));
+      expect(sections.first.startBeat, 0);
+      expect(sections[1].startBeat, 8);
     });
   });
 

@@ -25,6 +25,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'Meanwhileコンテナを追加すると挿入されるサイド図形です。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。';
 
   @override
+  String get settingsDefaultsModifierTitle => 'モディファイアのデフォルト';
+
+  @override
+  String get settingsDefaultsModifierSubtitle =>
+      'モディファイアコンテナを追加したときに挿入されるフィギュアです。空にすると空のフィギュア2つになり、設定済みのフィギュア1つには空のフィギュアが1つ追加されます。';
+
+  @override
   String get navPrograms => 'プログラム';
 
   @override
@@ -5168,6 +5175,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddMeanwhile => 'Meanwhileを追加';
 
   @override
+  String get danceEditorAddModifier => 'モディファイアを追加';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override
@@ -5259,6 +5269,39 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorGroupWithNext => '次と同時進行としてグループ化';
+
+  @override
+  String get danceEditorGroupWithNextAsModifier => '次のフィギュアとモディファイアとしてグループ化';
+
+  @override
+  String danceEditorModifierGroupLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'モディファイア（$countフィギュア）',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorModifierGroupSemantic(num beats, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$countフィギュア',
+      one: '1フィギュア',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats拍',
+      one: '1拍',
+    );
+    return 'モディファイアグループ、$_temp0、$_temp1。';
+  }
+
+  @override
+  String get danceEditorAddModifierChild => 'モディファイアを追加';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {

@@ -30,7 +30,12 @@ const String customMoveId = customMove;
 /// move. Stable/serialized (permanent once written); never renamed.
 const String meanwhileMove = 'meanwhile';
 
-/// Maximum number of concurrent sides a [meanwhileMove] container may hold.
+/// Reserved structural move id for a **modifier** container: the first child is
+/// the core figure and every later child modifies it. Like [meanwhileMove], this
+/// is a structural id, not a taxonomy move, and is stable once serialized.
+const String modifierMove = 'modifier';
+
+/// Maximum number of children either structural container may hold.
 ///
 /// Real choreography never stacks more than a handful of simultaneous actions,
 /// so this is both a UX bound and a **security bound** on the untrusted archive
@@ -40,12 +45,19 @@ const String meanwhileMove = 'meanwhile';
 /// clamp, never throw).
 const int kMaxMeanwhileSides = 6;
 
-/// Maximum meanwhile nesting depth honoured when decoding/sanitizing untrusted
-/// `params['figures']`. The container is **flat only** (a `meanwhile` may not
-/// contain a `meanwhile`), so legitimate data never nests; this small bound
-/// exists purely to stop adversarially deep nesting from exhausting the stack
-/// while decoding. Content deeper than this is flattened up to the cap and any
-/// pathological remainder is dropped defensively.
+/// Alias for the shared structural-child cap, named for the modifier's ordered
+/// children.
+const int kMaxModifierFigures = kMaxMeanwhileSides;
+
+/// Maximum structural container depth accepted by the strict model and honored
+/// while decoding/sanitizing untrusted `params['figures']`.
+///
+/// A root container may contain one opposite container, but that child may only
+/// contain ordinary figures. Same-kind nesting and deeper alternation are
+/// rejected by the model and dropped defensively by tolerant decoders.
+const int kMaxContainerDepth = 2;
+
+/// Legacy name retained for callers that only need a defensive recursive bound.
 const int kMaxMeanwhileDepth = 4;
 
 const DeepCollectionEquality _paramsEquality = DeepCollectionEquality();
@@ -104,10 +116,9 @@ class Figure {
   /// sharing a single [beats] count (the authoritative beat total for section
   /// math — a sub-figure's own `beats` is display-only and never counted).
   ///
-  /// Enforces the structural caps for **programmatic** construction (the strict
-  /// path): at least 2 and at most [kMaxMeanwhileSides] sides, and **flat only**
-  /// (no side may itself be a meanwhile). The untrusted deserialization path is
-  /// intentionally lenient instead (clamp/flatten, parse-never-fails).
+  /// Enforces the structural caps for **programmatic** construction. A meanwhile
+  /// may contain ordinary figures or modifier containers, but never another
+  /// meanwhile and never a container below that nested modifier.
   factory Figure.meanwhile({
     required List<Figure> figures,
     required int beats,
@@ -116,43 +127,110 @@ class Figure {
     Map<String, Object?> extraParams = const {},
     String? wordingOverride,
   }) {
+    _validateContainer(
+      containerMove: meanwhileMove,
+      figures: figures,
+      beats: beats,
+    );
+    return _container(
+      move: meanwhileMove,
+      figures: figures,
+      beats: beats,
+      note: note,
+      progression: progression,
+      extraParams: extraParams,
+      wordingOverride: wordingOverride,
+    );
+  }
+
+  /// Builds a **modifier** container: [figures.first] is the core figure and
+  /// later figures are ordered modifiers sharing the container's beat count.
+  ///
+  /// A modifier may contain ordinary figures or a meanwhile container, but not
+  /// another modifier and never a deeper container.
+  factory Figure.modifier({
+    required List<Figure> figures,
+    required int beats,
+    String? note,
+    bool progression = false,
+    Map<String, Object?> extraParams = const {},
+    String? wordingOverride,
+  }) {
+    _validateContainer(
+      containerMove: modifierMove,
+      figures: figures,
+      beats: beats,
+    );
+    return _container(
+      move: modifierMove,
+      figures: figures,
+      beats: beats,
+      note: note,
+      progression: progression,
+      extraParams: extraParams,
+      wordingOverride: wordingOverride,
+    );
+  }
+
+  static Figure _container({
+    required String move,
+    required List<Figure> figures,
+    required int beats,
+    String? note,
+    required bool progression,
+    required Map<String, Object?> extraParams,
+    String? wordingOverride,
+  }) => Figure(
+    move: move,
+    params: {
+      ...extraParams,
+      'beats': beats,
+      'figures': List<Figure>.unmodifiable(figures),
+    },
+    note: note,
+    progression: progression,
+    wordingOverride: wordingOverride,
+  );
+
+  static void _validateContainer({
+    required String containerMove,
+    required List<Figure> figures,
+    required int beats,
+  }) {
     if (figures.length < 2) {
       throw ArgumentError.value(
         figures.length,
         'figures',
-        'a meanwhile needs at least 2 concurrent sides',
+        '$containerMove needs at least 2 children',
       );
     }
     if (figures.length > kMaxMeanwhileSides) {
       throw ArgumentError.value(
         figures.length,
         'figures',
-        'a meanwhile allows at most $kMaxMeanwhileSides sides',
+        '$containerMove allows at most $kMaxMeanwhileSides children',
       );
-    }
-    for (final f in figures) {
-      if (f.isMeanwhile) {
-        throw ArgumentError.value(
-          f.move,
-          'figures',
-          'a meanwhile may not nest a meanwhile (flat only)',
-        );
-      }
     }
     if (beats < 0) {
       throw ArgumentError.value(beats, 'beats', 'must be non-negative');
     }
-    return Figure(
-      move: meanwhileMove,
-      params: {
-        ...extraParams,
-        'beats': beats,
-        'figures': List<Figure>.unmodifiable(figures),
-      },
-      note: note,
-      progression: progression,
-      wordingOverride: wordingOverride,
-    );
+    for (final child in figures) {
+      if (!child.isContainer) continue;
+      if (child.move == containerMove) {
+        throw ArgumentError.value(
+          child.move,
+          'figures',
+          '$containerMove may not nest itself',
+        );
+      }
+      if (child.subFigures.any((grandchild) => grandchild.isContainer)) {
+        throw ArgumentError.value(
+          child.move,
+          'figures',
+          'container nesting may not exceed $kMaxContainerDepth levels',
+        );
+      }
+    }
   }
 
   final int schemaVersion;
@@ -230,13 +308,20 @@ class Figure {
   /// concurrent sub-figures sharing one beat count. Mirrors [isCustom].
   bool get isMeanwhile => move == meanwhileMove;
 
-  /// The concurrent sides of a [isMeanwhile] container, in order; empty for any
-  /// other figure. Downstream surfaces read this instead of hand-parsing
+  /// Whether this is a **modifier** container whose first child is the core
+  /// figure and later children are modifiers.
+  bool get isModifier => move == modifierMove;
+
+  /// Whether this is either structural container kind.
+  bool get isContainer => isMeanwhile || isModifier;
+
+  /// The ordered children of a structural container, or empty for an ordinary
+  /// figure. Downstream surfaces read this instead of hand-parsing
   /// `params['figures']`.
   ///
-  /// The sides are the authoritative sub-figures; their individual `beats` are
-  /// display-only and MUST NOT be summed into section totals — the container's
-  /// own [beats] (`params['beats']`) is the single shared count.
+  /// The children are authoritative; their individual `beats` are display-only
+  /// and MUST NOT be summed into section totals — the container's own [beats]
+  /// (`params['beats']`) is the single shared count.
   List<Figure> get subFigures {
     final raw = params['figures'];
     if (raw is List) {

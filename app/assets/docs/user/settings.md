@@ -331,6 +331,10 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   blank sides, or configure up to six ordinary sides. If only one side is
   configured, the app adds a blank second side so the container can be completed.
   Invalid or unavailable saved defaults use two stand-still sides.
+- **Modifier defaults** — the core and modifier figures used when you choose
+  **Add modifier** while authoring a dance. Leave this list empty to start with
+  two blank figures, or configure up to six figures. Invalid or unavailable
+  saved defaults use two stand-still figures.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards.

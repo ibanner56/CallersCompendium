@@ -315,10 +315,44 @@ class FigureRenderer {
       );
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
+    if (figure.isModifier) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return modifierMove;
+      final core = _render(
+        children.first,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        forCanonical: forCanonical,
+      );
+      final modifiers = children
+          .skip(1)
+          .map(
+            (child) => _renderModifierChild(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              forCanonical: forCanonical,
+            ),
+          );
+      if (forCanonical) {
+        return [core, ...modifiers].join(' $modifierMove ');
+      }
+      final renderedModifiers = modifiers.toList();
+      if (renderedModifiers.isEmpty) return core;
+      final suffix = renderedModifiers.length == 1
+          ? renderedModifiers.single
+          : renderedModifiers.length == 2
+          ? '${renderedModifiers.first}, and ${renderedModifiers.last}'
+          : '${renderedModifiers.take(renderedModifiers.length - 1).join(', ')}, and ${renderedModifiers.last}';
+      return '$core, $suffix';
+    }
     if (!forCanonical) {
       final override = _renderWordingOverride(figure, dialect);
       if (override != null) return override;
     }
+
     final def = taxonomy.resolve(figure.move);
     if (def == null) {
       // Unknown move: fall back to the raw id so nothing is silently lost.
@@ -525,6 +559,102 @@ class FigureRenderer {
     return (!forCanonical && figure.assumedSubject)
         ? _spliceAssumedSubjectMarker(line)
         : _stripSubjectMark(line);
+  }
+
+  String _renderModifierChild(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    required bool forCanonical,
+  }) {
+    if (forCanonical) {
+      return _render(
+        figure,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        forCanonical: true,
+      );
+    }
+    if (figure.isMeanwhile) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return meanwhileMove;
+      final rendered = [
+        _renderGerundive(
+          children.first,
+          dialect,
+          verbose: verbose,
+          decimals: decimals,
+        ),
+        for (final child in children.skip(1))
+          _render(child, dialect, verbose: verbose, decimals: decimals),
+      ];
+      return rendered.join(' while ');
+    }
+    return _renderGerundive(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+    );
+  }
+
+  String _renderGerundive(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+  }) {
+    final rendered = _render(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+    );
+    if (figure.isCustom || figure.isContainer) return rendered;
+    final def = taxonomy.resolve(figure.move);
+    if (def == null) return rendered;
+    final displayName =
+        taxonomy.aliases[figure.move]?.displayName ?? def.displayName;
+    final renderedName = _renderMoveName(
+      def.id,
+      displayName,
+      figure.params,
+      dialect,
+    );
+    if (renderedName.isEmpty || !rendered.contains(renderedName)) {
+      return rendered;
+    }
+    return rendered.replaceFirst(
+      renderedName,
+      _gerundiveMoveName(def.id, renderedName),
+    );
+  }
+
+  String _gerundiveMoveName(String moveId, String displayName) {
+    const irregular = <String, String>{
+      'slice': 'taking',
+      'do_si_do': 'doing-si-do',
+      'fall_back': 'falling back',
+      'lead_up_the_center': 'leading up the center',
+      'pass_through': 'passing through',
+      'pass_by': 'passing by',
+      'roll_away': 'rolling away',
+      'set': 'setting',
+      'slide': 'sliding',
+      'turn_single': 'turning single',
+    };
+    final explicit = irregular[moveId];
+    if (explicit != null) return explicit;
+    final words = displayName.split(' ');
+    if (words.isEmpty) return displayName;
+    final last = words.removeLast();
+    final stem = last.endsWith('e') && !last.endsWith('ee')
+        ? last.substring(0, last.length - 1)
+        : last;
+    words.add('${stem}ing');
+    return words.join(' ');
   }
 
   Map<String, String> _renderTemplateSlots(

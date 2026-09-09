@@ -244,4 +244,41 @@ void main() {
       expect(figure.subFigures, hasLength(kMaxMeanwhileSides));
     });
   });
+
+  group('FigureDraft modifier round-trip (#1198)', () {
+    test('materializes ordered modifier children', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll'),
+        ],
+      )..params['beats'] = 8;
+
+      final figure = draft.toFigure();
+      expect(figure, isNotNull);
+      expect(figure!.isModifier, isTrue);
+      expect(figure.subFigures.map((child) => child.move), ['swing', 'roll']);
+    });
+
+    test('does not materialize a partial modifier container', () {
+      final draft = FigureDraft(modifierFigures: [FigureDraft(move: 'swing')])
+        ..params['beats'] = 8;
+      expect(draft.toFigure(), isNull);
+    });
+
+    test('preserves alternating nested containers', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing'),
+              FigureDraft(move: 'roll'),
+            ],
+          ),
+          FigureDraft(move: 'allemande'),
+        ],
+      )..params['beats'] = 8;
+      expect(draft.toFigure()!.subFigures.first.isMeanwhile, isTrue);
+    });
+  });
 }

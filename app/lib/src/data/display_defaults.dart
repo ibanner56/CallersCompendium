@@ -276,6 +276,10 @@ const String kDefaultDanceFiguresTemplateKey = 'default_dance_figures_template';
 /// missing or malformed values use two stand-still sides.
 const String kDefaultMeanwhileSideFiguresKey = 'default_meanwhile_side_figures';
 
+/// Key used to persist the default core/modifier figures for a newly inserted
+/// modifier container. Stored as a `figures_json` string.
+const String kDefaultModifierFiguresKey = 'default_modifier_figures';
+
 /// The default figure list a blank NEW dance begins with when the user hasn't
 /// configured a template (ROADMAP DD.2). Matches ContraDB's new-dance template:
 /// EIGHT `stand_still` figures, each of 8 beats.
@@ -347,6 +351,46 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
 String encodeMeanwhileSideFigures(List<Figure> figures) => encodeFigures([
   for (final figure in figures)
     if (!figure.isMeanwhile) figure,
+]);
+
+/// The safe fallback for a newly inserted modifier when no valid preference
+/// exists.
+List<Figure> defaultModifierFigures() => [
+  Figure(move: 'stand_still', params: const {'beats': 8}),
+  Figure(move: 'stand_still', params: const {'beats': 8}),
+];
+
+/// Resolves a persisted modifier template. Empty is meaningful and requests a
+/// blank editor draft; malformed values use two stand-still figures.
+List<Figure> modifierFiguresFromStored(Object? stored) {
+  if (stored is String) {
+    try {
+      final raw = jsonDecode(stored);
+      if (raw is! List ||
+          raw.length > kMaxModifierFigures ||
+          raw.any(
+            (entry) =>
+                entry is! Map ||
+                entry['move'] == meanwhileMove ||
+                entry['move'] == modifierMove,
+          )) {
+        return defaultModifierFigures();
+      }
+      final figures = decodeFigures(stored);
+      if (figures.length <= kMaxModifierFigures &&
+          figures.every((figure) => !figure.isContainer)) {
+        return figures;
+      }
+      // diagnostics: silent — malformed modifier defaults use the safe fallback
+    } catch (_) {}
+  }
+  return defaultModifierFigures();
+}
+
+/// Encodes modifier defaults for settings storage.
+String encodeModifierFigures(List<Figure> figures) => encodeFigures([
+  for (final figure in figures)
+    if (!figure.isContainer) figure,
 ]);
 
 /// Key used to persist the per-move figure-entry parameter overrides (ROADMAP

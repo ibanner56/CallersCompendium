@@ -26,6 +26,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.';
 
   @override
+  String get settingsDefaultsModifierTitle => 'Modifier defaults';
+
+  @override
+  String get settingsDefaultsModifierSubtitle =>
+      'The figures seeded when you add a modifier container. Clear it for two blank figures; one configured figure gets one blank companion.';
+
+  @override
   String get navPrograms => 'Programs';
 
   @override
@@ -5343,6 +5350,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddMeanwhile => 'Add meanwhile';
 
   @override
+  String get danceEditorAddModifier => 'Add modifier';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override
@@ -5435,6 +5445,40 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorGroupWithNext => 'Group with next as meanwhile';
+
+  @override
+  String get danceEditorGroupWithNextAsModifier =>
+      'Group with next as modifier';
+
+  @override
+  String danceEditorModifierGroupLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Modifier ($count figures)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorModifierGroupSemantic(num beats, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figures',
+      one: '1 figure',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats beats',
+      one: '1 beat',
+    );
+    return 'Modifier group, $_temp0, $_temp1.';
+  }
+
+  @override
+  String get danceEditorAddModifierChild => 'Add modifier';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {

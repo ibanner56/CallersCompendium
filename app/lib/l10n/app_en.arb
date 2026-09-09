@@ -20,6 +20,14 @@
   "@settingsDefaultsMeanwhileSubtitle": {
     "description": "Explanation for the default meanwhile side-figure editor."
   },
+  "settingsDefaultsModifierTitle": "Modifier defaults",
+  "@settingsDefaultsModifierTitle": {
+    "description": "Sub-heading for default modifier figures."
+  },
+  "settingsDefaultsModifierSubtitle": "The figures seeded when you add a modifier container. Clear it for two blank figures; one configured figure gets one blank companion.",
+  "@settingsDefaultsModifierSubtitle": {
+    "description": "Explanation for the default modifier-figure editor."
+  },
   "navPrograms": "Programs",
   "@navPrograms": {
     "description": "Bottom/rail navigation label for the programs destination."
@@ -7092,6 +7100,10 @@
   "@danceEditorAddMeanwhile": {
     "description": "Menu item label for adding an empty meanwhile container."
   },
+  "danceEditorAddModifier": "Add modifier",
+  "@danceEditorAddModifier": {
+    "description": "Menu item label for adding an empty modifier container."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -7217,6 +7229,22 @@
   "danceEditorGroupWithNext": "Group with next as meanwhile",
   "@danceEditorGroupWithNext": {
     "description": "Menu item label that groups this figure row with the one immediately after it into a meanwhile (concurrent) group (#593). Hidden when there is no next row or either row is already a meanwhile group."
+  },
+  "danceEditorGroupWithNextAsModifier": "Group with next as modifier",
+  "@danceEditorGroupWithNextAsModifier": {
+    "description": "Menu item label that groups this figure row with the one immediately after it into an ordered modifier group."
+  },
+  "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
+  "@danceEditorModifierGroupLabel": {
+    "description": "Visible heading for a modifier group's expanded editor."
+  },
+  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
+  "@danceEditorModifierGroupSemantic": {
+    "description": "Accessibility label for a modifier group."
+  },
+  "danceEditorAddModifierChild": "Add modifier",
+  "@danceEditorAddModifierChild": {
+    "description": "Button label for adding another figure to a modifier group."
   },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Meanwhile ({count} sides)}}",
   "@danceEditorMeanwhileGroupLabel": {

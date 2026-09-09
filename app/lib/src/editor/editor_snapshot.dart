@@ -21,6 +21,7 @@ class FigureDraftSnapshot {
     this.walkthroughOverride,
     this.wordingOverride,
     this.meanwhileSides,
+    this.modifierFigures,
   });
 
   factory FigureDraftSnapshot.fromDraft(FigureDraft draft) =>
@@ -39,6 +40,11 @@ class FigureDraftSnapshot {
             ? null
             : List.unmodifiable(
                 draft.meanwhileSides!.map(FigureDraftSnapshot.fromDraft),
+              ),
+        modifierFigures: draft.modifierFigures == null
+            ? null
+            : List.unmodifiable(
+                draft.modifierFigures!.map(FigureDraftSnapshot.fromDraft),
               ),
       );
 
@@ -73,6 +79,9 @@ class FigureDraftSnapshot {
   /// [FigureDraft.meanwhileSides].
   final List<FigureDraftSnapshot>? meanwhileSides;
 
+  /// Non-null when this snapshot is a modifier group.
+  final List<FigureDraftSnapshot>? modifierFigures;
+
   FigureDraft toDraft() => FigureDraft(
     id: id,
     move: move,
@@ -85,6 +94,9 @@ class FigureDraftSnapshot {
     walkthroughOverride: walkthroughOverride,
     wordingOverride: wordingOverride,
     meanwhileSides: meanwhileSides
+        ?.map((s) => s.toDraft())
+        .toList(growable: true),
+    modifierFigures: modifierFigures
         ?.map((s) => s.toDraft())
         .toList(growable: true),
   );

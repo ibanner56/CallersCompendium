@@ -2,7 +2,7 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
-    show kCanonicalFigureTextKey;
+    show kCanonicalFigureTextKey, kDefaultModifierFiguresKey;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
     show kProgramMatrixColumnsKey, kShowIndividualPerformTimerKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
@@ -95,6 +95,28 @@ void main() {
       expect(validateBackupSettingValue(kAppThemeKey, 123), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, true), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, {'x': 1}), isFalse);
+    });
+
+    test('modifier defaults accept only encoded figure strings', () {
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, '[]'),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(
+          kDefaultModifierFiguresKey,
+          '[{"move":"swing"}]',
+        ),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, []),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, true),
+        isFalse,
+      );
     });
 
     test(

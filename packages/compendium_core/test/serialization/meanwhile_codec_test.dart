@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 
 /// (De)serialization of the `meanwhile` container figure (#590): recursive,
 /// additive round-tripping through the figure codec plus the tolerant, defensive
-/// decode rules (prefer-custom fallback, flat-only flattening, side-count cap,
+/// decode rules (prefer-custom fallback, alternating nesting, side-count cap,
 /// legacy tolerance).
 void main() {
   final swing = Figure(
@@ -48,6 +48,33 @@ void main() {
       // No schema-version bump — the container carries the same version.
       expect(json['schemaVersion'], figureSchemaVersion);
     });
+
+    test('alternating modifier nesting round-trips losslessly', () {
+      final nestedModifier = Figure.modifier(
+        figures: [allemande, orbit],
+        beats: 8,
+      );
+      final container = Figure.meanwhile(
+        figures: [swing, nestedModifier],
+        beats: 8,
+      );
+      final decoded = decodeFigures(encodeFigures([container])).single;
+      expect(decoded, container);
+      expect(decoded.subFigures[1].isModifier, isTrue);
+      expect(decoded.subFigures[1].subFigures, [allemande, orbit]);
+    });
+
+    test('modifier may contain an opposite meanwhile', () {
+      final nestedMeanwhile = Figure.meanwhile(
+        figures: [allemande, orbit],
+        beats: 8,
+      );
+      final container = Figure.modifier(
+        figures: [swing, nestedMeanwhile],
+        beats: 8,
+      );
+      expect(decodeFigures(encodeFigures([container])).single, container);
+    });
   });
 
   group('defensive / tolerant decode', () {
@@ -69,7 +96,7 @@ void main() {
       expect(decoded.subFigures, hasLength(kMaxMeanwhileSides));
     });
 
-    test('flattens a nested meanwhile side (flat only)', () {
+    test('drops same-kind nested containers instead of flattening them', () {
       final nested = {
         'move': meanwhileMove,
         'params': {
@@ -89,14 +116,7 @@ void main() {
           nested,
         ]),
       );
-      // The nested container's sides are hoisted up; nothing is dropped and no
-      // meanwhile survives inside a meanwhile.
-      expect(decoded.subFigures.map((f) => f.move), [
-        'allemande',
-        'orbit',
-        'custom',
-      ]);
-      expect(decoded.subFigures.every((f) => !f.isMeanwhile), isTrue);
+      expect(decoded.subFigures.map((f) => f.move), ['allemande']);
     });
 
     test('ignores non-object junk sides without fabricating', () {

@@ -27,6 +27,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'De zijfiguren die worden ingevoegd wanneer je een meanwhile-container toevoegt. Maak de lijst leeg voor twee lege zijden; bij één ingestelde zijde wordt een lege tweede zijde toegevoegd. Je kunt de container na het invoegen bewerken.';
 
   @override
+  String get settingsDefaultsModifierTitle =>
+      'Standaardinstellingen voor modifiers';
+
+  @override
+  String get settingsDefaultsModifierSubtitle =>
+      'De figuren die worden ingevoegd wanneer je een modifiercontainer toevoegt. Wis dit voor twee lege figuren; bij één ingestelde figuur wordt één lege begeleider toegevoegd.';
+
+  @override
   String get navPrograms => 'Programma\'s';
 
   @override
@@ -5398,6 +5406,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddMeanwhile => 'Meanwhile toevoegen';
 
   @override
+  String get danceEditorAddModifier => 'Modifier toevoegen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 
@@ -5492,6 +5503,40 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get danceEditorGroupWithNext =>
       'Groeperen met volgende als gelijktijdig';
+
+  @override
+  String get danceEditorGroupWithNextAsModifier =>
+      'Met volgende groeperen als modifier';
+
+  @override
+  String danceEditorModifierGroupLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Modifier ($count figuren)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorModifierGroupSemantic(num beats, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen',
+      one: '1 tel',
+    );
+    return 'Modifiergroep, $_temp0, $_temp1.';
+  }
+
+  @override
+  String get danceEditorAddModifierChild => 'Modifier toevoegen';
 
   @override
   String danceEditorMeanwhileGroupLabel(int count) {

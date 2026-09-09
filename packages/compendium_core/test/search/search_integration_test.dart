@@ -985,6 +985,42 @@ void main() {
       );
     });
 
+    test(
+      'nested modifier leaves remain concurrent in either Then direction',
+      () async {
+        final nested = Figure.meanwhile(
+          figures: [
+            Figure(move: 'do_si_do'),
+            Figure(move: 'petronella'),
+          ],
+          beats: 8,
+        );
+        final container = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            nested,
+          ],
+          beats: 8,
+        );
+        await dances.create(
+          _dance(id: 'nested-modifier', title: 'Nested', figures: [container]),
+        );
+
+        for (final filter in [
+          ThenFilter(FigureLeaf('swing'), FigureLeaf('petronella')),
+          ThenFilter(FigureLeaf('petronella'), FigureLeaf('swing')),
+        ]) {
+          expect(await dances.search(filter), isEmpty);
+        }
+        expect(await dances.search(FigureFilter.leaf('petronella')), [
+          'nested-modifier',
+        ]);
+        expect(await dances.search(FigureFilter.leaf('swing')), [
+          'nested-modifier',
+        ]);
+      },
+    );
+
     test('a genuine sequence still matches, and only it', () async {
       // Concurrent container: petronella while swing.
       await dances.create(

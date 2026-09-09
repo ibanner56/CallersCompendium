@@ -20,6 +20,14 @@
   "@settingsDefaultsMeanwhileSubtitle": {
     "x-sourceSha256": "fd52415a558ae2a3b71aec64d34d88e66dbb87e764af095eddf7880b8de71bfc"
   },
+  "settingsDefaultsModifierTitle": "Standardindstillinger for modifikatorer",
+  "@settingsDefaultsModifierTitle": {
+    "x-sourceSha256": "e953fe49deb48c17949122234454ce594d54e7211a133235929ad5e15d76f5e7"
+  },
+  "settingsDefaultsModifierSubtitle": "De figurer, der indsættes, når du tilføjer en modifikatorkontejner. Ryd den for to tomme figurer; én konfigureret figur får én tom ledsager.",
+  "@settingsDefaultsModifierSubtitle": {
+    "x-sourceSha256": "59243c9062bcdd632ba22b74111ef1096a94ab93de5d7ad21889567dca460763"
+  },
   "navPrograms": "Programmer",
   "@navPrograms": {
     "x-sourceSha256": "b6747064b2a6dd95ce21899cbfa4a60ed8980b4819014b7a4fce0d849a599fb2"
@@ -5456,6 +5464,10 @@
   "@danceEditorAddMeanwhile": {
     "x-sourceSha256": "3d8e36f40c970f8731ce8f6056556c8d842bb2f51faf4d774c2c63dec18d03cb"
   },
+  "danceEditorAddModifier": "Tilføj modifikator",
+  "@danceEditorAddModifier": {
+    "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
+  },
   "danceEditorPasteAtEndOfFigureList": "Indsæt i slutningen af figurlisten",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -5527,6 +5539,22 @@
   "danceEditorGroupWithNext": "Gruppér med næste som samtidig",
   "@danceEditorGroupWithNext": {
     "x-sourceSha256": "dc34c0f319507937f94950afc08a884226c87a7eb291e261c722152c4203451a"
+  },
+  "danceEditorGroupWithNextAsModifier": "Gruppér med næste som modifikator",
+  "@danceEditorGroupWithNextAsModifier": {
+    "x-sourceSha256": "dc0b3085a82f4025e2497ae817772e58592dedf8fa206a04f8a6fd01cd2c9177"
+  },
+  "danceEditorModifierGroupLabel": "{count, plural, other{Modifikator ({count} figurer)}}",
+  "@danceEditorModifierGroupLabel": {
+    "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
+  },
+  "danceEditorModifierGroupSemantic": "Modifikatorgruppe, {count, plural, =1{1 figur} other{{count} figurer}}, {beats, plural, =1{1 slag} other{{beats} slag}}.",
+  "@danceEditorModifierGroupSemantic": {
+    "x-sourceSha256": "cd51d1dc40abb37be2cffa2a77bcd1e183374a5c89b26312f31a2223b03784f5"
+  },
+  "danceEditorAddModifierChild": "Tilføj modifikator",
+  "@danceEditorAddModifierChild": {
+    "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
   },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Samtidig ({count} sider)}}",
   "@danceEditorMeanwhileGroupLabel": {

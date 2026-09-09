@@ -21,6 +21,7 @@ class FigureDraft {
     this.walkthroughOverride,
     this.wordingOverride,
     this.meanwhileSides,
+    this.modifierFigures,
   }) : id = id ?? uuidV4(),
        params = params ?? <String, Object?>{};
 
@@ -37,11 +38,8 @@ class FigureDraft {
   /// open/save round-trip; it is cleared the moment the user explicitly picks a
   /// move or edits the subject, which makes the subject a stated choice.
   ///
-  /// When [figure] `isMeanwhile` (#590/#593), the draft becomes a **meanwhile
-  /// group**: [meanwhileSides] is seeded from [Figure.subFigures] (each side
-  /// recursively seeded via this same factory — flat only, so a side's own
-  /// `meanwhileSides` is always `null`), and `params['beats']` carries the
-  /// container's single SHARED beat count rather than any per-side count.
+  /// When [figure] is a structural container, the draft is seeded from
+  /// [Figure.subFigures] while preserving its container kind.
   factory FigureDraft.fromFigure(Figure figure) => FigureDraft(
     move: figure.move,
     params: Map<String, Object?>.of(figure.params),
@@ -55,6 +53,9 @@ class FigureDraft {
     wordingOverride: figure.wordingOverride,
     meanwhileSides: figure.isMeanwhile
         ? [for (final side in figure.subFigures) FigureDraft.fromFigure(side)]
+        : null,
+    modifierFigures: figure.isModifier
+        ? [for (final child in figure.subFigures) FigureDraft.fromFigure(child)]
         : null,
   );
 
@@ -115,14 +116,21 @@ class FigureDraft {
   /// draft). `null` (the default) means an ordinary, non-grouped figure —
   /// today's ubiquitous case.
   ///
-  /// **Flat only**: a side's own [meanwhileSides] is always `null`. This is
-  /// enforced at the UI boundary (the editor never offers a "group" action on
-  /// a side's own row), not by this field alone, matching the core model's
-  /// flat-only invariant ([Figure.isMeanwhile] may not nest).
+  /// A child may itself carry the one legal opposite container kind.
   List<FigureDraft>? meanwhileSides;
+
+  /// Non-null when this draft is a modifier container. The first child is the
+  /// core figure; later children are modifiers.
+  List<FigureDraft>? modifierFigures;
 
   /// Whether this draft is a meanwhile group. Mirrors [Figure.isMeanwhile].
   bool get isMeanwhileGroup => meanwhileSides != null;
+
+  /// Whether this draft is a modifier group. Mirrors [Figure.isModifier].
+  bool get isModifierGroup => modifierFigures != null;
+
+  /// Whether this draft is either structural container kind.
+  bool get isContainerDraft => isMeanwhileGroup || isModifierGroup;
 
   int get beats => (params['beats'] as int?) ?? 0;
 
@@ -146,6 +154,9 @@ class FigureDraft {
     wordingOverride: wordingOverride,
     meanwhileSides: meanwhileSides
         ?.map((side) => side.clone())
+        .toList(growable: true),
+    modifierFigures: modifierFigures
+        ?.map((child) => child.clone())
         .toList(growable: true),
   );
 
@@ -200,8 +211,8 @@ class FigureDraft {
   /// `buildDance` boundary, issue #613/#715) while the default keeps today's
   /// plain-trim behavior for any other caller.
   Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
-    final sides = meanwhileSides;
-    if (sides != null) {
+    final children = meanwhileSides ?? modifierFigures;
+    if (children != null) {
       // Never silently drop a side that the user has started authoring
       // (#679 review): only a genuinely untouched placeholder side (no move,
       // no note/params/walkthrough override) is skipped — mirroring how an
@@ -209,28 +220,37 @@ class FigureDraft {
       // move but SOME content is preserved via a best-effort custom figure
       // instead, so an in-progress group can never lose a side out from
       // under the user on autosave/undo.
-      final readySides = [
-        for (final side in sides)
-          if (side.toFigure(canonicalizeNote: canonicalizeNote) case final fig?)
+      final readyChildren = [
+        for (final child in children)
+          if (child.toFigure(canonicalizeNote: canonicalizeNote)
+              case final fig?)
             fig
-          else if (side._hasUnsavedContent)
-            side._bestEffortFigure(canonicalizeNote),
+          else if (child._hasUnsavedContent)
+            child._bestEffortFigure(canonicalizeNote),
       ];
-      if (readySides.length < 2) return null;
+      if (readyChildren.length < 2) return null;
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()
       // from ever throwing even if that invariant is somehow violated.
-      final cappedSides = readySides.length > kMaxMeanwhileSides
-          ? readySides.sublist(0, kMaxMeanwhileSides)
-          : readySides;
+      final cappedChildren = readyChildren.length > kMaxMeanwhileSides
+          ? readyChildren.sublist(0, kMaxMeanwhileSides)
+          : readyChildren;
       final trimmedNote = canonicalizeNote(note);
-      return Figure.meanwhile(
-        figures: cappedSides,
-        beats: beats,
-        note: trimmedNote.isEmpty ? null : trimmedNote,
-        progression: progression,
-        wordingOverride: _trimOptionalOverride(wordingOverride),
-      );
+      return modifierFigures != null
+          ? Figure.modifier(
+              figures: cappedChildren,
+              beats: beats,
+              note: trimmedNote.isEmpty ? null : trimmedNote,
+              progression: progression,
+              wordingOverride: _trimOptionalOverride(wordingOverride),
+            )
+          : Figure.meanwhile(
+              figures: cappedChildren,
+              beats: beats,
+              note: trimmedNote.isEmpty ? null : trimmedNote,
+              progression: progression,
+              wordingOverride: _trimOptionalOverride(wordingOverride),
+            );
     }
     final id = move;
     if (id == null) return null;
