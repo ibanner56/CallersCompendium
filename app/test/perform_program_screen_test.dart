@@ -17,7 +17,8 @@ import 'package:compendium_app/src/screens/settings_screen.dart'
         kAutoSizePerformKey,
         kPerformCanonicalViewKey,
         kPerformStageModeKey,
-        kPerformTextScaleKey;
+        kPerformTextScaleKey,
+        kShowProgramSlotCallerNotesKey;
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -90,6 +91,7 @@ Future<void> _pumpProgram(
   int initialGroup = 0,
   Dialect? activeDialect,
   bool autoSize = false,
+  bool showProgramSlotCallerNotes = true,
   Size surfaceSize = const Size(1400, 2400),
   DialectLibraryController? dialectLibrary,
   Map<String, Dance> danceOverrides = const {},
@@ -101,6 +103,10 @@ Future<void> _pumpProgram(
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  await repos.settings.set(
+    kShowProgramSlotCallerNotesKey,
+    showProgramSlotCallerNotes,
+  );
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
       : DialectLibraryScope(controller: dialectLibrary, child: child);
@@ -220,6 +226,54 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('perform-prev')));
     await tester.pumpAndSettle();
     expect(find.text('First Dance'), findsOneWidget);
+  });
+
+  testWidgets('program Perform shows per-slot caller notes above the title', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Call this one gently',
+        ),
+      ]),
+      data: data,
+    );
+
+    expect(find.text('Caller note: Call this one gently'), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('perform-slot-caller-note')))
+          .dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('perform-title'))).dy,
+      ),
+    );
+  });
+
+  testWidgets('program Perform hides per-slot caller notes when disabled', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      showProgramSlotCallerNotes: false,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', text: 'Hidden note'),
+      ]),
+      data: data,
+    );
+
+    expect(find.textContaining('Hidden note'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('perform-slot-caller-note')),
+      findsNothing,
+    );
   });
 
   group('AppBar responsive overflow (issue #433)', () {
@@ -1290,6 +1344,38 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byKey(const ValueKey('perform-text')), findsOneWidget);
     });
+
+    testWidgets(
+      'recomputes the fit for the same dance with a different caller note',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Short')]);
+        const longNote =
+            'Call the transition slowly, then repeat the ending phrase twice '
+            'before moving on to the next figure.';
+        await _pumpProgram(
+          tester,
+          data: data,
+          autoSize: true,
+          surfaceSize: const Size(500, 650),
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1', text: 'Brief note'),
+            _slot(id: 's2', position: 1, danceId: 'd1', text: longNote),
+          ]),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.text('Caller note: $longNote'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byKey(const ValueKey('perform-prev')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.text('Caller note: $longNote'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets(
       'revisiting a fitted slot keeps its scale (no auto-size grow-in flash)',

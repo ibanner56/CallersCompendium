@@ -20,7 +20,8 @@ import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
-import 'settings_screen.dart' show kAutoSizePerformKey;
+import 'settings_screen.dart'
+    show kAutoSizePerformKey, kShowProgramSlotCallerNotesKey;
 
 /// Full-screen, large-print performance view for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -218,6 +219,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   bool _stageModeUserSet = false;
   bool _canonicalUserSet = false;
 
+  /// Whether per-slot caller notes are shown above dance titles in program
+  /// Perform. Defaults on and is persisted as a Program setting.
+  bool _showProgramSlotCallerNotes = true;
+
   /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
@@ -317,6 +322,18 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         })
         .catchError((_) {
           // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
+        });
+    settings
+        .get(kShowProgramSlotCallerNotesKey)
+        .then((v) {
+          if (!mounted) return;
+          final enabled = v is bool ? v : true;
+          if (enabled != _showProgramSlotCallerNotes) {
+            setState(() => _showProgramSlotCallerNotes = enabled);
+          }
+        })
+        .catchError((_) {
+          // diagnostics: silent — keeps the default-on behavior.
         });
   }
 
@@ -1157,6 +1174,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       if (dance != null) {
         return PerformCard(
           dance: dance,
+          callerNote: _showProgramSlotCallerNotes ? slot.text : null,
           renderer: widget.renderer,
           dialect: dialect,
           textScale: _textScale,

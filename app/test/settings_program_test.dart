@@ -13,6 +13,8 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
+import 'package:compendium_app/src/screens/settings/settings_keys.dart'
+    show kShowProgramSlotCallerNotesKey;
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/test_repositories.dart';
@@ -186,6 +188,7 @@ void main() {
       final toggle = find.byKey(
         const ValueKey('settings-show-individual-perform-timer'),
       );
+
       expect(toggle, findsOneWidget);
       expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
       expect(
@@ -205,6 +208,37 @@ void main() {
       expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
       expect(await repos.settings.get(kShowIndividualPerformTimerKey), isFalse);
 
+      handle.dispose();
+    },
+  );
+
+  testWidgets(
+    'program caller notes toggle defaults on, is accessible, and persists',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      final repos = openTestRepositories();
+
+      await _pumpProgram(tester, repos);
+
+      final toggle = find.byKey(
+        const ValueKey('settings-show-program-slot-caller-notes'),
+      );
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(
+        tester.getSemantics(
+          find.descendant(of: toggle, matching: find.byType(Switch)),
+        ),
+        isSemantics(
+          hasToggledState: true,
+          isToggled: true,
+          hasTapAction: true,
+          isEnabled: true,
+        ),
+      );
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(await repos.settings.get(kShowProgramSlotCallerNotesKey), isFalse);
       handle.dispose();
     },
   );

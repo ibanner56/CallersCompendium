@@ -1285,6 +1285,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
   },
+  "settingsShowProgramSlotCallerNotesTitle": "Show caller notes in program Perform",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "description": "Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform."
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Show non-empty per-slot caller notes above the dance title in program Perform.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "description": "Subtitle explaining the program Perform caller-note display toggle."
+  },
   "settingsGeneralCallingHistoryHeader": "Calling history",
   "@settingsGeneralCallingHistoryHeader": {
     "description": "General settings section header for calling-history preferences."
@@ -4329,6 +4337,10 @@
   "performOverSuffix": " over",
   "@performOverSuffix": {
     "description": "Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length."
+  },
+  "performSlotCallerNote": "Caller note",
+  "@performSlotCallerNote": {
+    "description": "Label shown before a per-slot caller note above a dance title in program Perform."
   },
   "performCallingNotes": "Calling notes",
   "@performCallingNotes": {
