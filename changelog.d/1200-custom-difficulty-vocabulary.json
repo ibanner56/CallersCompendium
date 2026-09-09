@@ -8,7 +8,7 @@
   },
   "core": {
     "changed": [
-      "Replace the fixed DanceLevel enum with a persisted ordered difficulty vocabulary that carries stable IDs through storage and archive compatibility."
+      "Replace the fixed DanceLevel enum with a persisted ordered difficulty vocabulary that carries stable IDs through storage, archive compatibility, and Device Sync tombstones."
     ]
   }
 }

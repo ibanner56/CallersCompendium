@@ -85,4 +85,39 @@ void main() {
     )..where((t) => t.id.equals('uses-level'))).getSingle();
     expect(dance.levelId, custom.id);
   });
+
+  test('deleting an unused level creates a sync tombstone', () async {
+    final custom = await levels.createCustom(label: 'Challenge', position: 3);
+    final deletedAt = DateTime.utc(2099, 1, 2);
+
+    await levels.delete(custom.id, at: deletedAt);
+
+    expect(await levels.getById(custom.id), isNull);
+    expect(
+      (await levels.listAllWithDeleted()).singleWhere(
+        (entry) => entry.level.id == custom.id,
+      ),
+      (level: custom, deleted: true),
+    );
+    final row = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(custom.id))).getSingle();
+    expect(row.deletedAt?.toUtc(), deletedAt);
+    expect(row.existenceAt?.toUtc(), deletedAt);
+  });
+
+  test('upserting a tombstoned level revives it causally', () async {
+    final custom = await levels.createCustom(label: 'Challenge', position: 3);
+    await levels.delete(custom.id, at: DateTime.utc(2099, 1, 2));
+
+    final renamed = custom.copyWith(label: 'Hard');
+    await levels.upsert(renamed, at: DateTime.utc(2099, 1, 1));
+
+    expect(await levels.getById(custom.id), renamed);
+    final row = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(custom.id))).getSingle();
+    expect(row.deletedAt, isNull);
+    expect(row.existenceAt?.toUtc(), DateTime.utc(2099, 1, 2, 0, 0, 1));
+  });
 }

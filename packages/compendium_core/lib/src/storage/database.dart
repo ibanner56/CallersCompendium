@@ -269,7 +269,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 33;
+const int kCompendiumSchemaVersion = 34;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -299,6 +299,9 @@ const int kMinSupportedSchemaVersion = 20;
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
+///
+/// - v34 (issue #1200): adds the Device Sync timestamp triple to the
+///   difficulty-level vocabulary, converting level deletion into a tombstone.
 ///
 /// - v26 (issue #899): provenance-based venue dedupe for shared bundles.
 ///   Adds one brand-new table, `venue_provenance` (one row per imported venue,
@@ -798,6 +801,31 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         );
         await customStatement(dancesDifficultyLevelIdIndexSql);
       }
+      if (from < 34) {
+        Future<void> addColumnIfMissing(GeneratedColumn<Object> column) async {
+          final existing = await customSelect(
+            "SELECT name FROM pragma_table_info('difficulty_levels')",
+          ).get();
+          final present = {
+            for (final row in existing) row.read<String>('name'),
+          };
+          if (!present.contains(column.name)) {
+            await m.addColumn(difficultyLevels, column);
+          }
+        }
+
+        await addColumnIfMissing(difficultyLevels.updatedAt);
+        await addColumnIfMissing(difficultyLevels.deletedAt);
+        await addColumnIfMissing(difficultyLevels.existenceAt);
+        final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
+        await customStatement(
+          // sync-invariant-exclusion: migration-backfill is idempotent; not a sync record edit.
+          'UPDATE difficulty_levels '
+          'SET updated_at = ?, existence_at = ? '
+          'WHERE deleted_at IS NULL',
+          [now, now],
+        );
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -835,10 +863,13 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   );
 
   Future<void> _seedDifficultyLevels() async {
+    final now = DateTime.now().toUtc().millisecondsSinceEpoch ~/ 1000;
     for (final level in DifficultyLevel.shipped) {
       await customStatement(
-        'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
-        [level.id, level.label, level.position],
+        'INSERT INTO difficulty_levels '
+        '(id, label, position, updated_at, existence_at) '
+        'VALUES (?, ?, ?, ?, ?)',
+        [level.id, level.label, level.position, now, now],
       );
     }
   }

@@ -140,6 +140,9 @@ class DifficultyLevels extends Table {
   TextColumn get id => text()();
   TextColumn get label => text().unique()();
   IntColumn get position => integer()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
+  DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

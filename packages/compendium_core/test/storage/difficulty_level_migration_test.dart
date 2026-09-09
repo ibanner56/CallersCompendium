@@ -1,5 +1,5 @@
 import 'package:compendium_core/src/storage/database.dart';
-import 'package:drift/drift.dart';
+import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
 import 'package:test/test.dart';
@@ -74,5 +74,38 @@ void main() {
         ('old-unspecified', null),
       ],
     );
+  });
+
+  test('v33 difficulty levels gain initialized sync timestamps', () async {
+    final raw = sqlite3.sqlite3.openInMemory();
+    addTearDown(raw.close);
+
+    final historical = GeneratedHelper().databaseForVersion(
+      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      33,
+    );
+    await historical.customSelect('SELECT 1').get();
+    await historical.customStatement(
+      'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
+      ['custom-level', 'Challenge', 3],
+    );
+    await historical.close();
+
+    final migrated = CompendiumDatabase(
+      NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+    );
+    addTearDown(migrated.close);
+    await migrated.customSelect('SELECT 1').get();
+
+    final row = await migrated
+        .customSelect(
+          'SELECT updated_at, deleted_at, existence_at '
+          'FROM difficulty_levels WHERE id = ?',
+          variables: [Variable.withString('custom-level')],
+        )
+        .getSingle();
+    expect(row.read<int>('updated_at'), greaterThan(0));
+    expect(row.read<int?>('deleted_at'), isNull);
+    expect(row.read<int>('existence_at'), row.read<int>('updated_at'));
   });
 }

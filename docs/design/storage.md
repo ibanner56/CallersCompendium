@@ -463,11 +463,15 @@ can still fire.
   write guard reject dangling IDs; repository deletion is transactional and
   refuses a level used by any dance, including a tombstoned dance that could be
   restored later.
+- v34 (issue #1200): adds the Device Sync timestamp triple to
+  `difficulty_levels`. Level deletion now records a tombstone and can be
+  causally revived by a later upsert; existing seeded levels are back-filled
+  with a common live creation stamp.
 
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
-sources, custom field definitions, venues and settings keys — carries three
+sources, custom field definitions, difficulty levels, venues and settings keys — carries three
 timestamps as of schema v25 (issue #898). They answer three different questions
 and are deliberately not collapsed into fewer columns:
 

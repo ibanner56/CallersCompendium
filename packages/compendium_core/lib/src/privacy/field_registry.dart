@@ -214,6 +214,9 @@ final Map<String, DataClassification> fieldClassifications = {
   'difficulty_levels.id': _key,
   'difficulty_levels.label': _choreography,
   'difficulty_levels.position': _choreography,
+  'difficulty_levels.updated_at': _recordStamp,
+  'difficulty_levels.deleted_at': _tombstone,
+  'difficulty_levels.existence_at': _existenceStamp,
 
   // -------------------------------------------------------- choreographers --
   'choreographers.id': _key,

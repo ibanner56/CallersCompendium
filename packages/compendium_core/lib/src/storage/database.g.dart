@@ -39,8 +39,48 @@ class $DifficultyLevelsTable extends DifficultyLevels
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, label, position];
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deletedAt = GeneratedColumn<DateTime>(
+    'deleted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _existenceAtMeta = const VerificationMeta(
+    'existenceAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> existenceAt = GeneratedColumn<DateTime>(
+    'existence_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    label,
+    position,
+    updatedAt,
+    deletedAt,
+    existenceAt,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -74,6 +114,27 @@ class $DifficultyLevelsTable extends DifficultyLevels
     } else if (isInserting) {
       context.missing(_positionMeta);
     }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    }
+    if (data.containsKey('existence_at')) {
+      context.handle(
+        _existenceAtMeta,
+        existenceAt.isAcceptableOrUnknown(
+          data['existence_at']!,
+          _existenceAtMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -95,6 +156,18 @@ class $DifficultyLevelsTable extends DifficultyLevels
         DriftSqlType.int,
         data['${effectivePrefix}position'],
       )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}deleted_at'],
+      ),
+      existenceAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}existence_at'],
+      ),
     );
   }
 
@@ -109,10 +182,16 @@ class DifficultyLevelRow extends DataClass
   final String id;
   final String label;
   final int position;
+  final DateTime? updatedAt;
+  final DateTime? deletedAt;
+  final DateTime? existenceAt;
   const DifficultyLevelRow({
     required this.id,
     required this.label,
     required this.position,
+    this.updatedAt,
+    this.deletedAt,
+    this.existenceAt,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -120,6 +199,15 @@ class DifficultyLevelRow extends DataClass
     map['id'] = Variable<String>(id);
     map['label'] = Variable<String>(label);
     map['position'] = Variable<int>(position);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || deletedAt != null) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt);
+    }
+    if (!nullToAbsent || existenceAt != null) {
+      map['existence_at'] = Variable<DateTime>(existenceAt);
+    }
     return map;
   }
 
@@ -128,6 +216,15 @@ class DifficultyLevelRow extends DataClass
       id: Value(id),
       label: Value(label),
       position: Value(position),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      deletedAt: deletedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deletedAt),
+      existenceAt: existenceAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(existenceAt),
     );
   }
 
@@ -140,6 +237,9 @@ class DifficultyLevelRow extends DataClass
       id: serializer.fromJson<String>(json['id']),
       label: serializer.fromJson<String>(json['label']),
       position: serializer.fromJson<int>(json['position']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
+      existenceAt: serializer.fromJson<DateTime?>(json['existenceAt']),
     );
   }
   @override
@@ -149,20 +249,37 @@ class DifficultyLevelRow extends DataClass
       'id': serializer.toJson<String>(id),
       'label': serializer.toJson<String>(label),
       'position': serializer.toJson<int>(position),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'deletedAt': serializer.toJson<DateTime?>(deletedAt),
+      'existenceAt': serializer.toJson<DateTime?>(existenceAt),
     };
   }
 
-  DifficultyLevelRow copyWith({String? id, String? label, int? position}) =>
-      DifficultyLevelRow(
-        id: id ?? this.id,
-        label: label ?? this.label,
-        position: position ?? this.position,
-      );
+  DifficultyLevelRow copyWith({
+    String? id,
+    String? label,
+    int? position,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<DateTime?> deletedAt = const Value.absent(),
+    Value<DateTime?> existenceAt = const Value.absent(),
+  }) => DifficultyLevelRow(
+    id: id ?? this.id,
+    label: label ?? this.label,
+    position: position ?? this.position,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
+    existenceAt: existenceAt.present ? existenceAt.value : this.existenceAt,
+  );
   DifficultyLevelRow copyWithCompanion(DifficultyLevelsCompanion data) {
     return DifficultyLevelRow(
       id: data.id.present ? data.id.value : this.id,
       label: data.label.present ? data.label.value : this.label,
       position: data.position.present ? data.position.value : this.position,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      existenceAt: data.existenceAt.present
+          ? data.existenceAt.value
+          : this.existenceAt,
     );
   }
 
@@ -171,37 +288,53 @@ class DifficultyLevelRow extends DataClass
     return (StringBuffer('DifficultyLevelRow(')
           ..write('id: $id, ')
           ..write('label: $label, ')
-          ..write('position: $position')
+          ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, label, position);
+  int get hashCode =>
+      Object.hash(id, label, position, updatedAt, deletedAt, existenceAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is DifficultyLevelRow &&
           other.id == this.id &&
           other.label == this.label &&
-          other.position == this.position);
+          other.position == this.position &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.existenceAt == this.existenceAt);
 }
 
 class DifficultyLevelsCompanion extends UpdateCompanion<DifficultyLevelRow> {
   final Value<String> id;
   final Value<String> label;
   final Value<int> position;
+  final Value<DateTime?> updatedAt;
+  final Value<DateTime?> deletedAt;
+  final Value<DateTime?> existenceAt;
   final Value<int> rowid;
   const DifficultyLevelsCompanion({
     this.id = const Value.absent(),
     this.label = const Value.absent(),
     this.position = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   DifficultyLevelsCompanion.insert({
     required String id,
     required String label,
     required int position,
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.existenceAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        label = Value(label),
@@ -210,12 +343,18 @@ class DifficultyLevelsCompanion extends UpdateCompanion<DifficultyLevelRow> {
     Expression<String>? id,
     Expression<String>? label,
     Expression<int>? position,
+    Expression<DateTime>? updatedAt,
+    Expression<DateTime>? deletedAt,
+    Expression<DateTime>? existenceAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (label != null) 'label': label,
       if (position != null) 'position': position,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (existenceAt != null) 'existence_at': existenceAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -224,12 +363,18 @@ class DifficultyLevelsCompanion extends UpdateCompanion<DifficultyLevelRow> {
     Value<String>? id,
     Value<String>? label,
     Value<int>? position,
+    Value<DateTime?>? updatedAt,
+    Value<DateTime?>? deletedAt,
+    Value<DateTime?>? existenceAt,
     Value<int>? rowid,
   }) {
     return DifficultyLevelsCompanion(
       id: id ?? this.id,
       label: label ?? this.label,
       position: position ?? this.position,
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      existenceAt: existenceAt ?? this.existenceAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -246,6 +391,15 @@ class DifficultyLevelsCompanion extends UpdateCompanion<DifficultyLevelRow> {
     if (position.present) {
       map['position'] = Variable<int>(position.value);
     }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<DateTime>(deletedAt.value);
+    }
+    if (existenceAt.present) {
+      map['existence_at'] = Variable<DateTime>(existenceAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -258,6 +412,9 @@ class DifficultyLevelsCompanion extends UpdateCompanion<DifficultyLevelRow> {
           ..write('id: $id, ')
           ..write('label: $label, ')
           ..write('position: $position, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('existenceAt: $existenceAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -13606,6 +13763,9 @@ typedef $$DifficultyLevelsTableCreateCompanionBuilder =
       required String id,
       required String label,
       required int position,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
       Value<int> rowid,
     });
 typedef $$DifficultyLevelsTableUpdateCompanionBuilder =
@@ -13613,6 +13773,9 @@ typedef $$DifficultyLevelsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> label,
       Value<int> position,
+      Value<DateTime?> updatedAt,
+      Value<DateTime?> deletedAt,
+      Value<DateTime?> existenceAt,
       Value<int> rowid,
     });
 
@@ -13673,6 +13836,21 @@ class $$DifficultyLevelsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> dancesRefs(
     Expression<bool> Function($$DancesTableFilterComposer f) f,
   ) {
@@ -13722,6 +13900,21 @@ class $$DifficultyLevelsTableOrderingComposer
     column: $table.position,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$DifficultyLevelsTableAnnotationComposer
@@ -13741,6 +13934,17 @@ class $$DifficultyLevelsTableAnnotationComposer
 
   GeneratedColumn<int> get position =>
       $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get existenceAt => $composableBuilder(
+    column: $table.existenceAt,
+    builder: (column) => column,
+  );
 
   Expression<T> dancesRefs<T extends Object>(
     Expression<T> Function($$DancesTableAnnotationComposer a) f,
@@ -13801,11 +14005,17 @@ class $$DifficultyLevelsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> label = const Value.absent(),
                 Value<int> position = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DifficultyLevelsCompanion(
                 id: id,
                 label: label,
                 position: position,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -13813,11 +14023,17 @@ class $$DifficultyLevelsTableTableManager
                 required String id,
                 required String label,
                 required int position,
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<DateTime?> deletedAt = const Value.absent(),
+                Value<DateTime?> existenceAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => DifficultyLevelsCompanion.insert(
                 id: id,
                 label: label,
                 position: position,
+                updatedAt: updatedAt,
+                deletedAt: deletedAt,
+                existenceAt: existenceAt,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

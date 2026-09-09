@@ -8,6 +8,7 @@ import '../../data/collection_tile_fields_scope.dart';
 import '../../data/display_defaults.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
+import '../../diagnostics/error_log.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
@@ -530,7 +531,9 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _reload() async {
-    final levels = await RepositoriesScope.of(context).difficultyLevels.listAll();
+    final levels = await RepositoriesScope.of(
+      context,
+    ).difficultyLevels.listAll();
     if (!mounted) return;
     setState(() {
       _levels = levels;
@@ -540,9 +543,9 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
 
   void _report(Object error) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.toString())),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(error.toString())));
   }
 
   Future<void> _add() async {
@@ -580,7 +583,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
         position: _levels.length,
       );
       await _reload();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._add');
       _report(error);
     }
   }
@@ -589,11 +593,12 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     final label = value.trim();
     if (label.isEmpty || label == level.label) return;
     try {
-      await RepositoriesScope.of(context).difficultyLevels.upsert(
-        level.copyWith(label: label),
-      );
+      await RepositoriesScope.of(
+        context,
+      ).difficultyLevels.upsert(level.copyWith(label: label));
       await _reload();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._rename');
       _report(error);
     }
   }
@@ -602,7 +607,8 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     try {
       await RepositoriesScope.of(context).difficultyLevels.delete(level.id);
       await _reload();
-    } catch (error) {
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._delete');
       _report(error);
     }
   }
@@ -614,10 +620,11 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     updated.insert(newIndex, level);
     setState(() => _levels = updated);
     try {
-      await RepositoriesScope.of(context).difficultyLevels.reorder(
-        updated.map((level) => level.id).toList(),
-      );
-    } catch (error) {
+      await RepositoriesScope.of(
+        context,
+      ).difficultyLevels.reorder(updated.map((level) => level.id).toList());
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'defaults_section._reorder');
       _report(error);
       await _reload();
     }
@@ -637,7 +644,6 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
       children: [
         ListTile(
           title: Text(l10n.danceEditorLevelLabel),
-          subtitle: Text(l10n.settingsDefaultsAuthoringHeader),
           trailing: IconButton(
             key: const ValueKey('difficulty-level-add'),
             tooltip: l10n.commonAdd,
