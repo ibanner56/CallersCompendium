@@ -167,6 +167,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _autoCommitEnabled = false;
   bool _autoCommitInFlight = false;
   int? _autoCommitPersistedGeneration;
+  bool _pendingBulkUndoPersisted = false;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
   Set<String>? _pendingBulkUndoSlotIds;
   DateTime? _pendingBulkUndoTimestamp;
@@ -975,9 +976,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (draft == null) return;
       final wasNew = _existing == null;
       final oldDraftKey = _draftKey;
+      final bulkUndoEditGeneration = _pendingBulkUndoEditGeneration;
+      final bulkUndoSlotIds = _pendingBulkUndoSlotIds;
+      final bulkUndoTimestamp = _pendingBulkUndoTimestamp;
       try {
         final persisted = await _persistDraft(draft);
         _autoCommitPersistedGeneration = generation;
+        if (bulkUndoEditGeneration != null &&
+            bulkUndoSlotIds != null &&
+            bulkUndoTimestamp != null &&
+            _pendingBulkUndoEditGeneration == bulkUndoEditGeneration &&
+            persisted.slots.any(
+              (slot) =>
+                  bulkUndoSlotIds.contains(slot.id) &&
+                  slot.performedAt == bulkUndoTimestamp,
+            )) {
+          _pendingBulkUndoPersisted = true;
+        }
         if (!mounted) return;
         if (wasNew && _existing == null) {
           _existing = persisted;
@@ -1184,6 +1199,47 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final venue = await _repos.venues.getById(id);
     if (!mounted || _venueId != id) return;
     setState(() => _linkedVenue = venue);
+  }
+
+  Future<void> _refreshLinkedVenueForId(String? id) async {
+    if (id == null) {
+      if (mounted) setState(() => _linkedVenue = null);
+      return;
+    }
+    await _refreshLinkedVenue(id);
+  }
+
+  Future<void> _restoreEditorAfterUndoFailure({
+    required Set<String> markedSlotIds,
+    required bool noInterveningEdit,
+  }) async {
+    try {
+      final live = await _repos.programs.getById(_existing!.id);
+      if (!mounted || live == null) return;
+      if (noInterveningEdit) {
+        _applyProgramToEditor(live);
+        await _refreshLinkedVenueForId(live.venueId);
+        if (!mounted) return;
+        setState(() => _dirty = false);
+        return;
+      }
+      final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
+      setState(() {
+        _slots = [
+          for (final slot in _slots)
+            markedSlotIds.contains(slot.id)
+                ? liveSlotsById[slot.id] ?? slot
+                : slot,
+        ];
+        _dirty = true;
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._restoreEditorAfterUndoFailure',
+      );
+    }
   }
 
   /// Renumbers positions contiguously (0..n-1) in list order.
@@ -1664,6 +1720,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _pendingBulkUndoTimestamp = now;
     _pendingBulkUndoWasDirty = wasDirty;
     _pendingBulkUndoEditGeneration = _editGeneration;
+    _pendingBulkUndoPersisted = false;
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
@@ -1672,7 +1729,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _showBulkUndoSnackBar();
   }
 
-  void _showBulkUndoSnackBar() {
+  void _showBulkUndoSnackBar({String? message}) {
     final markedSlotIds = _pendingBulkUndoSlotIds;
     final actionTimestamp = _pendingBulkUndoTimestamp;
     final wasDirty = _pendingBulkUndoWasDirty;
@@ -1689,7 +1746,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final undoGeneration = ++_bulkUndoGeneration;
     _bulkUndoSnackBar = showUndoSnackBar(
       messenger,
-      message: l10n.programsMarkedAllPerformed,
+      message: message ?? l10n.programsMarkedAllPerformed,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {
@@ -1724,7 +1781,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         !wasDirty && _dirty && _editGeneration == actionEditGeneration;
     final autoCommitWasInFlight = _autoCommitInFlight;
     final autoCommitHadPersisted =
-        _autoCommitPersistedGeneration == actionEditGeneration;
+        _autoCommitPersistedGeneration == actionEditGeneration ||
+        _pendingBulkUndoPersisted;
     setState(() {
       _slots = [
         for (final slot in _slots)
@@ -1740,7 +1798,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       await _commitQueueTail;
       if (!mounted) return;
       final autoCommitPersisted =
-          _autoCommitPersistedGeneration == actionEditGeneration;
+          _autoCommitPersistedGeneration == actionEditGeneration ||
+          _pendingBulkUndoPersisted;
       if (!autoCommitPersisted) {
         if (canRestoreCleanState) {
           await _clearDraft(waitForCommits: false);
@@ -1762,6 +1821,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           if (!mounted) return;
           if (live != null) {
             _applyProgramToEditor(live);
+            await _refreshLinkedVenueForId(live.venueId);
           }
           await _clearDraft(waitForCommits: false);
         } else {
@@ -1774,6 +1834,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           stackTrace,
           source: 'program_editor_screen._undoMarkAllPerformed',
         );
+        if (mounted) {
+          await _restoreEditorAfterUndoFailure(
+            markedSlotIds: markedSlotIds,
+            noInterveningEdit: noInterveningEdit,
+          );
+        }
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -1901,6 +1967,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _pendingBulkUndoTimestamp = null;
       _pendingBulkUndoWasDirty = null;
       _pendingBulkUndoEditGeneration = null;
+      _pendingBulkUndoPersisted = false;
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -1925,10 +1992,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _editGeneration = saveStartGeneration;
       }
       setState(() => _saving = false);
-      if (restoreBulkUndoOnFailure) _showBulkUndoSnackBar();
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      if (restoreBulkUndoOnFailure) {
+        _showBulkUndoSnackBar(message: l10n.programsSaveError);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      }
     }
   }
 

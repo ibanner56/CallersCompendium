@@ -326,6 +326,7 @@ Program _program({
   String title = 'Existing',
   DateTime? eventDate,
   String? venue,
+  String? venueId,
   String? band,
   String? caller,
   String notes = '',
@@ -336,6 +337,7 @@ Program _program({
   title: title,
   eventDate: eventDate,
   venue: venue,
+  venueId: venueId,
   band: band,
   caller: caller,
   notes: notes,
@@ -1718,6 +1720,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(SnackBarAction), findsOneWidget);
+    expect(find.text('Could not save the program.'), findsOneWidget);
     failing.programs.failWrites = false;
     await tester.tap(find.byType(SnackBarAction));
     await tester.pumpAndSettle();
@@ -1812,6 +1815,110 @@ void main() {
     expect(saved.notes, 'Remote note');
     expect(saved.slots.single.performedAt, isNull);
   });
+
+  testWidgets('Undo uses conditional rollback after a later auto-commit', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Edited',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byType(SnackBarAction));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.title, 'Edited');
+    expect(saved.slots.single.performedAt, isNull);
+  });
+
+  testWidgets(
+    'persisted Undo refreshes the linked venue before later editing',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.venues.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await repos.venues.upsert(Venue(id: 'v2', name: 'New Hall'));
+      await repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      final remote = await repos.programs.getById('p1');
+      await repos.programs.update(
+        remote!.copyWith(venueId: 'v2', updatedAt: DateTime.now().toUtc()),
+      );
+
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+      await _expandMoreDetails(tester);
+
+      expect(find.textContaining('New Hall'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'failed persisted Undo restores marked slots before a later save',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failConditionalRollback = true;
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Saved',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Saved');
+      expect(saved.slots.single.performedAt, isNotNull);
+    },
+  );
 
   testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',

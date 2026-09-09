@@ -192,6 +192,7 @@ class DelayedProgramRepository extends ProgramRepository {
   Completer<void>? _writeStarted;
 
   bool failWrites = false;
+  bool failConditionalRollback = false;
   int? failOnWrite;
   int writesStarted = 0;
 
@@ -234,6 +235,24 @@ class DelayedProgramRepository extends ProgramRepository {
     await _beforeWrite();
     if (_shouldFailWrite) throw const InjectedProgramFailure();
     await super.update(program, knownVenueIds: knownVenueIds);
+  }
+
+  @override
+  Future<int> clearPerformedAtIfMatches({
+    required String programId,
+    required Iterable<String> slotIds,
+    required DateTime performedAt,
+    required DateTime updatedAt,
+  }) {
+    if (failConditionalRollback) {
+      throw const InjectedProgramFailure();
+    }
+    return super.clearPerformedAtIfMatches(
+      programId: programId,
+      slotIds: slotIds,
+      performedAt: performedAt,
+      updatedAt: updatedAt,
+    );
   }
 }
 
