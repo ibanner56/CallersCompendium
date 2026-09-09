@@ -1830,8 +1830,6 @@ void main() {
       ),
     );
     await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
-    await _expandMoreDetails(tester);
-    expect(find.textContaining('Old Hall'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pump(const Duration(milliseconds: 600));
@@ -1866,6 +1864,8 @@ void main() {
         ),
       );
       await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+      await _expandMoreDetails(tester);
+      expect(find.textContaining('Old Hall'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
       await tester.pump(const Duration(milliseconds: 600));
@@ -1925,6 +1925,82 @@ void main() {
       expect(saved.slots.single.performedAt, isNotNull);
     },
   );
+
+  testWidgets('persisted Undo keeps edits made while rollback is in flight', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'During Undo';
+    titleField.onChanged!('During Undo');
+    expect(titleField.controller!.text, 'During Undo');
+    delayed.programs.releaseConditionalRollback();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'During Undo');
+    expect(saved.slots.single.performedAt, isNull);
+  });
+
+  testWidgets('failed persisted Undo keeps edits made during live recovery', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.failConditionalRollback = true;
+    delayed.programs.holdNextRead();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.readStarted;
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'During Failure';
+    titleField.onChanged!('During Failure');
+    delayed.programs.releaseRead();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'During Failure');
+    expect(saved.slots.single.performedAt, isNotNull);
+  });
 
   testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',

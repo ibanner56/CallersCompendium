@@ -1212,14 +1212,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _restoreEditorAfterUndoFailure({
     required Set<String> markedSlotIds,
     required bool noInterveningEdit,
+    required int undoEditGeneration,
   }) async {
     try {
       final live = await _repos.programs.getById(_existing!.id);
       if (!mounted || live == null) return;
-      if (noInterveningEdit) {
+      if (noInterveningEdit && _editGeneration == undoEditGeneration) {
         _applyProgramToEditor(live);
         await _refreshLinkedVenueForId(live.venueId);
         if (!mounted) return;
+        if (_editGeneration != undoEditGeneration) {
+          final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
+          setState(() {
+            _slots = [
+              for (final slot in _slots)
+                markedSlotIds.contains(slot.id)
+                    ? liveSlotsById[slot.id] ?? slot
+                    : slot,
+            ];
+            _dirty = true;
+          });
+          return;
+        }
         setState(() => _dirty = false);
         return;
       }
@@ -1794,7 +1808,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (autoCommitHadPersisted || autoCommitWasInFlight) {
       _autosaveTimer?.cancel();
       _autoCommitTimer?.cancel();
-      _editGeneration++;
+      final undoEditGeneration = ++_editGeneration;
       await _commitQueueTail;
       if (!mounted) return;
       final autoCommitPersisted =
@@ -1816,18 +1830,32 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           updatedAt: DateTime.now().toUtc(),
         );
         if (!mounted) return;
-        if (noInterveningEdit) {
+        if (noInterveningEdit && _editGeneration == undoEditGeneration) {
           final live = await _repos.programs.getById(_existing!.id);
           if (!mounted) return;
-          if (live != null) {
-            _applyProgramToEditor(live);
-            await _refreshLinkedVenueForId(live.venueId);
+          if (_editGeneration != undoEditGeneration) {
+            _scheduleAutosave();
+            _scheduleAutoCommit();
+            return;
+          }
+          if (live == null) {
+            _scheduleAutosave();
+            _scheduleAutoCommit();
+            return;
+          }
+          _applyProgramToEditor(live);
+          await _refreshLinkedVenueForId(live.venueId);
+          if (!mounted) return;
+          if (_editGeneration != undoEditGeneration) {
+            _scheduleAutosave();
+            _scheduleAutoCommit();
+            return;
           }
           await _clearDraft(waitForCommits: false);
-        } else {
-          _scheduleAutosave();
-          _scheduleAutoCommit();
+          return;
         }
+        _scheduleAutosave();
+        _scheduleAutoCommit();
       } catch (error, stackTrace) {
         logCaughtError(
           error,
@@ -1838,6 +1866,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           await _restoreEditorAfterUndoFailure(
             markedSlotIds: markedSlotIds,
             noInterveningEdit: noInterveningEdit,
+            undoEditGeneration: undoEditGeneration,
           );
         }
         if (mounted) {

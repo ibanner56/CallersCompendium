@@ -190,6 +190,12 @@ class DelayedProgramRepository extends ProgramRepository {
   Completer<void>? _armedGate;
   Completer<void>? _activeGate;
   Completer<void>? _writeStarted;
+  Completer<void>? _armedConditionalRollbackGate;
+  Completer<void>? _activeConditionalRollbackGate;
+  Completer<void>? _conditionalRollbackStarted;
+  Completer<void>? _armedReadGate;
+  Completer<void>? _activeReadGate;
+  Completer<void>? _readStarted;
 
   bool failWrites = false;
   bool failConditionalRollback = false;
@@ -206,6 +212,31 @@ class DelayedProgramRepository extends ProgramRepository {
 
   void releaseWrite() {
     final gate = _activeGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  void holdNextConditionalRollback() {
+    _armedConditionalRollbackGate = Completer<void>();
+    _conditionalRollbackStarted = Completer<void>();
+  }
+
+  Future<void> get conditionalRollbackStarted =>
+      _conditionalRollbackStarted?.future ?? Future<void>.value();
+
+  void releaseConditionalRollback() {
+    final gate = _activeConditionalRollbackGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  void holdNextRead() {
+    _armedReadGate = Completer<void>();
+    _readStarted = Completer<void>();
+  }
+
+  Future<void> get readStarted => _readStarted?.future ?? Future<void>.value();
+
+  void releaseRead() {
+    final gate = _activeReadGate;
     if (gate != null && !gate.isCompleted) gate.complete();
   }
 
@@ -247,12 +278,41 @@ class DelayedProgramRepository extends ProgramRepository {
     if (failConditionalRollback) {
       throw const InjectedProgramFailure();
     }
+    final gate = _armedConditionalRollbackGate;
+    if (gate != null) {
+      _armedConditionalRollbackGate = null;
+      _activeConditionalRollbackGate = gate;
+      _conditionalRollbackStarted?.complete();
+      _conditionalRollbackStarted = null;
+      return gate.future.then(
+        (_) => super.clearPerformedAtIfMatches(
+          programId: programId,
+          slotIds: slotIds,
+          performedAt: performedAt,
+          updatedAt: updatedAt,
+        ),
+      );
+    }
     return super.clearPerformedAtIfMatches(
       programId: programId,
       slotIds: slotIds,
       performedAt: performedAt,
       updatedAt: updatedAt,
     );
+  }
+
+  @override
+  Future<Program?> getById(String id, {bool includeDeleted = false}) async {
+    final gate = _armedReadGate;
+    if (gate != null) {
+      _armedReadGate = null;
+      _activeReadGate = gate;
+      _readStarted?.complete();
+      _readStarted = null;
+      await gate.future;
+      _activeReadGate = null;
+    }
+    return super.getById(id, includeDeleted: includeDeleted);
   }
 }
 
