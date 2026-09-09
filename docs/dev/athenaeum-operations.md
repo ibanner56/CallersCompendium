@@ -93,7 +93,8 @@ per IP, 1,000 failures per minute server-wide, and 60 store creations per
 minute. A saturated server-wide failure budget must not block authenticated
 access to an existing store.
 
-Use a no-redirect probe after every Apache change:
+Use a no-redirect probe after every Apache change in a direct-origin or staging
+deployment:
 
 ```sh
 ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
@@ -118,6 +119,232 @@ Run it against a freshly restarted staging container because the failure
 and creation budgets are in memory. Save the labeled output as release
 evidence. The harness uses curl `--resolve` to connect both listeners to
 host loopback while preserving the configured hostname for Host/SNI.
+
+## Cloudflare proxy topology
+
+Cloudflare proxying is an optional topology change, not a DNS-only change. It
+changes the Apache connection peer from the client to a Cloudflare address, so
+the vhost must be configured before the DNS record is proxied.
+
+In Cloudflare, configure the zone to use **Full (strict)** TLS, leave **Pseudo
+IPv4** off, and add a cache-bypass rule whose filter matches both the exact
+`/v1` path and every `/v1/` descendant. For example:
+
+```txt
+(http.host eq "sync.example.invalid" and
+ (http.request.uri.path eq "/v1" or starts_with(http.request.uri.path, "/v1/")))
+```
+
+Do not attach a Worker route that matches `/v1` or `/v1/*`. A zone-wide HTTPS
+redirect must exclude both paths: plaintext Device Sync requests must remain
+refusals, not redirects.
+
+Enable Apache's `remoteip` module, then fetch Cloudflare's published trusted
+proxy ranges. Write the IPv4 and IPv6 lists separately: the IPv4 endpoint does
+not guarantee a trailing newline, and concatenating them directly can create
+an invalid CIDR. Do not replace the existing list unless both downloads
+succeed; a partial list collapses affected clients into a Cloudflare-edge
+rate-limit bucket.
+
+```sh
+sudo a2enmod remoteip headers
+sudo install -d -m 755 /etc/apache2/cloudflare
+sudo tee /usr/local/sbin/athenaeum-refresh-cloudflare-proxies >/dev/null <<'EOF'
+#!/bin/sh
+set -eu
+
+directory=/etc/apache2/cloudflare
+target=$directory/trusted-proxies.conf
+candidate=$(mktemp "$directory/.trusted-proxies.conf.XXXXXX")
+previous=
+cleanup() {
+  [ -z "$candidate" ] || rm -f "$candidate"
+  [ -z "$previous" ] || rm -f "$previous"
+}
+trap cleanup EXIT HUP INT TERM
+
+curl --fail --silent --show-error https://www.cloudflare.com/ips-v4 > "$candidate"
+printf '\n' >> "$candidate"
+curl --fail --silent --show-error https://www.cloudflare.com/ips-v6 >> "$candidate"
+chmod 644 "$candidate"
+
+if [ -e "$target" ]; then
+  previous=$(mktemp "$directory/.trusted-proxies.previous.XXXXXX")
+  cp -p "$target" "$previous"
+fi
+mv -f "$candidate" "$target"
+candidate=
+
+if apachectl configtest && systemctl reload apache2; then
+  exit 0
+fi
+
+if [ -n "$previous" ]; then
+  mv -f "$previous" "$target"
+  previous=
+else
+  rm -f "$target"
+fi
+if ! apachectl configtest || ! systemctl reload apache2; then
+  echo "previous trusted-proxy list restored, but Apache reload failed" >&2
+fi
+exit 1
+EOF
+sudo chmod 755 /usr/local/sbin/athenaeum-refresh-cloudflare-proxies
+sudo /usr/local/sbin/athenaeum-refresh-cloudflare-proxies
+sudo tee /etc/systemd/system/athenaeum-cloudflare-proxies.service >/dev/null <<'EOF'
+[Unit]
+Description=Refresh Cloudflare trusted proxy ranges for Athenaeum
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/athenaeum-refresh-cloudflare-proxies
+EOF
+sudo tee /etc/systemd/system/athenaeum-cloudflare-proxies.timer >/dev/null <<'EOF'
+[Unit]
+Description=Weekly Athenaeum Cloudflare trusted proxy range refresh
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now athenaeum-cloudflare-proxies.timer
+```
+
+The updater downloads both address families into a same-directory candidate and
+atomically replaces the live list only after both succeed. If Apache rejects
+the candidate or cannot reload, it restores the previous list. The timer runs
+weekly after downtime and the service exits nonzero on every failed download,
+config test, or Apache reload; route that service failure to the host's
+operator-alert path.
+
+Inside only the Athenaeum `*:443` vhost, configure the trusted client address
+and replace the reference `RequestHeader` directive:
+
+```apache
+RemoteIPHeader CF-Connecting-IP
+RemoteIPTrustedProxyList /etc/apache2/cloudflare/trusted-proxies.conf
+RequestHeader set X-Forwarded-For expr=%{REMOTE_ADDR}
+```
+
+`CF-Connecting-IP` is a single client address. Apache accepts it only when the
+socket peer is in the published Cloudflare ranges; it then derives
+`X-Forwarded-For` from the resolved `REMOTE_ADDR`. Do not use an incoming
+`X-Forwarded-For` value, and do not use Cloudflare Pseudo IPv4's **Overwrite
+Headers** mode.
+
+When the host also serves non-Cloudflare sites on `:80` or `:443`, do not add a
+host-wide Cloudflare-only firewall rule. Instead, require Cloudflare
+Authenticated Origin Pulls only in the Athenaeum HTTPS vhost. Download
+Cloudflare's global Origin Pull CA:
+
+```sh
+sudo curl --fail --silent --show-error \
+  https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem \
+  --output /etc/apache2/cloudflare/origin-pull-ca.pem
+```
+
+Add the following after `SSLCertificateKeyFile` in that `*:443` vhost, initially
+using `optional`:
+
+```apache
+SSLCACertificateFile /etc/apache2/cloudflare/origin-pull-ca.pem
+SSLVerifyClient optional
+SSLVerifyDepth 1
+```
+
+Reload Apache, enable **Global Authenticated Origin Pulls** under
+**SSL/TLS > Origin Server** in Cloudflare, and confirm the proxied HTTPS
+endpoint still returns the expected unauthenticated `401`. Then change
+`SSLVerifyClient optional` to `SSLVerifyClient require` and reload Apache.
+Global Origin Pulls causes Cloudflare to present its certificate for proxied
+hostnames in the zone; enforcement remains Athenaeum-only because this vhost
+alone requires client authentication.
+
+Verify both paths after enforcement. Substitute the origin's real public IP:
+
+```sh
+curl --max-time 15 --max-redirs 0 --include \
+  http://sync.example.invalid/v1/store
+curl --max-time 15 --include \
+  https://sync.example.invalid/v1/store
+curl --noproxy '*' --connect-timeout 5 --max-time 15 \
+  --resolve sync.example.invalid:443:ORIGIN_IP \
+  --include https://sync.example.invalid/v1/store
+```
+
+The public HTTP request must be a refusal rather than a redirect, and public
+HTTPS must return Athenaeum's unauthenticated `401`. The direct HTTPS request
+must fail TLS client-certificate verification without returning an HTTP
+response. The standard smoke harness intentionally connects to loopback, so it
+cannot run while `SSLVerifyClient require` is enforced; use a direct/staging
+topology for that harness and a disposable public create/lookup/delete round
+trip for the Cloudflare path. That lifecycle probe does not prove that
+Cloudflare client-IP handling works.
+
+To verify the Cloudflare client-IP path, use two real external clients with
+different public egress addresses during a quiet maintenance window. From each
+client, first record the address Cloudflare sees:
+
+```sh
+curl --silent https://sync.example.invalid/cdn-cgi/trace |
+  awk -F= '$1 == "ip" { print $2 }'
+```
+
+Leave client A idle for two minutes so its burst bucket is full. Then send 21
+invalid requests concurrently and change the supplied `X-Forwarded-For` value
+on the immediate follow-up. The concurrent batch must contain exactly 20
+`401` responses and one `429`; the changed-header follow-up must also return
+`429`. This proves that a client cannot escape its rate-limit bucket by
+spoofing that header.
+
+```sh
+sleep 120
+endpoint='https://sync.example.invalid/v1/store'
+request_status() {
+  curl --noproxy '*' --silent --show-error --max-time 15 \
+    --output /dev/null --write-out '%{http_code}\n' \
+    --header 'Authorization: Bearer invalid-credential' \
+    --header "$1" "$endpoint"
+}
+
+responses=$(mktemp -d)
+cleanup_responses() {
+  find "$responses" -type f -delete
+  rmdir "$responses"
+}
+trap cleanup_responses EXIT HUP INT TERM
+for attempt in $(seq 1 21); do
+  request_status 'X-Forwarded-For: 198.51.100.1' > "$responses/$attempt" &
+done
+wait
+test "$(grep -hcx 401 "$responses"/* | awk '{ total += $1 } END { print total + 0 }')" = 20
+test "$(grep -hcx 429 "$responses"/* | awk '{ total += $1 } END { print total + 0 }')" = 1
+test "$(request_status 'X-Forwarded-For: 203.0.113.1')" = 429
+```
+
+While client A is still rate-limited, send one request from client B with the
+same invalid authorization. It must return `401`, not `429`. Correlate each
+request with the redacted Apache access log by timestamp: its `%h` client
+address must match the address reported by `/cdn-cgi/trace`, never a
+Cloudflare range. This verifies both independent client buckets and the
+trusted `CF-Connecting-IP` path without logging credentials or request
+headers.
+
+```sh
+curl --noproxy '*' --silent --show-error --max-time 15 \
+  --output /dev/null --write-out '%{http_code}\n' \
+  --header 'Authorization: Bearer invalid-credential' \
+  --header 'X-Forwarded-For: 203.0.113.1' \
+  https://sync.example.invalid/v1/store
+```
 
 ## Operations
 
