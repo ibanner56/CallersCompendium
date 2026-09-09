@@ -2436,7 +2436,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsAddDanceButton => 'Add dance';
 
   @override
-  String get programsAddNoteBreakButton => 'Add note / break';
+  String get programsAddNoteBreakButton => 'Add note / waltz';
 
   @override
   String get programsInsertBreakButton => 'Insert break';
