@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Structural gate for the two hand-maintained CHANGELOGs.
+"""Structural gate for the two release-managed historical CHANGELOGs.
 
-``app/CHANGELOG.md`` and ``packages/compendium_core/CHANGELOG.md`` are written
-by hand and drained at release time *as written*. Only the app CHANGELOG feeds
+``app/CHANGELOG.md`` and ``packages/compendium_core/CHANGELOG.md`` are compiled
+from pending fragments at release time. Only the app CHANGELOG feeds
 ``tools/release/gen_release_notes.py``; the core CHANGELOG is the core package's
 version record. Two structural mistakes are invisible to every other gate and
 to a rendered preview, because both of them render as valid Markdown:
@@ -134,8 +134,8 @@ def _check_unreleased(headings: list[Heading]) -> list[str]:
     positions = [h for h in headings if h.version is None]
     if not positions:
         return [
-            f"no '{UNRELEASED_HEADING}' section. Contributors write there and "
-            f"release prep drains it; without it, entries have nowhere to go."
+            f"no '{UNRELEASED_HEADING}' section. It is the required empty "
+            f"compatibility anchor for the release-managed changelog."
         ]
     if len(positions) > 1:
         lines = ", ".join(str(h.line) for h in positions)

@@ -183,7 +183,7 @@ def _cases() -> None:
         version="9.9.9", tag="v9.9.9", channel="stable", changelog_text=CHANGELOG,
     )
     assert ok is False
-    assert "9.9.9" in msg and "Unreleased" in msg
+    assert "9.9.9" in msg and "compile" in msg
 
     # 11. Beta release with NO matching section is also rejected.
     ok, msg = g.check_section(

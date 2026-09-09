@@ -200,8 +200,8 @@ def check_section(
     if not present:
         return False, (
             f"no '## [{core}]' section in app/CHANGELOG.md for {channel} release "
-            f"{version}; promote '## [Unreleased]' -> '## [{core}] - <date>' "
-            "(with no version suffix) before tagging."
+            f"{version}; compile its pending changelog fragments into "
+            f"'## [{core}] - <date>' (with no version suffix) before tagging."
         )
     return True, f"OK: CHANGELOG has a '## [{core}]' section."
 

@@ -58,8 +58,8 @@ Old schema versions are **retired** once they fall below the oldest supported
 release: `kMinSupportedSchemaVersion` is the floor, a database stamped below it
 is refused rather than partially migrated, and CI fails any PR that reintroduces
 a fixture, generator or dump for a retired version. Raising the floor is
-user-visible — those databases stop opening — so it needs an `app/CHANGELOG.md`
-entry in user-facing terms. See
+user-visible — those databases stop opening — so it needs an app changelog
+fragment in user-facing terms. See
 [Retiring a schema version](docs/design/storage.md#retiring-a-schema-version)
 for the full checklist.
 
@@ -186,19 +186,28 @@ of them is a bug — say which in your PR.
 ### Changelog
 
 `app/CHANGELOG.md` records what changed from the user's seat, not from the
-developer's. It has exactly **two triggers**:
+developer's. It and `packages/compendium_core/CHANGELOG.md` are release-managed
+historical records: normal PRs must not edit either file. Instead, add one
+uniquely named JSON fragment under [`changelog.d/`](changelog.d/), then run:
 
-1. **A user-visible change** earns a bullet under `## [Unreleased]`. Write it
-   as user-facing prose in second person — "You can now…", "X no longer…" —
-   and put it in the matching subsection (`Added` / `Changed` / `Fixed` /
-   `Removed`).
+```sh
+python3 tools/release/compile_changelog_fragments.py --check
+```
 
-2. **Cutting a release** moves the accumulated `[Unreleased]` content into a
-   dated version section and resets `[Unreleased]` to `_Nothing yet._`. That is
-   the only reason to edit the file on a release PR; it touches the file on a
-   different trigger, not the same one.
+Use the fragment's `app` entry for user-facing prose in second person —
+"You can now…", "X no longer…" — in `added`, `changed`, `fixed`, `removed`, or
+`data_migrations`. Use `core` for the Compendium Core package version record.
+A fragment must declare `user_visible`; a core change visible to app users
+needs both entries, while an internal core-only change uses `false` and may
+have only `core`. See
+[`changelog.d/README.md`](changelog.d/README.md) for the exact schema and
+filename rules.
 
-**What does not qualify for an `[Unreleased]` entry:**
+Only release preparation invokes the compiler to update the committed historical
+changelogs and delete consumed fragments. The empty `[Unreleased]` sections are
+compatibility anchors, not contributor work queues.
+
+**What does not qualify for an app fragment:**
 
 - Pure refactors or internal restructuring the user cannot observe
 - Docs, design docs, CI, tooling, or release infrastructure changes
