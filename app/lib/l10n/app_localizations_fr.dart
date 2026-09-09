@@ -467,7 +467,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsTitle =>
-      'Utiliser les termes de danse canoniques';
+      'Convertir automatiquement tous les termes déconseillés';
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsSubtitle =>

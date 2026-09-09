@@ -462,7 +462,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsTitle =>
-      'Kanonische Tanzbegriffe verwenden';
+      'Alle unerwünschten Begriffe automatisch umwandeln';
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsSubtitle =>

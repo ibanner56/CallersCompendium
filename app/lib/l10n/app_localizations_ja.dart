@@ -447,7 +447,7 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、ダンスの詳細に標準的な役割名と動きの名前を表示でき、標準以外のダイアレクトでは「標準」スイッチを使用できます。デフォルトではオフです。';
 
   @override
-  String get settingsDialectCanonicalDiscouragedTermsTitle => '標準的なダンス用語を使用';
+  String get settingsDialectCanonicalDiscouragedTermsTitle => 'すべての非推奨用語を自動変換';
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsSubtitle =>

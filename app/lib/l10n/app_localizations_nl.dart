@@ -457,7 +457,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsTitle =>
-      'Canonieke danstermen gebruiken';
+      'Alle afgeraden termen automatisch omzetten';
 
   @override
   String get settingsDialectCanonicalDiscouragedTermsSubtitle =>

@@ -500,9 +500,9 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
   },
-  "settingsDialectCanonicalDiscouragedTermsTitle": "Utiliser les termes de danse canoniques",
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Convertir automatiquement tous les termes déconseillés",
   "@settingsDialectCanonicalDiscouragedTermsTitle": {
-    "x-sourceSha256": "593f7614904c4382194b056d670ed1f5594d3f25342a6aaaf6fb961528f49ff9"
+    "x-sourceSha256": "c3cd1539f3a19b4f0a2a77daa0b119d57a5052ce0bac40c2c3e6728eec122526"
   },
   "settingsDialectCanonicalDiscouragedTermsSubtitle": "Lorsqu’elle est activée, cette option utilise une formulation canonique pour les termes déconseillés pris en charge dans les détails des danses, les notes et les exportations. Le texte enregistré et les champs de saisie restent inchangés. Activée par défaut.",
   "@settingsDialectCanonicalDiscouragedTermsSubtitle": {

@@ -500,9 +500,9 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
   },
-  "settingsDialectCanonicalDiscouragedTermsTitle": "Canonieke danstermen gebruiken",
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Alle afgeraden termen automatisch omzetten",
   "@settingsDialectCanonicalDiscouragedTermsTitle": {
-    "x-sourceSha256": "593f7614904c4382194b056d670ed1f5594d3f25342a6aaaf6fb961528f49ff9"
+    "x-sourceSha256": "c3cd1539f3a19b4f0a2a77daa0b119d57a5052ce0bac40c2c3e6728eec122526"
   },
   "settingsDialectCanonicalDiscouragedTermsSubtitle": "Als deze optie is ingeschakeld, gebruiken dansdetails, notities en exports canonieke bewoording voor ondersteunde afgeraden termen. Opgeslagen tekst en invoervelden blijven ongewijzigd. Standaard ingeschakeld.",
   "@settingsDialectCanonicalDiscouragedTermsSubtitle": {

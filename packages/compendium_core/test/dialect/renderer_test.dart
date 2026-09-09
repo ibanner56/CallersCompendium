@@ -298,6 +298,16 @@ void main() {
       );
     });
 
+    test('preserves possessive plural grammar', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          "men's and women's figures, gents' and ladies' caller notes",
+          larks,
+        ),
+        "larks' and robins' figures, larks' and robins' caller notes",
+      );
+    });
+
     test('converts custom text before role substitution exactly once', () {
       final ravenDialect = Dialect(
         name: 'Ravens/Robins',

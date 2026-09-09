@@ -604,7 +604,7 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "description": "Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed."
   },
-  "settingsDialectCanonicalDiscouragedTermsTitle": "Use canonical dance terms",
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Auto-convert all discouraged terms",
   "@settingsDialectCanonicalDiscouragedTermsTitle": {
     "description": "Setting title for display-only conversion of discouraged dance terms."
   },
