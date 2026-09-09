@@ -1791,6 +1791,7 @@ void main() {
       ),
     );
     await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+    await _expandMoreDetails(tester);
 
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pump(const Duration(milliseconds: 600));
@@ -1829,6 +1830,8 @@ void main() {
       ),
     );
     await _pumpBuilder(tester, repos, programId: 'p1', autoCommit: true);
+    await _expandMoreDetails(tester);
+    expect(find.textContaining('Old Hall'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pump(const Duration(milliseconds: 600));
@@ -1841,7 +1844,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(SnackBarAction));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 100));
 
     final saved = await repos.programs.getById('p1');
     expect(saved!.title, 'Edited');
@@ -1871,12 +1874,15 @@ void main() {
       await repos.programs.update(
         remote!.copyWith(venueId: 'v2', updatedAt: DateTime.now().toUtc()),
       );
+      expect((await repos.programs.getById('p1'))!.venueId, 'v2');
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
       await _expandMoreDetails(tester);
 
       expect(find.textContaining('New Hall'), findsOneWidget);
+      expect(find.textContaining('Old Hall'), findsNothing);
     },
   );
 
