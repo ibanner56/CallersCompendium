@@ -1351,22 +1351,31 @@ void main() {
         final data = await _dataWith([_dance(id: 'd1', title: 'Short')]);
         const longNote =
             'Call the transition slowly, then repeat the ending phrase twice '
-            'before moving on to the next figure.';
+            'before moving on to the next figure. Keep the timing steady and '
+            'give the dancers room to breathe before starting the final '
+            'sequence.';
         await _pumpProgram(
           tester,
           data: data,
           autoSize: true,
-          surfaceSize: const Size(500, 650),
+          surfaceSize: const Size(500, 450),
           program: _program([
             _slot(id: 's1', position: 0, danceId: 'd1', text: 'Brief note'),
             _slot(id: 's2', position: 1, danceId: 'd1', text: longNote),
           ]),
         );
 
+        final shortTitleHeight = tester.getSize(
+          find.byKey(const ValueKey('perform-title')),
+        ).height;
         await tester.tap(find.byKey(const ValueKey('perform-next')));
         await tester.pumpAndSettle();
         expect(find.text('Caller note: $longNote'), findsOneWidget);
         expect(tester.takeException(), isNull);
+        expect(
+          tester.getSize(find.byKey(const ValueKey('perform-title'))).height,
+          lessThan(shortTitleHeight),
+        );
 
         await tester.tap(find.byKey(const ValueKey('perform-prev')));
         await tester.pumpAndSettle();
