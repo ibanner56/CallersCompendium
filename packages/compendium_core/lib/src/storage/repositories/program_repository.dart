@@ -271,9 +271,19 @@ class ProgramRepository {
                 .write(const ProgramSlotsCompanion(performedAt: Value(null)));
       }
       if (cleared == 0) return 0;
-      await (_db.update(_db.programs)
-            ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
-          .write(ProgramsCompanion(updatedAt: Value(updatedAt)));
+      final liveProgram =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (liveProgram == null) return 0;
+      await (_db.update(
+        _db.programs,
+      )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
+        ProgramsCompanion(
+          title: Value(normalizeShareableText(liveProgram.title)),
+          updatedAt: Value(updatedAt),
+        ),
+      );
       return cleared;
     });
   }
