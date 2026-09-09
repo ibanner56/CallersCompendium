@@ -240,8 +240,7 @@ void main() {
         );
         expect(draft.dance.formation.detail, isNot(contains(bel)));
         expect(draft.dance.formation.detail, isNot(contains(zwsp)));
-        expect(draft.dance.formation.detail, contains('Improper'));
-        expect(draft.dance.formation.detail, contains('chestnut'));
+        expect(draft.dance.formation.detail, 'chestnut');
       });
 
       test('strips spoofing chars from calling notes', () async {
@@ -441,7 +440,7 @@ void main() {
       });
 
       test(
-        'classifies FormationBase best-effort, keeps original detail',
+        'stores only separate FormationDetail for a recognized shape',
         () async {
           final draft = await _importOne(
             jsonEncode(
@@ -452,10 +451,19 @@ void main() {
             ),
           );
           expect(draft.dance.formation.shape, FormationShape.dupleImproper);
-          expect(draft.dance.formation.detail, contains('Improper'));
-          expect(draft.dance.formation.detail, contains('chestnut'));
+          expect(draft.dance.formation.detail, 'chestnut');
         },
       );
+
+      test('normalizes unclassified formation source and detail', () async {
+        final draft = await _importOne(
+          jsonEncode(
+            _dance(formationBase: 'Zia', formationDetail: 'Ladies\u200B gypsy'),
+          ),
+        );
+        expect(draft.dance.formation.shape, FormationShape.other);
+        expect(draft.dance.formation.detail, 'Zia — role2s shoulder round');
+      });
 
       test('classifies Becket, and unknown → other + warning', () async {
         final becket = await _importOne(

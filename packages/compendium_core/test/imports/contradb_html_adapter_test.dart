@@ -173,7 +173,7 @@ void main() {
       );
       expect(draft.dance.title, 'The Rendezvous');
       expect(draft.dance.formation.shape, FormationShape.dupleImproper);
-      expect(draft.dance.formation.detail, 'improper');
+      expect(draft.dance.formation.detail, isNull);
       expect(draft.dance.callingNotes, isNot(contains('Adina Gordon')));
       expect(draft.dance.callingNotes, contains('Imported from ContraDB.'));
     });
@@ -193,7 +193,7 @@ void main() {
         // Stored title/author/formation are stripped of the spoofing characters.
         expect(draft.dance.title, 'Petronella');
         expect(draft.authorNames, ['Adina Gordon']);
-        expect(draft.dance.formation.detail, 'improper');
+        expect(draft.dance.formation.detail, isNull);
         expect(containsDisallowedText(draft.dance.title), isFalse);
       },
     );
@@ -262,15 +262,15 @@ void main() {
       expect(draft.authorNames, ['Alice Smith', 'Bob Jones']);
     });
 
-    test('an unknown formation falls back to other + a warning', () async {
+    test('an unknown formation is normalized detail with a warning', () async {
       final draft = await _importOne(
         _page(
           '<h1 class="dance-show-title">Weird</h1>'
-          '<p class="dance-show-formation">formation: spiral galaxy</p>',
+          '<p class="dance-show-formation">formation: spiral ladies\u200B</p>',
         ),
       );
       expect(draft.dance.formation.shape, FormationShape.other);
-      expect(draft.dance.formation.detail, 'spiral galaxy');
+      expect(draft.dance.formation.detail, 'spiral role2s');
       expect(
         draft.issues.any(
           (i) => i.code == 'contradb_html_formation_unclassified',

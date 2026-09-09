@@ -620,37 +620,56 @@ void main() {
         );
       });
 
-      test('an odd string → other with a warning, detail preserved', () async {
-        final draft = await _importOne(
-          jsonEncode(_dance(startType: 'spiral galaxy')),
-        );
-        expect(draft.dance.formation.shape, FormationShape.other);
-        expect(draft.dance.formation.detail, 'spiral galaxy');
-        expect(
-          draft.issues.any((i) => i.code == 'contradb_formation_unclassified'),
-          isTrue,
-        );
-      });
-    });
-
-    group('metadata', () {
       test(
-        'hook maps to hook; preamble/notes/choreographer fold into notes',
+        'an odd string plus preamble preserves normalized detail with a warning',
         () async {
           final draft = await _importOne(
             jsonEncode(
               _dance(
+                startType: 'spiral galaxy',
+                preamble: 'Ladies\u200B gypsy',
+              ),
+            ),
+          );
+          expect(draft.dance.formation.shape, FormationShape.other);
+          expect(
+            draft.dance.formation.detail,
+            'role2s shoulder round\n\nspiral galaxy',
+          );
+          expect(
+            draft.issues.any(
+              (i) => i.code == 'contradb_formation_unclassified',
+            ),
+            isTrue,
+          );
+        },
+      );
+    });
+
+    group('metadata', () {
+      test(
+        'hook maps to hook; preamble is formation detail and notes stay notes',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(
+              _dance(
+                startType: 'improper',
                 hook: 'A joyful chestnut',
-                preamble: 'Careful of the ends.',
+                preamble: 'Careful of the ladies\u200B gypsy.',
                 notes: 'First published 1990.',
                 choreographer: 'Cary Ravitz',
               ),
             ),
           );
           expect(draft.dance.hook, 'A joyful chestnut');
+          expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+          expect(
+            draft.dance.formation.detail,
+            'Careful of the role2s shoulder round.',
+          );
           expect(draft.dance.callingNotes, isNot(contains('Cary Ravitz')));
-          expect(draft.dance.callingNotes, contains('Careful of the ends.'));
-          expect(draft.dance.callingNotes, contains('First published 1990.'));
+          expect(draft.dance.callingNotes, 'First published 1990.');
+          expect(draft.dance.callingNotes, isNot(contains('Careful of the')));
           expect(draft.dance.authorIds, isEmpty);
           expect(draft.authorNames, ['Cary Ravitz']);
           expect(

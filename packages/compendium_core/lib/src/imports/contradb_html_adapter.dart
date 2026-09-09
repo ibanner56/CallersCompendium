@@ -58,8 +58,9 @@ import 'structured_draft.dart';
 ///
 /// ## Metadata
 /// - `h1.dance-show-title` → title (missing → a `ContraDB dance <id>` stub).
-/// - `p.dance-show-formation` → [FormationShape] best-effort (original kept as
-///   [Formation.detail]; unknown → [FormationShape.other] + a warning).
+/// - `p.dance-show-formation` → [FormationShape] best-effort; recognized text
+///   is shape-only, while unknown text is kept as normalized [Formation.detail]
+///   on [FormationShape.other] with a warning.
 /// - `p.dance-show-choreographer` name → carried on the draft's `authorNames`
 ///   and resolved to a real [Choreographer] association ([Dance.authorIds]) by
 ///   the import pipeline (match-or-create); no longer folded into
@@ -377,7 +378,9 @@ class ContraDbHtmlAdapter implements SourceAdapter {
     final stripped = _stripLeadingLabel(raw, 'formation');
     final detailText = stripped == null
         ? null
-        : sanitizeImportedText(stripped, allowLineBreaks: false).trim();
+        : scrubFigureText(
+            sanitizeImportedText(stripped, allowLineBreaks: false).trim(),
+          );
     if (detailText == null || detailText.isEmpty) {
       return const Formation(FormationShape.dupleImproper);
     }
@@ -430,7 +433,7 @@ class ContraDbHtmlAdapter implements SourceAdapter {
       );
       return Formation(FormationShape.other, detail: detailText);
     }
-    return Formation(shape, detail: detailText);
+    return Formation(shape);
   }
 
   // --- Notes -----------------------------------------------------------------

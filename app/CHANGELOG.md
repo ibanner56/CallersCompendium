@@ -35,6 +35,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
+### Changed
+
+- Import formation text into separate shape and detail fields without
+  duplicating recognized shapes in user-visible detail.
+
 ## [0.3.1] - 2026-09-03
 
 ### Added

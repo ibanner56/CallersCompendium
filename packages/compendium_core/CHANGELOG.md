@@ -20,6 +20,11 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
+### Changed
+
+- Separate recognized formation shapes from normalized source detail across
+  the CallersBox and ContraDB adapters; retain unclassified source text.
+
 ## [0.4.0] - 2026-09-03
 
 ### Added
