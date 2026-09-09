@@ -263,8 +263,16 @@ class ProgramRepository {
               ))
               .write(const ProgramSlotsCompanion(performedAt: Value(null)));
       if (cleared == 0) return 0;
-      await (_db.update(_db.programs)..where((t) => t.id.equals(programId)))
-          .write(ProgramsCompanion(updatedAt: Value(updatedAt)));
+      await (_db.update(
+        _db.programs,
+      )..where((t) => t.id.equals(programId))).write(
+        ProgramsCompanion(
+          // The slot body changed above; leave all unrelated program
+          // fields absent while making the paired content update explicit.
+          title: const Value.absent(),
+          updatedAt: Value(updatedAt),
+        ),
+      );
       return cleared;
     });
   }
