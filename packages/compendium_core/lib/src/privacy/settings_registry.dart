@@ -58,6 +58,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'formation_color_overrides': _preference,
   'default_move_param_overrides': _preference,
   'default_dance_figures_template': _preference,
+  'default_meanwhile_side_figures': _preference,
 
   // -- Appearance and accessibility ----------------------------------------
   'active_custom_theme': _preference,

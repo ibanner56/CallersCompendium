@@ -58,6 +58,8 @@ class FigureListEditor extends StatefulWidget {
     this.showWordingOverride = false,
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
+    this.onAddMeanwhile,
+    this.keyPrefix = 'figure',
   });
 
   final List<FigureDraft> drafts;
@@ -163,6 +165,13 @@ class FigureListEditor extends StatefulWidget {
   final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
   onCollapseMeanwhileGroup;
 
+  /// Adds a new meanwhile container draft through the list-level Add menu.
+  /// When `null`, the existing single Add button is retained.
+  final VoidCallback? onAddMeanwhile;
+
+  /// Prefix for widget keys when multiple editors share one screen.
+  final String keyPrefix;
+
   @override
   State<FigureListEditor> createState() => _FigureListEditorState();
 }
@@ -180,6 +189,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Set when the Add flow needs the freshly-appended figure to auto-expand +
   /// focus its Move field after the parent rebuilds with the new draft.
   bool _openLastAfterAdd = false;
+  bool _openLastAfterAddMeanwhile = false;
 
   /// Per-row focus nodes (keyed by draft id) so the collapsed summary is
   /// keyboard-focusable, can receive Enter/Space/Alt+Arrow, and can be
@@ -206,6 +216,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
   Dialect get _dialect => widget.dialect ?? Dialect.larksRobins;
   AppLocalizations get _l10n => AppLocalizations.of(context);
 
+  ValueKey<String> _key(String suffix) =>
+      ValueKey('${widget.keyPrefix}-$suffix');
+
   FocusNode _rowFocusNode(String id) => _rowFocusNodes.putIfAbsent(
     id,
     () => FocusNode(debugLabel: 'figure-row-$id'),
@@ -218,12 +231,18 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
     // Auto-open + focus the figure the Add flow just appended.
     if (_openLastAfterAdd) {
+      final addedMeanwhile = _openLastAfterAddMeanwhile;
       _openLastAfterAdd = false;
+      _openLastAfterAddMeanwhile = false;
       if (widget.drafts.isNotEmpty) {
         final newId = widget.drafts.last.id;
         _openDraftId = newId;
         _ensureVisibleSoon(newId);
-        _announce(_l10n.danceEditorAddedFigureChooseMove(widget.drafts.length));
+        _announce(
+          addedMeanwhile
+              ? _l10n.danceEditorAddedMeanwhileAnnouncement
+              : _l10n.danceEditorAddedFigureChooseMove(widget.drafts.length),
+        );
       }
     }
 
@@ -386,6 +405,66 @@ class _FigureListEditorState extends State<FigureListEditor> {
     widget.onAdd();
   }
 
+  void _addMeanwhile() {
+    final onAddMeanwhile = widget.onAddMeanwhile;
+    if (onAddMeanwhile == null) return;
+    _openLastAfterAdd = true;
+    _openLastAfterAddMeanwhile = true;
+    onAddMeanwhile();
+  }
+
+  Widget _buildAddAffordance(BuildContext context, {required bool empty}) {
+    final l10n = AppLocalizations.of(context);
+    final onAddMeanwhile = widget.onAddMeanwhile;
+    final addButton = empty
+        ? FilledButton.icon(
+            focusNode: _addButtonFocusNode,
+            onPressed: _addFigure,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.danceEditorAddFirstFigure),
+          )
+        : TextButton.icon(
+            focusNode: _addButtonFocusNode,
+            onPressed: _addFigure,
+            icon: const Icon(Icons.add),
+            label: Text(l10n.danceEditorAddFigure),
+          );
+    if (onAddMeanwhile == null) {
+      return KeyedSubtree(key: _key('add'), child: addButton);
+    }
+
+    return MenuAnchor(
+      key: _key('add'),
+      builder: (context, controller, child) => empty
+          ? FilledButton.icon(
+              focusNode: _addButtonFocusNode,
+              onPressed: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.danceEditorAddFirstFigure),
+            )
+          : TextButton.icon(
+              focusNode: _addButtonFocusNode,
+              onPressed: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.danceEditorAddFigure),
+            ),
+      menuChildren: [
+        MenuItemButton(
+          key: _key('add-figure'),
+          onPressed: _addFigure,
+          child: Text(l10n.danceEditorAddFigure),
+        ),
+        MenuItemButton(
+          key: _key('add-meanwhile'),
+          onPressed: _addMeanwhile,
+          child: Text(l10n.danceEditorAddMeanwhile),
+        ),
+      ],
+    );
+  }
+
   /// Parses the free-text field's current line through the shared core parser
   /// and inserts the resulting row(s). Keeps the composer open (cleared and
   /// refocused) for rapid entry of the next figure; a blank submit closes it.
@@ -484,13 +563,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
           else
             Align(
               alignment: Alignment.centerLeft,
-              child: FilledButton.icon(
-                key: const ValueKey('figure-add'),
-                focusNode: _addButtonFocusNode,
-                onPressed: _addFigure,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.danceEditorAddFirstFigure),
-              ),
+              child: _buildAddAffordance(context, empty: true),
             ),
         ],
       );
@@ -538,7 +611,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       final draft = drafts[i];
       final isCutCard = draft.id == _cutDraftId;
       return _FigureDraftCard(
-        key: ValueKey('figure-card-${draft.id}'),
+        key: _key('card-${draft.id}'),
         index: i,
         totalCount: drafts.length,
         draft: draft,
@@ -574,6 +647,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ? null
             : () => widget.onGroupWithNext!(draft),
         onCollapseMeanwhileGroup: widget.onCollapseMeanwhileGroup,
+        keyPrefix: widget.keyPrefix,
       );
     }
 
@@ -664,13 +738,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         else
           Row(
             children: [
-              TextButton.icon(
-                key: const ValueKey('figure-add'),
-                focusNode: _addButtonFocusNode,
-                onPressed: _addFigure,
-                icon: const Icon(Icons.add),
-                label: Text(l10n.danceEditorAddFigure),
-              ),
+              _buildAddAffordance(context, empty: false),
               if (_cutDraftId != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),
@@ -686,6 +754,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
           _BeatSummary(
             totalBeats: totalBeats,
             expectedBeats: widget.phraseStructure.totalBeats,
+            keyPrefix: widget.keyPrefix,
           ),
       ],
     );
@@ -719,7 +788,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
           children: [
             Expanded(
               child: TextField(
-                key: const ValueKey('figure-free-text-field'),
+                key: _key('free-text-field'),
                 controller: _freeTextController,
                 focusNode: _freeTextFocusNode,
                 textInputAction: TextInputAction.done,
@@ -748,7 +817,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: FilledButton(
-                key: const ValueKey('figure-free-text-submit'),
+                key: _key('free-text-submit'),
                 onPressed: _submitFreeText,
                 child: Text(l10n.commonAdd),
               ),
@@ -757,7 +826,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             Padding(
               padding: const EdgeInsets.only(top: 2),
               child: TextButton(
-                key: const ValueKey('figure-free-text-done'),
+                key: _key('free-text-done'),
                 onPressed: _dismissFreeText,
                 child: Text(
                   l10n.commonDone,
@@ -863,6 +932,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.showWordingOverride = false,
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
+    this.keyPrefix = 'figure',
   });
 
   final int index;
@@ -943,6 +1013,7 @@ class _FigureDraftCard extends StatefulWidget {
   /// See [FigureListEditor.onCollapseMeanwhileGroup].
   final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
   onCollapseMeanwhileGroup;
+  final String keyPrefix;
 
   @override
   State<_FigureDraftCard> createState() => _FigureDraftCardState();
@@ -964,6 +1035,9 @@ void _seedChainHand(String moveId, Map<String, Object?> params) {
 }
 
 class _FigureDraftCardState extends State<_FigureDraftCard> {
+  ValueKey<String> _key(String suffix) =>
+      ValueKey('${widget.keyPrefix}-${widget.index}-$suffix');
+
   /// Whether the on-demand note field is revealed. Existing notes are always
   /// shown (never hide existing content); an empty note starts hidden behind
   /// the "+ Add note" button.
@@ -1337,7 +1411,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             hint: l10n.danceEditorActivateToEditHint,
             excludeSemantics: true,
             child: InkWell(
-              key: ValueKey('figure-${widget.index}-summary'),
+              key: _key('summary'),
               canRequestFocus: false,
               onTap: widget.onActivate,
               borderRadius: BorderRadius.circular(8),
@@ -1354,7 +1428,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       width: 30,
                       child: Text(
                         labelText,
-                        key: ValueKey('figure-${widget.index}-label'),
+                        key: _key('label'),
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: theme.colorScheme.primary,
@@ -1508,7 +1582,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final figureName = _figureDisplayName(draft, widget.taxonomy, l10n);
     return MenuAnchor(
       builder: (context, controller, child) => IconButton(
-        key: ValueKey('figure-${widget.index}-menu'),
+        key: _key('menu'),
         icon: const Icon(Icons.more_vert),
         tooltip: l10n.danceEditorFigureActionsTooltip(figureName),
         onPressed: () =>
@@ -1516,39 +1590,39 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       ),
       menuChildren: [
         MenuItemButton(
-          key: ValueKey('figure-${widget.index}-move-up'),
+          key: _key('move-up'),
           onPressed: widget.onMoveUp,
           leadingIcon: const Icon(Icons.arrow_upward, size: 18),
           child: Text(l10n.danceEditorMoveUp),
         ),
         MenuItemButton(
-          key: ValueKey('figure-${widget.index}-move-down'),
+          key: _key('move-down'),
           onPressed: widget.onMoveDown,
           leadingIcon: const Icon(Icons.arrow_downward, size: 18),
           child: Text(l10n.danceEditorMoveDown),
         ),
         MenuItemButton(
-          key: ValueKey('figure-${widget.index}-cut'),
+          key: _key('cut'),
           onPressed: widget.onCut,
           leadingIcon: const Icon(Icons.content_cut, size: 18),
           child: Text(l10n.danceEditorCut),
         ),
         if (widget.onDuplicate != null)
           MenuItemButton(
-            key: ValueKey('figure-${widget.index}-duplicate'),
+            key: _key('duplicate'),
             onPressed: widget.onDuplicate,
             leadingIcon: const Icon(Icons.copy, size: 18),
             child: Text(l10n.commonDuplicate),
           ),
         if (widget.onGroupWithNext != null)
           MenuItemButton(
-            key: ValueKey('figure-${widget.index}-group-with-next'),
+            key: _key('group-with-next'),
             onPressed: widget.onGroupWithNext,
             leadingIcon: const Icon(Icons.call_split, size: 18),
             child: Text(l10n.danceEditorGroupWithNext),
           ),
         MenuItemButton(
-          key: ValueKey('figure-${widget.index}-toggle-progression'),
+          key: _key('toggle-progression'),
           onPressed: _toggleProgression,
           leadingIcon: Icon(
             draft.progression ? Icons.flag : Icons.outlined_flag,
@@ -1561,7 +1635,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           ),
         ),
         MenuItemButton(
-          key: ValueKey('figure-${widget.index}-delete'),
+          key: _key('delete'),
           onPressed: widget.onDelete,
           leadingIcon: Icon(
             Icons.delete_outline,
@@ -1634,7 +1708,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
               // opening an already-set figure to tweak its params doesn't steal
               // focus to the Move text field.
               MoveAutocomplete(
-                key: ValueKey('figure-${widget.index}-move'),
+                key: _key('move'),
                 fieldKey: 'figure-${widget.index}-move',
                 taxonomy: widget.taxonomy,
                 dialect: widget.dialect,
@@ -1649,7 +1723,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 // Custom figures: lingo text field + beats editor (#795).
                 if (draft.move == customMove) ...[
                   _LingoCustomTextField(
-                    key: ValueKey('figure-${widget.index}-text-${draft.id}'),
+                    key: _key('text-${draft.id}'),
                     fieldKey: 'figure-${widget.index}-text',
                     dialect: widget.dialect,
                     taxonomy: widget.taxonomy,
@@ -1711,7 +1785,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     final sides = draft.meanwhileSides!;
-    final keyPrefix = 'figure-${widget.index}';
+    final keyPrefix = '${widget.keyPrefix}-${widget.index}';
     return Focus(
       canRequestFocus: false,
       onKeyEvent: _handleEditorKey,
@@ -1915,7 +1989,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                key: ValueKey('figure-${widget.index}-unknown-move'),
+                key: _key('unknown-move'),
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
@@ -2053,7 +2127,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
-            key: ValueKey('figure-${widget.index}-more-options'),
+            key: _key('more-options'),
             onPressed: () =>
                 setState(() => _showMoreOptions = !_showMoreOptions),
             icon: Icon(
@@ -2082,13 +2156,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
     return Row(
-      key: ValueKey('figure-${widget.index}-progression-row'),
+      key: _key('progression-row'),
       mainAxisSize: MainAxisSize.min,
       children: [
         Semantics(
           label: l10n.commonProgression,
           child: Switch(
-            key: ValueKey('figure-${widget.index}-progression'),
+            key: _key('progression'),
             value: draft.progression,
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             onChanged: (v) {
@@ -2111,7 +2185,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       return Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
-          key: ValueKey('figure-${widget.index}-add-note'),
+          key: _key('add-note'),
           onPressed: () => setState(() {
             _showNote = true;
             _justRevealedNote = true;
@@ -2130,7 +2204,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       });
     }
     return _NoteField(
-      key: ValueKey('figure-${widget.index}-note-${draft.id}'),
+      key: _key('note-${draft.id}'),
       fieldKey: 'figure-${widget.index}-note',
       dialect: widget.dialect,
       taxonomy: widget.taxonomy,
@@ -2160,7 +2234,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       return Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
-          key: ValueKey('figure-${widget.index}-add-walkthrough'),
+          key: _key('add-walkthrough'),
           onPressed: () => setState(() {
             _showSnippet = true;
             _justRevealedSnippet = true;
@@ -2178,7 +2252,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       });
     }
     return _SnippetField(
-      key: ValueKey('figure-${widget.index}-walkthrough-${draft.id}'),
+      key: _key('walkthrough-${draft.id}'),
       fieldKey: 'figure-${widget.index}-walkthrough',
       dialect: widget.dialect,
       taxonomy: widget.taxonomy,
@@ -2207,7 +2281,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       return Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
-          key: ValueKey('figure-${widget.index}-add-wording-override'),
+          key: _key('add-wording-override'),
           onPressed: () => setState(() => _showWordingOverride = true),
           icon: const Icon(Icons.edit_note, size: 18),
           label: Text(l10n.danceEditorAddWordingOverride),
@@ -2220,7 +2294,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ? ''
         : FigureRenderer(widget.taxonomy).render(figure, widget.dialect);
     return _WordingOverrideField(
-      key: ValueKey('figure-${widget.index}-wording-override-${draft.id}'),
+      key: _key('wording-override-${draft.id}'),
       fieldKey: 'figure-${widget.index}-wording-override',
       value: value,
       preview: preview,
@@ -3117,10 +3191,17 @@ class _WordingOverrideFieldState extends State<_WordingOverrideField> {
 }
 
 class _BeatSummary extends StatelessWidget {
-  const _BeatSummary({required this.totalBeats, required this.expectedBeats});
+  const _BeatSummary({
+    required this.totalBeats,
+    required this.expectedBeats,
+    this.keyPrefix = 'figure',
+  });
 
   final int totalBeats;
   final int expectedBeats;
+  final String keyPrefix;
+
+  ValueKey<String> _key(String suffix) => ValueKey('$keyPrefix-$suffix');
 
   @override
   Widget build(BuildContext context) {
@@ -3134,7 +3215,7 @@ class _BeatSummary extends StatelessWidget {
         children: [
           Text(
             l10n.danceEditorBeatTotal(totalBeats, expectedBeats),
-            key: const ValueKey('figure-beats-total'),
+            key: _key('beats-total'),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
             ),
@@ -3143,7 +3224,7 @@ class _BeatSummary extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Row(
-                key: const ValueKey('figure-beats-warning'),
+                key: _key('beats-warning'),
                 children: [
                   Icon(
                     Icons.warning_amber,

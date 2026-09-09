@@ -1071,6 +1071,39 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
+  /// Inserts a meanwhile draft at the end of the list, seeding its sides from
+  /// the current Defaults preference. A stored empty list deliberately becomes
+  /// two blank editor sides; one configured side gets one blank companion so
+  /// the draft remains editable without violating the core two-side invariant.
+  Future<void> addMeanwhile() async {
+    if (_disposed) return;
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultMeanwhileSideFiguresKey);
+    } catch (_) {
+      // diagnostics: silent — insertion uses the safe side-default fallback
+    }
+    if (_disposed) return;
+
+    final configured = meanwhileSideFiguresFromStored(stored);
+    final sides = [
+      for (final figure in configured) FigureDraft.fromFigure(figure),
+    ];
+    if (sides.isEmpty) {
+      sides.addAll([FigureDraft(), FigureDraft()]);
+    } else if (sides.length == 1) {
+      sides.add(FigureDraft());
+    }
+    final group = FigureDraft(meanwhileSides: sides);
+    group.params['beats'] = sides.first.beats;
+    _renderNotesRecursively([group]);
+    figureDrafts.add(group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
   /// Inserts the figure(s) parsed from one free-text entry line at the end of
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —

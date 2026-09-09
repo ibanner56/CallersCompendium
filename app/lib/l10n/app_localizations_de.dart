@@ -12,7 +12,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Ein Meanwhile-Container wurde hinzugefügt.';
+
+  @override
   String get navCollection => 'Sammlung';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile-Standards';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'Die Seitenfiguren, die beim Hinzufügen eines Meanwhile-Containers verwendet werden. Leere die Liste für zwei leere Seiten; eine konfigurierte Seite erhält eine leere Begleitseite. Du kannst den Container nach dem Einfügen bearbeiten.';
 
   @override
   String get navPrograms => 'Programme';
@@ -5408,6 +5419,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorAddFigure => 'Figur hinzufügen';
+
+  @override
+  String get danceEditorAddMeanwhile => 'Meanwhile hinzufügen';
 
   @override
   String get danceEditorPasteAtEndOfFigureList =>

@@ -619,6 +619,62 @@ void main() {
     expect(find.byKey(const ValueKey('figure-8-summary')), findsNothing);
   });
 
+  testWidgets(
+    'Meanwhile defaults are ordinary side figures and persist blank',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Meanwhile defaults'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('meanwhile-side-0-summary')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('meanwhile-side-1-summary')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('meanwhile-side-add')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('meanwhile-side-0-menu')),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-0-delete')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-0-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-0-delete')));
+      await tester.pumpAndSettle();
+
+      expect(await repos.settings.get(kDefaultMeanwhileSideFiguresKey), '[]');
+      expect(find.byKey(const ValueKey('meanwhile-side-add')), findsOneWidget);
+    },
+  );
+
+  testWidgets('Starting figures can add a meanwhile template', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-8-add-side')), findsOneWidget);
+    expect(
+      danceFiguresTemplateFromStored(
+        await repos.settings.get(kDefaultDanceFiguresTemplateKey),
+      ),
+      hasLength(8),
+    );
+  });
+
   testWidgets('editing the template figure persists it', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);
@@ -879,6 +935,8 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
       await tester.pumpAndSettle();
 
       expect(

@@ -12,7 +12,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement => 'Meanwhileコンテナを追加しました。';
+
+  @override
   String get navCollection => 'コレクション';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhileのデフォルト';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'Meanwhileコンテナを追加すると挿入されるサイド図形です。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。';
 
   @override
   String get navPrograms => 'プログラム';
@@ -5153,6 +5163,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorAddFigure => 'フィギュアを追加';
+
+  @override
+  String get danceEditorAddMeanwhile => 'Meanwhileを追加';
 
   @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';

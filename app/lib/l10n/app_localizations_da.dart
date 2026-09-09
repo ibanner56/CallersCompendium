@@ -12,7 +12,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Et meanwhile-element blev tilføjet.';
+
+  @override
   String get navCollection => 'Samling';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile-standarder';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'De sidefigurer, der indsættes, når du tilføjer et meanwhile-element. Ryd listen for to tomme sider; én konfigureret side får en tom ledsagerside. Du kan redigere elementet efter indsættelsen.';
 
   @override
   String get navPrograms => 'Programmer';
@@ -5338,6 +5349,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorAddFigure => 'Tilføj figur';
+
+  @override
+  String get danceEditorAddMeanwhile => 'Tilføj meanwhile';
 
   @override
   String get danceEditorPasteAtEndOfFigureList =>

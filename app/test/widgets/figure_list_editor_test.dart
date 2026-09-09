@@ -51,6 +51,7 @@ class _Host extends StatefulWidget {
     this.mixer = false,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
+    this.wireAddMeanwhile = false,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
@@ -63,6 +64,7 @@ class _Host extends StatefulWidget {
   final bool mixer;
   final bool freeTextEntry;
   final bool wireMeanwhile;
+  final bool wireAddMeanwhile;
 
   /// Wraps the editor in an [AggressiveBeatsUpdateScope] set to this value
   /// (issue #689). Defaults to `false` so existing tests exercise today's
@@ -115,6 +117,15 @@ class _HostState extends State<_Host> {
               showWordingOverride: widget.showWordingOverride,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
+              onAddMeanwhile: widget.wireAddMeanwhile
+                  ? () => setState(
+                      () => widget.drafts.add(
+                        FigureDraft(
+                          meanwhileSides: [FigureDraft(), FigureDraft()],
+                        ),
+                      ),
+                    )
+                  : null,
               onAddFreeText: widget.freeTextEntry
                   ? (figures) => setState(
                       () => widget.drafts.addAll(
@@ -186,6 +197,7 @@ Future<void> _pump(
   bool mixer = false,
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
+  bool wireAddMeanwhile = false,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
   Taxonomy? taxonomy,
@@ -207,6 +219,7 @@ Future<void> _pump(
       mixer: mixer,
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
+      wireAddMeanwhile: wireAddMeanwhile,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
     ),
@@ -344,6 +357,23 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
     expect(drafts, hasLength(1));
+  });
+
+  testWidgets('Add menu inserts an empty meanwhile container', (tester) async {
+    final drafts = <FigureDraft>[];
+    await _pump(tester, drafts, wireAddMeanwhile: true);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pumpAndSettle();
+
+    expect(drafts, hasLength(1));
+    expect(drafts.single.isMeanwhileGroup, isTrue);
+    expect(drafts.single.meanwhileSides, hasLength(2));
+    expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
   });
 
   testWidgets('selecting a move seeds the taxonomy default params', (
