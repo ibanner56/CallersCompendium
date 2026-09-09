@@ -707,7 +707,7 @@ FigureMatch? _hey(String text) {
   }
   final ricoSave = s.pos;
   final ricoParams = <String, Object?>{};
-  if (_eatHeyRicochets(s, pass1, length, ricoParams)) {
+  if (length != null && _eatHeyRicochets(s, pass1, length, ricoParams)) {
     params.addAll(ricoParams);
   } else {
     s.reset(ricoSave);
@@ -786,8 +786,9 @@ int? _heyRicochetSlot(
     'twos' => 'ones',
     'firstCorners' => 'secondCorners',
     'secondCorners' => 'firstCorners',
-    _ => pass1,
+    _ => null,
   };
+  if (inverted == null) return null;
   final subjectOffset = who == center
       ? 0
       : who == inverted

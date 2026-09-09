@@ -829,6 +829,27 @@ void main() {
       expect(f.params['rico1'], isNot(true));
       expect(f.note, suffix);
     });
+
+    test(
+      'ricochet after an implicit hey length remains verbatim in the note',
+      () {
+        const suffix = '- role2s ricochet second time';
+        final f = _parse(
+          'role2s start a hey - rights in center, lefts on ends $suffix',
+        );
+        expect(f.params['rico3'], isNot(true));
+        expect(f.note, suffix);
+      },
+    );
+
+    test('non-pair hey ricochet subject remains verbatim in the note', () {
+      const suffix = '- partners ricochet first time';
+      final f = _parse(
+        'partners start a full hey - rights in center, lefts on ends $suffix',
+      );
+      expect(f.params['rico1'], isNot(true));
+      expect(f.note, suffix);
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {
