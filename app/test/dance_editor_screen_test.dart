@@ -728,6 +728,36 @@ void main() {
     expect(savedTag.name, 'sparkly');
   });
 
+  testWidgets('failed dance save rolls back its staged inline tag', (
+    tester,
+  ) async {
+    final db = openWidgetTestDatabase();
+    final failingDances = _FailingDanceCreateRepository(db, contraTaxonomy);
+    final repos = CompendiumRepositories(
+      db,
+      contraTaxonomy,
+      dances: failingDances,
+    );
+    await _pumpEditor(tester, repos);
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'Rejected dance',
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
+    await tester.pumpAndSettle();
+
+    failingDances.failNextCreate = true;
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    expect(failingDances.fired, isTrue);
+    expect(await repos.dances.listAll(), isEmpty);
+    expect(await repos.tags.listAll(), isEmpty);
+  });
+
   testWidgets('an empty tag entry does not add a chip or corrupt state', (
     tester,
   ) async {
@@ -2785,6 +2815,24 @@ class _CountingDanceRepository extends DanceRepository {
   Future<List<Dance>> listAll({bool includeDeleted = false}) {
     listAllCalls++;
     return super.listAll(includeDeleted: includeDeleted);
+  }
+}
+
+/// Fails one new-dance write after the editor has staged its tags.
+class _FailingDanceCreateRepository extends DanceRepository {
+  _FailingDanceCreateRepository(super.db, super.taxonomy);
+
+  bool failNextCreate = false;
+  bool fired = false;
+
+  @override
+  Future<void> create(Dance dance) {
+    if (failNextCreate) {
+      failNextCreate = false;
+      fired = true;
+      return Future.error(StateError('injected dance create failure'));
+    }
+    return super.create(dance);
   }
 }
 

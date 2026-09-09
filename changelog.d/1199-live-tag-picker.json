@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Tags are physically removed when a dance is permanently deleted and no retained dance references them, while associations retained by soft-deleted dances remain restorable; newly created tags are saved together with the dance that uses them and survive an autosave restore."
+      "You no longer see tags in the dance or Collection pickers after removing their last live-dance association; newly created tags are saved together with the dance that uses them and survive an autosave restore."
     ]
   },
   "core": {

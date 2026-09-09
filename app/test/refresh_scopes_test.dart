@@ -40,22 +40,21 @@ void main() {
     required String title,
     DanceLevel? level,
     List<String> tagIds = const [],
-  }) =>
-      Dance(
-        id: id,
-        title: title,
-        authorIds: const [],
-        tagIds: tagIds,
-        form: DanceForm.contra,
-        formation: const Formation(FormationShape.dupleImproper),
-        status: DanceStatus.active,
-        level: level,
-        figures: const [],
-        customFields: const [],
-        hook: '',
-        createdAt: now,
-        updatedAt: now,
-      );
+  }) => Dance(
+    id: id,
+    title: title,
+    authorIds: const [],
+    tagIds: tagIds,
+    form: DanceForm.contra,
+    formation: const Formation(FormationShape.dupleImproper),
+    status: DanceStatus.active,
+    level: level,
+    figures: const [],
+    customFields: const [],
+    hook: '',
+    createdAt: now,
+    updatedAt: now,
+  );
 
   Program program({
     required String id,

@@ -1168,23 +1168,25 @@ class DanceRepository {
   /// advertising a deletion the user never performed would be wrong. Giving
   /// tags their own sync retention/purge policy belongs with the sync
   /// implementation, which owns retention; this migration ships none.
-  /// ## Both deletes announce themselves to drift, and here nothing else would
+  /// ## These raw deletes announce themselves to drift, and here nothing else
+  /// would
   ///
-  /// Raw SQL is opaque to drift, so each delete names the table it writes via
+  /// Raw SQL is opaque to drift, so each delete names its target table via
   /// `updates:`. [_cleanupDanglingReferences] explains the mechanism and why
   /// omitting it is silent; this site is the **worse** half of that pair and is
   /// worth separating rather than covering with one shared sentence.
   ///
   /// There, an omission would be masked by a `WritePropagation` rule that fires
   /// on the native `delete(_db.dances)` sharing the transaction. **No such rule
-  /// exists for these two tables.** Every generated rule targeting
-  /// `choreographers` or `published_sources` runs in the opposite direction —
-  /// `choreographers (delete) -> dance_authors`, `published_sources (delete) ->
-  /// dance_sources` — i.e. they are *sources* of propagation, never results of
-  /// it. Nothing in the schema notifies them.
+  /// exists for these three tables.** Every generated rule targeting
+  /// `choreographers`, `published_sources`, or `tags` runs in the opposite
+  /// direction — `choreographers (delete) -> dance_authors`,
+  /// `published_sources (delete) -> dance_sources`, and
+  /// `tags (delete) -> dance_tags` — i.e. they are *sources* of propagation,
+  /// never results of it. Nothing in the schema notifies them.
   ///
-  /// So a `.watch()` over either table would simply never see a row this method
-  /// removes. Demonstrated before the fix, by attaching a watcher to
+  /// So a `.watch()` over any of these three tables would simply never see a
+  /// row this method removes. Demonstrated before the fix, by attaching a watcher to
   /// `choreographers` and purging a dance whose sole author was thereby
   /// orphaned:
   ///
@@ -1194,7 +1196,7 @@ class DanceRepository {
   /// ```
   ///
   /// Nothing watched these tables when the omission was found, so it was
-  /// unobservable rather than harmless — and both are watched now, so the
+  /// unobservable rather than harmless — and all three are watched now, so the
   /// `updates:` sets below are load-bearing today rather than prospectively.
   /// See `dance_hard_delete_test.dart`, which holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
