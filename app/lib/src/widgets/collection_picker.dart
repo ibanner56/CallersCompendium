@@ -753,7 +753,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                       : l10n.collectionPickerSearchLabel,
                   hintText: _onlineEnabled
                       ? l10n.collectionPickerOnlineSearchFieldHint
-                      : l10n.collectionPickerSearchFieldHint,
+                      : l10n.collectionSearchFieldHint,
                   prefixIcon: Icon(
                     _onlineEnabled ? Icons.cloud_outlined : Icons.search,
                   ),

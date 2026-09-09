@@ -372,6 +372,13 @@ void main() {
 
     await _pumpPicker(tester, repos, onAddDance: (_) {});
     await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('picker-search')))
+          .decoration
+          ?.hintText,
+      'Search titles, authors, figures, notes…',
+    );
     await tester.enterText(
       find.byKey(const ValueKey('picker-search')),
       'swing',

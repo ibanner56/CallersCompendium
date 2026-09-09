@@ -1569,11 +1569,11 @@ Future<http.Response> _sendContraDbSearch(
   );
 }
 
-/// Default [ContraDbSearchFetcher]: POSTs the [request] as a ContraDB title- or
-/// choreographer-search JSON body to [contraDbSearchUrl] (with an
-/// [importFetchTimeout]) and returns
-/// the response body. Throws a [UrlFetchException] with a clear, user-presentable
-/// message for a network failure, a timeout, a non-2xx status, or an empty body.
+/// Default [ContraDbSearchFetcher]: POSTs [query] using [filter] as a ContraDB
+/// title- or choreographer-search JSON body to [contraDbSearchUrl] (with an
+/// [importFetchTimeout]) and returns the response body. Throws a
+/// [UrlFetchException] with a clear, user-presentable message for a network
+/// failure, a timeout, a non-2xx status, or an empty body.
 ///
 /// [client] is an injection point for tests (e.g. `package:http`'s
 /// `MockClient`); production callers omit it and a one-shot client is used.
