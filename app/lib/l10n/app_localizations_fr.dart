@@ -1022,7 +1022,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre à l\'ouverture de Perform et peut être mis en pause.';
+      'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Historique d’appel';

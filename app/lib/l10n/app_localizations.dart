@@ -1787,7 +1787,7 @@ abstract class AppLocalizations {
   /// Subtitle explaining the default-on individual Perform elapsed-timer toggle.
   ///
   /// In en, this message translates to:
-  /// **'Show elapsed time while performing a single dance. The timer starts when Perform opens and can be paused.'**
+  /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
   String get settingsShowIndividualPerformTimerSubtitle;
 
   /// General settings section header for calling-history preferences.

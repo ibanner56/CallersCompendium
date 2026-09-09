@@ -996,7 +996,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når Perform åbnes, og kan sættes på pause.';
+      'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';

@@ -1004,7 +1004,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start wanneer Perform wordt geopend en kan worden gepauzeerd.';
+      'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Callerhistorie';

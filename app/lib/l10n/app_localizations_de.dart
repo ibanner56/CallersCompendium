@@ -1015,7 +1015,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet beim Öffnen von Perform und kann pausiert werden.';
+      'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'Calling-Verlauf';

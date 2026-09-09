@@ -787,6 +787,7 @@ void main() {
         find.byKey(const ValueKey('perform-individual-elapsed')),
         findsNothing,
       );
+      await tester.pump(const Duration(seconds: 2));
       timerGate.complete();
       await tester.pump();
       expect(
@@ -794,9 +795,11 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('0:00'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('0:01'), findsOneWidget);
     });
 
-    testWidgets('cancels the timer when leaving Perform', (tester) async {
+    testWidgets('does not update after leaving Perform', (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(_dance(id: 'd1', title: 'Perform Me'));
       await _pumpDetail(tester, repos, 'd1');

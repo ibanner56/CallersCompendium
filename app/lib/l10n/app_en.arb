@@ -1261,7 +1261,7 @@
   "@settingsShowIndividualPerformTimerTitle": {
     "description": "Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program."
   },
-  "settingsShowIndividualPerformTimerSubtitle": "Show elapsed time while performing a single dance. The timer starts when Perform opens and can be paused.",
+  "settingsShowIndividualPerformTimerSubtitle": "Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.",
   "@settingsShowIndividualPerformTimerSubtitle": {
     "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
   },

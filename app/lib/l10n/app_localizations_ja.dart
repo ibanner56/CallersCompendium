@@ -960,7 +960,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get settingsShowIndividualPerformTimerSubtitle =>
-      '1曲だけをPerformしている間の経過時間を表示します。Performを開くとタイマーが開始し、一時停止できます。';
+      '1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
