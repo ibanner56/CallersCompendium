@@ -34,12 +34,19 @@ void main() {
       });
     });
 
+    test('builds a choreographer filter', () {
+      final decoded = jsonDecode(
+        buildContraDbSearchBody('Alice Gordon', filter: 'choreographer'),
+      ) as Map<String, dynamic>;
+      expect(decoded['filter'], ['choreographer', 'Alice Gordon']);
+    });
+
     test(
       'passes the query through verbatim (server lower-cases the match)',
       () {
-        final decoded =
-            jsonDecode(buildContraDbSearchBody('Money Musk'))
-                as Map<String, Object?>;
+        final decoded = jsonDecode(
+          buildContraDbSearchBody('Money Musk'),
+        ) as Map<String, Object?>;
         expect(decoded['filter'], ['title', 'Money Musk']);
       },
     );

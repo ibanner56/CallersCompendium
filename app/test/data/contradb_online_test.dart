@@ -75,6 +75,24 @@ void main() {
       expect(jsonDecode(body)['numberMatching'], 1);
     });
 
+    test('POSTs a choreographer-filter JSON body for author searches', () async {
+      late http.Request captured;
+      final client = MockClient((request) async {
+        captured = request;
+        return http.Response(_searchJson(), 200);
+      });
+      await fetchContraDbSearch(
+        'Alice Gordon',
+        filter: 'choreographer',
+        client: client,
+      );
+
+      expect(
+        jsonDecode(captured.body)['filter'],
+        ['choreographer', 'Alice Gordon'],
+      );
+    });
+
     test('a non-2xx status throws a UrlFetchException', () async {
       final client = MockClient((_) async => http.Response('nope', 503));
       expect(
@@ -106,6 +124,19 @@ void main() {
       expect(results.single.formation, 'improper');
     });
 
+    test('passes the selected author filter through the injected seam', () async {
+      late ContraDbSearchRequest request;
+      final online = ContraDbOnline(
+        searchFetcher: (value) async {
+          request = value;
+          return _searchJson();
+        },
+      );
+      await online.search(const OnlineSearchQuery(author: '  Adina Gordon '));
+      expect(request.query, 'Adina Gordon');
+      expect(request.filter, 'choreographer');
+    });
+
     test('an empty query throws before any fetch', () async {
       var called = false;
       final online = ContraDbOnline(
@@ -119,6 +150,18 @@ void main() {
         throwsA(isA<UrlFetchException>()),
       );
       expect(called, isFalse);
+    });
+
+    test('rejects a query that supplies both title and author', () async {
+      final online = ContraDbOnline(
+        searchFetcher: (_) async => _searchJson(),
+      );
+      expect(
+        online.search(
+          const OnlineSearchQuery(title: 'Title', author: 'Author'),
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('propagates a UrlFetchException from the fetch seam', () async {

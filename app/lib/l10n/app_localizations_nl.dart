@@ -1566,6 +1566,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get collectionSearchScopeTitle => 'Titel';
 
   @override
+  String get collectionSearchScopeAuthor => 'Auteur';
+
+  @override
   String get collectionSearchScopeFigure => 'Figuur';
 
   @override
@@ -3581,7 +3584,8 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Zoek online dansen op titel…';
+  String get onlineSearchFieldHint =>
+      'Online dansen zoeken op titel of auteur…';
 
   @override
   String onlineResultCount(int count) {
@@ -3596,12 +3600,12 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Typ een titel of voeg per-frase-figuren toe om in $source te zoeken.';
+    return 'Typ een titel of auteur, of voeg figuren per frase toe om te zoeken in $source.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Typ een titel om in $source te zoeken.';
+    return 'Typ een titel of auteur om te zoeken in $source.';
   }
 
   @override
@@ -4243,7 +4247,7 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Voer een titel in om ContraDB te doorzoeken.';
+      'Voer een titel of auteur in om ContraDB te doorzoeken.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>

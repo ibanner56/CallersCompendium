@@ -2774,6 +2774,12 @@ abstract class AppLocalizations {
   /// **'Title'**
   String get collectionSearchScopeTitle;
 
+  /// Collection search scope restricted to dance authors, including the online author criterion.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get collectionSearchScopeAuthor;
+
   /// Local collection search scope restricted to canonical figures.
   ///
   /// In en, this message translates to:
@@ -5753,7 +5759,7 @@ abstract class AppLocalizations {
   /// Hint text for the online search field.
   ///
   /// In en, this message translates to:
-  /// **'Search online dances by title…'**
+  /// **'Search online dances by title or author…'**
   String get onlineSearchFieldHint;
 
   /// Count of online search results shown above the results list.
@@ -5765,13 +5771,13 @@ abstract class AppLocalizations {
   /// Empty-query hint for online sources that support by-phrase figure criteria.
   ///
   /// In en, this message translates to:
-  /// **'Type a title or add by-phrase figures to search {source}.'**
+  /// **'Type a title or author, or add by-phrase figures to search {source}.'**
   String onlineSearchHintByPhrase(String source);
 
-  /// Empty-query hint for online sources that only support title search.
+  /// Empty-query hint for online sources without by-phrase support.
   ///
   /// In en, this message translates to:
-  /// **'Type a title to search {source}.'**
+  /// **'Type a title or author to search {source}.'**
   String onlineSearchHintTitle(String source);
 
   /// Shown when an online search returns no matching dances.
@@ -6584,10 +6590,10 @@ abstract class AppLocalizations {
   /// **'The Caller\'s Box dance couldn\'t be imported.'**
   String get importErrorCallersBoxImportFailed;
 
-  /// Error shown when a ContraDB search is attempted with no title.
+  /// Error shown when a ContraDB search is attempted with no title or author.
   ///
   /// In en, this message translates to:
-  /// **'Enter a title to search ContraDB.'**
+  /// **'Enter a title or author to search ContraDB.'**
   String get importErrorContraDbEmptyTitle;
 
   /// Error shown when the ContraDB dance URL/id field is empty.

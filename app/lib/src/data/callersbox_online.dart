@@ -53,11 +53,12 @@ class CallersBoxOnline implements OnlineSearchService {
   @override
   OnlineSource get source => OnlineSource.callersBox;
 
-  /// Searches The Caller's Box by [OnlineSearchQuery.title] and/or by-phrase
-  /// figure [OnlineSearchQuery.phrases] and returns the parsed result rows.
-  /// Title and phrase criteria combine (TCB accepts both in one request). Throws
-  /// a typed [UrlFetchException] on any fetch failure, or when
-  /// there is nothing to search.
+  /// Searches The Caller's Box by [OnlineSearchQuery.title],
+  /// [OnlineSearchQuery.author], and/or by-phrase figure
+  /// [OnlineSearchQuery.phrases] and returns the parsed result rows. Title,
+  /// author, and phrase criteria are serialized using TCB's fixed field names.
+  /// Throws a typed [UrlFetchException] on any fetch failure, or when there is
+  /// nothing to search.
   ///
   /// Rows whose figures TCB will not serve are excluded unless the caller sets
   /// [OnlineSearchQuery.requireFigures] to `false` (issue #845). TCB's
@@ -78,7 +79,11 @@ class CallersBoxOnline implements OnlineSearchService {
   /// `show_all`. A missing or unreadable total simply skips the second request.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
-    final url = buildCallersBoxSearchUrl(query.title, phrases: query.phrases);
+    final url = buildCallersBoxSearchUrl(
+      query.title,
+      author: query.author,
+      phrases: query.phrases,
+    );
     var html = await _searchFetcher(url);
     var rows = parseCallersBoxSearchResults(html);
 
@@ -86,6 +91,7 @@ class CallersBoxOnline implements OnlineSearchService {
     if (total != null && total > rows.length && total <= showAllMatchLimit) {
       final allUrl = buildCallersBoxSearchUrl(
         query.title,
+        author: query.author,
         phrases: query.phrases,
         showAll: true,
       );

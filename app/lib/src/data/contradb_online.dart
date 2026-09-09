@@ -17,8 +17,8 @@ import 'online_search.dart';
 ///
 /// Two transport differences from the Caller's Box flow:
 /// - **search** is an HTTP POST with a JSON body (ContraDB's `/api/v1/dances`),
-///   not a GET — handled by [fetchContraDbSearch]. ContraDB search is title-only
-///   ([OnlineSource.contraDb] has `supportsByPhrase == false`), so
+///   not a GET — handled by [fetchContraDbSearch]. ContraDB supports title and
+///   choreographer filters but has no by-phrase API, so
 ///   [OnlineSearchQuery.phrases] is ignored.
 /// - **import** reuses the EXISTING `contradb.com/dances/{id}` HTML-scrape path
 ///   ([buildContraDbUrl] + [ContraDbHtmlAdapter]); ContraDB serves no per-dance
@@ -31,7 +31,10 @@ class ContraDbOnline implements OnlineSearchService {
   ContraDbOnline({
     ContraDbSearchFetcher? searchFetcher,
     UrlFetcher? htmlFetcher,
-  }) : _searchFetcher = searchFetcher ?? fetchContraDbSearch,
+  }) : _searchFetcher =
+           searchFetcher ??
+           ((request) =>
+               fetchContraDbSearch(request.query, filter: request.filter)),
        _htmlFetcher = htmlFetcher ?? fetchImportUrl;
 
   final ContraDbSearchFetcher _searchFetcher;
@@ -40,17 +43,26 @@ class ContraDbOnline implements OnlineSearchService {
   @override
   OnlineSource get source => OnlineSource.contraDb;
 
-  /// Searches ContraDB by [OnlineSearchQuery.title] (case-insensitive substring
-  /// match, server side) and returns the parsed result rows. Throws a
-  /// typed [UrlFetchException] on any fetch failure, or when
+  /// Searches ContraDB by the selected title or author criterion (case-
+  /// insensitive substring match, server side) and returns the parsed result
+  /// rows. Throws a typed [UrlFetchException] on any fetch failure, or when
   /// there is nothing to search.
   @override
   Future<List<OnlineSearchResultRow>> search(OnlineSearchQuery query) async {
     final title = query.title.trim();
-    if (title.isEmpty) {
+    final author = query.author.trim();
+    if (title.isNotEmpty && author.isNotEmpty) {
+      throw ArgumentError('title and author cannot both be specified');
+    }
+    if (title.isEmpty && author.isEmpty) {
       throw const UrlFetchException(UrlFetchFailureReason.contraDbEmptyTitle);
     }
-    final body = await _searchFetcher(title);
+    final body = await _searchFetcher(
+      ContraDbSearchRequest(
+        query: title.isNotEmpty ? title : author,
+        filter: title.isNotEmpty ? 'title' : 'choreographer',
+      ),
+    );
     return [
       for (final r in parseContraDbSearchResults(body))
         OnlineSearchResultRow(
