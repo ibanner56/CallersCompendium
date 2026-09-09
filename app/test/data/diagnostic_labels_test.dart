@@ -153,6 +153,15 @@ void main() {
         expect(msg, isNot(equals(l10n.importIssueGeneric)), reason: code);
       }
     });
+
+    test('inactive levels use the localized unmapped-level message', () {
+      final issue = ImportIssue(
+        severity: ImportIssueSeverity.warning,
+        code: 'cc_inactive_level',
+        message: 'diagnostic english',
+      );
+      expect(importIssueMessage(l10n, issue), l10n.importIssueUnmappedLevel);
+    });
   });
 
   group('importIssueMessage — safe placeholders (D2/D3, CWE-209)', () {

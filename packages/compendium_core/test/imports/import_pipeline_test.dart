@@ -105,7 +105,7 @@ void main() {
               'custom-alias',
               'Custom Alias Dance',
               difficultyLevelLabel: 'Advanced',
-            ),
+            )..['difficultyLevelId'] = DifficultyLevel.advancedId,
           ]),
           const ImportRequest(),
         );

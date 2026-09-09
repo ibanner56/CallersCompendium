@@ -160,6 +160,7 @@ class FakeSourceAdapter implements SourceAdapter {
     final dance = Dance(
       id: 'draft-${raw.externalId ?? 'anon'}',
       title: title,
+      difficultyLevelId: decoded['difficultyLevelId'] as String?,
       authorIds: authorIds,
       figures: figures,
       createdAt: now,
