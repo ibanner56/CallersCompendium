@@ -6,6 +6,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/repositories_scope.dart';
 import '../../l10n/app_localizations.dart';
@@ -1156,6 +1157,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     return PerformTextCard(
       text: _slotLabel(AppLocalizations.of(context), slot),
       textScale: _textScale,
+      renderer: widget.renderer,
+      dialect: dialect,
+      canonicalizeDiscouragedTerms: slot.danceId == null
+          ? CanonicalDiscouragedTermsScope.of(context)
+          : false,
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,
     );

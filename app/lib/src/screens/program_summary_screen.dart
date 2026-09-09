@@ -4,6 +4,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
@@ -693,7 +695,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           const SizedBox(height: 16),
           Text(l10n.programsNotesLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
-          Text(program.notes),
+          Text(_displayProse(program.notes)),
         ],
         const SizedBox(height: 24),
         Text(
@@ -818,6 +820,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return rows;
   }
 
+  String _displayProse(String text) {
+    if (!CanonicalDiscouragedTermsScope.of(context)) return text;
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
+  }
+
   Widget _slotRow(
     ProgramSlot slot, {
     required String? ordinalLabel,
@@ -924,7 +934,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
-          l10n.programsSummaryNote(slot.text!.trim()),
+          l10n.programsSummaryNote(_displayProse(slot.text!.trim())),
         ...extras,
       ];
       final secondary = secondaryParts.join(' · ');

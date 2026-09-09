@@ -27,14 +27,15 @@ typedef _AssembledTemplate = ({Set<String> slots, String text});
 /// [FigureRenderer._displayBaseRenderers]). Computes the slots for a move that
 /// adopts ContraDB's `words()` sentence structure verbatim. Never invoked for
 /// the canonical render (which keeps expanding `renderTemplate`).
-typedef _DisplayBaseRenderer = _DisplayTemplate Function(
-  FigureRenderer r,
-  MoveDef def,
-  Map<String, Object?> params,
-  Dialect dialect,
-  bool verbose,
-  bool decimals,
-);
+typedef _DisplayBaseRenderer =
+    _DisplayTemplate Function(
+      FigureRenderer r,
+      MoveDef def,
+      Map<String, Object?> params,
+      Dialect dialect,
+      bool verbose,
+      bool decimals,
+    );
 
 /// Expands a display template in one pass.
 ///
@@ -163,17 +164,63 @@ class FigureRenderer {
     Dialect dialect, {
     bool verbose = false,
     bool decimals = false,
+  }) => _renderSummary(
+    figure,
+    dialect,
+    verbose: verbose,
+    decimals: decimals,
+    canonicalizeDiscouragedTerms: false,
+  );
+
+  /// Display summary with supported discouraged terms converted for read-only
+  /// canonical wording. This separate API preserves the overridable
+  /// [renderSummary] signature for downstream renderer spies/subclasses.
+  String renderSummaryWithCanonicalDiscouragedTerms(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool decimals = false,
+  }) => _renderSummary(
+    figure,
+    dialect,
+    verbose: verbose,
+    decimals: decimals,
+    canonicalizeDiscouragedTerms: true,
+  );
+
+  String _renderSummary(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    required bool canonicalizeDiscouragedTerms,
   }) {
     final override = figure.isCustom
         ? null
         : _renderWordingOverride(figure, dialect);
-    if (override != null) return override;
+    if (override != null) {
+      return canonicalizeDiscouragedTerms
+          ? renderDiscouragedTerms(override, dialect)
+          : override;
+    }
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
-      return _render(figure, dialect, verbose: verbose, decimals: decimals);
+      return _render(
+        figure,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
     }
-    final base = _render(figure, dialect, verbose: verbose, decimals: decimals);
+    final base = _render(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
     if (figure.isCustom) return base;
     final def = taxonomy.resolve(figure.move);
     if (def == null) return base;
@@ -280,16 +327,25 @@ class FigureRenderer {
     bool verbose = false,
     bool decimals = false,
     bool forCanonical = false,
+    bool canonicalizeDiscouragedTerms = false,
   }) {
     if (figure.isCustom) {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
-      return text.isEmpty ? customMove : renderFreeText(text, dialect);
+      if (text.isEmpty) return customMove;
+      final displayText = canonicalizeDiscouragedTerms
+          ? renderDiscouragedTerms(text, dialect)
+          : text;
+      return renderFreeText(displayText, dialect);
     }
     if (figure.isMeanwhile) {
       final override = !forCanonical
           ? _renderWordingOverride(figure, dialect)
           : null;
-      if (override != null) return override;
+      if (override != null) {
+        return canonicalizeDiscouragedTerms
+            ? renderDiscouragedTerms(override, dialect)
+            : override;
+      }
       // A meanwhile container (#590) renders its concurrent sides joined by a
       // fixed structural separator. `renderCanonical` (forCanonical) MUST stay
       // byte-stable across runs — it is the dedupe/FTS key — so it always
@@ -310,13 +366,18 @@ class FigureRenderer {
           verbose: verbose,
           decimals: decimals,
           forCanonical: forCanonical,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
       );
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
     if (!forCanonical) {
       final override = _renderWordingOverride(figure, dialect);
-      if (override != null) return override;
+      if (override != null) {
+        return canonicalizeDiscouragedTerms
+            ? renderDiscouragedTerms(override, dialect)
+            : override;
+      }
     }
     final def = taxonomy.resolve(figure.move);
     if (def == null) {
@@ -1250,14 +1311,8 @@ class FigureRenderer {
   /// spellings are replaced at display time with the active dialect's role
   /// terms (or canonical role tokens) and the safe shoulder-round wording.
   /// Stored text is never changed.
-  String renderFreeText(
-    String text,
-    Dialect dialect, {
-    bool canonicalizeDiscouragedTerms = false,
-  }) {
-    final map = <String, String>{
-      if (canonicalizeDiscouragedTerms) ..._discouragedDisplayTerms(dialect),
-    };
+  String renderFreeText(String text, Dialect dialect) {
+    final map = <String, String>{};
     for (final entry in dialect.roles.entries) {
       map[entry.key] = entry.value.singular; // role1 -> Lark
       map['${entry.key}s'] = entry.value.plural; // role1s -> Larks
@@ -1268,6 +1323,23 @@ class FigureRenderer {
       preserveCase: true,
     ).apply(text);
   }
+
+  /// Converts only the supported discouraged terms, without applying role-token
+  /// substitution. Callers that need both transformations should call this
+  /// before [renderFreeText], so generated role names cannot be reinterpreted
+  /// as a different discouraged spelling.
+  String renderDiscouragedTerms(String text, Dialect dialect) => Substitutor(
+    _discouragedDisplayTerms(dialect),
+    caseInsensitive: true,
+    preserveCase: true,
+  ).apply(text);
+
+  /// Applies discouraged-term conversion and the existing role-token display
+  /// substitution to free text in one display-only operation.
+  String renderFreeTextWithCanonicalDiscouragedTerms(
+    String text,
+    Dialect dialect,
+  ) => renderFreeText(renderDiscouragedTerms(text, dialect), dialect);
 
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
     'gypsy': 'shoulder round',

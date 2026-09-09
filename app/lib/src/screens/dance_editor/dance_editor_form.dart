@@ -275,6 +275,7 @@ class DanceEditorForm extends StatelessWidget {
                   onAdd: controller.addFigure,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
+                  canonicalizeDiscouragedTerms: true,
                   onAddFreeText: controller.insertFreeTextFigures,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,

@@ -120,12 +120,11 @@ String programToPlainText(
     lines.add('');
     lines.add('${labels.notes}:');
     lines.add(
-      renderer == null || dialect == null
+      !canonicalizeDiscouragedTerms || renderer == null || dialect == null
           ? program.notes.trim()
-          : renderer.renderFreeText(
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
               program.notes.trim(),
               dialect,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             ),
     );
   }
@@ -151,24 +150,19 @@ String _slotLine(
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
     // On a dance slot, `text` is a per-slot caller note.
     if (_has(slot.text)) {
-      final note = renderer == null || dialect == null
+      final note =
+          !canonicalizeDiscouragedTerms || renderer == null || dialect == null
           ? slot.text!.trim()
-          : renderer.renderFreeText(
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
               slot.text!.trim(),
               dialect,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             );
       buffer.write(' — $note');
     }
   } else {
     // Text-only slot (break, waltz, announcement): text is the whole content.
-    final text = renderer == null || dialect == null
-        ? slot.text!.trim()
-        : renderer.renderFreeText(
-            slot.text!.trim(),
-            dialect,
-            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-          );
+    // This can also be a purged dance tombstone, whose title must remain raw.
+    final text = slot.text!.trim();
     buffer.write(text);
   }
 

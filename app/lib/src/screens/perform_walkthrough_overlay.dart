@@ -98,8 +98,9 @@ class PerformWalkthroughOverlay extends StatelessWidget {
                           ),
                           IconButton(
                             key: const ValueKey('perform-walkthrough-close'),
-                            tooltip: MaterialLocalizations.of(context)
-                                .closeButtonTooltip,
+                            tooltip: MaterialLocalizations.of(
+                              context,
+                            ).closeButtonTooltip,
                             icon: const Icon(Icons.close),
                             onPressed: onClose,
                           ),
@@ -111,12 +112,13 @@ class PerformWalkthroughOverlay extends StatelessWidget {
                           child: Text(
                             text.isEmpty
                                 ? l10n.performWalkthroughEmpty
-                                : renderer.renderFreeText(
-                                    text,
-                                    dialect,
-                                    canonicalizeDiscouragedTerms:
-                                        canonicalDiscouragedTerms,
-                                  ),
+                                : canonicalDiscouragedTerms
+                                ? renderer
+                                      .renderFreeTextWithCanonicalDiscouragedTerms(
+                                        text,
+                                        dialect,
+                                      )
+                                : renderer.renderFreeText(text, dialect),
                             style: theme.textTheme.titleMedium?.merge(
                               AppTypography.performBody,
                             ),

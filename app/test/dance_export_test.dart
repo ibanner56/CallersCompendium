@@ -55,17 +55,9 @@ class _FreeTextSpyRenderer extends FigureRenderer {
   final List<String> freeTextCalls = [];
 
   @override
-  String renderFreeText(
-    String text,
-    Dialect dialect, {
-    bool canonicalizeDiscouragedTerms = false,
-  }) {
+  String renderFreeText(String text, Dialect dialect) {
     freeTextCalls.add(text);
-    return super.renderFreeText(
-      text,
-      dialect,
-      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-    );
+    return super.renderFreeText(text, dialect);
   }
 }
 

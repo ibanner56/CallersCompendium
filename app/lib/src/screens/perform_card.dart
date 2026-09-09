@@ -138,13 +138,15 @@ class PerformCard extends StatelessWidget {
               _SectionTitle(AppLocalizations.of(context).performCallingNotes),
               SizedBox(height: AppSpacing.xs * chrome),
               Text(
-                renderer.renderFreeText(
-                  dance.callingNotes,
-                  dialect,
-                  canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-                ),
-                style: Theme.of(context).textTheme.headlineSmall
-                    ?.merge(AppTypography.performBody),
+                canonicalDiscouragedTerms
+                    ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                        dance.callingNotes,
+                        dialect,
+                      )
+                    : renderer.renderFreeText(dance.callingNotes, dialect),
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.merge(AppTypography.performBody),
               ),
             ],
           ],
@@ -176,12 +178,18 @@ class PerformTextCard extends StatelessWidget {
     super.key,
     required this.text,
     required this.textScale,
+    required this.renderer,
+    required this.dialect,
+    this.canonicalizeDiscouragedTerms = false,
     this.autoSize = false,
     this.fitScaleCache,
   });
 
   final String text;
   final double textScale;
+  final FigureRenderer renderer;
+  final Dialect dialect;
+  final bool canonicalizeDiscouragedTerms;
 
   /// See [PerformCard.autoSize].
   final bool autoSize;
@@ -192,6 +200,9 @@ class PerformTextCard extends StatelessWidget {
   Widget _body(BuildContext context, double scale) {
     final theme = Theme.of(context);
     final mediaQuery = MediaQuery.of(context);
+    final displayText = canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
+        : text;
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
@@ -200,7 +211,7 @@ class PerformTextCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              text,
+              displayText,
               key: const ValueKey('perform-text'),
               style: theme.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
@@ -218,7 +229,7 @@ class PerformTextCard extends StatelessWidget {
       return _FitToHeight(
         minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
-        resetToken: text,
+        resetToken: Object.hash(text, canonicalizeDiscouragedTerms, dialect),
         builder: _body,
         scaleCache: fitScaleCache,
       );
@@ -844,8 +855,9 @@ class _Header extends StatelessWidget {
           text: formationLabel(l10n, dance.formation),
           // Per-formation label colour (issue #367): highlight only when the
           // user overrode this shape (override-only).
-          highlightColor: FormationColorsScope.of(context)
-              ?.overrideFor(dance.formation.shape),
+          highlightColor: FormationColorsScope.of(
+            context,
+          )?.overrideFor(dance.formation.shape),
         ),
         if (level != null) ...[
           SizedBox(height: AppSpacing.xs * chromeScale),
@@ -1011,11 +1023,12 @@ class _Figures extends StatelessWidget {
           mainSpans = [
             for (final span in parseInlineEmphasis(raw))
               EmphasisSpan(
-                text: renderer.renderFreeText(
-                  span.text,
-                  dialect,
-                  canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-                ),
+                text: canonicalDiscouragedTerms
+                    ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                        span.text,
+                        dialect,
+                      )
+                    : renderer.renderFreeText(span.text, dialect),
                 bold: span.bold,
                 underline: span.underline,
               ),
@@ -1033,11 +1046,12 @@ class _Figures extends StatelessWidget {
         noteSpans = [
           for (final span in parseInlineEmphasis(rawNote))
             EmphasisSpan(
-              text: renderer.renderFreeText(
-                span.text,
-                dialect,
-                canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
-              ),
+              text: canonicalDiscouragedTerms
+                  ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                      span.text,
+                      dialect,
+                    )
+                  : renderer.renderFreeText(span.text, dialect),
               bold: span.bold,
               underline: span.underline,
             ),
@@ -1045,13 +1059,21 @@ class _Figures extends StatelessWidget {
       }
       children.add(
         _FigureRow(
-          text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
+          text: canonicalDiscouragedTerms
+              ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+                  sf.figure,
+                  dialect,
+                  decimals: decimals,
+                )
+              : renderer.renderSummary(sf.figure, dialect, decimals: decimals),
           mainSpans: mainSpans,
-          verboseText: renderer.renderSummary(
-            sf.figure,
-            dialect,
-            verbose: true,
-          ),
+          verboseText: canonicalDiscouragedTerms
+              ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+                  sf.figure,
+                  dialect,
+                  verbose: true,
+                )
+              : renderer.renderSummary(sf.figure, dialect, verbose: true),
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           noteSpans: noteSpans,
@@ -1163,9 +1185,9 @@ class _FigureRow extends StatelessWidget {
                       message: l10n.performProgression,
                       child: Icon(
                         progressionIcon,
-                        size: MediaQuery.textScalerOf(context)
-                            .scale(textStyle?.fontSize ?? 24)
-                            .clamp(20.0, 32.0),
+                        size: MediaQuery.textScalerOf(
+                          context,
+                        ).scale(textStyle?.fontSize ?? 24).clamp(20.0, 32.0),
                         color: theme.colorScheme.primary,
                       ),
                     )

@@ -445,13 +445,12 @@ class ProgramExportMenu extends StatelessWidget {
     );
 
     final List<({Dance dance, bool isAlternate})>? appendDances;
-    final Dialect? dialect;
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     if (includeFigures) {
       appendDances = _orderedExportDances();
-      dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     } else {
       appendDances = null;
-      dialect = null;
     }
 
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
@@ -466,6 +465,10 @@ class ProgramExportMenu extends StatelessWidget {
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
         dialect: dialect,
+        renderer: renderer,
+        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+          context,
+        ),
       ),
     );
   }

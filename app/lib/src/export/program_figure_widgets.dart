@@ -40,14 +40,12 @@ List<pw.Widget> buildFigureWidgets(
       );
       lastLabel = sf.label;
     }
-    final summary = renderer.renderSummary(sf.figure, dialect);
-    final text = sf.figure.isCustom
-        ? renderer.renderFreeText(
-            summary,
+    final text = canonicalizeDiscouragedTerms
+        ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+            sf.figure,
             dialect,
-            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           )
-        : summary;
+        : renderer.renderSummary(sf.figure, dialect);
     final beatsLabel = labels.beats(sf.figure.beats);
     final marker = sf.figure.progression ? ' ¶' : '';
     widgets.add(
@@ -77,11 +75,12 @@ List<pw.Widget> buildFigureWidgets(
         pw.Padding(
           padding: const pw.EdgeInsets.only(left: 24, bottom: 1),
           child: pw.Text(
-            renderer.renderFreeText(
-              note,
-              dialect,
-              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-            ),
+            canonicalizeDiscouragedTerms
+                ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    note,
+                    dialect,
+                  )
+                : renderer.renderFreeText(note, dialect),
             style: pw.TextStyle(
               fontSize: 10,
               fontStyle: pw.FontStyle.italic,
