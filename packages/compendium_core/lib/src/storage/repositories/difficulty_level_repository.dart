@@ -197,7 +197,7 @@ class DifficultyLevelRepository {
         .insertOnConflictUpdate(
           DifficultyLevelsCompanion.insert(
             id: normalized.id,
-            label: normalized.label,
+          label: normalizeShareableText(normalized.label),
             position: normalized.position,
             updatedAt: Value(now),
           ),

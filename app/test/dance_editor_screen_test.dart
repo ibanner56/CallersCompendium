@@ -257,7 +257,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.level, DanceLevel.intermediate);
+    expect(saved!.difficultyLevelId, DifficultyLevel.intermediateId);
     expect(saved.mixedLevel, isTrue);
   });
 
@@ -298,7 +298,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final saved = await repos.dances.getById('d1');
-    expect(saved!.level, isNull);
+    expect(saved!.difficultyLevelId, isNull);
   });
 
   testWidgets('rating: setting a star round-trips on save', (tester) async {

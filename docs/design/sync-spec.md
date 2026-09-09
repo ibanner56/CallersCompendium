@@ -73,6 +73,15 @@ Eight tables, twenty columns:
 
 `dances` and `programs` already carry `updated_at` and `deleted_at`.
 
+Schema v34 also adds the ordered, syncable `difficulty_levels` table:
+
+| Table | Adds |
+| --- | --- |
+| `difficulty_levels` | `updated_at`, `deleted_at`, `existence_at` |
+
+Each difficulty-level row is carried as a `difficultyLevel` record (§4.3), and
+`dances.level_id` contains its stable ID.
+
 Six `_db.delete(` call sites across six repositories MUST convert from hard to
 soft delete: `settings`, `choreographers`, `tags`, `published_sources`,
 `custom_field_defs`, and `VenueRepository.delete`. The `restore()` paths on
@@ -1108,8 +1117,8 @@ canonicalisation, used only by §6.9.
 
 ### 4.3 Record blob
 
-Eight kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
-`publishedSource`, `customFieldDef`, `venue`, `setting`.
+Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
+`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`.
 
 ```json
 {
@@ -1126,8 +1135,8 @@ Eight kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | Field | Requirement |
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
-| `kind` | One of the eight above. |
-| `id` | The record's id — a UUID for the seven entity kinds, the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `kind` | One of the nine above. |
+| `id` | The record's id — a UUID for the eight entity kinds, the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |

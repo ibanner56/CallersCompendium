@@ -69,7 +69,7 @@ void main() {
       // transitive related-dance link groups; neither changed the taxonomy.
       // Schema 32 adds Device Sync local persistence and likewise does not
       // change the taxonomy.
-      expect(kCompendiumSchemaVersion, 32);
+      expect(kCompendiumSchemaVersion, 34);
     });
 
     test('registers with the maintainer-ruled param set', () {

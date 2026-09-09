@@ -24,7 +24,8 @@ dances(id PK, title, form, formation_base, formation_detail, progression,
        phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
        tunes_json,
        created_at, updated_at, deleted_at, existence_at)
-difficulty_levels(id PK, label UNIQUE, position)
+difficulty_levels(id PK, label UNIQUE, position,
+                  updated_at, deleted_at, existence_at)
 choreographers(id PK, name UNIQUE, website, notes,
                updated_at, deleted_at, existence_at)
 dance_authors(dance_id, choreographer_id, position,

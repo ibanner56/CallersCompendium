@@ -356,29 +356,29 @@ class CollectionData {
       }
     }
     return DanceListEntry(
-    dance: dance,
-    difficultyLevel: difficultyLevel,
-    authorNames: [
-      for (final id in dance.authorIds)
-        ?(choreographerNamesOverride[id] ?? choreographerNames[id]),
-    ],
-    tagNames: [
-      for (final id in dance.tagIds)
-        if (tagNames[id] != null) tagNames[id]!,
-    ],
-    tags: [
-      for (final id in dance.tagIds)
-        if (tagNames[id] != null)
-          (id: id, name: tagNames[id]!, color: tagColors[id]),
-    ],
-    listCustomFields: [
-      for (final def in listFieldDefs)
-        for (final value in dance.customFields)
-          if (value.fieldId == def.id) '${def.label}: ${value.value}',
-    ],
-    lastCalled: lastCalled[dance.id],
-    callCounts:
-        callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
+      dance: dance,
+      difficultyLevel: difficultyLevel,
+      authorNames: [
+        for (final id in dance.authorIds)
+          ?(choreographerNamesOverride[id] ?? choreographerNames[id]),
+      ],
+      tagNames: [
+        for (final id in dance.tagIds)
+          if (tagNames[id] != null) tagNames[id]!,
+      ],
+      tags: [
+        for (final id in dance.tagIds)
+          if (tagNames[id] != null)
+            (id: id, name: tagNames[id]!, color: tagColors[id]),
+      ],
+      listCustomFields: [
+        for (final def in listFieldDefs)
+          for (final value in dance.customFields)
+            if (value.fieldId == def.id) '${def.label}: ${value.value}',
+      ],
+      lastCalled: lastCalled[dance.id],
+      callCounts:
+          callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
     );
   }
 }

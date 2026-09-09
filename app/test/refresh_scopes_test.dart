@@ -590,7 +590,7 @@ void main() {
       // already-mounted summary directly from the watched tables.
       await repos.dances.update(
         (await repos.dances.getById('d1'))!.copyWith(
-          level: DanceLevel.intermediate,
+          difficultyLevelId: DifficultyLevel.intermediateId,
           updatedAt: now.add(const Duration(days: 1)),
         ),
       );

@@ -59,6 +59,15 @@ class DifficultyLevel {
     advancedId,
   });
 
+  /// Returns the shipped compatibility value for [id], or `null` for a
+  /// user-defined or unknown ID.
+  static DifficultyLevel? knownForId(String? id) => switch (id) {
+    beginnerId => beginner,
+    intermediateId => intermediate,
+    advancedId => advanced,
+    _ => null,
+  };
+
   final String id;
   final String label;
   final int position;
@@ -86,5 +95,4 @@ class DifficultyLevel {
 
   @override
   int get hashCode => Object.hash(id, label, position);
-
 }

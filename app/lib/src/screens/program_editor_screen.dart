@@ -1923,6 +1923,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     choreographerFor: (id) =>
                         _createdChoreographers[id] ??
                         _data?.choreographersById[id],
+                    difficultyLevelFor: (id) {
+                      final dance = _danceById(id);
+                      if (dance == null) return null;
+                      for (final level
+                          in _data?.levels ?? const <DifficultyLevel>[]) {
+                        if (level.id == dance.difficultyLevelId) return level;
+                      }
+                      return DifficultyLevel.knownForId(
+                        dance.difficultyLevelId,
+                      );
+                    },
                   ),
                 ),
               ),

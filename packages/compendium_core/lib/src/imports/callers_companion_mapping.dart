@@ -403,8 +403,9 @@ Figure _withBeats(Figure figure, int beats) {
   const intermediate = {'intermediate', 'medium', 'moderate'};
   const advanced = {'advanced', 'hard', 'challenging', 'difficult', 'expert'};
   if (beginner.contains(value)) return (DifficultyLevel.beginnerId, false);
-  if (intermediate.contains(value))
+  if (intermediate.contains(value)) {
     return (DifficultyLevel.intermediateId, false);
+  }
   if (advanced.contains(value)) return (DifficultyLevel.advancedId, false);
   issues.add(
     ImportIssue(

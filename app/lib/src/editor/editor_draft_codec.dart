@@ -183,10 +183,7 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Throws [FormatException] for unknown future versions (`v > _kDraftVersion`)
 /// or for structurally invalid content. Unknown top-level keys are silently
 /// ignored (forward-compat).
-EditorSnapshot decodeDraft(
-  Object? value, {
-  Iterable<DifficultyLevel>? levels,
-}) {
+EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
   final Map<String, Object?> json;
   if (value is String) {
     // SettingsRepository round-trips through jsonDecode, so we expect a Map.
@@ -287,20 +284,12 @@ DifficultyLevel? _parseDifficulty(
     'advanced' => DifficultyLevel.advancedId,
     _ => raw,
   };
-  return levels.cast<DifficultyLevel?>().firstWhere(
-    (level) => level?.id == legacyId,
-    orElse: () => throw FormatException('unknown difficulty level "$raw"'),
-  );
-}
-
-/// Parses an optional enum name: `null`/absent → `null`; a string is resolved
-/// against [values] (unknown names throw). Used for the nullable `level` field.
-T? _parseNullableEnum<T extends Enum>(List<T> values, Object? raw) {
-  if (raw == null) return null;
-  if (raw is! String) {
-    throw FormatException('draft enum value must be a string: $raw');
+  for (final level in levels) {
+    if (level.id == legacyId) return level;
   }
-  return _parseEnum(values, raw);
+  // A draft may outlive a deleted vocabulary entry. Preserve the rest of the
+  // draft and let the editor present the assignment as unspecified.
+  return null;
 }
 
 /// Parses an optional canonical [PartialDate] string: `null`/absent → `null`;

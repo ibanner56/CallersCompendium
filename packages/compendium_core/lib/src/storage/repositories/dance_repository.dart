@@ -310,7 +310,9 @@ class DanceRepository {
     if (difficultyLevelId != null) {
       final level = await (_db.select(
         _db.difficultyLevels,
-      )..where((t) => t.id.equals(difficultyLevelId))).getSingleOrNull();
+      )..where(
+        (t) => t.id.equals(difficultyLevelId) & t.deletedAt.isNull(),
+      )).getSingleOrNull();
       if (level == null) {
         throw StateError(
           'dance "${dance.id}" has an unknown difficulty level '

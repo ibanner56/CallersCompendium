@@ -1147,6 +1147,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
           textScale: _textScale,
           autoSize: _autoSize,
           authorNames: _authorNamesFor(dance),
+          difficultyLevel: _difficultyLevelFor(dance),
           fitScaleCache: _fitScaleCache,
         );
       }
@@ -1159,5 +1160,12 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,
     );
+  }
+
+  DifficultyLevel? _difficultyLevelFor(Dance dance) {
+    for (final level in widget.data.levels) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
+    return null;
   }
 }

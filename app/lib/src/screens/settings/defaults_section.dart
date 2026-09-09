@@ -576,13 +576,21 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
     );
     controller.dispose();
     final normalized = label?.trim() ?? '';
-    if (normalized.isEmpty) return;
+    if (!mounted || normalized.isEmpty) return;
     try {
-      await RepositoriesScope.of(context).difficultyLevels.createCustom(
-        label: normalized,
-        position: _levels.length,
-      );
-      await _reload();
+      final created = await RepositoriesScope.of(context).difficultyLevels
+          .createCustom(
+            label: normalized,
+            position:
+                _levels.fold(
+                  -1,
+                  (maximum, level) =>
+                      level.position > maximum ? level.position : maximum,
+                ) +
+                1,
+          );
+      if (!mounted) return;
+      setState(() => _levels = [..._levels, created]);
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'defaults_section._add');
       _report(error);
@@ -623,6 +631,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
       await RepositoriesScope.of(
         context,
       ).difficultyLevels.reorder(updated.map((level) => level.id).toList());
+      await _reload();
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'defaults_section._reorder');
       _report(error);
@@ -655,7 +664,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _levels.length,
-          onReorder: _reorder,
+          onReorderItem: _reorder,
           itemBuilder: (context, index) {
             final level = _levels[index];
             return ListTile(
@@ -990,7 +999,12 @@ class _DefaultsView extends StatelessWidget {
           },
         ),
         SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
-        const DifficultyLevelsEditor(),
+        ExpansionTile(
+          key: const ValueKey('defaults-difficulty-levels-section'),
+          title: Text(l10n.danceEditorLevelLabel),
+          initiallyExpanded: true,
+          children: const [DifficultyLevelsEditor()],
+        ),
         ListTile(
           title: Text(l10n.settingsDefaultsFormTitle),
           subtitle: Text(l10n.settingsDefaultsFormSubtitle),

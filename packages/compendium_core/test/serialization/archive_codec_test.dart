@@ -387,8 +387,9 @@ void main() {
           ],
         ),
       );
-      ((root['dances']! as List<Object?>).single as Map<String, Object?>)
-        ..['level'] = 'advanced';
+      final legacyDance =
+          (root['dances']! as List<Object?>).single as Map<String, Object?>;
+      legacyDance['level'] = 'advanced';
 
       final decoded = archiveFromJson(root);
 
@@ -408,8 +409,9 @@ void main() {
           {'id': 'custom', 'label': 'Duplicate', 'position': 4},
           {'label': 'Missing id', 'position': 5},
         ];
-        ((root['dances']! as List<Object?>).first as Map<String, Object?>)
-          ..['difficultyLevelId'] = 'missing';
+        final dance =
+            (root['dances']! as List<Object?>).first as Map<String, Object?>;
+        dance['difficultyLevelId'] = 'missing';
 
         final decoded = archiveFromJson(root);
 

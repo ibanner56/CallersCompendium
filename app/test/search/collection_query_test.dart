@@ -214,23 +214,27 @@ void main() {
     });
 
     test('a single level facet yields a LevelFilter(eq) leaf', () {
-      final facets = FacetSelections()..levels.add(DanceLevel.intermediate);
+      final facets = FacetSelections()
+        ..levels.add(DifficultyLevel.intermediateId);
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<LevelFilter>());
       final l = f as LevelFilter;
-      expect(l.level, DanceLevel.intermediate);
+      expect(l.difficultyLevelId, DifficultyLevel.intermediateId);
       expect(l.op, LevelOp.eq);
     });
 
     test('multiple levels OR within the level facet', () {
       final facets = FacetSelections()
-        ..levels.addAll({DanceLevel.beginner, DanceLevel.advanced});
+        ..levels.addAll({
+          DifficultyLevel.beginnerId,
+          DifficultyLevel.advancedId,
+        });
       final f = buildCollectionFilter(ftsText: '', facets: facets, defs: defs);
       expect(f, isA<OrFilter>());
       final levels = (f as OrFilter).children.whereType<LevelFilter>().toList();
-      expect(levels.map((l) => l.level).toSet(), {
-        DanceLevel.beginner,
-        DanceLevel.advanced,
+      expect(levels.map((l) => l.difficultyLevelId).toSet(), {
+        DifficultyLevel.beginnerId,
+        DifficultyLevel.advancedId,
       });
       expect(levels.every((l) => l.op == LevelOp.eq), isTrue);
     });
@@ -606,7 +610,8 @@ void main() {
     });
 
     test('level and mixedLevel facets count toward isEmpty', () {
-      final withLevel = FacetSelections()..levels.add(DanceLevel.beginner);
+      final withLevel = FacetSelections()
+        ..levels.add(DifficultyLevel.beginnerId);
       expect(withLevel.isEmpty, isFalse);
       final withMixed = FacetSelections()..mixedLevel = true;
       expect(withMixed.isEmpty, isFalse);
@@ -627,7 +632,7 @@ void main() {
 
     test('clear() resets level and mixedLevel facets', () {
       final facets = FacetSelections()
-        ..levels.add(DanceLevel.advanced)
+        ..levels.add(DifficultyLevel.advancedId)
         ..mixedLevel = false;
       expect(facets.isEmpty, isFalse);
       facets.clear();

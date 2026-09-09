@@ -176,13 +176,18 @@ class ArchiveRestorer {
     final tagRemap = <String, String>{};
     final fieldRemap = <String, String>{};
 
-    // Older archives did not carry the vocabulary. Recreate the shipped IDs
-    // before loading theirs so a legacy enum-name dance reference remains
-    // restorable after a full replace.
-    for (final level in DifficultyLevel.shipped) {
-      await _guard('difficultyLevel', level.id, errors, () async {
-        await _repos.difficultyLevels.upsert(level);
-      });
+    // Archives before v3 did not carry the vocabulary. Seed only the fixed
+    // shipped IDs that are absent so a legacy enum-name dance reference remains
+    // restorable without overwriting local labels, order, or tombstones during
+    // a merge. A v3 archive is authoritative, including an intentionally empty
+    // vocabulary after a replace.
+    if (archive.schemaVersion < archiveSchemaVersionDifficultyLevels) {
+      for (final level in DifficultyLevel.shipped) {
+        if (await _repos.difficultyLevels.getById(level.id) != null) continue;
+        await _guard('difficultyLevel', level.id, errors, () async {
+          await _repos.difficultyLevels.upsert(level);
+        });
+      }
     }
     for (final level in archive.difficultyLevels) {
       await _guard('difficultyLevel', level.id, errors, () async {

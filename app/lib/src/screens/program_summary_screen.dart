@@ -642,6 +642,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
             ),
             if (program.slots.any((s) => s.danceId != null))
               IconButton(
@@ -919,7 +920,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
       final secondaryParts = <String>[
         if (dance != null) formationLabel(l10n, dance.formation),
-        if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
+        if (dance != null)
+          if (_difficultyLevelFor(dance) case final level?)
+            danceLevelLabel(l10n, level),
         if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
@@ -1028,6 +1031,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ),
       );
     }
+
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
     return Padding(
@@ -1066,6 +1070,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
       ),
     );
+  }
+
+  DifficultyLevel? _difficultyLevelFor(Dance? dance) {
+    if (dance == null) return null;
+    for (final level in _collectionData?.levels ?? const <DifficultyLevel>[]) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
+    return DifficultyLevel.knownForId(dance.difficultyLevelId);
   }
 
   Widget _summaryRow(IconData icon, String text) {

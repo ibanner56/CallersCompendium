@@ -1334,21 +1334,18 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (data == null || _selectedIds.isEmpty) return;
 
     final selectedIds = Set<String>.of(_selectedIds);
-    final choice = await showBatchLevelDialog(
-      context,
-      levels: data.levels,
-    );
+    final levels = await _repos.difficultyLevels.listAll();
+    if (!mounted) return;
+    final choice = await showBatchLevelDialog(context, levels: levels);
     if (choice == null || !mounted) return;
 
     // Capture prior levels so Undo can restore each dance individually (the
     // batch write collapses them to a single target level).
-    final priorLevels = <String, DifficultyLevel?>{};
+    final priorLevels = <String, String?>{};
     for (final id in selectedIds) {
       final dance = await _repos.dances.getById(id);
       if (dance == null) continue;
-      priorLevels[id] = dance.difficultyLevelId == null
-          ? null
-          : await _repos.difficultyLevels.getById(dance.difficultyLevelId!);
+      priorLevels[id] = dance.difficultyLevelId;
     }
 
     final count = await _repos.dances.setLevelForMany(
@@ -1360,10 +1357,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
     // Narrow the captured priors to only the dances that actually changed, so
     // Undo doesn't rewrite (and re-stamp) untouched dances.
-    final target = choice.clear ? null : choice.level;
-    priorLevels.removeWhere(
-      (_, prior) => prior?.id == target?.id,
-    );
+    final target = choice.clear ? null : choice.level?.id;
+    priorLevels.removeWhere((_, prior) => prior == target);
 
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);
@@ -1404,15 +1399,13 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Restores the captured [priorLevels] for each affected dance (app-side undo;
   /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchLevel(
-    Map<String, DifficultyLevel?> priorLevels,
-  ) async {
+  Future<void> _undoBatchLevel(Map<String, String?> priorLevels) async {
     for (final entry in priorLevels.entries) {
       final dance = await _repos.dances.getById(entry.key);
       if (dance == null) continue;
       await _repos.dances.update(
         dance.copyWith(
-          difficultyLevelId: entry.value?.id,
+          difficultyLevelId: entry.value,
           clearDifficultyLevel: entry.value == null,
           updatedAt: DateTime.now().toUtc(),
         ),

@@ -390,12 +390,16 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   }
 
   /// Human-readable difficulty label for the export card, combining the
-  /// ordered [Dance.level] with the [Dance.mixedLevel] flag. Returns `null`
+  /// ordered difficulty level with the [Dance.mixedLevel] flag. Returns `null`
   /// when neither is set so the export omits the Level line.
-  static String? _levelLabel(AppLocalizations l10n, Dance dance) {
-    final base = dance.level == null
+  static String? _levelLabel(
+    AppLocalizations l10n,
+    Dance dance,
+    DifficultyLevel? difficultyLevel,
+  ) {
+    final base = difficultyLevel == null
         ? null
-        : danceLevelLabel(l10n, dance.level!);
+        : danceLevelLabel(l10n, difficultyLevel);
     if (base != null) {
       return dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
     }
@@ -411,6 +415,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           dance: detail.dance,
           renderer: _renderer,
           authorNames: detail.authorNames,
+          difficultyLevel: detail.difficultyLevel,
         ),
       ),
     );
@@ -594,7 +599,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dialect: ActiveDialectScope.of(context),
       authorNames: detail.authorNames,
       formationLabel: formationLabel(l10n, detail.dance.formation),
-      levelLabel: _levelLabel(l10n, detail.dance),
+      levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
       choreographersById: detail.choreographersById,
@@ -679,7 +684,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       dialect: dialect,
       authorNames: detail.authorNames,
       formationLabel: formationLabel(l10n, detail.dance.formation),
-      levelLabel: _levelLabel(l10n, detail.dance),
+      levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
       labels: danceExportLabels(l10n),
@@ -955,7 +960,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           dialect: dialect,
           authorNames: detail.authorNames,
           formationLabel: formationLabel(l10n, detail.dance.formation),
-          levelLabel: _levelLabel(l10n, detail.dance),
+          levelLabel: _levelLabel(l10n, detail.dance, detail.difficultyLevel),
           statusLabel: danceStatusLabel(l10n, detail.dance.status),
           renderer: _renderer,
           labels: danceExportLabels(l10n),
