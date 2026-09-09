@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -81,41 +83,75 @@ Future<void> _pumpDefaults(
 
   await tester.tap(find.byKey(const ValueKey('settings-nav-defaults')));
   await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('defaults-program-group')));
+  await tester.pumpAndSettle();
+  await tester.drag(find.byType(ListView).last, const Offset(0, -700));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+  await tester.pumpAndSettle();
 }
 
 /// Scrolls the Defaults content list until [key] is visible. The
-/// Dance-authoring subsection sits below the fold on the test surface.
-///
-/// The settings screen on a wide surface (1200 px) shows two vertical
-/// [Scrollable]s (the sidebar and the content list) and several horizontal
-/// ones from text-field overflow controllers. We select the last vertical
-/// scrollable to scroll the content list, regardless of how many scrollables
-/// are in the tree, so adding a new section doesn't break this helper.
-///
-/// We exclude scrollables using [NeverScrollableScrollPhysics] rather than
-/// just taking the last match: the Dance-authoring subsection embeds a
-/// [ReorderableListView] (in `FigureListEditor`) with that physics, and once
-/// keys below it are scrolled to (#942), it becomes the actual last vertical
-/// scrollable in the tree — which cannot itself be scrolled and cannot reach
-/// keys past it.
+/// Dance-authoring subsection sits below the fold on the test surface; the
+/// tester selects the relevant ancestor scrollable for the target.
 Future<void> _scrollTo(WidgetTester tester, Key key) async {
-  final verticals = find.byWidgetPredicate(
-    (w) =>
-        w is Scrollable &&
-        w.axisDirection == AxisDirection.down &&
-        w.physics is! NeverScrollableScrollPhysics,
-  );
-  await tester.scrollUntilVisible(
-    find.byKey(key),
-    120,
-    scrollable: verticals.last,
-    maxScrolls: 100,
-  );
+  await tester.ensureVisible(find.byKey(key));
   await tester.pumpAndSettle();
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('starting program templates round-trip semantic entries', () {
+    final encoded = encodeStartingProgramTemplate([
+      const StartingProgramTemplateEntry(danceId: 'dance-1'),
+      const StartingProgramTemplateEntry(
+        danceId: 'dance-2',
+        text: 'Guest caller',
+      ),
+      const StartingProgramTemplateEntry(text: Program.breakSlotText),
+    ]);
+
+    final decoded = tryDecodeStartingProgramTemplate(encoded);
+    expect(decoded, isNotNull);
+    expect(decoded!.map((entry) => entry.danceId), [
+      'dance-1',
+      'dance-2',
+      null,
+    ]);
+    expect(decoded.map((entry) => entry.text), [
+      null,
+      'Guest caller',
+      Program.breakSlotText,
+    ]);
+  });
+
+  test(
+    'starting program templates reject malformed or unsupported entries',
+    () {
+      expect(
+        tryDecodeStartingProgramTemplate(
+          jsonEncode({
+            'version': 1,
+            'slots': <Map<String, Object?>>[{}],
+          }),
+        ),
+        isNull,
+      );
+      expect(
+        tryDecodeStartingProgramTemplate(
+          jsonEncode({
+            'version': 1,
+            'slots': [
+              {'danceId': 'dance-1', 'id': 'persisted-id'},
+            ],
+          }),
+        ),
+        isNull,
+      );
+      expect(startingProgramTemplateFromStored('not-json'), isEmpty);
+    },
+  );
 
   testWidgets('Defaults appears as a settings section', (tester) async {
     final repos = openTestRepositories();

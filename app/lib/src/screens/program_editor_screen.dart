@@ -227,9 +227,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPersistent = persistent;
     });
     try {
-      final preview = await _onlineServiceFor(
-        result.source,
-      ).loadPreview(_repos, result);
+      final preview = await _onlineServiceFor(result.source)
+          .loadPreview(_repos, result);
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
         _previewOnline = preview;
@@ -243,9 +242,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
-        _previewError = AppLocalizations.of(
-          context,
-        ).onlineLoadError(result.source.label);
+        _previewError = AppLocalizations.of(context)
+            .onlineLoadError(result.source.label);
         _previewLoading = false;
       });
     }
@@ -367,9 +365,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    AppLocalizations.of(
-                      context,
-                    ).onlineLoadError(result.source.label),
+                    AppLocalizations.of(context)
+                        .onlineLoadError(result.source.label),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -762,6 +759,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
       }
       if (!mounted) return;
+      List<ProgramSlot> newProgramSlots = const [];
       if (program != null) {
         _titleController.text = program.title;
         _venueController.text = program.venue ?? '';
@@ -779,6 +777,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // Only seeds a still-blank field, never overrides; a settings read
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
+        newProgramSlots = await _loadStartingProgramSlots(data);
       }
       // Guard again: the venue lookup / defaults prefill above are async, so the
       // widget may have been disposed while they were in-flight.
@@ -790,7 +789,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _venueId = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;
         _hideAlternates = program?.hideAlternates ?? false;
-        _slots = program?.slots.toList() ?? const [];
+        _slots = program?.slots.toList() ?? newProgramSlots;
         _loaded = true;
       });
       // Detect an autosaved draft from an interrupted prior session and stage a
@@ -827,6 +826,34 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _bandController,
       kDefaultProgramBandKey,
     );
+  }
+
+  /// Loads the configured semantic template for a manually-created program.
+  ///
+  /// Stale dance references can remain in a restored preference after a dance
+  /// was purged. They are omitted while valid entries retain their order and
+  /// fresh database identity is generated for every slot.
+  Future<List<ProgramSlot>> _loadStartingProgramSlots(
+    CollectionData data,
+  ) async {
+    final stored = await _repos.settings.get(kDefaultStartingProgramKey);
+    final template = startingProgramTemplateFromStored(stored);
+    final slots = <ProgramSlot>[];
+    for (final entry in template) {
+      if (entry.danceId != null &&
+          !data.dancesById.containsKey(entry.danceId)) {
+        continue;
+      }
+      slots.add(
+        ProgramSlot(
+          id: uuidV4(),
+          position: slots.length,
+          danceId: entry.danceId,
+          text: entry.text,
+        ),
+      );
+    }
+    return slots;
   }
 
   Future<void> _prefillControllerFromDefault(
@@ -1625,9 +1652,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       l10n.programsMarkedAllPerformed,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
   }
 
   // --- Persistence ----------------------------------------------------------
@@ -1742,9 +1768,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
     }
   }
 

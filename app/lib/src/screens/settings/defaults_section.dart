@@ -12,6 +12,7 @@ import '../../data/shorthand_mappings_scope.dart';
 import '../../editor/figure_draft.dart';
 import '../../search/collection_query.dart';
 import '../../search/collection_query_labels.dart';
+import '../../search/collection_data.dart';
 import '../../search/facet_labels.dart';
 import '../../search/program_sort.dart';
 import '../../search/program_sort_labels.dart';
@@ -20,6 +21,7 @@ import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/figure_list_editor.dart';
 import '../../widgets/figure_param_editors.dart';
 import '../../widgets/move_autocomplete.dart';
+import '../../widgets/collection_picker.dart';
 import '../../widgets/section_header.dart';
 import 'settings_keys.dart';
 
@@ -103,6 +105,11 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   /// a freshly-added move stay visible before its first override is recorded.
   final List<String> _moveDefaultsShown = [];
   bool _defaultMoveParamOverridesUserSet = false;
+
+  final List<StartingProgramTemplateEntry> _startingProgramTemplate = [];
+  bool _startingProgramTemplateUserSet = false;
+  CollectionData? _collectionData;
+  bool _collectionDataRequested = false;
 
   /// The opt-in "Free-text entry" dance-authoring toggle (issue #419). Defaults
   /// to `false` (off) until the read resolves and on any read failure, so the
@@ -304,6 +311,95 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           if (!mounted) return;
           setState(() => _freeTextEntry = false);
         });
+    repos.settings
+        .get(kDefaultStartingProgramKey)
+        .then((stored) {
+          if (!mounted || _startingProgramTemplateUserSet) return;
+          setState(() {
+            _startingProgramTemplate
+              ..clear()
+              ..addAll(startingProgramTemplateFromStored(stored));
+          });
+        })
+        .catchError((_) {
+          /* diagnostics: silent — keep the empty starting-program template */
+        });
+  }
+
+  Future<void> _persistStartingProgramTemplate() async {
+    _startingProgramTemplateUserSet = true;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultStartingProgramKey,
+      encodeStartingProgramTemplate(_startingProgramTemplate),
+    );
+  }
+
+  Future<CollectionData?> _ensureCollectionDataLoaded(
+    BuildContext context,
+  ) async {
+    if (_collectionData != null) return _collectionData;
+    if (_collectionDataRequested) {
+      while (mounted && _collectionDataRequested && _collectionData == null) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      return _collectionData;
+    }
+    _collectionDataRequested = true;
+    final repos = RepositoriesScope.of(context);
+    try {
+      final data = await CollectionData.load(repos);
+      if (mounted) setState(() => _collectionData = data);
+      return data;
+    } catch (_) {
+      // diagnostics: silent — the template editor remains usable for notes.
+      return null;
+    }
+  }
+
+  Future<void> _addStartingProgramDance() async {
+    final data = await _ensureCollectionDataLoaded(context);
+    if (!mounted || data == null) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) => Column(
+          children: [
+            ListTile(
+              title: Text(
+                AppLocalizations.of(
+                  context,
+                ).settingsDefaultsStartingProgramPickerTitle,
+              ),
+              trailing: IconButton(
+                tooltip: AppLocalizations.of(context).commonClose,
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(sheetContext).pop(),
+              ),
+            ),
+            Expanded(
+              child: CollectionPicker(
+                data: data,
+                dialect: ActiveDialectScope.of(context),
+                enrichment: SearchEnrichment.empty,
+                scrollController: scrollController,
+                onAddDance: (danceId) {
+                  _startingProgramTemplate.add(
+                    StartingProgramTemplateEntry(danceId: danceId),
+                  );
+                  setState(() {});
+                  _persistStartingProgramTemplate();
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _onDefaultProgramCallerChanged(String value) async {
@@ -520,6 +616,41 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           _defaultProgramSort ??
           const SortDefaultSetting.concrete(ProgramSort.title),
       onDefaultProgramSortChanged: _onDefaultProgramSortChanged,
+      startingProgramTemplate: _startingProgramTemplate,
+      onAddStartingProgramDance: _addStartingProgramDance,
+      onAddStartingProgramText: (text) {
+        _startingProgramTemplate.add(StartingProgramTemplateEntry(text: text));
+        setState(() {});
+        _persistStartingProgramTemplate();
+      },
+      onUpdateStartingProgramText: (index, text) {
+        final entry = _startingProgramTemplate[index];
+        setState(() {
+          _startingProgramTemplate[index] = StartingProgramTemplateEntry(
+            danceId: entry.danceId,
+            text: text,
+          );
+        });
+        _persistStartingProgramTemplate();
+      },
+      onRemoveStartingProgramEntry: (index) {
+        setState(() => _startingProgramTemplate.removeAt(index));
+        _persistStartingProgramTemplate();
+      },
+      onReorderStartingProgramEntry: (oldIndex, newIndex) {
+        setState(() {
+          final entry = _startingProgramTemplate.removeAt(oldIndex);
+          _startingProgramTemplate.insert(newIndex, entry);
+        });
+        _persistStartingProgramTemplate();
+      },
+      onAddStartingProgramBreak: () {
+        _startingProgramTemplate.add(
+          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+        );
+        setState(() {});
+        _persistStartingProgramTemplate();
+      },
       defaultDanceForm: _defaultDanceForm ?? DanceForm.contra,
       onDefaultDanceFormChanged: _onDefaultDanceFormChanged,
       defaultDanceFormationShape:
@@ -650,6 +781,13 @@ class _DefaultsView extends StatelessWidget {
     required this.onDefaultCollectionSortChanged,
     required this.defaultProgramSort,
     required this.onDefaultProgramSortChanged,
+    required this.startingProgramTemplate,
+    required this.onAddStartingProgramDance,
+    required this.onAddStartingProgramText,
+    required this.onUpdateStartingProgramText,
+    required this.onRemoveStartingProgramEntry,
+    required this.onReorderStartingProgramEntry,
+    required this.onAddStartingProgramBreak,
     required this.defaultDanceForm,
     required this.onDefaultDanceFormChanged,
     required this.defaultDanceFormationShape,
@@ -693,6 +831,13 @@ class _DefaultsView extends StatelessWidget {
   final SortDefaultSetting<ProgramSort> defaultProgramSort;
   final ValueChanged<SortDefaultSetting<ProgramSort>>
   onDefaultProgramSortChanged;
+  final List<StartingProgramTemplateEntry> startingProgramTemplate;
+  final VoidCallback onAddStartingProgramDance;
+  final ValueChanged<String> onAddStartingProgramText;
+  final void Function(int index, String text) onUpdateStartingProgramText;
+  final ValueChanged<int> onRemoveStartingProgramEntry;
+  final void Function(int oldIndex, int newIndex) onReorderStartingProgramEntry;
+  final VoidCallback onAddStartingProgramBreak;
   final DanceForm defaultDanceForm;
   final ValueChanged<DanceForm> onDefaultDanceFormChanged;
   final FormationShape defaultDanceFormationShape;
@@ -774,44 +919,58 @@ class _DefaultsView extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        SectionHeader(title: l10n.settingsDefaultsProgramHeader),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xxs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: TextField(
-            key: const ValueKey('defaults-program-caller'),
-            controller: programCallerController,
-            onChanged: onDefaultProgramCallerChanged,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsCallerLabel,
-              helperText: l10n.settingsDefaultsPrefilledHelper,
-              border: const OutlineInputBorder(),
+        ExpansionTile(
+          key: const ValueKey('defaults-program-group'),
+          title: Text(l10n.settingsDefaultsProgramHeader),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xxs,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: TextField(
+                key: const ValueKey('defaults-program-caller'),
+                controller: programCallerController,
+                onChanged: onDefaultProgramCallerChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsCallerLabel,
+                  helperText: l10n.settingsDefaultsPrefilledHelper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xxs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: TextField(
-            key: const ValueKey('defaults-program-band'),
-            controller: programBandController,
-            onChanged: onDefaultProgramBandChanged,
-            textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsBandLabel,
-              helperText: l10n.settingsDefaultsPrefilledHelper,
-              border: const OutlineInputBorder(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xxs,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: TextField(
+                key: const ValueKey('defaults-program-band'),
+                controller: programBandController,
+                onChanged: onDefaultProgramBandChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsBandLabel,
+                  helperText: l10n.settingsDefaultsPrefilledHelper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
             ),
-          ),
+            _StartingProgramTemplateEditor(
+              entries: startingProgramTemplate,
+              onAddDance: onAddStartingProgramDance,
+              onAddText: onAddStartingProgramText,
+              onUpdateText: onUpdateStartingProgramText,
+              onAddBreak: onAddStartingProgramBreak,
+              onRemove: onRemoveStartingProgramEntry,
+              onReorder: onReorderStartingProgramEntry,
+            ),
+          ],
         ),
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
         ListTile(
@@ -963,218 +1122,365 @@ class _DefaultsView extends StatelessWidget {
             );
           },
         ),
-        SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
-        ListTile(
-          title: Text(l10n.settingsDefaultsFormTitle),
-          subtitle: Text(l10n.settingsDefaultsFormSubtitle),
-          trailing: DropdownButton<DanceForm>(
-            key: const ValueKey('defaults-dance-form'),
-            value: defaultDanceForm,
-            onChanged: (value) {
-              if (value != null) onDefaultDanceFormChanged(value);
-            },
-            items: [
-              for (final form in DanceForm.values)
-                DropdownMenuItem(
-                  value: form,
-                  child: Text(danceFormLabel(l10n, form)),
-                ),
-            ],
-          ),
-        ),
-        ListTile(
-          title: Text(l10n.settingsDefaultsFormationTitle),
-          subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
-          trailing: DropdownButton<FormationShape>(
-            key: const ValueKey('defaults-dance-formation'),
-            value: defaultDanceFormationShape,
-            onChanged: (value) {
-              if (value != null) onDefaultDanceFormationShapeChanged(value);
-            },
-            items: [
-              for (final shape in FormationShape.values)
-                DropdownMenuItem(
-                  value: shape,
-                  child: Text(formationShapeLabel(l10n, shape)),
-                ),
-            ],
-          ),
-        ),
-        ListTile(
-          title: Text(l10n.settingsDefaultsProgressionTitle),
-          subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
-          trailing: DropdownButton<Progression>(
-            key: const ValueKey('defaults-dance-progression'),
-            value: defaultDanceProgression,
-            onChanged: (value) {
-              if (value != null) onDefaultDanceProgressionChanged(value);
-            },
-            items: [
-              for (final progression in Progression.values)
-                DropdownMenuItem(
-                  value: progression,
-                  child: Text(progressionLabel(l10n, progression)),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.xs,
-          ),
-          child: TextField(
-            key: const ValueKey('defaults-dance-phrase'),
-            controller: dancePhraseController,
-            onChanged: onDefaultDancePhraseChanged,
-            decoration: InputDecoration(
-              labelText: l10n.settingsDefaultsPhraseLabel,
-              helperText: l10n.settingsDefaultsPhraseHelper,
-              border: const OutlineInputBorder(),
+        ExpansionTile(
+          key: const ValueKey('defaults-authoring-group'),
+          title: Text(l10n.settingsDefaultsAuthoringHeader),
+          children: [
+            ListTile(
+              title: Text(l10n.settingsDefaultsFormTitle),
+              subtitle: Text(l10n.settingsDefaultsFormSubtitle),
+              trailing: DropdownButton<DanceForm>(
+                key: const ValueKey('defaults-dance-form'),
+                value: defaultDanceForm,
+                onChanged: (value) {
+                  if (value != null) onDefaultDanceFormChanged(value);
+                },
+                items: [
+                  for (final form in DanceForm.values)
+                    DropdownMenuItem(
+                      value: form,
+                      child: Text(danceFormLabel(l10n, form)),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.xs,
-            AppSpacing.md,
-            AppSpacing.xxs,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.settingsDefaultsStartingFiguresTitle,
-                style: Theme.of(context).textTheme.titleSmall,
+            ListTile(
+              title: Text(l10n.settingsDefaultsFormationTitle),
+              subtitle: Text(l10n.settingsDefaultsFormationSubtitle),
+              trailing: DropdownButton<FormationShape>(
+                key: const ValueKey('defaults-dance-formation'),
+                value: defaultDanceFormationShape,
+                onChanged: (value) {
+                  if (value != null) onDefaultDanceFormationShapeChanged(value);
+                },
+                items: [
+                  for (final shape in FormationShape.values)
+                    DropdownMenuItem(
+                      value: shape,
+                      child: Text(formationShapeLabel(l10n, shape)),
+                    ),
+                ],
               ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                l10n.settingsDefaultsStartingFiguresSubtitle,
-                style: Theme.of(context).textTheme.bodySmall,
+            ),
+            ListTile(
+              title: Text(l10n.settingsDefaultsProgressionTitle),
+              subtitle: Text(l10n.settingsDefaultsProgressionSubtitle),
+              trailing: DropdownButton<Progression>(
+                key: const ValueKey('defaults-dance-progression'),
+                value: defaultDanceProgression,
+                onChanged: (value) {
+                  if (value != null) onDefaultDanceProgressionChanged(value);
+                },
+                items: [
+                  for (final progression in Progression.values)
+                    DropdownMenuItem(
+                      value: progression,
+                      child: Text(progressionLabel(l10n, progression)),
+                    ),
+                ],
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: FigureListEditor(
-            drafts: danceFigureTemplateDrafts,
-            taxonomy: contraTaxonomy,
-            phraseStructure: PhraseStructure.standard,
-            dialect: ActiveDialectScope.of(context),
-            freeTextEntry: freeTextEntry,
-            shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
-            onChanged: onDanceFigureTemplateChanged,
-            onAdd: onDanceFigureTemplateAdd,
-            onAddFreeText: onDanceFigureTemplateAddFreeText,
-            onDelete: onDanceFigureTemplateDelete,
-            onDuplicate: onDanceFigureTemplateDuplicate,
-            onReorder: onDanceFigureTemplateReorder,
-            onAddMeanwhile: onDanceFigureTemplateAddMeanwhile,
-            onGroupWithNext: onDanceFigureTemplateGroup,
-            onCollapseMeanwhileGroup: onDanceFigureTemplateCollapse,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.xxs,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.settingsDefaultsMeanwhileTitle,
-                style: Theme.of(context).textTheme.titleSmall,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.xs,
               ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                l10n.settingsDefaultsMeanwhileSubtitle,
-                style: Theme.of(context).textTheme.bodySmall,
+              child: TextField(
+                key: const ValueKey('defaults-dance-phrase'),
+                controller: dancePhraseController,
+                onChanged: onDefaultDancePhraseChanged,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsPhraseLabel,
+                  helperText: l10n.settingsDefaultsPhraseHelper,
+                  border: const OutlineInputBorder(),
+                ),
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: FigureListEditor(
-            drafts: meanwhileSideDrafts,
-            taxonomy: contraTaxonomy,
-            phraseStructure: PhraseStructure.standard,
-            dialect: ActiveDialectScope.of(context),
-            freeTextEntry: freeTextEntry,
-            shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
-            onChanged: onMeanwhileSideChanged,
-            onAdd: onMeanwhileSideAdd,
-            onAddFreeText: onMeanwhileSideAddFreeText,
-            onDelete: onMeanwhileSideDelete,
-            onDuplicate: onMeanwhileSideDuplicate,
-            onReorder: onMeanwhileSideReorder,
-            allowAdding: meanwhileSideDrafts.length < kMaxMeanwhileSides,
-            allowDuplicating: meanwhileSideDrafts.length < kMaxMeanwhileSides,
-            showPhraseStructure: false,
-            keyPrefix: 'meanwhile-side',
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.md,
-            AppSpacing.xxs,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.settingsDefaultsMoveDefaultsTitle,
-                style: Theme.of(context).textTheme.titleSmall,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xs,
+                AppSpacing.md,
+                AppSpacing.xxs,
               ),
-              const SizedBox(height: AppSpacing.xxs),
-              Text(
-                l10n.settingsDefaultsMoveDefaultsSubtitle,
-                style: Theme.of(context).textTheme.bodySmall,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsStartingFiguresTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsStartingFiguresSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: _MoveDefaultsEditor(
-            overrides: moveParamOverrides,
-            shownMoveIds: shownMoveDefaults,
-            onAddMoveDefault: onAddMoveDefault,
-            onRemoveMoveDefault: onRemoveMoveDefault,
-            onMoveParamOverrideChanged: onMoveParamOverrideChanged,
-          ),
-        ),
-        Builder(
-          builder: (context) {
-            final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
-              context,
-            );
-            return SwitchListTile(
-              key: const ValueKey('defaults-aggressive-beats-update'),
-              value: aggressiveBeatsUpdate,
-              onChanged: (value) async {
-                AggressiveBeatsUpdateScope.notifierOf(context).value = value;
-                final repos = RepositoriesScope.of(context);
-                await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: FigureListEditor(
+                drafts: danceFigureTemplateDrafts,
+                taxonomy: contraTaxonomy,
+                phraseStructure: PhraseStructure.standard,
+                dialect: ActiveDialectScope.of(context),
+                freeTextEntry: freeTextEntry,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
+                onChanged: onDanceFigureTemplateChanged,
+                onAdd: onDanceFigureTemplateAdd,
+                onAddFreeText: onDanceFigureTemplateAddFreeText,
+                onDelete: onDanceFigureTemplateDelete,
+                onDuplicate: onDanceFigureTemplateDuplicate,
+                onReorder: onDanceFigureTemplateReorder,
+                onAddMeanwhile: onDanceFigureTemplateAddMeanwhile,
+                onGroupWithNext: onDanceFigureTemplateGroup,
+                onCollapseMeanwhileGroup: onDanceFigureTemplateCollapse,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsMeanwhileTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsMeanwhileSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: FigureListEditor(
+                drafts: meanwhileSideDrafts,
+                taxonomy: contraTaxonomy,
+                phraseStructure: PhraseStructure.standard,
+                dialect: ActiveDialectScope.of(context),
+                freeTextEntry: freeTextEntry,
+                shorthandMappings: ShorthandMappingsScope.maybeOf(
+                  context,
+                )?.store,
+                onChanged: onMeanwhileSideChanged,
+                onAdd: onMeanwhileSideAdd,
+                onAddFreeText: onMeanwhileSideAddFreeText,
+                onDelete: onMeanwhileSideDelete,
+                onDuplicate: onMeanwhileSideDuplicate,
+                onReorder: onMeanwhileSideReorder,
+                allowAdding: meanwhileSideDrafts.length < kMaxMeanwhileSides,
+                allowDuplicating:
+                    meanwhileSideDrafts.length < kMaxMeanwhileSides,
+                showPhraseStructure: false,
+                keyPrefix: 'meanwhile-side',
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xxs,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    l10n.settingsDefaultsMoveDefaultsTitle,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    l10n.settingsDefaultsMoveDefaultsSubtitle,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: _MoveDefaultsEditor(
+                overrides: moveParamOverrides,
+                shownMoveIds: shownMoveDefaults,
+                onAddMoveDefault: onAddMoveDefault,
+                onRemoveMoveDefault: onRemoveMoveDefault,
+                onMoveParamOverrideChanged: onMoveParamOverrideChanged,
+              ),
+            ),
+            Builder(
+              builder: (context) {
+                final aggressiveBeatsUpdate = AggressiveBeatsUpdateScope.of(
+                  context,
+                );
+                return SwitchListTile(
+                  key: const ValueKey('defaults-aggressive-beats-update'),
+                  value: aggressiveBeatsUpdate,
+                  onChanged: (value) async {
+                    AggressiveBeatsUpdateScope.notifierOf(context).value =
+                        value;
+                    final repos = RepositoriesScope.of(context);
+                    await repos.settings.set(kAggressiveBeatsUpdateKey, value);
+                  },
+                  title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
+                  subtitle: Text(
+                    l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
+                  ),
+                  isThreeLine: true,
+                );
               },
-              title: Text(l10n.settingsDefaultsAggressiveBeatsUpdateTitle),
-              subtitle: Text(
-                l10n.settingsDefaultsAggressiveBeatsUpdateSubtitle,
-              ),
-              isThreeLine: true,
-            );
-          },
+            ),
+          ],
         ),
       ],
+    );
+  }
+}
+
+class _StartingProgramTemplateEditor extends StatefulWidget {
+  const _StartingProgramTemplateEditor({
+    required this.entries,
+    required this.onAddDance,
+    required this.onAddText,
+    required this.onUpdateText,
+    required this.onAddBreak,
+    required this.onRemove,
+    required this.onReorder,
+  });
+
+  final List<StartingProgramTemplateEntry> entries;
+  final VoidCallback onAddDance;
+  final ValueChanged<String> onAddText;
+  final void Function(int index, String text) onUpdateText;
+  final VoidCallback onAddBreak;
+  final ValueChanged<int> onRemove;
+  final void Function(int oldIndex, int newIndex) onReorder;
+
+  @override
+  State<_StartingProgramTemplateEditor> createState() =>
+      _StartingProgramTemplateEditorState();
+}
+
+class _StartingProgramTemplateEditorState
+    extends State<_StartingProgramTemplateEditor> {
+  final _textController = TextEditingController();
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.xs,
+        AppSpacing.md,
+        AppSpacing.xs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.settingsDefaultsStartingProgramTitle),
+          const SizedBox(height: AppSpacing.xxs),
+          Text(
+            l10n.settingsDefaultsStartingProgramSubtitle,
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          for (var index = 0; index < widget.entries.length; index++)
+            Builder(
+              builder: (context) {
+                final entry = widget.entries[index];
+                return ListTile(
+                  key: ValueKey('starting-program-entry-$index'),
+                  dense: true,
+                  title: Text(entry.danceId ?? entry.text ?? ''),
+                  subtitle: entry.danceId == null
+                      ? null
+                      : TextFormField(
+                          key: ValueKey('starting-program-note-$index'),
+                          initialValue: entry.text ?? '',
+                          decoration: InputDecoration(
+                            labelText:
+                                l10n.settingsDefaultsStartingProgramNoteLabel,
+                          ),
+                          onChanged: (value) =>
+                              widget.onUpdateText(index, value.trim()),
+                        ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: l10n.settingsDefaultsStartingProgramMoveUp,
+                        icon: const Icon(Icons.arrow_upward),
+                        onPressed: index == 0
+                            ? null
+                            : () => widget.onReorder(index, index - 1),
+                      ),
+                      IconButton(
+                        tooltip: l10n.settingsDefaultsStartingProgramMoveDown,
+                        icon: const Icon(Icons.arrow_downward),
+                        onPressed: index == widget.entries.length - 1
+                            ? null
+                            : () => widget.onReorder(index, index + 1),
+                      ),
+                      IconButton(
+                        tooltip: l10n.commonDelete,
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () => widget.onRemove(index),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: widget.onAddDance,
+                icon: const Icon(Icons.library_add),
+                label: Text(l10n.settingsDefaultsStartingProgramAddDance),
+              ),
+              TextButton.icon(
+                onPressed: () {
+                  final text = _textController.text.trim();
+                  if (text.isEmpty) return;
+                  widget.onAddText(text);
+                  _textController.clear();
+                },
+                icon: const Icon(Icons.notes),
+                label: Text(l10n.settingsDefaultsStartingProgramAddText),
+              ),
+              IconButton(
+                tooltip: l10n.settingsDefaultsStartingProgramAddBreak,
+                icon: const Icon(Icons.pause),
+                onPressed: widget.onAddBreak,
+              ),
+            ],
+          ),
+          TextField(
+            controller: _textController,
+            decoration: InputDecoration(
+              labelText: l10n.settingsDefaultsStartingProgramTextLabel,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

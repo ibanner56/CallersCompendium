@@ -1094,6 +1094,66 @@ abstract class AppLocalizations {
   /// **'Prefilled into new programs; editable per program.'**
   String get settingsDefaultsPrefilledHelper;
 
+  /// Title for the reusable program template in Program defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting program'**
+  String get settingsDefaultsStartingProgramTitle;
+
+  /// Explanation of the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance and note entries added to manually created programs.'**
+  String get settingsDefaultsStartingProgramSubtitle;
+
+  /// Title for the dance picker used by the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance'**
+  String get settingsDefaultsStartingProgramPickerTitle;
+
+  /// Button to add a dance to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get settingsDefaultsStartingProgramAddDance;
+
+  /// Button to add a text note to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get settingsDefaultsStartingProgramAddText;
+
+  /// Tooltip for adding a break to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add break'**
+  String get settingsDefaultsStartingProgramAddBreak;
+
+  /// Input label for a new text note in the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Note text'**
+  String get settingsDefaultsStartingProgramTextLabel;
+
+  /// Input label for an optional note attached to a dance entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller note (optional)'**
+  String get settingsDefaultsStartingProgramNoteLabel;
+
+  /// Tooltip for moving a starting-program entry up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get settingsDefaultsStartingProgramMoveUp;
+
+  /// Tooltip for moving a starting-program entry down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get settingsDefaultsStartingProgramMoveDown;
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:

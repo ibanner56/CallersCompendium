@@ -778,6 +778,46 @@
   "@settingsDefaultsPrefilledHelper": {
     "description": "Helper text under the default caller and band fields."
   },
+  "settingsDefaultsStartingProgramTitle": "Starting program",
+  "@settingsDefaultsStartingProgramTitle": {
+    "description": "Title for the reusable program template in Program defaults."
+  },
+  "settingsDefaultsStartingProgramSubtitle": "Dance and note entries added to manually created programs.",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "description": "Explanation of the starting program template."
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "Add a dance",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "description": "Title for the dance picker used by the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddDance": "Dance",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "description": "Button to add a dance to the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddText": "Note",
+  "@settingsDefaultsStartingProgramAddText": {
+    "description": "Button to add a text note to the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddBreak": "Add break",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "description": "Tooltip for adding a break to the starting program template."
+  },
+  "settingsDefaultsStartingProgramTextLabel": "Note text",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "description": "Input label for a new text note in the starting program template."
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "Caller note (optional)",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "description": "Input label for an optional note attached to a dance entry."
+  },
+  "settingsDefaultsStartingProgramMoveUp": "Move up",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "description": "Tooltip for moving a starting-program entry up."
+  },
+  "settingsDefaultsStartingProgramMoveDown": "Move down",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "description": "Tooltip for moving a starting-program entry down."
+  },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
     "description": "Text-field label for the default band prefilled into new programs."

@@ -23,10 +23,12 @@ import 'display_defaults.dart'
         kDefaultProgramBandKey,
         kDefaultProgramCallerKey,
         kDefaultProgramSortKey,
+        kDefaultStartingProgramKey,
         kLastUsedCollectionSortDirectionKey,
         kLastUsedCollectionSortKey,
         kLastUsedProgramSortDirectionKey,
-        kLastUsedProgramSortKey;
+        kLastUsedProgramSortKey,
+        tryDecodeStartingProgramTemplate;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
@@ -119,6 +121,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   ])
     key: _isString,
 
+  // The starting-program template is a JSON string with an invariant-checked
+  // semantic codec, not merely an arbitrary string.
+  kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
   // non-finite (NaN/Infinity) value is rejected outright rather than flowing
   // into a size calculation. It mirrors the live reader's contract exactly
@@ -150,6 +156,8 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
 
 bool _isBool(Object? v) => v is bool;
 bool _isString(Object? v) => v is String;
+bool _isValidStartingProgramTemplate(Object? v) =>
+    tryDecodeStartingProgramTemplate(v) != null;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
 bool _isValidPerformScale(Object? v) =>
     v is num && v.isFinite && v >= kPerformMinScale;

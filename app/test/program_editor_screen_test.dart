@@ -2054,6 +2054,31 @@ void main() {
     );
   });
 
+  testWidgets(
+    'starting program template seeds valid entries with fresh slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(
+            danceId: 'd1',
+            text: 'Guest caller',
+          ),
+          const StartingProgramTemplateEntry(danceId: 'missing'),
+          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+        ]),
+      );
+
+      await _pump(tester, repos);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsOneWidget);
+    },
+  );
+
   // Pins the two feedback channels #796 must not disturb. The picker's new
   // row-level confirmation exists because the modal *sheet* covers the
   // SnackBar; outside the sheet — the two-pane inline picker, which

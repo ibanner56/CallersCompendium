@@ -161,6 +161,13 @@ Both do the same job, so you are never forced to drag.
 
 ### Event details
 
+When you choose **New** from the Programs list, the editor starts with the
+configured **Starting program** template from Settings. It creates fresh slots
+and keeps the template's order and notes; missing dances are omitted. The
+template does not affect imported programs, duplicated programs, an existing
+program being edited, or the direct “create a new program with this dance”
+action.
+
 A program carries the details of its event:
 
 - **date**, **venue**, and **notes**; and
