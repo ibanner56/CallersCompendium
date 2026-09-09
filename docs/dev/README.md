@@ -23,6 +23,7 @@ rendering.
 | How does search work? | [`docs/design/search.md`](../design/search.md) |
 | What may a field do — can it be exported? | the registry: `packages/compendium_core/lib/src/privacy/field_registry.dart` |
 | How do I cut a release? | [`releasing.md`](releasing.md) (steps), [agents/releasing.md](agents/releasing.md) (hazards), [`release-checklist.md`](release-checklist.md) |
+| How do I record a pending release note? | [`changelog.d/README.md`](../../changelog.d/README.md) — add one JSON fragment, not a shared CHANGELOG edit |
 | How does localization work? | [`localization.md`](localization.md) |
 | What did users see change? | [`app/CHANGELOG.md`](../../app/CHANGELOG.md) |
 | What do users read? | [`docs/user/`](../user/) — mirrored into the app, see below |
@@ -58,6 +59,12 @@ hand-edit one; a gate will fail, and the edit is lost at the next regeneration.
 marker of its own, because the bundle is rendered verbatim in the app and a
 comment line would be user-visible. Edit `docs/user/`, then run the tool with
 `--write`.
+
+`app/CHANGELOG.md` and `packages/compendium_core/CHANGELOG.md` are
+release-managed historical records. Their pending source is
+[`changelog.d/`](../../changelog.d/); the release compiler preserves prior
+history while consuming validated JSON fragments, so these are not fully
+reproducible generated files.
 
 ## Where the code lives
 

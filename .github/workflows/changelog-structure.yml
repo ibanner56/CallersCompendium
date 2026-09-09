@@ -1,7 +1,7 @@
-# Structural gate for the two hand-maintained CHANGELOGs.
+# Structural gate for release-managed CHANGELOG history and pending fragments.
 #
-# app/CHANGELOG.md and packages/compendium_core/CHANGELOG.md are written by
-# hand and drained at release time exactly as written. Only the app CHANGELOG
+# app/CHANGELOG.md and packages/compendium_core/CHANGELOG.md are compiled at
+# release time from changelog.d/*.json. Only the app CHANGELOG
 # renders into published release notes; the core CHANGELOG is the core package's
 # version record. Two structural mistakes render as valid Markdown and are
 # therefore invisible to a preview and to every other gate: a category repeated
@@ -19,7 +19,7 @@
 # It is intentionally cheap (plain python3, no Flutter setup) and is not marked
 # a required status, so it never runs on unrelated PRs and never leaves a
 # required check pending.
-name: Changelog structure
+name: Changelog validation
 
 on:
   push:
@@ -27,6 +27,9 @@ on:
     paths:
       - 'app/CHANGELOG.md'
       - 'packages/compendium_core/CHANGELOG.md'
+      - 'changelog.d/**'
+      - 'tools/release/compile_changelog_fragments.py'
+      - 'tools/release/test_compile_changelog_fragments.py'
       - 'tools/ci/check_changelog_structure.py'
       - 'tools/ci/test_check_changelog_structure.py'
       - '.github/workflows/changelog-structure.yml'
@@ -34,6 +37,9 @@ on:
     paths:
       - 'app/CHANGELOG.md'
       - 'packages/compendium_core/CHANGELOG.md'
+      - 'changelog.d/**'
+      - 'tools/release/compile_changelog_fragments.py'
+      - 'tools/release/test_compile_changelog_fragments.py'
       - 'tools/ci/check_changelog_structure.py'
       - 'tools/ci/test_check_changelog_structure.py'
       - '.github/workflows/changelog-structure.yml'
@@ -44,14 +50,17 @@ permissions:
 
 jobs:
   changelog-structure:
-    name: CHANGELOG structure
+    name: CHANGELOG validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The gate's own suite also runs in _checks.yml with the other tool
-      # suites; repeated here because ci.yml skips on a Markdown-only PR, which
-      # is the only kind of PR this workflow is guaranteed to see.
+      # This workflow is the focused validation gate for changelog tooling and
+      # fragment-only PRs, which ci.yml may otherwise skip.
       - name: Test the changelog structure gate
         run: python3 tools/ci/test_check_changelog_structure.py
+      - name: Test the changelog fragment compiler
+        run: python3 tools/release/test_compile_changelog_fragments.py
+      - name: Validate pending changelog fragments
+        run: python3 tools/release/compile_changelog_fragments.py --check
       - name: Guard CHANGELOG structure (version order, no repeated category)
         run: python3 tools/ci/check_changelog_structure.py

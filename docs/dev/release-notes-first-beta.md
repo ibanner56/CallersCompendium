@@ -3,10 +3,10 @@
 > _Repo integration: our release pipeline builds the draft GitHub Release body
 > from the `## [x.y.z]` section of [`app/CHANGELOG.md`](../../app/CHANGELOG.md)
 > (see [releasing.md → Cutting a release](releasing.md#cutting-a-release)). For
-> the **first** beta, put these introduction-style notes into the shared
-> `## [X.Y.Z]` section **before** tagging. The release gate rejects a missing
-> section before it creates a draft; correct the CHANGELOG and retag instead of
-> hand-editing a draft. A **Beta / pre-release** banner is prepended
+> the **first** beta, put these introduction-style notes in pending fragments,
+> then compile the shared `## [X.Y.Z]` section **before** tagging. The release
+> gate rejects a missing section before it creates a draft; correct the compiled
+> history and retag instead of hand-editing a draft. A **Beta / pre-release** banner is prepended
 > automatically by `gen_release_notes.py` — don't add your own._
 
 The first beta has no prior tag to diff against, so notes are written as an

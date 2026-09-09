@@ -65,6 +65,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as temp:
         repo = Path(temp)
         subprocess.run(["git", "init", "-q", "-b", "main"], cwd=repo, check=True)
+        (repo / "changelog.d").mkdir()
         subprocess.run(["git", "config", "user.email", "test@example.invalid"],
                        cwd=repo, check=True)
         subprocess.run(["git", "config", "user.name", "Test"], cwd=repo,
@@ -109,6 +110,15 @@ def main() -> int:
                        "v0.1.0-beta", cwd=repo)
         check("promoted beta with current migration endpoint passes",
               promoted.returncode == 0, promoted.stderr)
+
+        write(repo, Path("changelog.d/pending.json"), "{}")
+        pending = run("--version", "0.1.0-beta", "--previous-ref",
+                      "v0.1.0-beta", cwd=repo)
+        check("pending fragments reject a tag", pending.returncode == 1,
+              pending.stderr)
+        check("pending fragment is named", "pending.json" in pending.stderr,
+              pending.stderr)
+        (repo / "changelog.d/pending.json").unlink()
 
         write(repo, DATABASE, database(20))
         write(repo, Path("app/CHANGELOG.md"), changelog(

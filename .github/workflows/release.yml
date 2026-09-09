@@ -186,6 +186,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          python3 tools/release/compile_changelog_fragments.py --check
           python3 tools/release/gen_release_notes.py --check \
             --version "$VERSION" \
             --tag "$TAG" \

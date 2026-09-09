@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject release tags whose CHANGELOG entries have not been promoted."""
+"""Reject release tags whose fragments are not compiled into CHANGELOG history."""
 
 from __future__ import annotations
 
@@ -8,6 +8,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "release"))
+
+from compile_changelog_fragments import FragmentError, fragment_paths
 
 SCHEMA_CONSTANT = "kCompendiumSchemaVersion"
 TAXONOMY_CONSTANT = "contraTaxonomyVersion"
@@ -108,12 +112,13 @@ def validate(
     *, version: str, changelog_text: str, schema_source: str, previous_ref: str | None,
     database: Path, taxonomy: Path | None = None,
 ) -> list[str]:
-    """Return all promotion/freshness failures for a tagged release."""
+    """Return all compilation/freshness failures for a tagged release."""
     errors: list[str] = []
     core = _core_version(version)
     if _unreleased_has_items(changelog_text):
         errors.append(
-            "## [Unreleased] contains list items; promote them before tagging."
+            "## [Unreleased] contains list items; remove the direct edit and use "
+            "a changelog fragment before compilation."
         )
 
     heading_count = _core_heading_count(changelog_text, core)
@@ -125,8 +130,8 @@ def validate(
     if heading_count > 1:
         errors.append(
             f"expected exactly one ## [{core}] heading, found {heading_count}. "
-            "The bare beta and its stable release share one section: merge "
-            "promoted items into the existing one rather than adding another. "
+            "The bare beta and its stable release share one section: compile "
+            "new items into the existing one rather than adding another. "
             "Release notes render from the first section, so the later "
             "duplicate is silently orphaned."
         )
@@ -135,6 +140,7 @@ def validate(
     if current_schema is None:
         errors.append(f"could not read {SCHEMA_CONSTANT} from {database}.")
         return errors
+
     if previous_ref is None:
         return errors
 
@@ -161,6 +167,16 @@ def validate(
         )
     )
     return errors
+
+
+def _pending_fragments(directory: Path) -> list[str]:
+    fragments = fragment_paths(directory)
+    if not fragments:
+        return []
+    return [
+        "pending changelog fragments remain: "
+        + ", ".join(path.name for path in fragments)
+    ]
 
 
 def _taxonomy_errors(
@@ -202,6 +218,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", required=True)
     parser.add_argument("--changelog", type=Path, default=Path("app/CHANGELOG.md"))
+    parser.add_argument("--fragments", type=Path, default=Path("changelog.d"))
     parser.add_argument(
         "--database",
         type=Path,
@@ -229,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
             database=args.database,
             taxonomy=args.taxonomy,
         )
+        errors.extend(_pending_fragments(args.fragments))
     except (OSError, ValueError) as error:
         print(f"::error::{error}", file=sys.stderr)
         return 2
@@ -237,7 +255,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"::error::{error}", file=sys.stderr)
         return 1
     print(
-        "OK: CHANGELOG promotion, heading count, and schema/taxonomy notes "
+        "OK: CHANGELOG compilation, heading count, and schema/taxonomy notes "
         "are current."
     )
     return 0

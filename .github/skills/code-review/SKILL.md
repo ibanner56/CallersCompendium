@@ -91,20 +91,20 @@ Documentation drift is this repo's most persistent defect class.
   `<!-- generated-by: ... -->` marker on line 1 (e.g.
   `docs/dev/data-classification.md`). The fix is to change the source and
   regenerate.
-- **Both CHANGELOGs are load-bearing, and release prep will not catch a missing
-  entry.** Release prep drains `## [Unreleased]` *as written* — it does not diff
-  the tree — so a bullet omitted at review time is omitted from the record
-  permanently. This is not hypothetical: `packages/compendium_core` recorded
+- **Changelog fragments are load-bearing, and release prep will not catch a
+  missing entry.** Release prep compiles `changelog.d/*.json` — it does not diff
+  the tree — so a record omitted at review time is omitted permanently. This is
+  not hypothetical: `packages/compendium_core` recorded
   almost nothing across `v0.1.0-beta.1`–`.9`, and 268 core commits had to be
   reconstructed from git history long after the fact. Flag a diff that changes
-  behaviour without a matching `## [Unreleased]` bullet:
-  - `app/CHANGELOG.md` — anything user-visible.
-  - `packages/compendium_core/CHANGELOG.md` — any behavioural change under
-    `packages/compendium_core/lib/**`. That section is also the sole trigger for
-    bumping the core package version at release time, so a missing entry
+  behaviour without a matching fragment:
+  - `app` — anything user-visible.
+  - `core` — any behavioural change under
+    `packages/compendium_core/lib/**`. Core fragments are the sole trigger for
+    considering a core package bump at release time, so a missing entry
     silently suppresses the bump as well as the note.
   - **A core entry does not substitute for an app entry.** If a core change has
-    a user-visible outcome in the app, require an entry in **both** CHANGELOGs:
+    a user-visible outcome in the app, require an entry in         both audience objects and `user_visible: true`:
     the core entry records the core package version, while the app entry is what
     `tools/release/gen_release_notes.py` publishes. Flag a PR that has only the
     core entry for that outcome.
@@ -170,7 +170,7 @@ mechanical; a diff that violates one is a hard fail, not an opinion:
 - **schema-gate / version-history** — a schema or taxonomy bump must ship its
   required entries and never ride a PATCH release; the version ledger must gain
   the matching entry.
-- **changelog-gate** — the `## [Unreleased]` section must be promoted at release.
+- **changelog-gate** — pending fragments must be compiled and consumed at release.
 - **l10n / user-docs** — ARB parity/coverage; `docs/user` is the single source of
   the in-app bundle.
 - **core-flutter-free** — `compendium_core` must not pull in Flutter.

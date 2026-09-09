@@ -1,3 +1,4 @@
+<!-- release-managed-by: tools/release/compile_changelog_fragments.py -->
 # Changelog
 
 All notable changes to the Compendium Core are documented in this file.
@@ -20,10 +21,7 @@ core version. They are left that way deliberately — do not renumber them.
 
 ## [Unreleased]
 
-### Changed
-
-- Separate recognized formation shapes from normalized source detail across
-  the CallersBox and ContraDB adapters; retain unclassified source text.
+_Nothing yet._
 
 ## [0.4.0] - 2026-09-03
 

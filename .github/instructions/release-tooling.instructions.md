@@ -7,9 +7,12 @@ applyTo:
   - ".github/workflows/pages-sig-gate.yml"
   - ".github/ISSUE_TEMPLATE/**"
   - "app/CHANGELOG.md"
+  - "changelog.d/**"
   - "packages/compendium_core/pubspec.yaml"
   - "packages/compendium_core/CHANGELOG.md"
   - "tools/ci/check_changelog_structure.py"
+  - "tools/ci/check_changelog_promoted.py"
+  - "tools/release/compile_changelog_fragments.py"
   - "docs/dev/releasing.md"
   - "docs/dev/release-checklist.md"
 ---
@@ -23,31 +26,29 @@ prevent on its own are in
 
 ## Non-negotiables
 
-- **Changelog promotion is manual and is the highest-risk moment.** Contributors
-  write under `## [Unreleased]`; nothing promotes it. The notes generator
-  resolves the section by SemVer *core*, so a section left over from the previous
-  release is found, is valid, and renders happily under the new version's banner.
-  `tools/ci/check_changelog_promoted.py` gates the common case; reading the
-  rendered draft is the backstop.
-- **A passing gate is not evidence the notes are current.** The gate tests that a
-  section *exists*, not that it is *fresh*, and no exit code distinguishes those.
+- **Changelog fragments are the pending source of truth.** Contributors add one
+  unique JSON file under `changelog.d/`; only release preparation runs
+  `tools/release/compile_changelog_fragments.py --write` to update the committed
+  histories and consume those files. Do not hand-edit the compiled changelogs.
+- **Review the compiler diff and rendered notes.** The compiler prevents shared
+  edit conflicts and makes formatting deterministic, but it cannot determine
+  whether the prose accurately describes the release.
 - **Re-derive schema and taxonomy versions from source at tag time.** They move
   while a release is being prepared. The Data/Migrations section is where users
   learn what is about to happen to their data.
 - **Derive the next tag from the existing tags.** Do not assume the increment.
 - **`packages/compendium_core` has its own version, and it is not the tag's.**
-  Bump it if and only if `packages/compendium_core/CHANGELOG.md` has entries
-  under `## [Unreleased]` — that section as written is the trigger, not a diff
-  and not a judgement call — and get the new number by **asking the maintainer**,
+  Bump it if and only if pending fragments contain `core` entries, and get the
+  new number by **asking the maintainer**,
   showing them the current one. Nothing resolves that `version:` at build time
   (the app takes the core by workspace `path:`), so no gate and no build failure
   will tell you it is wrong; it is a record, and a bump invented to look tidy is
   a false one. Unlike the app's shared `## [X.Y.Z]` section, each core bump gets
   its own new heading.
-- **A core CHANGELOG entry never replaces an app one.** The release-notes
+- **A core fragment entry never replaces an app one.** The release-notes
   generator reads `app/CHANGELOG.md` only. If a `packages/compendium_core`
   change has a user-visible effect in the app, record that outcome under the
-  app's `## [Unreleased]` as well as recording the core change under the core's.
+  same fragment's `app` record as well as recording the core change under `core`.
   The two entries have different audiences: the core entry is the package
   version record; the app entry is the published user-facing release note.
 - **Issue-form build hints are static.** GitHub cannot substitute the latest

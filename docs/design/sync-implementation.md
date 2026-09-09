@@ -1553,8 +1553,9 @@ theoretical one.
   it thereafter and it is W17's gate that keeps asserting it.
 - **Any unit adding a `shareable` field while the server is unreleased** trips
   S3 and produces `422` for real users.
-- **`app/CHANGELOG.md`.** Two individually mergeable PRs editing the same
-  `## [Unreleased]` section conflict. Expect it and sequence the entries.
+- **Release-note fragments.** Independently mergeable PRs add distinct
+  `changelog.d/<id>.json` files; compilation is release-only, eliminating the
+  shared `## [Unreleased]` edit hotspot.
 
 **None of these is detectable by CI today**, and S3 is the one worth building a
 detector for: a PR adding a `shareable` field or a new record kind is
