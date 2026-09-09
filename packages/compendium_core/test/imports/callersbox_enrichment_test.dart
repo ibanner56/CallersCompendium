@@ -211,6 +211,18 @@ void main() {
       expect(f.params['text'], 'Circulate: role2s cross, unknown loop right');
     });
 
+    test(
+      'circulate with an unknown looping subject and no inverse stays custom',
+      () {
+        final f = _parse('Circulate: partners cross, unknown loop right');
+        expect(f!.isCustom, isTrue);
+        expect(
+          f.params['text'],
+          'Circulate: partners cross, unknown loop right',
+        );
+      },
+    );
+
     test('circulate without the loop action stays custom', () {
       final f = _parse('Circulate: women cross, men right');
       expect(f!.isCustom, isTrue);

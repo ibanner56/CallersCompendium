@@ -2567,7 +2567,9 @@ FigureMatch? _circulate(String scrubbed) {
 
   final who = resolveDancerSetPhrase(cross.group(1)!);
   final loopWho = resolveDancerSetPhrase(loop.group(1)!);
-  if (who == null || loopWho != invertPairDancerSet(who)) return null;
+  if (who == null || loopWho == null || loopWho != invertPairDancerSet(who)) {
+    return null;
+  }
 
   final hand = loop.group(2)?.toLowerCase();
   return FigureMatch(
