@@ -379,20 +379,12 @@ class ContraDbHtmlAdapter implements SourceAdapter {
   Formation _parseFormation(dom.Document document, List<ImportIssue> issues) {
     final raw = document.querySelector('p.dance-show-formation')?.text.trim();
     final stripped = _stripLeadingLabel(raw, 'formation');
-    final detailText = stripped == null
-        ? null
-        : scrubFigureText(
-            sanitizeImportedText(stripped, allowLineBreaks: false).trim(),
-          );
+    final detailText = stripped == null ? null : scrubFigureText(stripped);
     final preambleRaw = document
         .querySelector('div.dance-show-preamble')
         ?.text
         .trim();
-    final preamble = preambleRaw == null
-        ? null
-        : scrubFigureText(
-            sanitizeImportedText(preambleRaw, allowLineBreaks: false).trim(),
-          );
+    final preamble = preambleRaw == null ? null : scrubFigureText(preambleRaw);
     if (detailText == null || detailText.isEmpty) {
       return Formation(
         FormationShape.dupleImproper,

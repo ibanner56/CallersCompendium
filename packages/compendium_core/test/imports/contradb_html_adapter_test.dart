@@ -185,13 +185,13 @@ void main() {
           '<h1 class="dance-show-title">Preamble</h1>'
           '<p class="dance-show-formation">formation: improper</p>'
           '<div class="dance-show-preamble"><p>Careful of the '
-          'ladies\u200B gypsy.</p></div>',
+          'ladies\u200B gypsy.\nLast time.</p></div>',
         ),
       );
       expect(draft.dance.formation.shape, FormationShape.dupleImproper);
       expect(
         draft.dance.formation.detail,
-        'Careful of the role2s shoulder round.',
+        'Careful of the role2s shoulder round. Last time.',
       );
       expect(draft.dance.callingNotes, isNot(contains('Careful of the')));
     });

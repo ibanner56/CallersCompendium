@@ -446,12 +446,12 @@ void main() {
             jsonEncode(
               _dance(
                 formationBase: 'Duple Minor - Improper',
-                formationDetail: 'chestnut',
+                formationDetail: 'chestnut\nvariant',
               ),
             ),
           );
           expect(draft.dance.formation.shape, FormationShape.dupleImproper);
-          expect(draft.dance.formation.detail, 'chestnut');
+          expect(draft.dance.formation.detail, 'chestnut variant');
         },
       );
 

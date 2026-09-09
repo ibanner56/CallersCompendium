@@ -1446,10 +1446,8 @@ class CallersBoxAdapter implements SourceAdapter {
     Map<String, Object?> dance,
     List<ImportIssue> issues,
   ) {
-    final base = _sanitizeLine(_asString(dance['FormationBase'])) ?? '';
-    final extra = scrubFigureText(
-      _sanitizeLine(_asString(dance['FormationDetail'])) ?? '',
-    );
+    final base = scrubFigureText(_asString(dance['FormationBase']) ?? '');
+    final extra = scrubFigureText(_asString(dance['FormationDetail']) ?? '');
     final combined = [base, extra].where((s) => s.isNotEmpty).join(' — ');
     final sourceDetail = combined.isEmpty ? null : scrubFigureText(combined);
 

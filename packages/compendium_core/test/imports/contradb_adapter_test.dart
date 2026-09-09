@@ -627,14 +627,14 @@ void main() {
             jsonEncode(
               _dance(
                 startType: 'spiral galaxy',
-                preamble: 'Ladies\u200B gypsy',
+                preamble: 'Ladies\u200B gypsy\nvariant',
               ),
             ),
           );
           expect(draft.dance.formation.shape, FormationShape.other);
           expect(
             draft.dance.formation.detail,
-            'role2s shoulder round\n\nspiral galaxy',
+            'role2s shoulder round variant\n\nspiral galaxy',
           );
           expect(
             draft.issues.any(

@@ -506,8 +506,8 @@ class ContraDbAdapter implements SourceAdapter {
     Object? preamble,
     List<ImportIssue> issues,
   ) {
-    final text = scrubFigureText(_sanitizeLine(_asString(startType)) ?? '');
-    final detail = scrubFigureText(_sanitizeLine(_asString(preamble)) ?? '');
+    final text = scrubFigureText(_asString(startType) ?? '');
+    final detail = scrubFigureText(_asString(preamble) ?? '');
     String? detailForUnknown(String source) {
       final parts = [detail, source].where((part) => part.isNotEmpty);
       final combined = parts.join('\n\n');
