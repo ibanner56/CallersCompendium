@@ -2464,6 +2464,64 @@ void main() {
   );
 
   testWidgets(
+    'persisted Undo preserves the order of a concurrent slot insertion',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await delayed.repos.dances.create(
+        _dance(id: 'd2', title: 'Second Dance'),
+      );
+      await delayed.repos.dances.create(
+        _dance(id: 'd3', title: 'Inserted Dance'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+          ],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.update(
+        _program(
+          id: 'p1',
+          title: 'Remote edit',
+          slots: [
+            ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
+            ProgramSlot(id: 's1', position: 2, danceId: 'd2'),
+          ],
+        ),
+      );
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Local edit');
+      expect(saved.slots.map((slot) => slot.id), ['s0', 's2', 's1']);
+    },
+  );
+
+  testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {
       // Perform enables the wake-lock; install the fake so the platform

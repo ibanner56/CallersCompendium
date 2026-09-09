@@ -1271,6 +1271,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         refreshedSlots.add(liveSlot);
       }
     }
+    refreshedSlots.sort((a, b) => a.position.compareTo(b.position));
     setState(() {
       _slots = _renumber(refreshedSlots);
     });
