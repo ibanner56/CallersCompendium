@@ -113,8 +113,9 @@ as **top-level arrays**, siblings of `dances`.
 Records sync under their existing UUID, so identity survives a rename — the name
 is a field, not the key.
 
-Three kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
-`custom_field_defs.key` — so two devices that independently created "Bob Smith"
+Four kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
+`custom_field_defs.key`, `difficulty_levels.label` — so two devices that
+independently created "Bob Smith"
 hold one entity under two UUIDs. Inserting the second violates the constraint and
 fails the entire apply transaction. Applying a record of those kinds therefore:
 
@@ -128,6 +129,11 @@ fails the entire apply transaction. Applying a record of those kinds therefore:
    tie-break, merge field values by recency, coalesce `deviceLocal` fields, remap
    every reference, drop the loser.
 3. **Neither** → insert.
+
+Difficulty levels use fixed IDs for the three shipped entries. A shipped ID is
+the canonical identity when present, even if its label was renamed locally;
+unknown custom IDs with the same normalized label reconcile to the existing
+entry, and all affected dance references follow the surviving ID.
 
 Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
 routine and per-entity prompts would be noise.
@@ -2202,7 +2208,7 @@ had to be written as one.
 **A skip recorded as final is a defect with two faces.** Nothing re-ran the pass
 after the completion marker was written, so a skipped row stayed un-normalised
 permanently — and separately, tombstones occupy their natural keys, because soft
-delete is an `UPDATE` and none of the three `UNIQUE` indexes filters on
+delete is an `UPDATE` and none of the four `UNIQUE` indexes filters on
 `deleted_at`. Compose those and a **live** row is blocked forever by a **dead**
 one the user cannot see, cannot list and cannot act on. I had reached for a
 special case for tombstones. The better fix was one rule that dissolves both:
@@ -2297,7 +2303,7 @@ condition invites acting on the snapshot**; storing an address forces the
 re-derivation that was correct anyway.
 
 **Scoping a rule to "the target value" forgot which table the value lives in.**
-Three `UNIQUE` indexes on three tables, and grouping by target alone treats a
+Four `UNIQUE` indexes on four tables, and grouping by target alone treats a
 tag and a choreographer sharing a name as a collision — skipping both
 *permanently*, because a cross-table collision never stops colliding and the
 retry can never clear it. The bug is worse than the one it emerges from: the

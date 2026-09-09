@@ -1221,6 +1221,8 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'Swung');
     await tester.tap(find.byKey(const ValueKey('figure-add')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+    await tester.pumpAndSettle();
     await _selectMoveInEditor(tester, 0, 'sw', 'swing');
 
     // Progression + note round-trip alongside the params.
@@ -1260,6 +1262,8 @@ void main() {
 
     await tester.enterText(find.byKey(const ValueKey('title-field')), 'Custom');
     await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('figure-0-move-input')),
@@ -2315,6 +2319,8 @@ void main() {
         'Circled',
       );
       await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
       await tester.pumpAndSettle();
       await _selectMoveInEditor(tester, 0, 'circle', 'circle');
 

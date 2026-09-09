@@ -4,9 +4,21 @@
   "@appTitle": {
     "description": "The application's name. Shown as the window/task-switcher title via MaterialApp.onGenerateTitle."
   },
+  "danceEditorAddedMeanwhileAnnouncement": "Added a meanwhile container.",
+  "@danceEditorAddedMeanwhileAnnouncement": {
+    "description": "Screen-reader announcement after adding a meanwhile container."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
+  },
+  "settingsDefaultsMeanwhileTitle": "Meanwhile defaults",
+  "@settingsDefaultsMeanwhileTitle": {
+    "description": "Sub-heading for default meanwhile side figures."
+  },
+  "settingsDefaultsMeanwhileSubtitle": "The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.",
+  "@settingsDefaultsMeanwhileSubtitle": {
+    "description": "Explanation for the default meanwhile side-figure editor."
   },
   "navPrograms": "Programs",
   "@navPrograms": {
@@ -3219,7 +3231,7 @@
   "@programsAddDanceButton": {
     "description": "Button that opens the dance picker to add a dance slot to the program."
   },
-  "programsAddNoteBreakButton": "Add note / break",
+  "programsAddNoteBreakButton": "Add note / waltz",
   "@programsAddNoteBreakButton": {
     "description": "Button that adds a free-text note or break slot to the program."
   },
@@ -7075,6 +7087,10 @@
   "danceEditorAddFigure": "Add figure",
   "@danceEditorAddFigure": {
     "description": "Button label for adding another figure row."
+  },
+  "danceEditorAddMeanwhile": "Add meanwhile",
+  "@danceEditorAddMeanwhile": {
+    "description": "Menu item label for adding an empty meanwhile container."
   },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {

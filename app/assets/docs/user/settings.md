@@ -326,7 +326,6 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to a single
   stand still of eight beats. Clear it for a blank new dance.
-
 ### Difficulty levels
 
 - **Manage difficulty levels** — define the ordered vocabulary used by dance
@@ -336,6 +335,12 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
 - A level cannot be removed while any dance uses it. Once its assignments are
   cleared or changed, you can remove it, including one of the levels that ships
   with the app.
+
+- **Meanwhile defaults** — the ordinary side figures used when you choose **Add
+  meanwhile** while authoring a dance. Leave this list empty to start with two
+  blank sides, or configure up to six ordinary sides. If only one side is
+  configured, the app adds a blank second side so the container can be completed.
+  Invalid or unavailable saved defaults use two stand-still sides.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards.

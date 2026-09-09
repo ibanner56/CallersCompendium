@@ -225,6 +225,58 @@ void main() {
   });
 
   test(
+    'reconciles archive levels onto live or tombstoned matching labels',
+    () async {
+      for (final deleted in [false, true]) {
+        final suffix = deleted ? 'tombstone' : 'live';
+        final local = await difficultyLevels.createCustom(
+          label: 'Workshop $suffix',
+          position: 3,
+          newId: () => 'local-$suffix',
+        );
+        if (deleted) {
+          await difficultyLevels.delete(local.id, at: now);
+        }
+        final incoming = DifficultyLevel(
+          id: 'archive-$suffix',
+          label: local.label,
+          position: 0,
+        );
+        final archive = CompendiumArchive(
+          exportedAt: now,
+          difficultyLevels: [incoming],
+          dances: [
+            _dance(
+              'archive-dance-$suffix',
+              'Archive $suffix dance',
+            ).copyWith(difficultyLevelId: incoming.id),
+          ],
+        );
+
+        await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new-$suffix'),
+          newSlotId: sequentialIds('slot-$suffix'),
+        );
+
+        expect(
+          (await dances.listAll())
+              .singleWhere((dance) => dance.title == 'Archive $suffix dance')
+              .difficultyLevelId,
+          local.id,
+        );
+        expect(
+          await difficultyLevels.getById(local.id),
+          local.copyWith(position: 0),
+        );
+        expect(await difficultyLevels.getById(incoming.id), isNull);
+      }
+    },
+  );
+
+  test(
     'failed shared import compensates difficulty levels written earlier',
     () async {
       final before = await difficultyLevels.listAll();

@@ -440,7 +440,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**65 settings keys**: 51 shareable, 7 device-local, 5 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**66 settings keys**: 52 shareable, 7 device-local, 5 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -473,6 +473,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `default_dance_formation_shape` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_phrase_structure` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_dance_progression` | `dpv:NonPersonalData` | app user | shareable |  |
+| `default_meanwhile_side_figures` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_move_param_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `default_program_band` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often their own band. Personal data, shareable for the same reason as programs.band. |
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |

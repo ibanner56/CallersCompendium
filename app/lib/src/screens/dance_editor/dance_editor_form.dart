@@ -273,6 +273,7 @@ class DanceEditorForm extends StatelessWidget {
                   moveParamDefaults: moveParamDefaults,
                   onChanged: controller.onFiguresChanged,
                   onAdd: controller.addFigure,
+                  onAddMeanwhile: controller.addMeanwhile,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
                   onAddFreeText: controller.insertFreeTextFigures,

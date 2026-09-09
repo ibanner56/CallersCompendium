@@ -15,6 +15,7 @@ import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/tag_repository.dart';
 import '../storage/repositories/venue_repository.dart';
+import '../storage/shareable_text.dart';
 import '../util/uuid.dart';
 import 'dedupe.dart';
 import 'generic_json_adapter.dart';
@@ -43,6 +44,16 @@ class _DifficultyLevelImportLedger {
   final insertedIds = <String>[];
   final priorStates = <({DifficultyLevel level, bool deleted})>[];
   final _capturedIds = <String>{};
+}
+
+class _DifficultyLevelImportPlan {
+  const _DifficultyLevelImportPlan({
+    required this.levels,
+    required this.idRemap,
+  });
+
+  final List<DifficultyLevel> levels;
+  final Map<String, String> idRemap;
 }
 
 /// Rebuilds the [archive]'s [Program]s for insertion into the live collection,
@@ -397,11 +408,16 @@ class CompendiumArchiveImporter {
     ShareMetadataImportResult? metadata;
     ImportSession? danceSession;
     try {
-      await _commitDifficultyLevels(archive, ledger: difficultyLevels);
+      final difficultyPlan = await _planDifficultyLevels(archive);
+      await _commitDifficultyLevels(
+        difficultyPlan.levels,
+        ledger: difficultyLevels,
+      );
       metadata = await _commitMetadata(archive, now: now, newId: mintId);
-      final commitBatch = metadata == null
-          ? batch
-          : _remapBatch(batch, metadata);
+      var commitBatch = _remapDifficultyLevels(batch, difficultyPlan.idRemap);
+      if (metadata != null) {
+        commitBatch = _remapBatch(commitBatch, metadata);
+      }
       final committedDanceSession = await _pipeline.commit(
         commitBatch,
         now: now,
@@ -685,11 +701,77 @@ class CompendiumArchiveImporter {
     }
   }
 
+  Future<_DifficultyLevelImportPlan> _planDifficultyLevels(
+    CompendiumArchive archive,
+  ) async {
+    if (archive.difficultyLevels.isEmpty) {
+      return const _DifficultyLevelImportPlan(levels: [], idRemap: {});
+    }
+    final repository = _difficultyLevels;
+    if (repository == null) {
+      throw StateError(
+        'difficulty-level repository is required to import a shared archive',
+      );
+    }
+    final existing = await repository.listAllWithDeleted();
+    final existingById = {for (final item in existing) item.level.id: item};
+    final existingByLabel = <String, DifficultyLevel>{
+      for (final item in existing)
+        _normalizeDifficultyLabel(item.level.label): item.level,
+    };
+    final archiveLabels = <String, String>{};
+    for (final level in archive.difficultyLevels) {
+      final normalizedLabel = _normalizeDifficultyLabel(level.label);
+      final priorId = archiveLabels[normalizedLabel];
+      if (priorId != null && priorId != level.id) {
+        throw StateError(
+          'difficulty level labels must be unique in a shared archive: '
+          '"${level.label}"',
+        );
+      }
+      archiveLabels[normalizedLabel] = level.id;
+    }
+
+    final idRemap = <String, String>{};
+    final levels = <DifficultyLevel>[];
+    final archiveIds = {for (final level in archive.difficultyLevels) level.id};
+    final planned = <DifficultyLevel>[];
+    for (final level in archive.difficultyLevels) {
+      final existingByIdEntry = existingById[level.id];
+      final existingByLabelEntry =
+          existingByLabel[_normalizeDifficultyLabel(level.label)];
+      final targetId =
+          existingByLabelEntry != null &&
+              existingByLabelEntry.id != level.id &&
+              existingByIdEntry == null &&
+              !archiveIds.contains(existingByLabelEntry.id)
+          ? existingByLabelEntry.id
+          : level.id;
+      idRemap[level.id] = targetId;
+      planned.add(
+        targetId == level.id
+            ? level
+            : DifficultyLevel(
+                id: targetId,
+                label: level.label,
+                position: level.position,
+              ),
+      );
+    }
+    // Apply definitions that already have a receiver identity first. This
+    // frees their old label before a different archive ID is remapped onto it.
+    levels.addAll(planned.where((level) => existingById.containsKey(level.id)));
+    levels.addAll(
+      planned.where((level) => !existingById.containsKey(level.id)),
+    );
+    return _DifficultyLevelImportPlan(levels: levels, idRemap: idRemap);
+  }
+
   Future<void> _commitDifficultyLevels(
-    CompendiumArchive archive, {
+    List<DifficultyLevel> levels, {
     required _DifficultyLevelImportLedger ledger,
   }) async {
-    if (archive.difficultyLevels.isEmpty) return;
+    if (levels.isEmpty) return;
     final repository = _difficultyLevels;
     if (repository == null) {
       throw StateError(
@@ -700,7 +782,7 @@ class CompendiumArchiveImporter {
       for (final item in await repository.listAllWithDeleted())
         item.level.id: item,
     };
-    for (final level in archive.difficultyLevels) {
+    for (final level in levels) {
       final previous = existing[level.id];
       if (previous == null) {
         ledger.insertedIds.add(level.id);
@@ -710,6 +792,35 @@ class CompendiumArchiveImporter {
       await repository.upsert(level);
     }
   }
+
+  ImportBatchResult _remapDifficultyLevels(
+    ImportBatchResult batch,
+    Map<String, String> idRemap,
+  ) {
+    if (idRemap.isEmpty) return batch;
+    return ImportBatchResult(
+      records: [
+        for (final record in batch.records)
+          ImportRecordPlan(
+            draft: record.draft.copyWith(
+              dance: record.draft.dance.copyWith(
+                difficultyLevelId:
+                    switch (record.draft.dance.difficultyLevelId) {
+                      final id? => idRemap[id] ?? id,
+                      null => null,
+                    },
+              ),
+            ),
+            verdict: record.verdict,
+          ),
+      ],
+      errors: batch.errors,
+      dedupeIndex: batch.dedupeIndex,
+    );
+  }
+
+  String _normalizeDifficultyLabel(String label) =>
+      normalizeShareableText(label).trim().toLowerCase();
 
   Future<void> _undoDifficultyLevels(
     _DifficultyLevelImportLedger ledger, {

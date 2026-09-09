@@ -236,7 +236,7 @@ and program content — which is precisely what the editor-draft keys held until
   both halves of the grouping test** — recorded-row grouping by
   `(table, column, target)` *and* live occupancy — its **retirement of entries
   whose row was hard-deleted**, which requires a **new lookup unfiltered by
-  `deleted_at`** in all three in-scope repositories, since every existing
+  `deleted_at`** in all four in-scope repositories, since every existing
   `getById` there filters and would make a tombstone indistinguishable from a
   deleted row; a **primary key on `(table, column, record_id)`** with recording
   as an upsert; its restore-clears rule; and its second writer on the
@@ -274,8 +274,9 @@ and program content — which is precisely what the editor-draft keys held until
   writes no marker and would otherwise leave a rebuild owed that it had already
   performed. The flag's set and its clear MUST share one condition. A pass MAY
   narrow that condition — setting **no flag and running no rebuild** — only
-  where a test shows no rewritten column feeds a derived index (`tags.name` and
-  `custom_field_defs.key` feed neither FTS table), and MUST do both otherwise;
+  where a test shows no rewritten column feeds a derived index (`tags.name`,
+  `custom_field_defs.key` and `difficulty_levels.label` feed neither FTS table),
+  and MUST do both otherwise;
   skipping the rebuild while still setting the flag defers the same
   whole-library rebuild to the next app open. That flag MUST be the existing
   `derivedRebuildRequiredKey`, since the repair is performed by the generic
@@ -400,8 +401,9 @@ over two databases containing the same row — one where the collision fires, on
 where it does not.
 
 *Normalising can collide, and the collision must be found before writing.*
-`choreographers.name`, `tags.name` and `custom_field_defs.key` are `UNIQUE`, so
-two rows differing only in Unicode form collapse onto one string. §6.6 already
+`choreographers.name`, `tags.name`, `custom_field_defs.key` and
+`difficulty_levels.label` are `UNIQUE`, so two rows differing only in Unicode
+form collapse onto one string. §6.6 already
 specifies this collision class for these exact columns — but only for the
 **inbound apply** path, so an implementer building W18 in isolation will not
 meet it. Compute every target value first, group by it, and skip whole groups
@@ -409,7 +411,7 @@ of more than one; do **not** implement this by catching the `UNIQUE` violation.
 With try-and-catch the first row of a colliding pair writes successfully —
 nothing holds the target yet — so one member is normalised and which one depends
 on row order. The spec requires both to be left alone. Grouping must include
-soft-deleted rows: soft delete is an `UPDATE` and none of the three `UNIQUE`
+soft-deleted rows: soft delete is an `UPDATE` and none of the four `UNIQUE`
 indexes is filtered on `deleted_at`, so a tombstone occupies its natural key and
 can block a live row.
 
@@ -419,7 +421,7 @@ two devices produces exactly the divergence I1 orders — which would disqualify
 the pass from the exemption it depends on.
 
 *Group on `(table, column, target)`, never on the target alone.* The in-scope
-rows span three tables with three independent `UNIQUE` indexes, so a tag and a
+rows span four tables with four independent `UNIQUE` indexes, so a tag and a
 choreographer named `José` do not collide. Grouping on the value alone skips
 both of them **permanently**, because unlike a genuine collision a cross-table
 one never stops colliding and retry can never clear it.
@@ -872,7 +874,7 @@ backup taken on a syncing device leaves sync off and makes no network call.
 - **Inherits** W4 (`review_queue` is the storage this reviews).
 - **Produces** a generic keep-both-or-merge list. **No per-kind editors are
   required**, which is the scope control on this unit. The one thing that is
-  not generic: for the three `UNIQUE` natural-key kinds, resolving **keep
+  not generic: for the four `UNIQUE` natural-key kinds, resolving **keep
   both** MUST rename the surviving live row before the counterpart tombstone is
   applied (§6.6 step 2). The index is not filtered on `deleted_at`, so without
   the rename the resolution simply fails to write. That is a name prompt on an

@@ -83,6 +83,8 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('figure-add')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+    await tester.pumpAndSettle();
 
     // Typing the shorthand token (any casing) expands to the mapped figure,
     // NOT a custom figure from the free-text parser.
@@ -117,6 +119,8 @@ void main() {
       await _pumpDefaultsWithShorthands(tester, repos, shorthands);
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('figure-free-text-field')),
