@@ -21,7 +21,7 @@ are shown and the rest is discarded: a red run should tell you what to fix, not
 hand you the whole log.
 
 Missing toolchains are visibly skipped by default, so cloud and local sessions
-without Flutter still run every applicable Python gate. Pass --require-available
+without FVM still run every applicable Python gate. Pass --require-available
 to make a selected unavailable gate fail instead.
 
 Exit codes: 0 = every selected step passed or was skipped, 1 = invalid selection
@@ -63,6 +63,14 @@ class Step:
 
 def py(*args: str) -> tuple[str, ...]:
     return (sys.executable, *args)
+
+
+def fvm(*args: str) -> tuple[str, ...]:
+    return ("fvm", *args)
+
+
+def fvm_py(*args: str) -> tuple[str, ...]:
+    return fvm("exec", *py(*args))
 
 
 STEPS: tuple[Step, ...] = (
@@ -215,85 +223,85 @@ STEPS: tuple[Step, ...] = (
     Step(
         "format",
         "dart format",
-        (("dart", "format", "--output=none", "--set-exit-if-changed", "."),),
+        (fvm("dart", "format", "--output=none", "--set-exit-if-changed", "."),),
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
     ),
     Step(
         "flutter-version",
         "the installed Flutter SDK matches .fvmrc",
-        (py("tools/ci/check_flutter_version.py"),),
+        (fvm_py("tools/ci/check_flutter_version.py"),),
         fast=False,
-        needs_binary="flutter",
+        needs_binary="fvm",
     ),
     Step(
         "analyze",
         "flutter analyze --fatal-infos",
-        (("flutter", "analyze", "--fatal-infos"),),
+        (fvm("flutter", "analyze", "--fatal-infos"),),
         fast=False,
-        needs_binary="flutter",
+        needs_binary="fvm",
     ),
     Step(
         "l10n-drift",
         "committed localizations match the current ARB-generated output",
-        (py("tools/ci/check_l10n_drift.py"),),
+        (fvm_py("tools/ci/check_l10n_drift.py"),),
         fast=False,
-        needs_binary="flutter",
+        needs_binary="fvm",
     ),
     Step(
         "core-flutter-free",
         "compendium_core's dependency closure and source directives exclude Flutter",
-        (py("tools/ci/check_core_flutter_free.py"),),
+        (fvm_py("tools/ci/check_core_flutter_free.py"),),
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
     ),
     Step(
         "fixtures",
         "figure fixtures are valid under the taxonomy -- `dart test` does NOT check this",
-        (("dart", "run", "tool/check_fixture_validity.dart"),),
+        (fvm("dart", "run", "tool/check_fixture_validity.dart"),),
         cwd=ROOT / "packages" / "compendium_core",
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
     ),
     Step(
         "core-tests",
         "compendium_core suite with CI-equivalent LCOV generation",
-        (py("tools/ci/run_core_tests_with_coverage.py"),),
+        (fvm_py("tools/ci/run_core_tests_with_coverage.py"),),
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
     ),
     Step(
         "core-coverage",
         "compendium_core's generated-source-excluded 80% coverage floor",
-        (py("tools/ci/check_core_coverage.py"),),
+        (fvm_py("tools/ci/check_core_coverage.py"),),
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
     ),
     Step(
         "benchmark",
         "compendium_core search benchmark",
-        (("dart", "run", "benchmark/search_benchmark.dart"),),
+        (fvm("dart", "run", "benchmark/search_benchmark.dart"),),
         cwd=ROOT / "packages" / "compendium_core",
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
     ),
     Step(
         "app-tests",
         "app suite (includes the privacy classification ratchets)",
-        (("flutter", "test"),),
+        (fvm("flutter", "test"),),
         cwd=ROOT / "app",
         fast=False,
-        needs_binary="flutter",
+        needs_binary="fvm",
     ),
     Step(
         "server-tests",
         "Athenaeum server analyzer and endpoint suite",
         (
-            ("dart", "analyze", "server"),
-            ("dart", "test", "server/test"),
+            fvm("dart", "analyze", "server"),
+            fvm("dart", "test", "server/test"),
         ),
         fast=False,
-        needs_binary="dart",
+        needs_binary="fvm",
         needs_path=ROOT / "server" / "pubspec.yaml",
     ),
 )

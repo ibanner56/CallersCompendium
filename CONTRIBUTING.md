@@ -283,8 +283,8 @@ symlink you can point your editor/PATH at — see the FVM docs.)
 
    It reports `skip` (with the reason) for any step whose toolchain is missing —
    a step that silently no-ops would be worse than one that fails — so on a
-   checkout without FVM you still get the Python ratchets. To run the Dart and
-   Flutter steps by hand:
+   checkout without FVM you still get the Python ratchets. The Dart and Flutter
+   steps use the pinned SDK through FVM; to run them by hand:
 
    ```sh
    fvm dart format .                                   # format (CI fails on diffs)

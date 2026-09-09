@@ -66,6 +66,14 @@ def test_require_available_fails_unavailable_gate() -> None:
     assert "not on PATH" in output
 
 
+def test_toolchain_steps_use_pinned_fvm_commands() -> None:
+    toolchain_steps = [step for step in preflight.STEPS if not step.fast]
+    assert len(toolchain_steps) == 11
+    for step in toolchain_steps:
+        assert step.needs_binary == "fvm", step.name
+        assert all(command[0] == "fvm" for command in step.commands), step.name
+
+
 def main() -> int:
     tests = [value for name, value in sorted(globals().items()) if name.startswith("test_")]
     for test in tests:
