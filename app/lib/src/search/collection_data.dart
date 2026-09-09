@@ -169,8 +169,9 @@ class CollectionData {
   ///
   /// The general statement of it now lives on [CoalesceTrailing], because the
   /// remaining conversions (issue #768) each meet it and each needs a window
-  /// measured against its own burst shape. What is specific to this call is the
-  /// burst above: 50 commits from one batch, behind a whole-snapshot load.
+  /// measured against its own burst shape. What is specific to this call is
+  /// that batch tagging now emits one transaction-level commit behind a
+  /// whole-snapshot load, while other operations can still produce bursts.
   ///
   /// Emits an initial value immediately, so a subscriber renders without
   /// waiting for a write.
