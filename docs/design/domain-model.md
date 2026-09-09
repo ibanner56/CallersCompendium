@@ -112,8 +112,8 @@ caller matches that default caller (trim + case-insensitive; issue #583).
 ### Formation
 Canonical enum seeded from the TCB vocabulary (duple improper/reverse progression
 improper/becket(cw|ccw)/proper/indecent…, triple minor, 3-face-3, 4-face-4,
-circle mixer, Sicilian circle, scatter mixer, longways, triplet, grid, other)
-**plus** an optional free-text `detail`. Enum-with-detail avoids ContraDB's
+circle mixer, Sicilian circle, scatter mixer, longways, triplet, grid, quadruplet,
+other) **plus** an optional free-text `detail`. Enum-with-detail avoids ContraDB's
 regex-over-free-text weakness while never losing information.
 
 ### Mixer
