@@ -766,8 +766,8 @@ void main() {
   );
 
   testWidgets(
-    'deleting a dance opened through a related-dance link refreshes the row '
-    'that opened it — the delete path broadcasts nothing',
+    'deleting a dance opened through a related-dance link hides the row '
+    'that opened it',
     (tester) async {
       final repos = openTestRepos();
       await repos.dances.create(dance(id: 'd2', title: 'Bravo'));
@@ -788,8 +788,7 @@ void main() {
       // subscription cannot rescue this one the way it does an edit.
       await pump(tester, repos, const DanceDetailScreen(danceId: 'd1'));
 
-      // Fixture check: the link resolves to a real dance, so "(missing dance)"
-      // below is a change of state rather than the starting condition.
+      // Fixture check: the link resolves to a real dance before deletion.
       expect(find.text('Bravo'), findsOne);
       expect(find.text('(missing dance)'), findsNothing);
 
@@ -798,7 +797,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('delete-dance')).last);
       await tester.pumpAndSettle();
 
-      expect(find.text('(missing dance)'), findsOne);
+      expect(find.byKey(const ValueKey('link-row-l1')), findsNothing);
+      expect(find.text('(missing dance)'), findsNothing);
       expect(find.text('Bravo'), findsNothing);
     },
   );
