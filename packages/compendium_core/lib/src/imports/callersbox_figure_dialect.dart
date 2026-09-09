@@ -2534,10 +2534,10 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// lines are immediately preceded by a balance (`Balance ring` / `Balance wave
 /// of four`), i.e. the balance-and-box-circulate figure. This pre-recognizer
 /// maps such a line onto [box_circulate]; the crossing subject becomes `who`,
-/// an explicit loop direction becomes `hand`, and the original definition is
-/// retained in the figure `note`. The CallersBox cross-line merge then folds a
-/// preceding balance line into `balance: true` (box_circulate is a
-/// balance-merge target).
+/// an explicit loop direction becomes `hand`, and the scrubbed/canonicalized
+/// definition is retained in the figure `note`. The CallersBox cross-line merge
+/// then folds a preceding balance line into `balance: true` (box_circulate is
+/// a balance-merge target).
 ///
 /// Conservative guards: the head before the colon must be EXACTLY `circulate`
 /// (so `box circulate`, `diagonal circulate`, `column circulate 2`, … all
