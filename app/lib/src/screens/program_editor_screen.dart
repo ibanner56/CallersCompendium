@@ -172,6 +172,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   int? _persistedBulkUndoActionToken;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
   Set<String>? _pendingBulkUndoSlotIds;
+  Program? _pendingBulkUndoBaseline;
   DateTime? _pendingBulkUndoTimestamp;
   bool? _pendingBulkUndoWasDirty;
   int? _pendingBulkUndoEditGeneration;
@@ -1273,36 +1274,35 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   );
 
   Future<bool> _refreshPerformedAtForUndo() async {
-    final storedBaseline = _existing;
+    final storedBaseline = _pendingBulkUndoBaseline ?? _existing;
     if (storedBaseline == null) return false;
-    final slotsAtReadStart = List<ProgramSlot>.of(_slots);
     final live = await _repos.programs.getById(storedBaseline.id);
     if (!mounted || live == null) return false;
     final local = _draftProgram ?? storedBaseline;
-    final slotsAtReadStartById = {
-      for (final slot in slotsAtReadStart) slot.id: slot,
+    final baselineSlotsById = {
+      for (final slot in storedBaseline.slots) slot.id: slot,
     };
     final localSlotsById = {for (final slot in _slots) slot.id: slot};
     final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
     final refreshedSlots = <ProgramSlot>[];
     for (final slot in _slots) {
-      final atReadStart = slotsAtReadStartById[slot.id];
-      if (atReadStart == null) {
+      final baseline = baselineSlotsById[slot.id];
+      if (baseline == null) {
         refreshedSlots.add(slot);
         continue;
       }
       final liveSlot = liveSlotsById[slot.id];
       if (liveSlot == null) {
-        if (slot != atReadStart) refreshedSlots.add(slot);
+        if (slot != baseline) refreshedSlots.add(slot);
         continue;
       }
       refreshedSlots.add(
-        _mergeUndoSlot(atReadStart: atReadStart, local: slot, live: liveSlot),
+        _mergeUndoSlot(atReadStart: baseline, local: slot, live: liveSlot),
       );
     }
     for (final liveSlot in live.slots) {
       if (!localSlotsById.containsKey(liveSlot.id) &&
-          !slotsAtReadStartById.containsKey(liveSlot.id)) {
+          !baselineSlotsById.containsKey(liveSlot.id)) {
         refreshedSlots.add(liveSlot);
       }
     }
@@ -1341,13 +1341,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         setState(() => _dirty = false);
         return;
       }
+      final baselineSlotsById = {
+        for (final slot
+            in (_pendingBulkUndoBaseline ?? _existing)?.slots ??
+                const <ProgramSlot>[])
+          slot.id: slot,
+      };
       final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
       setState(() {
         _slots = [
           for (final slot in _slots)
-            markedSlotIds.contains(slot.id)
-                ? liveSlotsById[slot.id] ?? slot
-                : slot,
+            if (!markedSlotIds.contains(slot.id))
+              slot
+            else if (liveSlotsById[slot.id] == null)
+              slot
+            else if (baselineSlotsById[slot.id] == null)
+              slot.copyWith(performedAt: liveSlotsById[slot.id]!.performedAt)
+            else
+              _mergeUndoSlot(
+                atReadStart: baselineSlotsById[slot.id]!,
+                local: slot,
+                live: liveSlotsById[slot.id]!,
+              ),
         ];
         _dirty = true;
       });
@@ -1820,6 +1835,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       current: _slots.map((s) => s.performedAt),
     );
     final wasDirty = _dirty;
+    _pendingBulkUndoBaseline = _existing;
     final l10n = AppLocalizations.of(context);
     final markedSlotIds = <String>{};
     setState(() {
@@ -2001,11 +2017,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           );
         }
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context).programsSaveError),
-            ),
-          );
+          final messenger = ScaffoldMessenger.of(context);
+          messenger.clearSnackBars();
+          messenger.removeCurrentSnackBar();
+          final message = AppLocalizations.of(
+            context,
+          ).programsUndoPerformedError;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!messenger.mounted) return;
+            messenger.showSnackBar(SnackBar(content: Text(message)));
+          });
         }
       }
     } else if (canRestoreCleanState) {

@@ -823,7 +823,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         stackTrace,
         source: 'program_summary_screen._undoMarkAllPerformed',
       );
-      messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+      messenger
+        ..clearSnackBars()
+        ..removeCurrentSnackBar();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!messenger.mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+      });
     }
   }
 

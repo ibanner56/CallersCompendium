@@ -476,6 +476,50 @@ void main() {
     },
   );
 
+  testWidgets('summary Undo shows rollback failures immediately', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(dance(id: 'd1', title: 'Alpha'));
+    await delayed.repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Friday Night',
+        slots: [ProgramSlot(id: 's1', position: 0, danceId: 'd1')],
+      ),
+    );
+    await pump(
+      tester,
+      delayed.repos,
+      panes(
+        const DanceListScreen(),
+        ProgramSummaryPane(
+          programId: 'p1',
+          onOpenBuilder: () {},
+          onDeleted: () {},
+          onNavigateTo: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    delayed.programs.failConditionalRollback = true;
+    await tester.tap(find.text('Undo'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+
+    expect(delayed.programs.conditionalRollbackCalls, 1);
+    expect(find.byType(SnackBar), findsOneWidget);
+    final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+    expect((snackBar.content as Text).data, contains('undo'));
+    expect(
+      find.text('Could not undo marking; performed marks remain saved.'),
+      findsOneWidget,
+    );
+    expect(find.byType(SnackBarAction), findsNothing);
+  });
+
   testWidgets(
     "gap 4: deleting a program updates a live dance detail's calling history",
     (tester) async {

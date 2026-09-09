@@ -2004,6 +2004,52 @@ void main() {
   });
 
   testWidgets(
+    'persisted Undo preserves a slot edit made after the marked write started',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      delayed.programs.holdNextWrite();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await delayed.programs.writeStarted;
+
+      final slotEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      slotEditor.onSlotChanged(
+        0,
+        slotEditor.slots.single.copyWith(isAlt: true),
+      );
+      await tester.pump();
+      tester
+          .widget<SnackBarAction>(find.byType(SnackBarAction))
+          .onPressed
+          .call();
+      delayed.programs.releaseWrite();
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.slots.single.isAlt, isTrue);
+      expect(saved.slots.single.performedAt, isNull);
+    },
+  );
+
+  testWidgets(
     'persisted Undo refreshes the linked venue before later editing',
     (tester) async {
       final repos = openTestRepositories();
@@ -2066,6 +2112,11 @@ void main() {
       delayed.programs.failConditionalRollback = true;
       await tester.tap(find.byType(SnackBarAction));
       await tester.pumpAndSettle();
+      expect(
+        find.text('Could not undo marking; performed marks remain saved.'),
+        findsOneWidget,
+      );
+      expect(find.byType(SnackBarAction), findsNothing);
 
       await tester.enterText(
         find.byKey(const ValueKey('program-title')),
