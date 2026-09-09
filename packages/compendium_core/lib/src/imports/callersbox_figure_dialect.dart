@@ -1732,6 +1732,7 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
 
   final extraParams = <String, Object?>{};
   if (match.moveId == 'roll_away' &&
+      !match.assumedSubject &&
       roleAssignments.length == 1 &&
       !match.params.containsKey('whom')) {
     final relationship = match.params['who'];

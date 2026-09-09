@@ -1949,6 +1949,18 @@ void main() {
           ],
           provenance: _callersBoxProvenance('unsupported-relationship'),
         );
+        final assumedSubject = _rollAwayDance(
+          id: 'assumed-subject',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+              assumedSubject: true,
+            ),
+          ],
+          provenance: _callersBoxProvenance('assumed-subject'),
+        );
         final softDeleted = _rollAwayDance(
           id: 'soft-deleted',
           figures: [
@@ -1969,6 +1981,7 @@ void main() {
           alreadyCorrect,
           divergentNote,
           unsupportedRelationship,
+          assumedSubject,
           softDeleted,
         ]) {
           await repos.dances.create(dance);
@@ -2000,6 +2013,7 @@ void main() {
           alreadyCorrect.id,
           divergentNote.id,
           unsupportedRelationship.id,
+          assumedSubject.id,
         ]) {
           final unchanged = await repos.dances.getById(id);
           expect(
@@ -2010,6 +2024,7 @@ void main() {
               alreadyCorrect,
               divergentNote,
               unsupportedRelationship,
+              assumedSubject,
             ].firstWhere((dance) => dance.id == id)).figures,
             reason: '$id must not match the legacy repair predicate',
           );
