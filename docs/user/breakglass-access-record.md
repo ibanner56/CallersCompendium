@@ -19,3 +19,14 @@ No sync ID, credential, manifest content, or secure output path is recorded here
 - **Scope:** One disposable Athenaeum store and its `device-one` manifest
 - **Executed at (UTC):** `2026-09-09T06:20:00Z`
 - **Notes:** Initial break-glass testing and process design, verifying the live sync host.
+
+## [2026-09-09] Test lost sync-ID support
+
+- **Operator:** ibanner56
+- **Reason:** ADR-004/W16 verification of the lost sync-ID support response
+- **Scope:** A disposable Athenaeum store
+- **Executed at (UTC):** `2026-09-09T06:28:34Z`
+- **Notes:** A lost sync ID cannot be recovered. Athenaeum stores only a one-way
+  derived key and has no account, email, or identity lookup path. After ownership
+  verification through the normal support process, the user is directed to create
+  a new store and configure a new sync ID.
