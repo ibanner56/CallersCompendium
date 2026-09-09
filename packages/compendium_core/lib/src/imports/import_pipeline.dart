@@ -273,6 +273,7 @@ class ImportPipeline {
     ImportRequest request, {
     DedupeIndex? index,
     double threshold = DedupeIndex.defaultThreshold,
+    bool preserveCanonicalDifficultyIds = false,
   }) async {
     final dedupe = index ?? await buildDedupeIndex();
     final List<DiscoveredRecord> discovered;
@@ -332,6 +333,7 @@ class ImportPipeline {
             draft,
             configuredById,
             configuredByLabel,
+            preserveCanonicalDifficultyIds: preserveCanonicalDifficultyIds,
           );
         }
       } on ImportError catch (e) {
@@ -382,9 +384,13 @@ class ImportPipeline {
   StructuredDraft _resolveConfiguredDifficulty(
     StructuredDraft draft,
     Map<String, DifficultyLevel> configuredById,
-    Map<String, DifficultyLevel> configuredByLabel,
-  ) {
+    Map<String, DifficultyLevel> configuredByLabel, {
+    bool preserveCanonicalDifficultyIds = false,
+  }) {
     if (draft.dance.mixedLevel) return draft;
+    if (preserveCanonicalDifficultyIds && draft.difficultyLevelIdIsCanonical) {
+      return draft;
+    }
     final sourceLabel = draft.difficultyLevelLabel;
     final id = draft.dance.difficultyLevelId;
     if (sourceLabel == null || sourceLabel.trim().isEmpty) {

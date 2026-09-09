@@ -746,6 +746,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _selected.adapterFactory(),
         request,
         index: index,
+        preserveCanonicalDifficultyIds: _effectivePickedBundle != null,
       );
       await _adoptBatch(batch);
     } catch (e, stackTrace) {

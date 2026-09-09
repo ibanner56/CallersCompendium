@@ -358,8 +358,11 @@ class CompendiumArchiveImporter {
   /// Plans the dance side of the [archiveJson] non-destructively — the archive
   /// dances run through the same `discover → fetch → parse → dedupe` pipeline as
   /// every other source. The returned batch is committed with [commit].
-  Future<ImportBatchResult> plan(String archiveJson) =>
-      _pipeline.plan(_adapter, ImportRequest(payload: archiveJson));
+  Future<ImportBatchResult> plan(String archiveJson) => _pipeline.plan(
+    _adapter,
+    ImportRequest(payload: archiveJson),
+    preserveCanonicalDifficultyIds: true,
+  );
 
   /// Commits a planned dance [batch] and then the [archive]'s programs.
   ///
