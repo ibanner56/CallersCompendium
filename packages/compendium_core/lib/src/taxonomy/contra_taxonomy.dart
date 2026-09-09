@@ -19,7 +19,7 @@ import 'taxonomy.dart';
 /// It is kept there because it is a ledger of decisions already shipped: it
 /// constrains nothing on this line, and it grows on every bump, so readers of
 /// this file were paying for the whole history to reach one constant.
-const int contraTaxonomyVersion = 33;
+const int contraTaxonomyVersion = 34;
 
 // Shared parameter specs.
 const _beats4 = ParamSpec(ParamKind.beats, defaultValue: 4);
@@ -762,7 +762,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // ContraDB `subject_pair`: which pair steps IN FRONT first
         // (`madRobinWords` renders "<who> in front"). A DIFFERENT concept from
         // `whom` below — do not conflate them.
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: 'role2s',
+          choices: _pairOrUnspecified,
+        ),
         // ContraDB `once_around`/`circling`: how far you travel around
         // (1.0 == 360°, ContraDB's default). TCB writes "1 & 1/2" / "1/2".
         'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),

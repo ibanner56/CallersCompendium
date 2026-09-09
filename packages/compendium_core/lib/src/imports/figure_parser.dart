@@ -1844,8 +1844,8 @@ _Match? _orbit(List<String> w) {
 /// `whom` is deliberately NOT folded into `who`: ContraDB's `who` names which
 /// pair steps IN FRONT (`madRobinWords` renders "`<who>` in front"), a different
 /// concept, so reusing it would invert the meaning of every ContraDB import.
-/// TCB never states the in-front role, so `who` is left unset and the match is
-/// flagged as an assumed subject (#460).
+/// TCB never states the in-front role, so `who` is explicitly stored as
+/// `unspecified` rather than defaulting to a fabricated subject.
 ///
 /// A rotation amount is optional (TCB states one on 2/24 lines) and maps to the
 /// existing `turn` — ContraDB's `circling`/`once_around` angle. A missing
@@ -1863,11 +1863,14 @@ _Match? _madRobin(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'mad_robin',
-    {'direction': direction, 'turn': ?turn, 'whom': whom},
+    {
+      'who': ParamVocab.unspecified,
+      'direction': direction,
+      'turn': ?turn,
+      'whom': whom,
+    },
     null,
-    // TCB never names the in-front role, so `who` falls back to the taxonomy
-    // default and must be surfaced as assumed rather than as source fact.
-    true,
+    false,
   );
 }
 

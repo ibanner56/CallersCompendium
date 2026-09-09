@@ -57,6 +57,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
   await repos.settings.set(kWindowFrameKey, 'some-geometry');
   await repos.settings.set(kLastBackupAtKey, '2020-01-01T00:00:00.000Z');
   await repos.settings.set(taxonomyV33CanonicalRebuildDoneKey, 'done');
+  await repos.settings.set(taxonomyV34CanonicalRebuildDoneKey, 'done');
   await repos.settings.set(kSyncIdKey, 'one-two-three-four');
   await repos.settings.set(kSyncDeviceIdKey, 'device-identifier');
 }
@@ -85,6 +86,10 @@ void main() {
       expect(doc.settings.containsKey(kLastBackupAtKey), isFalse);
       expect(
         doc.settings.containsKey(taxonomyV33CanonicalRebuildDoneKey),
+        isFalse,
+      );
+      expect(
+        doc.settings.containsKey(taxonomyV34CanonicalRebuildDoneKey),
         isFalse,
       );
       expect(doc.settings.containsKey(kSyncIdKey), isFalse);

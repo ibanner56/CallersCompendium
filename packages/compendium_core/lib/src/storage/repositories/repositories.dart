@@ -601,6 +601,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _emitTaxonomyV34CanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       // The last sweep's result is deliberately not assigned: nothing
       // follows it today. It still REPORTS, so that adding a sweep after it
       // is a one-line change rather than a change to the contract above.
@@ -1198,6 +1202,63 @@ class CompendiumRepositories {
 
     if (!alreadyRebuilt) await runDerivedRebuild(onProgress: onProgress);
     await _writeSweepMarker(taxonomyV33CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  /// Rebuilds canonical/FTS text after taxonomy v34 changed the mad robin
+  /// default and normalizes legacy assumed TCB subjects.
+  Future<bool> _emitTaxonomyV34CanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(taxonomyV34CanonicalRebuildDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    final allDances = await dances.listAll(includeDeleted: true);
+    final rewrites = <(String, String)>[];
+    for (final dance in allDances) {
+      final normalised = dances.normaliseTaxonomyV34Public(dance);
+      if (identical(normalised, dance)) continue;
+      rewrites.add((dance.id, encodeFigures(normalised.figures)));
+    }
+
+    final rebuildOwed = !alreadyRebuilt || rewrites.isNotEmpty;
+    if (rewrites.isNotEmpty || rebuildOwed) {
+      await db.transaction(() async {
+        for (final (danceId, figuresJson) in rewrites) {
+          await db.customUpdate(
+            // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+            'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+            'WHERE id = ?',
+            variables: [
+              Variable<String>(figuresJson),
+              Variable<String>(danceId),
+            ],
+            updates: {db.dances},
+            updateKind: UpdateKind.update,
+          );
+        }
+        if (rebuildOwed) {
+          await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
+        }
+      });
+    }
+
+    if (rebuildOwed) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    await _writeSweepMarker(taxonomyV34CanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

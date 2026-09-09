@@ -1,0 +1,17 @@
+{
+  "id": "1193-mad-robin-import",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "When you import a mad robin from Callers Box, the app no longer invents which pair steps in front when the source does not say."
+    ],
+    "data_migrations": [
+      "When you first launch after this update, your legacy assumed mad robin subjects are corrected only when their source figure omitted an explicit subject, and your canonical and search indexes are rebuilt."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Change the mad robin subject default to role2s and preserve unspecified subjects for Callers Box imports."
+    ]
+  }
+}
