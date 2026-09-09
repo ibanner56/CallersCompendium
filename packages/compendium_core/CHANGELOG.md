@@ -22,7 +22,6 @@ core version. They are left that way deliberately — do not renumber them.
 ## [Unreleased]
 
 _Nothing yet._
-
 ## [0.4.0] - 2026-09-03
 
 ### Added
