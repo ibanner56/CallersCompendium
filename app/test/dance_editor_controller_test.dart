@@ -962,7 +962,7 @@ void main() {
               beats: 8,
               figures: [
                 Figure(move: 'swing'),
-                Figure(move: 'roll'),
+                Figure(move: 'balance'),
               ],
             ),
             Figure(move: 'balance'),
@@ -1001,7 +1001,7 @@ void main() {
                 beats: 8,
                 figures: [
                   Figure(move: 'swing'),
-                  Figure(move: 'roll'),
+                  Figure(move: 'balance'),
                 ],
               ),
               Figure(move: 'balance'),
@@ -1041,7 +1041,7 @@ void main() {
           title: 'My Dance',
           figures: [
             Figure(move: 'swing'),
-            Figure(move: 'roll'),
+            Figure(move: 'balance'),
           ],
           createdAt: now,
           updatedAt: now,
@@ -1053,7 +1053,7 @@ void main() {
           FigureDraft(
             meanwhileSides: [
               FigureDraft(move: 'swing'),
-              FigureDraft(move: 'roll'),
+              FigureDraft(move: 'balance'),
             ],
           ),
           FigureDraft(move: 'balance'),
