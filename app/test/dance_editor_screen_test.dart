@@ -2100,6 +2100,54 @@ void main() {
       expect(saved.figures, isEmpty);
     });
 
+    testWidgets(
+      'deduplicates staged and live tags that resolve to one natural key',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.tags.upsert(Tag(id: 't-live', name: 'Easy'));
+        await repos.dances.create(
+          _dance(id: 'd-reference', title: 'Reference', tagIds: ['t-live']),
+        );
+        const stagedId = 'provisional-easy';
+        final draft = EditorSnapshot(
+          title: 'Drafted Dance',
+          hook: '',
+          notes: '',
+          phrase: '',
+          formationDetail: '',
+          form: DanceForm.contra,
+          formationShape: FormationShape.dupleImproper,
+          progression: Progression.single,
+          status: DanceStatus.active,
+          authorIds: [],
+          tagIds: [stagedId],
+          tunes: [],
+          links: [],
+          sourceCitations: [],
+          customValues: {},
+          figureDrafts: [],
+          stagedTags: [Tag(id: stagedId, name: 'easy')],
+        );
+        await repos.settings.set('editor_draft:new', encodeDraft(draft));
+
+        await _pumpEditor(tester, repos);
+        await tester.tap(find.byKey(const ValueKey('draft-restore')));
+        await tester.pumpAndSettle();
+        await _expandMoreDetails(tester);
+        await tester.enterText(find.byKey(const ValueKey('tag-input')), 'easy');
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('tag-option-t-live')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('save-dance')));
+        await tester.pumpAndSettle();
+
+        final saved = (await repos.dances.listAll()).singleWhere(
+          (dance) => dance.title == 'Drafted Dance',
+        );
+        expect(saved.tagIds, ['t-live']);
+      },
+    );
+
     testWidgets('new dance with no template seeds the default stand_still x8', (
       tester,
     ) async {

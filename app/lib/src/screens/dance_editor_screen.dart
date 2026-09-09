@@ -380,9 +380,13 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           if (!dance.tagIds.contains(tag.id)) continue;
           tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
         }
-        final committedDance = dance.copyWith(
-          tagIds: [for (final id in dance.tagIds) tagIds[id] ?? id],
-        );
+        final committedTagIds = <String>[];
+        final seenTagIds = <String>{};
+        for (final id in dance.tagIds) {
+          final resolvedId = tagIds[id] ?? id;
+          if (seenTagIds.add(resolvedId)) committedTagIds.add(resolvedId);
+        }
+        final committedDance = dance.copyWith(tagIds: committedTagIds);
         await saveDanceWithRelatedLinks(
           _repos,
           dance: committedDance,
