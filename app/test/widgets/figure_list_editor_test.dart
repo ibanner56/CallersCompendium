@@ -1152,6 +1152,30 @@ void main() {
     );
   });
 
+  testWidgets(
+    'modifier drafts count toward phrase beats before materialization',
+    (tester) async {
+      final modifier = FigureDraft(
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll'),
+        ],
+      )..params['beats'] = 16;
+      final drafts = <FigureDraft>[
+        modifier,
+        FigureDraft(move: 'swing', params: {'beats': 16}),
+      ];
+
+      await _pump(tester, drafts);
+
+      expect(find.text('Total: 32 / 64 beats'), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+        'A1',
+      );
+    },
+  );
+
   testWidgets('progression toggle flips the draft flag', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);

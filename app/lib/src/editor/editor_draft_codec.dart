@@ -402,7 +402,11 @@ List<FigureDraftSnapshot> _parseFigureDrafts(Object? raw) {
   return [for (final e in raw) _parseFigureDraftSnapshot(e)];
 }
 
-FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
+FigureDraftSnapshot _parseFigureDraftSnapshot(
+  Object? e, {
+  int containerDepth = 0,
+  String? parentContainerKind,
+}) {
   if (e is! Map) {
     throw const FormatException('figureDraft entry must be an object');
   }
@@ -418,9 +422,42 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
       parsedParams[entry.key.toString()] = entry.value;
     }
   }
+  final containerKind = m['containerKind'];
+  if (containerKind != null &&
+      containerKind != meanwhileMove &&
+      containerKind != modifierMove) {
+    throw FormatException(
+      'figureDraft.containerKind is invalid: $containerKind',
+    );
+  }
   final children = m['children'];
+  if (containerKind == null && children != null) {
+    throw const FormatException(
+      'figureDraft.children requires a structural container kind',
+    );
+  }
+  if (containerKind != null && children is! List) {
+    throw const FormatException(
+      'figureDraft.children must be an array for structural containers',
+    );
+  }
+  if (containerKind != null && containerDepth >= kMaxContainerDepth) {
+    throw const FormatException('figureDraft container depth is too deep');
+  }
+  if (containerKind != null && containerKind == parentContainerKind) {
+    throw const FormatException('figureDraft containers must alternate kinds');
+  }
   final parsedChildren = children is List
-      ? [for (final child in children) _parseFigureDraftSnapshot(child)]
+      ? [
+          for (final child in children)
+            _parseFigureDraftSnapshot(
+              child,
+              containerDepth: containerKind == null
+                  ? containerDepth
+                  : containerDepth + 1,
+              parentContainerKind: containerKind as String?,
+            ),
+        ]
       : null;
   final note = _str(m, 'note');
   final progression = m['progression'];
@@ -451,8 +488,8 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
     // Additive/tolerant (#411): absent/blank/non-string → no override.
     walkthroughOverride: _optSnippet(m['walkthroughOverride']),
     wordingOverride: _optSnippet(m['wordingOverride']),
-    meanwhileSides: m['containerKind'] == meanwhileMove ? parsedChildren : null,
-    modifierFigures: m['containerKind'] == modifierMove ? parsedChildren : null,
+    meanwhileSides: containerKind == meanwhileMove ? parsedChildren : null,
+    modifierFigures: containerKind == modifierMove ? parsedChildren : null,
   );
 }
 

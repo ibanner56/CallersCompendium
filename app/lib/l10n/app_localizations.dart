@@ -118,6 +118,12 @@ abstract class AppLocalizations {
   /// **'Added a meanwhile container.'**
   String get danceEditorAddedMeanwhileAnnouncement;
 
+  /// Screen-reader announcement after adding a modifier container.
+  ///
+  /// In en, this message translates to:
+  /// **'Added a modifier container.'**
+  String get danceEditorAddedModifierAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:

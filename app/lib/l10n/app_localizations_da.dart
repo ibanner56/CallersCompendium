@@ -16,6 +16,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Et meanwhile-element blev tilføjet.';
 
   @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Et modifier-element blev tilføjet.';
+
+  @override
   String get navCollection => 'Samling';
 
   @override

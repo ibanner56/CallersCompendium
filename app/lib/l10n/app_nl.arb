@@ -8,6 +8,10 @@
   "@danceEditorAddedMeanwhileAnnouncement": {
     "x-sourceSha256": "8e45bc8c30a0603904bd6b08fd02f381d1f3ef7c8c97633033cc6e38d032df9d"
   },
+  "danceEditorAddedModifierAnnouncement": "Een modifier-container is toegevoegd.",
+  "@danceEditorAddedModifierAnnouncement": {
+    "x-sourceSha256": "a7ec5355066df0d57228e379f6e1940cf455d2f61b6afd75b30ad440742341e4"
+  },
   "navCollection": "Collectie",
   "@navCollection": {
     "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -39,6 +41,108 @@ EditorSnapshot _minimalSnapshot({
 
 void main() {
   group('draft codec v6 —', () {
+    test('rejects same-kind nested containers in autosave drafts', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          FigureDraftSnapshot(
+                            id: 'child',
+                            move: null,
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                            modifierFigures: const [],
+                          ),
+                          FigureDraftSnapshot(
+                            id: 'plain',
+                            move: 'swing',
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
+    test('rejects container nesting deeper than two levels', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          FigureDraftSnapshot(
+                            id: 'middle',
+                            move: null,
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                            meanwhileSides: [
+                              FigureDraftSnapshot(
+                                id: 'deep',
+                                move: null,
+                                params: const {},
+                                note: '',
+                                progression: false,
+                                schemaVersion: figureSchemaVersion,
+                                modifierFigures: const [],
+                              ),
+                              FigureDraftSnapshot(
+                                id: 'plain',
+                                move: 'swing',
+                                params: const {},
+                                note: '',
+                                progression: false,
+                                schemaVersion: figureSchemaVersion,
+                              ),
+                            ],
+                          ),
+                          FigureDraftSnapshot(
+                            id: 'plain',
+                            move: 'swing',
+                            params: const {},
+                            note: '',
+                            progression: false,
+                            schemaVersion: figureSchemaVersion,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
     test('encodes and decodes a URL-kind link', () {
       final snapshot = _minimalSnapshot(
         links: [

@@ -1194,19 +1194,17 @@ class DanceEditorController extends ChangeNotifier {
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
   /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). No-op if [draft] isn't found, is already the
-  /// last row, or either row is already a meanwhile group — [FigureListEditor]
-  /// only ever offers this action when neither condition holds, but the
-  /// flat-only invariant is enforced HERE too (#679 review) so it doesn't
-  /// depend solely on the menu item's visibility guard; a caller invoking this
-  /// directly (or a future UI path that forgets the check) can never nest a
-  /// meanwhile inside a meanwhile.
+  /// shared count afterward). Existing modifier groups may be nested as
+  /// concurrent sides, but only when they contain no further container.
   void groupFigureWithNext(FigureDraft draft) {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || index >= figureDrafts.length - 1) return;
     final first = figureDrafts[index];
     final second = figureDrafts[index + 1];
-    if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
+    if (!first.canNestInContainer(modifierParent: false) ||
+        !second.canNestInContainer(modifierParent: false)) {
+      return;
+    }
     final group = FigureDraft(meanwhileSides: [first, second]);
     group.params['beats'] = first.beats;
     group.beatsTouched = first.beatsTouched;
@@ -1221,14 +1219,17 @@ class DanceEditorController extends ChangeNotifier {
   }
 
   /// Groups a top-level figure with the following row as an ordered modifier
-  /// container. Existing structural groups are excluded so nesting remains
-  /// alternating and bounded.
+  /// container. Existing meanwhile groups may be nested as ordered children
+  /// when they contain no further container.
   void groupFigureWithNextAsModifier(FigureDraft draft) {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || index >= figureDrafts.length - 1) return;
     final first = figureDrafts[index];
     final second = figureDrafts[index + 1];
-    if (first.isContainerDraft || second.isContainerDraft) return;
+    if (!first.canNestInContainer(modifierParent: true) ||
+        !second.canNestInContainer(modifierParent: true)) {
+      return;
+    }
     final group = FigureDraft(modifierFigures: [first, second]);
     group.params['beats'] = first.beats;
     group.beatsTouched = first.beatsTouched;

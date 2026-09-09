@@ -15,6 +15,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddedMeanwhileAnnouncement => 'Meanwhileコンテナを追加しました。';
 
   @override
+  String get danceEditorAddedModifierAnnouncement => 'モディファイアコンテナを追加しました。';
+
+  @override
   String get navCollection => 'コレクション';
 
   @override

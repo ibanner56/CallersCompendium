@@ -16,6 +16,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Added a meanwhile container.';
 
   @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Added a modifier container.';
+
+  @override
   String get navCollection => 'Collection';
 
   @override

@@ -249,6 +249,16 @@ void main() {
       final restored = meanwhileSideFiguresFromStored(encodeFigures([nested]));
       expect(restored, hasLength(2));
       expect(restored.every((figure) => figure.move == 'stand_still'), isTrue);
+
+      final modifier = Figure.modifier(figures: sides, beats: 8);
+      final modifierRestored = meanwhileSideFiguresFromStored(
+        encodeFigures([modifier]),
+      );
+      expect(modifierRestored, hasLength(2));
+      expect(
+        modifierRestored.every((figure) => figure.move == 'stand_still'),
+        isTrue,
+      );
     });
   });
 

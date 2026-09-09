@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:collection/collection.dart';
 
 import '../dialect/dialect.dart';
@@ -84,7 +86,7 @@ String figureCanonicalKey(Figure figure, Taxonomy taxonomy) {
     final childKeys = figure.subFigures.map(
       (child) => figureCanonicalKey(child, taxonomy),
     );
-    return '${figure.move}(${childKeys.join('|')})';
+    return '${figure.move}(${jsonEncode(childKeys.toList())})';
   }
   if (figure.isCustom) {
     final rawText = figure.params['text'];

@@ -16,6 +16,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een meanwhile-container is toegevoegd.';
 
   @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Een modifier-container is toegevoegd.';
+
+  @override
   String get navCollection => 'Collectie';
 
   @override

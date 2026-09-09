@@ -16,6 +16,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Conteneur meanwhile ajouté.';
 
   @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Conteneur de modificateur ajouté.';
+
+  @override
   String get navCollection => 'Collection';
 
   @override

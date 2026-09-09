@@ -332,12 +332,17 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
       final raw = jsonDecode(stored);
       if (raw is! List ||
           raw.length > kMaxMeanwhileSides ||
-          raw.any((entry) => entry is! Map || entry['move'] == meanwhileMove)) {
+          raw.any(
+            (entry) =>
+                entry is! Map ||
+                entry['move'] == meanwhileMove ||
+                entry['move'] == modifierMove,
+          )) {
         return defaultMeanwhileSideFigures();
       }
       final figures = decodeFigures(stored);
       if (figures.length <= kMaxMeanwhileSides &&
-          figures.every((figure) => !figure.isMeanwhile)) {
+          figures.every((figure) => !figure.isContainer)) {
         return figures;
       }
     } catch (_) {
@@ -350,7 +355,7 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
 /// Encodes ordinary meanwhile-side defaults for settings storage.
 String encodeMeanwhileSideFigures(List<Figure> figures) => encodeFigures([
   for (final figure in figures)
-    if (!figure.isMeanwhile) figure,
+    if (!figure.isContainer) figure,
 ]);
 
 /// The safe fallback for a newly inserted modifier when no valid preference

@@ -282,7 +282,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       _dismissFreeText(focusAddButton: widget.allowAdding);
     }
 
-    _openPendingMeanwhileDraft(rebuild: false);
+    _openPendingMeanwhileDraft(rebuild: false, modifier: false);
   }
 
   @override
@@ -431,7 +431,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     final draftId = await onAddMeanwhile();
     if (!mounted || draftId == null) return;
     _pendingMeanwhileDraftIds.add(draftId);
-    _openPendingMeanwhileDraft(rebuild: true);
+    _openPendingMeanwhileDraft(rebuild: true, modifier: false);
   }
 
   Future<void> _addModifier() async {
@@ -440,10 +440,13 @@ class _FigureListEditorState extends State<FigureListEditor> {
     final draftId = await onAddModifier();
     if (!mounted || draftId == null) return;
     _pendingMeanwhileDraftIds.add(draftId);
-    _openPendingMeanwhileDraft(rebuild: true);
+    _openPendingMeanwhileDraft(rebuild: true, modifier: true);
   }
 
-  void _openPendingMeanwhileDraft({required bool rebuild}) {
+  void _openPendingMeanwhileDraft({
+    required bool rebuild,
+    required bool modifier,
+  }) {
     final ready = _pendingMeanwhileDraftIds
         .where((id) => widget.drafts.any((draft) => draft.id == id))
         .toList();
@@ -458,7 +461,11 @@ class _FigureListEditorState extends State<FigureListEditor> {
       openDraft();
     }
     _ensureVisibleSoon(draftId);
-    _announce(_l10n.danceEditorAddedMeanwhileAnnouncement);
+    _announce(
+      modifier
+          ? _l10n.danceEditorAddedModifierAnnouncement
+          : _l10n.danceEditorAddedMeanwhileAnnouncement,
+    );
   }
 
   Widget _buildAddAffordance(BuildContext context, {required bool empty}) {
@@ -630,7 +637,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       );
     }
 
-    // Derive a phrase label per move-bearing draft or meanwhile container by
+    // Derive a phrase label per move-bearing draft or structural container by
     // walking cumulative beats, mirroring deriveSections while keeping the
     // draft↔row map.
     // `sectionStart` marks the first figure of each section so the label gutter
@@ -644,7 +651,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     String? lastLabel;
     if (widget.showPhraseStructure) {
       for (final draft in drafts) {
-        if (draft.move == null && !draft.isMeanwhileGroup) {
+        if (draft.move == null && !draft.isContainerDraft) {
           labels[draft.id] = null;
           sectionStart[draft.id] = false;
           continue;
@@ -706,16 +713,16 @@ class _FigureListEditorState extends State<FigureListEditor> {
         showWordingOverride: widget.showWordingOverride,
         onGroupWithNext:
             (widget.onGroupWithNext == null ||
-                draft.isContainerDraft ||
                 i == drafts.length - 1 ||
-                drafts[i + 1].isContainerDraft)
+                !draft.canNestInContainer(modifierParent: false) ||
+                !drafts[i + 1].canNestInContainer(modifierParent: false))
             ? null
             : () => widget.onGroupWithNext!(draft),
         onGroupWithNextAsModifier:
             (widget.onGroupWithNextAsModifier == null ||
-                draft.isContainerDraft ||
                 i == drafts.length - 1 ||
-                drafts[i + 1].isContainerDraft)
+                !draft.canNestInContainer(modifierParent: true) ||
+                !drafts[i + 1].canNestInContainer(modifierParent: true))
             ? null
             : () => widget.onGroupWithNextAsModifier!(draft),
         onCollapseMeanwhileGroup: widget.onCollapseMeanwhileGroup,

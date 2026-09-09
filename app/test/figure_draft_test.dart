@@ -280,5 +280,17 @@ void main() {
       )..params['beats'] = 8;
       expect(draft.toFigure()!.subFigures.first.isMeanwhile, isTrue);
     });
+
+    test('preserves unknown container parameters on open/save', () {
+      final draft = FigureDraft(
+        params: {'beats': 8, 'future': 'keep-me'},
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll'),
+        ],
+      );
+
+      expect(draft.toFigure()!.params['future'], 'keep-me');
+    });
   });
 }

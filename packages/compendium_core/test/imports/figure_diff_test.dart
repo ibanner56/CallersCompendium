@@ -146,6 +146,19 @@ void main() {
       expect(figureCanonicalKey(a, tax), figureCanonicalKey(b, tax));
     });
 
+    test('modifier child keys are collision-safe for custom text', () {
+      final a = Figure.modifier(
+        beats: 8,
+        figures: [customFigure('a'), customFigure('b|custom:c')],
+      );
+      final b = Figure.modifier(
+        beats: 8,
+        figures: [customFigure('a|custom:b'), customFigure('c')],
+      );
+
+      expect(figureCanonicalKey(a, tax), isNot(figureCanonicalKey(b, tax)));
+    });
+
     test('unknown move still gets a comparable key (never throws/null)', () {
       // invalid-fixture: move is deliberately outside the taxonomy — unknown move still gets a comparable key (never throws/null)
       final a = Figure(move: 'some_future_move', params: {'foo': 'bar'});

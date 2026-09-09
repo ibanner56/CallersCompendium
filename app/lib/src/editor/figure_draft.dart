@@ -132,6 +132,25 @@ class FigureDraft {
   /// Whether this draft is either structural container kind.
   bool get isContainerDraft => isMeanwhileGroup || isModifierGroup;
 
+  /// Whether any descendant of this draft is a structural container.
+  bool get hasNestedContainer {
+    final children = meanwhileSides ?? modifierFigures;
+    return children?.any(
+          (child) => child.isContainerDraft || child.hasNestedContainer,
+        ) ??
+        false;
+  }
+
+  /// Whether this draft can be a direct child of the requested container kind.
+  ///
+  /// Structural children must alternate kinds and may not introduce a third
+  /// container level.
+  bool canNestInContainer({required bool modifierParent}) {
+    if (!isContainerDraft) return true;
+    final oppositeKind = modifierParent ? isMeanwhileGroup : isModifierGroup;
+    return oppositeKind && !hasNestedContainer;
+  }
+
   int get beats => (params['beats'] as int?) ?? 0;
 
   /// Returns an independent copy with a FRESH [id] (the stable-identity
@@ -236,10 +255,14 @@ class FigureDraft {
           ? readyChildren.sublist(0, kMaxMeanwhileSides)
           : readyChildren;
       final trimmedNote = canonicalizeNote(note);
+      final extraParams = Map<String, Object?>.of(params)
+        ..remove('beats')
+        ..remove('figures');
       return modifierFigures != null
           ? Figure.modifier(
               figures: cappedChildren,
               beats: beats,
+              extraParams: extraParams,
               note: trimmedNote.isEmpty ? null : trimmedNote,
               progression: progression,
               wordingOverride: _trimOptionalOverride(wordingOverride),
@@ -247,6 +270,7 @@ class FigureDraft {
           : Figure.meanwhile(
               figures: cappedChildren,
               beats: beats,
+              extraParams: extraParams,
               note: trimmedNote.isEmpty ? null : trimmedNote,
               progression: progression,
               wordingOverride: _trimOptionalOverride(wordingOverride),

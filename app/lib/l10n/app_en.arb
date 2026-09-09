@@ -8,6 +8,10 @@
   "@danceEditorAddedMeanwhileAnnouncement": {
     "description": "Screen-reader announcement after adding a meanwhile container."
   },
+  "danceEditorAddedModifierAnnouncement": "Added a modifier container.",
+  "@danceEditorAddedModifierAnnouncement": {
+    "description": "Screen-reader announcement after adding a modifier container."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
