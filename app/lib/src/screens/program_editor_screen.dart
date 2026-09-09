@@ -1217,24 +1217,31 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
   Future<void> _refreshPerformedAtForUndo(Set<String> markedSlotIds) async {
     final readGeneration = _editGeneration;
-    final slotsAtReadStart = {for (final slot in _slots) slot.id: slot};
+    final performedAtAtReadStart = {
+      for (final slot in _slots) slot.id: slot.performedAt,
+    };
     final live = await _repos.programs.getById(_existing!.id);
     if (!mounted || live == null) return;
     final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
     final editDuringRead = _editGeneration != readGeneration;
+    final refreshedSlots = <ProgramSlot>[];
+    for (final slot in _slots) {
+      if (!markedSlotIds.contains(slot.id)) {
+        refreshedSlots.add(slot);
+        continue;
+      }
+      final performedAt =
+          editDuringRead && performedAtAtReadStart[slot.id] != slot.performedAt
+          ? slot.performedAt
+          : liveSlotsById[slot.id]?.performedAt;
+      refreshedSlots.add(
+        performedAt == null
+            ? slot.copyWith(clearPerformedAt: true)
+            : slot.copyWith(performedAt: performedAt),
+      );
+    }
     setState(() {
-      _slots = [
-        for (final slot in _slots)
-          if (!markedSlotIds.contains(slot.id))
-            slot
-          else if (editDuringRead && slotsAtReadStart[slot.id] != slot)
-            slot
-          else
-            switch (liveSlotsById[slot.id]?.performedAt) {
-              null => slot.copyWith(clearPerformedAt: true),
-              final performedAt => slot.copyWith(performedAt: performedAt),
-            },
-      ];
+      _slots = refreshedSlots;
     });
   }
 
