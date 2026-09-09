@@ -253,6 +253,11 @@ if [ "$compressed_boundary_size" -ne 16777217 ]; then
   exit 1
 fi
 truncate -s 16777216 "$compressed_boundary_raw"
+compressed_boundary_size=$(wc -c < "$compressed_boundary_raw")
+if [ "$compressed_boundary_size" -ne 16777216 ]; then
+  echo "compressed boundary fixture is ${compressed_boundary_size} bytes after trimming" >&2
+  exit 1
+fi
 gzip -c "$compressed_boundary_raw" > "$compressed_boundary"
 expect_json_status 400 "compressed 16 MiB body reaches Athenaeum" \
   "$boundary_response" \
