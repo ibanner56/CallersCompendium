@@ -150,6 +150,25 @@ void main() {
       );
     });
 
+    test('adapter rejects a record with an undefined difficulty level', () {
+      final root = _root();
+      final dance = Map<String, Object?>.from(
+        (root['dances'] as List).single as Map,
+      )..['difficultyLevelId'] = 'missing-level';
+      root['dances'] = [dance];
+
+      final adapter = PublishedCollectionAdapter(metadata);
+      expect(
+        () => adapter.parse(
+          RawRecord(
+            source: ProvenanceSource.publishedCollection,
+            payload: _json(root),
+          ),
+        ),
+        throwsA(isA<ImportError>()),
+      );
+    });
+
     test('rejects embedded published provenance', () {
       final root = _root();
       final dance = Map<String, Object?>.from(
