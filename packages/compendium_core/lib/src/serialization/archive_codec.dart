@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
@@ -55,7 +56,8 @@ String encodeArchive(
   ArchiveSerializationMode mode = ArchiveSerializationMode.share,
 }) => jsonEncode(archiveToJson(archive, mode: mode));
 
-/// The canonical JSON object for [archive] (entities sorted by id).
+/// The canonical JSON object for [archive] (unordered entities sorted by ID;
+/// difficulty levels retain their configured order).
 ///
 /// In [ArchiveSerializationMode.share], fields where
 /// [CustomFieldDef.shareable] is `false` are excluded from the encoded output:
@@ -92,6 +94,14 @@ Map<String, Object?> archiveToJson(
       for (final t in _sortedById(archive.tags, (t) => t.id))
         archiveTagToJson(t),
     ],
+    // Difficulty levels are an ordered vocabulary, not an unordered entity
+    // collection: position (and then id from repository reads) defines display
+    // order, so preserve the caller's supplied sequence.
+    if (archive.difficultyLevels.isNotEmpty)
+      'difficultyLevels': [
+        for (final level in archive.difficultyLevels)
+          archiveDifficultyLevelToJson(level),
+      ],
     'customFields': [
       for (final f in _sortedById(archive.customFields, (f) => f.id))
         if (mode == ArchiveSerializationMode.backup || f.shareable)
@@ -232,6 +242,17 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings,
     dropped,
   );
+  final decodedDifficultyLevels = _withoutDuplicateDifficultyLevels(
+    _decodeList(
+      root['difficultyLevels'],
+      'difficultyLevel',
+      _difficultyLevelFromJson,
+      errors,
+      warnings,
+      dropped,
+    ),
+    errors,
+  );
   final dances = _decodeList(
     root['dances'],
     'dance',
@@ -248,6 +269,27 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
   // restore (silent data loss). Clamping is deterministic, so a value clamped
   // identically to its option stays valid.
   final clampedDances = _clampDanceChoiceValues(dances, customFields);
+  final decodedDifficultyLevelIds = {
+    for (final level in decodedDifficultyLevels) level.id,
+  };
+  final difficultyLevels = <DifficultyLevel>[
+    ...decodedDifficultyLevels,
+    if (schemaVersion < archiveSchemaVersionDifficultyLevels)
+      for (final level in DifficultyLevel.shipped)
+        if (decodedDifficultyLevelIds.add(level.id) &&
+            clampedDances.any((dance) => dance.difficultyLevelId == level.id))
+          level,
+  ];
+  final knownDifficultyLevelIds = <String>{
+    if (schemaVersion < archiveSchemaVersionDifficultyLevels)
+      ...DifficultyLevel.shippedIds,
+    for (final level in difficultyLevels) level.id,
+  };
+  _reportUnknownDifficultyLevelReferences(
+    clampedDances,
+    knownDifficultyLevelIds,
+    errors,
+  );
   final programs = _decodeList(
     root['programs'],
     'program',
@@ -279,11 +321,72 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
       customFields: customFields,
       tags: tags,
       venues: venues,
+      difficultyLevels: difficultyLevels,
     ),
     errors: errors,
     warnings: warnings,
     droppedEntities: dropped,
   );
+}
+
+DifficultyLevel _difficultyLevelFromJson(Map<String, Object?> m) {
+  final id = _str(m, 'id');
+  if (id.trim().isEmpty) {
+    throw const FormatException('difficulty level "id" must be non-empty');
+  }
+  final label = _str(m, 'label');
+  if (label.trim().isEmpty) {
+    throw const FormatException('difficulty level "label" must be non-empty');
+  }
+  final position = _int(m, 'position');
+  if (position < 0) {
+    throw const FormatException(
+      'difficulty level "position" must not be negative',
+    );
+  }
+  return DifficultyLevel(id: id, label: label, position: position);
+}
+
+List<DifficultyLevel> _withoutDuplicateDifficultyLevels(
+  List<DifficultyLevel> levels,
+  List<ArchiveError> errors,
+) {
+  final seen = <String>{};
+  final unique = <DifficultyLevel>[];
+  for (final level in levels) {
+    if (seen.add(level.id)) {
+      unique.add(level);
+      continue;
+    }
+    errors.add(
+      ArchiveError(
+        kind: ArchiveErrorKind.read,
+        entityType: 'difficultyLevel',
+        entityId: level.id,
+        message: 'duplicate id; later entry skipped',
+      ),
+    );
+  }
+  return unique;
+}
+
+void _reportUnknownDifficultyLevelReferences(
+  List<Dance> dances,
+  Set<String> knownLevelIds,
+  List<ArchiveError> errors,
+) {
+  for (final dance in dances) {
+    final levelId = dance.difficultyLevelId;
+    if (levelId == null || knownLevelIds.contains(levelId)) continue;
+    errors.add(
+      ArchiveError(
+        kind: ArchiveErrorKind.read,
+        entityType: 'dance',
+        entityId: dance.id,
+        message: 'references unknown difficulty level "$levelId"',
+      ),
+    );
+  }
 }
 
 /// Soft-clamps each dance's `choice` custom-field values to
@@ -519,9 +622,7 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
     DanceStatus.active,
     'status',
   ),
-  level: m['level'] == null
-      ? null
-      : _enumByName(DanceLevel.values, _str(m, 'level'), 'level'),
+  difficultyLevelId: _difficultyLevelIdFromJson(m),
   mixedLevel: _boolOr(m, 'mixedLevel', false),
   mixer: _boolOr(m, 'mixer', false),
   rating: _intOrNull(m, 'rating'),
@@ -539,6 +640,19 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   updatedAt: _dt(m, 'updatedAt'),
   deletedAt: _dtOrNull(m, 'deletedAt'),
 );
+
+String? _difficultyLevelIdFromJson(Map<String, Object?> m) {
+  final id = _strOrNull(m, 'difficultyLevelId');
+  if (id != null) return id;
+  final legacyLevel = _strOrNull(m, 'level');
+  if (legacyLevel == null) return null;
+  return switch (legacyLevel) {
+    'beginner' => DifficultyLevel.beginnerId,
+    'intermediate' => DifficultyLevel.intermediateId,
+    'advanced' => DifficultyLevel.advancedId,
+    _ => throw _UnknownEnumValueException('level', legacyLevel),
+  };
+}
 
 Formation _formationFromJson(Object? raw) {
   if (raw == null) return const Formation(FormationShape.dupleImproper);

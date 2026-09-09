@@ -26,6 +26,7 @@ typedef CustomFieldDisplay = ({String label, String value});
 class DanceDetailData {
   DanceDetailData({
     required this.dance,
+    this.difficultyLevel,
     required this.authorNames,
     required this.tagNames,
     this.tags = const [],
@@ -40,6 +41,7 @@ class DanceDetailData {
   });
 
   final Dance dance;
+  final DifficultyLevel? difficultyLevel;
   final List<String> authorNames;
   final List<String> tagNames;
 
@@ -188,6 +190,9 @@ class DanceDetailData {
     final choreographers = await repos.choreographers.listAll();
     final tags = await repos.tags.listAll();
     final fieldDefs = await repos.customFieldDefs.listAll();
+    final difficultyLevel = dance.difficultyLevelId == null
+        ? null
+        : await repos.difficultyLevels.getById(dance.difficultyLevelId!);
     final choreographerNames = {for (final c in choreographers) c.id: c.name};
     final tagNames = {for (final t in tags) t.id: t.name};
     final tagsById = {for (final t in tags) t.id: t};
@@ -241,6 +246,7 @@ class DanceDetailData {
 
     return DanceDetailData(
       dance: dance,
+      difficultyLevel: difficultyLevel,
       authorNames: [
         for (final id in dance.authorIds)
           if (choreographerNames[id] != null) choreographerNames[id]!,

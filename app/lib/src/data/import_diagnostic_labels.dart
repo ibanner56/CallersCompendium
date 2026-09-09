@@ -37,6 +37,7 @@ const Set<String> mappedImportIssueCodes = {
   'cc_date_assumed_mdy',
   'cc_date_reduced_precision',
   'cc_missing_title',
+  'cc_inactive_level',
   'cc_program_empty_slot',
   'cc_program_unparsed_date',
   'cc_program_unresolved_dance',
@@ -128,6 +129,7 @@ String? _localizedImportIssue(AppLocalizations l10n, ImportIssue issue) {
     case 'cc_unmapped_formation':
       return l10n.importIssueUnmappedFormation;
     case 'cc_unmapped_level':
+    case 'cc_inactive_level':
       return l10n.importIssueUnmappedLevel;
     case 'cc_unmapped_progression':
       return l10n.importIssueUnmappedProgression;

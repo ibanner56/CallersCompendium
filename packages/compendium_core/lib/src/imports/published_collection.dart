@@ -5,6 +5,7 @@ import 'package:meta/meta.dart';
 import '../model/collection_import_event.dart';
 import '../model/choreographer.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../serialization/archive_codec.dart';
 import '../serialization/compendium_archive.dart';
@@ -73,6 +74,7 @@ class PublishedCollectionArchive {
       'choreographers',
       'programs',
       'venues',
+      'difficultyLevels',
       'publishedSources',
       'customFields',
       'tags',
@@ -126,8 +128,7 @@ class PublishedCollectionArchive {
 
     final result = decodeArchive(payload);
     for (final error in result.errors) {
-      if (error.entityType == 'archive' &&
-          error.kind == ArchiveErrorKind.read) {
+      if (error.kind == ArchiveErrorKind.read) {
         throw _invalid(
           'Published collection archive could not be decoded: $error',
         );
@@ -211,6 +212,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
   final PublishedCollectionMetadata metadata;
   final Map<String, Dance> _dancesById = {};
   final Map<String, Choreographer> _choreographersById = {};
+  final Map<String, DifficultyLevel> _difficultyLevelsById = {};
   int _schemaVersion = archiveSchemaVersion;
 
   @override
@@ -242,6 +244,9 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
     _choreographersById.addEntries(
       archive.choreographers.map((c) => MapEntry(c.id, c)),
     );
+    _difficultyLevelsById.addEntries(
+      archive.difficultyLevels.map((l) => MapEntry(l.id, l)),
+    );
     return [
       for (final dance in archive.dances)
         DiscoveredRecord(
@@ -256,6 +261,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
   void clearCache() {
     _dancesById.clear();
     _choreographersById.clear();
+    _difficultyLevelsById.clear();
   }
 
   @override
@@ -269,6 +275,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       );
     }
     final dance = _dancesById[id]!;
+    final difficultyLevelId = dance.difficultyLevelId;
     return RawRecord(
       source: source,
       externalId: '${metadata.collectionId}/$id',
@@ -285,6 +292,11 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
               if (_choreographersById[authorId] != null)
                 _choreographersById[authorId]!,
           ],
+          difficultyLevels: [
+            if (difficultyLevelId != null &&
+                _difficultyLevelsById[difficultyLevelId] != null)
+              _difficultyLevelsById[difficultyLevelId]!,
+          ],
         ),
         mode: ArchiveSerializationMode.share,
       ),
@@ -296,7 +308,9 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
   StructuredDraft parse(RawRecord raw) {
     final result = decodeArchive(raw.payload);
     final rootError = _rootReadError(result);
-    if (rootError != null || result.archive.dances.length != 1) {
+    if (rootError != null ||
+        result.errors.any((error) => error.kind == ArchiveErrorKind.read) ||
+        result.archive.dances.length != 1) {
       throw parseError(
         source,
         'Published collection record does not contain exactly one dance.',
@@ -304,6 +318,13 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       );
     }
     final dance = result.archive.dances.single;
+    DifficultyLevel? difficultyLevel;
+    for (final level in result.archive.difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) {
+        difficultyLevel = level;
+        break;
+      }
+    }
     final names = <String>[];
     final seen = <String>{};
     final namesById = {
@@ -313,12 +334,19 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       final name = namesById[id]?.trim();
       if (seen.add(id) && name != null && name.isNotEmpty) names.add(name);
     }
-    return StructuredDraft(dance: dance, raw: raw, authorNames: names);
+    return StructuredDraft(
+      dance: dance,
+      raw: raw,
+      authorNames: names,
+      difficultyLevelLabel: difficultyLevel?.label,
+      difficultyLevelIdIsCanonical: difficultyLevel != null,
+    );
   }
 
   static ArchiveError? _rootReadError(ArchiveReadResult result) {
     for (final error in result.errors) {
-      if (error.entityType == 'archive' &&
+      if ((error.entityType == 'archive' ||
+              error.entityType == 'difficultyLevel') &&
           error.kind == ArchiveErrorKind.read) {
         return error;
       }

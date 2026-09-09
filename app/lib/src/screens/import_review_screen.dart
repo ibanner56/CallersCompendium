@@ -361,7 +361,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         final hasMetadata =
             archive.tags.isNotEmpty ||
             archive.publishedSources.isNotEmpty ||
-            archive.customFields.isNotEmpty;
+            archive.customFields.isNotEmpty ||
+            archive.difficultyLevels.isNotEmpty;
         if (!hasRootError &&
             (archive.programs.isNotEmpty ||
                 (archive.dances.isNotEmpty && hasMetadata))) {
@@ -731,7 +732,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _planError = null;
     });
     try {
-      final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+      final pipeline = ImportPipeline(
+        _repos.dances,
+        _repos.choreographers,
+        difficultyLevels: _repos.difficultyLevels,
+      );
       final index = await pipeline.buildDedupeIndex();
       // Byte sources (Caller's Companion `.USR`) carry the raw file on
       // `options['bytes']`; text sources carry the pasted/fetched payload.
@@ -742,6 +747,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _selected.adapterFactory(),
         request,
         index: index,
+        preserveCanonicalDifficultyIds: _effectiveSharedBundle != null,
       );
       await _adoptBatch(batch);
     } catch (e, stackTrace) {
@@ -1183,6 +1189,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// committed so the batch [_commit] never writes it again, and the live
   /// Collection is refreshed both after the commit and after the editor returns.
   Future<void> _editRow(int i) async {
+    if (_effectiveSharedBundle != null) return;
     final planned = _planForRow(i);
     // Edit is disabled for skipped rows, so there is nothing to commit.
     if (planned == null) return;
@@ -1193,7 +1200,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // Edit is a single-dance affordance, so it always uses the adapter-agnostic
     // dance commit path — even for the Caller's Companion `.USR` byte source,
     // whose programs remain the batch Import button's responsibility.
-    final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+    final pipeline = ImportPipeline(
+      _repos.dances,
+      _repos.choreographers,
+      difficultyLevels: _repos.difficultyLevels,
+    );
     try {
       final session = await pipeline.commit(
         ImportBatchResult(records: [plan]),
@@ -1251,7 +1262,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _buildCommitBatch();
     widget.onCommitStateChanged?.call(true);
     setState(() => _phase = _Phase.committing);
-    final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+    final pipeline = ImportPipeline(
+      _repos.dances,
+      _repos.choreographers,
+      difficultyLevels: _repos.difficultyLevels,
+    );
     // Commit/undo routing is gated on the concrete adapter type — NOT on
     // `_isByteSource` — so only Caller's Companion `.USR` persists/undoes
     // programs. A hypothetical future dance-only byte source would fall through
@@ -1489,6 +1504,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       tags: _repos.tags,
       sources: _repos.publishedSources,
       customFields: _repos.customFieldDefs,
+      difficultyLevels: _repos.difficultyLevels,
     );
     final result = await importer.commit(
       commitBatch,

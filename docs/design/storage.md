@@ -21,8 +21,11 @@ lives in the core package; all access through repositories.*
 
 ```sql
 dances(id PK, title, form, formation_base, formation_detail, progression,
-       phrase_structure, figures_json, hook, calling_notes, status, tunes_json,
+       phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
+       tunes_json,
        created_at, updated_at, deleted_at, existence_at)
+difficulty_levels(id PK, label UNIQUE, position,
+                  updated_at, deleted_at, existence_at)
 choreographers(id PK, name UNIQUE, website, notes,
                updated_at, deleted_at, existence_at)
 dance_authors(dance_id, choreographer_id, position,
@@ -459,13 +462,22 @@ can still fire.
   rows remain `NULL` because their text-only meaning is ambiguous. New purge
   captions are marked so ordinary text-only announcements can receive
   display-only discouraged-term conversion without rewriting tombstone titles.
+- v34 (issue #1200): replaces `dances.level`'s fixed enum-name storage with
+  the `difficulty_levels` vocabulary and nullable `dances.level_id` reference,
+  including Device Sync timestamps. The migration seeds immutable IDs for
+  Beginner, Intermediate, and Advanced, then maps every valid legacy enum name
+  to that ID. Invalid legacy names abort the migration rather than being
+  discarded. The foreign key and repository write guard reject dangling IDs;
+  repository deletion is transactional and refuses a level used by any dance,
+  including a tombstoned dance that could be restored later.
 
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
-sources, custom field definitions, venues and settings keys — carries three
-timestamps as of schema v25 (issue #898). They answer three different questions
-and are deliberately not collapsed into fewer columns:
+sources, custom field definitions, difficulty levels, venues and settings keys —
+carries three timestamps. Most kinds gained this shape in schema v25 (issue
+#898); difficulty levels gained the same triple in v34. They answer three
+different questions and are deliberately not collapsed into fewer columns:
 
 | Column | Question it answers |
 | --- | --- |

@@ -2,6 +2,7 @@ import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/difficulty_level.dart';
 import '../model/formation.dart';
 import '../model/program.dart';
 import '../model/provenance.dart';
@@ -65,6 +66,13 @@ Map<String, Object?> archiveCustomFieldDefToJson(
   if (includeShareable) 'shareable': f.shareable,
 };
 
+/// Builds the archive-shaped body for a difficulty-level definition.
+Map<String, Object?> archiveDifficultyLevelToJson(DifficultyLevel level) => {
+  'id': level.id,
+  'label': level.label,
+  'position': level.position,
+};
+
 /// Builds the archive-shaped body for a dance.
 Map<String, Object?> archiveDanceToJson(
   Dance d,
@@ -86,7 +94,8 @@ Map<String, Object?> archiveDanceToJson(
   'callingNotes': d.callingNotes,
   'walkthrough': d.walkthrough,
   'status': d.status.name,
-  if (includeOptionalFields || d.level != null) 'level': d.level?.name,
+  if (includeOptionalFields || d.difficultyLevelId != null)
+    'difficultyLevelId': d.difficultyLevelId,
   'mixedLevel': d.mixedLevel,
   'mixer': d.mixer,
   if (includeOptionalFields || d.rating != null) 'rating': d.rating,

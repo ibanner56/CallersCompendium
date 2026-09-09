@@ -10,7 +10,7 @@ final _stamp = DateTime.utc(2026, 7, 15, 12);
 
 void main() {
   group('record blobs', () {
-    test('encode canonicalizes bytes and decodes all eight kinds', () {
+    test('encode canonicalizes bytes and decodes all nine kinds', () {
       final blobs = <SyncRecordBlob>[
         syncRecordBlobForEntity(
           SyncRecordKind.dance,
@@ -46,6 +46,12 @@ void main() {
         syncRecordBlobForEntity(
           SyncRecordKind.customFieldDef,
           _customField(),
+          updatedAt: _stamp,
+          existenceAt: _stamp,
+        )!,
+        syncRecordBlobForEntity(
+          SyncRecordKind.difficultyLevel,
+          _difficultyLevel(),
           updatedAt: _stamp,
           existenceAt: _stamp,
         )!,
@@ -90,7 +96,7 @@ void main() {
         allowedCustomFieldIds: {'cf'},
       );
 
-      expect(body, containsPair('level', isNull));
+      expect(body, containsPair('difficultyLevelId', isNull));
       expect(body, containsPair('rating', isNull));
       expect(
         body,
@@ -191,6 +197,27 @@ void main() {
           (archiveToJson(archive)['dances']! as List<Object?>).single
               as Map<String, Object?>;
       expect(archiveBody, archiveDanceToJson(_dance(), const {}));
+    });
+
+    test('difficulty-level blobs retain tombstone envelope fields', () {
+      final blob = syncRecordBlobForEntity(
+        SyncRecordKind.difficultyLevel,
+        _difficultyLevel(),
+        updatedAt: _stamp,
+        deletedAt: _stamp,
+        existenceAt: _stamp,
+      )!;
+
+      expect(blob.deletedAt, _stamp);
+      expect(blob.body, {
+        'id': DifficultyLevel.intermediateId,
+        'label': 'Intermediate',
+        'position': 1,
+      });
+      expect(
+        decodeSyncRecordBlob(encodeSyncRecordBlob(blob)).deletedAt,
+        _stamp,
+      );
     });
 
     group('entity admission', () {
@@ -446,5 +473,7 @@ CustomFieldDef _customField({bool shareable = true}) => CustomFieldDef(
   type: CustomFieldType.number,
   shareable: shareable,
 );
+
+DifficultyLevel _difficultyLevel() => DifficultyLevel.intermediate;
 
 Venue _venue() => Venue(id: 'v1', name: 'Hall', address1: 'private address');
