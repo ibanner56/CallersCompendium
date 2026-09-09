@@ -377,6 +377,42 @@ void main() {
       expect(loaded.slots[2].performedAt, actionAt);
       expect(loaded.slots[3].performedAt, DateTime.utc(2025, 12, 31, 20));
     });
+
+    test('does not roll back a soft-deleted program', () async {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final deletedAt = DateTime.utc(2026, 1, 1, 21);
+      final program = sampleProgram(
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Keep history',
+            performedAt: actionAt,
+          ),
+        ],
+      );
+      await repo.create(program);
+      await repo.softDelete(program.id, at: deletedAt);
+      final beforeRollback = await repo.getById(
+        program.id,
+        includeDeleted: true,
+      );
+
+      expect(
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1'],
+          performedAt: actionAt,
+          updatedAt: DateTime.utc(2026, 1, 1, 22),
+        ),
+        0,
+      );
+
+      final loaded = await repo.getById(program.id, includeDeleted: true);
+      expect(loaded!.deletedAt, beforeRollback!.deletedAt);
+      expect(loaded.updatedAt, beforeRollback.updatedAt);
+      expect(loaded.slots.single.performedAt, actionAt);
+    });
   });
 
   group('listAll', () {
