@@ -350,7 +350,11 @@ class DanceRepository {
     );
     // v25 (#870): normalise move ids for inverse-pair aliases before
     // persisting. This is the single convergence point for all figure writers.
-    final normalisedDance = _normaliseMoveIds(dance);
+    // v34 (#1193): normalize legacy assumed mad robins here as well as in the
+    // one-time sweep, so restores and later imports cannot reintroduce them.
+    final normalisedDance = normaliseTaxonomyV34Public(
+      _normaliseMoveIds(dance),
+    );
     await _db
         .into(_db.dances)
         .insertOnConflictUpdate(

@@ -610,15 +610,12 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // rotation sense is meaningless — mirroring how `destination` is
         // cleared alongside `singleFile`) can be driven back to "not stated"
         // rather than stuck holding a default it never earned. This makes
-        // `promenade.turn` the FIRST param in the taxonomy to combine a
-        // concrete default with a sentinel-admitting `choices` list — every
-        // other sentinel-admitting param defaults TO the sentinel. The
-        // reconciliation comment in `figure_param_editors.dart` asserted that
-        // invariant; it has been corrected in the same PR that introduces this
-        // exception. The sentinel is reachable only via the automatic
-        // `dir`-driven reset in the editor, never via a user-facing Clear
-        // control (owner ruling) — see the Clear-button gating in
-        // `figure_param_editors.dart`.
+        // `mad_robin.who` and `promenade.turn` combine a concrete default with
+        // a sentinel-admitting `choices` list. `mad_robin.who` intentionally
+        // retains the manual Clear affordance because the in-front pair is not
+        // always stated by an import; `promenade.turn` reaches the sentinel
+        // only through the automatic `dir`-driven reset. See the
+        // Clear-button gating in `figure_param_editors.dart`.
         'turn': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'counterclockwise',
@@ -766,6 +763,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
           ParamKind.dancerSet,
           defaultValue: 'role2s',
           choices: _dancerOrUnspecified,
+          // TCB does not always state the in-front pair, so users may clear
+          // the concrete default back to the explicit unspecified sentinel.
         ),
         // ContraDB `once_around`/`circling`: how far you travel around
         // (1.0 == 360°, ContraDB's default). TCB writes "1 & 1/2" / "1/2".

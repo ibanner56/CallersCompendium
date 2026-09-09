@@ -362,8 +362,7 @@ void main() {
         final rewrittenFigures =
             jsonDecode(rewritten.read<String>('figures_json')) as List<dynamic>;
         final rewrittenFirst = rewrittenFigures[0] as Map<String, dynamic>;
-        final rewrittenMeanwhile =
-            rewrittenFigures[1] as Map<String, dynamic>;
+        final rewrittenMeanwhile = rewrittenFigures[1] as Map<String, dynamic>;
         final rewrittenMeanwhileParams =
             rewrittenMeanwhile['params'] as Map<String, dynamic>;
         final rewrittenNested =

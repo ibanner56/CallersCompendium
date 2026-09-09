@@ -22,9 +22,9 @@ import 'package:compendium_core/testing.dart';
 ///   ContraDB's mad robin `who` is a third concept again ("`<who>` in front"),
 ///   which is why TCB's target gets its own `whom` slot.
 ///
-/// Everything added defaults to the `unspecified` sentinel, so a figure that
-/// omits it renders byte-identically to v19 — asserted here against the real
-/// v19 canonical strings.
+/// Optional source facts default to the `unspecified` sentinel. Mad robin's
+/// in-front pair intentionally retains the concrete `role2s` default, while
+/// butterfly whirl's new parameters omit their clauses when unstated.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
@@ -149,7 +149,7 @@ void main() {
       for (final who in ParamVocab.dancerSets) {
         expect(
           tax.validateFigure(
-            Figure(move: 'mad_robin', params: {'who': who}),
+            testFigure(move: 'mad_robin', params: {'who': who}),
           ),
           isEmpty,
           reason: 'mad_robin.who preserves dancer-set token $who',
@@ -157,7 +157,7 @@ void main() {
       }
       expect(
         tax.validateFigure(
-          Figure(
+          testFigure(
             move: 'mad_robin',
             params: const {'who': ParamVocab.unspecified},
           ),
@@ -212,7 +212,8 @@ void main() {
             invalidTestFigure(
               move: 'mad_robin',
               params: {'whom': bad},
-              reason: 'asserts validateFigure REJECTS a single dancer for whom, which names a pair relationship',
+              reason:
+                  'asserts validateFigure REJECTS a single dancer for whom, which names a pair relationship',
             ),
           ),
           contains(ValidationSeverity.error),
@@ -325,7 +326,7 @@ void main() {
   });
 
   group('display rendering', () {
-    test('bare figures read exactly as they did in v19', () {
+    test('bare figures use the v34 defaults', () {
       expect(
         renderer.render(Figure(move: 'mad_robin'), d),
         'mad robin, role2s in front',
@@ -504,8 +505,9 @@ void main() {
         'counterclockwise',
       );
       expect(
-        parseTcb('Partner butterfly whirl counter clockwise')!
-            .params['direction'],
+        parseTcb(
+          'Partner butterfly whirl counter clockwise',
+        )!.params['direction'],
         'counterclockwise',
       );
       expect(
