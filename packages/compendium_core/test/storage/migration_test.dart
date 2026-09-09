@@ -458,13 +458,20 @@ void main() {
           rows.map((row) => row.read<String>('canonical_text')).toList(),
           expectedCanonical,
         );
+        final expectedFts = [
+          expectedCanonical[0],
+          expectedCanonical[1],
+          'meanwhile partners swing mad robin once counterclockwise partners',
+          expectedCanonical[2],
+          expectedCanonical[3],
+        ].join(' ');
         final fts = await db
             .customSelect(
               'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
               variables: [Variable<String>('v34-canonical')],
             )
             .getSingle();
-        expect(fts.read<String>('figures_text'), expectedCanonical.join(' '));
+        expect(fts.read<String>('figures_text'), expectedFts);
         final pendingAfterRetry = await db
             .customSelect(
               'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
