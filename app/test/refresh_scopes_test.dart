@@ -433,8 +433,7 @@ void main() {
   // same replace path reachable and is covered there.
 
   testWidgets(
-    'gap 3: mark-all-performed in a program summary updates a live Collection '
-    "row's called-count badge",
+    'mark-all-performed Undo updates a live Collection row called-count badge',
     (tester) async {
       final repos = openTestRepos();
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
@@ -469,6 +468,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('called-count-d1')), findsOne);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('called-count-d1')), findsNothing);
     },
   );
 

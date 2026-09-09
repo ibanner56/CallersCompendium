@@ -236,6 +236,39 @@ class ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
 
+  /// Clears performed stamps created by one bulk mark action.
+  ///
+  /// The slot id and timestamp predicates make this an atomic compare-and-clear
+  /// operation: a later edit to one of the slots, or an edit to another part of
+  /// the program, is preserved instead of being overwritten by a stale
+  /// [Program] snapshot.
+  Future<int> clearPerformedAtIfMatches({
+    required String programId,
+    required Iterable<String> slotIds,
+    required DateTime performedAt,
+    required DateTime updatedAt,
+  }) async {
+    assertUtc(performedAt, 'performedAt');
+    assertUtc(updatedAt, 'updatedAt');
+    final ids = slotIds.toSet();
+    if (ids.isEmpty) return 0;
+
+    return _db.transaction(() async {
+      final cleared =
+          await (_db.update(_db.programSlots)..where(
+                (t) =>
+                    t.programId.equals(programId) &
+                    t.id.isIn(ids) &
+                    t.performedAt.equals(performedAt),
+              ))
+              .write(const ProgramSlotsCompanion(performedAt: Value(null)));
+      if (cleared == 0) return 0;
+      await (_db.update(_db.programs)..where((t) => t.id.equals(programId)))
+          .write(ProgramsCompanion(updatedAt: Value(updatedAt)));
+      return cleared;
+    });
+  }
+
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,

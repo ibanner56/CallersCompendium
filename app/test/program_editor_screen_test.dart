@@ -1548,6 +1548,45 @@ void main() {
   });
 
   testWidgets(
+    'mark all performed offers Undo without clearing prior or free-text slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      final prior = DateTime.utc(2025, 12, 31, 20);
+      await repos.dances.create(_dance(id: 'd1', title: 'Already Called'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Newly Called'));
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: prior,
+            ),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+            ProgramSlot(id: 's2', position: 2, text: 'Break'),
+          ],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.slots[0].performedAt, prior);
+      expect(saved.slots[1].performedAt, isNull);
+      expect(saved.slots[2].performedAt, isNull);
+    },
+  );
+
+  testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {
       // Perform enables the wake-lock; install the fake so the platform

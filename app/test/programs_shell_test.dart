@@ -561,6 +561,64 @@ void main() {
   );
 
   testWidgets(
+    'summary mark-all Undo preserves prior stamps and intervening edits',
+    (tester) async {
+      final repos = openTestRepositories();
+      final prior = DateTime.utc(2025, 12, 31, 20);
+      final later = DateTime.utc(2026, 1, 2, 20);
+      await repos.dances.create(_dance(id: 'd1', title: 'Already Called'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Newly Called'));
+      await repos.programs.create(
+        Program(
+          id: 'p1',
+          title: 'Barn Dance',
+          status: ProgramStatus.draft,
+          slots: [
+            ProgramSlot(
+              id: 's0',
+              position: 0,
+              danceId: 'd1',
+              performedAt: prior,
+            ),
+            ProgramSlot(id: 's1', position: 1, danceId: 'd2'),
+            ProgramSlot(id: 's2', position: 2, text: 'Break'),
+          ],
+          createdAt: _now,
+          updatedAt: _now,
+        ),
+      );
+
+      await _pumpWide(tester, repos);
+      await tester.tap(find.text('Barn Dance'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
+
+      final marked = await repos.programs.getById('p1');
+      await repos.programs.update(
+        marked!.copyWith(
+          title: 'Edited while Undo was available',
+          slots: [
+            marked.slots[0],
+            marked.slots[1].copyWith(performedAt: later),
+            marked.slots[2],
+          ],
+          updatedAt: later,
+        ),
+      );
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final saved = await repos.programs.getById('p1');
+      expect(saved!.title, 'Edited while Undo was available');
+      expect(saved.slots[0].performedAt, prior);
+      expect(saved.slots[1].performedAt, later);
+      expect(saved.slots[2].performedAt, isNull);
+    },
+  );
+
+  testWidgets(
     'wide split-pane: an in-pane Perform adjustment that changes the slot '
     'count refreshes the coexisting program list without a manual reload',
     (tester) async {

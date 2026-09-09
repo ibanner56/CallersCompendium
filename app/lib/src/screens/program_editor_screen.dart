@@ -1610,13 +1610,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   Future<void> _markAllPerformed() async {
     final now = DateTime.now().toUtc();
     final l10n = AppLocalizations.of(context);
+    final markedSlotIds = <String>{};
     setState(() {
-      _slots = [
-        for (final s in _slots)
-          s.danceId != null && s.performedAt == null
-              ? s.copyWith(performedAt: now)
-              : s,
-      ];
+      final updatedSlots = <ProgramSlot>[];
+      for (final s in _slots) {
+        if (s.danceId != null && s.performedAt == null) {
+          markedSlotIds.add(s.id);
+          updatedSlots.add(s.copyWith(performedAt: now));
+        } else {
+          updatedSlots.add(s);
+        }
+      }
+      _slots = updatedSlots;
     });
     _markDirty();
     SemanticsService.sendAnnouncement(
@@ -1624,9 +1629,30 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       l10n.programsMarkedAllPerformed,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
+    final messenger = ScaffoldMessenger.of(context);
+    showUndoSnackBar(
+      messenger,
+      message: l10n.programsMarkedAllPerformed,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => unawaited(_undoMarkAllPerformed(markedSlotIds, now)),
+    );
+  }
+
+  Future<void> _undoMarkAllPerformed(
+    Set<String> markedSlotIds,
+    DateTime actionTimestamp,
+  ) async {
+    if (!mounted) return;
+    setState(() {
+      _slots = [
+        for (final slot in _slots)
+          markedSlotIds.contains(slot.id) && slot.performedAt == actionTimestamp
+              ? slot.copyWith(clearPerformedAt: true)
+              : slot,
+      ];
+    });
+    _markDirty();
   }
 
   // --- Persistence ----------------------------------------------------------
