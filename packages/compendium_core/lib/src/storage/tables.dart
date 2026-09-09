@@ -85,7 +85,7 @@ class Dances extends Table {
       text().map(const EnumNameConverter(DanceStatus.values))();
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
-  /// schema v33; the migration maps v4's enum-name `level` column to stable
+  /// schema v34; the migration maps v4's enum-name `level` column to stable
   /// vocabulary IDs.
   TextColumn get levelId =>
       text().nullable().references(DifficultyLevels, #id)();

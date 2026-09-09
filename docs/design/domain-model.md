@@ -134,7 +134,7 @@ exactly as The Caller's Box models it (schema v24, issue #732).
 
 ### DifficultyLevel
 `id, label, position`. A collection-owned vocabulary for dance difficulty
-(schema v33, issue #1200), replacing the fixed enum. New collections seed
+(schema v34, issue #1200), replacing the fixed enum. New collections seed
 immutable IDs for Beginner, Intermediate, and Advanced; custom entries receive
 generated UUIDv4 IDs. A dance stores only its selected `difficultyLevelId`, so
 renaming or reordering a vocabulary entry does not rewrite dances. A level

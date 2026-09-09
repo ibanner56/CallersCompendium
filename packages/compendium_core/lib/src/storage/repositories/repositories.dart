@@ -143,6 +143,7 @@ class CompendiumRepositories {
   static const _naturalKeys = <(String, String)>[
     ('choreographers', 'name'),
     ('tags', 'name'),
+    ('difficulty_levels', 'label'),
     ('custom_field_defs', 'key'),
   ];
 
