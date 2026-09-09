@@ -34,7 +34,7 @@
   ],
   "hold": null,
   "completion": {
-    "complete": false,
+    "complete": true,
     "conditions": [
       "A new operator can deploy from the documentation.",
       "Plaintext requests are refused rather than redirected or proxied.",
@@ -42,7 +42,15 @@
       "Alerting, retention proof, break-glass authorization, and lost-ID support are exercised.",
       "The compatible service is deployed before beta and public client distribution."
     ],
-    "summary": null,
-    "evidence": []
+    "summary": "Athenaeum is deployed from the published runbook with its loopback-only Apache topology, live proxy conformance, human-received operational alerts, observed retention cleanup, authorized break-glass audit, and lost-ID support path proven before a compatible client ships.",
+    "evidence": [
+      "PR #1183 delivered the container, Apache deployment, smoke harness, operations runbook, alerting, retention, break-glass, and support procedures; PR #1220 persisted the corrections proven on the live deployment.",
+      ".github/tracking/adr-004/evidence/W16.md records the deployed revision and image, loopback listener, plaintext refusal, HTTPS/HSTS behavior, and the passing live proxy and rate-limit conformance run.",
+      "The live quota exercise accepted 250 unique 1 MiB blobs, refused blob 251 with HTTP 507, emitted quota_exhaustion, and delivered the matching alert email to the human recipient.",
+      "The live hourly sweep emitted and delivered sweep_failure under an injected filesystem error; after restoring permissions, the durable retry removed every database row and the epoch directory, while count-only scans found no credential, sync-ID-shaped, or test-content log entries.",
+      "The public PR #1211 approval preceded one end-to-end break-glass read; the separate audit database gained exactly one matching row, the ordinary database had no break-glass table, and the disposable store was removed.",
+      "The lost-ID process was exercised against a real disposable store whose raw ID was no longer available: no recovery or access path existed, and the support result required creation of a new store.",
+      "The service was deployed before any user-facing compatible client: W13 and W14 remained incomplete and no Device Sync settings surface was distributed."
+    ]
   }
 }
