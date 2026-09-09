@@ -20,6 +20,13 @@ import 'window_service.dart' show kWindowFrameKey;
 const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 
+/// App-side declaration for the storage-owned one-shot repair marker. The
+/// duplicate literal keeps the settings classification ratchet aware of this
+/// app-level backup policy, while the core constant remains the migration
+/// source of truth.
+const String kCallersBoxRollAwayRoleRepairDoneKey =
+    '__callersbox_roll_away_role_repair_done__';
+
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
 /// Four reasons a key is excluded:
@@ -33,7 +40,7 @@ const String kTaxonomyV33CanonicalRebuildDoneKey =
 ///   must not travel between machines or be rewritten by restoring an old file:
 ///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
 ///   [kTaxonomyV33CanonicalRebuildDoneKey],
-///   [callersBoxRollAwayRoleRepairDoneKey].
+///   [kCallersBoxRollAwayRoleRepairDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
@@ -48,7 +55,7 @@ const Set<String> kBackupSettingsDenylist = {
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
-  callersBoxRollAwayRoleRepairDoneKey,
+  kCallersBoxRollAwayRoleRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
 };
