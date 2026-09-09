@@ -175,8 +175,7 @@ Future<void> main() async {
           await repos.customFieldDefs.listAll();
           await repos.publishedSources.listAll();
           await repos.difficultyLevels.listAll();
-          await repos.programs.lastCalledByDance();
-          await repos.programs.countByDance();
+          await repos.programs.programDerivedCounts();
           return dances.length;
         }),
       );

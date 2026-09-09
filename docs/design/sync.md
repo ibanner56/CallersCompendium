@@ -34,7 +34,7 @@ disagree, that section wins.
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
 | **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
-| **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, venue, or a settings key. |
+| **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
 | **manifest** | One device's map of kind → record id → content hash. |
 | **baseline** | The manifest a device last successfully synced, held locally. The merge base. |
@@ -1658,7 +1658,7 @@ every device is the failure this whole mechanism exists to prevent, and it is
 also the harder of the two to notice.
 
 `existenceAt` is `shareable`: it is a bare timestamp with no subject, it must
-travel for the rule to work, and it is stored per record on all eight syncable
+travel for the rule to work, and it is stored per record on all nine syncable
 kinds (see the sync-migration scope).
 
 Because nothing has shipped, this lands in envelope `v: 1` rather than bumping
@@ -1722,7 +1722,7 @@ and tables this design does not migrate.
 
 An earlier draft also called it "one column on `settings`". Under first-class
 records, and with the provenance gate needing `existence_at` on every kind that can
-be tombstoned, it is **eight tables and twenty columns**:
+be tombstoned, it is **nine tables and twenty-three columns**:
 
 | Table | Adds |
 | --- | --- |
@@ -1732,6 +1732,7 @@ be tombstoned, it is **eight tables and twenty columns**:
 | `published_sources` | `updated_at`, `deleted_at`, `existence_at` |
 | `custom_field_defs` | `updated_at`, `deleted_at`, `existence_at` |
 | `venues` | `updated_at`, `deleted_at`, `existence_at` |
+| `difficulty_levels` | `updated_at`, `deleted_at`, `existence_at` |
 | `dances` | `existence_at` |
 | `programs` | `existence_at` |
 
@@ -3295,8 +3296,8 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    is otherwise undefined.
 
    This rule is only universally applicable because of the record model: all
-   eight syncable kinds carry `updatedAt` — the five that lacked it, plus
-   `settings`, gain it in the sync migration. A kind without a modification timestamp
+   nine syncable kinds carry `updatedAt` — the five that lacked it, plus
+   `settings` and `difficultyLevel`, gain it in the sync migration. A kind without a modification timestamp
    cannot participate in this rule at all, which is why the migration is a prerequisite
    rather than a convenience.
 
