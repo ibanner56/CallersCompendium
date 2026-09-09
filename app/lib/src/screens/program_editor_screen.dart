@@ -1215,13 +1215,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     await _refreshLinkedVenue(id);
   }
 
-  Future<void> _refreshPerformedAtForUndo(Set<String> markedSlotIds) async {
+  Future<bool> _refreshPerformedAtForUndo(Set<String> markedSlotIds) async {
     final readGeneration = _editGeneration;
     final performedAtAtReadStart = {
       for (final slot in _slots) slot.id: slot.performedAt,
     };
     final live = await _repos.programs.getById(_existing!.id);
-    if (!mounted || live == null) return;
+    if (!mounted || live == null) return false;
     final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
     final editDuringRead = _editGeneration != readGeneration;
     final refreshedSlots = <ProgramSlot>[];
@@ -1243,6 +1243,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     setState(() {
       _slots = refreshedSlots;
     });
+    return true;
   }
 
   Future<void> _restoreEditorAfterUndoFailure({
@@ -1258,14 +1259,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         await _refreshLinkedVenueForId(live.venueId);
         if (!mounted) return;
         if (_editGeneration != undoEditGeneration) {
-          final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
           setState(() {
-            _slots = [
-              for (final slot in _slots)
-                markedSlotIds.contains(slot.id)
-                    ? liveSlotsById[slot.id] ?? slot
-                    : slot,
-            ];
             _dirty = true;
           });
           _scheduleAutosave();
@@ -1898,8 +1892,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             return;
           }
           if (live == null) {
-            _scheduleAutosave();
-            _scheduleAutoCommit();
             return;
           }
           _applyProgramToEditor(live);
@@ -1913,8 +1905,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           await _clearDraft(waitForCommits: false);
           return;
         }
-        await _refreshPerformedAtForUndo(markedSlotIds);
+        final liveStillExists = await _refreshPerformedAtForUndo(markedSlotIds);
         if (!mounted) return;
+        if (!liveStillExists) return;
         _scheduleAutosave();
         _scheduleAutoCommit();
       } catch (error, stackTrace) {

@@ -2310,6 +2310,103 @@ void main() {
   });
 
   testWidgets(
+    'persisted Undo does not resurrect a program deleted during live refresh',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.softDelete(
+        'p1',
+        at: DateTime.utc(2030, 1, 1),
+      );
+      delayed.programs.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(await delayed.repos.programs.getById('p1'), isNull);
+      expect(
+        (await delayed.repos.programs.getById(
+          'p1',
+          includeDeleted: true,
+        ))!.deletedAt,
+        isNotNull,
+      );
+    },
+  );
+
+  testWidgets(
+    'failed persisted Undo preserves a slot edit during venue recovery',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedProgramsAndVenues();
+      await delayed.repos.venues.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failConditionalRollback = true;
+      delayed.venues.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.venues.readStarted;
+
+      final slotEditor = tester.widget<ProgramSlotListEditor>(
+        find.byType(ProgramSlotListEditor),
+      );
+      slotEditor.onSlotChanged(
+        0,
+        slotEditor.slots.single.copyWith(isAlt: true),
+      );
+      await tester.pump();
+      delayed.venues.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.slots.single.isAlt, isTrue);
+      expect(saved.slots.single.performedAt, isNotNull);
+    },
+  );
+
+  testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {
       // Perform enables the wake-lock; install the fake so the platform

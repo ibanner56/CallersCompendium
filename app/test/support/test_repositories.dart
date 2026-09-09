@@ -315,6 +315,39 @@ class DelayedProgramRepository extends ProgramRepository {
   }
 }
 
+class DelayedVenueRepository extends VenueRepository {
+  DelayedVenueRepository(super.db);
+
+  Completer<void>? _armedReadGate;
+  Completer<void>? _activeReadGate;
+  Completer<void>? _readStarted;
+
+  void holdNextRead() {
+    _armedReadGate = Completer<void>();
+    _readStarted = Completer<void>();
+  }
+
+  Future<void> get readStarted => _readStarted?.future ?? Future<void>.value();
+
+  void releaseRead() {
+    final gate = _activeReadGate;
+    if (gate != null && !gate.isCompleted) gate.complete();
+  }
+
+  @override
+  Future<Venue?> getById(String id) async {
+    final gate = _armedReadGate;
+    if (gate != null) {
+      _armedReadGate = null;
+      _activeReadGate = gate;
+      _readStarted?.complete();
+      await gate.future;
+      _activeReadGate = null;
+    }
+    return super.getById(id);
+  }
+}
+
 class FailingProgramRepository extends ProgramRepository {
   FailingProgramRepository(super.db);
 
@@ -360,6 +393,26 @@ openTestRepositoriesWithDelayedPrograms({bool closeOnTearDown = true}) {
   final programs = DelayedProgramRepository(db);
   final repos = CompendiumRepositories(db, contraTaxonomy, programs: programs);
   return (repos: repos, programs: programs);
+}
+
+({
+  CompendiumRepositories repos,
+  DelayedProgramRepository programs,
+  DelayedVenueRepository venues,
+})
+openTestRepositoriesWithDelayedProgramsAndVenues({
+  bool closeOnTearDown = true,
+}) {
+  final db = openWidgetTestDatabase(closeOnTearDown: closeOnTearDown);
+  final programs = DelayedProgramRepository(db);
+  final venues = DelayedVenueRepository(db);
+  final repos = CompendiumRepositories(
+    db,
+    contraTaxonomy,
+    programs: programs,
+    venues: venues,
+  );
+  return (repos: repos, programs: programs, venues: venues);
 }
 
 /// Opens in-memory repositories backed by a [DelayedSettingsRepository], so
