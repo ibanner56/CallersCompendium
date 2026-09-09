@@ -289,7 +289,8 @@ and produces no Android artifact.
    which is the release branch if you never switched off it:
 
    ```sh
-   tag=v0.3.0
+   release_version=0.4.0 # next minor after the current 0.3.x line
+   tag="v$release_version"
    codename="Ashokan Hello"
    printf 'Release %s\n\nRelease codename: %s\n' "$tag" "$codename" |
      git tag -a "$tag" "$(git rev-parse origin/main)" -F -

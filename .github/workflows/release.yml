@@ -130,15 +130,34 @@ jobs:
 
           codename="$tag"
           if [ -n "$tag" ]; then
-            tag_message="$(git for-each-ref --format='%(contents)' "$release_ref")"
-            annotated_codename="$(
-              printf '%s' "$tag_message" |
-                python3 tools/release/resolve_release_codename.py --tag-message
-            )"
-            if [ -n "$annotated_codename" ]; then
-              codename="$annotated_codename"
+            # Codenames become required at the next minor after the current
+            # 0.3.x line. Lightweight tags before that adoption point are
+            # legacy; their commit messages are never parsed as tag metadata.
+            IFS=. read -r tag_major tag_minor tag_patch <<< "${version%-beta}"
+            codename_required=false
+            if (( tag_major > 0 || (tag_major == 0 && tag_minor >= 4) )); then
+              codename_required=true
+            fi
+            tag_object_type="$(git cat-file -t "$release_ref")"
+            if [ "$tag_object_type" = "tag" ]; then
+              tag_message="$(git for-each-ref --format='%(contents)' "$release_ref")"
+              annotated_codename="$(
+                printf '%s' "$tag_message" |
+                  python3 tools/release/resolve_release_codename.py --tag-message
+              )"
+              if [ -n "$annotated_codename" ]; then
+                codename="$annotated_codename"
+              elif [ "$codename_required" = "true" ]; then
+                echo "::error::release tag '$tag' must contain exactly one 'Release codename: <name>' line"
+                exit 1
+              else
+                echo "::warning::legacy tag '$tag' has no release codename; using the tag as its title"
+              fi
+            elif [ "$tag_object_type" = "commit" ] && [ "$codename_required" = "true" ]; then
+              echo "::error::release tag '$tag' must be annotated and contain a release codename"
+              exit 1
             else
-              echo "::warning::tag '$tag' has no release codename; using the tag as the legacy title"
+              echo "::warning::legacy lightweight tag '$tag' has no release codename; using the tag as its title"
             fi
           fi
 

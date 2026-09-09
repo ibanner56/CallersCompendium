@@ -34,6 +34,9 @@ def main() -> None:
     assert "source_sha: ${{ steps.resolve.outputs.source_sha }}" in text
     assert "codename: ${{ steps.resolve.outputs.codename }}" in text
     assert "resolve_release_codename.py --tag-message" in text
+    assert 'tag_object_type="$(git cat-file -t "$release_ref")"' in text
+    assert "codename_required=false" in text
+    assert "codename_required=true" in text
     assert '--title "$CODENAME"' in text
     assert 'if [ "$GITHUB_REF" != "refs/heads/main" ]; then' in text
     assert "::error::existing-tag recovery must be dispatched from main" in text

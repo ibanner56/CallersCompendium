@@ -40,19 +40,18 @@ def extract_codename(tag_message: str) -> str | None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument(
         "--tag-message",
         action="store_true",
         help="read an annotated tag message from stdin and print its codename",
     )
-    parser.add_argument(
+    mode.add_argument(
         "--validate",
         metavar="CODENAME",
         help="validate and print a codename",
     )
     args = parser.parse_args(argv)
-    if args.tag_message == bool(args.validate):
-        parser.error("choose exactly one of --tag-message or --validate")
 
     try:
         codename = (

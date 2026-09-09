@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 from pathlib import Path
 
@@ -32,6 +34,16 @@ def main() -> None:
         pass
     else:
         raise AssertionError("duplicate codenames must fail")
+
+    try:
+        c.main(["--tag-message", "--validate", "Two"])
+    except SystemExit:
+        pass
+    else:
+        raise AssertionError("mutually exclusive CLI modes must fail")
+
+    with contextlib.redirect_stderr(io.StringIO()):
+        assert c.main(["--validate", ""]) == 1
 
     print("release codename tooling: OK")
 
