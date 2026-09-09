@@ -172,11 +172,49 @@ void main() {
   });
 
   group('circulate → box_circulate', () {
-    test('"Circulate: women cross, men loop right" → box_circulate + note', () {
-      final f = _parse('Circulate: women cross, men loop right');
-      expect(f!.move, 'box_circulate');
-      expect(f.note, isNotNull);
-      expect(f.note, contains('cross'));
+    test(
+      '"Circulate: women cross, men loop right" → box_circulate + params + note',
+      () {
+        final f = _parse('Circulate: women cross, men loop right');
+        expect(f!.move, 'box_circulate');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, 'role2s cross, role1s loop right');
+      },
+    );
+
+    test(
+      '"Circulate: men cross, women loop left" decodes the crossing subject',
+      () {
+        final f = _parse('Circulate: men cross, women loop left');
+        expect(f!.move, 'box_circulate');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'left');
+        expect(f.note, 'role1s cross, role2s loop left');
+      },
+    );
+
+    test(
+      'circulate without a direction leaves hand at the taxonomy default',
+      () {
+        final f = _parse('Circulate: men cross, women loop');
+        expect(f!.move, 'box_circulate');
+        expect(f.params['who'], 'role1s');
+        expect(f.params.containsKey('hand'), isFalse);
+        expect(f.note, 'role1s cross, role2s loop');
+      },
+    );
+
+    test('circulate with an unknown looping subject stays custom', () {
+      final f = _parse('Circulate: women cross, unknown loop right');
+      expect(f!.isCustom, isTrue);
+      expect(f.params['text'], 'Circulate: role2s cross, unknown loop right');
+    });
+
+    test('circulate without the loop action stays custom', () {
+      final f = _parse('Circulate: women cross, men right');
+      expect(f!.isCustom, isTrue);
+      expect(f.params['text'], 'Circulate: role2s cross, role1s right');
     });
 
     test('balance ring + circulate folds balance into box_circulate', () {

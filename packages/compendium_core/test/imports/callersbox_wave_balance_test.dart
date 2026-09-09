@@ -324,6 +324,23 @@ void main() {
       });
     });
 
+    test(
+      'a balanced circulate retains decoded params, note, and beats',
+      () async {
+        final figures = await _figuresFor([
+          '(4) Balance wave of four (NR,WL)',
+          '(4) Circulate: women cross, men loop right',
+        ]);
+        final figure = figures.single;
+        expect(figure.move, 'box_circulate');
+        expect(figure.params['who'], 'role2s');
+        expect(figure.params['hand'], 'right');
+        expect(figure.params['balance'], isTrue);
+        expect(figure.params['beats'], 8);
+        expect(figure.note, 'role2s cross, role1s loop right');
+      },
+    );
+
     test('a long-wave balance also folds forward', () async {
       final figures = await _figuresFor([
         '(4) Balance long wave (NR, women face in)',
