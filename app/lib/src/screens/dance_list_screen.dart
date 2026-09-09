@@ -582,7 +582,9 @@ class _DanceListScreenState extends State<DanceListScreen> {
         // map rather than the ids stored on each dance. A rename therefore
         // changes either the order or the result set while every dance row is
         // byte-identical.
-        ((!_onlineEnabled && _ftsScope == FullTextScope.author) ||
+        ((!_onlineEnabled &&
+                    (_ftsScope == FullTextScope.omni ||
+                        _ftsScope == FullTextScope.author)) ||
                 _sort == CollectionSort.author) &&
             !mapEquals(previous.choreographerNames, data.choreographerNames);
     setState(() {

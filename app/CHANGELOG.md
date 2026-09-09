@@ -37,6 +37,7 @@ from that tag, so new entries need no visible or manually maintained suffix.
 ## [Unreleased]
 
 _Nothing yet._
+
 ## [0.3.1] - 2026-09-03
 
 ### Added
