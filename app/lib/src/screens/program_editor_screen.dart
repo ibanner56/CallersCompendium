@@ -1232,6 +1232,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ];
             _dirty = true;
           });
+          _scheduleAutosave();
+          _scheduleAutoCommit();
           return;
         }
         setState(() => _dirty = false);
@@ -1247,6 +1249,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         ];
         _dirty = true;
       });
+      _scheduleAutosave();
+      _scheduleAutoCommit();
     } catch (error, stackTrace) {
       logCaughtError(
         error,
