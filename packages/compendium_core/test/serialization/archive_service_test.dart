@@ -354,6 +354,49 @@ void main() {
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
 
+    test(
+      'restore repairs legacy CallersBox roll-away figures even after startup',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(callersBoxRollAwayRoleRepairDoneKey, '"done"');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy-callersbox',
+              title: 'Legacy',
+              figures: [
+                Figure(
+                  move: 'roll_away',
+                  params: {'who': 'neighbors', 'beats': 8},
+                  note: 'role2s roll right, role1s side-step left',
+                ),
+              ],
+              provenance: Provenance(
+                source: ProvenanceSource.callersbox,
+                externalId: 'legacy-callersbox',
+                importedAt: DateTime.utc(2024),
+              ),
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final restored = await repos.dances.getById('legacy-callersbox');
+        expect(restored?.figures.single.params['who'], 'role1s');
+        expect(restored?.figures.single.params['whom'], 'neighbors');
+      },
+    );
+
     test('merge revives a tombstoned program with a causal stamp', () async {
       final db = openTestDatabase();
       addTearDown(db.close);
