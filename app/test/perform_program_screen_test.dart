@@ -276,6 +276,25 @@ void main() {
     );
   });
 
+  testWidgets('program Perform omits whitespace-only caller notes', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', text: '   \n\t'),
+      ]),
+      data: data,
+    );
+
+    expect(
+      find.byKey(const ValueKey('perform-slot-caller-note')),
+      findsNothing,
+    );
+    expect(find.textContaining('Caller note:'), findsNothing);
+  });
+
   group('AppBar responsive overflow (issue #433)', () {
     // The full Perform toolbar is ~10 controls; on phones narrower than ~430px
     // it used to RenderFlex-overflow, clipping the stage-mode toggle. Secondary
@@ -1365,9 +1384,9 @@ void main() {
           ]),
         );
 
-        final shortTitleHeight = tester.getSize(
-          find.byKey(const ValueKey('perform-title')),
-        ).height;
+        final shortTitleHeight = tester
+            .getSize(find.byKey(const ValueKey('perform-title')))
+            .height;
         await tester.tap(find.byKey(const ValueKey('perform-next')));
         await tester.pumpAndSettle();
         expect(find.text('Caller note: $longNote'), findsOneWidget);
