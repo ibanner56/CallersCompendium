@@ -2024,6 +2024,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionCreateTagError => 'Kunne ikke oprette tag. Prøv igen.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Kunne ikke anvende batchændringer. Prøv igen.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Tilføj';
 
   @override

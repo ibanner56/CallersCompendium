@@ -2051,6 +2051,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tag konnte nicht erstellt werden. Versuchen Sie es erneut.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Batchänderungen konnten nicht angewendet werden. Versuchen Sie es erneut.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Hinzufügen';
 
   @override

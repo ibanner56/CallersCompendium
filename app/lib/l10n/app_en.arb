@@ -2609,6 +2609,10 @@
   "@collectionCreateTagError": {
     "description": "Snackbar shown when creating a tag fails."
   },
+  "collectionBatchApplyError": "Could not apply batch changes. Try again.",
+  "@collectionBatchApplyError": {
+    "description": "Snackbar shown when applying a batch tag operation fails."
+  },
   "collectionBatchTagAddConfirm": "Add",
   "@collectionBatchTagAddConfirm": {
     "description": "Confirm button of the batch add-tags dialog."

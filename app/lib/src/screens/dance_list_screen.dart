@@ -1303,7 +1303,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
         ..showSnackBar(
           SnackBar(
             content: Text(
-              AppLocalizations.of(context).collectionCreateTagError,
+              AppLocalizations.of(context).collectionBatchApplyError,
             ),
           ),
         );

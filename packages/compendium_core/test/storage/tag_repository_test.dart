@@ -71,6 +71,31 @@ void main() {
     expect(await repo.getById('provisional-dead'), isNull);
   });
 
+  test('upsertStaged matches natural keys case-insensitively', () async {
+    // Legacy databases can contain case-only duplicates because the unique
+    // constraint is case-sensitive. Prefer a live row, then the smallest id.
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 'z-live', name: 'Easy'));
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 'a-legacy', name: 'EASY'));
+    expect(await repo.idByName('easy'), 'a-legacy');
+    expect(
+      await repo.upsertStaged(Tag(id: 'provisional', name: 'eAsY')),
+      'a-legacy',
+    );
+
+    await repo.delete('a-legacy');
+    expect(
+      await repo.upsertStaged(Tag(id: 'provisional-live', name: 'eAsY')),
+      'z-live',
+    );
+    await repo.delete('z-live');
+    expect(
+      await repo.upsertStaged(Tag(id: 'provisional-revive', name: 'easy')),
+      'a-legacy',
+    );
+  });
+
   test('lists only tags referenced by live dances', () async {
     // ignore: unused_result
     await repo.upsert(Tag(id: 't1', name: 'Live'));

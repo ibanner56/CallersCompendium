@@ -108,6 +108,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   List<Tag> _referenceTags = [];
   List<Tag> _tags = [];
   Map<String, String> _choreographerNames = {};
+  final Map<String, String> _knownTagNames = {};
   Map<String, String> _tagNames = {};
 
   /// All reusable published sources (autocomplete options for the picker).
@@ -178,12 +179,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   void _rebuildTagOptions() {
     final staged = _controller.stagedTags.values;
     final referenceIds = _referenceTags.map((tag) => tag.id).toSet();
+    _knownTagNames.addAll({for (final tag in _referenceTags) tag.id: tag.name});
     _tags = [
       ..._referenceTags,
       for (final tag in staged)
         if (!referenceIds.contains(tag.id)) tag,
     ];
-    _tagNames = {for (final tag in _tags) tag.id: tag.name};
+    final selectedIds = _controller.tagIds.toSet();
+    _tagNames = {
+      for (final tag in _tags) tag.id: tag.name,
+      for (final id in selectedIds)
+        if (_knownTagNames[id] != null) id: _knownTagNames[id]!,
+    };
   }
 
   /// Opens the live [DanceEditorReferenceData] subscription (issue #768):
@@ -245,6 +252,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _loadError = null;
             _choreographers = data.choreographers;
             _referenceTags = data.tags;
+            _knownTagNames.addAll({
+              for (final tag in data.tags) tag.id: tag.name,
+            });
             _rebuildTagOptions();
             _allDances = data.dances;
             _publishedSources = data.publishedSources;
@@ -379,9 +389,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           original: _controller.original,
         );
       });
-      _controller.clearStagedTags();
       // Clear the autosave draft — work is now committed.
       await _controller.clearDraft();
+      _controller.clearStagedTags();
       _controller.markSaved();
       if (mounted) {
         Navigator.of(context).pop(dance.id);

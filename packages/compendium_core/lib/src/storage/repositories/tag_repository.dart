@@ -106,20 +106,47 @@ class TagRepository {
   @useResult
   Future<String> upsertStaged(Tag tag, {DateTime? at}) async {
     final live = await idByName(tag.name);
-    return live ?? upsert(tag, at: at);
+    if (live != null) return live;
+
+    final existingId = await idByName(tag.name, includeDeleted: true);
+    if (existingId == null) return upsert(tag, at: at);
+
+    // Preserve the incumbent's spelling so a legacy case-only duplicate is
+    // revived through the existing exact-key adoption path.
+    final existing = await (_db.select(
+      _db.tags,
+    )..where((t) => t.id.equals(existingId))).getSingle();
+    return upsert(
+      Tag(id: existing.id, name: existing.name, color: tag.color),
+      at: at,
+    );
   }
 
   /// Returns the existing id for [name], including tombstoned rows when
-  /// [includeDeleted] is true.
+  /// [includeDeleted] is true. Matching is case-insensitive for compatibility
+  /// with legacy case-only duplicates; live rows win, then the smallest id.
   Future<String?> idByName(String name, {bool includeDeleted = false}) async {
     final normalized = normalizeShareableText(name);
-    final query = _db.select(_db.tags)
-      ..where(
-        (t) =>
-            t.name.equals(normalized) &
-            (includeDeleted ? const Constant(true) : t.deletedAt.isNull()),
-      );
-    return (await query.getSingleOrNull())?.id;
+    final rows =
+        await (_db.select(_db.tags)..where(
+              (t) =>
+                  includeDeleted ? const Constant(true) : t.deletedAt.isNull(),
+            ))
+            .get();
+    final matches =
+        rows
+            .where((row) => row.name.toLowerCase() == normalized.toLowerCase())
+            .toList()
+          ..sort((a, b) {
+            if (includeDeleted) {
+              final deletedOrder = (a.deletedAt != null ? 1 : 0).compareTo(
+                b.deletedAt != null ? 1 : 0,
+              );
+              if (deletedOrder != 0) return deletedOrder;
+            }
+            return a.id.compareTo(b.id);
+          });
+    return matches.isEmpty ? null : matches.first.id;
   }
 
   Future<Tag?> getById(String id) async {
