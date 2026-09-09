@@ -6,9 +6,10 @@ import 'package:test/test.dart';
 /// All fixtures are **synthetic**, hand-built to the confirmed live DOM of
 /// `contradb.com/dances/1` (see the adapter doc comment): `h1.dance-show-title`,
 /// `p.dance-show-choreographer`, `p.dance-show-formation`, and the
-/// `table.contra-table-nonfluid` figures table with `td.dance-show-beats` +
-/// `div.show-figure` cells, empty-section continuation rows, and `<u>` / `⁋`
-/// progression markers. No live network is used.
+/// optional `div.dance-show-preamble`, and the `table.contra-table-nonfluid`
+/// figures table with `td.dance-show-beats` + `div.show-figure` cells,
+/// empty-section continuation rows, and `<u>` / `⁋` progression markers. No
+/// live network is used.
 
 /// Wraps a dance body in the minimal page chrome ContraDB serves.
 String _page(String body) =>
@@ -176,6 +177,44 @@ void main() {
       expect(draft.dance.formation.detail, isNull);
       expect(draft.dance.callingNotes, isNot(contains('Adina Gordon')));
       expect(draft.dance.callingNotes, contains('Imported from ContraDB.'));
+    });
+
+    test('routes the normalized preamble to formation detail', () async {
+      final draft = await _importOne(
+        _page(
+          '<h1 class="dance-show-title">Preamble</h1>'
+          '<p class="dance-show-formation">formation: improper</p>'
+          '<div class="dance-show-preamble"><p>Careful of the '
+          'ladies\u200B gypsy.</p></div>',
+        ),
+      );
+      expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+      expect(
+        draft.dance.formation.detail,
+        'Careful of the role2s shoulder round.',
+      );
+      expect(draft.dance.callingNotes, isNot(contains('Careful of the')));
+    });
+
+    test('puts preamble before unknown formation detail', () async {
+      final draft = await _importOne(
+        _page(
+          '<h1 class="dance-show-title">Unknown</h1>'
+          '<p class="dance-show-formation">formation: spiral ladies\u200B</p>'
+          '<div class="dance-show-preamble"><p>Start with a gypsy.</p></div>',
+        ),
+      );
+      expect(draft.dance.formation.shape, FormationShape.other);
+      expect(
+        draft.dance.formation.detail,
+        'Start with a shoulder round.\n\nspiral role2s',
+      );
+      expect(
+        draft.issues.any(
+          (issue) => issue.code == 'contradb_html_formation_unclassified',
+        ),
+        isTrue,
+      );
     });
 
     test(

@@ -406,8 +406,9 @@ declines the collapse.
   The adapter walks the dance table rows into `(section-label, beats, figure-text)`
   and routes each figure line through the shared free-text parser.
   Formation text is normalized before classification; recognized formation text
-  is stored as shape only, while unclassified text is retained as
-  `Formation.detail`.
+  is stored as shape only unless the page's optional
+  `div.dance-show-preamble` supplies normalized `Formation.detail`; unclassified
+  formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
   `figures_json` positional move/parameter model move-for-move onto our taxonomy
   (positional→named table per move, gyre → shoulder_round term migration). It is
