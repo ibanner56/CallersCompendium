@@ -277,6 +277,34 @@ void main() {
     expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
   });
 
+  testWidgets('inline tag creation adopts a tombstoned natural key', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.tags.upsert(Tag(id: 'old', name: 'Easy'));
+    await repos.tags.delete('old');
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Easy',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.dances.getById('d1'))!.tagIds, ['old']);
+    expect(await repos.tags.getById('old'), isNotNull);
+    expect((await repos.tags.listAll()).map((tag) => tag.id), ['old']);
+  });
+
   testWidgets('undo restores the prior tag sets', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result

@@ -97,6 +97,22 @@ class TagRepository {
     });
   }
 
+  /// Commits a tag staged by a dance editor or batch operation.
+  ///
+  /// A live natural-key match is reused without changing its identity. A
+  /// tombstoned match is passed to [upsert], which revives it and returns the
+  /// adopted id. This keeps provisional ids out of dance-tag joins in both
+  /// cases.
+  @useResult
+  Future<String> upsertStaged(Tag tag, {DateTime? at}) async {
+    final name = normalizeShareableText(tag.name);
+    final live =
+        await (_db.select(_db.tags)
+              ..where((t) => t.name.equals(name) & t.deletedAt.isNull()))
+            .getSingleOrNull();
+    return live?.id ?? upsert(tag, at: at);
+  }
+
   Future<Tag?> getById(String id) async {
     final row = await (_db.select(
       _db.tags,

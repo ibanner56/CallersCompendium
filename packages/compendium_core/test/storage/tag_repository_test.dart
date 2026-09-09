@@ -52,6 +52,25 @@ void main() {
     expect((await repo.listAll()).map((t) => t.name), ['Alpha', 'Zesty']);
   });
 
+  test('upsertStaged reuses live and adopts tombstoned natural keys', () async {
+    // A standalone live row can be hidden from a picker but must not be
+    // duplicated when the staged value is committed.
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 'live', name: 'Hidden'));
+    expect(
+      await repo.upsertStaged(Tag(id: 'provisional-live', name: 'Hidden')),
+      'live',
+    );
+
+    await repo.delete('live');
+    expect(
+      await repo.upsertStaged(Tag(id: 'provisional-dead', name: 'Hidden')),
+      'live',
+    );
+    expect((await repo.getById('live'))!.name, 'Hidden');
+    expect(await repo.getById('provisional-dead'), isNull);
+  });
+
   test('lists only tags referenced by live dances', () async {
     // ignore: unused_result
     await repo.upsert(Tag(id: 't1', name: 'Live'));

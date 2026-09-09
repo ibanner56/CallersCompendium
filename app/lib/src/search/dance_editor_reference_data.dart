@@ -3,9 +3,9 @@ import 'package:compendium_core/compendium_core.dart';
 import 'coalesce_trailing.dart';
 
 /// The reference/vocabulary data `DanceEditorScreen` needs beside its own
-/// draft: every choreographer, tag, dance (for the related-dance picker and
-/// link titles) and published source, plus id→name/record lookups derived
-/// from them.
+/// draft: every choreographer, tags referenced by live dances, dances (for the
+/// related-dance picker and link titles) and published source, plus
+/// id→name/record lookups derived from them.
 ///
 /// Extracted from `dance_editor_screen.dart`'s inline `_load()` so the load
 /// logic is widget-independent and unit-testable without pumping a widget,
@@ -53,11 +53,9 @@ class DanceEditorReferenceData {
   /// The window used to collapse a burst of writes into one reload.
   ///
   /// Matches [DanceDetailData.coalesceWindow]: both consumers watch
-  /// [CompendiumRepositories.watchDanceSources], and the batch shape that
-  /// justifies the window (a Collection batch-tag loop writing one dance per
-  /// commit) is the same writer for both. See that constant for the measured
-  /// figures; quoted rather than duplicated in comments because a number that
-  /// lives in another file is one this file cannot keep true.
+  /// [CompendiumRepositories.watchDanceSources]. Batch tag writes are enclosed
+  /// in one transaction, while other collection writes can still produce a
+  /// burst of source-table notifications.
   static const coalesceWindow = Duration(milliseconds: 24);
 
   /// A live [DanceEditorReferenceData], re-read whenever anything the editor's

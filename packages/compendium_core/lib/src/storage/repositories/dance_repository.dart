@@ -943,8 +943,9 @@ class DanceRepository {
   /// links, custom values, provenance, derived figures) via FK; any
   /// `program_slots.dance_id` pointing at a purged dance is set to `NULL`
   /// (the slot's `text`, if any, survives as a tombstone caption). Reusable
-  /// `choreographers` / `published_sources` rows left unreferenced by the purge
-  /// are garbage-collected in the same transaction (#462).
+  /// `choreographers` / `published_sources` / `tags` rows left unreferenced
+  /// after the cascade are garbage-collected in the same transaction
+  /// (#462, #1199).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
@@ -1250,8 +1251,10 @@ class DanceRepository {
   /// caption). Unknown ids are ignored. Runs in a single transaction.
   ///
   /// When [gcOrphanedRefs] is `true` (the default), reusable `choreographers` /
-  /// `published_sources` rows this delete leaves referenced by ZERO remaining
-  /// dances are garbage-collected in the same transaction (#462). The
+  /// `published_sources` / `tags` rows this delete leaves referenced by ZERO
+  /// remaining dances are garbage-collected in the same transaction (#462,
+  /// #1199). Tag GC includes rows retained by soft-deleted dances in its
+  /// reference check. The
   /// import-session **undo** path passes `false`: undo is a faithful rollback
   /// to the pre-import state, so it must leave pre-existing reference rows in
   /// place and do its own targeted cleanup of only the rows that import

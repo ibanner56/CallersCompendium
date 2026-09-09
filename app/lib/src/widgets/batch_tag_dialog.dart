@@ -17,8 +17,9 @@ class BatchTagSelection {
 /// (`docs/design/ux.md` §1).
 ///
 /// - [BatchTagMode.add] lists tags referenced by live dances and offers inline
-///   creation of a new tag (minted with [uuidV4]); the returned selection is
-///   committed together with the affected dances.
+///   creation of a staged tag (minted with [uuidV4]); the returned selection is
+///   committed together with the affected dances. Commit-time natural-key
+///   matching reuses a hidden live row or revives a tombstone.
 /// - [BatchTagMode.remove] lists only [presentTags] (the tags currently on the
 ///   selected dances); the returned set is subtracted from every selected
 ///   dance.
@@ -68,8 +69,8 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
   Future<void> _createTag() async {
     final name = _newTagController.text.trim();
     if (name.isEmpty || _creating) return;
-    // Reuse an existing tag with the same (case-insensitive) name instead of
-    // minting a duplicate.
+    // Reuse an option already visible in this picker instead of minting a
+    // duplicate. Hidden live rows are reconciled at commit time.
     Tag? existing;
     for (final t in _tags) {
       if (t.name.toLowerCase() == name.toLowerCase()) {

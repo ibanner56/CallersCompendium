@@ -1220,8 +1220,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Applies a batch tag [mode] to the selected dances. Opens the tag picker,
-  /// then for each affected dance persists the new tag set via
-  /// [DanceRepository.update], announces the result to AT, and offers Undo.
+  /// then persists the new tag sets and staged tags in one transaction,
+  /// announces the result to AT, and offers Undo.
   Future<void> _batchTag(BatchTagMode mode) async {
     final data = _data;
     if (data == null || _selectedIds.isEmpty) return;
@@ -1249,38 +1249,53 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
     // Capture prior tag sets so Undo can restore them.
     final priorTags = <String, List<String>>{};
-    await _repos.transaction(() async {
-      final tagIds = <String, String>{};
-      for (final tag in selection.stagedTags) {
-        tagIds[tag.id] = await _repos.tags.upsert(tag);
-      }
-      for (final id in selectedIds) {
-        final dance = await _repos.dances.getById(id);
-        if (dance == null) continue;
-        final current = dance.tagIds;
-        final List<String> next;
-        if (mode == BatchTagMode.add) {
-          next = [
-            ...current,
-            for (final tagId in chosen)
-              if (!current.contains(tagId)) tagIds[tagId] ?? tagId,
-          ];
-        } else {
-          next = [
-            for (final tagId in current)
-              if (!chosen.contains(tagId)) tagId,
-          ];
+    try {
+      await _repos.transaction(() async {
+        final tagIds = <String, String>{};
+        for (final tag in selection.stagedTags) {
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
         }
-        // Skip dances whose tags did not actually change. Because `next` is
-        // built append-only (add) or subtract-only (remove) from `current`, an
-        // equal length means the set is unchanged.
-        if (next.length == current.length) continue;
-        priorTags[id] = current.toList();
-        await _repos.dances.update(
-          dance.copyWith(tagIds: next, updatedAt: DateTime.now().toUtc()),
+        for (final id in selectedIds) {
+          final dance = await _repos.dances.getById(id);
+          if (dance == null) continue;
+          final current = dance.tagIds;
+          final List<String> next;
+          if (mode == BatchTagMode.add) {
+            next = [
+              ...current,
+              for (final tagId in chosen)
+                if (!current.contains(tagId)) tagIds[tagId] ?? tagId,
+            ];
+          } else {
+            next = [
+              for (final tagId in current)
+                if (!chosen.contains(tagId)) tagId,
+            ];
+          }
+          // Skip dances whose tags did not actually change. Because `next` is
+          // built append-only (add) or subtract-only (remove) from `current`, an
+          // equal length means the set is unchanged.
+          if (next.length == current.length) continue;
+          priorTags[id] = current.toList();
+          await _repos.dances.update(
+            dance.copyWith(tagIds: next, updatedAt: DateTime.now().toUtc()),
+          );
+        }
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._batchTag');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).collectionCreateTagError,
+            ),
+          ),
         );
-      }
-    });
+      return;
+    }
 
     if (!mounted) return;
     final l10n = AppLocalizations.of(context);

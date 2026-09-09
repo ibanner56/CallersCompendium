@@ -154,20 +154,16 @@ class CollectionData {
   ///
   /// ## Why the coalescing window is load-bearing, not a nicety
   ///
-  /// Bursts of sequential writes are normal here. Batch tagging in the
-  /// Collection updates **one dance per transaction in a loop**
-  /// (`dance_list_screen.dart`, `_applyBatchTags`), so tagging 50 dances is 50
-  /// commits, and drift notifies per commit. Without a window, one user action
-  /// would re-run this whole-snapshot load 50 times and re-run the FTS search
-  /// after each — precisely the thrashing issue #340 records, arriving as a
-  /// side effect of fixing staleness.
+  /// Bursts of sequential writes are possible here. Batch tagging in the
+  /// Collection writes all affected dances in one transaction, while other
+  /// collection operations can still emit several source-table notifications.
+  /// Without a window, one user action could re-run this whole-snapshot load
+  /// and the FTS search for each notification — precisely the thrashing issue
+  /// #340 records, arriving as a side effect of fixing staleness.
   ///
-  /// The imperative code this replaces did not need a window because it
-  /// broadcast **once, after** the loop. A stream has no equivalent hook: the
-  /// database announces each commit as it happens and cannot know a batch is
-  /// still in progress. So the window is what preserves the one-action /
-  /// one-reload property that `RefreshCoalescer` gave the scope-based path —
-  /// the same guarantee, moved to where the events now originate.
+  /// The window preserves the one-action / one-reload property that
+  /// `RefreshCoalescer` gave the scope-based path — the same guarantee, moved
+  /// to where the events now originate.
   ///
   /// ## This is a property of the migration, not of this screen
   ///
