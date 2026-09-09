@@ -33,7 +33,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
-- [Cutting a release](#cutting-a-release) — 255 lines
+- [Cutting a release](#cutting-a-release) — 202 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
