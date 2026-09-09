@@ -301,10 +301,10 @@ void main() {
     test('does not rewrite a discouraged prefix in a Unicode name', () {
       expect(
         renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-          'Menéndez called the dance',
+          'Menéndez called the dance; Gypsy、next.',
           larks,
         ),
-        'Menéndez called the dance',
+        'Menéndez called the dance; Shoulder round、next.',
       );
     });
 

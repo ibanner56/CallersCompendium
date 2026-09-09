@@ -32,11 +32,6 @@ String _applyCase(String matched, String replacement) {
 
 /// Compiled set of `term → replacement` rules.
 class Substitutor {
-  // Dart's \w is ASCII-only; include Unicode letters, marks, and numbers so
-  // a discouraged term cannot match the prefix of a non-ASCII name.
-  static const _wordCharacterClass =
-      r'\w\u00C0-\u02FF\u0300-\u036F\u0370-\u1FFF\u2C00-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF';
-
   Substitutor(
     Map<String, String> replacements, {
     this.caseInsensitive = false,
@@ -51,13 +46,7 @@ class Substitutor {
     _pattern = keys.isEmpty
         ? null
         : RegExp(
-            '(?<![' +
-                _wordCharacterClass +
-                r'])(?:' +
-                keys.map(RegExp.escape).join('|') +
-                r')(?![' +
-                _wordCharacterClass +
-                r'])',
+            '(?:' + keys.map(RegExp.escape).join('|') + r')',
             caseSensitive: !caseInsensitive,
           );
   }
@@ -74,6 +63,7 @@ class Substitutor {
     final pattern = _pattern;
     if (pattern == null || text.isEmpty) return text;
     return text.replaceAllMapped(pattern, (m) {
+      if (!_hasWordBoundaries(text, m.start, m.end)) return m[0]!;
       final matched = m[0]!;
       final key = caseInsensitive ? matched.toLowerCase() : matched;
       final replacement = _map[key]!;
@@ -87,7 +77,52 @@ class Substitutor {
     final pattern = _pattern;
     if (pattern == null) return const [];
     return [
-      for (final m in pattern.allMatches(text)) (text: m[0]!, start: m.start),
+      for (final m in pattern.allMatches(text))
+        if (_hasWordBoundaries(text, m.start, m.end))
+          (text: m[0]!, start: m.start),
     ];
   }
+}
+
+bool _hasWordBoundaries(String text, int start, int end) =>
+    !_isWordCodePoint(_codePointBefore(text, start)) &&
+    !_isWordCodePoint(_codePointAt(text, end));
+
+int? _codePointBefore(String text, int offset) {
+  if (offset == 0) return null;
+  final low = text.codeUnitAt(offset - 1);
+  if (low < 0xDC00 || low > 0xDFFF || offset < 2) return low;
+  final high = text.codeUnitAt(offset - 2);
+  if (high < 0xD800 || high > 0xDBFF) return low;
+  return 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00);
+}
+
+int? _codePointAt(String text, int offset) {
+  if (offset >= text.length) return null;
+  final high = text.codeUnitAt(offset);
+  if (high < 0xD800 || high > 0xDBFF || offset + 1 >= text.length) {
+    return high;
+  }
+  final low = text.codeUnitAt(offset + 1);
+  if (low < 0xDC00 || low > 0xDFFF) return high;
+  return 0x10000 + ((high - 0xD800) << 10) + (low - 0xDC00);
+}
+
+bool _isWordCodePoint(int? codePoint) {
+  if (codePoint == null) return false;
+  if ((codePoint >= 0x30 && codePoint <= 0x39) ||
+      (codePoint >= 0x41 && codePoint <= 0x5A) ||
+      (codePoint >= 0x61 && codePoint <= 0x7A) ||
+      codePoint == 0x5F) {
+    return true;
+  }
+  return (codePoint >= 0x00C0 && codePoint <= 0x02AF) ||
+      (codePoint >= 0x0300 && codePoint <= 0x036F) ||
+      (codePoint >= 0x0370 && codePoint <= 0x052F) ||
+      (codePoint >= 0x1E00 && codePoint <= 0x1EFF) ||
+      (codePoint >= 0x3040 && codePoint <= 0x30FF) ||
+      (codePoint >= 0x3400 && codePoint <= 0x4DBF) ||
+      (codePoint >= 0x4E00 && codePoint <= 0x9FFF) ||
+      (codePoint >= 0xAC00 && codePoint <= 0xD7AF) ||
+      (codePoint >= 0x10000 && codePoint <= 0x1EFFF);
 }

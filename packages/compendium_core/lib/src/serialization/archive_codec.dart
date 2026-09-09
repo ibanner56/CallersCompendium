@@ -73,9 +73,9 @@ Map<String, Object?> archiveToJson(
       if (mode == ArchiveSerializationMode.share && !f.shareable) f.id,
   };
   return {
-    // Stamp at least the version the content requires (v2 when venue data is
-    // present) so an older reader warns rather than silently dropping venues,
-    // while honoring an explicitly higher requested version.
+    // Stamp at least the version the content requires so an older reader warns
+    // rather than silently dropping fields, while honoring an explicitly
+    // higher requested version.
     'schemaVersion': archive.schemaVersion > requiredSchemaVersion(archive)
         ? archive.schemaVersion
         : requiredSchemaVersion(archive),

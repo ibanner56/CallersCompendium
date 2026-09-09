@@ -1187,13 +1187,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                           )
                         : _renderer.renderFreeText(dance.hook, dialect),
                     linkText: dance.hook,
-                    transformUnlinkedText: canonicalDiscouragedTerms
-                        ? (value) => _renderer
-                              .renderFreeTextWithCanonicalDiscouragedTerms(
-                                value,
-                                dialect,
-                              )
-                        : null,
+                    transformUnlinkedText: (value) => canonicalDiscouragedTerms
+                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                            value,
+                            dialect,
+                          )
+                        : _renderer.renderFreeText(value, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1269,13 +1268,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   )
                 : _renderer.renderFreeText(dance.callingNotes, dialect),
             linkText: dance.callingNotes,
-            transformUnlinkedText: canonicalDiscouragedTerms
-                ? (value) =>
-                      _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                        value,
-                        dialect,
-                      )
-                : null,
+            transformUnlinkedText: (value) => canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    value,
+                    dialect,
+                  )
+                : _renderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1296,13 +1294,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                   )
                 : _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
             linkText: dance.walkthrough.trim(),
-            transformUnlinkedText: canonicalDiscouragedTerms
-                ? (value) =>
-                      _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
-                        value,
-                        dialect,
-                      )
-                : null,
+            transformUnlinkedText: (value) => canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    value,
+                    dialect,
+                  )
+                : _renderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,

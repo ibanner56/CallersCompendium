@@ -974,9 +974,38 @@ void main() {
       expect(map['schemaVersion'], archiveSchemaVersionVenues);
     });
 
+    test('stamps purge-marker archives at the marker schema version', () {
+      final archive = CompendiumArchive(
+        exportedAt: DateTime.utc(2026),
+        programs: [
+          Program(
+            id: 'p1',
+            title: 'Purged',
+            slots: [
+              ProgramSlot(
+                id: 's1',
+                position: 0,
+                text: 'Lady of the Lake',
+                isPurgedDance: true,
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+      );
+      final map = jsonDecode(encodeArchive(archive)) as Map<String, Object?>;
+      expect(map['schemaVersion'], archiveSchemaVersionProgramSlotMarkers);
+    });
+
     test('keeps a venue-less archive at the base version (back-compat)', () {
       final map =
-          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+          jsonDecode(
+                encodeArchive(
+                  CompendiumArchive(exportedAt: DateTime.utc(2026)),
+                ),
+              )
+              as Map<String, Object?>;
       expect(map['schemaVersion'], archiveSchemaVersionBase);
     });
 
