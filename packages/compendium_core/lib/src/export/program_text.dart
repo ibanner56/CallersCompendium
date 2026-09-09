@@ -13,8 +13,9 @@ import 'export_labels.dart';
 /// The set list is titles + metadata + slot notes only — **not** full per-dance
 /// figure breakdowns. The app layer optionally appends per-dance figure cards
 /// from `danceToPlainText` when the user opts in to "Set list and figures"
-/// (issue #853, ask 2). Dance titles are not dialect
-/// terms, so no canonicalize is applied here.
+/// (issue #853, ask 2). Dance titles are not dialect terms; purge captions
+/// remain lossless while free-text slots and notes may receive display-only
+/// discouraged-term conversion.
 ///
 /// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
 ///   return `null` for an unknown/unavailable dance and the renderer falls back
@@ -166,10 +167,16 @@ String _slotLine(
       buffer.write(' — $note');
     }
   } else {
-    // Text-only slot (break, waltz, announcement): text is the whole content.
-    // This can also be a purged dance tombstone, whose title must remain raw.
+    // Purge captions are lossless; ordinary text-only slots are display prose.
     final text = slot.text!.trim();
-    buffer.write(text);
+    buffer.write(
+      slot.isPurgedDance ||
+              !canonicalizeDiscouragedTerms ||
+              renderer == null ||
+              dialect == null
+          ? text
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
+    );
   }
 
   final meta = <String>[

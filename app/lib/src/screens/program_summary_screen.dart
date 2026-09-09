@@ -1058,6 +1058,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
+    final displayText = slot.isPurgedDance ? text : _displayProse(text);
     return Padding(
       padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
       child: Row(
@@ -1076,7 +1077,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               children: [
                 ?altBadge,
                 Text(
-                  text,
+                  displayText,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontStyle: FontStyle.italic,
                   ),

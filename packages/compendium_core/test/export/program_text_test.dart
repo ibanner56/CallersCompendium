@@ -132,8 +132,13 @@ void main() {
             danceId: 'd1',
             text: 'Ladies call',
           ),
-          // A purged dance retains its title in a text-only slot.
-          ProgramSlot(id: 's2', position: 1, text: 'Lady of the Lake'),
+          // A purged dance retains its title in a marked text-only slot.
+          ProgramSlot(
+            id: 's2',
+            position: 1,
+            text: 'Lady of the Lake',
+            isPurgedDance: true,
+          ),
         ],
       );
       final renderer = FigureRenderer(contraTaxonomy);

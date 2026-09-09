@@ -453,6 +453,11 @@ can still fire.
   history. Baseline metadata uses an enforced singleton row so an empty
   manifest retains its epoch; all six tables are device-scoped except the
   retransmitted pending tombstone blob.
+- v33 (issue #1196): adds `program_slots.is_purged_dance`, an explicit marker
+  for text captions left behind when a dance is purged. Existing slots default
+  to `false`; new purge captions are marked so ordinary text-only announcements
+  can receive display-only discouraged-term conversion without rewriting
+  tombstone titles.
 
 ## The delete model
 

@@ -355,6 +355,7 @@ class ProgramRepository {
               text_: Value(
                 slot.text == null ? null : normalizeShareableText(slot.text!),
               ),
+              isPurgedDance: Value(slot.isPurgedDance),
               isAlt: Value(slot.isAlt),
               guestCaller: Value(
                 slot.guestCaller == null
@@ -621,6 +622,7 @@ class ProgramRepository {
         position: r.position,
         danceId: r.danceId,
         text: r.text_,
+        isPurgedDance: r.isPurgedDance,
         isAlt: r.isAlt,
         guestCaller: r.guestCaller,
         plannedMinutes: r.plannedMinutes,

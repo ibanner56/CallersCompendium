@@ -401,8 +401,12 @@ String _slotLine(
       buffer.write(' — $note');
     }
   } else {
-    // A text-only slot may be a purged dance tombstone; preserve its title.
-    buffer.write(slot.text!.trim());
+    final text = slot.text!.trim();
+    buffer.write(
+      slot.isPurgedDance || !canonicalizeDiscouragedTerms
+          ? text
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
+    );
   }
 
   final meta = <String>[

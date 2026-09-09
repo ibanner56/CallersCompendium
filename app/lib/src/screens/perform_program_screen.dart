@@ -519,7 +519,16 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       final dance = _danceForSlot(slot);
       if (dance != null) return dance.title;
     }
-    final text = slot.text?.trim();
+    final rawText = slot.text?.trim();
+    final text =
+        rawText == null ||
+            slot.isPurgedDance ||
+            !CanonicalDiscouragedTermsScope.of(context)
+        ? rawText
+        : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            rawText,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+          );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
   }

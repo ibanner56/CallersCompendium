@@ -19,6 +19,7 @@ class ProgramSlot {
     required this.position,
     this.danceId,
     this.text,
+    this.isPurgedDance = false,
     this.isAlt = false,
     this.guestCaller,
     this.plannedMinutes,
@@ -28,6 +29,12 @@ class ProgramSlot {
       throw ArgumentError(
         'a slot requires a danceId, text, or both',
         'danceId/text',
+      );
+    }
+    if (isPurgedDance && (danceId != null || text == null)) {
+      throw ArgumentError(
+        'a purged dance tombstone requires text without a danceId',
+        'isPurgedDance',
       );
     }
     if (position < 0) {
@@ -46,6 +53,12 @@ class ProgramSlot {
   final int position;
   final String? danceId;
   final String? text;
+
+  /// Whether this text-only slot preserves the title of a purged dance.
+  ///
+  /// This marker distinguishes a lossless purge caption from an ordinary
+  /// free-text slot such as a break, waltz, or announcement.
+  final bool isPurgedDance;
 
   /// Alternate dance, decided at event time.
   final bool isAlt;
@@ -75,7 +88,7 @@ class ProgramSlot {
   /// derived, so introducing it needs no schema migration.
   bool get isBreak {
     final t = text;
-    if (danceId != null || t == null) return false;
+    if (danceId != null || isPurgedDance || t == null) return false;
     return t.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
   }
 
@@ -86,6 +99,7 @@ class ProgramSlot {
     int? position,
     String? danceId,
     String? text,
+    bool? isPurgedDance,
     bool? isAlt,
     String? guestCaller,
     int? plannedMinutes,
@@ -98,6 +112,9 @@ class ProgramSlot {
     position: position ?? this.position,
     danceId: danceId ?? this.danceId,
     text: text ?? this.text,
+    isPurgedDance:
+        isPurgedDance ??
+        (text != null && text != this.text ? false : this.isPurgedDance),
     isAlt: isAlt ?? this.isAlt,
     guestCaller: clearGuestCaller ? null : (guestCaller ?? this.guestCaller),
     plannedMinutes: clearPlannedMinutes
@@ -113,6 +130,7 @@ class ProgramSlot {
       other.position == position &&
       other.danceId == danceId &&
       other.text == text &&
+      other.isPurgedDance == isPurgedDance &&
       other.isAlt == isAlt &&
       other.guestCaller == guestCaller &&
       other.plannedMinutes == plannedMinutes &&
@@ -124,6 +142,7 @@ class ProgramSlot {
     position,
     danceId,
     text,
+    isPurgedDance,
     isAlt,
     guestCaller,
     plannedMinutes,
@@ -439,6 +458,7 @@ class Program {
           position: s.position,
           danceId: s.danceId,
           text: s.text,
+          isPurgedDance: s.isPurgedDance,
           isAlt: s.isAlt,
           guestCaller: s.guestCaller,
           plannedMinutes: s.plannedMinutes,

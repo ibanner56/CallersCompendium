@@ -2140,6 +2140,38 @@ void main() {
       },
     );
   });
+
+  group('v32 -> v33 upgrade (issue #1196 purge-caption marker)', () {
+    test('adds the purge-caption marker with a false default', () async {
+      final raw = sqlite3.sqlite3.openInMemory();
+      final historical = GeneratedHelper().databaseForVersion(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        32,
+      );
+      await historical.customSelect('SELECT 1').get();
+      await historical.close();
+
+      final db = CompendiumDatabase(
+        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+      );
+      addTearDown(() async {
+        await db.close();
+        raw.close();
+      });
+      await db.customSelect('SELECT 1').get();
+
+      final columns = await db
+          .customSelect("PRAGMA table_info('program_slots')")
+          .get();
+      final marker = columns.firstWhere(
+        (row) => row.read<String>('name') == 'is_purged_dance',
+      );
+      expect(marker.read<int>('dflt_value'), 0);
+
+      final rows = await db.select(db.programSlots).get();
+      expect(rows.every((row) => !row.isPurgedDance), isTrue);
+    });
+  });
 }
 
 Dance _rollAwayDance({
