@@ -7,6 +7,7 @@ import '../../l10n/app_localizations.dart';
 import '../data/aggressive_beats_update_scope.dart';
 import '../data/reduce_motion_scope.dart';
 import '../data/decimal_turns_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../editor/figure_draft.dart';
 import '../search/facet_labels.dart';
 import 'figure_param_editors.dart';
@@ -1283,18 +1284,37 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final figure = draft.toFigure();
     final hasMove = figure != null;
     final renderer = FigureRenderer(widget.taxonomy);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(context);
+    String displaySummary({required bool verbose}) {
+      final summary = renderer.renderSummary(
+        figure!,
+        widget.dialect,
+        verbose: verbose,
+        decimals: !verbose && DecimalTurnsScope.of(context),
+      );
+      return figure.isCustom
+          ? renderer.renderFreeText(
+              summary,
+              widget.dialect,
+              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+            )
+          : summary;
+    }
     final sentence = hasMove
-        ? renderer.renderSummary(
-            figure,
-            widget.dialect,
-            decimals: DecimalTurnsScope.of(context),
-          )
+        ? displaySummary(verbose: false)
         : l10n.danceEditorEmptyFigureSummary;
     final spoken = hasMove
-        ? renderer.renderSummary(figure, widget.dialect, verbose: true)
+        ? displaySummary(verbose: true)
         : l10n.danceEditorEmptyFigureSemantic;
     final note = draft.note.trim();
     final hasNote = note.isNotEmpty;
+    final displayNote = hasNote
+        ? renderer.renderFreeText(
+            note,
+            widget.dialect,
+            canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+          )
+        : '';
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
     final beatsLabel = l10n.danceFigureBeats(draft.beats);
@@ -1322,7 +1342,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       hasMove ? 'yes' : 'no',
       draft.beats,
       hasNote ? 'yes' : 'no',
-      note,
+      displayNote,
       widget.index + 1,
       widget.totalCount,
     );
@@ -1409,7 +1429,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                   ],
                                   Expanded(
                                     child: Text(
-                                      note,
+                                      displayNote,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.bodySmall

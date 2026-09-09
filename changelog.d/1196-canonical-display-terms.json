@@ -1,0 +1,14 @@
+{
+  "id": "1196-canonical-display-terms",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "You can show supported discouraged dance terms as canonical wording in dance details, notes, Perform mode, and exports. This display setting is on by default and never changes saved text."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add an opt-in display renderer for canonical wording of supported discouraged dance terms."
+    ]
+  }
+}

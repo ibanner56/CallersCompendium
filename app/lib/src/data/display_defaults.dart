@@ -148,6 +148,10 @@ const String kDefaultDanceDetailRenderingKey = 'default_dance_detail_rendering';
 /// details. Absent/invalid ⇒ off, preserving the active-dialect-only behavior.
 const String kCanonicalFigureTextKey = 'canonical_figure_text';
 
+/// Key used to persist display-time conversion of discouraged dance terms.
+/// Absent/invalid ⇒ on, preserving the default-on behavior.
+const String kCanonicalDiscouragedTermsKey = 'canonical_discouraged_terms';
+
 /// The user's preferred STARTING rendering for the dance-detail figure table
 /// (ROADMAP G.6b).
 ///

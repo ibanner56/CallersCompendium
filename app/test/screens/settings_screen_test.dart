@@ -7,6 +7,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_theme.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
+import 'package:compendium_app/src/data/canonical_discouraged_terms_scope.dart';
 import 'package:compendium_app/src/data/dialect_library_controller.dart';
 import 'package:compendium_app/src/data/dialect_library_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
@@ -88,6 +89,7 @@ _pumpSettings(
   final trackHistoryForAllCallersNotifier = ValueNotifier<bool>(
     initialTrackHistoryForAllCallers,
   );
+  final canonicalDiscouragedTermsNotifier = ValueNotifier<bool>(true);
   final updateController = UpdateController(repos.settings);
   await updateController.load();
 
@@ -105,6 +107,7 @@ _pumpSettings(
   addTearDown(requirePerformedNotifier.dispose);
   addTearDown(sortIgnoreArticlesNotifier.dispose);
   addTearDown(trackHistoryForAllCallersNotifier.dispose);
+  addTearDown(canonicalDiscouragedTermsNotifier.dispose);
   addTearDown(updateController.dispose);
 
   await tester.pumpWidget(
@@ -125,15 +128,18 @@ _pumpSettings(
                   notifier: requirePerformedNotifier,
                   child: TrackHistoryForAllCallersScope(
                     notifier: trackHistoryForAllCallersNotifier,
-                    child: SortIgnoreArticlesScope(
-                      notifier: sortIgnoreArticlesNotifier,
-                      child: UpdateScope(
-                        controller: updateController,
-                        child: ShorthandMappingsScope(
-                          controller: shorthandMappings,
-                          child: WalkthroughSnippetLibraryScope(
-                            controller: walkthroughSnippets,
-                            child: child!,
+                    child: CanonicalDiscouragedTermsScope(
+                      notifier: canonicalDiscouragedTermsNotifier,
+                      child: SortIgnoreArticlesScope(
+                        notifier: sortIgnoreArticlesNotifier,
+                        child: UpdateScope(
+                          controller: updateController,
+                          child: ShorthandMappingsScope(
+                            controller: shorthandMappings,
+                            child: WalkthroughSnippetLibraryScope(
+                              controller: walkthroughSnippets,
+                              child: child!,
+                            ),
                           ),
                         ),
                       ),
@@ -401,6 +407,38 @@ void main() {
         find.textContaining('When Canonical figure text is on'),
         findsOneWidget,
       );
+    });
+
+    testWidgets('canonical discouraged-term display is on by default', (
+      tester,
+    ) async {
+      await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final toggle = find.byKey(
+        const ValueKey('dialect-canonical-discouraged-terms'),
+      );
+      expect(toggle, findsOneWidget);
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+    });
+
+    testWidgets('canonical discouraged-term display toggles and persists', (
+      tester,
+    ) async {
+      final ctx = await _pumpSettings(tester);
+      await openDialect(tester);
+
+      final toggle = find.byKey(
+        const ValueKey('dialect-canonical-discouraged-terms'),
+      );
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+
+      expect(
+        await ctx.repos.settings.get(kCanonicalDiscouragedTermsKey),
+        isFalse,
+      );
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
     });
 
     testWidgets('enabling the gate enables and persists the child default', (

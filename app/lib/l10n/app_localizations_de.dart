@@ -450,6 +450,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Wenn aktiviert, können Tanzdetails kanonische Rollen- und Bewegungsnamen anzeigen, und der Schalter „Kanonisch“ ist bei nichtkanonischen Dialekten verfügbar. Standardmäßig aus.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Kanonische Tanzbegriffe verwenden';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Wenn aktiviert, verwenden Tanzdetails, Notizen und Exporte für unterstützte unerwünschte Begriffe eine kanonische Formulierung. Gespeicherter Text und Eingabefelder bleiben unverändert. Standardmäßig aktiviert.';
+
+  @override
   String get settingsDialectNewButton => 'Neuer Dialekt';
 
   @override

@@ -67,6 +67,7 @@ String danceToPlainText(
   required String statusLabel,
   FigureRenderer? renderer,
   DanceExportLabels labels = const DanceExportLabels(),
+  bool canonicalizeDiscouragedTerms = false,
 }) {
   final fig = renderer ?? FigureRenderer(contraTaxonomy);
   final lines = <String>[];
@@ -95,13 +96,25 @@ String danceToPlainText(
     lines.add('${labels.figures}:');
     final sectioned = deriveSections(dance.figures, dance.phraseStructure);
     for (final sf in sectioned) {
-      final text = fig.renderSummary(sf.figure, dialect);
+      final summary = fig.renderSummary(sf.figure, dialect);
+      final text = sf.figure.isCustom
+          ? fig.renderFreeText(
+              summary,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            )
+          : summary;
       final beatsLabel = labels.beats(sf.figure.beats);
       final marker = sf.figure.progression ? ' ¶' : '';
       lines.add('${sf.label}  $text ($beatsLabel)$marker');
       final note = sf.figure.note?.trim();
       if (note != null && note.isNotEmpty) {
-        lines.add('    ${fig.renderFreeText(note, dialect)}');
+        final renderedNote = fig.renderFreeText(
+          note,
+          dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        );
+        lines.add('    $renderedNote');
       }
     }
   }
@@ -109,13 +122,25 @@ String danceToPlainText(
   if (_has(dance.callingNotes)) {
     lines.add('');
     lines.add('${labels.callingNotes}:');
-    lines.add(fig.renderFreeText(dance.callingNotes.trim(), dialect));
+    lines.add(
+      fig.renderFreeText(
+        dance.callingNotes.trim(),
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
+    );
   }
 
   if (_has(dance.walkthrough)) {
     lines.add('');
     lines.add('${labels.walkthrough}:');
-    lines.add(fig.renderFreeText(dance.walkthrough.trim(), dialect));
+    lines.add(
+      fig.renderFreeText(
+        dance.walkthrough.trim(),
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
+    );
   }
 
   return lines.join('\n');

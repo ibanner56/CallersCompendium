@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
 import '../../data/display_defaults.dart';
+import '../../data/canonical_discouraged_terms_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/shorthand_mappings_scope.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
@@ -24,9 +25,11 @@ class _DanceDetailsAndShorthandsSectionState
     extends State<DanceDetailsAndShorthandsSection> {
   bool _loaded = false;
   bool _canonicalFigureText = false;
+  bool _canonicalDiscouragedTerms = true;
   DanceDetailRendering _defaultRendering = DanceDetailRendering.activeDialect;
   bool _freeTextEntry = false;
   bool _canonicalFigureTextUserSet = false;
+  bool _canonicalDiscouragedTermsUserSet = false;
   bool _defaultRenderingUserSet = false;
   bool _freeTextEntryUserSet = false;
 
@@ -44,6 +47,19 @@ class _DanceDetailsAndShorthandsSectionState
           // diagnostics: silent — use the safe off default on read failure.
           if (!mounted || _canonicalFigureTextUserSet) return;
           setState(() => _canonicalFigureText = false);
+        });
+    settings
+        .get(kCanonicalDiscouragedTermsKey)
+        .then((stored) {
+          if (!mounted || _canonicalDiscouragedTermsUserSet) return;
+          setState(
+            () => _canonicalDiscouragedTerms = stored is! bool || stored,
+          );
+        })
+        .catchError((_) {
+          // diagnostics: silent — use the safe on default on read failure.
+          if (!mounted || _canonicalDiscouragedTermsUserSet) return;
+          setState(() => _canonicalDiscouragedTerms = true);
         });
     settings
         .get(kDefaultDanceDetailRenderingKey)
@@ -78,9 +94,18 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalFigureTextUserSet = true;
       _canonicalFigureText = value;
     });
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kCanonicalFigureTextKey, value);
+    await RepositoriesScope.of(context).settings
+        .set(kCanonicalFigureTextKey, value);
+  }
+
+  Future<void> _onCanonicalDiscouragedTermsChanged(bool value) async {
+    setState(() {
+      _canonicalDiscouragedTermsUserSet = true;
+      _canonicalDiscouragedTerms = value;
+    });
+    CanonicalDiscouragedTermsScope.notifierOf(context).value = value;
+    await RepositoriesScope.of(context).settings
+        .set(kCanonicalDiscouragedTermsKey, value);
   }
 
   Future<void> _onDefaultRenderingChanged(DanceDetailRendering value) async {
@@ -88,9 +113,8 @@ class _DanceDetailsAndShorthandsSectionState
       _defaultRenderingUserSet = true;
       _defaultRendering = value;
     });
-    await RepositoriesScope.of(
-      context,
-    ).settings.set(kDefaultDanceDetailRenderingKey, value.name);
+    await RepositoriesScope.of(context).settings
+        .set(kDefaultDanceDetailRenderingKey, value.name);
   }
 
   Future<void> _onFreeTextEntryChanged(bool value) async {
@@ -119,6 +143,14 @@ class _DanceDetailsAndShorthandsSectionState
           onChanged: _onCanonicalFigureTextChanged,
           title: Text(l10n.settingsDialectCanonicalFigureTextTitle),
           subtitle: Text(l10n.settingsDialectCanonicalFigureTextSubtitle),
+          isThreeLine: true,
+        ),
+        SwitchListTile(
+          key: const ValueKey('dialect-canonical-discouraged-terms'),
+          value: _canonicalDiscouragedTerms,
+          onChanged: _onCanonicalDiscouragedTermsChanged,
+          title: Text(l10n.settingsDialectCanonicalDiscouragedTermsTitle),
+          subtitle: Text(l10n.settingsDialectCanonicalDiscouragedTermsSubtitle),
           isThreeLine: true,
         ),
         SwitchListTile(

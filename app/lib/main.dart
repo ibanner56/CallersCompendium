@@ -56,6 +56,8 @@ import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
+import 'src/data/canonical_discouraged_terms_scope.dart';
+import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
 import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/walkthrough_snippet_library_controller.dart';
 import 'src/data/walkthrough_snippet_library_scope.dart';
@@ -358,6 +360,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
   final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
     false,
+  );
+  final ValueNotifier<bool> _canonicalDiscouragedTermsNotifier = ValueNotifier(
+    true,
   );
   final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
@@ -744,9 +749,8 @@ class _CompendiumAppState extends State<CompendiumApp> {
       _messengerKey.currentState?.showSnackBar(
         SnackBar(
           content: Text(
-            AppLocalizations.of(
-              navContext,
-            ).onlineLoadError(service.source.label),
+            AppLocalizations.of(navContext)
+                .onlineLoadError(service.source.label),
           ),
         ),
       );
@@ -1035,9 +1039,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // subsequent launch.
     final storedTheme = await _appData.repositories.settings
         .get(kAppThemeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     final themeName = storedTheme is String ? storedTheme : null;
     final selection = AppThemeSelection.forName(themeName);
     if (selection != null) _themeNotifier.value = selection;
@@ -1075,17 +1077,19 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // hiccup.
     final reduceMotion = await _appData.repositories.settings
         .get(kReduceMotionKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (reduceMotion is bool) _reduceMotionNotifier.value = reduceMotion;
     final verboseFigures = await _appData.repositories.settings
         .get(kVerboseFigureRenderingKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (verboseFigures is bool) {
       _verboseFigureRenderingNotifier.value = verboseFigures;
+    }
+    final canonicalDiscouragedTerms = await _appData.repositories.settings
+        .get(kCanonicalDiscouragedTermsKey)
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    if (canonicalDiscouragedTerms is bool) {
+      _canonicalDiscouragedTermsNotifier.value = canonicalDiscouragedTerms;
     }
     // Load the "show turns as decimals" display toggle (#368), off by default
     // when unset. Opt-in, so a read failure or missing key stays off (keeps the
@@ -1093,9 +1097,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // value can never flip the toggle on.
     final decimalTurns = await _appData.repositories.settings
         .get(kDecimalTurnsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (decimalTurns is bool) {
       _decimalTurnsNotifier.value = decimalTurns;
     }
@@ -1104,17 +1106,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // value keeps today's behavior (only recompute beats while untouched).
     final aggressiveBeatsUpdate = await _appData.repositories.settings
         .get(kAggressiveBeatsUpdateKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (aggressiveBeatsUpdate is bool) {
       _aggressiveBeatsUpdateNotifier.value = aggressiveBeatsUpdate;
     }
     final confirmBeforeDelete = await _appData.repositories.settings
         .get(kConfirmBeforeDeleteKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (confirmBeforeDelete is bool) {
       _confirmBeforeDeleteNotifier.value = confirmBeforeDelete;
     }
@@ -1122,9 +1120,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // so a read failure or missing key keeps the simple free-text venue field.
     final venueEntityMode = await _appData.repositories.settings
         .get(kVenueEntityModeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (venueEntityMode is bool) {
       _venueEntityModeNotifier.value = venueEntityMode;
     }
@@ -1143,9 +1139,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // opt-in, so a read failure or missing key stays off.
     final colourDanceTheme = await _appData.repositories.settings
         .get(kColourDanceThemeKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (colourDanceTheme is bool) {
       _colourDanceThemeNotifier.value = colourDanceTheme;
     } else {
@@ -1156,9 +1150,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // on-by-default state so startup never blocks on a settings hiccup.
     final setListColorCoding = await _appData.repositories.settings
         .get(kSetListColorCodingKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     if (setListColorCoding is bool) {
       _setListColorCodingNotifier.value = setListColorCoding;
     }
@@ -1179,9 +1171,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // than throwing during startup.
     final programMatrixColumns = await _appData.repositories.settings
         .get(kProgramMatrixColumnsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the empty (default) config below.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the empty (default) config below.
     _programMatrixColumnsNotifier.value =
         MatrixColumnConfig.tryDecode(programMatrixColumns) ??
         MatrixColumnConfig.empty;
@@ -1192,14 +1182,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // missing/over-long/garbage pattern collapses back to System.
     final dateFormat = await _appData.repositories.settings
         .get(kDateFormatKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     final dateFormatCustom = await _appData.repositories.settings
         .get(kDateFormatCustomPatternKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _dateFormatNotifier.value = dateFormatSettingFromStored(
       dateFormat,
       dateFormatCustom,
@@ -1209,9 +1195,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // safe System default via the resolver.
     final firstDayOfWeek = await _appData.repositories.settings
         .get(kFirstDayOfWeekKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _firstDayOfWeekNotifier.value = firstDayOfWeekPrefFromStored(
       firstDayOfWeek,
     );
@@ -1223,9 +1207,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // unsupported locale.
     final locale = await _appData.repositories.settings
         .get(kLocaleKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _localeNotifier.value = localeFromStored(
       locale,
       AppLocalizations.supportedLocales,
@@ -1248,9 +1230,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     // See CollectionTileFieldsScope.decodeStored for the three-case logic.
     final storedTileFields = await _appData.repositories.settings
         .get(kCollectionTileVisibleFieldsKey)
-        .catchError(
-          (_) => null,
-        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+        .catchError((_) => null); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
     _collectionTileFieldsNotifier.value =
         CollectionTileFieldsScope.decodeStored(storedTileFields);
   }
@@ -1641,49 +1621,53 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                       child: VerboseFigureRenderingScope(
                                         notifier:
                                             _verboseFigureRenderingNotifier,
-                                        child: DecimalTurnsScope(
-                                          notifier: _decimalTurnsNotifier,
-                                          child: AggressiveBeatsUpdateScope(
-                                            notifier:
-                                                _aggressiveBeatsUpdateNotifier,
-                                            child: ConfirmBeforeDeleteScope(
+                                        child: CanonicalDiscouragedTermsScope(
+                                          notifier:
+                                              _canonicalDiscouragedTermsNotifier,
+                                          child: DecimalTurnsScope(
+                                            notifier: _decimalTurnsNotifier,
+                                            child: AggressiveBeatsUpdateScope(
                                               notifier:
-                                                  _confirmBeforeDeleteNotifier,
-                                              child: ColourDanceThemeScope(
+                                                  _aggressiveBeatsUpdateNotifier,
+                                              child: ConfirmBeforeDeleteScope(
                                                 notifier:
-                                                    _colourDanceThemeNotifier,
-                                                child: SetListColorCodingScope(
+                                                    _confirmBeforeDeleteNotifier,
+                                                child: ColourDanceThemeScope(
                                                   notifier:
-                                                      _setListColorCodingNotifier,
-                                                  child: MatrixCollisionModeScope(
+                                                      _colourDanceThemeNotifier,
+                                                  child: SetListColorCodingScope(
                                                     notifier:
-                                                        _matrixExactBeatCollisionNotifier,
-                                                    child: ProgramMatrixColumnConfigScope(
+                                                        _setListColorCodingNotifier,
+                                                    child: MatrixCollisionModeScope(
                                                       notifier:
-                                                          _programMatrixColumnsNotifier,
-                                                      child: DateFormatScope(
+                                                          _matrixExactBeatCollisionNotifier,
+                                                      child: ProgramMatrixColumnConfigScope(
                                                         notifier:
-                                                            _dateFormatNotifier,
-                                                        child: FirstDayOfWeekScope(
+                                                            _programMatrixColumnsNotifier,
+                                                        child: DateFormatScope(
                                                           notifier:
-                                                              _firstDayOfWeekNotifier,
-                                                          child: LocaleScope(
+                                                              _dateFormatNotifier,
+                                                          child: FirstDayOfWeekScope(
                                                             notifier:
-                                                                _localeNotifier,
-                                                            child: BackupControllerScope(
-                                                              onRestored:
-                                                                  reloadFromSettings,
-                                                              child: CollectionFilterScope(
-                                                                controller:
-                                                                    _collectionFilterController,
-                                                                child: VenueEntityModeScope(
-                                                                  notifier:
-                                                                      _venueEntityModeNotifier,
-                                                                  child: ProgramAutoCommitScope(
+                                                                _firstDayOfWeekNotifier,
+                                                            child: LocaleScope(
+                                                              notifier:
+                                                                  _localeNotifier,
+                                                              child: BackupControllerScope(
+                                                                onRestored:
+                                                                    reloadFromSettings,
+                                                                child: CollectionFilterScope(
+                                                                  controller:
+                                                                      _collectionFilterController,
+                                                                  child: VenueEntityModeScope(
                                                                     notifier:
-                                                                        _autoCommitProgramChangesNotifier,
-                                                                    child:
-                                                                        child!,
+                                                                        _venueEntityModeNotifier,
+                                                                    child: ProgramAutoCommitScope(
+                                                                      notifier:
+                                                                          _autoCommitProgramChangesNotifier,
+                                                                      child:
+                                                                          child!,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ),

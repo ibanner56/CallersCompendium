@@ -1,4 +1,6 @@
 import '../model/program.dart';
+import '../dialect/dialect.dart';
+import '../dialect/renderer.dart';
 import 'export_labels.dart';
 
 /// Renders a [Program] as a clean, human-readable plain-text set list — the
@@ -53,6 +55,9 @@ String programToPlainText(
   String? Function(String venueId)? venueNameFor,
   String Function(DateTime date)? formatDate,
   ProgramExportLabels labels = const ProgramExportLabels(),
+  FigureRenderer? renderer,
+  Dialect? dialect,
+  bool canonicalizeDiscouragedTerms = false,
 }) {
   final fmtDate = formatDate ?? _isoDate;
   final lines = <String>[];
@@ -87,9 +92,25 @@ String programToPlainText(
     lines.add('');
     var n = 1;
     for (final group in groups) {
-      lines.add('$n. ${_slotLine(group.primary, titleFor, labels)}');
+      final primary = _slotLine(
+        group.primary,
+        titleFor,
+        labels,
+        renderer: renderer,
+        dialect: dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
+      lines.add('$n. $primary');
       for (final alt in group.alternates) {
-        lines.add('   ${labels.alt}: ${_slotLine(alt, titleFor, labels)}');
+        final alternate = _slotLine(
+          alt,
+          titleFor,
+          labels,
+          renderer: renderer,
+          dialect: dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        );
+        lines.add('   ${labels.alt}: $alternate');
       }
       n++;
     }
@@ -98,7 +119,15 @@ String programToPlainText(
   if (_has(program.notes)) {
     lines.add('');
     lines.add('${labels.notes}:');
-    lines.add(program.notes.trim());
+    lines.add(
+      renderer == null || dialect == null
+          ? program.notes.trim()
+          : renderer.renderFreeText(
+              program.notes.trim(),
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+    );
   }
 
   return lines.join('\n');
@@ -110,18 +139,37 @@ String programToPlainText(
 String _slotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
-  ProgramExportLabels labels,
-) {
+  ProgramExportLabels labels, {
+  FigureRenderer? renderer,
+  Dialect? dialect,
+  bool canonicalizeDiscouragedTerms = false,
+}) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
     // On a dance slot, `text` is a per-slot caller note.
-    if (_has(slot.text)) buffer.write(' — ${slot.text!.trim()}');
+    if (_has(slot.text)) {
+      final note = renderer == null || dialect == null
+          ? slot.text!.trim()
+          : renderer.renderFreeText(
+              slot.text!.trim(),
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            );
+      buffer.write(' — $note');
+    }
   } else {
     // Text-only slot (break, waltz, announcement): text is the whole content.
-    buffer.write(slot.text!.trim());
+    final text = renderer == null || dialect == null
+        ? slot.text!.trim()
+        : renderer.renderFreeText(
+            slot.text!.trim(),
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          );
+    buffer.write(text);
   }
 
   final meta = <String>[

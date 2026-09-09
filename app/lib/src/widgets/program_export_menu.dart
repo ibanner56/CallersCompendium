@@ -9,6 +9,7 @@ export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
@@ -130,6 +131,9 @@ class ProgramExportMenu extends StatelessWidget {
     venueNameFor: _venueNameFor,
     formatDate: (d) => _formatDate(context, d),
     labels: programExportLabels(AppLocalizations.of(context)),
+    renderer: FigureRenderer(contraTaxonomy),
+    dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
   );
 
   /// Walks [program.outputGrouped] and yields every primary and alternate dance
@@ -224,6 +228,9 @@ class ProgramExportMenu extends StatelessWidget {
           levelLabel: levelLabel,
           statusLabel: danceStatusLabel(l10n, dance.status),
           dialect: dialect,
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
           renderer: renderer,
           labels: danceLabels,
         ),

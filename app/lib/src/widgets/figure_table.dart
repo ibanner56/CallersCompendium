@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../l10n/app_localizations.dart';
 import '../data/verbose_figure_rendering_scope.dart';
 import '../data/decimal_turns_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../search/facet_labels.dart';
 import 'import_gap_badge.dart';
 
@@ -44,7 +45,30 @@ class FigureTable extends StatelessWidget {
     // spoken-style verbose rendering instead of the terse notation.
     final verbose = VerboseFigureRenderingScope.of(context);
     final decimals = DecimalTurnsScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final rows = <Widget>[];
+    String renderSummary(
+      Figure figure, {
+      bool verbose = false,
+      bool decimals = false,
+    }) {
+      final summary = renderer.renderSummary(
+        figure,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+      );
+      return figure.isCustom
+          ? renderer.renderFreeText(
+              summary,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+            )
+          : summary;
+    }
+
     String? lastLabel;
     var isFirstRowInSection = true;
     for (final sf in sectioned) {
@@ -58,18 +82,18 @@ class FigureTable extends StatelessWidget {
       }
       rows.add(
         _FigureRow(
-          text: renderer.renderSummary(sf.figure, dialect, decimals: decimals),
-          verboseText: renderer.renderSummary(
-            sf.figure,
-            dialect,
-            verbose: true,
-          ),
+          text: renderSummary(sf.figure, decimals: decimals),
+          verboseText: renderSummary(sf.figure, verbose: true),
           showVerbose: verbose,
           beats: sf.figure.beats,
           progression: sf.figure.progression,
           note: sf.figure.note == null
               ? null
-              : renderer.renderFreeText(sf.figure.note!, dialect),
+              : renderer.renderFreeText(
+                  sf.figure.note!,
+                  dialect,
+                  canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                ),
           isImportGap:
               sf.figure.isCustom &&
               sf.figure.customOrigin == CustomOrigin.importGap,
