@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../../l10n/app_localizations.dart';
+import '../../data/canonical_discouraged_terms_scope.dart';
 import '../../data/validation_issue_labels.dart';
 import '../../data/walkthrough_snippet_library_controller.dart';
 import '../../data/walkthrough_snippet_library_scope.dart';
@@ -275,7 +276,8 @@ class DanceEditorForm extends StatelessWidget {
                   onAdd: controller.addFigure,
                   freeTextEntry: freeTextEntry,
                   shorthandMappings: shorthandMappings,
-                  canonicalizeDiscouragedTerms: true,
+                  canonicalizeDiscouragedTerms:
+                      CanonicalDiscouragedTermsScope.of(context),
                   onAddFreeText: controller.insertFreeTextFigures,
                   onDelete: controller.deleteFigure,
                   onDuplicate: controller.duplicateFigure,

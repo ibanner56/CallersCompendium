@@ -332,10 +332,9 @@ class FigureRenderer {
     if (figure.isCustom) {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
       if (text.isEmpty) return customMove;
-      final displayText = canonicalizeDiscouragedTerms
-          ? renderDiscouragedTerms(text, dialect)
-          : text;
-      return renderFreeText(displayText, dialect);
+      return canonicalizeDiscouragedTerms
+          ? renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
+          : renderFreeText(text, dialect);
     }
     if (figure.isMeanwhile) {
       final override = !forCanonical
@@ -909,10 +908,9 @@ class FigureRenderer {
   }) {
     final text = figure.wordingOverride?.trim();
     if (text == null || text.isEmpty) return null;
-    final displayText = canonicalizeDiscouragedTerms
-        ? renderDiscouragedTerms(text, dialect)
-        : text;
-    return renderFreeText(displayText, dialect);
+    return canonicalizeDiscouragedTerms
+        ? renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
+        : renderFreeText(text, dialect);
   }
 
   /// The non-authoritative marker spliced after an ASSUMED subject in the
@@ -1333,9 +1331,7 @@ class FigureRenderer {
   }
 
   /// Converts only the supported discouraged terms, without applying role-token
-  /// substitution. Callers that need both transformations should call this
-  /// before [renderFreeText], so generated role names cannot be reinterpreted
-  /// as a different discouraged spelling.
+  /// substitution.
   String renderDiscouragedTerms(String text, Dialect dialect) => Substitutor(
     _discouragedDisplayTerms(dialect),
     caseInsensitive: true,
@@ -1347,7 +1343,20 @@ class FigureRenderer {
   String renderFreeTextWithCanonicalDiscouragedTerms(
     String text,
     Dialect dialect,
-  ) => renderFreeText(renderDiscouragedTerms(text, dialect), dialect);
+  ) {
+    final map = <String, String>{
+      for (final entry in dialect.roles.entries) ...{
+        entry.key: entry.value.singular,
+        '${entry.key}s': entry.value.plural,
+      },
+      ..._discouragedDisplayTerms(dialect),
+    };
+    return Substitutor(
+      map,
+      caseInsensitive: true,
+      preserveCase: true,
+    ).apply(text);
+  }
 
   static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
     'gypsy': 'shoulder round',

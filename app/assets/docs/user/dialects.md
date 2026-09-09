@@ -156,7 +156,7 @@ list ships with some common examples and is yours to edit, add to, or clear.
 
 For read-only dance details, shorthand summaries, Perform mode, and dance/program
 exports, the app also converts supported discouraged terms to the active dialect's
-canonical wording by default. Turn off **Canonical wording for discouraged terms**
+canonical wording by default. Turn off **Use canonical dance terms**
 under **Dance details & shorthands** if you prefer to see the stored wording.
 This is display-only: saved dances, notes, search data, archives, and excluded
 metadata such as titles, tunes, and custom-field values are never changed.
@@ -206,9 +206,9 @@ Two settings decide what you see before you touch anything:
 
 - **Your active dialect** (in **Settings › Dialect**) is the wording every screen
   uses by default.
-- **Canonical figure text** (in **Settings › Dialect › Dance details &
-  shorthands**) controls whether dance details may show canonical wording. It is
-  off by default.
+- **Use canonical dance terms** (in **Settings › Dialect › Dance details &
+  shorthands**) controls whether supported discouraged terms are shown in
+  canonical wording. It is on by default.
 - **Open dance details in canonical terms** decides whether a dance opens showing
   your dialect or the shared canonical wording, when canonical figure text is
   enabled. If the gate is off, details open in your active dialect and the child
