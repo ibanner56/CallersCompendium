@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
@@ -52,6 +54,7 @@ class _Host extends StatefulWidget {
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.wireAddMeanwhile = false,
+    this.meanwhileAdder,
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
@@ -68,6 +71,7 @@ class _Host extends StatefulWidget {
   final bool freeTextEntry;
   final bool wireMeanwhile;
   final bool wireAddMeanwhile;
+  final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
   final bool allowAdding;
   final bool allowDuplicating;
   final bool showPhraseStructure;
@@ -127,13 +131,16 @@ class _HostState extends State<_Host> {
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
               onAddMeanwhile: widget.wireAddMeanwhile
-                  ? () => setState(
-                      () => widget.drafts.add(
-                        FigureDraft(
-                          meanwhileSides: [FigureDraft(), FigureDraft()],
-                        ),
-                      ),
-                    )
+                  ? () {
+                      final draft = FigureDraft(
+                        meanwhileSides: [FigureDraft(), FigureDraft()],
+                      );
+                      if (widget.meanwhileAdder != null) {
+                        return widget.meanwhileAdder!(widget.drafts);
+                      }
+                      setState(() => widget.drafts.add(draft));
+                      return Future.value(draft.id);
+                    }
                   : null,
               onAddFreeText: widget.freeTextEntry
                   ? (figures) => setState(
@@ -207,6 +214,7 @@ Future<void> _pump(
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool wireAddMeanwhile = false,
+  Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
   bool allowAdding = true,
   bool allowDuplicating = true,
   bool showPhraseStructure = true,
@@ -232,6 +240,7 @@ Future<void> _pump(
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
       wireAddMeanwhile: wireAddMeanwhile,
+      meanwhileAdder: meanwhileAdder,
       allowAdding: allowAdding,
       allowDuplicating: allowDuplicating,
       showPhraseStructure: showPhraseStructure,
@@ -389,6 +398,45 @@ void main() {
     expect(drafts.single.isMeanwhileGroup, isTrue);
     expect(drafts.single.meanwhileSides, hasLength(2));
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  testWidgets('async meanwhile insertion opens the returned draft', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[];
+    final pending = Completer<String?>();
+    final meanwhile = FigureDraft(
+      meanwhileSides: [FigureDraft(), FigureDraft()],
+    );
+    await _pump(
+      tester,
+      drafts,
+      wireAddMeanwhile: true,
+      meanwhileAdder: (_) => pending.future,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pump();
+
+    drafts.add(FigureDraft());
+    await tester.pumpWidget(
+      _Host(
+        drafts: drafts,
+        wireAddMeanwhile: true,
+        meanwhileAdder: (_) => pending.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+
+    drafts.add(meanwhile);
+    pending.complete(meanwhile.id);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-1-add-side')), findsOneWidget);
   });
 
   testWidgets('can suppress phrase labels and beat summary', (tester) async {

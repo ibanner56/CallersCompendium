@@ -1075,15 +1075,15 @@ class DanceEditorController extends ChangeNotifier {
   /// the current Defaults preference. A stored empty list deliberately becomes
   /// two blank editor sides; one configured side gets one blank companion so
   /// the draft remains editable without violating the core two-side invariant.
-  Future<void> addMeanwhile() async {
-    if (_disposed) return;
+  Future<String?> addMeanwhile() async {
+    if (_disposed) return null;
     Object? stored;
     try {
       stored = await _repos.settings.get(kDefaultMeanwhileSideFiguresKey);
     } catch (_) {
       // diagnostics: silent — insertion uses the safe side-default fallback
     }
-    if (_disposed) return;
+    if (_disposed) return null;
 
     final configured = meanwhileSideFiguresFromStored(stored);
     final sides = [
@@ -1102,6 +1102,7 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+    return group.id;
   }
 
   /// Inserts the figure(s) parsed from one free-text entry line at the end of

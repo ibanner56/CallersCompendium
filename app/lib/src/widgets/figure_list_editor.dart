@@ -168,9 +168,10 @@ class FigureListEditor extends StatefulWidget {
   final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
   onCollapseMeanwhileGroup;
 
-  /// Adds a new meanwhile container draft through the list-level Add menu.
-  /// When `null`, the existing single Add button is retained.
-  final VoidCallback? onAddMeanwhile;
+  /// Adds a new meanwhile container draft through the list-level Add menu and
+  /// returns the inserted draft's id. When `null`, the existing single Add
+  /// button is retained.
+  final Future<String?> Function()? onAddMeanwhile;
 
   /// Whether list-level insertion affordances are available.
   final bool allowAdding;
@@ -201,7 +202,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// Set when the Add flow needs the freshly-appended figure to auto-expand +
   /// focus its Move field after the parent rebuilds with the new draft.
   bool _openLastAfterAdd = false;
-  bool _openLastAfterAddMeanwhile = false;
+  final Set<String> _pendingMeanwhileDraftIds = {};
 
   /// Per-row focus nodes (keyed by draft id) so the collapsed summary is
   /// keyboard-focusable, can receive Enter/Space/Alt+Arrow, and can be
@@ -243,18 +244,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
     // Auto-open + focus the figure the Add flow just appended.
     if (_openLastAfterAdd) {
-      final addedMeanwhile = _openLastAfterAddMeanwhile;
       _openLastAfterAdd = false;
-      _openLastAfterAddMeanwhile = false;
       if (widget.drafts.isNotEmpty) {
         final newId = widget.drafts.last.id;
         _openDraftId = newId;
         _ensureVisibleSoon(newId);
-        _announce(
-          addedMeanwhile
-              ? _l10n.danceEditorAddedMeanwhileAnnouncement
-              : _l10n.danceEditorAddedFigureChooseMove(widget.drafts.length),
-        );
+        _announce(_l10n.danceEditorAddedFigureChooseMove(widget.drafts.length));
       }
     }
 
@@ -276,6 +271,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
     if (_freeTextComposing && (!_freeTextEnabled || !widget.allowAdding)) {
       _dismissFreeText(focusAddButton: widget.allowAdding);
     }
+
+    _openPendingMeanwhileDraft(rebuild: false);
   }
 
   @override
@@ -418,12 +415,31 @@ class _FigureListEditorState extends State<FigureListEditor> {
     widget.onAdd();
   }
 
-  void _addMeanwhile() {
+  Future<void> _addMeanwhile() async {
     final onAddMeanwhile = widget.onAddMeanwhile;
     if (!widget.allowAdding || onAddMeanwhile == null) return;
-    _openLastAfterAdd = true;
-    _openLastAfterAddMeanwhile = true;
-    onAddMeanwhile();
+    final draftId = await onAddMeanwhile();
+    if (!mounted || draftId == null) return;
+    _pendingMeanwhileDraftIds.add(draftId);
+    _openPendingMeanwhileDraft(rebuild: true);
+  }
+
+  void _openPendingMeanwhileDraft({required bool rebuild}) {
+    final ready = _pendingMeanwhileDraftIds
+        .where((id) => widget.drafts.any((draft) => draft.id == id))
+        .toList();
+    if (ready.isEmpty) return;
+    final draftId = ready.last;
+    _pendingMeanwhileDraftIds.removeAll(ready);
+
+    void openDraft() => _openDraftId = draftId;
+    if (rebuild) {
+      setState(openDraft);
+    } else {
+      openDraft();
+    }
+    _ensureVisibleSoon(draftId);
+    _announce(_l10n.danceEditorAddedMeanwhileAnnouncement);
   }
 
   Widget _buildAddAffordance(BuildContext context, {required bool empty}) {

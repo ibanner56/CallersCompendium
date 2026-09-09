@@ -540,12 +540,12 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         _persistDanceFiguresTemplate();
       },
       onDanceFigureTemplateAddMeanwhile: () {
-        setState(
-          () => _defaultDanceFigureDrafts.add(
-            FigureDraft(meanwhileSides: [FigureDraft(), FigureDraft()]),
-          ),
+        final draft = FigureDraft(
+          meanwhileSides: [FigureDraft(), FigureDraft()],
         );
+        setState(() => _defaultDanceFigureDrafts.add(draft));
         _persistDanceFiguresTemplate();
+        return Future.value(draft.id);
       },
       onDanceFigureTemplateAddFreeText: (figures) {
         if (figures.isEmpty) return;
@@ -709,7 +709,7 @@ class _DefaultsView extends StatelessWidget {
   final List<FigureDraft> danceFigureTemplateDrafts;
   final VoidCallback onDanceFigureTemplateChanged;
   final VoidCallback onDanceFigureTemplateAdd;
-  final VoidCallback onDanceFigureTemplateAddMeanwhile;
+  final Future<String?> Function() onDanceFigureTemplateAddMeanwhile;
 
   /// Inserts the figure(s) parsed from one free-text line into the template
   /// (#419); only used when [freeTextEntry] is on.
