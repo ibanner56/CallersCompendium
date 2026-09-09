@@ -5,7 +5,6 @@ import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
 import '../model/dance_link.dart';
-import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/formation.dart';

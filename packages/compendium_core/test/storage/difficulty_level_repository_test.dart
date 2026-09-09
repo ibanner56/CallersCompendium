@@ -3,6 +3,8 @@ import 'package:compendium_core/src/model/enums.dart';
 import 'package:compendium_core/src/model/formation.dart';
 import 'package:compendium_core/src/storage/database.dart';
 import 'package:compendium_core/src/storage/repositories/difficulty_level_repository.dart';
+import 'package:compendium_core/src/sync/sync_codec.dart';
+import 'package:compendium_core/src/sync/sync_record_kind.dart';
 import 'package:drift/drift.dart' hide isNull;
 import 'package:drift/native.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite3;
@@ -50,6 +52,50 @@ void main() {
 
     expect(custom.id, matches(RegExp(r'^[0-9a-f]{8}-')));
     expect((await levels.listAll()).last, custom);
+  });
+
+  test('recreating a deleted label revives its stable ID', () async {
+    final original = await levels.createCustom(label: 'Challenge', position: 3);
+    await levels.delete(original.id, at: DateTime.utc(2099, 1, 2));
+
+    final recreated = await levels.createCustom(
+      label: ' challenge ',
+      position: 3,
+    );
+
+    expect(recreated.id, original.id);
+    expect(await levels.getById(original.id), recreated);
+  });
+
+  test('reordering updates timestamps used by sync records', () async {
+    final before = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(DifficultyLevel.beginnerId))).getSingle();
+    final reorderedAt = DateTime.utc(2099, 1, 3);
+    await levels.reorder([
+      DifficultyLevel.intermediateId,
+      DifficultyLevel.beginnerId,
+      DifficultyLevel.advancedId,
+    ], at: reorderedAt);
+
+    final row = await (db.select(
+      db.difficultyLevels,
+    )..where((t) => t.id.equals(DifficultyLevel.beginnerId))).getSingle();
+    expect(row.position, 1);
+    expect(row.updatedAt?.toUtc(), reorderedAt);
+    expect(row.updatedAt, isNot(before.updatedAt));
+
+    final entity = (await levels.listAll()).singleWhere(
+      (level) => level.id == DifficultyLevel.beginnerId,
+    );
+    final syncRecord = syncRecordBlobForEntity(
+      SyncRecordKind.difficultyLevel,
+      entity,
+      updatedAt: row.updatedAt!,
+      existenceAt: row.existenceAt!,
+    )!;
+    expect(syncRecord.updatedAt, reorderedAt);
+    expect(syncRecord.body['position'], 1);
   });
 
   test('database rejects a dangling difficulty-level ID', () async {
