@@ -326,7 +326,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : const SizedBox.shrink();
     return Column(
       children: [
-        if (_previewPersistent)
+        if (_previewPersistent && (_previewLoading || _previewError != null))
           Align(
             alignment: Alignment.centerRight,
             child: IconButton(

@@ -781,6 +781,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const ValueKey('program-preview-d1')), findsOneWidget);
+    expect(find.byKey(const ValueKey('program-preview-close')), findsNothing);
     expect(find.byKey(const ValueKey('dance-detail-close')), findsOneWidget);
     expect(find.byKey(const ValueKey('reimport-dance')), findsOneWidget);
 
@@ -890,6 +891,55 @@ void main() {
       await second.up();
     },
   );
+
+  testWidgets('persistent online preview stays dismissible while loading', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(_program(id: 'p1', title: 'Night'));
+    final online = _PreviewQueuedProgramOnlineService();
+    await _pumpBuilder(
+      tester,
+      repos,
+      programId: 'p1',
+      callersBoxOnline: online,
+      size: const Size(1200, 2000),
+    );
+
+    final picker = find.byKey(const ValueKey('inline-picker'));
+    await tester.tap(
+      find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-advanced-panel')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-online-search-enable')),
+      ),
+    );
+    await tester.enterText(
+      find.descendant(
+        of: picker,
+        matching: find.byKey(const ValueKey('picker-search')),
+      ),
+      'Imported Dance',
+    );
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('picker-online-details-callersBox-remote')),
+    );
+    await online.previewStarted.future;
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('program-preview-close')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('program-preview-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('inline-picker')), findsOneWidget);
+  });
 
   testWidgets('adds a free-text slot', (tester) async {
     final repos = openTestRepositories();
