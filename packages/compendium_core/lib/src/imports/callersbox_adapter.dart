@@ -931,7 +931,8 @@ class CallersBoxAdapter implements SourceAdapter {
         ...move.params,
         'balance': true,
         'beats': ?beats,
-        if (balanceHand != null &&
+        if (!move.params.containsKey('hand') &&
+            balanceHand != null &&
             balanceHand != 'unspecified' &&
             targetAcceptsHand)
           'hand': balanceHand,

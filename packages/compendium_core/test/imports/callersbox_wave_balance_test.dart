@@ -341,6 +341,18 @@ void main() {
       },
     );
 
+    test('a circulate hand overrides the preceding balance hand', () async {
+      final figures = await _figuresFor([
+        '(4) Balance long wave (NL, women face in)',
+        '(4) Circulate: women cross, men loop right',
+      ]);
+      final figure = figures.single;
+      expect(figure.move, 'box_circulate');
+      expect(figure.params['hand'], 'right');
+      expect(figure.params['balance'], isTrue);
+      expect(figure.params['beats'], 8);
+    });
+
     test('a long-wave balance also folds forward', () async {
       final figures = await _figuresFor([
         '(4) Balance long wave (NR, women face in)',

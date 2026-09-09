@@ -2542,10 +2542,10 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// Conservative guards: the head before the colon must be EXACTLY `circulate`
 /// (so `box circulate`, `diagonal circulate`, `column circulate 2`, … all
 /// decline here and fall through), and the definition must exactly contain a
-/// resolvable `<subject> cross, <subject> loop [left|right]` clause. Unknown
-/// subjects or malformed clauses decline here and fall through to custom. Runs
-/// on the scrubbed text (roles already canonicalized) like the other
-/// pre-recognizers.
+/// resolvable `<subject> cross, <inverse subject> loop [left|right]` clause.
+/// Unknown, non-inverse, or malformed subjects decline here and fall through to
+/// custom. Runs on the scrubbed text (roles already canonicalized) like the
+/// other pre-recognizers.
 FigureMatch? _circulate(String scrubbed) {
   final colon = scrubbed.indexOf(':');
   if (colon == -1) return null;
@@ -2567,12 +2567,12 @@ FigureMatch? _circulate(String scrubbed) {
 
   final who = resolveDancerSetPhrase(cross.group(1)!);
   final loopWho = resolveDancerSetPhrase(loop.group(1)!);
-  if (who == null || loopWho == null) return null;
+  if (who == null || loopWho != invertPairDancerSet(who)) return null;
 
   final hand = loop.group(2)?.toLowerCase();
   return FigureMatch(
     'box_circulate',
-    params: {'who': who, if (hand != null) 'hand': hand},
+    params: {'who': who, if (hand case final hand?) 'hand': hand},
     note: def,
   );
 }

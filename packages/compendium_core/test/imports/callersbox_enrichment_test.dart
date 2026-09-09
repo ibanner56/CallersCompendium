@@ -217,6 +217,12 @@ void main() {
       expect(f.params['text'], 'Circulate: role2s cross, role1s right');
     });
 
+    test('circulate with non-inverse subjects stays custom', () {
+      final f = _parse('Circulate: women cross, women loop right');
+      expect(f!.isCustom, isTrue);
+      expect(f.params['text'], 'Circulate: role2s cross, role2s loop right');
+    });
+
     test('balance ring + circulate folds balance into box_circulate', () {
       // The adapter cross-line merge folds a preceding balance line; here we
       // assert the circulate clause itself structures so the fold has a target.
