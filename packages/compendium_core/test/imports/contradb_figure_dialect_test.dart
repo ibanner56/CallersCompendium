@@ -830,6 +830,16 @@ void main() {
       expect(f.note, suffix);
     });
 
+    test('untimed half hey ricochets map both reachable positions', () {
+      final f = _parse(
+        'role2s start a half hey - rights in center, lefts on ends - '
+        'role2s ricochet, role1s ricochet',
+      );
+      expect(f.params['rico1'], isTrue);
+      expect(f.params['rico2'], isTrue);
+      expect(f.note, isNull);
+    });
+
     test(
       'ricochet after an implicit hey length remains verbatim in the note',
       () {
