@@ -1551,6 +1551,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionPickerSearchFieldHint => 'Søg titler, figurer, noter…';
 
   @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Søg online efter danse efter titel…';
+
+  @override
   String get collectionSearchScopeLabel => 'Søg i';
 
   @override

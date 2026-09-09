@@ -1561,6 +1561,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Zoek titels, figuren, notities…';
 
   @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Zoek online naar dansen op titel…';
+
+  @override
   String get collectionSearchScopeLabel => 'Zoeken in';
 
   @override

@@ -1577,6 +1577,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Titel, Figuren, Notizen suchen…';
 
   @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Online-Tänze nach Titel suchen…';
+
+  @override
   String get collectionSearchScopeLabel => 'Suchen in';
 
   @override

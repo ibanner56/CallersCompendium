@@ -961,6 +961,13 @@ void main() {
       tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
     );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('picker-search')))
+          .decoration
+          ?.hintText,
+      'Search online dances by title…',
+    );
     await tester.enterText(
       find.byKey(const ValueKey('picker-search')),
       'Money Musk',

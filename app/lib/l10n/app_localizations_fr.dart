@@ -1579,6 +1579,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get collectionPickerSearchFieldHint => 'Titres, figures, notes…';
 
   @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Rechercher des danses en ligne par titre…';
+
+  @override
   String get collectionSearchScopeLabel => 'Rechercher dans';
 
   @override

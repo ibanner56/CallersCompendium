@@ -1768,6 +1768,10 @@
   "@collectionPickerSearchFieldHint": {
     "x-sourceSha256": "7d4dc44ffc70ef07a637b21c1ab753ce6dac7d81af0554a06e15232186a89985"
   },
+  "collectionPickerOnlineSearchFieldHint": "タイトルでオンラインのダンスを検索…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
+  },
   "collectionSearchScopeLabel": "検索対象",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"

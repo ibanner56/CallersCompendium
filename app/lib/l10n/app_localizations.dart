@@ -2762,6 +2762,12 @@ abstract class AppLocalizations {
   /// **'Search titles, figures, notes…'**
   String get collectionPickerSearchFieldHint;
 
+  /// Hint text of the collection picker when its online search is limited to titles.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online dances by title…'**
+  String get collectionPickerOnlineSearchFieldHint;
+
   /// Label for the local collection search scope selector.
   ///
   /// In en, this message translates to:

@@ -1985,6 +1985,10 @@
   "@collectionPickerSearchFieldHint": {
     "description": "Hint text of the collection picker search field, listing what is searched."
   },
+  "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "description": "Hint text of the collection picker when its online search is limited to titles."
+  },
   "collectionSearchScopeLabel": "Search in",
   "@collectionSearchScopeLabel": {
     "description": "Label for the local collection search scope selector."
