@@ -144,6 +144,13 @@ thing while the middles do another. Choose **Group with next as meanwhile** and
 the two figures become a **meanwhile** group, labelled with how many **sides** it
 has and sharing one set of beats.
 
+You can also choose **Add meanwhile** from the list's **Add** menu to create the
+container first. The new container starts with the configured meanwhile defaults
+from [Settings](./settings.md#dance-authoring-defaults), or two stand-still sides
+when no valid defaults are available. Clear those defaults for two blank sides;
+one configured side gets one additional blank side. The container remains an
+editor draft until at least two sides contain enough information to save.
+
 Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
 another concurrent figure, up to a maximum the app states when you reach it.

@@ -606,6 +606,8 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
       expect(find.text('No figures yet.'), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey('undo-button')));
@@ -696,6 +698,8 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('figure-add')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
+      await tester.pumpAndSettle();
 
       // Undo the figure add.
       await tester.tap(find.byKey(const ValueKey('undo-button')));
@@ -750,6 +754,8 @@ void main() {
         await _pumpEditor(tester, repos);
 
         await tester.tap(find.byKey(const ValueKey('figure-add')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
         await tester.pumpAndSettle();
 
         // Structural changes schedule autosave (debounced 500ms).
@@ -921,6 +927,8 @@ void main() {
 
       // Add a figure row without selecting a move.
       await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('figure-add-figure')));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(milliseconds: 600));
 

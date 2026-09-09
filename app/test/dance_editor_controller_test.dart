@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
+import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
 import 'support/test_repositories.dart';
@@ -769,6 +770,46 @@ void main() {
   });
 
   group('meanwhile grouping (#590/#593)', () {
+    test('addMeanwhile seeds configured side defaults', () async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMeanwhileSideFiguresKey,
+        encodeFigures([
+          Figure(move: 'balance', params: const {'beats': 4}),
+          Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+        ]),
+      );
+      final controller = await newDanceController(repos);
+      addTearDown(controller.dispose);
+
+      await controller.addMeanwhile();
+
+      expect(controller.figureDrafts, hasLength(9));
+      final group = controller.figureDrafts.last;
+      expect(group.isMeanwhileGroup, isTrue);
+      expect(group.meanwhileSides, hasLength(2));
+      expect(group.meanwhileSides![0].move, 'balance');
+      expect(group.meanwhileSides![1].move, 'swing');
+      expect(group.beats, 4);
+    });
+
+    test(
+      'addMeanwhile keeps an empty preference in editor-only draft state',
+      () async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultMeanwhileSideFiguresKey, '[]');
+        final controller = await newDanceController(repos);
+        addTearDown(controller.dispose);
+
+        await controller.addMeanwhile();
+
+        final group = controller.figureDrafts.last;
+        expect(group.isMeanwhileGroup, isTrue);
+        expect(group.meanwhileSides, hasLength(2));
+        expect(group.toFigure(), isNull);
+      },
+    );
+
     test(
       'groupFigureWithNext merges two adjacent figures into one group draft',
       () async {

@@ -112,11 +112,29 @@ abstract class AppLocalizations {
   /// **'Caller\'s Compendium'**
   String get appTitle;
 
+  /// Screen-reader announcement after adding a meanwhile container.
+  ///
+  /// In en, this message translates to:
+  /// **'Added a meanwhile container.'**
+  String get danceEditorAddedMeanwhileAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:
   /// **'Collection'**
   String get navCollection;
+
+  /// Sub-heading for default meanwhile side figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Meanwhile defaults'**
+  String get settingsDefaultsMeanwhileTitle;
+
+  /// Explanation for the default meanwhile side-figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.'**
+  String get settingsDefaultsMeanwhileSubtitle;
 
   /// Bottom/rail navigation label for the programs destination.
   ///
@@ -8303,6 +8321,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add figure'**
   String get danceEditorAddFigure;
+
+  /// Menu item label for adding an empty meanwhile container.
+  ///
+  /// In en, this message translates to:
+  /// **'Add meanwhile'**
+  String get danceEditorAddMeanwhile;
 
   /// Semantics label for pasting a cut figure at the end of the list.
   ///

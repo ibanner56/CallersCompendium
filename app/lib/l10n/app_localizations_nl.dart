@@ -12,7 +12,19 @@ class AppLocalizationsNl extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Een meanwhile-container is toegevoegd.';
+
+  @override
   String get navCollection => 'Collectie';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle =>
+      'Meanwhile-standaardinstellingen';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'De zijfiguren die worden ingevoegd wanneer je een meanwhile-container toevoegt. Maak de lijst leeg voor twee lege zijden; bij één ingestelde zijde wordt een lege tweede zijde toegevoegd. Je kunt de container na het invoegen bewerken.';
 
   @override
   String get navPrograms => 'Programma\'s';
@@ -5381,6 +5393,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceEditorAddFigure => 'Figuur toevoegen';
+
+  @override
+  String get danceEditorAddMeanwhile => 'Meanwhile toevoegen';
 
   @override
   String get danceEditorPasteAtEndOfFigureList =>

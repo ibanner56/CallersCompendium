@@ -4,9 +4,21 @@
   "@appTitle": {
     "x-sourceSha256": "5630bc70bb952a4b12483271c7b3b800ffe4e26a7f903af78fc9b109f3bcbb1f"
   },
+  "danceEditorAddedMeanwhileAnnouncement": "Een meanwhile-container is toegevoegd.",
+  "@danceEditorAddedMeanwhileAnnouncement": {
+    "x-sourceSha256": "8e45bc8c30a0603904bd6b08fd02f381d1f3ef7c8c97633033cc6e38d032df9d"
+  },
   "navCollection": "Collectie",
   "@navCollection": {
     "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
+  },
+  "settingsDefaultsMeanwhileTitle": "Meanwhile-standaardinstellingen",
+  "@settingsDefaultsMeanwhileTitle": {
+    "x-sourceSha256": "13461f7f717e0763c8fb3e523fcb2ee3806b233a39f02b93885e0a0747f61210"
+  },
+  "settingsDefaultsMeanwhileSubtitle": "De zijfiguren die worden ingevoegd wanneer je een meanwhile-container toevoegt. Maak de lijst leeg voor twee lege zijden; bij één ingestelde zijde wordt een lege tweede zijde toegevoegd. Je kunt de container na het invoegen bewerken.",
+  "@settingsDefaultsMeanwhileSubtitle": {
+    "x-sourceSha256": "fd52415a558ae2a3b71aec64d34d88e66dbb87e764af095eddf7880b8de71bfc"
   },
   "navPrograms": "Programma's",
   "@navPrograms": {
@@ -5439,6 +5451,10 @@
   "danceEditorAddFigure": "Figuur toevoegen",
   "@danceEditorAddFigure": {
     "x-sourceSha256": "e07754295b254c7591ff4adb8acb29a69ec83195ccce0c7cb1adbd4515cd68e0"
+  },
+  "danceEditorAddMeanwhile": "Meanwhile toevoegen",
+  "@danceEditorAddMeanwhile": {
+    "x-sourceSha256": "3d8e36f40c970f8731ce8f6056556c8d842bb2f51faf4d774c2c63dec18d03cb"
   },
   "danceEditorPasteAtEndOfFigureList": "Plakken aan het einde van de figurenlijst",
   "@danceEditorPasteAtEndOfFigureList": {

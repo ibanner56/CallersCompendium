@@ -1,6 +1,7 @@
 // Part of the Settings screen, split by section (Stage-7 item 7.2).
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
+
 import '../../../l10n/app_localizations.dart';
 import '../../data/active_dialect_scope.dart';
 import '../../data/aggressive_beats_update_scope.dart';
@@ -80,6 +81,15 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       FigureDraft.fromFigure(figure),
   ];
   bool _defaultDanceFiguresUserSet = false;
+
+  /// Default ordinary side figures for a newly inserted meanwhile container
+  /// (issue #1197). Unlike the starting-figures template, an empty list is a
+  /// deliberate setting and is therefore preserved as empty.
+  final List<FigureDraft> _defaultMeanwhileSideDrafts = [
+    for (final figure in defaultMeanwhileSideFigures())
+      FigureDraft.fromFigure(figure),
+  ];
+  bool _defaultMeanwhileSidesUserSet = false;
 
   /// Per-move insert-time parameter overrides (ROADMAP DD.3), keyed by move id
   /// then param key, holding only the params the user overrode (diffs vs the
@@ -248,6 +258,23 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           /* diagnostics: silent — keep the pre-seeded default `stand_still × 8` template */
         });
     repos.settings
+        .get(kDefaultMeanwhileSideFiguresKey)
+        .then((stored) {
+          if (!mounted || _defaultMeanwhileSidesUserSet) return;
+          setState(() {
+            _defaultMeanwhileSideDrafts
+              ..clear()
+              ..addAll(
+                meanwhileSideFiguresFromStored(
+                  stored,
+                ).map(FigureDraft.fromFigure),
+              );
+          });
+        })
+        .catchError((_) {
+          /* diagnostics: silent — keep the safe two-side stand-still default */
+        });
+    repos.settings
         .get(kDefaultMoveParamOverridesKey)
         .then((stored) {
           if (!mounted || _defaultMoveParamOverridesUserSet) return;
@@ -340,6 +367,48 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       kDefaultDanceFiguresTemplateKey,
       encodeFigures(figures),
     );
+  }
+
+  /// Persists the ordinary side template used by newly inserted meanwhile
+  /// containers. A blank list is intentional and therefore encodes as `[]`.
+  Future<void> _persistMeanwhileSideDefaults() async {
+    _defaultMeanwhileSidesUserSet = true;
+    final figures = [
+      for (final draft in _defaultMeanwhileSideDrafts) ?draft.toFigure(),
+    ];
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(
+      kDefaultMeanwhileSideFiguresKey,
+      encodeMeanwhileSideFigures(figures),
+    );
+  }
+
+  void _groupDefaultDanceFigures(FigureDraft draft) {
+    final index = _defaultDanceFigureDrafts.indexOf(draft);
+    if (index == -1 || index >= _defaultDanceFigureDrafts.length - 1) return;
+    final first = _defaultDanceFigureDrafts[index];
+    final second = _defaultDanceFigureDrafts[index + 1];
+    if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
+    final group = FigureDraft(meanwhileSides: [first, second]);
+    group.params['beats'] = first.beats;
+    group.beatsTouched = first.beatsTouched;
+    setState(() {
+      _defaultDanceFigureDrafts
+        ..removeAt(index + 1)
+        ..removeAt(index)
+        ..insert(index, group);
+    });
+    _persistDanceFiguresTemplate();
+  }
+
+  void _collapseDefaultDanceFigures(
+    FigureDraft group,
+    FigureDraft remainingSide,
+  ) {
+    final index = _defaultDanceFigureDrafts.indexOf(group);
+    if (index == -1) return;
+    setState(() => _defaultDanceFigureDrafts[index] = remainingSide);
+    _persistDanceFiguresTemplate();
   }
 
   /// Persists the current per-move param overrides as a JSON string (ROADMAP
@@ -470,14 +539,23 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() => _defaultDanceFigureDrafts.add(FigureDraft()));
         _persistDanceFiguresTemplate();
       },
+      onDanceFigureTemplateAddMeanwhile: () {
+        final draft = FigureDraft(
+          meanwhileSides: [FigureDraft(), FigureDraft()],
+        );
+        setState(() => _defaultDanceFigureDrafts.add(draft));
+        _persistDanceFiguresTemplate();
+        return Future.value(draft.id);
+      },
       onDanceFigureTemplateAddFreeText: (figures) {
-        if (figures.isEmpty) return;
+        if (figures.isEmpty) return 0;
         setState(
           () => _defaultDanceFigureDrafts.addAll(
             figures.map(FigureDraft.fromFigure),
           ),
         );
         _persistDanceFiguresTemplate();
+        return figures.length;
       },
       onDanceFigureTemplateDelete: (draft) {
         setState(() => _defaultDanceFigureDrafts.remove(draft));
@@ -497,6 +575,55 @@ class _DefaultsSectionState extends State<DefaultsSection> {
           _defaultDanceFigureDrafts.insert(newIndex, draft);
         });
         _persistDanceFiguresTemplate();
+      },
+      onDanceFigureTemplateGroup: _groupDefaultDanceFigures,
+      onDanceFigureTemplateCollapse: _collapseDefaultDanceFigures,
+      meanwhileSideDrafts: _defaultMeanwhileSideDrafts,
+      onMeanwhileSideChanged: () {
+        setState(() {});
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideAdd: () {
+        if (_defaultMeanwhileSideDrafts.length >= kMaxMeanwhileSides) return;
+        setState(() => _defaultMeanwhileSideDrafts.add(FigureDraft()));
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideAddFreeText: (figures) {
+        final ordinaryFigures = figures
+            .where((figure) => !figure.isMeanwhile)
+            .toList();
+        if (ordinaryFigures.isEmpty) return 0;
+        final remaining =
+            kMaxMeanwhileSides - _defaultMeanwhileSideDrafts.length;
+        if (remaining <= 0) return 0;
+        final accepted = ordinaryFigures.take(remaining).toList();
+        setState(
+          () => _defaultMeanwhileSideDrafts.addAll(
+            accepted.map(FigureDraft.fromFigure),
+          ),
+        );
+        _persistMeanwhileSideDefaults();
+        return accepted.length;
+      },
+      onMeanwhileSideDelete: (draft) {
+        setState(() => _defaultMeanwhileSideDrafts.remove(draft));
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideDuplicate: (draft) {
+        if (_defaultMeanwhileSideDrafts.length >= kMaxMeanwhileSides) return;
+        setState(() {
+          final index = _defaultMeanwhileSideDrafts.indexOf(draft);
+          if (index == -1) return;
+          _defaultMeanwhileSideDrafts.insert(index + 1, draft.clone());
+        });
+        _persistMeanwhileSideDefaults();
+      },
+      onMeanwhileSideReorder: (oldIndex, newIndex) {
+        setState(() {
+          final draft = _defaultMeanwhileSideDrafts.removeAt(oldIndex);
+          _defaultMeanwhileSideDrafts.insert(newIndex, draft);
+        });
+        _persistMeanwhileSideDefaults();
       },
       moveParamOverrides: _defaultMoveParamOverrides,
       shownMoveDefaults: _moveDefaultsShown,
@@ -535,10 +662,20 @@ class _DefaultsView extends StatelessWidget {
     required this.danceFigureTemplateDrafts,
     required this.onDanceFigureTemplateChanged,
     required this.onDanceFigureTemplateAdd,
+    required this.onDanceFigureTemplateAddMeanwhile,
     required this.onDanceFigureTemplateAddFreeText,
     required this.onDanceFigureTemplateDelete,
     required this.onDanceFigureTemplateDuplicate,
     required this.onDanceFigureTemplateReorder,
+    required this.onDanceFigureTemplateGroup,
+    required this.onDanceFigureTemplateCollapse,
+    required this.meanwhileSideDrafts,
+    required this.onMeanwhileSideChanged,
+    required this.onMeanwhileSideAdd,
+    required this.onMeanwhileSideAddFreeText,
+    required this.onMeanwhileSideDelete,
+    required this.onMeanwhileSideDuplicate,
+    required this.onMeanwhileSideReorder,
     required this.moveParamOverrides,
     required this.shownMoveDefaults,
     required this.onAddMoveDefault,
@@ -577,13 +714,26 @@ class _DefaultsView extends StatelessWidget {
   final List<FigureDraft> danceFigureTemplateDrafts;
   final VoidCallback onDanceFigureTemplateChanged;
   final VoidCallback onDanceFigureTemplateAdd;
+  final Future<String?> Function() onDanceFigureTemplateAddMeanwhile;
 
   /// Inserts the figure(s) parsed from one free-text line into the template
   /// (#419); only used when [freeTextEntry] is on.
-  final ValueChanged<List<Figure>> onDanceFigureTemplateAddFreeText;
+  final int Function(List<Figure>) onDanceFigureTemplateAddFreeText;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
+  final ValueChanged<FigureDraft> onDanceFigureTemplateGroup;
+  final void Function(FigureDraft, FigureDraft) onDanceFigureTemplateCollapse;
+
+  /// Ordinary side defaults for newly inserted meanwhile containers. This
+  /// editor intentionally has no container-insertion callback.
+  final List<FigureDraft> meanwhileSideDrafts;
+  final VoidCallback onMeanwhileSideChanged;
+  final VoidCallback onMeanwhileSideAdd;
+  final int Function(List<Figure>) onMeanwhileSideAddFreeText;
+  final ValueChanged<FigureDraft> onMeanwhileSideDelete;
+  final ValueChanged<FigureDraft> onMeanwhileSideDuplicate;
+  final void Function(int oldIndex, int newIndex) onMeanwhileSideReorder;
 
   /// The per-move param overrides (ROADMAP DD.3), keyed by move id then param
   /// key. Owned by [_DefaultsSectionState]; read-only here.
@@ -923,6 +1073,52 @@ class _DefaultsView extends StatelessWidget {
             onDelete: onDanceFigureTemplateDelete,
             onDuplicate: onDanceFigureTemplateDuplicate,
             onReorder: onDanceFigureTemplateReorder,
+            onAddMeanwhile: onDanceFigureTemplateAddMeanwhile,
+            onGroupWithNext: onDanceFigureTemplateGroup,
+            onCollapseMeanwhileGroup: onDanceFigureTemplateCollapse,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.md,
+            AppSpacing.xxs,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l10n.settingsDefaultsMeanwhileTitle,
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              Text(
+                l10n.settingsDefaultsMeanwhileSubtitle,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: FigureListEditor(
+            drafts: meanwhileSideDrafts,
+            taxonomy: contraTaxonomy,
+            phraseStructure: PhraseStructure.standard,
+            dialect: ActiveDialectScope.of(context),
+            freeTextEntry: freeTextEntry,
+            shorthandMappings: ShorthandMappingsScope.maybeOf(context)?.store,
+            onChanged: onMeanwhileSideChanged,
+            onAdd: onMeanwhileSideAdd,
+            onAddFreeText: onMeanwhileSideAddFreeText,
+            onDelete: onMeanwhileSideDelete,
+            onDuplicate: onMeanwhileSideDuplicate,
+            onReorder: onMeanwhileSideReorder,
+            allowAdding: meanwhileSideDrafts.length < kMaxMeanwhileSides,
+            allowDuplicating: meanwhileSideDrafts.length < kMaxMeanwhileSides,
+            showPhraseStructure: false,
+            keyPrefix: 'meanwhile-side',
           ),
         ),
         Padding(
