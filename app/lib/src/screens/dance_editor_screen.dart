@@ -106,7 +106,6 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   List<Choreographer> _choreographers = [];
   List<Tag> _tags = [];
-  final _stagedTags = <String, Tag>{};
   Map<String, String> _choreographerNames = {};
   Map<String, String> _tagNames = {};
 
@@ -233,7 +232,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _choreographers = data.choreographers;
             _tags = [
               ...data.tags,
-              for (final tag in _stagedTags.values)
+              for (final tag in _controller.stagedTags.values)
                 if (!data.tags.any((existing) => existing.id == tag.id)) tag,
             ];
             _allDances = data.dances;
@@ -241,7 +240,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
             _choreographerNames = data.choreographerNames;
             _tagNames = {
               ...data.tagNames,
-              for (final tag in _stagedTags.values) tag.id: tag.name,
+              for (final tag in _controller.stagedTags.values) tag.id: tag.name,
             };
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
@@ -360,7 +359,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
       final dance = _controller.buildDance();
       await _repos.transaction(() async {
         final tagIds = <String, String>{};
-        for (final tag in _stagedTags.values) {
+        for (final tag in _controller.stagedTags.values) {
           if (!dance.tagIds.contains(tag.id)) continue;
           tagIds[tag.id] = await _repos.tags.upsert(tag);
         }
@@ -373,7 +372,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           original: _controller.original,
         );
       });
-      _stagedTags.clear();
+      _controller.clearStagedTags();
       // Clear the autosave draft — work is now committed.
       await _controller.clearDraft();
       _controller.markSaved();
@@ -464,6 +463,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
     if (restore == true) {
       _controller.applyRestoredDraft(draft);
+      setState(() {
+        final existingIds = _tags.map((tag) => tag.id).toSet();
+        _tags = [
+          ..._tags,
+          for (final tag in _controller.stagedTags.values)
+            if (!existingIds.contains(tag.id)) tag,
+        ];
+        _tagNames = {
+          ..._tagNames,
+          for (final tag in _controller.stagedTags.values) tag.id: tag.name,
+        };
+      });
     } else {
       await _controller.discardPendingDraft();
     }
@@ -620,7 +631,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// stream — see [_createSource].
   Future<String> _createTag(String name) async {
     final minted = Tag(id: uuidV4(), name: name.trim());
-    _stagedTags[minted.id] = minted;
+    _controller.stageTag(minted);
     if (mounted) {
       setState(() {
         _tags = [..._tags, minted];
