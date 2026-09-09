@@ -1940,11 +1940,16 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(SnackBarAction));
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 600));
 
     final saved = await repos.programs.getById('p1');
     expect(saved!.title, 'Edited');
     expect(saved.slots.single.performedAt, isNull);
+    expect(
+      await repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+      reason: 'Undo after a clean later auto-commit must not create a draft',
+    );
   });
 
   testWidgets(
@@ -2447,6 +2452,7 @@ void main() {
         _program(
           id: 'p1',
           title: 'Remote edit',
+          notes: 'Remote note',
           slots: [
             ProgramSlot(id: 's0', position: 0, danceId: 'd1'),
             ProgramSlot(id: 's2', position: 1, danceId: 'd3'),
@@ -2459,6 +2465,7 @@ void main() {
 
       final saved = await delayed.repos.programs.getById('p1');
       expect(saved!.title, 'Local edit');
+      expect(saved.notes, 'Remote note');
       expect(saved.slots.map((slot) => slot.id), ['s0', 's2']);
     },
   );

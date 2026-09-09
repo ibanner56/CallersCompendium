@@ -888,8 +888,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   void _markDirty() {
     _editGeneration++;
     if (!_dirty) setState(() => _dirty = true);
-    _scheduleAutosave();
-    _scheduleAutoCommit();
+    if (_dirty) {
+      _scheduleAutosave();
+      _scheduleAutoCommit();
+    } else {
+      await _clearDraft(waitForCommits: false, resetEditorState: false);
+    }
   }
 
   // --- Autosave / draft persistence (issue #436) ----------------------------
@@ -1240,10 +1244,45 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         : local.performedAt,
   );
 
+  Program _mergeUndoProgram({
+    required Program atReadStart,
+    required Program local,
+    required Program live,
+    required List<ProgramSlot> slots,
+  }) => Program(
+    id: live.id,
+    title: local.title == atReadStart.title ? live.title : local.title,
+    eventDate: local.eventDate == atReadStart.eventDate
+        ? live.eventDate
+        : local.eventDate,
+    venue: local.venue == atReadStart.venue ? live.venue : local.venue,
+    venueId: local.venueId == atReadStart.venueId
+        ? live.venueId
+        : local.venueId,
+    band: local.band == atReadStart.band ? live.band : local.band,
+    caller: local.caller == atReadStart.caller ? live.caller : local.caller,
+    dancerLevel: local.dancerLevel == atReadStart.dancerLevel
+        ? live.dancerLevel
+        : local.dancerLevel,
+    notes: local.notes == atReadStart.notes ? live.notes : local.notes,
+    status: local.status == atReadStart.status ? live.status : local.status,
+    hideAlternates: local.hideAlternates == atReadStart.hideAlternates
+        ? live.hideAlternates
+        : local.hideAlternates,
+    slots: slots,
+    createdAt: live.createdAt,
+    updatedAt: live.updatedAt,
+    deletedAt: live.deletedAt,
+    provenance: live.provenance,
+  );
+
   Future<bool> _refreshPerformedAtForUndo() async {
+    final storedBaseline = _existing;
+    if (storedBaseline == null) return false;
     final slotsAtReadStart = List<ProgramSlot>.of(_slots);
-    final live = await _repos.programs.getById(_existing!.id);
+    final live = await _repos.programs.getById(storedBaseline.id);
     if (!mounted || live == null) return false;
+    final local = _draftProgram ?? storedBaseline;
     final slotsAtReadStartById = {
       for (final slot in slotsAtReadStart) slot.id: slot,
     };
@@ -1272,9 +1311,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
     }
     refreshedSlots.sort((a, b) => a.position.compareTo(b.position));
-    setState(() {
-      _slots = _renumber(refreshedSlots);
-    });
+    final merged = _mergeUndoProgram(
+      atReadStart: storedBaseline,
+      local: local,
+      live: live,
+      slots: _renumber(refreshedSlots),
+    );
+    setState(() => _applyProgramToEditor(merged));
     return true;
   }
 
