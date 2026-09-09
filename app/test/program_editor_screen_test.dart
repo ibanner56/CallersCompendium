@@ -16,6 +16,7 @@ import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/screens/program_editor_screen.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
 import 'package:compendium_app/src/widgets/online_result_tile.dart';
+import 'package:compendium_app/src/widgets/program_slot_list_editor.dart';
 
 import 'support/test_repositories.dart';
 import 'support/fake_wakelock.dart';
@@ -2108,6 +2109,56 @@ void main() {
     final saved = await delayed.repos.programs.getById('p1');
     expect(saved!.title, 'Keep this title');
     expect(saved.slots.single.performedAt, laterPerformedAt);
+  });
+
+  testWidgets('persisted Undo preserves a local re-mark during live read', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('program-title')),
+      'Before Undo',
+    );
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    delayed.programs.holdNextRead();
+    delayed.programs.releaseConditionalRollback();
+    await delayed.programs.readStarted;
+
+    final localPerformedAt = DateTime.utc(2030, 1, 1, 0, 0, 2);
+    final slotEditor = tester.widget<ProgramSlotListEditor>(
+      find.byType(ProgramSlotListEditor),
+    );
+    slotEditor.onSlotChanged(
+      0,
+      slotEditor.slots.single.copyWith(performedAt: localPerformedAt),
+    );
+    await tester.pump();
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Before Undo');
+    expect(saved.slots.single.performedAt, localPerformedAt);
   });
 
   testWidgets('failed persisted Undo keeps edits made during live recovery', (

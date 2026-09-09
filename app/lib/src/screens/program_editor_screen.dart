@@ -1216,13 +1216,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _refreshPerformedAtForUndo(Set<String> markedSlotIds) async {
+    final readGeneration = _editGeneration;
+    final slotsAtReadStart = {for (final slot in _slots) slot.id: slot};
     final live = await _repos.programs.getById(_existing!.id);
     if (!mounted || live == null) return;
     final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
+    final editDuringRead = _editGeneration != readGeneration;
     setState(() {
       _slots = [
         for (final slot in _slots)
           if (!markedSlotIds.contains(slot.id))
+            slot
+          else if (editDuringRead && slotsAtReadStart[slot.id] != slot)
             slot
           else
             switch (liveSlotsById[slot.id]?.performedAt) {
