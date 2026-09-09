@@ -1,0 +1,14 @@
+{
+  "id": "1192-callersbox-roll-away",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "You now get the rolling role and relationship assigned correctly when you import a CallersBox roll-away annotation."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Correct CallersBox roll-away role assignment and repair legacy stored figures with a provenance-scoped migration."
+    ]
+  }
+}

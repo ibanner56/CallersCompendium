@@ -22,9 +22,19 @@ import 'dart:io';
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/storage/database.dart'
     show
+        callersBoxRollAwayRoleRepairDoneKey,
+        chainHandBackfillDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        inversePairNormalisationDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        purgeCorruptionRepairDoneKey,
+        sectionRuleVersionKey,
+        starPromenadeHandRemovalDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
         VenueProvenanceCompanion,
         VenuesCompanion,
-        taxonomyV33CanonicalRebuildDoneKey;
+        kSectionRuleVersion;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -1634,6 +1644,315 @@ void main() {
       expect(row.read<int>('transitive'), 0);
     });
   });
+
+  group('CallersBox roll-away role repair (#1192)', () {
+    test(
+      'repairs only exact legacy figures and preserves dance metadata',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final meanwhile = Figure.meanwhile(
+          beats: 8,
+          extraParams: {'preserve': 'container metadata'},
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors', 'beats': 4},
+              note: 'role2s roll right, role1s side-step left',
+            ),
+            Figure(move: 'figure_8', note: 'untouched sibling'),
+          ],
+        );
+        final affected = _rollAwayDance(
+          id: 'callersbox-affected',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'partners', 'beats': 4},
+              note: 'role1s roll left, role2s step aside right',
+            ),
+            meanwhile,
+          ],
+          provenance: Provenance(
+            source: ProvenanceSource.callersbox,
+            externalId: 'affected',
+            importedAt: DateTime.utc(2024),
+          ),
+        );
+        final nonCallersBox = _rollAwayDance(
+          id: 'other-source',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: Provenance(
+            source: ProvenanceSource.json,
+            importedAt: DateTime.utc(2024),
+          ),
+        );
+        final absentProvenance = _rollAwayDance(
+          id: 'no-provenance',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+        );
+        final alreadyCorrect = _rollAwayDance(
+          id: 'already-correct',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'role1s', 'whom': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('already-correct'),
+        );
+        final divergentNote = _rollAwayDance(
+          id: 'divergent-note',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right; role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('divergent-note'),
+        );
+        final unsupportedRelationship = _rollAwayDance(
+          id: 'unsupported-relationship',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'ones'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('unsupported-relationship'),
+        );
+        final softDeleted = _rollAwayDance(
+          id: 'soft-deleted',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('soft-deleted'),
+          deletedAt: DateTime.utc(2024, 1, 2),
+        );
+
+        for (final dance in [
+          affected,
+          nonCallersBox,
+          absentProvenance,
+          alreadyCorrect,
+          divergentNote,
+          unsupportedRelationship,
+          softDeleted,
+        ]) {
+          await repos.dances.create(dance);
+        }
+        await _markPre1192SweepsComplete(repos);
+
+        await repos.ensureMigrated();
+
+        final repaired = await repos.dances.getById(affected.id);
+        expect(repaired!.callingNotes, affected.callingNotes);
+        expect(repaired.rating, affected.rating);
+        expect(repaired.figures[0].params, {
+          'who': 'role2s',
+          'whom': 'partners',
+          'beats': 4,
+        });
+        final repairedMeanwhile = repaired.figures[1];
+        expect(repairedMeanwhile.params['preserve'], 'container metadata');
+        expect(repairedMeanwhile.subFigures[0].params, {
+          'who': 'role1s',
+          'whom': 'neighbors',
+          'beats': 4,
+        });
+        expect(repairedMeanwhile.subFigures[1].note, 'untouched sibling');
+
+        for (final id in [
+          nonCallersBox.id,
+          absentProvenance.id,
+          alreadyCorrect.id,
+          divergentNote.id,
+          unsupportedRelationship.id,
+        ]) {
+          final unchanged = await repos.dances.getById(id);
+          expect(
+            unchanged!.figures,
+            ([
+              nonCallersBox,
+              absentProvenance,
+              alreadyCorrect,
+              divergentNote,
+              unsupportedRelationship,
+            ].firstWhere((dance) => dance.id == id)).figures,
+            reason: '$id must not match the legacy repair predicate',
+          );
+        }
+        final deleted = await repos.dances.getById(
+          softDeleted.id,
+          includeDeleted: true,
+        );
+        expect(deleted!.figures.single.params, {
+          'who': 'role2s',
+          'whom': 'neighbors',
+        });
+
+        for (final table in ['dance_fts', 'dance_substring_fts']) {
+          final indexed = await db
+              .customSelect(
+                'SELECT figures_text FROM $table WHERE dance_id = ?',
+                variables: [Variable.withString(affected.id)],
+              )
+              .getSingle();
+          expect(indexed.read<String>('figures_text'), contains('role1s'));
+          expect(indexed.read<String>('figures_text'), contains('partners'));
+        }
+
+        final marker = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ?',
+              variables: [
+                Variable.withString(callersBoxRollAwayRoleRepairDoneKey),
+              ],
+            )
+            .get();
+        expect(marker, isNotEmpty);
+      },
+    );
+
+    test(
+      'commits source rewrite and retries derived rebuild after failure',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final dance = _rollAwayDance(
+          id: 'callersbox-retry',
+          figures: [
+            Figure(
+              move: 'roll_away',
+              params: {'who': 'neighbors'},
+              note: 'role1s roll right, role2s side-step left',
+            ),
+          ],
+          provenance: _callersBoxProvenance('retry'),
+        );
+        final setup = CompendiumRepositories(db, contraTaxonomy);
+        await setup.dances.create(dance);
+        await _markPre1192SweepsComplete(setup);
+        final repos = _FailingOnceRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        await expectLater(repos.ensureMigrated(), throwsA(isA<StateError>()));
+        expect(repos.rebuildAttempts, 1);
+        final failedSource = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable.withString(dance.id)],
+            )
+            .getSingle();
+        expect(
+          failedSource.read<String>('figures_json'),
+          contains('"whom":"neighbors"'),
+        );
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [Variable.withString(derivedRebuildRequiredKey)],
+              )
+              .get(),
+          isNotEmpty,
+        );
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [
+                  Variable.withString(callersBoxRollAwayRoleRepairDoneKey),
+                ],
+              )
+              .get(),
+          isEmpty,
+        );
+
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, 2);
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [Variable.withString(derivedRebuildRequiredKey)],
+              )
+              .get(),
+          isEmpty,
+        );
+        expect(
+          await db
+              .customSelect(
+                'SELECT 1 FROM settings WHERE key = ?',
+                variables: [
+                  Variable.withString(callersBoxRollAwayRoleRepairDoneKey),
+                ],
+              )
+              .get(),
+          isNotEmpty,
+        );
+      },
+    );
+  });
+}
+
+Dance _rollAwayDance({
+  required String id,
+  required List<Figure> figures,
+  Provenance? provenance,
+  DateTime? deletedAt,
+}) => Dance(
+  id: id,
+  title: id,
+  figures: figures,
+  provenance: provenance,
+  callingNotes: 'preserve this dance metadata',
+  rating: 4,
+  createdAt: DateTime.utc(2024),
+  updatedAt: DateTime.utc(2024),
+  deletedAt: deletedAt,
+);
+
+Provenance _callersBoxProvenance(String externalId) => Provenance(
+  source: ProvenanceSource.callersbox,
+  externalId: externalId,
+  importedAt: DateTime.utc(2024),
+);
+
+Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
+  for (final key in [
+    purgeCorruptionRepairDoneKey,
+    inversePairNormalisationDoneKey,
+    starPromenadeHandRemovalDoneKey,
+    gripSingleFileCanonicalInclusionDoneKey,
+    promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+    compactDosidoSeesawCanonicalRebuildDoneKey,
+    taxonomyV33CanonicalRebuildDoneKey,
+    chainHandBackfillDoneKey,
+  ]) {
+    await repos.settings.set(key, 'done');
+  }
+  await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

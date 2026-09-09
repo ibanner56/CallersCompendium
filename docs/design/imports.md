@@ -950,6 +950,14 @@ has to be judged in its own context.
   qualifiers now populate `promenade.turn` instead of causing the complete
   line to fall to `custom`. The shared parser accepts TCB's supported
   rotation-word forms; an unstated rotation keeps the taxonomy default.
+  **Per-role roll-away annotations (#1192):** when CallersBox supplies exactly
+  one complementary `W`/`M` roll assignment, the non-rolling role is stored
+  in `roll_away.who`, the explicit relationship remains in `roll_away.whom`,
+  and the synthesized role-action note is preserved. Ambiguous annotations
+  remain note-only. Existing imported figures are repaired only when their
+  CallersBox provenance and exact legacy shape prove the same interpretation;
+  the source-scoped migration also rebuilds the derived indexes before marking
+  the repair complete.
   ContraDB HTML's source-rendered `on the left`/`on the right` promenade tail
   is likewise promoted from the existing figure note to `turn`, using the
   maintainer mapping `on the left` → `clockwise` and `on the right` →

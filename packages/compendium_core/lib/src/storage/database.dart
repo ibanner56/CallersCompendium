@@ -240,6 +240,15 @@ const String compactDosidoSeesawCanonicalRebuildDoneKey =
 const String taxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 
+/// Settings key for the one-time repair of legacy CallersBox `roll_away`
+/// figures whose per-role annotation was stored only as a note (#1192).
+///
+/// The pass is provenance-scoped and rewrites only the exact old parser shape;
+/// the marker is written after the source rewrite and derived-index rebuild
+/// succeed.
+const String callersBoxRollAwayRoleRepairDoneKey =
+    '__callersbox_roll_away_role_repair_done__';
+
 /// Settings marker containing the shareable-text normalization algorithm and
 /// exact scope that has been backfilled successfully.
 const String shareableTextNormalisationScopeKey =
