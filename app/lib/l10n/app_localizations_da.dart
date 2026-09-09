@@ -2449,7 +2449,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddDanceButton => 'Tilføj dans';
 
   @override
-  String get programsAddNoteBreakButton => 'Tilføj note / pause';
+  String get programsAddNoteBreakButton => 'Tilføj note / vals';
 
   @override
   String get programsInsertBreakButton => 'Indsæt pause';

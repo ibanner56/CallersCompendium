@@ -2487,7 +2487,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsAddDanceButton => 'Ajouter une danse';
 
   @override
-  String get programsAddNoteBreakButton => 'Ajouter une note / pause';
+  String get programsAddNoteBreakButton => 'Ajouter une note / valse';
 
   @override
   String get programsInsertBreakButton => 'Insérer une pause';

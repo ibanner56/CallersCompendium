@@ -2466,7 +2466,7 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsAddDanceButton => 'Dans toevoegen';
 
   @override
-  String get programsAddNoteBreakButton => 'Notitie / pauze toevoegen';
+  String get programsAddNoteBreakButton => 'Notitie / wals toevoegen';
 
   @override
   String get programsInsertBreakButton => 'Pauze invoegen';

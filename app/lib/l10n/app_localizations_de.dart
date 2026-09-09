@@ -2482,7 +2482,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsAddDanceButton => 'Tanz hinzufügen';
 
   @override
-  String get programsAddNoteBreakButton => 'Notiz / Pause hinzufügen';
+  String get programsAddNoteBreakButton => 'Notiz / Walzer hinzufügen';
 
   @override
   String get programsInsertBreakButton => 'Pause einfügen';
