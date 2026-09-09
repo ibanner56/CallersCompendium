@@ -370,11 +370,6 @@ class DanceRepository {
           );
     }
 
-    final previousTagRows = await (_db.select(
-      _db.danceTags,
-    )..where((t) => t.danceId.equals(dance.id))).get();
-    final previousTagIds = previousTagRows.map((row) => row.tagId).toSet();
-
     await (_db.delete(
       _db.danceTags,
     )..where((t) => t.danceId.equals(dance.id))).go();
@@ -383,12 +378,6 @@ class DanceRepository {
           .into(_db.danceTags)
           .insert(DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId));
     }
-    // A tag is eligible for physical cleanup only after this dance's old
-    // joins are gone. The query below still sees joins from soft-deleted
-    // dances, preserving associations that can be restored later.
-    await _garbageCollectOrphanedTags(
-      previousTagIds.difference(dance.tagIds.toSet()),
-    );
 
     await (_db.delete(
       _db.danceLinks,

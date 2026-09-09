@@ -105,22 +105,27 @@ void main() {
     },
   );
 
-  test('removing a tag association deletes an unreferenced tag row', () async {
-    // ignore: unused_result
-    await repo.upsert(Tag(id: 't1', name: 'chestnut'));
-    final dance = Dance(
-      id: 'd1',
-      title: 'Some Dance',
-      tagIds: const ['t1'],
-      createdAt: DateTime.utc(2026),
-      updatedAt: DateTime.utc(2026),
-    );
-    await dances.create(dance);
+  test(
+    'removing a tag association retains the tag for physical purge',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+      final dance = Dance(
+        id: 'd1',
+        title: 'Some Dance',
+        tagIds: const ['t1'],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      );
+      await dances.create(dance);
 
-    await dances.update(dance.copyWith(tagIds: const []));
+      await dances.update(dance.copyWith(tagIds: const []));
 
-    expect(await repo.listAllWithDeleted(), isEmpty);
-  });
+      expect((await repo.listAllWithDeleted()).map((entry) => entry.tag.id), [
+        't1',
+      ]);
+    },
+  );
 
   test('retains a tag referenced by a soft-deleted dance', () async {
     // ignore: unused_result
