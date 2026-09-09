@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_tile_fields_scope.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -174,7 +176,14 @@ class DanceListTile extends StatelessWidget {
               Chip(
                 avatar: Icon(formationIcon, size: 16, color: formationFg),
                 label: Text(
-                  formationLabel(l10n, dance.formation),
+                  formationDisplayLabel(
+                    l10n,
+                    dance.formation,
+                    FigureRenderer(contraTaxonomy),
+                    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+                    canonicalizeDiscouragedTerms:
+                        CanonicalDiscouragedTermsScope.of(context),
+                  ),
                   style: formationFg == null
                       ? null
                       : TextStyle(color: formationFg),

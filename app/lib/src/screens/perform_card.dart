@@ -123,6 +123,9 @@ class PerformCard extends StatelessWidget {
             _Header(
               dance: dance,
               authorNames: authorNames,
+              renderer: renderer,
+              dialect: dialect,
+              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
               chromeScale: chrome,
             ),
             SizedBox(height: AppSpacing.lg * chrome),
@@ -157,11 +160,14 @@ class PerformCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     if (autoSize) {
       return _FitToHeight(
         minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
-        resetToken: Object.hash(dance.id, dialect),
+        resetToken: Object.hash(dance.id, dialect, canonicalDiscouragedTerms),
         builder: _body,
         scaleCache: fitScaleCache,
       );
@@ -815,11 +821,17 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.dance,
     required this.authorNames,
+    required this.renderer,
+    required this.dialect,
+    required this.canonicalizeDiscouragedTerms,
     this.chromeScale = 1.0,
   });
 
   final Dance dance;
   final List<String> authorNames;
+  final FigureRenderer renderer;
+  final Dialect dialect;
+  final bool canonicalizeDiscouragedTerms;
 
   /// See [_chromeScale] — shrinks this header's fixed vertical spacing together
   /// with the text when the auto-size fit scales below 1.0.
@@ -852,7 +864,13 @@ class _Header extends StatelessWidget {
         SizedBox(height: AppSpacing.sm * chromeScale),
         _MetaRow(
           icon: formationIcon,
-          text: formationLabel(l10n, dance.formation),
+          text: formationDisplayLabel(
+            l10n,
+            dance.formation,
+            renderer,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
           // Per-formation label colour (issue #367): highlight only when the
           // user overrode this shape (override-only).
           highlightColor: FormationColorsScope.of(

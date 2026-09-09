@@ -158,8 +158,10 @@ For read-only dance details, shorthand summaries, Perform mode, and dance/progra
 exports, the app also converts supported discouraged terms to the active dialect's
 canonical wording by default. Turn off **Auto-convert all discouraged terms**
 under **Dance details & shorthands** if you prefer to see the stored wording.
-This is display-only: saved dances, notes, search data, archives, and excluded
-metadata such as titles, tunes, and custom-field values are never changed.
+This is display-only: saved dances, notes, search data, archives, and stored
+metadata are never changed. Read-only dance details also apply the setting to
+formation details, tunes, and custom-field values; titles remain literal, and
+machine-readable archives remain lossless.
 
 > **The app watches for clashes.** If two different things would end up with the
 > exact same wording, the editor warns you right away, because that would make it

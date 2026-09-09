@@ -590,11 +590,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
+    final dialect = ActiveDialectScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     return DanceExportMenu(
       dance: detail.dance,
-      dialect: ActiveDialectScope.of(context),
+      dialect: dialect,
       authorNames: detail.authorNames,
-      formationLabel: formationLabel(l10n, detail.dance.formation),
+      formationLabel: _formationDisplayLabel(
+        l10n,
+        detail.dance.formation,
+        dialect,
+        canonicalDiscouragedTerms,
+      ),
       levelLabel: _levelLabel(l10n, detail.dance),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
@@ -679,7 +688,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
-      formationLabel: formationLabel(l10n, detail.dance.formation),
+      formationLabel: _formationDisplayLabel(
+        l10n,
+        detail.dance.formation,
+        dialect,
+        CanonicalDiscouragedTermsScope.of(context),
+      ),
       levelLabel: _levelLabel(l10n, detail.dance),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
@@ -946,6 +960,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     }
   }
 
+  String _formationDisplayLabel(
+    AppLocalizations l10n,
+    Formation formation,
+    Dialect dialect,
+    bool canonicalizeDiscouragedTerms,
+  ) => formationDisplayLabel(
+    l10n,
+    formation,
+    _renderer,
+    dialect,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+  );
+
   Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -956,7 +983,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           detail.dance,
           dialect: dialect,
           authorNames: detail.authorNames,
-          formationLabel: formationLabel(l10n, detail.dance.formation),
+          formationLabel: _formationDisplayLabel(
+            l10n,
+            detail.dance.formation,
+            dialect,
+            CanonicalDiscouragedTermsScope.of(context),
+          ),
           levelLabel: _levelLabel(l10n, detail.dance),
           statusLabel: danceStatusLabel(l10n, detail.dance.status),
           renderer: _renderer,
@@ -1099,7 +1131,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                             context,
                           )?.overrideFor(dance.formation.shape);
                           final text = Text(
-                            formationLabel(l10n, dance.formation),
+                            _formationDisplayLabel(
+                              l10n,
+                              dance.formation,
+                              dialect,
+                              canonicalDiscouragedTerms,
+                            ),
                           );
                           if (color == null) return text;
                           return Align(
@@ -1275,7 +1312,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
-          Text(dance.tunes.join(', ')),
+          Text(
+            canonicalDiscouragedTerms
+                ? dance.tunes
+                      .map(
+                        (tune) => _renderer
+                            .renderFreeTextWithCanonicalDiscouragedTerms(
+                              tune,
+                              dialect,
+                            ),
+                      )
+                      .join(', ')
+                : dance.tunes.join(', '),
+          ),
         ],
         if (dance.links.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
@@ -1324,7 +1373,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text('${field.label}: ${field.value}'),
+              child: Text(
+                '${field.label}: ${canonicalDiscouragedTerms ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
+              ),
             ),
         ],
         // Calling history is a collection-only concept — hidden for a

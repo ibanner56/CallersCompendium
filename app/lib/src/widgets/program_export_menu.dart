@@ -224,7 +224,15 @@ class ProgramExportMenu extends StatelessWidget {
         danceToPlainText(
           dance,
           authorNames: authorNames,
-          formationLabel: formationLabel(l10n, dance.formation),
+          formationLabel: formationDisplayLabel(
+            l10n,
+            dance.formation,
+            renderer,
+            dialect,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
           levelLabel: levelLabel,
           statusLabel: danceStatusLabel(l10n, dance.status),
           dialect: dialect,

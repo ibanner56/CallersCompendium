@@ -928,7 +928,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
 
       final secondaryParts = <String>[
-        if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null)
+          formationDisplayLabel(
+            l10n,
+            dance.formation,
+            _performRenderer,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
         if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
         if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
@@ -952,7 +961,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
-        if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null)
+          formationDisplayLabel(
+            l10n,
+            dance.formation,
+            _performRenderer,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
         if (dance != null && dance.mixer) l10n.commonMixer,
         if (performed) l10n.programsPerformed,
       ].join('. ');
