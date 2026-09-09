@@ -34,6 +34,7 @@ class FakeSourceAdapter implements SourceAdapter {
     this.source = ProvenanceSource.json,
     this.failFetchExternalIds = const {},
     this.discoverThrows = false,
+    this.difficultyLevelLabel,
   });
 
   /// The source-native records, each a decoded JSON object.
@@ -48,6 +49,8 @@ class FakeSourceAdapter implements SourceAdapter {
 
   /// When true, [discover] throws (to exercise whole-batch discovery failure).
   final bool discoverThrows;
+
+  final String? difficultyLevelLabel;
 
   @override
   Future<List<DiscoveredRecord>> discover(ImportRequest request) async {
@@ -157,6 +160,8 @@ class FakeSourceAdapter implements SourceAdapter {
     final dance = Dance(
       id: 'draft-${raw.externalId ?? 'anon'}',
       title: title,
+      difficultyLevelId: decoded['difficultyLevelId'] as String?,
+      mixedLevel: decoded['mixedLevel'] as bool? ?? false,
       authorIds: authorIds,
       figures: figures,
       createdAt: now,
@@ -165,8 +170,18 @@ class FakeSourceAdapter implements SourceAdapter {
     return StructuredDraft(
       dance: dance,
       raw: raw,
-      issues: issues,
+      issues: [
+        ...issues,
+        if (difficultyLevelLabel != null)
+          const ImportIssue(
+            severity: ImportIssueSeverity.warning,
+            code: 'cc_unmapped_level',
+            message: 'Level was not mapped by the source adapter.',
+          ),
+      ],
       authorNames: authorNames,
+      difficultyLevelLabel:
+          difficultyLevelLabel ?? decoded['difficultyLevelLabel'] as String?,
     );
   }
 }

@@ -73,6 +73,15 @@ Eight tables, twenty columns:
 
 `dances` and `programs` already carry `updated_at` and `deleted_at`.
 
+Schema v34 also adds the ordered, syncable `difficulty_levels` table:
+
+| Table | Adds |
+| --- | --- |
+| `difficulty_levels` | `updated_at`, `deleted_at`, `existence_at` |
+
+Each difficulty-level row is carried as a `difficultyLevel` record (§4.3), and
+`dances.level_id` contains its stable ID.
+
 Six `_db.delete(` call sites across six repositories MUST convert from hard to
 soft delete: `settings`, `choreographers`, `tags`, `published_sources`,
 `custom_field_defs`, and `VenueRepository.delete`. The `restore()` paths on
@@ -503,9 +512,10 @@ this is a no-op — settings keys are ASCII app constants, for which NFC is the
 identity function — but the exclusion is stated because the pass is defined over
 a classification, and the classification does not know which columns are ids.
 
-**Normalising can collide.** `choreographers.name`, `tags.name` and
-`custom_field_defs.key` are `UNIQUE` (§6.6), so two rows differing only in
-Unicode form collapse onto one string and the write fails.
+**Normalising can collide.** `choreographers.name`, `tags.name`,
+`custom_field_defs.key` and `difficulty_levels.label` are `UNIQUE` (§6.6), so
+two rows differing only in Unicode form collapse onto one string and the write
+fails.
 
 **Collisions MUST be detected against a pre-pass snapshot, not by attempting the
 write.** The pass MUST first compute the target value for every in-scope row,
@@ -513,9 +523,10 @@ group the rows by that target, and only then write. Any group with more than one
 member MUST be skipped whole, leaving **every** member in its stored form.
 
 **The grouping key is `(table, column, target)`, not the target alone.** The
-in-scope rows span three tables with three independent `UNIQUE` indexes —
-`choreographers.name`, `tags.name` and `custom_field_defs.key` — and a tag and a
-choreographer bearing the same name do not collide at the database level.
+in-scope rows span four tables with four independent `UNIQUE` indexes —
+`choreographers.name`, `tags.name`, `custom_field_defs.key` and
+`difficulty_levels.label` — and records in different tables bearing the same
+name do not collide at the database level.
 Grouping by target alone would treat them as colliding and skip both
 permanently: unlike a real collision, a cross-table one never stops colliding,
 so the retry below can never repair it. Two conforming implementations would
@@ -532,7 +543,7 @@ opposite members of the same pair. Grouping before writing removes the ordering
 question entirely rather than answering it.
 
 Grouping MUST include soft-deleted rows, because a tombstone continues to
-occupy its natural key: soft delete is an `UPDATE`, and none of the three
+occupy its natural key: soft delete is an `UPDATE`, and none of the four
 `UNIQUE` indexes is filtered on `deleted_at`. A tombstone can therefore block a
 live row.
 
@@ -578,7 +589,7 @@ registry and codec spellings, and the same standard applies here. That source
 has to be built, because nothing importable exists today: the registry's
 identifiers are inline string literals used directly as map keys
 (`'tags.name': _choreography`), not exported constants, and the
-carve-out lives at a separate call site in each of the three in-scope
+carve-out lives at a separate call site in each of the four in-scope
 repositories. The concrete requirement is therefore named rather than left to
 inference — the identifiers MUST be declared once, as constants or generated
 symbols, and imported at all four sites. Two hand-typed literals reconciled
@@ -796,7 +807,7 @@ live-pair case and would be invisible in support.
 cleared when its row is written; it MUST also be discarded when the row it names
 no longer exists. Hard deletion is a shipped path, not a hypothesis:
 `ImportPipeline.undo` rolls back a just-committed import with
-`delete(id, permanent: true)` on `choreographers`, one of the three in-scope
+`delete(id, permanent: true)` on `choreographers`, one of the four in-scope
 tables. Without retirement the entry names a `record_id` that no longer exists,
 can never be written and so never clears — bookkeeping accumulating from an
 ordinary user flow — and retry's instruction to recompute the target from the
@@ -805,9 +816,9 @@ row's current stored value has no value to read.
 Retirement MUST be performed by retry, which discards any entry whose row is
 absent, rather than by the delete paths. This is a decision rather than a
 constraint, and the reason is that the table is polymorphic — one `record_id`
-column spanning three tables — so it cannot carry an `ON DELETE CASCADE`
+column spanning four tables — so it cannot carry an `ON DELETE CASCADE`
 foreign key, and the alternative is an obligation on every present and future
-hard-delete path in three repositories. Placing it in retry makes the table
+hard-delete path in four repositories. Placing it in retry makes the table
 self-healing against deletions nobody remembered to account for, which is the
 failure mode that actually occurs. Retiring an entry is not a repair and MUST
 NOT count as a write for the index-rebuild rule below.
@@ -964,19 +975,20 @@ the three stamps, so it composes with the rule above. A pass that wrote nothing
 — including a retry pass in which every recorded row is still blocked — leaves
 the indexes correct and MUST NOT rebuild them.
 
-**The available rebuild is whole-library and dance-scoped, while two of the
-three in-scope columns do not feed it.** `runDerivedRebuild` forwards to
+**The available rebuild is whole-library and dance-scoped, while three of the
+four in-scope columns do not feed it.** `runDerivedRebuild` forwards to
 `DanceRepository.rebuildAllDerived`, which clears and repopulates `dance_fts`,
 `dance_substring_fts` and `dance_figures` for every dance; it is the only
 rebuild routine that exists. Its indexed columns are `title, authors, hook,
 notes, figures_text, custom_values, sources`, and the row is assembled from
 resolved author names, custom-field *values* and source texts
-(`dance_repository.dart:509`–`:531`). Of the three tables this pass exists for,
-only `choreographers.name` reaches an index, through `authors`; `tags.name` and
-`custom_field_defs.key` reach none. So a pass that repairs only tags or
-custom-field keys — plausible, since small controlled vocabularies are where
-these collisions are likeliest — pays a full recomputation over the whole dance
-collection for indexes whose content did not change.
+(`dance_repository.dart:509`–`:531`). Of the four tables this pass exists for,
+only `choreographers.name` reaches an index, through `authors`; `tags.name`,
+`custom_field_defs.key` and `difficulty_levels.label` reach none. So a pass
+that repairs only tags, custom-field keys or difficulty labels — plausible,
+since small controlled vocabularies are where these collisions are likeliest —
+pays a full recomputation over the whole dance collection for indexes whose
+content did not change.
 
 An implementation **MAY** narrow the step-1 condition — setting no flag and
 running no rebuild — when it can demonstrate by test that no column it rewrote
@@ -1108,8 +1120,8 @@ canonicalisation, used only by §6.9.
 
 ### 4.3 Record blob
 
-Eight kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
-`publishedSource`, `customFieldDef`, `venue`, `setting`.
+Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
+`publishedSource`, `customFieldDef`, `venue`, `difficultyLevel`, `setting`.
 
 ```json
 {
@@ -1126,8 +1138,8 @@ Eight kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | Field | Requirement |
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
-| `kind` | One of the eight above. |
-| `id` | The record's id — a UUID for the seven entity kinds, the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `kind` | One of the nine above. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |
@@ -2163,7 +2175,8 @@ single-database test cannot see.
 
 ### 6.6 Collision reconciliation
 
-`choreographers.name`, `tags.name` and `custom_field_defs.key` are `UNIQUE`.
+`choreographers.name`, `tags.name`, `custom_field_defs.key` and
+`difficulty_levels.label` are `UNIQUE`.
 Applying a record of those kinds:
 
 1. **UUID known locally** → update, last-writer-wins on `updatedAt`. If the
@@ -2171,6 +2184,11 @@ Applying a record of those kinds:
    MUST NOT merge silently — route to the review queue.
 2. **UUID unknown, natural key matches** → reconcile silently.
 3. **Neither** → insert.
+
+Difficulty levels use fixed IDs for the three shipped entries. A shipped ID is
+the canonical identity when present, even if its label was renamed locally;
+unknown custom IDs with the same normalized label reconcile to the existing
+entry, and all affected dance references follow the surviving ID.
 
 Settings are **not** in this list, and their absence is a decision rather than
 an omission. A settings record's id *is* its natural key (§4.4), so two devices
@@ -2205,7 +2223,7 @@ the live local row as `record_id`, the peer's tombstoned id as
 invent a tie-break.
 
 **Queueing rather than reporting is what makes that outcome terminate, and the
-reason is the `UNIQUE` index.** None of the three natural keys is filtered on
+reason is the `UNIQUE` index.** None of the four natural keys is filtered on
 `deleted_at`, so a tombstone continues to occupy its name (§4.1). Leaving the
 live local row in place therefore does not merely decline to extend the peer's
 deletion — it leaves the peer's tombstone with nowhere to be stored, because

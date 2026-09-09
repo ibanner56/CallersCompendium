@@ -12,6 +12,7 @@ class DanceListEntry {
     required this.listCustomFields,
     required this.callCounts,
     this.lastCalled,
+    this.difficultyLevel,
   });
 
   final Dance dance;
@@ -35,6 +36,7 @@ class DanceListEntry {
   /// picks the tally matching the active "Require mark-performed" setting.
   final DanceCallCounts callCounts;
   final DateTime? lastCalled;
+  final DifficultyLevel? difficultyLevel;
 
   String get title => dance.title;
 }

@@ -201,13 +201,21 @@ class DanceListTile extends StatelessWidget {
                 dance.status != DanceStatus.active)
               DanceStatusChip(status: dance.status),
             if (effectiveFields.contains(CollectionTileField.level) &&
-                dance.level != null)
+                (entry.difficultyLevel ??
+                        DifficultyLevel.knownForId(dance.difficultyLevelId)) !=
+                    null)
               Chip(
                 avatar: const Icon(
                   Icons.signal_cellular_alt_outlined,
                   size: 16,
                 ),
-                label: Text(danceLevelLabel(l10n, dance.level!)),
+                label: Text(
+                  danceLevelLabel(
+                    l10n,
+                    entry.difficultyLevel ??
+                        DifficultyLevel.knownForId(dance.difficultyLevelId)!,
+                  ),
+                ),
                 visualDensity: VisualDensity.compact,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),

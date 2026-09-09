@@ -144,7 +144,8 @@ class DanceEditorController extends ChangeNotifier {
   FormationShape _formationShape = FormationShape.dupleImproper;
   Progression _progression = Progression.single;
   DanceStatus _status = DanceStatus.active;
-  DanceLevel? _level;
+  DifficultyLevel? _level;
+  List<DifficultyLevel> _difficultyLevels = DifficultyLevel.shipped;
   bool _mixedLevel = false;
   bool _mixer = false;
   int? _rating;
@@ -155,7 +156,9 @@ class DanceEditorController extends ChangeNotifier {
   FormationShape get formationShape => _formationShape;
   Progression get progression => _progression;
   DanceStatus get status => _status;
-  DanceLevel? get level => _level;
+  DifficultyLevel? get level => _level;
+  List<DifficultyLevel> get difficultyLevels =>
+      List.unmodifiable(_difficultyLevels);
   bool get mixedLevel => _mixedLevel;
   bool get mixer => _mixer;
   int? get rating => _rating;
@@ -280,6 +283,7 @@ class DanceEditorController extends ChangeNotifier {
     required List<CustomFieldDef> fieldDefs,
   }) async {
     this.fieldDefs = fieldDefs;
+    _difficultyLevels = await _repos.difficultyLevels.listAll();
 
     if (dance != null) {
       _original = dance;
@@ -293,7 +297,13 @@ class DanceEditorController extends ChangeNotifier {
       _formationShape = dance.formation.shape;
       _progression = dance.progression;
       _status = dance.status;
-      _level = dance.level;
+      _level = null;
+      for (final level in _difficultyLevels) {
+        if (level.id == dance.difficultyLevelId) {
+          _level = level;
+          break;
+        }
+      }
       _mixedLevel = dance.mixedLevel;
       _mixer = dance.mixer;
       _rating = dance.rating;
@@ -396,7 +406,7 @@ class DanceEditorController extends ChangeNotifier {
       final raw = await _repos.settings.get(draftKey);
       EditorSnapshot? draftSnapshot;
       try {
-        draftSnapshot = decodeDraft(raw);
+        draftSnapshot = decodeDraft(raw, levels: _difficultyLevels);
       } catch (_) {
         // diagnostics: silent — corrupt/unrecognised draft version; discard rather than fail the editor load.
         await _repos.settings.remove(draftKey, permanent: true);
@@ -781,8 +791,8 @@ class DanceEditorController extends ChangeNotifier {
         callingNotes: notesController.text.trim(),
         walkthrough: walkthroughController.text.trim(),
         status: _status,
-        level: _level,
-        clearLevel: _level == null,
+        difficultyLevelId: _level?.id,
+        clearDifficultyLevel: _level == null,
         mixedLevel: _mixedLevel,
         mixer: _mixer,
         rating: _rating,
@@ -812,7 +822,7 @@ class DanceEditorController extends ChangeNotifier {
       callingNotes: notesController.text.trim(),
       walkthrough: walkthroughController.text.trim(),
       status: _status,
-      level: _level,
+      difficultyLevelId: _level?.id,
       mixedLevel: _mixedLevel,
       mixer: _mixer,
       rating: _rating,

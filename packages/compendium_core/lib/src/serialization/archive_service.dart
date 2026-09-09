@@ -1,5 +1,6 @@
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
@@ -26,7 +27,7 @@ class ArchiveExporter {
   /// backup is a faithful, restorable snapshot including items still within the
   /// retention window.
   ///
-  /// All seven reads run inside a single [CompendiumRepositories.db]
+  /// All eight reads run inside a single [CompendiumRepositories.db]
   /// transaction so the export sees one consistent snapshot of the dataset —
   /// without it, a write landing between two reads could produce a
   /// cross-entity-inconsistent archive (e.g. a dance referencing a
@@ -40,6 +41,9 @@ class ArchiveExporter {
     final ts = (exportedAt ?? DateTime.now()).toUtc();
     return _repos.db.transaction(
       () async => CompendiumArchive(
+        // Full backups are vocabulary-aware even when every level has been
+        // deleted, so an empty list remains authoritative on restore.
+        schemaVersion: archiveSchemaVersionDifficultyLevels,
         exportedAt: ts,
         dances: await _repos.dances.listAll(includeDeleted: includeDeleted),
         programs: await _repos.programs.listAll(includeDeleted: includeDeleted),
@@ -48,6 +52,7 @@ class ArchiveExporter {
         customFields: await _repos.customFieldDefs.listAll(),
         tags: await _repos.tags.listAll(),
         venues: await _repos.venues.listAll(),
+        difficultyLevels: await _repos.difficultyLevels.listAll(),
       ),
     );
   }
@@ -137,7 +142,7 @@ class ArchiveRestorer {
 
   /// Writes every archive entity in foreign-key-safe order: the entities a
   /// dance references (published sources, choreographers, tags, custom-field
-  /// defs) first, then dances, then venues, then programs (whose slots
+  /// defs, difficulty levels) first, then dances, then venues, then programs (whose slots
   /// reference dances and whose `venueId` references a venue).
   ///
   /// Choreographers, tags, and custom-field defs are upserted via methods that
@@ -175,6 +180,28 @@ class ArchiveRestorer {
     final tagRemap = <String, String>{};
     final fieldRemap = <String, String>{};
 
+    // Archives before v3 did not carry the vocabulary. Seed only the fixed
+    // shipped IDs that are absent so a legacy enum-name dance reference remains
+    // restorable without overwriting local labels, order, or tombstones during
+    // a merge. A v3 archive is authoritative, including an intentionally empty
+    // vocabulary after a replace.
+    if (archive.schemaVersion < archiveSchemaVersionDifficultyLevels) {
+      final existingLevels = await _repos.difficultyLevels.listAllWithDeleted();
+      final existingIds = {for (final row in existingLevels) row.level.id};
+      for (final level in DifficultyLevel.shipped) {
+        if (existingIds.contains(level.id)) continue;
+        await _guard('difficultyLevel', level.id, errors, () async {
+          await _repos.difficultyLevels.upsert(level);
+        });
+      }
+    }
+    if (archive.schemaVersion >= archiveSchemaVersionDifficultyLevels) {
+      for (final level in archive.difficultyLevels) {
+        await _guard('difficultyLevel', level.id, errors, () async {
+          await _repos.difficultyLevels.upsert(level);
+        });
+      }
+    }
     for (final s in archive.publishedSources) {
       await _guard('publishedSource', s.id, errors, () async {
         // publishedSources.upsert returns Future<void> — it contains no
@@ -365,6 +392,7 @@ class ArchiveRestorer {
     await db.delete(db.provenance).go();
     await db.delete(db.programSlots).go();
     await db.delete(db.dances).go();
+    await db.delete(db.difficultyLevels).go();
     await db.delete(db.programs).go();
     await db.delete(db.customFieldDefs).go();
     await db.delete(db.tags).go();

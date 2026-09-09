@@ -186,6 +186,7 @@ class CallersCompanionUsrAdapter implements SourceAdapter {
       raw: raw,
       issues: mapping.issues,
       authorNames: mapping.authorNames,
+      difficultyLevelLabel: mapping.difficultyLevelLabel,
     );
   }
 

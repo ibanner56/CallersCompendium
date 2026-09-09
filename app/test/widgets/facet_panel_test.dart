@@ -134,7 +134,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('level-intermediate')));
     await tester.pump();
 
-    expect(facets.levels, contains(DanceLevel.intermediate));
+    expect(facets.levels, contains(DifficultyLevel.intermediateId));
     expect(changes, 1);
 
     // Toggling again removes it.

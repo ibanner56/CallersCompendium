@@ -34,7 +34,7 @@ disagree, that section wins.
 | **sync ID** | Diceware passphrase identifying one store. A bearer credential. |
 | **device ID** | Random v4 UUID minted per installation, on opt-in. Classified `protocolIdentifier`: it travels in manifest envelopes and request paths as an opaque routing key, and is **never adopted from a peer**. Not `deviceScoped`, which means never transmitted by any route. See "what `EgressClass` actually governs". |
 | **epoch** | Opaque 128-bit random value the server stamps on a sync ID at creation. |
-| **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, venue, or a settings key. |
+| **record** | One syncable row — a dance, program, tag, choreographer, published source, custom field def, difficulty level, venue, or a settings key. |
 | **blob** | One record, serialised and content-addressed. |
 | **manifest** | One device's map of kind → record id → content hash. |
 | **baseline** | The manifest a device last successfully synced, held locally. The merge base. |
@@ -94,10 +94,10 @@ fields are `shareable`.
 
 ### Record kinds
 
-Eight kinds produce blobs:
+Nine kinds produce blobs:
 
 `dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
-`customFieldDef` · `venue` · `setting`
+`customFieldDef` · `difficultyLevel` · `venue` · `setting`
 
 Join rows are **not** separate records. They ride inline with their parent
 exactly as the archive codec already models them — a dance carries its
@@ -113,8 +113,9 @@ as **top-level arrays**, siblings of `dances`.
 Records sync under their existing UUID, so identity survives a rename — the name
 is a field, not the key.
 
-Three kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
-`custom_field_defs.key` — so two devices that independently created "Bob Smith"
+Four kinds carry `UNIQUE` natural keys — `choreographers.name`, `tags.name`,
+`custom_field_defs.key`, `difficulty_levels.label` — so two devices that
+independently created "Bob Smith"
 hold one entity under two UUIDs. Inserting the second violates the constraint and
 fails the entire apply transaction. Applying a record of those kinds therefore:
 
@@ -128,6 +129,11 @@ fails the entire apply transaction. Applying a record of those kinds therefore:
    tie-break, merge field values by recency, coalesce `deviceLocal` fields, remap
    every reference, drop the loser.
 3. **Neither** → insert.
+
+Difficulty levels use fixed IDs for the three shipped entries. A shipped ID is
+the canonical identity when present, even if its label was renamed locally;
+unknown custom IDs with the same normalized label reconcile to the existing
+entry, and all affected dance references follow the surviving ID.
 
 Step 2 is **silent** — no prompt, no review queue. At beta scale the collision is
 routine and per-entity prompts would be noise.
@@ -1658,7 +1664,7 @@ every device is the failure this whole mechanism exists to prevent, and it is
 also the harder of the two to notice.
 
 `existenceAt` is `shareable`: it is a bare timestamp with no subject, it must
-travel for the rule to work, and it is stored per record on all eight syncable
+travel for the rule to work, and it is stored per record on all nine syncable
 kinds (see the sync-migration scope).
 
 Because nothing has shipped, this lands in envelope `v: 1` rather than bumping
@@ -1722,7 +1728,7 @@ and tables this design does not migrate.
 
 An earlier draft also called it "one column on `settings`". Under first-class
 records, and with the provenance gate needing `existence_at` on every kind that can
-be tombstoned, it is **eight tables and twenty columns**:
+be tombstoned, it is **nine tables and twenty-three columns**:
 
 | Table | Adds |
 | --- | --- |
@@ -1732,6 +1738,7 @@ be tombstoned, it is **eight tables and twenty columns**:
 | `published_sources` | `updated_at`, `deleted_at`, `existence_at` |
 | `custom_field_defs` | `updated_at`, `deleted_at`, `existence_at` |
 | `venues` | `updated_at`, `deleted_at`, `existence_at` |
+| `difficulty_levels` | `updated_at`, `deleted_at`, `existence_at` |
 | `dances` | `existence_at` |
 | `programs` | `existence_at` |
 
@@ -2201,7 +2208,7 @@ had to be written as one.
 **A skip recorded as final is a defect with two faces.** Nothing re-ran the pass
 after the completion marker was written, so a skipped row stayed un-normalised
 permanently — and separately, tombstones occupy their natural keys, because soft
-delete is an `UPDATE` and none of the three `UNIQUE` indexes filters on
+delete is an `UPDATE` and none of the four `UNIQUE` indexes filters on
 `deleted_at`. Compose those and a **live** row is blocked forever by a **dead**
 one the user cannot see, cannot list and cannot act on. I had reached for a
 special case for tombstones. The better fix was one rule that dissolves both:
@@ -2296,7 +2303,7 @@ condition invites acting on the snapshot**; storing an address forces the
 re-derivation that was correct anyway.
 
 **Scoping a rule to "the target value" forgot which table the value lives in.**
-Three `UNIQUE` indexes on three tables, and grouping by target alone treats a
+Four `UNIQUE` indexes on four tables, and grouping by target alone treats a
 tag and a choreographer sharing a name as a collision — skipping both
 *permanently*, because a cross-table collision never stops colliding and the
 retry can never clear it. The bug is worse than the one it emerges from: the
@@ -3295,8 +3302,8 @@ The user is told the count afterwards ("merged 412 duplicates"), not asked.
    is otherwise undefined.
 
    This rule is only universally applicable because of the record model: all
-   eight syncable kinds carry `updatedAt` — the five that lacked it, plus
-   `settings`, gain it in the sync migration. A kind without a modification timestamp
+   nine syncable kinds carry `updatedAt` — the five that lacked it, plus
+   `settings` and `difficultyLevel`, gain it in the sync migration. A kind without a modification timestamp
    cannot participate in this rule at all, which is why the migration is a prerequisite
    rather than a convenience.
 

@@ -60,6 +60,7 @@ export 'src/model/choreographer.dart';
 export 'src/model/collection_import_event.dart';
 export 'src/model/custom_field.dart';
 export 'src/model/dance.dart';
+export 'src/model/difficulty_level.dart';
 export 'src/model/dance_link.dart';
 export 'src/model/enums.dart';
 export 'src/model/figure.dart';
@@ -153,6 +154,7 @@ export 'src/storage/repositories/custom_field_repository.dart'
         decodeCustomFieldValue,
         encodeCustomFieldValue;
 export 'src/storage/repositories/dance_repository.dart';
+export 'src/storage/repositories/difficulty_level_repository.dart';
 export 'src/storage/repositories/program_repository.dart';
 export 'src/storage/repositories/published_source_repository.dart';
 export 'src/storage/repositories/repositories.dart';

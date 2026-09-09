@@ -14,6 +14,7 @@ void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
   late ChoreographerRepository choreographers;
+  late DifficultyLevelRepository difficultyLevels;
   late ImportPipeline pipeline;
   late String Function() nextId;
 
@@ -21,7 +22,12 @@ void main() {
     db = openTestDatabase();
     dances = DanceRepository(db, contraTaxonomy);
     choreographers = ChoreographerRepository(db);
-    pipeline = ImportPipeline(dances, choreographers);
+    difficultyLevels = DifficultyLevelRepository(db);
+    pipeline = ImportPipeline(
+      dances,
+      choreographers,
+      difficultyLevels: difficultyLevels,
+    );
     nextId = sequentialIds();
   });
 
@@ -38,6 +44,7 @@ void main() {
     String? license,
     List<String> authorNames = const [],
     List<String> authorIds = const [],
+    String? difficultyLevelLabel,
   }) => {
     'id': id,
     'title': title,
@@ -46,10 +53,108 @@ void main() {
     'license': ?license,
     'authorNames': authorNames,
     'authorIds': authorIds,
+    'difficultyLevelLabel': ?difficultyLevelLabel,
     'figures': figures,
   };
 
   group('commit writes provenance transactionally', () {
+    test('resolves a matching configured custom difficulty label', () async {
+      final custom = await difficultyLevels.createCustom(
+        label: 'Workshop',
+        position: 3,
+      );
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('custom-level', 'Custom Level Dance'),
+        ], difficultyLevelLabel: ' workshop '),
+        const ImportRequest(),
+      );
+
+      expect(batch.records.single.draft.dance.difficultyLevelId, custom.id);
+      expect(
+        batch.records.single.draft.issues.where(
+          (issue) => issue.code == 'cc_unmapped_level',
+        ),
+        isEmpty,
+      );
+    });
+
+    test(
+      'prefers an exact configured label over a stale shipped alias mapping',
+      () async {
+        final advanced = await difficultyLevels.getById(
+          DifficultyLevel.advancedId,
+        );
+        expect(advanced, isNotNull);
+        await difficultyLevels.upsert(
+          advanced!.copyWith(label: 'Expert'),
+          at: now,
+        );
+        final custom = await difficultyLevels.createCustom(
+          label: 'Advanced',
+          position: 3,
+        );
+
+        final batch = await pipeline.plan(
+          FakeSourceAdapter([
+            record(
+              'custom-alias',
+              'Custom Alias Dance',
+              difficultyLevelLabel: 'Advanced',
+            )..['difficultyLevelId'] = DifficultyLevel.advancedId,
+          ]),
+          const ImportRequest(),
+        );
+
+        expect(batch.records.single.draft.dance.difficultyLevelId, custom.id);
+        expect(
+          batch.records.single.draft.issues.any(
+            (issue) => issue.code == 'cc_inactive_level',
+          ),
+          isFalse,
+        );
+      },
+    );
+
+    test('does not resolve Mixed to a configured custom level', () async {
+      final custom = await difficultyLevels.createCustom(
+        label: 'Mixed',
+        position: 3,
+      );
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('mixed-level', 'Mixed Level Dance')..['mixedLevel'] = true,
+        ], difficultyLevelLabel: 'Mixed'),
+        const ImportRequest(),
+      );
+
+      final draft = batch.records.single.draft;
+      expect(draft.dance.mixedLevel, isTrue);
+      expect(draft.dance.difficultyLevelId, isNull);
+      expect(custom.id, isNotEmpty);
+    });
+
+    test(
+      'two-argument construction preserves adapter difficulty mappings',
+      () async {
+        final legacyPipeline = ImportPipeline(dances, choreographers);
+        final batch = await legacyPipeline.plan(
+          FakeSourceAdapter([
+            record('shipped-level', 'Shipped Level Dance')
+              ..['difficultyLevelId'] = DifficultyLevel.intermediateId,
+          ], difficultyLevelLabel: 'Intermediate'),
+          const ImportRequest(),
+        );
+
+        final draft = batch.records.single.draft;
+        expect(draft.dance.difficultyLevelId, DifficultyLevel.intermediateId);
+        expect(
+          draft.issues.any((issue) => issue.code == 'cc_inactive_level'),
+          isFalse,
+        );
+      },
+    );
+
     test('a new dance is inserted with a full provenance row', () async {
       final adapter = FakeSourceAdapter([
         record(
@@ -83,6 +188,28 @@ void main() {
       expect(prov.permission, 'full');
       expect(prov.license, 'CC-BY');
       expect(prov.sourceVersion, 'v3');
+    });
+
+    test('tombstoned shipped levels are cleared before commit', () async {
+      await difficultyLevels.delete(DifficultyLevel.advancedId, at: now);
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('deleted-level', 'Deleted Level Dance')
+            ..['difficultyLevelId'] = DifficultyLevel.advancedId,
+        ], difficultyLevelLabel: 'Advanced'),
+        const ImportRequest(),
+      );
+
+      final draft = batch.records.single.draft;
+      expect(draft.dance.difficultyLevelId, isNull);
+      expect(
+        draft.issues.any((issue) => issue.code == 'cc_inactive_level'),
+        isTrue,
+      );
+
+      final session = await pipeline.commit(batch, now: now, newId: nextId);
+      expect(session.records.single.succeeded, isTrue);
+      expect((await dances.listAll()).single.difficultyLevelId, isNull);
     });
 
     test('custom-figure text is searchable after commit', () async {

@@ -176,6 +176,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Map<String, Dance> _dances = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
+  List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
   Object? _error;
 
@@ -455,6 +456,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         trackAllCallers: _trackHistoryForAllCallers,
       );
       final data = await _watchCollectionData(callerFilter);
+      final difficultyLevels = await _repos.difficultyLevels.listAll();
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {
@@ -485,6 +487,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _dances = dances;
         _venuesById = venuesById;
         _collectionData = data;
+        _difficultyLevels = difficultyLevels;
         _loading = false;
         _error = null;
       });
@@ -567,6 +570,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).
           initialGroup: _performResume?.groupIndex ?? 0,
@@ -656,6 +660,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               venuesById: _venuesById,
               danceFor: (id) => _dances[id],
               choreographerFor: (id) => _collectionData?.choreographersById[id],
+              difficultyLevelFor: (id) => _difficultyLevelFor(_dances[id]),
             ),
             if (program.slots.any((s) => s.danceId != null))
               IconButton(
@@ -998,7 +1003,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               context,
             ),
           ),
-        if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
+        if (dance != null)
+          if (_difficultyLevelFor(dance) case final level?)
+            danceLevelLabel(l10n, level),
         if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
@@ -1116,6 +1123,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ),
       );
     }
+
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
     final displayText = slot.isPurgedDance != false
@@ -1157,6 +1165,17 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         ],
       ),
     );
+  }
+
+  DifficultyLevel? _difficultyLevelFor(Dance? dance) {
+    if (dance == null) return null;
+    for (final level in _difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
+    for (final level in _collectionData?.levels ?? const <DifficultyLevel>[]) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
+    return DifficultyLevel.knownForId(dance.difficultyLevelId);
   }
 
   Widget _summaryRow(IconData icon, String text) {

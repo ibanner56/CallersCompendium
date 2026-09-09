@@ -52,8 +52,10 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// v10 -> v11: adds the optional `transitive` flag to related-dance links.
 /// Older drafts decode it as `false`.
 ///
-/// v11 -> v12: adds staged inline tag payloads so provisional tag IDs survive
-/// autosave and can be upserted when the dance is eventually saved.
+/// v11 -> v12: `level` stores the stable difficulty-level ID. Legacy enum names
+/// remain accepted and map to the fixed shipped IDs. It also adds staged inline
+/// tag payloads so provisional tag IDs survive autosave and can be upserted
+/// when the dance is eventually saved.
 ///
 /// v12 -> v13: adds recursive structural-container children to figure drafts.
 const _kDraftVersion = 13;
@@ -65,10 +67,10 @@ const _kDraftVersion = 13;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v12):
+/// Schema (v13):
 /// ```jsonc
 /// {
-///   "v": 12,
+///   "v": 13,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -114,7 +116,7 @@ String encodeDraft(EditorSnapshot snapshot) {
     'formationShape': snapshot.formationShape.name,
     'progression': snapshot.progression.name,
     'status': snapshot.status.name,
-    if (snapshot.level != null) 'level': snapshot.level!.name,
+    if (snapshot.level != null) 'level': snapshot.level!.id,
     'mixedLevel': snapshot.mixedLevel,
     'mixer': snapshot.mixer,
     if (snapshot.rating != null) 'rating': snapshot.rating,
@@ -177,7 +179,7 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Throws [FormatException] for unknown future versions (`v > _kDraftVersion`)
 /// or for structurally invalid content. Unknown top-level keys are silently
 /// ignored (forward-compat).
-EditorSnapshot decodeDraft(Object? value) {
+EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
   final Map<String, Object?> json;
   if (value is String) {
     // SettingsRepository round-trips through jsonDecode, so we expect a Map.
@@ -215,7 +217,7 @@ EditorSnapshot decodeDraft(Object? value) {
     ),
     progression: _parseEnum(Progression.values, _str(json, 'progression')),
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
-    level: _parseNullableEnum(DanceLevel.values, json['level']),
+    level: _parseDifficulty(json['level'], levels ?? DifficultyLevel.shipped),
     mixedLevel: _bool(json, 'mixedLevel'),
     mixer: _bool(json, 'mixer'),
     rating: _parseNullableRating(json['rating']),
@@ -291,14 +293,26 @@ T _parseEnum<T extends Enum>(List<T> values, String name) {
   );
 }
 
-/// Parses an optional enum name: `null`/absent → `null`; a string is resolved
-/// against [values] (unknown names throw). Used for the nullable `level` field.
-T? _parseNullableEnum<T extends Enum>(List<T> values, Object? raw) {
+DifficultyLevel? _parseDifficulty(
+  Object? raw,
+  Iterable<DifficultyLevel> levels,
+) {
   if (raw == null) return null;
   if (raw is! String) {
-    throw FormatException('draft enum value must be a string: $raw');
+    throw FormatException('draft.level must be a string: $raw');
   }
-  return _parseEnum(values, raw);
+  final legacyId = switch (raw) {
+    'beginner' => DifficultyLevel.beginnerId,
+    'intermediate' => DifficultyLevel.intermediateId,
+    'advanced' => DifficultyLevel.advancedId,
+    _ => raw,
+  };
+  for (final level in levels) {
+    if (level.id == legacyId) return level;
+  }
+  // A draft may outlive a deleted vocabulary entry. Preserve the rest of the
+  // draft and let the editor present the assignment as unspecified.
+  return null;
 }
 
 /// Parses an optional canonical [PartialDate] string: `null`/absent → `null`;

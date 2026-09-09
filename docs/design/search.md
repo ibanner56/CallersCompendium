@@ -56,7 +56,7 @@ sealed DanceFilter
   FormationFilter(FormationShape shape)      // shape only; free-text detail via FullTextFilter
   ProgressionFilter(Progression progression)
   StatusFilter(DanceStatus status)
-  LevelFilter(DanceLevel level, [LevelOp op = eq])  // ordered scale; see LevelOp below
+  LevelFilter(String difficultyLevelId, [LevelOp op = eq]) // ordered scale; see LevelOp below
   MixedLevelFilter(bool mixed)               // → dances.mixed_level
   MixerFilter(bool mixer)                    // → dances.mixer (issue #732)
   CalledFilter(bool called, {String? callerFilter, bool performedOnly = false})
@@ -83,7 +83,9 @@ leaf is built against the field def, and again — defensively — at compile):
 | `choice`  | `is`, `in(List<String>)` | `value_text` |
 
 `LevelOp` is the ordered comparison for a `LevelFilter` leaf (`eq` / `lte` / `gte`
-against the `DanceLevel` scale). An unspecified level (`dances.level IS NULL`)
+against the configured `DifficultyLevel.position` scale, with the stable level ID
+as a deterministic tie-breaker). An unspecified level
+(`dances.level_id IS NULL`)
 never matches `lte` or `gte` — an unspecified difficulty is not a point on the
 scale. `MixedLevelFilter` is a separate boolean axis orthogonal to `LevelFilter`.
 
@@ -141,8 +143,8 @@ compiles to the literal `1` (TRUE); `OrFilter([])` to `0` (FALSE); the outer
 | `FormationFilter(s)` | `formation_shape = ?` (enum `.name`) |
 | `ProgressionFilter(p)` | `progression = ?` (enum `.name`) |
 | `StatusFilter(s)` | `status = ?` (enum `.name`) |
-| `LevelFilter(l, eq)` | `level = ?` (enum `.name`) |
-| `LevelFilter(l, lte/gte)` | `level IS NOT NULL AND (CASE level … END) ≤/≥ ?` (ordinal comparison over the `DanceLevel` scale; see `FilterCompiler._level`) |
+| `LevelFilter(l, eq)` | `level_id = ?` |
+| `LevelFilter(l, lte/gte)` | `level_id IN (SELECT candidate.id FROM difficulty_levels candidate CROSS JOIN (SELECT position, id FROM difficulty_levels WHERE id = ?) target WHERE (candidate.position, candidate.id) <=/>= (target.position, target.id))` |
 | `MixedLevelFilter(b)` | `mixed_level = ?` (bind `1`/`0`) |
 | `MixerFilter(b)` | `mixer = ?` (bind `1`/`0`) |
 | `CalledFilter(true, scope)` | `EXISTS` over `program_slots` joined to non-deleted `programs`; an optional caller scope includes matching, NULL, and blank host callers, and `performedOnly` adds `performed_at IS NOT NULL` |

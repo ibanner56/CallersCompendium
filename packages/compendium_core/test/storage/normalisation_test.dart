@@ -189,6 +189,65 @@ void main() {
     });
   });
 
+  test('backfill skips colliding normalized difficulty labels', () async {
+    const first = 'difficulty-custom-1';
+    const second = 'difficulty-custom-2';
+    await db.customStatement(
+      'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
+      [first, 'cafe\u0301', 100],
+    );
+    await db.customStatement(
+      'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
+      [second, 'café', 101],
+    );
+
+    await repos.ensureMigrated();
+
+    final rows = await db
+        .customSelect(
+          'SELECT id, label FROM difficulty_levels WHERE id IN (?, ?) '
+          'ORDER BY id',
+          variables: [
+            const Variable<String>(first),
+            const Variable<String>(second),
+          ],
+        )
+        .get();
+    expect(
+      [for (final row in rows) row.data],
+      [
+        {'id': first, 'label': 'cafe\u0301'},
+        {'id': second, 'label': 'café'},
+      ],
+    );
+    final skips = await db
+        .customSelect(
+          'SELECT table_name, column_name, record_id '
+          'FROM normalisation_skips WHERE table_name = ? '
+          'AND column_name = ? ORDER BY record_id',
+          variables: [
+            const Variable<String>('difficulty_levels'),
+            const Variable<String>('label'),
+          ],
+        )
+        .get();
+    expect(
+      [for (final row in skips) row.data],
+      [
+        {
+          'table_name': 'difficulty_levels',
+          'column_name': 'label',
+          'record_id': first,
+        },
+        {
+          'table_name': 'difficulty_levels',
+          'column_name': 'label',
+          'record_id': second,
+        },
+      ],
+    );
+  });
+
   test('re-derives skipped natural-key targets from live values', () async {
     await db.customStatement('INSERT INTO tags (id, name) VALUES (?, ?)', [
       't1',

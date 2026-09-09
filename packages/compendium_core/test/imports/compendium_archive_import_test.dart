@@ -96,6 +96,7 @@ void main() {
   late ChoreographerRepository choreographers;
   late ProgramRepository programs;
   late VenueRepository venues;
+  late DifficultyLevelRepository difficultyLevels;
   late ImportPipeline pipeline;
   late CompendiumArchiveImporter importer;
 
@@ -105,8 +106,14 @@ void main() {
     choreographers = ChoreographerRepository(db);
     programs = ProgramRepository(db);
     venues = VenueRepository(db);
+    difficultyLevels = DifficultyLevelRepository(db);
     pipeline = ImportPipeline(dances, choreographers);
-    importer = CompendiumArchiveImporter(pipeline, programs, venues);
+    importer = CompendiumArchiveImporter(
+      pipeline,
+      programs,
+      venues,
+      difficultyLevels: difficultyLevels,
+    );
   });
 
   tearDown(() => db.close());
@@ -189,6 +196,216 @@ void main() {
     expect(program.provenance?.source, ProvenanceSource.json);
     expect(program.provenance?.externalId, 'orig-p1');
   });
+
+  test('undo removes difficulty levels imported by a shared archive', () async {
+    final level = DifficultyLevel(
+      id: 'custom-level',
+      label: 'Custom',
+      position: 3,
+    );
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      difficultyLevels: [level],
+      dances: [
+        _dance(
+          'orig-d1',
+          'Simplicity Swing',
+        ).copyWith(difficultyLevelId: level.id),
+      ],
+    );
+    final result = await importer.import(
+      encodeArchive(archive),
+      archive,
+      now: now,
+      newId: sequentialIds('new'),
+      newSlotId: sequentialIds('slot'),
+    );
+
+    expect(await difficultyLevels.getById(level.id), level);
+    await importer.undo(result, now: () => now.add(const Duration(minutes: 1)));
+    expect(await difficultyLevels.getById(level.id), isNull);
+  });
+
+  test('undo restores an overwritten difficulty level definition', () async {
+    final level = DifficultyLevel(
+      id: 'custom-level',
+      label: 'Local',
+      position: 4,
+    );
+    await difficultyLevels.upsert(level, at: now);
+    await dances.create(
+      _dance(
+        'uses-local-level',
+        'Uses Local Level',
+      ).copyWith(difficultyLevelId: level.id),
+    );
+    final incoming = level.copyWith(label: 'Incoming', position: 0);
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      difficultyLevels: [incoming],
+    );
+
+    final result = await importer.commit(
+      ImportBatchResult(records: const []),
+      archive,
+      now: now,
+      newId: sequentialIds('new'),
+    );
+    expect(await difficultyLevels.getById(level.id), incoming);
+
+    await importer.undo(result, now: () => now.add(const Duration(minutes: 1)));
+    expect(await difficultyLevels.getById(level.id), level);
+  });
+
+  test(
+    'reconciles archive levels onto live or tombstoned matching labels',
+    () async {
+      for (final deleted in [false, true]) {
+        final suffix = deleted ? 'tombstone' : 'live';
+        final local = await difficultyLevels.createCustom(
+          label: 'Workshop $suffix',
+          position: 3,
+          newId: () => 'local-$suffix',
+        );
+        if (deleted) {
+          await difficultyLevels.delete(local.id, at: now);
+        }
+        final incoming = DifficultyLevel(
+          id: 'archive-$suffix',
+          label: local.label,
+          position: 0,
+        );
+        final archive = CompendiumArchive(
+          exportedAt: now,
+          difficultyLevels: [incoming],
+          dances: [
+            _dance(
+              'archive-dance-$suffix',
+              'Archive $suffix dance',
+            ).copyWith(difficultyLevelId: incoming.id),
+          ],
+        );
+
+        await importer.import(
+          encodeArchive(archive),
+          archive,
+          now: now,
+          newId: sequentialIds('new-$suffix'),
+          newSlotId: sequentialIds('slot-$suffix'),
+        );
+
+        expect(
+          (await dances.listAll())
+              .singleWhere((dance) => dance.title == 'Archive $suffix dance')
+              .difficultyLevelId,
+          local.id,
+        );
+        expect(
+          await difficultyLevels.getById(local.id),
+          local.copyWith(position: 0),
+        );
+        expect(await difficultyLevels.getById(incoming.id), isNull);
+      }
+    },
+  );
+
+  test(
+    'failed shared import compensates difficulty levels written earlier',
+    () async {
+      final before = await difficultyLevels.listAll();
+      final archive = CompendiumArchive(
+        exportedAt: now,
+        difficultyLevels: [
+          DifficultyLevel(id: 'first-level', label: 'Duplicate', position: 0),
+          DifficultyLevel(id: 'second-level', label: 'Duplicate', position: 1),
+        ],
+      );
+
+      await expectLater(
+        importer.commit(
+          ImportBatchResult(records: const []),
+          archive,
+          now: now,
+          newId: sequentialIds('new'),
+        ),
+        throwsStateError,
+      );
+      expect(await difficultyLevels.listAll(), before);
+    },
+  );
+
+  test('undo restores difficulty levels after a label handoff', () async {
+    final levelA = await difficultyLevels.createCustom(
+      label: 'A',
+      position: 3,
+      newId: () => 'level-a',
+    );
+    final levelB = await difficultyLevels.createCustom(
+      label: 'B',
+      position: 4,
+      newId: () => 'level-b',
+    );
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      difficultyLevels: [
+        levelA.copyWith(label: 'C', position: 3),
+        levelB.copyWith(label: 'A', position: 4),
+      ],
+    );
+
+    final result = await importer.commit(
+      ImportBatchResult(records: const []),
+      archive,
+      now: now,
+    );
+    expect(
+      await difficultyLevels.getById(levelA.id),
+      archive.difficultyLevels[0],
+    );
+    expect(
+      await difficultyLevels.getById(levelB.id),
+      archive.difficultyLevels[1],
+    );
+
+    await importer.undo(result, now: () => now.add(const Duration(minutes: 1)));
+    expect(await difficultyLevels.getById(levelA.id), levelA);
+    expect(await difficultyLevels.getById(levelB.id), levelB);
+  });
+
+  test(
+    'late shared-import failure rolls back a difficulty label handoff',
+    () async {
+      final levelA = await difficultyLevels.createCustom(
+        label: 'A',
+        position: 3,
+        newId: () => 'level-a',
+      );
+      final levelB = await difficultyLevels.createCustom(
+        label: 'B',
+        position: 4,
+        newId: () => 'level-b',
+      );
+      final archive = CompendiumArchive(
+        exportedAt: now,
+        difficultyLevels: [
+          levelA.copyWith(label: 'C', position: 3),
+          levelB.copyWith(label: 'A', position: 4),
+        ],
+        tags: [Tag(id: 'archive-tag', name: 'Archive tag')],
+      );
+
+      await expectLater(
+        importer.commit(
+          ImportBatchResult(records: const []),
+          archive,
+          now: now,
+        ),
+        throwsStateError,
+      );
+      expect(await difficultyLevels.getById(levelA.id), levelA);
+      expect(await difficultyLevels.getById(levelB.id), levelB);
+    },
+  );
 
   test(
     'remaps slot dance references to the newly-committed dance ids',

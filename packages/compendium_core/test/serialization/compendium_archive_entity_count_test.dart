@@ -60,23 +60,31 @@ void main() {
       expect(compendiumArchiveEntityCount(archive), 1);
     });
 
-    test('counts committed metadata (sources, custom fields, tags)', () {
-      final archive = CompendiumArchive(
-        exportedAt: DateTime.utc(2026, 1, 1),
-        dances: [_dance('d1')],
-        publishedSources: [PublishedSource(id: 'ps1', title: 'Zesty Contras')],
-        customFields: [
-          CustomFieldDef(
-            id: 'cf1',
-            key: 'tempo',
-            label: 'Tempo',
-            type: CustomFieldType.text,
-          ),
-        ],
-        tags: [Tag(id: 't1', name: 'reel')],
-      );
-      // One dance plus each committed metadata entity.
-      expect(compendiumArchiveEntityCount(archive), 4);
-    });
+    test(
+      'counts committed metadata (sources, custom fields, tags, levels)',
+      () {
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 1, 1),
+          dances: [_dance('d1')],
+          publishedSources: [
+            PublishedSource(id: 'ps1', title: 'Zesty Contras'),
+          ],
+          customFields: [
+            CustomFieldDef(
+              id: 'cf1',
+              key: 'tempo',
+              label: 'Tempo',
+              type: CustomFieldType.text,
+            ),
+          ],
+          tags: [Tag(id: 't1', name: 'reel')],
+          difficultyLevels: [
+            DifficultyLevel(id: 'level-1', label: 'Workshop', position: 3),
+          ],
+        );
+        // One dance plus each committed metadata entity.
+        expect(compendiumArchiveEntityCount(archive), 5);
+      },
+    );
   });
 }
