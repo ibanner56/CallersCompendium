@@ -636,6 +636,10 @@ void main() {
         find.byKey(const ValueKey('meanwhile-side-1-summary')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('meanwhile-side-beats-total')),
+        findsNothing,
+      );
       expect(find.byKey(const ValueKey('meanwhile-side-add')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('meanwhile-side-0-menu')),
@@ -654,6 +658,32 @@ void main() {
       expect(find.byKey(const ValueKey('meanwhile-side-add')), findsOneWidget);
     },
   );
+
+  testWidgets('Meanwhile defaults hide insertion controls at six sides', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
+      await tester.pumpAndSettle();
+    }
+
+    expect(
+      find.byKey(const ValueKey('meanwhile-side-5-summary')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('meanwhile-side-add')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('meanwhile-side-0-menu')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('meanwhile-side-0-duplicate')),
+      findsNothing,
+    );
+  });
 
   testWidgets('Starting figures can add a meanwhile template', (tester) async {
     final repos = openTestRepositories();

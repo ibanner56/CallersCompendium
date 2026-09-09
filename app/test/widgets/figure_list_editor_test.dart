@@ -52,6 +52,9 @@ class _Host extends StatefulWidget {
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.wireAddMeanwhile = false,
+    this.allowAdding = true,
+    this.allowDuplicating = true,
+    this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
@@ -65,6 +68,9 @@ class _Host extends StatefulWidget {
   final bool freeTextEntry;
   final bool wireMeanwhile;
   final bool wireAddMeanwhile;
+  final bool allowAdding;
+  final bool allowDuplicating;
+  final bool showPhraseStructure;
 
   /// Wraps the editor in an [AggressiveBeatsUpdateScope] set to this value
   /// (issue #689). Defaults to `false` so existing tests exercise today's
@@ -115,6 +121,9 @@ class _HostState extends State<_Host> {
               mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
               showWordingOverride: widget.showWordingOverride,
+              allowAdding: widget.allowAdding,
+              allowDuplicating: widget.allowDuplicating,
+              showPhraseStructure: widget.showPhraseStructure,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
               onAddMeanwhile: widget.wireAddMeanwhile
@@ -198,6 +207,9 @@ Future<void> _pump(
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool wireAddMeanwhile = false,
+  bool allowAdding = true,
+  bool allowDuplicating = true,
+  bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
   Taxonomy? taxonomy,
@@ -220,6 +232,9 @@ Future<void> _pump(
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
       wireAddMeanwhile: wireAddMeanwhile,
+      allowAdding: allowAdding,
+      allowDuplicating: allowDuplicating,
+      showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
     ),
@@ -374,6 +389,33 @@ void main() {
     expect(drafts.single.isMeanwhileGroup, isTrue);
     expect(drafts.single.meanwhileSides, hasLength(2));
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  testWidgets('can suppress phrase labels and beat summary', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    ];
+    await _pump(tester, drafts, showPhraseStructure: false);
+
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+      isEmpty,
+    );
+    expect(find.byKey(const ValueKey('figure-beats-total')), findsNothing);
+  });
+
+  testWidgets('hides insertion and duplicate actions when capped', (
+    tester,
+  ) async {
+    final drafts = List<FigureDraft>.generate(
+      6,
+      (_) => FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    );
+    await _pump(tester, drafts, allowAdding: false, allowDuplicating: false);
+
+    expect(find.byKey(const ValueKey('figure-add')), findsNothing);
+    await _openMenu(tester, 0);
+    expect(find.byKey(const ValueKey('figure-0-duplicate')), findsNothing);
   });
 
   testWidgets('selecting a move seeds the taxonomy default params', (

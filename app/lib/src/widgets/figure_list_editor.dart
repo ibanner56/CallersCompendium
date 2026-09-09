@@ -59,6 +59,9 @@ class FigureListEditor extends StatefulWidget {
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
     this.onAddMeanwhile,
+    this.allowAdding = true,
+    this.allowDuplicating = true,
+    this.showPhraseStructure = true,
     this.keyPrefix = 'figure',
   });
 
@@ -168,6 +171,15 @@ class FigureListEditor extends StatefulWidget {
   /// Adds a new meanwhile container draft through the list-level Add menu.
   /// When `null`, the existing single Add button is retained.
   final VoidCallback? onAddMeanwhile;
+
+  /// Whether list-level insertion affordances are available.
+  final bool allowAdding;
+
+  /// Whether row-level duplicate affordances are available.
+  final bool allowDuplicating;
+
+  /// Whether phrase labels and the beat summary are shown.
+  final bool showPhraseStructure;
 
   /// Prefix for widget keys when multiple editors share one screen.
   final String keyPrefix;
@@ -390,6 +402,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
   }
 
   void _addFigure() {
+    if (!widget.allowAdding) return;
     if (_freeTextEnabled) {
       // Free-text entry (opt-in): open a single free-text field instead of
       // appending a blank structured draft. The typed line is parsed and
@@ -407,13 +420,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   void _addMeanwhile() {
     final onAddMeanwhile = widget.onAddMeanwhile;
-    if (onAddMeanwhile == null) return;
+    if (!widget.allowAdding || onAddMeanwhile == null) return;
     _openLastAfterAdd = true;
     _openLastAfterAddMeanwhile = true;
     onAddMeanwhile();
   }
 
   Widget _buildAddAffordance(BuildContext context, {required bool empty}) {
+    if (!widget.allowAdding) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final onAddMeanwhile = widget.onAddMeanwhile;
     final addButton = empty
@@ -525,7 +539,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
 
   void _duplicate(int index) {
     final onDuplicate = widget.onDuplicate;
-    if (onDuplicate == null) return;
+    if (!widget.allowDuplicating || onDuplicate == null) return;
     if (index < 0 || index >= widget.drafts.length) return;
     onDuplicate(widget.drafts[index]);
     _announce(_l10n.danceEditorDuplicatedFigureAnnouncement(index + 1));
@@ -581,19 +595,21 @@ class _FigureListEditorState extends State<FigureListEditor> {
     var totalBeats = 0;
     var placedCount = 0;
     String? lastLabel;
-    for (final draft in drafts) {
-      if (draft.move == null && !draft.isMeanwhileGroup) {
-        labels[draft.id] = null;
-        sectionStart[draft.id] = false;
-        continue;
+    if (widget.showPhraseStructure) {
+      for (final draft in drafts) {
+        if (draft.move == null && !draft.isMeanwhileGroup) {
+          labels[draft.id] = null;
+          sectionStart[draft.id] = false;
+          continue;
+        }
+        final label = labelForFigure(beat, draft.beats, widget.phraseStructure);
+        labels[draft.id] = label;
+        sectionStart[draft.id] = label != lastLabel;
+        lastLabel = label;
+        beat += draft.beats;
+        totalBeats += draft.beats;
+        placedCount++;
       }
-      final label = labelForFigure(beat, draft.beats, widget.phraseStructure);
-      labels[draft.id] = label;
-      sectionStart[draft.id] = label != lastLabel;
-      lastLabel = label;
-      beat += draft.beats;
-      totalBeats += draft.beats;
-      placedCount++;
     }
 
     final cutName = _cutDraftId == null
@@ -630,7 +646,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
         onClose: () => _closeDraft(draft.id),
         onCommitNext: () => _commitAndOpenNext(draft.id),
         onDelete: () => _deleteDraft(i),
-        onDuplicate: widget.onDuplicate == null ? null : () => _duplicate(i),
+        onDuplicate: widget.onDuplicate == null || !widget.allowDuplicating
+            ? null
+            : () => _duplicate(i),
         onMoveUp: i == 0 ? null : () => _reorder(i, i - 1, refocus: true),
         onMoveDown: i == drafts.length - 1
             ? null
@@ -750,7 +768,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 ),
             ],
           ),
-        if (placedCount > 0)
+        if (widget.showPhraseStructure && placedCount > 0)
           _BeatSummary(
             totalBeats: totalBeats,
             expectedBeats: widget.phraseStructure.totalBeats,
