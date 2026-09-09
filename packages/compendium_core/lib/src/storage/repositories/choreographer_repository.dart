@@ -33,7 +33,9 @@ class ChoreographerRepository {
         _db.choreographers,
       )..where((t) => t.id.equals(c.id))).getSingleOrNull();
       final authorIndexChanged =
-          current == null || current.name != name || current.deletedAt != null;
+          (current != null &&
+              (current.name != name || current.deletedAt != null)) ||
+          (current == null && incumbent?.deletedAt != null);
       final collidingEdit =
           current != null && incumbent != null && incumbent.id != c.id;
       final id = collidingEdit
