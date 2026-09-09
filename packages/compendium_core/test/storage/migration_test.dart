@@ -2174,6 +2174,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     promenadeTurnCircleWordingCanonicalRebuildDoneKey,
     compactDosidoSeesawCanonicalRebuildDoneKey,
     taxonomyV33CanonicalRebuildDoneKey,
+    taxonomyV34CanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');
