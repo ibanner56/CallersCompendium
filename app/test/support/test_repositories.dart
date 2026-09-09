@@ -201,6 +201,7 @@ class DelayedProgramRepository extends ProgramRepository {
   bool failConditionalRollback = false;
   int? failOnWrite;
   int writesStarted = 0;
+  int conditionalRollbackCalls = 0;
 
   void holdNextWrite() {
     _armedGate = Completer<void>();
@@ -247,7 +248,6 @@ class DelayedProgramRepository extends ProgramRepository {
     _armedGate = null;
     _activeGate = gate;
     _writeStarted?.complete();
-    _writeStarted = null;
     await gate.future;
     _activeGate = null;
   }
@@ -275,6 +275,7 @@ class DelayedProgramRepository extends ProgramRepository {
     required DateTime performedAt,
     required DateTime updatedAt,
   }) {
+    conditionalRollbackCalls++;
     if (failConditionalRollback) {
       throw const InjectedProgramFailure();
     }

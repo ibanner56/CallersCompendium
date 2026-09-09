@@ -1632,6 +1632,44 @@ void main() {
     );
   });
 
+  testWidgets('Undo tracks a marked write with a later edit generation', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 100));
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'Later edit';
+    titleField.onChanged!('Later edit');
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Later edit');
+    expect(saved.slots.single.performedAt, isNull);
+    expect(delayed.programs.conditionalRollbackCalls, 1);
+  });
+
   testWidgets('failed marked auto-commit does not leave an inverse draft', (
     tester,
   ) async {
@@ -1668,6 +1706,65 @@ void main() {
       await delayed.repos.settings.contains('program_editor_draft:p1'),
       isFalse,
     );
+  });
+
+  testWidgets('failed auto-commit reports immediately beside Undo', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pump();
+
+    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsOneWidget);
+    tester
+        .state<ScaffoldMessengerState>(find.byType(ScaffoldMessenger))
+        .clearSnackBars();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('expired bulk Undo is not restored after a failed Save', (
+    tester,
+  ) async {
+    final failing = openTestRepositoriesWithFailingPrograms();
+    failing.programs.failWrites = false;
+    await failing.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await failing.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, failing.repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(const Duration(seconds: 7));
+    await tester.pumpAndSettle();
+    expect(find.byType(SnackBarAction), findsNothing);
+
+    failing.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    expect(find.text('Could not save the program.'), findsOneWidget);
+    expect(find.byType(SnackBarAction), findsNothing);
   });
 
   testWidgets('explicit Save invalidates bulk performed Undo', (tester) async {
@@ -1962,6 +2059,55 @@ void main() {
     final saved = await delayed.repos.programs.getById('p1');
     expect(saved!.title, 'During Undo');
     expect(saved.slots.single.performedAt, isNull);
+  });
+
+  testWidgets('persisted Undo preserves a later remote performed stamp', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextConditionalRollback();
+    await tester.tap(find.byType(SnackBarAction));
+    await delayed.programs.conditionalRollbackStarted;
+    final titleField = tester.widget<TextFormField>(
+      find.byKey(const ValueKey('program-title')),
+    );
+    titleField.controller!.text = 'Keep this title';
+    titleField.onChanged!('Keep this title');
+    final live = await delayed.repos.programs.getById('p1');
+    final laterPerformedAt = DateTime.utc(2030, 1, 1, 0, 0, 1);
+    delayed.programs.holdNextRead();
+    delayed.programs.releaseConditionalRollback();
+    await delayed.programs.readStarted;
+    await delayed.repos.programs.update(
+      live!.copyWith(
+        slots: [live.slots.single.copyWith(performedAt: laterPerformedAt)],
+        updatedAt: DateTime.now().toUtc(),
+      ),
+    );
+    delayed.programs.releaseRead();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.title, 'Keep this title');
+    expect(saved.slots.single.performedAt, laterPerformedAt);
   });
 
   testWidgets('failed persisted Undo keeps edits made during live recovery', (
