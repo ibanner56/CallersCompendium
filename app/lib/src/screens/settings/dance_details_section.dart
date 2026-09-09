@@ -94,8 +94,9 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalFigureTextUserSet = true;
       _canonicalFigureText = value;
     });
-    await RepositoriesScope.of(context).settings
-        .set(kCanonicalFigureTextKey, value);
+    await RepositoriesScope.of(
+      context,
+    ).settings.set(kCanonicalFigureTextKey, value);
   }
 
   Future<void> _onCanonicalDiscouragedTermsChanged(bool value) async {
@@ -104,8 +105,9 @@ class _DanceDetailsAndShorthandsSectionState
       _canonicalDiscouragedTerms = value;
     });
     CanonicalDiscouragedTermsScope.notifierOf(context).value = value;
-    await RepositoriesScope.of(context).settings
-        .set(kCanonicalDiscouragedTermsKey, value);
+    await RepositoriesScope.of(
+      context,
+    ).settings.set(kCanonicalDiscouragedTermsKey, value);
   }
 
   Future<void> _onDefaultRenderingChanged(DanceDetailRendering value) async {
@@ -113,8 +115,9 @@ class _DanceDetailsAndShorthandsSectionState
       _defaultRenderingUserSet = true;
       _defaultRendering = value;
     });
-    await RepositoriesScope.of(context).settings
-        .set(kDefaultDanceDetailRenderingKey, value.name);
+    await RepositoriesScope.of(
+      context,
+    ).settings.set(kDefaultDanceDetailRenderingKey, value.name);
   }
 
   Future<void> _onFreeTextEntryChanged(bool value) async {

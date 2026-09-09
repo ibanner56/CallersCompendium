@@ -24,10 +24,11 @@ typedef ShareInvoker = Future<void> Function(ShareParams params);
 
 /// Hands a generated PDF to the OS print/save dialog. Defaults to
 /// [Printing.layoutPdf]; overridable so tests can force a failure.
-typedef PdfLayouter = Future<void> Function({
-  required String name,
-  required LayoutCallback onLayout,
-});
+typedef PdfLayouter =
+    Future<void> Function({
+      required String name,
+      required LayoutCallback onLayout,
+    });
 
 /// A labeled, keyboard-reachable print/share control for a single [Dance]
 /// (`docs/design/ux.md` §2 dance-detail actions).
