@@ -290,7 +290,7 @@ and produces no Android artifact.
 
    ```sh
    tag=v0.3.0
-   codename="Autumn Waltz"
+   codename="Ashokan Hello"
    printf 'Release %s\n\nRelease codename: %s\n' "$tag" "$codename" |
      git tag -a "$tag" "$(git rev-parse origin/main)" -F -
    git push origin "$tag"
