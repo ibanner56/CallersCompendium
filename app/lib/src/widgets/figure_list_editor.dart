@@ -504,7 +504,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     });
   }
 
-  /// Closes the free-text composer and returns focus to the Add button.
+  /// Closes the free-text composer and returns focus to Add or the last row.
   void _dismissFreeText({bool focusAddButton = true}) {
     _freeTextController.clear();
     setState(() => _freeTextComposing = false);
