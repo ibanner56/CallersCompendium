@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 
 import '../model/enums.dart';
+import '../model/difficulty_level.dart';
 import '../model/formation.dart';
 import '../sync/sync_record_kind.dart';
 import 'tables.dart';
@@ -92,6 +93,10 @@ const String danceLinksDanceIdIndexSql =
 const String danceLinksTargetTransitiveIndexSql =
     'CREATE INDEX IF NOT EXISTS dance_links_target_transitive '
     'ON dance_links(target_dance_id, transitive, kind, dance_id)';
+
+/// Lookup index for the in-use guard on a configurable difficulty level.
+const String dancesDifficultyLevelIdIndexSql =
+    'CREATE INDEX IF NOT EXISTS dances_level_id ON dances(level_id)';
 
 /// Lookup index for `dance_id` on `program_slots` (schema v16).
 ///
@@ -264,7 +269,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 32;
+const int kCompendiumSchemaVersion = 33;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -329,6 +334,7 @@ const int kMinSupportedSchemaVersion = 20;
 @DriftDatabase(
   tables: [
     Dances,
+    DifficultyLevels,
     Choreographers,
     DanceAuthors,
     DanceFigures,
@@ -390,6 +396,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
+      await _seedDifficultyLevels();
       await customStatement(createDanceFtsSql);
       await customStatement(createDanceSubstringFtsSql);
       for (final sql in searchIndexSql) {
@@ -397,6 +404,7 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
       await customStatement(danceLinksDanceIdIndexSql);
       await customStatement(danceLinksTargetTransitiveIndexSql);
+      await customStatement(dancesDifficultyLevelIdIndexSql);
       for (final sql in venueLookupIndexSql) {
         await customStatement(sql);
       }
@@ -755,6 +763,41 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.createTable(reviewQueue);
         await m.createTable(publishedRecords);
       }
+      if (from < 33) {
+        // Difficulty used to be a fixed enum persisted by name in
+        // `dances.level`. Refuse a corrupt/unsupported name instead of silently
+        // dropping it while rebuilding the table around the stable ID reference.
+        final unsupported = await customSelect(
+          "SELECT DISTINCT level FROM dances WHERE level IS NOT NULL "
+          "AND level NOT IN ('beginner', 'intermediate', 'advanced')",
+        ).get();
+        if (unsupported.isNotEmpty) {
+          final values = [
+            for (final row in unsupported) row.read<String>('level'),
+          ];
+          throw StateError(
+            'Cannot migrate dances with unsupported difficulty level name(s): '
+            '${values.join(', ')}.',
+          );
+        }
+        await m.createTable(difficultyLevels);
+        await _seedDifficultyLevels();
+        await m.alterTable(
+          TableMigration(
+            dances,
+            columnTransformer: {
+              dances.levelId: const CustomExpression<String>(
+                "CASE level "
+                "WHEN 'beginner' THEN 'difficulty-beginner' "
+                "WHEN 'intermediate' THEN 'difficulty-intermediate' "
+                "WHEN 'advanced' THEN 'difficulty-advanced' "
+                'ELSE NULL END',
+              ),
+            },
+          ),
+        );
+        await customStatement(dancesDifficultyLevelIdIndexSql);
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA foreign_keys = ON');
@@ -790,6 +833,15 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       }
     },
   );
+
+  Future<void> _seedDifficultyLevels() async {
+    for (final level in DifficultyLevel.shipped) {
+      await customStatement(
+        'INSERT INTO difficulty_levels (id, label, position) VALUES (?, ?, ?)',
+        [level.id, level.label, level.position],
+      );
+    }
+  }
 
   /// Runs SQLite's `PRAGMA quick_check`, returning `true` when the database
   /// reports `ok`. Wired into app startup (`_CompendiumAppState._startupSequence`

@@ -306,6 +306,18 @@ class DanceRepository {
     // v25 (#870): normalise move ids for inverse-pair aliases before
     // persisting. This is the single convergence point for all figure writers.
     final normalisedDance = _normaliseMoveIds(dance);
+    final difficultyLevelId = normalisedDance.difficultyLevelId;
+    if (difficultyLevelId != null) {
+      final level = await (_db.select(
+        _db.difficultyLevels,
+      )..where((t) => t.id.equals(difficultyLevelId))).getSingleOrNull();
+      if (level == null) {
+        throw StateError(
+          'dance "${dance.id}" has an unknown difficulty level '
+          '"$difficultyLevelId"',
+        );
+      }
+    }
     await _db
         .into(_db.dances)
         .insertOnConflictUpdate(
@@ -334,7 +346,7 @@ class DanceRepository {
               normalizeShareableText(normalisedDance.walkthrough),
             ),
             status: normalisedDance.status,
-            level: Value(dance.level),
+            levelId: Value(dance.difficultyLevelId),
             mixedLevel: Value(dance.mixedLevel),
             mixer: Value(dance.mixer),
             rating: Value(dance.rating),
@@ -1245,15 +1257,18 @@ class DanceRepository {
     });
   }
 
-  /// Sets the difficulty [level] on many dances at once, in a single
+  /// Sets the difficulty-level ID [difficultyLevelId] on many dances at once, in
+  /// a single
   /// transaction, for the Collection multi-select "batch set level" flow.
   ///
-  /// Contract: to *set* a level pass a non-null [level]; to *unset* it pass
-  /// [clearLevel] `true`. These are mutually exclusive — calling with neither
+  /// Contract: to *set* a level pass a non-null [difficultyLevelId]; to *unset*
+  /// it pass [clearDifficultyLevel] `true`. These are mutually exclusive —
+  /// calling with neither
   /// throws an [ArgumentError] (and trips a debug assert) to prevent the
   /// footgun of accidentally clearing every dance by omitting [level] (which
   /// would otherwise diverge from [Dance.copyWith], where a null value without
-  /// a clear flag keeps the existing value). A set [clearLevel] wins over any [level] value, matching
+  /// a clear flag keeps the existing value). A set [clearDifficultyLevel] wins
+  /// over any [difficultyLevelId] value, matching
   /// [Dance.copyWith]. Each affected dance is rewritten through the same upsert
   /// path as [update], so the derived figure/FTS indexes stay consistent.
   ///
@@ -1264,25 +1279,29 @@ class DanceRepository {
   /// collection untouched rather than half-updated.
   Future<int> setLevelForMany(
     Iterable<String> ids, {
-    DanceLevel? level,
-    bool clearLevel = false,
+    String? difficultyLevelId,
+    bool clearDifficultyLevel = false,
     required DateTime now,
   }) {
     // Release-safe guard (asserts are stripped in release): a caller must pass
-    // a concrete level, or opt in to clearing via clearLevel. This is checked
+    // a concrete level, or opt in to clearing via clearDifficultyLevel. This is
+    // checked
     // before the debug-only assert so the thrown ArgumentError is deterministic
-    // across build modes. clearLevel still takes precedence when both are set.
-    if (!clearLevel && level == null) {
+    // across build modes. clearDifficultyLevel still takes precedence when both
+    // are set.
+    if (!clearDifficultyLevel && difficultyLevelId == null) {
       throw ArgumentError(
-        'setLevelForMany requires a non-null level unless clearLevel is true',
+        'setLevelForMany requires a non-null difficultyLevelId unless '
+        'clearDifficultyLevel is true',
       );
     }
     assert(
-      clearLevel || level != null,
-      'setLevelForMany: pass a non-null level, or clearLevel: true to unset',
+      clearDifficultyLevel || difficultyLevelId != null,
+      'setLevelForMany: pass a non-null difficultyLevelId, or '
+      'clearDifficultyLevel: true to unset',
     );
     assertUtc(now, 'now');
-    final target = clearLevel ? null : level;
+    final target = clearDifficultyLevel ? null : difficultyLevelId;
     final list = ids.toList();
     if (list.isEmpty) return Future.value(0);
     return _db.transaction(() async {
@@ -1290,11 +1309,11 @@ class DanceRepository {
       for (final id in list) {
         final dance = await getById(id);
         if (dance == null) continue;
-        if (dance.level == target) continue;
+        if (dance.difficultyLevelId == target) continue;
         await _upsert(
           dance.copyWith(
-            level: target,
-            clearLevel: target == null,
+            difficultyLevelId: target,
+            clearDifficultyLevel: target == null,
             updatedAt: now,
           ),
         );
@@ -1977,7 +1996,7 @@ class DanceRepository {
       callingNotes: row.callingNotes,
       walkthrough: row.walkthrough,
       status: row.status,
-      level: row.level,
+      difficultyLevelId: row.levelId,
       mixedLevel: row.mixedLevel,
       mixer: row.mixer,
       rating: row.rating,

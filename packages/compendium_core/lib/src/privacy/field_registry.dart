@@ -191,7 +191,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.calling_notes': _choreography,
   'dances.walkthrough': _choreography,
   'dances.status': _choreography,
-  'dances.level': _choreography,
+  'dances.level_id': _key,
   'dances.mixed_level': _choreography,
   'dances.mixer': _choreography,
   'dances.rating': _choreography,
@@ -209,6 +209,11 @@ final Map<String, DataClassification> fieldClassifications = {
         'recently will resurrect a dance the user deleted elsewhere.',
   ),
   'dances.existence_at': _existenceStamp,
+
+  // ------------------------------------------------------ difficulty_levels --
+  'difficulty_levels.id': _key,
+  'difficulty_levels.label': _choreography,
+  'difficulty_levels.position': _choreography,
 
   // -------------------------------------------------------- choreographers --
   'choreographers.id': _key,

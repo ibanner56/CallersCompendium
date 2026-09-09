@@ -220,8 +220,8 @@ class FilterCompiler {
       case StatusFilter(:final status):
         binds.add(status.name);
         return 'status = ?';
-      case LevelFilter(:final level, :final op):
-        return _level(level, op, binds);
+      case LevelFilter(:final difficultyLevelId, :final op):
+        return _level(difficultyLevelId, op, binds);
       case MixedLevelFilter(:final mixed):
         binds.add(mixed ? 1 : 0);
         return 'mixed_level = ?';
@@ -372,28 +372,22 @@ class FilterCompiler {
     }
   }
 
-  /// Compiles a [LevelFilter] against the ordered [DanceLevel] scale.
+  /// Compiles a [LevelFilter] against the configured difficulty vocabulary.
   ///
-  /// [LevelOp.eq] is a plain name match (`level = ?`). The ordered ops map the
-  /// stored enum-name text to its ordinal via a `CASE` generated from
-  /// [DanceLevel.values] — the enum names are compile-time constants (never
-  /// user input), so interpolating them is injection-safe — and compare that
-  /// ordinal to the target level's index. A `level IS NOT NULL` guard keeps
-  /// unspecified dances out of ordered comparisons (an unspecified difficulty
-  /// is not a point on the scale).
-  String _level(DanceLevel level, LevelOp op, List<Object?> binds) {
+  /// Ordered comparisons resolve the requested level's current position in a
+  /// scalar subquery. This keeps the query parameterized while making a user
+  /// reorder effective immediately, with no dance-row rewrite.
+  String _level(String difficultyLevelId, LevelOp op, List<Object?> binds) {
     switch (op) {
       case LevelOp.eq:
-        binds.add(level.name);
-        return 'level = ?';
+        binds.add(difficultyLevelId);
+        return 'level_id = ?';
       case LevelOp.lte:
       case LevelOp.gte:
         final cmp = op == LevelOp.lte ? '<=' : '>=';
-        final cases = [
-          for (final v in DanceLevel.values) "WHEN '${v.name}' THEN ${v.index}",
-        ].join(' ');
-        binds.add(level.index);
-        return 'level IS NOT NULL AND (CASE level $cases END) $cmp ?';
+        binds.add(difficultyLevelId);
+        return 'level_id IN (SELECT id FROM difficulty_levels WHERE position '
+            '$cmp (SELECT position FROM difficulty_levels WHERE id = ?))';
     }
   }
 

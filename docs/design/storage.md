@@ -21,8 +21,10 @@ lives in the core package; all access through repositories.*
 
 ```sql
 dances(id PK, title, form, formation_base, formation_detail, progression,
-       phrase_structure, figures_json, hook, calling_notes, status, tunes_json,
+       phrase_structure, figures_json, hook, calling_notes, status, level_id NULL,
+       tunes_json,
        created_at, updated_at, deleted_at, existence_at)
+difficulty_levels(id PK, label UNIQUE, position)
 choreographers(id PK, name UNIQUE, website, notes,
                updated_at, deleted_at, existence_at)
 dance_authors(dance_id, choreographer_id, position,
@@ -453,6 +455,14 @@ can still fire.
   history. Baseline metadata uses an enforced singleton row so an empty
   manifest retains its epoch; all six tables are device-scoped except the
   retransmitted pending tombstone blob.
+- v33 (issue #1200): replaces `dances.level`'s fixed enum-name storage with
+  the `difficulty_levels` vocabulary and nullable `dances.level_id` reference.
+  The migration seeds immutable IDs for Beginner, Intermediate, and Advanced,
+  then maps every valid v32 enum name to that ID. Invalid legacy names abort
+  the migration rather than being discarded. The foreign key and repository
+  write guard reject dangling IDs; repository deletion is transactional and
+  refuses a level used by any dance, including a tombstoned dance that could be
+  restored later.
 
 ## The delete model
 
