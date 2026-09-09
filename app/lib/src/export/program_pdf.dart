@@ -115,10 +115,13 @@ Future<Uint8List> buildProgramPdf(
   DanceExportLabels? danceLabels,
   Dialect? dialect,
   FigureRenderer? renderer,
+  bool canonicalizeDiscouragedTerms = false,
 }) async {
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
+  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final resolvedDialect = dialect ?? Dialect.larksRobins;
 
   final linkedVenue = program.venueId != null
       ? venuesById[program.venueId!]
@@ -129,12 +132,10 @@ Future<Uint8List> buildProgramPdf(
     if (_has(program.band)) '${labels.band}: ${program.band!.trim()}',
     if (_has(program.caller)) '${labels.caller}: ${program.caller!.trim()}',
     if (_has(program.dancerLevel))
-      '${labels.level}: ${program.dancerLevel!.trim()}',
+      '${labels.level}: ${canonicalizeDiscouragedTerms ? fig.renderFreeTextWithCanonicalDiscouragedTerms(program.dancerLevel!.trim(), resolvedDialect) : program.dancerLevel!.trim()}',
   ].where((l) => l.isNotEmpty).toList();
 
   final resolvedDanceLabels = danceLabels ?? const DanceExportLabels();
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
-  final resolvedDialect = dialect ?? Dialect.larksRobins;
 
   doc.addPage(
     pw.MultiPage(
@@ -151,7 +152,14 @@ Future<Uint8List> buildProgramPdf(
           pw.Text(line, style: const pw.TextStyle(fontSize: 12)),
         if (linkedVenue != null) ..._venueBlock(linkedVenue, labels),
         if (program.outputGrouped.isNotEmpty) pw.SizedBox(height: 12),
-        ..._slotWidgets(program, titleFor, labels),
+        ..._slotWidgets(
+          program,
+          titleFor,
+          labels,
+          renderer: fig,
+          dialect: resolvedDialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
         if (_has(program.notes)) ...[
           pw.SizedBox(height: 12),
           pw.Text(
@@ -160,7 +168,12 @@ Future<Uint8List> buildProgramPdf(
           ),
           pw.SizedBox(height: 4),
           pw.Text(
-            program.notes.trim(),
+            canonicalizeDiscouragedTerms
+                ? fig.renderFreeTextWithCanonicalDiscouragedTerms(
+                    program.notes.trim(),
+                    resolvedDialect,
+                  )
+                : program.notes.trim(),
             style: const pw.TextStyle(fontSize: 12),
           ),
         ],
@@ -176,6 +189,7 @@ Future<Uint8List> buildProgramPdf(
             resolvedDialect,
             resolvedDanceLabels,
             labels,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           ),
         ],
       ],
@@ -194,8 +208,9 @@ List<pw.Widget> _figureAppendixWidgets(
   FigureRenderer renderer,
   Dialect dialect,
   DanceExportLabels danceLabels,
-  ProgramExportLabels labels,
-) {
+  ProgramExportLabels labels, {
+  bool canonicalizeDiscouragedTerms = false,
+}) {
   final widgets = <pw.Widget>[];
   for (final entry in dances) {
     final dance = entry.dance;
@@ -208,7 +223,15 @@ List<pw.Widget> _figureAppendixWidgets(
         style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold),
       ),
     );
-    widgets.addAll(buildFigureWidgets(dance, renderer, dialect, danceLabels));
+    widgets.addAll(
+      buildFigureWidgets(
+        dance,
+        renderer,
+        dialect,
+        danceLabels,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      ),
+    );
   }
   return widgets;
 }
@@ -216,26 +239,42 @@ List<pw.Widget> _figureAppendixWidgets(
 List<pw.Widget> _slotWidgets(
   Program program,
   String? Function(String danceId) titleFor,
-  ProgramExportLabels labels,
-) {
+  ProgramExportLabels labels, {
+  required FigureRenderer renderer,
+  required Dialect dialect,
+  bool canonicalizeDiscouragedTerms = false,
+}) {
   final widgets = <pw.Widget>[];
   var n = 1;
   for (final group in program.outputGrouped) {
+    final primary = _slotLine(
+      group.primary,
+      titleFor,
+      labels,
+      renderer: renderer,
+      dialect: dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
     widgets.add(
       pw.Padding(
         padding: const pw.EdgeInsets.symmetric(vertical: 2),
-        child: pw.Text(
-          '$n. ${_slotLine(group.primary, titleFor, labels)}',
-          style: const pw.TextStyle(fontSize: 13),
-        ),
+        child: pw.Text('$n. $primary', style: const pw.TextStyle(fontSize: 13)),
       ),
     );
     for (final alt in group.alternates) {
+      final alternate = _slotLine(
+        alt,
+        titleFor,
+        labels,
+        renderer: renderer,
+        dialect: dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
       widgets.add(
         pw.Padding(
           padding: const pw.EdgeInsets.only(left: 20, top: 1, bottom: 1),
           child: pw.Text(
-            '${labels.alt}: ${_slotLine(alt, titleFor, labels)}',
+            '${labels.alt}: $alternate',
             style: pw.TextStyle(fontSize: 12, color: PdfColors.grey700),
           ),
         ),
@@ -342,16 +381,32 @@ String _contactLine(String? name, String? phone, String? email) => [
 String _slotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
-  ProgramExportLabels labels,
-) {
+  ProgramExportLabels labels, {
+  required FigureRenderer renderer,
+  required Dialect dialect,
+  bool canonicalizeDiscouragedTerms = false,
+}) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
-    if (_has(slot.text)) buffer.write(' — ${slot.text!.trim()}');
+    if (_has(slot.text)) {
+      final note = canonicalizeDiscouragedTerms
+          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+              slot.text!.trim(),
+              dialect,
+            )
+          : slot.text!.trim();
+      buffer.write(' — $note');
+    }
   } else {
-    buffer.write(slot.text!.trim());
+    final text = slot.text!.trim();
+    buffer.write(
+      slot.isPurgedDance != false || !canonicalizeDiscouragedTerms
+          ? text
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
+    );
   }
 
   final meta = <String>[

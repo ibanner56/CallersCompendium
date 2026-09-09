@@ -456,6 +456,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als dit is ingeschakeld, kunnen dansdetails canonieke rol- en bewegingsnamen tonen en is de schakelaar Canoniek beschikbaar voor niet-canonieke dialecten. Standaard uit.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Alle afgeraden termen automatisch omzetten';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Als deze optie is ingeschakeld, gebruiken dansdetails, notities en exports canonieke bewoording voor ondersteunde afgeraden termen. Opgeslagen tekst en invoervelden blijven ongewijzigd. Standaard ingeschakeld.';
+
+  @override
   String get settingsDialectNewButton => 'Nieuw dialect';
 
   @override

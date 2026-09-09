@@ -164,17 +164,63 @@ class FigureRenderer {
     Dialect dialect, {
     bool verbose = false,
     bool decimals = false,
+  }) => _renderSummary(
+    figure,
+    dialect,
+    verbose: verbose,
+    decimals: decimals,
+    canonicalizeDiscouragedTerms: false,
+  );
+
+  /// Display summary with supported discouraged terms converted for read-only
+  /// canonical wording. This separate API preserves the overridable
+  /// [renderSummary] signature for downstream renderer spies/subclasses.
+  String renderSummaryWithCanonicalDiscouragedTerms(
+    Figure figure,
+    Dialect dialect, {
+    bool verbose = false,
+    bool decimals = false,
+  }) => _renderSummary(
+    figure,
+    dialect,
+    verbose: verbose,
+    decimals: decimals,
+    canonicalizeDiscouragedTerms: true,
+  );
+
+  String _renderSummary(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    required bool canonicalizeDiscouragedTerms,
   }) {
     final override = figure.isCustom
         ? null
-        : _renderWordingOverride(figure, dialect);
+        : _renderWordingOverride(
+            figure,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          );
     if (override != null) return override;
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
-      return _render(figure, dialect, verbose: verbose, decimals: decimals);
+      return _render(
+        figure,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
     }
-    final base = _render(figure, dialect, verbose: verbose, decimals: decimals);
+    final base = _render(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
     if (figure.isCustom) return base;
     final def = taxonomy.resolve(figure.move);
     if (def == null) return base;
@@ -281,14 +327,22 @@ class FigureRenderer {
     bool verbose = false,
     bool decimals = false,
     bool forCanonical = false,
+    bool canonicalizeDiscouragedTerms = false,
   }) {
     if (figure.isCustom) {
       final text = (figure.params['text'] as String?)?.trim() ?? '';
-      return text.isEmpty ? customMove : renderFreeText(text, dialect);
+      if (text.isEmpty) return customMove;
+      return canonicalizeDiscouragedTerms
+          ? renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
+          : renderFreeText(text, dialect);
     }
     if (figure.isMeanwhile) {
       final override = !forCanonical
-          ? _renderWordingOverride(figure, dialect)
+          ? _renderWordingOverride(
+              figure,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            )
           : null;
       if (override != null) return override;
       // A meanwhile container (#590) renders its concurrent sides joined by a
@@ -311,12 +365,17 @@ class FigureRenderer {
           verbose: verbose,
           decimals: decimals,
           forCanonical: forCanonical,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
       );
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
     if (!forCanonical) {
-      final override = _renderWordingOverride(figure, dialect);
+      final override = _renderWordingOverride(
+        figure,
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
       if (override != null) return override;
     }
     final def = taxonomy.resolve(figure.move);
@@ -842,9 +901,16 @@ class FigureRenderer {
     return base(this, def, params, Dialect.canonical, false, false).template;
   }
 
-  String? _renderWordingOverride(Figure figure, Dialect dialect) {
+  String? _renderWordingOverride(
+    Figure figure,
+    Dialect dialect, {
+    bool canonicalizeDiscouragedTerms = false,
+  }) {
     final text = figure.wordingOverride?.trim();
-    return text == null || text.isEmpty ? null : renderFreeText(text, dialect);
+    if (text == null || text.isEmpty) return null;
+    return canonicalizeDiscouragedTerms
+        ? renderFreeTextWithCanonicalDiscouragedTerms(text, dialect)
+        : renderFreeText(text, dialect);
   }
 
   /// The non-authoritative marker spliced after an ASSUMED subject in the
@@ -1246,6 +1312,10 @@ class FigureRenderer {
 
   /// Free-text (notes, hooks, custom figures): apply role-term substitution
   /// with case preservation. Move-name substitution does not apply to prose.
+  ///
+  /// To also convert known discouraged spellings at display time, use
+  /// [renderFreeTextWithCanonicalDiscouragedTerms]. Stored text is never
+  /// changed.
   String renderFreeText(String text, Dialect dialect) {
     final map = <String, String>{};
     for (final entry in dialect.roles.entries) {
@@ -1258,6 +1328,58 @@ class FigureRenderer {
       preserveCase: true,
     ).apply(text);
   }
+
+  /// Converts only the supported discouraged terms, without applying role-token
+  /// substitution.
+  String renderDiscouragedTerms(String text, Dialect dialect) => Substitutor(
+    _discouragedDisplayTerms(dialect),
+    caseInsensitive: true,
+    preserveCase: true,
+  ).apply(text);
+
+  /// Applies discouraged-term conversion and the existing role-token display
+  /// substitution to free text in one display-only operation.
+  String renderFreeTextWithCanonicalDiscouragedTerms(
+    String text,
+    Dialect dialect,
+  ) {
+    final map = <String, String>{
+      for (final entry in dialect.roles.entries) ...{
+        entry.key: entry.value.singular,
+        '${entry.key}s': entry.value.plural,
+      },
+      ..._discouragedDisplayTerms(dialect),
+    };
+    return Substitutor(
+      map,
+      caseInsensitive: true,
+      preserveCase: true,
+    ).apply(text);
+  }
+
+  static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
+    'gypsy': 'shoulder round',
+    'gyre': 'shoulder round',
+    'gent': _roleTerm('role1', dialect),
+    "gent's": _possessive(_roleTerm('role1', dialect)),
+    'gents': _roleTerm('role1s', dialect),
+    "gents'": _possessive(_roleTerm('role1s', dialect)),
+    'men': _roleTerm('role1s', dialect),
+    "men's": _possessive(_roleTerm('role1s', dialect)),
+    'men’s': _possessive(_roleTerm('role1s', dialect)),
+    'lady': _roleTerm('role2', dialect),
+    "lady's": _possessive(_roleTerm('role2', dialect)),
+    'ladies': _roleTerm('role2s', dialect),
+    "ladies'": _possessive(_roleTerm('role2s', dialect)),
+    'women': _roleTerm('role2s', dialect),
+    "women's": _possessive(_roleTerm('role2s', dialect)),
+    'women’s': _possessive(_roleTerm('role2s', dialect)),
+    'ravens': _roleTerm('role2s', dialect),
+    "ravens'": _possessive(_roleTerm('role2s', dialect)),
+  };
+
+  static String _possessive(String term) =>
+      term.endsWith('s') ? "$term'" : "$term's";
 
   /// Human phrasing for a set-relative facing token, shared by the derived
   /// rotation-gate ending facing (issue #294) and swing's `endFacing` clause

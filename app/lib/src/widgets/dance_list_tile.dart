@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/collection_tile_fields_scope.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/formation_colors_scope.dart';
 import '../models/dance_list_entry.dart';
@@ -120,6 +122,11 @@ class DanceListTile extends StatelessWidget {
     final formationFg = formationColor == null
         ? null
         : readableForegroundOn(formationColor);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     return ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
@@ -174,7 +181,14 @@ class DanceListTile extends StatelessWidget {
               Chip(
                 avatar: Icon(formationIcon, size: 16, color: formationFg),
                 label: Text(
-                  formationLabel(l10n, dance.formation),
+                  formationDisplayLabel(
+                    l10n,
+                    dance.formation,
+                    FigureRenderer(contraTaxonomy),
+                    ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+                    canonicalizeDiscouragedTerms:
+                        CanonicalDiscouragedTermsScope.of(context),
+                  ),
                   style: formationFg == null
                       ? null
                       : TextStyle(color: formationFg),
@@ -242,7 +256,14 @@ class DanceListTile extends StatelessWidget {
             if (effectiveFields.contains(CollectionTileField.customFields))
               for (final field in entry.listCustomFields)
                 Chip(
-                  label: Text(field),
+                  label: Text(
+                    _renderCustomField(
+                      field,
+                      renderer: renderer,
+                      dialect: dialect,
+                      canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                    ),
+                  ),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -260,6 +281,21 @@ class DanceListTile extends StatelessWidget {
           ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
+  }
+
+  String _renderCustomField(
+    ({String label, String value}) field, {
+    required FigureRenderer renderer,
+    required Dialect dialect,
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final value = canonicalizeDiscouragedTerms
+        ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            field.value,
+            dialect,
+          )
+        : field.value;
+    return '${field.label}: $value';
   }
 
   /// Trailing content for a normal (non-selection) row: the row action overflow

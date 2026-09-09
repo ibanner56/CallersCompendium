@@ -459,6 +459,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Konvertér automatisk alle frarådede termer';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Når den er slået til, bruger dansedetaljer, noter og eksporter kanonisk formulering for understøttede frarådede termer. Gemt tekst og indtastningsfelter ændres ikke. Slået til som standard.';
+
+  @override
   String get settingsDialectNewButton => 'Ny dialekt';
 
   @override

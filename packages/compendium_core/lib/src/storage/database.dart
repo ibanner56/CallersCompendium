@@ -279,7 +279,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 32;
+const int kCompendiumSchemaVersion = 33;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -769,6 +769,13 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.createTable(pendingDeletions);
         await m.createTable(reviewQueue);
         await m.createTable(publishedRecords);
+      }
+      if (from < 33) {
+        // Issue #1196: distinguish purge captions from ordinary text-only
+        // program slots so display-only conversion never rewrites a tombstone.
+        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
+        // must stay literal until an explicit edit establishes their kind.
+        await m.addColumn(programSlots, programSlots.isPurgedDance);
       }
     },
     beforeOpen: (details) async {

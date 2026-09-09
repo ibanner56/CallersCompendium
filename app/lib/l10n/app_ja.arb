@@ -500,6 +500,14 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
   },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "すべての非推奨用語を自動変換",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "x-sourceSha256": "c3cd1539f3a19b4f0a2a77daa0b119d57a5052ce0bac40c2c3e6728eec122526"
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "オンにすると、ダンスの詳細、メモ、エクスポートで、対応する非推奨用語を標準的な表現に置き換えます。保存済みのテキストと入力欄は変更されません。デフォルトでオンです。",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "x-sourceSha256": "6da747058b2195c2a5b721e0887ad4866e699160433d7de1e72c10d5deba3652"
+  },
   "settingsDialectNewButton": "新しいダイアレクト",
   "@settingsDialectNewButton": {
     "x-sourceSha256": "185d728af8efa1495bb12ca9389e9904eebb024c700b94df58a74e02b9ed1d6e"

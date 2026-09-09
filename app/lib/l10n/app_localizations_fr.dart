@@ -466,6 +466,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Lorsqu’elle est activée, cette option permet aux détails de la danse d’afficher les noms canoniques des rôles et des figures, et le sélecteur Canonique est disponible pour les dialectes non canoniques. Désactivée par défaut.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Convertir automatiquement tous les termes déconseillés';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Lorsqu’elle est activée, cette option utilise une formulation canonique pour les termes déconseillés pris en charge dans les détails des danses, les notes et les exportations. Le texte enregistré et les champs de saisie restent inchangés. Activée par défaut.';
+
+  @override
   String get settingsDialectNewButton => 'Nouveau dialecte';
 
   @override

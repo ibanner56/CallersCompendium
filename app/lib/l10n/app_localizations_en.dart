@@ -455,6 +455,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Auto-convert all discouraged terms';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.';
+
+  @override
   String get settingsDialectNewButton => 'New dialect';
 
   @override

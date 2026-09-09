@@ -154,6 +154,15 @@ these while writing a dance, the editor gently flags it (it shows the word struc
 through) so you can reconsider — but it never blocks you or changes your text. The
 list ships with some common examples and is yours to edit, add to, or clear.
 
+For read-only dance details, shorthand summaries, Perform mode, and dance/program
+exports, the app also converts supported discouraged terms to the active dialect's
+canonical wording by default. Turn off **Auto-convert all discouraged terms**
+under **Dance details & shorthands** if you prefer to see the stored wording.
+This is display-only: saved dances, notes, search data, archives, and stored
+metadata are never changed. Read-only dance details also apply the setting to
+formation details, tunes, and custom-field values; titles remain literal, and
+machine-readable archives remain lossless.
+
 > **The app watches for clashes.** If two different things would end up with the
 > exact same wording, the editor warns you right away, because that would make it
 > impossible to tell them apart later. Adjust one of the words and the warning
@@ -202,6 +211,9 @@ Two settings decide what you see before you touch anything:
 - **Canonical figure text** (in **Settings › Dialect › Dance details &
   shorthands**) controls whether dance details may show canonical wording. It is
   off by default.
+- **Auto-convert all discouraged terms** (in **Settings › Dialect › Dance details
+  & shorthands**) controls whether supported discouraged terms are shown in
+  canonical wording. It is on by default.
 - **Open dance details in canonical terms** decides whether a dance opens showing
   your dialect or the shared canonical wording, when canonical figure text is
   enabled. If the gate is off, details open in your active dialect and the child

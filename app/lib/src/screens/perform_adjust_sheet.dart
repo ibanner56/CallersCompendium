@@ -4,6 +4,7 @@ import 'package:flutter/semantics.dart';
 
 import '../search/collection_data.dart';
 import '../../l10n/app_localizations.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../widgets/collection_picker.dart';
 
 /// The non-destructive in-event "adjust" sheet for Performance mode
@@ -133,7 +134,18 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
           widget.data.dancesById[slot.danceId];
       if (dance != null) return dance.title;
     }
-    final text = slot.text?.trim();
+    final rawText = slot.text?.trim();
+    final text =
+        rawText == null ||
+            (slot.danceId == null && slot.isPurgedDance != false) ||
+            !CanonicalDiscouragedTermsScope.of(context)
+        ? rawText
+        : FigureRenderer(
+            contraTaxonomy,
+          ).renderFreeTextWithCanonicalDiscouragedTerms(
+            rawText,
+            widget.dialect,
+          );
     if (text != null && text.isNotEmpty) return text;
     return l10n.performUntitledSlot;
   }

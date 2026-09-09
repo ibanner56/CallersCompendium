@@ -100,6 +100,23 @@ String formationLabel(AppLocalizations l10n, Formation formation) {
       : l10n.commonFormationWithDetail(base, detail);
 }
 
+/// Full formation label with the detail rendered through the active dialect.
+String formationDisplayLabel(
+  AppLocalizations l10n,
+  Formation formation,
+  FigureRenderer renderer,
+  Dialect dialect, {
+  required bool canonicalizeDiscouragedTerms,
+}) {
+  final base = formationShapeLabel(l10n, formation.shape);
+  final detail = formation.detail?.trim();
+  if (detail == null || detail.isEmpty) return base;
+  final renderedDetail = canonicalizeDiscouragedTerms
+      ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(detail, dialect)
+      : renderer.renderFreeText(detail, dialect);
+  return l10n.commonFormationWithDetail(base, renderedDetail);
+}
+
 /// Turns `role1s` → `role1s`, `rightDiagonal` → `right diagonal`,
 /// `threeQuarter` → `three quarter` for display.
 ///

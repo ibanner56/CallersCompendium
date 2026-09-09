@@ -56,6 +56,7 @@ class FigureListEditor extends StatefulWidget {
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
     this.showWordingOverride = false,
+    this.canonicalizeDiscouragedTerms = false,
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
     this.onAddMeanwhile,
@@ -153,6 +154,11 @@ class FigureListEditor extends StatefulWidget {
   /// wording override. Disabled for reusable defaults and shorthand mappings,
   /// where a per-dance value would be misleading.
   final bool showWordingOverride;
+
+  /// Enables canonical discouraged-term wording only for read-only,
+  /// dance-scoped summaries. Settings editors leave this disabled so their
+  /// collapsed previews match the literal editable values.
+  final bool canonicalizeDiscouragedTerms;
 
   /// Groups [draft] with the figure immediately after it into a **meanwhile**
   /// group (#590/#593): the caller replaces both top-level entries with one
@@ -658,6 +664,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         showLabel: sectionStart[draft.id] ?? false,
         taxonomy: widget.taxonomy,
         dialect: dialect,
+        canonicalizeDiscouragedTerms: widget.canonicalizeDiscouragedTerms,
         mixer: widget.mixer,
         moveParamDefaults: widget.moveParamDefaults,
         isCut: isCutCard,
@@ -971,6 +978,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.snippetLibraryDefaultFor,
     this.onSnippetCommitted,
     this.showWordingOverride = false,
+    this.canonicalizeDiscouragedTerms = false,
     this.onGroupWithNext,
     this.onCollapseMeanwhileGroup,
     this.keyPrefix = 'figure',
@@ -993,6 +1001,7 @@ class _FigureDraftCard extends StatefulWidget {
 
   /// See [FigureListEditor.mixer].
   final bool mixer;
+  final bool canonicalizeDiscouragedTerms;
 
   /// Per-move insert-time param overrides (ROADMAP DD.3); see
   /// [FigureListEditor.moveParamDefaults]. Null = pure taxonomy defaults.
@@ -1398,18 +1407,38 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final figure = draft.toFigure();
     final hasMove = figure != null;
     final renderer = FigureRenderer(widget.taxonomy);
+    String displaySummary({required bool verbose}) {
+      return widget.canonicalizeDiscouragedTerms
+          ? renderer.renderSummaryWithCanonicalDiscouragedTerms(
+              figure!,
+              widget.dialect,
+              verbose: verbose,
+              decimals: !verbose && DecimalTurnsScope.of(context),
+            )
+          : renderer.renderSummary(
+              figure!,
+              widget.dialect,
+              verbose: verbose,
+              decimals: !verbose && DecimalTurnsScope.of(context),
+            );
+    }
+
     final sentence = hasMove
-        ? renderer.renderSummary(
-            figure,
-            widget.dialect,
-            decimals: DecimalTurnsScope.of(context),
-          )
+        ? displaySummary(verbose: false)
         : l10n.danceEditorEmptyFigureSummary;
     final spoken = hasMove
-        ? renderer.renderSummary(figure, widget.dialect, verbose: true)
+        ? displaySummary(verbose: true)
         : l10n.danceEditorEmptyFigureSemantic;
     final note = draft.note.trim();
     final hasNote = note.isNotEmpty;
+    final displayNote = hasNote
+        ? widget.canonicalizeDiscouragedTerms
+              ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                  note,
+                  widget.dialect,
+                )
+              : renderer.renderFreeText(note, widget.dialect)
+        : '';
     final noteDiscouraged =
         hasNote && canonicalize(note, widget.dialect).discouraged.isNotEmpty;
     final beatsLabel = l10n.danceFigureBeats(draft.beats);
@@ -1437,7 +1466,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       hasMove ? 'yes' : 'no',
       draft.beats,
       hasNote ? 'yes' : 'no',
-      note,
+      displayNote,
       widget.index + 1,
       widget.totalCount,
     );
@@ -1524,7 +1553,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                   ],
                                   Expanded(
                                     child: Text(
-                                      note,
+                                      displayNote,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: theme.textTheme.bodySmall
