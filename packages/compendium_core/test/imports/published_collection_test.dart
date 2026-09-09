@@ -311,6 +311,50 @@ void main() {
     });
 
     test(
+      'preserves a published custom id when its label was renamed locally',
+      () async {
+        final level = DifficultyLevel(
+          id: 'published-workshop',
+          label: 'Workshop',
+          position: 3,
+        );
+        await difficultyLevels.upsert(level.copyWith(label: 'Seminar'));
+
+        final batch = await importer.plan(
+          _payload(
+            dances: [
+              _dance(
+                'renamed-custom-level',
+              ).copyWith(difficultyLevelId: level.id),
+            ],
+            difficultyLevels: [level],
+          ),
+          metadata,
+        );
+
+        expect(batch.records.single.draft.dance.difficultyLevelId, level.id);
+        expect(
+          batch.records.single.draft.issues.any(
+            (issue) => issue.code == 'cc_inactive_level',
+          ),
+          isFalse,
+        );
+
+        final result = await importer.commit(
+          batch,
+          metadata: metadata,
+          now: DateTime.utc(2026, 8, 20),
+          newId: () => 'imported-renamed-custom',
+        );
+        expect(result.session.records.single.succeeded, isTrue);
+        expect(
+          (await dances.getById('imported-renamed-custom'))?.difficultyLevelId,
+          level.id,
+        );
+      },
+    );
+
+    test(
       'held count treats wildcard characters in collection ids literally',
       () async {
         final wildcardMetadata = PublishedCollectionMetadata(

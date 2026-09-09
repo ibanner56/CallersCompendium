@@ -129,6 +129,7 @@ class StructuredDraft {
     List<ImportIssue> issues = const [],
     List<String> authorNames = const [],
     this.difficultyLevelLabel,
+    this.difficultyLevelIdIsCanonical = false,
   }) : quality = quality ?? ParseQuality.ofFigures(dance.figures),
        issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);
@@ -153,6 +154,10 @@ class StructuredDraft {
   /// receiver's live configuration, when an adapter provides one.
   final String? difficultyLevelLabel;
 
+  /// Whether [Dance.difficultyLevelId] is a stable archive identity rather
+  /// than an adapter-derived mapping from an external label.
+  final bool difficultyLevelIdIsCanonical;
+
   StructuredDraft copyWith({
     Dance? dance,
     RawRecord? raw,
@@ -160,6 +165,7 @@ class StructuredDraft {
     List<ImportIssue>? issues,
     List<String>? authorNames,
     String? difficultyLevelLabel,
+    bool? difficultyLevelIdIsCanonical,
   }) => StructuredDraft(
     dance: dance ?? this.dance,
     raw: raw ?? this.raw,
@@ -167,6 +173,8 @@ class StructuredDraft {
     issues: issues ?? this.issues,
     authorNames: authorNames ?? this.authorNames,
     difficultyLevelLabel: difficultyLevelLabel ?? this.difficultyLevelLabel,
+    difficultyLevelIdIsCanonical:
+        difficultyLevelIdIsCanonical ?? this.difficultyLevelIdIsCanonical,
   );
 
   @override

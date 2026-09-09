@@ -339,6 +339,7 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       raw: raw,
       authorNames: names,
       difficultyLevelLabel: difficultyLevel?.label,
+      difficultyLevelIdIsCanonical: difficultyLevel != null,
     );
   }
 

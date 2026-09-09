@@ -241,6 +241,13 @@ class GenericJsonAdapter implements SourceAdapter {
       final name = nameById[id]?.trim();
       if (name != null && name.isNotEmpty) authorNames.add(name);
     }
+    DifficultyLevel? difficultyLevel;
+    for (final level in result.archive.difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) {
+        difficultyLevel = level;
+        break;
+      }
+    }
 
     // The draft carries no provenance — the pipeline attaches it at commit,
     // derived from `raw` (including the externalId that keys exact dedupe).
@@ -249,6 +256,8 @@ class GenericJsonAdapter implements SourceAdapter {
       raw: raw,
       issues: issues,
       authorNames: authorNames,
+      difficultyLevelLabel: difficultyLevel?.label,
+      difficultyLevelIdIsCanonical: difficultyLevel != null,
     );
   }
 

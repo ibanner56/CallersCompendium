@@ -407,7 +407,8 @@ class ImportPipeline {
     }
     final active = configuredById[id];
     if (active != null &&
-        callersCompanionDifficultyLabelMatches(sourceLabel, active)) {
+        (draft.difficultyLevelIdIsCanonical ||
+            callersCompanionDifficultyLabelMatches(sourceLabel, active))) {
       return draft;
     }
     final configured = configuredByLabel[_normalizeName(sourceLabel)];
