@@ -1314,6 +1314,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       slots: _renumber(refreshedSlots),
     );
     setState(() => _applyProgramToEditor(merged));
+    await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
 

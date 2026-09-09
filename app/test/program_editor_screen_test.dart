@@ -1599,7 +1599,7 @@ void main() {
   testWidgets('Undo corrects a marked auto-commit that is already in flight', (
     tester,
   ) async {
-    final delayed = openTestRepositoriesWithDelayedPrograms();
+    final delayed = openTestRepositoriesWithDelayedProgramsAndVenues();
     await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
     await delayed.repos.programs.create(
       _program(
@@ -2467,6 +2467,60 @@ void main() {
       expect(saved!.title, 'Local edit');
       expect(saved.notes, 'Remote note');
       expect(saved.slots.map((slot) => slot.id), ['s0', 's2']);
+    },
+  );
+
+  testWidgets(
+    'persisted Undo refreshes a remotely changed venue during a local edit',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedProgramsAndVenues();
+      await delayed.repos.venues.upsert(Venue(id: 'v1', name: 'Old Hall'));
+      await delayed.repos.venues.upsert(Venue(id: 'v2', name: 'New Hall'));
+      await delayed.repos.dances.create(_dance(id: 'd1', title: 'First Dance'));
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          venueId: 'v1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+      await _expandMoreDetails(tester);
+      expect(find.textContaining('Old Hall'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Local edit',
+      );
+      delayed.programs.holdNextRead();
+      delayed.venues.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      final remote = await delayed.repos.programs.getById('p1');
+      await delayed.repos.programs.update(
+        remote!.copyWith(venueId: 'v2', updatedAt: DateTime.now().toUtc()),
+      );
+      await tester.pump();
+      delayed.venues.holdNextRead();
+      delayed.programs.releaseRead();
+      await delayed.venues.readStarted;
+      delayed.venues.releaseRead();
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('New Hall'), findsOneWidget);
+      expect(find.textContaining('Old Hall'), findsNothing);
+      final saved = await delayed.repos.programs.getById('p1');
+      expect(saved!.title, 'Local edit');
+      expect(saved.venueId, 'v2');
     },
   );
 
