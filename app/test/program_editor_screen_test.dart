@@ -1630,6 +1630,33 @@ void main() {
     );
   });
 
+  testWidgets('explicit Save invalidates bulk performed Undo', (tester) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, delayed.repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await delayed.programs.writeStarted;
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBarAction), findsNothing);
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNotNull);
+  });
+
   testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {

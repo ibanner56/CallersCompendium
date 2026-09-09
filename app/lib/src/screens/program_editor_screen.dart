@@ -166,6 +166,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
   bool _autoCommitInFlight = false;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
+  int _bulkUndoGeneration = 0;
   int _editGeneration = 0;
   int _collectionDataGeneration = 0;
 
@@ -847,6 +849,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   void dispose() {
     _autosaveTimer?.cancel();
     _autoCommitTimer?.cancel();
+    _bulkUndoSnackBar?.close();
     _replaceSubscription();
     _pickerCounts.dispose();
     _tabController.dispose();
@@ -1644,19 +1647,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
     final messenger = ScaffoldMessenger.of(context);
-    showUndoSnackBar(
+    final undoGeneration = ++_bulkUndoGeneration;
+    _bulkUndoSnackBar = showUndoSnackBar(
       messenger,
       message: l10n.programsMarkedAllPerformed,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => unawaited(
-        _undoMarkAllPerformed(
-          markedSlotIds,
-          now,
-          wasDirty: wasDirty,
-          actionEditGeneration: actionEditGeneration,
-        ),
-      ),
+      onUndo: () {
+        if (undoGeneration != _bulkUndoGeneration) return;
+        _bulkUndoGeneration++;
+        _bulkUndoSnackBar = null;
+        unawaited(
+          _undoMarkAllPerformed(
+            markedSlotIds,
+            now,
+            wasDirty: wasDirty,
+            actionEditGeneration: actionEditGeneration,
+          ),
+        );
+      },
     );
   }
 
@@ -1666,7 +1675,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     required bool wasDirty,
     required int actionEditGeneration,
   }) async {
-    if (!mounted) return;
+    if (!mounted || _saving) return;
     final canRestoreCleanState =
         !wasDirty && _dirty && _editGeneration == actionEditGeneration;
     final autoCommitWasInFlight = _autoCommitInFlight;
@@ -1773,6 +1782,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    _bulkUndoGeneration++;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
     _autoCommitTimer?.cancel();
     _editGeneration++;
     setState(() => _saving = true);
