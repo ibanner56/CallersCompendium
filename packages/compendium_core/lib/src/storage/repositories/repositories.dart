@@ -1231,6 +1231,8 @@ class CompendiumRepositories {
     if (rewrites.isNotEmpty || rebuildOwed) {
       await db.transaction(() async {
         for (final (danceId, figuresJson) in rewrites) {
+          // normalization-structure-exempt: derived maintenance writes encoded
+          // figures already produced from the canonical dance model.
           await db.customUpdate(
             // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
             'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
