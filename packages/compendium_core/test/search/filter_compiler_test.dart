@@ -219,9 +219,12 @@ void main() {
     test('LevelFilter lte resolves the configured level position', () {
       expect(
         pred(const LevelFilter(DifficultyLevel.intermediateId, LevelOp.lte)),
-        'level_id IN (SELECT id FROM difficulty_levels WHERE position <= '
-        '(SELECT position FROM difficulty_levels '
-        'WHERE id = ? AND deleted_at IS NULL) AND deleted_at IS NULL)',
+        'level_id IN (SELECT candidate.id FROM difficulty_levels candidate '
+        'CROSS JOIN (SELECT position AS target_position, id AS target_id '
+        'FROM difficulty_levels WHERE id = ? AND deleted_at IS NULL) target '
+        'WHERE candidate.deleted_at IS NULL AND (candidate.position < '
+        'target.target_position OR (candidate.position = '
+        'target.target_position AND candidate.id <= target.target_id)))',
       );
       expect(
         compiler
@@ -236,9 +239,12 @@ void main() {
     test('LevelFilter gte resolves the configured level position', () {
       expect(
         pred(const LevelFilter(DifficultyLevel.advancedId, LevelOp.gte)),
-        'level_id IN (SELECT id FROM difficulty_levels WHERE position >= '
-        '(SELECT position FROM difficulty_levels '
-        'WHERE id = ? AND deleted_at IS NULL) AND deleted_at IS NULL)',
+        'level_id IN (SELECT candidate.id FROM difficulty_levels candidate '
+        'CROSS JOIN (SELECT position AS target_position, id AS target_id '
+        'FROM difficulty_levels WHERE id = ? AND deleted_at IS NULL) target '
+        'WHERE candidate.deleted_at IS NULL AND (candidate.position > '
+        'target.target_position OR (candidate.position = '
+        'target.target_position AND candidate.id >= target.target_id)))',
       );
       expect(
         compiler

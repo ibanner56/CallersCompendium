@@ -60,6 +60,15 @@ class DifficultyLevelRepository {
     return row == null ? null : _toModel(row);
   }
 
+  /// Finds a live level by its case-insensitive normalized label.
+  Future<DifficultyLevel?> findByLabel(String label) async {
+    final normalized = _normalizeLabel(label).toLowerCase();
+    for (final level in await listAll()) {
+      if (level.label.toLowerCase() == normalized) return level;
+    }
+    return null;
+  }
+
   Future<List<DifficultyLevel>> listAll() async {
     final rows =
         await (_db.select(_db.difficultyLevels)

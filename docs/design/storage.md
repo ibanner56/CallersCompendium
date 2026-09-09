@@ -472,9 +472,10 @@ can still fire.
 ## The delete model
 
 Every syncable kind — dances, programs, choreographers, tags, published
-sources, custom field definitions, difficulty levels, venues and settings keys — carries three
-timestamps as of schema v25 (issue #898). They answer three different questions
-and are deliberately not collapsed into fewer columns:
+sources, custom field definitions, difficulty levels, venues and settings keys —
+carries three timestamps. Most kinds gained this shape in schema v25 (issue
+#898); difficulty levels gained the same triple in v34. They answer three
+different questions and are deliberately not collapsed into fewer columns:
 
 | Column | Question it answers |
 | --- | --- |

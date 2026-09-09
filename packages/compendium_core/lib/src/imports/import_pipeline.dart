@@ -367,7 +367,22 @@ class ImportPipeline {
     final repository = _difficultyLevels;
     final sourceLabel = draft.difficultyLevelLabel;
     final id = draft.dance.difficultyLevelId;
-    if (repository == null || sourceLabel == null || id == null) return draft;
+    if (repository == null ||
+        sourceLabel == null ||
+        sourceLabel.trim().isEmpty) {
+      return draft;
+    }
+    if (id == null) {
+      final configured = await repository.findByLabel(sourceLabel);
+      if (configured == null) return draft;
+      return draft.copyWith(
+        dance: draft.dance.copyWith(difficultyLevelId: configured.id),
+        issues: [
+          for (final issue in draft.issues)
+            if (issue.code != 'cc_unmapped_level') issue,
+        ],
+      );
+    }
     final active = await repository.getById(id);
     if (active != null &&
         callersCompanionDifficultyLabelMatches(sourceLabel, active)) {

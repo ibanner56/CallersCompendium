@@ -94,10 +94,10 @@ fields are `shareable`.
 
 ### Record kinds
 
-Eight kinds produce blobs:
+Nine kinds produce blobs:
 
 `dance` · `program` · `choreographer` · `tag` · `publishedSource` ·
-`customFieldDef` · `venue` · `setting`
+`customFieldDef` · `difficultyLevel` · `venue` · `setting`
 
 Join rows are **not** separate records. They ride inline with their parent
 exactly as the archive codec already models them — a dance carries its

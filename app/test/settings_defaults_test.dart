@@ -191,6 +191,13 @@ void main() {
       final list = tester.widget<ReorderableListView>(
         find.byType(ReorderableListView).first,
       );
+      expect(
+        find.descendant(
+          of: find.byType(ReorderableListView).first,
+          matching: find.byType(ReorderableDragStartListener),
+        ),
+        findsNWidgets(3),
+      );
       list.onReorderItem!(0, 2);
       await tester.pumpAndSettle();
 

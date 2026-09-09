@@ -664,13 +664,17 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
         ReorderableListView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
+          buildDefaultDragHandles: false,
           itemCount: _levels.length,
           onReorderItem: _reorder,
           itemBuilder: (context, index) {
             final level = _levels[index];
             return ListTile(
               key: ValueKey(level.id),
-              leading: const Icon(Icons.drag_handle),
+              leading: ReorderableDragStartListener(
+                index: index,
+                child: const Icon(Icons.drag_handle),
+              ),
               title: Focus(
                 onFocusChange: (focused) {
                   if (!focused) {

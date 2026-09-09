@@ -385,12 +385,16 @@ class FilterCompiler {
             'WHERE id = ? AND deleted_at IS NULL)';
       case LevelOp.lte:
       case LevelOp.gte:
-        final cmp = op == LevelOp.lte ? '<=' : '>=';
+        final positionCmp = op == LevelOp.lte ? '<' : '>';
+        final idCmp = op == LevelOp.lte ? '<=' : '>=';
         binds.add(difficultyLevelId);
-        return 'level_id IN (SELECT id FROM difficulty_levels WHERE position '
-            '$cmp (SELECT position FROM difficulty_levels '
-            'WHERE id = ? AND deleted_at IS NULL) '
-            'AND deleted_at IS NULL)';
+        return 'level_id IN (SELECT candidate.id FROM difficulty_levels '
+            'candidate CROSS JOIN (SELECT position AS target_position, '
+            'id AS target_id FROM difficulty_levels '
+            'WHERE id = ? AND deleted_at IS NULL) target '
+            'WHERE candidate.deleted_at IS NULL AND (candidate.position '
+            '$positionCmp target.target_position OR (candidate.position = '
+            'target.target_position AND candidate.id $idCmp target.target_id)))';
     }
   }
 

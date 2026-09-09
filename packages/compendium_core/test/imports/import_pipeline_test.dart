@@ -14,6 +14,7 @@ void main() {
   late CompendiumDatabase db;
   late DanceRepository dances;
   late ChoreographerRepository choreographers;
+  late DifficultyLevelRepository difficultyLevels;
   late ImportPipeline pipeline;
   late String Function() nextId;
 
@@ -21,7 +22,12 @@ void main() {
     db = openTestDatabase();
     dances = DanceRepository(db, contraTaxonomy);
     choreographers = ChoreographerRepository(db);
-    pipeline = ImportPipeline(dances, choreographers);
+    difficultyLevels = DifficultyLevelRepository(db);
+    pipeline = ImportPipeline(
+      dances,
+      choreographers,
+      difficultyLevels: difficultyLevels,
+    );
     nextId = sequentialIds();
   });
 
@@ -38,6 +44,7 @@ void main() {
     String? license,
     List<String> authorNames = const [],
     List<String> authorIds = const [],
+    String? difficultyLevelLabel,
   }) => {
     'id': id,
     'title': title,
@@ -46,10 +53,36 @@ void main() {
     'license': ?license,
     'authorNames': authorNames,
     'authorIds': authorIds,
+    'difficultyLevelLabel': ?difficultyLevelLabel,
     'figures': figures,
   };
 
   group('commit writes provenance transactionally', () {
+    test('resolves a matching configured custom difficulty label', () async {
+      final custom = await difficultyLevels.createCustom(
+        label: 'Workshop',
+        position: 3,
+      );
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record(
+            'custom-level',
+            'Custom Level Dance',
+            difficultyLevelLabel: ' workshop ',
+          ),
+        ]),
+        const ImportRequest(),
+      );
+
+      expect(batch.records.single.draft.dance.difficultyLevelId, custom.id);
+      expect(
+        batch.records.single.draft.issues.where(
+          (issue) => issue.code == 'cc_unmapped_level',
+        ),
+        isEmpty,
+      );
+    });
+
     test('a new dance is inserted with a full provenance row', () async {
       final adapter = FakeSourceAdapter([
         record(

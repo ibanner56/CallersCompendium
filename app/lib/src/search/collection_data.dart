@@ -135,7 +135,7 @@ class CollectionData {
   ///
   /// ## Why this reloads the snapshot rather than streaming its parts
   ///
-  /// [load] composes a fan-out of queries across six repositories into one
+  /// [load] composes a fan-out of queries across seven repositories into one
   /// immutable value that three screens share.
   ///
   /// Deliberately no query count. An earlier draft said "seven queries across

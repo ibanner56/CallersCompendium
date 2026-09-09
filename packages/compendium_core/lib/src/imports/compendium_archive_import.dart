@@ -719,7 +719,7 @@ class CompendiumArchiveImporter {
       await repository.hardDelete([id]);
     }
     for (final prior in ledger.priorStates) {
-      if (await repository.isInUse(prior.level.id)) continue;
+      if (prior.deleted && await repository.isInUse(prior.level.id)) continue;
       await repository.upsert(prior.level, at: at);
       if (prior.deleted) {
         await repository.delete(prior.level.id, at: at);

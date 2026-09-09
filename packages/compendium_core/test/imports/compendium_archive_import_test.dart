@@ -200,6 +200,12 @@ void main() {
       position: 4,
     );
     await difficultyLevels.upsert(level, at: now);
+    await dances.create(
+      _dance(
+        'uses-local-level',
+        'Uses Local Level',
+      ).copyWith(difficultyLevelId: level.id),
+    );
     final incoming = level.copyWith(label: 'Incoming', position: 0);
     final archive = CompendiumArchive(
       exportedAt: now,
