@@ -294,7 +294,7 @@ class ImportPipeline {
 
     final configuredLevels = _difficultyLevels == null
         ? null
-        : await _difficultyLevels!.listAll();
+        : await _difficultyLevels.listAll();
     final configuredById = <String, DifficultyLevel>{
       for (final level in configuredLevels ?? const <DifficultyLevel>[])
         level.id: level,
