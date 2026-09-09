@@ -2652,9 +2652,9 @@
   "@programsAddDanceButton": {
     "x-sourceSha256": "285e08017a7bc3224020ed6f9cb6597913092f8028f2573691fd50543e51d08d"
   },
-  "programsAddNoteBreakButton": "Ajouter une note / pause",
+  "programsAddNoteBreakButton": "Ajouter une note / valse",
   "@programsAddNoteBreakButton": {
-    "x-sourceSha256": "e427b867874554edde579f20e60c1f21d95e757dac6ce53f03443c224acee4d7"
+    "x-sourceSha256": "49da911a72e2ae7022df2ba58ec7d6e17094845e3726e5f3dd224613835cc467"
   },
   "programsInsertBreakButton": "Insérer une pause",
   "@programsInsertBreakButton": {

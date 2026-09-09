@@ -3219,7 +3219,7 @@
   "@programsAddDanceButton": {
     "description": "Button that opens the dance picker to add a dance slot to the program."
   },
-  "programsAddNoteBreakButton": "Add note / break",
+  "programsAddNoteBreakButton": "Add note / waltz",
   "@programsAddNoteBreakButton": {
     "description": "Button that adds a free-text note or break slot to the program."
   },

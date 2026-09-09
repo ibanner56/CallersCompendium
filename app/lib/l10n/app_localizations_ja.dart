@@ -2369,7 +2369,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsAddDanceButton => 'ダンスを追加';
 
   @override
-  String get programsAddNoteBreakButton => 'ノート／ブレイクを追加';
+  String get programsAddNoteBreakButton => 'ノート／ワルツを追加';
 
   @override
   String get programsInsertBreakButton => 'ブレイクを挿入';

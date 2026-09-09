@@ -4095,7 +4095,7 @@ abstract class AppLocalizations {
   /// Button that adds a free-text note or break slot to the program.
   ///
   /// In en, this message translates to:
-  /// **'Add note / break'**
+  /// **'Add note / waltz'**
   String get programsAddNoteBreakButton;
 
   /// Button that inserts a break slot into the program.
