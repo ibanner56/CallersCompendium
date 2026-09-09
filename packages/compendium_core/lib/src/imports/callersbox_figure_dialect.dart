@@ -1689,12 +1689,16 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
 
   var hasSynthesized = false;
   final notes = <String>[];
+  final roleAssignments = <_PerRoleChoreo>[];
 
   for (final body in annotations) {
     final synthesized = _synthesizePerRoleChoreo(body);
     if (synthesized != null) {
       hasSynthesized = true;
-      notes.add(synthesized);
+      notes.add(synthesized.note);
+      if (synthesized.supportsRollAwayRoleAssignment) {
+        roleAssignments.add(synthesized);
+      }
     } else if (_annotationBodyHasLowercase(body) &&
         !_looksLikePerRoleBody(body)) {
       // Genuine prose (not a per-role body that failed to synthesise): preserve
@@ -1726,18 +1730,68 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
   );
   if (match == null) return null;
 
-  return _withAnnotationNote(match, _joinAnnotations(notes));
+  final extraParams = <String, Object?>{};
+  extraParams.addAll(_rollAwayRoleAssignmentParams(match, roleAssignments));
+
+  return _withAnnotationNote(
+    match,
+    _joinAnnotations(notes),
+    extraParams: extraParams,
+  );
 }
 
+Map<String, Object?> _rollAwayRoleAssignmentParams(
+  FigureMatch match,
+  List<_PerRoleChoreo> roleAssignments,
+) {
+  if (match.moveId != 'roll_away' ||
+      match.assumedSubject ||
+      roleAssignments.length != 1 ||
+      match.params.containsKey('whom')) {
+    return const {};
+  }
+
+  final relationship = match.params['who'];
+  final nonRollingRole = roleAssignments.single.nonRollingRole;
+  if (relationship is! String ||
+      !_callersBoxRollAwayRelationships.contains(relationship) ||
+      nonRollingRole == null) {
+    return const {};
+  }
+  return {'who': nonRollingRole, 'whom': relationship};
+}
+
+const Set<String> _callersBoxRollAwayRelationships = {'neighbors', 'partners'};
+
 /// Parses a two-clause per-role choreography body and returns the canonical
-/// note, or `null` when the body does not match the pattern.
-String? _synthesizePerRoleChoreo(String body) {
+/// note plus any unambiguous roll-away role assignment, or `null` when the body
+/// does not match the pattern.
+_PerRoleChoreo? _synthesizePerRoleChoreo(String body) {
   final commaIdx = body.indexOf(',');
   if (commaIdx < 0) return null;
   final clause1 = _parsePerRoleClause(body.substring(0, commaIdx));
   final clause2 = _parsePerRoleClause(body.substring(commaIdx + 1));
   if (clause1 == null || clause2 == null) return null;
-  return '${clause1.render()}, ${clause2.render()}';
+  final clauses = [clause1, clause2];
+  final note = '${clause1.render()}, ${clause2.render()}';
+  final roles = clauses.map((clause) => clause.who).toSet();
+  final rolling = clauses.where((clause) => clause.action == 'roll').toList();
+  final nonRolling = clauses
+      .where(
+        (clause) =>
+            clause.action == 'side-step' || clause.action == 'step aside',
+      )
+      .toList();
+  final supportsRoleAssignment =
+      roles.length == 2 &&
+      roles.contains('role1s') &&
+      roles.contains('role2s') &&
+      rolling.length == 1 &&
+      nonRolling.length == 1;
+  return _PerRoleChoreo(
+    note: note,
+    nonRollingRole: supportsRoleAssignment ? nonRolling.single.who : null,
+  );
 }
 
 /// Parses a single per-role clause: `[WM]\d? <action> [RL]?`.
@@ -1779,6 +1833,15 @@ class _PerRoleClause {
   final String? dir;
 
   String render() => dir == null ? '$who $action' : '$who $action $dir';
+}
+
+class _PerRoleChoreo {
+  const _PerRoleChoreo({required this.note, this.nonRollingRole});
+
+  final String note;
+  final String? nonRollingRole;
+
+  bool get supportsRollAwayRoleAssignment => nonRollingRole != null;
 }
 
 /// Matches `[WM]` (optional digit) followed by the rest of the clause.
@@ -1894,13 +1957,17 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
 
   final notes = <String>[];
   final extraParams = <String, Object?>{};
+  final roleAssignments = <_PerRoleChoreo>[];
 
   for (final annotation in annotations) {
     final body = annotation.body;
     if (!annotation.isSquare) {
       final synthesized = _synthesizePerRoleChoreo(body);
       if (synthesized != null) {
-        notes.add(synthesized);
+        notes.add(synthesized.note);
+        if (synthesized.supportsRollAwayRoleAssignment) {
+          roleAssignments.add(synthesized);
+        }
       } else if (_annotationBodyHasLowercase(body) &&
           !_looksLikePerRoleBody(body)) {
         notes.add(body);
@@ -1933,6 +2000,9 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     notes.add(_canonicalSquareBracketNote(body));
   }
 
+  if (!extraParams.containsKey('who') && !extraParams.containsKey('whom')) {
+    extraParams.addAll(_rollAwayRoleAssignmentParams(match, roleAssignments));
+  }
   if (notes.isEmpty && extraParams.isEmpty) {
     // A square bracket with only code-like parentheses belongs to a later
     // specialist or the normal recognition path; do not claim it here.

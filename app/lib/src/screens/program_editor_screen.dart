@@ -792,6 +792,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       setState(() {
         _setCollectionData(_latestData ?? data);
         _existing = program;
+        _difficultyLevels = difficultyLevels;
         _eventDate = program?.eventDate;
         _venueId = program?.venueId;
         _status = program?.status ?? ProgramStatus.draft;

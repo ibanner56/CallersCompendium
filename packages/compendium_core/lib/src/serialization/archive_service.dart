@@ -1,6 +1,7 @@
 import '../model/custom_field.dart';
 import '../model/dance.dart';
 import '../model/difficulty_level.dart';
+import '../model/enums.dart';
 import '../model/program.dart';
 import '../storage/repositories/repositories.dart';
 import '../storage/repositories/venue_repository.dart';
@@ -194,10 +195,12 @@ class ArchiveRestorer {
         });
       }
     }
-    for (final level in archive.difficultyLevels) {
-      await _guard('difficultyLevel', level.id, errors, () async {
-        await _repos.difficultyLevels.upsert(level);
-      });
+    if (archive.schemaVersion >= archiveSchemaVersionDifficultyLevels) {
+      for (final level in archive.difficultyLevels) {
+        await _guard('difficultyLevel', level.id, errors, () async {
+          await _repos.difficultyLevels.upsert(level);
+        });
+      }
     }
     for (final s in archive.publishedSources) {
       await _guard('publishedSource', s.id, errors, () async {
@@ -237,15 +240,13 @@ class ArchiveRestorer {
           await _repos.dances.restore(d.id, at: causalAt);
         }
         try {
+          final restoredDance = _repairRestoredCallersBoxRollAway(
+            _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
+          );
           await _repos.dances.create(
             wasLive
-                ? _applyRemap(
-                    d,
-                    choreoRemap,
-                    tagRemap,
-                    fieldRemap,
-                  ).copyWith(clearDeletedAt: true)
-                : _applyRemap(d, choreoRemap, tagRemap, fieldRemap),
+                ? restoredDance.copyWith(clearDeletedAt: true)
+                : restoredDance,
           );
           if (wasLive) {
             await _repos.dances.softDelete(d.id, at: causalAt);
@@ -311,6 +312,16 @@ class ArchiveRestorer {
         }
       });
     }
+  }
+
+  /// Applies the same conservative legacy repair used by the startup sweep to
+  /// incoming CallersBox dances before their derived rows are created. A
+  /// restored backup may arrive after the one-time completion marker was set.
+  Dance _repairRestoredCallersBoxRollAway(Dance dance) {
+    if (dance.provenance?.source != ProvenanceSource.callersbox) {
+      return dance;
+    }
+    return _repos.dances.repairLegacyCallersBoxRollAwayPublic(dance);
   }
 
   /// Remaps a dance's entity references from archived ids to the ids that were

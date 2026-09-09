@@ -619,10 +619,11 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
-      // The last sweep's result is deliberately not assigned: nothing
-      // follows it today. It still REPORTS, so that adding a sweep after it
-      // is a one-line change rather than a change to the contract above.
-      await _backfillChainHandIfNeeded(
+      rebuiltThisCall = await _backfillChainHandIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
+      rebuiltThisCall = await _repairCallersBoxRollAwayIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
@@ -1010,9 +1011,7 @@ class CompendiumRepositories {
   ///
   /// Returns whether a derived rebuild has happened during this call — i.e.
   /// [alreadyRebuilt] OR this pass ran one — matching the other sweeps, so the
-  /// caller can thread the flag onward. This pass is currently LAST in the
-  /// chain and its caller discards the value; it is returned anyway because the
-  /// point of the contract is the sweep that gets added after it.
+  /// caller can thread the flag onward to later sweeps.
   Future<bool> _stripStarPromenadeHandIfNeeded({
     bool alreadyRebuilt = false,
     DerivedRebuildProgressCallback? onProgress,
@@ -1394,5 +1393,82 @@ class CompendiumRepositories {
     // not written and the next startup retries.
     await _writeSweepMarker(chainHandBackfillDoneKey, '"done"');
     return alreadyRebuilt || rebuilt;
+  }
+
+  /// Repairs legacy CallersBox `roll_away` figures whose per-role annotation
+  /// was previously retained only as a note (#1192). The source provenance is
+  /// part of the predicate because raw CallersBox payloads were removed in
+  /// schema v21 and an identical figure may have been authored elsewhere.
+  ///
+  /// Row rewrites and the durable derived-rebuild marker are committed
+  /// together. If the rebuild fails after that transaction, the next startup
+  /// rebuilds from the already-repaired source rows before this sweep retries;
+  /// this closes the gap where an idempotent rescan would otherwise find no
+  /// rewrites and incorrectly skip the rebuild.
+  Future<bool> _repairCallersBoxRollAwayIfNeeded({
+    required bool alreadyRebuilt,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [Variable.withString(callersBoxRollAwayRoleRepairDoneKey)],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    final legacyRows = await db
+        .customSelect(
+          'SELECT dances.id, dances.figures_json, provenance.source '
+          'FROM dances LEFT JOIN provenance '
+          'ON provenance.dance_id = dances.id',
+          readsFrom: {db.dances, db.provenance},
+        )
+        .get();
+    var rewroteAny = false;
+    await db.transaction(() async {
+      for (final row in legacyRows) {
+        if (row.read<String?>('source') != ProvenanceSource.callersbox.name) {
+          continue;
+        }
+        final figures = decodeFigures(row.read<String>('figures_json'));
+        final repaired = dances.repairLegacyCallersBoxRollAwayFiguresPublic(
+          figures,
+        );
+        if (identical(repaired, figures)) continue;
+        rewroteAny = true;
+        // Rewrite only figures_json; the bulk rebuild below refreshes all
+        // derived rows after every source rewrite has committed.
+        // normalization-structure-exempt: derived maintenance writes encoded
+        // figures already produced from the canonical dance model.
+        await db.customUpdate(
+          // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+          'WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(repaired)),
+            Variable<String>(row.read<String>('id')),
+          ],
+          updates: {db.dances},
+          updateKind: UpdateKind.update,
+        );
+      }
+      if (rewroteAny) {
+        await _writeSweepMarker(derivedRebuildRequiredKey, 'true');
+      }
+    });
+
+    if (rewroteAny) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+
+    await _writeSweepMarker(callersBoxRollAwayRoleRepairDoneKey, '"done"');
+    return alreadyRebuilt || rewroteAny;
   }
 }

@@ -402,6 +402,7 @@ void main() {
         final merged = await ArchiveRestorer(targetRepos).restore(
           CompendiumArchive(
             exportedAt: DateTime.utc(2026, 7, 16),
+            schemaVersion: archiveSchemaVersionDifficultyLevels,
             difficultyLevels: [
               DifficultyLevel(id: 'incoming', label: 'Incoming', position: 4),
             ],
@@ -461,6 +462,95 @@ void main() {
 
         expect(result.errors, isEmpty);
         expect(await targetRepos.difficultyLevels.listAll(), isEmpty);
+      },
+    );
+
+    test(
+      'legacy restore does not overwrite locally renamed shipped levels',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.difficultyLevels.upsert(
+          DifficultyLevel(
+            id: DifficultyLevel.advancedId,
+            label: 'Expert',
+            position: 7,
+          ),
+        );
+
+        final decoded = archiveFromJson({
+          'schemaVersion': archiveSchemaVersionBase,
+          'exportedAt': '2026-07-15T00:00:00.000Z',
+          'dances': [
+            {
+              'id': 'legacy-level',
+              'title': 'Legacy level',
+              'level': 'advanced',
+              'createdAt': '2026-01-01T00:00:00.000Z',
+              'updatedAt': '2026-01-01T00:00:00.000Z',
+            },
+          ],
+        });
+        expect(decoded.errors, isEmpty);
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(decoded.archive, mode: RestoreMode.merge);
+        expect(result.errors, isEmpty, reason: result.errors.join('\n'));
+
+        final advanced = await repos.difficultyLevels.getById(
+          DifficultyLevel.advancedId,
+        );
+        expect(advanced?.label, 'Expert');
+        expect(advanced?.position, 7);
+        expect(
+          (await repos.dances.getById('legacy-level'))?.difficultyLevelId,
+          DifficultyLevel.advancedId,
+        );
+      },
+    );
+
+    test(
+      'restore repairs legacy CallersBox roll-away figures even after startup',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(callersBoxRollAwayRoleRepairDoneKey, '"done"');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy-callersbox',
+              title: 'Legacy',
+              figures: [
+                Figure(
+                  move: 'roll_away',
+                  params: {'who': 'neighbors', 'beats': 8},
+                  note: 'role2s roll right, role1s side-step left',
+                ),
+              ],
+              provenance: Provenance(
+                source: ProvenanceSource.callersbox,
+                externalId: 'legacy-callersbox',
+                importedAt: DateTime.utc(2024),
+              ),
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final restored = await repos.dances.getById('legacy-callersbox');
+        expect(restored?.figures.single.params['who'], 'role1s');
+        expect(restored?.figures.single.params['whom'], 'neighbors');
       },
     );
 

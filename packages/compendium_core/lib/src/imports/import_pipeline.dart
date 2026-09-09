@@ -5,6 +5,7 @@ import 'package:unorm_dart/unorm_dart.dart';
 import '../model/choreographer.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/provenance.dart';
@@ -291,6 +292,14 @@ class ImportPipeline {
       );
     }
 
+    final configuredLevels =
+        await _difficultyLevels?.listAll() ?? const <DifficultyLevel>[];
+    final configuredById = <String, DifficultyLevel>{
+      for (final level in configuredLevels) level.id: level,
+    };
+    final configuredByLabel = <String, DifficultyLevel>{
+      for (final level in configuredLevels) _normalizeName(level.label): level,
+    };
     final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
     for (final record in discovered) {
@@ -315,7 +324,11 @@ class ImportPipeline {
       StructuredDraft draft;
       try {
         draft = adapter.parse(raw);
-        draft = await _resolveConfiguredDifficulty(draft);
+        draft = _resolveConfiguredDifficulty(
+          draft,
+          configuredById,
+          configuredByLabel,
+        );
       } on ImportError catch (e) {
         errors.add(e);
         continue;
@@ -361,19 +374,23 @@ class ImportPipeline {
     );
   }
 
-  Future<StructuredDraft> _resolveConfiguredDifficulty(
+  StructuredDraft _resolveConfiguredDifficulty(
     StructuredDraft draft,
-  ) async {
-    final repository = _difficultyLevels;
+    Map<String, DifficultyLevel> configuredById,
+    Map<String, DifficultyLevel> configuredByLabel,
+  ) {
+    if (draft.dance.mixedLevel) return draft;
     final sourceLabel = draft.difficultyLevelLabel;
     final id = draft.dance.difficultyLevelId;
-    if (repository == null ||
-        sourceLabel == null ||
-        sourceLabel.trim().isEmpty) {
+    if (sourceLabel == null || sourceLabel.trim().isEmpty) {
       return draft;
     }
+    final hasUnmappedLevelIssue = draft.issues.any(
+      (issue) => issue.code == 'cc_unmapped_level',
+    );
     if (id == null) {
-      final configured = await repository.findByLabel(sourceLabel);
+      if (!hasUnmappedLevelIssue) return draft;
+      final configured = configuredByLabel[_normalizeName(sourceLabel)];
       if (configured == null) return draft;
       return draft.copyWith(
         dance: draft.dance.copyWith(difficultyLevelId: configured.id),
@@ -383,12 +400,12 @@ class ImportPipeline {
         ],
       );
     }
-    final active = await repository.getById(id);
+    final active = configuredById[id];
     if (active != null &&
         callersCompanionDifficultyLabelMatches(sourceLabel, active)) {
       return draft;
     }
-    final configured = await repository.findByLabel(sourceLabel);
+    final configured = configuredByLabel[_normalizeName(sourceLabel)];
     if (configured != null) {
       return draft.copyWith(
         dance: draft.dance.copyWith(difficultyLevelId: configured.id),

@@ -161,6 +161,7 @@ class FakeSourceAdapter implements SourceAdapter {
       id: 'draft-${raw.externalId ?? 'anon'}',
       title: title,
       difficultyLevelId: decoded['difficultyLevelId'] as String?,
+      mixedLevel: decoded['mixedLevel'] as bool? ?? false,
       authorIds: authorIds,
       figures: figures,
       createdAt: now,

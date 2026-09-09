@@ -519,6 +519,7 @@ class DifficultyLevelsEditor extends StatefulWidget {
 class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   List<DifficultyLevel> _levels = const [];
   final Map<String, String> _pendingLabels = {};
+  final Map<String, TextEditingController> _labelControllers = {};
   bool _loading = true;
   bool _requested = false;
 
@@ -536,6 +537,16 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
       context,
     ).difficultyLevels.listAll();
     if (!mounted) return;
+    final levelIds = {for (final level in levels) level.id};
+    for (final entry in _labelControllers.entries.toList()) {
+      if (!levelIds.contains(entry.key)) {
+        entry.value.dispose();
+        _labelControllers.remove(entry.key);
+      }
+    }
+    for (final level in levels) {
+      _labelControllers[level.id]?.text = level.label;
+    }
     setState(() {
       _levels = levels;
       _loading = false;
@@ -601,7 +612,12 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   Future<void> _rename(DifficultyLevel level, String value) async {
     _pendingLabels.remove(level.id);
     final label = value.trim();
-    if (label.isEmpty || label == level.label) return;
+    if (label.isEmpty) {
+      _labelControllers[level.id]?.text = level.label;
+      _report(ArgumentError('difficulty level label must not be empty'));
+      return;
+    }
+    if (label == level.label) return;
     try {
       await RepositoriesScope.of(
         context,
@@ -611,6 +627,14 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
       logCaughtError(error, stackTrace, source: 'defaults_section._rename');
       _report(error);
     }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _labelControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _delete(DifficultyLevel level) async {
@@ -669,6 +693,10 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
           onReorderItem: _reorder,
           itemBuilder: (context, index) {
             final level = _levels[index];
+            final labelController = _labelControllers.putIfAbsent(
+              level.id,
+              () => TextEditingController(text: level.label),
+            );
             return ListTile(
               key: ValueKey(level.id),
               leading: ReorderableDragStartListener(
@@ -683,7 +711,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
                 },
                 child: TextFormField(
                   key: ValueKey('difficulty-level-label-${level.id}'),
-                  initialValue: level.label,
+                  controller: labelController,
                   onChanged: (value) => _pendingLabels[level.id] = value,
                   onFieldSubmitted: (value) => _rename(level, value),
                   decoration: const InputDecoration(

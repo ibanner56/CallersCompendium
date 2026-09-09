@@ -65,12 +65,8 @@ void main() {
       );
       final batch = await pipeline.plan(
         FakeSourceAdapter([
-          record(
-            'custom-level',
-            'Custom Level Dance',
-            difficultyLevelLabel: ' workshop ',
-          ),
-        ]),
+          record('custom-level', 'Custom Level Dance'),
+        ], difficultyLevelLabel: ' workshop '),
         const ImportRequest(),
       );
 
@@ -119,6 +115,24 @@ void main() {
         );
       },
     );
+
+    test('does not resolve Mixed to a configured custom level', () async {
+      final custom = await difficultyLevels.createCustom(
+        label: 'Mixed',
+        position: 3,
+      );
+      final batch = await pipeline.plan(
+        FakeSourceAdapter([
+          record('mixed-level', 'Mixed Level Dance')..['mixedLevel'] = true,
+        ], difficultyLevelLabel: 'Mixed'),
+        const ImportRequest(),
+      );
+
+      final draft = batch.records.single.draft;
+      expect(draft.dance.mixedLevel, isTrue);
+      expect(draft.dance.difficultyLevelId, isNull);
+      expect(custom.id, isNotEmpty);
+    });
 
     test('a new dance is inserted with a full provenance row', () async {
       final adapter = FakeSourceAdapter([
