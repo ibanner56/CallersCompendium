@@ -548,13 +548,14 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         return Future.value(draft.id);
       },
       onDanceFigureTemplateAddFreeText: (figures) {
-        if (figures.isEmpty) return;
+        if (figures.isEmpty) return 0;
         setState(
           () => _defaultDanceFigureDrafts.addAll(
             figures.map(FigureDraft.fromFigure),
           ),
         );
         _persistDanceFiguresTemplate();
+        return figures.length;
       },
       onDanceFigureTemplateDelete: (draft) {
         setState(() => _defaultDanceFigureDrafts.remove(draft));
@@ -588,17 +589,21 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         _persistMeanwhileSideDefaults();
       },
       onMeanwhileSideAddFreeText: (figures) {
-        final ordinaryFigures = figures.where((figure) => !figure.isMeanwhile);
-        if (ordinaryFigures.isEmpty) return;
+        final ordinaryFigures = figures
+            .where((figure) => !figure.isMeanwhile)
+            .toList();
+        if (ordinaryFigures.isEmpty) return 0;
         final remaining =
             kMaxMeanwhileSides - _defaultMeanwhileSideDrafts.length;
-        if (remaining <= 0) return;
+        if (remaining <= 0) return 0;
+        final accepted = ordinaryFigures.take(remaining).toList();
         setState(
           () => _defaultMeanwhileSideDrafts.addAll(
-            ordinaryFigures.take(remaining).map(FigureDraft.fromFigure),
+            accepted.map(FigureDraft.fromFigure),
           ),
         );
         _persistMeanwhileSideDefaults();
+        return accepted.length;
       },
       onMeanwhileSideDelete: (draft) {
         setState(() => _defaultMeanwhileSideDrafts.remove(draft));
@@ -713,7 +718,7 @@ class _DefaultsView extends StatelessWidget {
 
   /// Inserts the figure(s) parsed from one free-text line into the template
   /// (#419); only used when [freeTextEntry] is on.
-  final ValueChanged<List<Figure>> onDanceFigureTemplateAddFreeText;
+  final int Function(List<Figure>) onDanceFigureTemplateAddFreeText;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDelete;
   final ValueChanged<FigureDraft> onDanceFigureTemplateDuplicate;
   final void Function(int oldIndex, int newIndex) onDanceFigureTemplateReorder;
@@ -725,7 +730,7 @@ class _DefaultsView extends StatelessWidget {
   final List<FigureDraft> meanwhileSideDrafts;
   final VoidCallback onMeanwhileSideChanged;
   final VoidCallback onMeanwhileSideAdd;
-  final ValueChanged<List<Figure>> onMeanwhileSideAddFreeText;
+  final int Function(List<Figure>) onMeanwhileSideAddFreeText;
   final ValueChanged<FigureDraft> onMeanwhileSideDelete;
   final ValueChanged<FigureDraft> onMeanwhileSideDuplicate;
   final void Function(int oldIndex, int newIndex) onMeanwhileSideReorder;

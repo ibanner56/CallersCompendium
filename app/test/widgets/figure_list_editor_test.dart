@@ -55,6 +55,7 @@ class _Host extends StatefulWidget {
     this.wireMeanwhile = true,
     this.wireAddMeanwhile = false,
     this.meanwhileAdder,
+    this.freeTextAdder,
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
@@ -72,6 +73,7 @@ class _Host extends StatefulWidget {
   final bool wireMeanwhile;
   final bool wireAddMeanwhile;
   final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
+  final int Function(List<Figure> figures)? freeTextAdder;
   final bool allowAdding;
   final bool allowDuplicating;
   final bool showPhraseStructure;
@@ -143,11 +145,17 @@ class _HostState extends State<_Host> {
                     }
                   : null,
               onAddFreeText: widget.freeTextEntry
-                  ? (figures) => setState(
-                      () => widget.drafts.addAll(
-                        figures.map(FigureDraft.fromFigure),
-                      ),
-                    )
+                  ? (figures) {
+                      if (widget.freeTextAdder != null) {
+                        return widget.freeTextAdder!(figures);
+                      }
+                      setState(
+                        () => widget.drafts.addAll(
+                          figures.map(FigureDraft.fromFigure),
+                        ),
+                      );
+                      return figures.length;
+                    }
                   : null,
               onDelete: (d) => setState(() => widget.drafts.remove(d)),
               onDuplicate: widget.wireDuplicate
@@ -215,6 +223,7 @@ Future<void> _pump(
   bool wireMeanwhile = true,
   bool wireAddMeanwhile = false,
   Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
+  int Function(List<Figure> figures)? freeTextAdder,
   bool allowAdding = true,
   bool allowDuplicating = true,
   bool showPhraseStructure = true,
@@ -241,6 +250,7 @@ Future<void> _pump(
       wireMeanwhile: wireMeanwhile,
       wireAddMeanwhile: wireAddMeanwhile,
       meanwhileAdder: meanwhileAdder,
+      freeTextAdder: freeTextAdder,
       allowAdding: allowAdding,
       allowDuplicating: allowDuplicating,
       showPhraseStructure: showPhraseStructure,
@@ -3059,6 +3069,25 @@ void main() {
       // No inline beats → no explicit beats key (taxonomy default derives).
       expect(figure.params.containsKey('beats'), isFalse);
       expect(drafts.single.customOrigin, CustomOrigin.userEntered);
+    });
+
+    testWidgets('keeps input when the callback accepts no figures', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true, freeTextAdder: (_) => 0);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'meanwhile-only shorthand');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, isEmpty);
+      expect(
+        tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
+        'meanwhile-only shorthand',
+      );
     });
 
     testWidgets('a `;`-compound line inserts multiple rows', (tester) async {

@@ -1112,8 +1112,8 @@ class DanceEditorController extends ChangeNotifier {
   /// which preserves its custom origin so parser-gap customs keep the #398
   /// marker and stay reparse-eligible. A single line may yield more than one
   /// figure (a `;`-compound). Rows are left collapsed. No-op on an empty list.
-  void insertFreeTextFigures(List<Figure> figures) {
-    if (figures.isEmpty) return;
+  int insertFreeTextFigures(List<Figure> figures) {
+    if (figures.isEmpty) return 0;
     final inserted = figures.map(FigureDraft.fromFigure).toList();
     figureDrafts.addAll(inserted);
     _renderNotesRecursively(inserted);
@@ -1121,6 +1121,7 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+    return inserted.length;
   }
 
   void deleteFigure(FigureDraft draft) {

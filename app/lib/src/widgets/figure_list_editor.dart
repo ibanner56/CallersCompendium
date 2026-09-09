@@ -118,15 +118,17 @@ class FigureListEditor extends StatefulWidget {
   /// single free-text field instead of appending a blank structured draft: the
   /// typed line is routed through the shared core parser
   /// ([parseFreeTextFigureEntry]) and its result is inserted as editable row(s)
-  /// via [onAddFreeText]. Editing an EXISTING figure always uses the structured
-  /// editor regardless of this flag. Takes effect only when [onAddFreeText] is
-  /// also provided; otherwise the Add flow falls back to the structured [onAdd].
+  /// via [onAddFreeText]. The callback returns the number of figures accepted
+  /// so filtered or capped input is not reported as inserted. Editing an
+  /// EXISTING figure always uses the structured editor regardless of this flag.
+  /// Takes effect only when [onAddFreeText] is also provided; otherwise the Add
+  /// flow falls back to the structured [onAdd].
   final bool freeTextEntry;
 
   /// Inserts the figure(s) parsed from one free-text line at the end of the
   /// list. Only used when [freeTextEntry] is true. A single typed line may yield
   /// more than one figure when it is a `;`-compound.
-  final void Function(List<Figure> figures)? onAddFreeText;
+  final int Function(List<Figure> figures)? onAddFreeText;
 
   /// User-defined shorthand → figure(s) mappings (issue #420) consulted FIRST
   /// during free-text entry: a typed line matching a shorthand token (whole
@@ -511,10 +513,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
       _dismissFreeText();
       return;
     }
-    onAddFreeText(figures);
+    final acceptedCount = onAddFreeText(figures);
+    if (acceptedCount <= 0) return;
     _freeTextController.clear();
-    final n = figures.length;
-    _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(n));
+    _announce(_l10n.danceEditorFreeTextFiguresAddedAnnouncement(acceptedCount));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _freeTextFocusNode.requestFocus();
     });
