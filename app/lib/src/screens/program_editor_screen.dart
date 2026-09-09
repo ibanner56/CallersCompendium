@@ -888,12 +888,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   void _markDirty() {
     _editGeneration++;
     if (!_dirty) setState(() => _dirty = true);
-    if (_dirty) {
-      _scheduleAutosave();
-      _scheduleAutoCommit();
-    } else {
-      await _clearDraft(waitForCommits: false, resetEditorState: false);
-    }
+    _scheduleAutosave();
+    _scheduleAutoCommit();
   }
 
   // --- Autosave / draft persistence (issue #436) ----------------------------
@@ -1983,8 +1979,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         final liveStillExists = await _refreshPerformedAtForUndo();
         if (!mounted) return;
         if (!liveStillExists) return;
-        _scheduleAutosave();
-        _scheduleAutoCommit();
+        if (_dirty) {
+          _scheduleAutosave();
+          _scheduleAutoCommit();
+        } else {
+          await _clearDraft(waitForCommits: false, resetEditorState: false);
+        }
       } catch (error, stackTrace) {
         logCaughtError(
           error,
