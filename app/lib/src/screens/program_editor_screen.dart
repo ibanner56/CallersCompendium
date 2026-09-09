@@ -770,12 +770,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       if (!mounted) return;
       if (program != null) {
-        _titleController.text = program.title;
-        _venueController.text = program.venue ?? '';
-        _bandController.text = program.band ?? '';
-        _callerController.text = program.caller ?? '';
-        _levelController.text = program.dancerLevel ?? '';
-        _notesController.text = program.notes;
+        _applyProgramToEditor(program);
         // Resolve the linked venue (if any) up front so the simple-mode
         // read-only fallback can show its name without an async gap.
         if (program.venueId != null) {
@@ -792,12 +787,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (!mounted) return;
       setState(() {
         _setCollectionData(_latestData ?? data);
-        _existing = program;
-        _eventDate = program?.eventDate;
-        _venueId = program?.venueId;
-        _status = program?.status ?? ProgramStatus.draft;
-        _hideAlternates = program?.hideAlternates ?? false;
-        _slots = program?.slots.toList() ?? const [];
+        if (program != null) {
+          _applyProgramToEditor(program);
+        } else {
+          _existing = null;
+          _eventDate = null;
+          _venueId = null;
+          _status = ProgramStatus.draft;
+          _hideAlternates = false;
+          _slots = const [];
+        }
         _loaded = true;
       });
       // Detect an autosaved draft from an interrupted prior session and stage a
@@ -818,6 +817,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         });
       }
     }
+  }
+
+  void _applyProgramToEditor(Program program) {
+    _titleController.text = program.title;
+    _venueController.text = program.venue ?? '';
+    _bandController.text = program.band ?? '';
+    _callerController.text = program.caller ?? '';
+    _levelController.text = program.dancerLevel ?? '';
+    _notesController.text = program.notes;
+    _existing = program;
+    _eventDate = program.eventDate;
+    _venueId = program.venueId;
+    _status = program.status;
+    _hideAlternates = program.hideAlternates;
+    _slots = program.slots.toList();
   }
 
   /// Seeds the caller/band controllers for a NEW program from the saved G.3
@@ -1747,13 +1761,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           final live = await _repos.programs.getById(_existing!.id);
           if (!mounted) return;
           if (live != null) {
-            _titleController.text = live.title;
-            _eventDate = live.eventDate;
-            _venueId = live.venueId;
-            _status = live.status;
-            _hideAlternates = live.hideAlternates;
-            _existing = live;
-            _slots = live.slots;
+            _applyProgramToEditor(live);
           }
           await _clearDraft(waitForCommits: false);
         } else {
