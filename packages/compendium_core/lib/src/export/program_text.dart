@@ -91,7 +91,14 @@ String programToPlainText(
     lines.add('${labels.caller}: ${program.caller!.trim()}');
   }
   if (_has(program.dancerLevel)) {
-    lines.add('${labels.level}: ${program.dancerLevel!.trim()}');
+    final level =
+        !canonicalizeDiscouragedTerms || renderer == null || dialect == null
+        ? program.dancerLevel!.trim()
+        : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            program.dancerLevel!.trim(),
+            dialect,
+          );
+    lines.add('${labels.level}: $level');
   }
 
   final groups = program.outputGrouped;

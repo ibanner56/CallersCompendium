@@ -31,6 +31,8 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.onSlotChanged,
     required this.onRemove,
     required this.onCreateDance,
+    this.dialect,
+    this.canonicalizeDiscouragedTerms = false,
     this.onPickReplacementDance,
     this.onPreviewDanceStarted,
     this.onPreviewDanceEnded,
@@ -70,6 +72,14 @@ class ProgramSlotListEditor extends StatefulWidget {
   /// for a note slot (no `danceId`) that isn't the structural break and whose
   /// text isn't blank — see [_SlotTile.build]'s gating.
   final void Function(int index) onCreateDance;
+
+  /// Dialect used for read-only slot and formation previews. The edit dialog
+  /// remains lossless and never uses this value.
+  final Dialect? dialect;
+
+  /// Whether read-only slot and formation previews should use canonical
+  /// discouraged-term wording.
+  final bool canonicalizeDiscouragedTerms;
 
   /// Opens the host's dance picker and resolves to the id of the dance the
   /// user picked, or `null` if they dismissed it without picking one
@@ -152,9 +162,30 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
       return title ?? l10n.programsDeletedDanceFallback;
     }
     final text = slot.text;
-    return (text == null || text.trim().isEmpty)
-        ? l10n.programsSlotNoteFallback
-        : text;
+    if (text == null || text.trim().isEmpty) {
+      return l10n.programsSlotNoteFallback;
+    }
+    if (!widget.canonicalizeDiscouragedTerms ||
+        widget.dialect == null ||
+        slot.isPurgedDance != false) {
+      return text;
+    }
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
+  }
+
+  String? _slotNote(ProgramSlot slot) {
+    final text = slot.text?.trim();
+    if (text == null || text.isEmpty) return null;
+    if (!widget.canonicalizeDiscouragedTerms ||
+        widget.dialect == null ||
+        slot.isPurgedDance != false) {
+      return text;
+    }
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, widget.dialect!);
   }
 
   /// Resolves a slot's dance formation, or null for free-text slots and
@@ -232,6 +263,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(l10n, slots[i]),
+                  note: _slotNote(slots[i]),
+                  dialect: widget.dialect,
+                  canonicalizeDiscouragedTerms:
+                      widget.canonicalizeDiscouragedTerms,
                   formation: _slotFormation(slots[i]),
                   mixer: _slotMixer(slots[i]),
                   ordinal: _ordinalAtIndex(i),
@@ -282,6 +317,10 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
                   index: i,
                   slot: slots[i],
                   title: _slotTitle(l10n, slots[i]),
+                  note: _slotNote(slots[i]),
+                  dialect: widget.dialect,
+                  canonicalizeDiscouragedTerms:
+                      widget.canonicalizeDiscouragedTerms,
                   formation: _slotFormation(slots[i]),
                   mixer: _slotMixer(slots[i]),
                   ordinal: _ordinalAtIndex(i),
@@ -417,6 +456,9 @@ class _SlotTile extends StatelessWidget {
     required this.index,
     required this.slot,
     required this.title,
+    required this.note,
+    required this.dialect,
+    required this.canonicalizeDiscouragedTerms,
     required this.formation,
     required this.mixer,
     required this.ordinal,
@@ -441,6 +483,9 @@ class _SlotTile extends StatelessWidget {
   final int index;
   final ProgramSlot slot;
   final String title;
+  final String? note;
+  final Dialect? dialect;
+  final bool canonicalizeDiscouragedTerms;
 
   /// The resolved dance formation for a dance slot, or null for free-text
   /// slots / unavailable dances. Drives the redundant accent + formation text.
@@ -507,10 +552,17 @@ class _SlotTile extends StatelessWidget {
         : null;
 
     final subtitleParts = <String>[
-      if (formation != null) formationLabel(l10n, formation!),
+      if (formation != null)
+        formationDisplayLabel(
+          l10n,
+          formation!,
+          FigureRenderer(contraTaxonomy),
+          dialect ?? Dialect.larksRobins,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
       if (mixer) l10n.commonMixer,
       if (isDanceSlot && (slot.text?.trim().isNotEmpty ?? false))
-        l10n.programsSummaryNote(slot.text!.trim()),
+        l10n.programsSummaryNote(note ?? slot.text!.trim()),
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',
       if (slot.guestCaller != null)
         l10n.programsSummaryGuest(slot.guestCaller!),

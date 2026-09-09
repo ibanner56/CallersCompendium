@@ -2327,6 +2327,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             danceTitles: _titleForDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
+            dialect: _dialect,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,

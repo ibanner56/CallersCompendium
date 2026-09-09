@@ -120,6 +120,8 @@ Future<Uint8List> buildProgramPdf(
   final fmtDate = formatDate ?? _isoDate;
   final resolvedTheme = theme ?? await loadProgramPdfTheme();
   final doc = pw.Document(title: program.title, theme: resolvedTheme);
+  final fig = renderer ?? FigureRenderer(contraTaxonomy);
+  final resolvedDialect = dialect ?? Dialect.larksRobins;
 
   final linkedVenue = program.venueId != null
       ? venuesById[program.venueId!]
@@ -130,12 +132,10 @@ Future<Uint8List> buildProgramPdf(
     if (_has(program.band)) '${labels.band}: ${program.band!.trim()}',
     if (_has(program.caller)) '${labels.caller}: ${program.caller!.trim()}',
     if (_has(program.dancerLevel))
-      '${labels.level}: ${program.dancerLevel!.trim()}',
+      '${labels.level}: ${canonicalizeDiscouragedTerms ? fig.renderFreeTextWithCanonicalDiscouragedTerms(program.dancerLevel!.trim(), resolvedDialect) : program.dancerLevel!.trim()}',
   ].where((l) => l.isNotEmpty).toList();
 
   final resolvedDanceLabels = danceLabels ?? const DanceExportLabels();
-  final fig = renderer ?? FigureRenderer(contraTaxonomy);
-  final resolvedDialect = dialect ?? Dialect.larksRobins;
 
   doc.addPage(
     pw.MultiPage(

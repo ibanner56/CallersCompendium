@@ -124,6 +124,7 @@ void main() {
 
     test('canonicalizes prose only when enabled and preserves tombstones', () {
       final source = program(
+        dancerLevel: 'Gypsy level',
         notes: 'Gypsy with the gents',
         slots: [
           ProgramSlot(
@@ -150,6 +151,7 @@ void main() {
         dialect: Dialect.larksRobins,
       );
       expect(disabled, contains('Gypsy with the gents'));
+      expect(disabled, contains('Level: Gypsy level'));
       expect(disabled, contains('Rory O\'More — Ladies call'));
       expect(disabled, contains('Lady of the Lake'));
 
@@ -161,6 +163,7 @@ void main() {
         canonicalizeDiscouragedTerms: true,
       );
       expect(enabled, contains('Shoulder round with the larks'));
+      expect(enabled, contains('Level: Shoulder round level'));
       expect(enabled, contains('Rory O\'More — Robins call'));
       expect(enabled, contains('Lady of the Lake'));
     });

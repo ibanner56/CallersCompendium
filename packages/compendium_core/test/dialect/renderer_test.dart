@@ -298,6 +298,16 @@ void main() {
       );
     });
 
+    test('does not rewrite underscore-delimited identifiers', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'men_name and women_name',
+          larks,
+        ),
+        'men_name and women_name',
+      );
+    });
+
     test('does not rewrite a discouraged prefix in a Unicode name', () {
       expect(
         renderer.renderFreeTextWithCanonicalDiscouragedTerms(

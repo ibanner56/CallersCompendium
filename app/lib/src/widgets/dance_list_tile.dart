@@ -122,6 +122,11 @@ class DanceListTile extends StatelessWidget {
     final formationFg = formationColor == null
         ? null
         : readableForegroundOn(formationColor);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     return ListTile(
       selected: selected,
       visualDensity: VisualDensity.compact,
@@ -251,7 +256,14 @@ class DanceListTile extends StatelessWidget {
             if (effectiveFields.contains(CollectionTileField.customFields))
               for (final field in entry.listCustomFields)
                 Chip(
-                  label: Text(field),
+                  label: Text(
+                    _renderCustomField(
+                      field,
+                      renderer: renderer,
+                      dialect: dialect,
+                      canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                    ),
+                  ),
                   visualDensity: VisualDensity.compact,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -269,6 +281,19 @@ class DanceListTile extends StatelessWidget {
           ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
     );
+  }
+
+  String _renderCustomField(
+    String field, {
+    required FigureRenderer renderer,
+    required Dialect dialect,
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    final separator = field.indexOf(': ');
+    if (separator < 0 || !canonicalizeDiscouragedTerms) return field;
+    final label = field.substring(0, separator + 2);
+    final value = field.substring(separator + 2);
+    return '$label${renderer.renderFreeTextWithCanonicalDiscouragedTerms(value, dialect)}';
   }
 
   /// Trailing content for a normal (non-selection) row: the row action overflow

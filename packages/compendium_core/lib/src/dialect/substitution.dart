@@ -46,9 +46,9 @@ class Substitutor {
     _pattern = keys.isEmpty
         ? null
         : RegExp(
-            r'(?<![\p{L}\p{M}\p{N}])(?:' +
+            r'(?<![\p{L}\p{M}\p{N}\p{Pc}])(?:' +
                 keys.map(RegExp.escape).join('|') +
-                r')(?![\p{L}\p{M}\p{N}])',
+                r')(?![\p{L}\p{M}\p{N}\p{Pc}])',
             caseSensitive: !caseInsensitive,
             unicode: true,
           );

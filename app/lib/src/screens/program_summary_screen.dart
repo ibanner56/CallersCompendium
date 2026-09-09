@@ -689,7 +689,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         if (program.dancerLevel != null)
           _summaryRow(
             Icons.groups_outlined,
-            l10n.programsSummaryLevel(program.dancerLevel!),
+            l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
