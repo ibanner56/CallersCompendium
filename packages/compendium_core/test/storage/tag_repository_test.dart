@@ -52,20 +52,56 @@ void main() {
     expect((await repo.listAll()).map((t) => t.name), ['Alpha', 'Zesty']);
   });
 
-  test('deleting a tag cascades to dance_tags', () async {
+  test('lists only tags referenced by live dances', () async {
     // ignore: unused_result
-    await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+    await repo.upsert(Tag(id: 't1', name: 'Live'));
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 't2', name: 'Archived'));
     await dances.create(
       Dance(
         id: 'd1',
-        title: 'Some Dance',
+        title: 'Live Dance',
         tagIds: const ['t1'],
         createdAt: DateTime.utc(2026),
         updatedAt: DateTime.utc(2026),
       ),
     );
-    await repo.delete('t1');
-    final loaded = await dances.getById('d1');
-    expect(loaded!.tagIds, isEmpty);
+    await dances.create(
+      Dance(
+        id: 'd2',
+        title: 'Archived Dance',
+        tagIds: const ['t2'],
+        createdAt: DateTime.utc(2026),
+        updatedAt: DateTime.utc(2026),
+      ),
+    );
+    await dances.softDelete('d2', at: DateTime.utc(2026, 1, 2));
+
+    expect((await repo.listReferencedByLiveDances()).map((tag) => tag.id), [
+      't1',
+    ]);
+    expect((await repo.listAll()).map((tag) => tag.id), ['t2', 't1']);
   });
+
+  test(
+    'deleting and restoring a tag preserves its dance association',
+    () async {
+      // ignore: unused_result
+      await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+      await dances.create(
+        Dance(
+          id: 'd1',
+          title: 'Some Dance',
+          tagIds: const ['t1'],
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await repo.delete('t1');
+      final loaded = await dances.getById('d1');
+      expect(loaded!.tagIds, isEmpty);
+      await repo.restore('t1', at: DateTime.utc(2026, 1, 2));
+      expect((await dances.getById('d1'))!.tagIds, ['t1']);
+    },
+  );
 }

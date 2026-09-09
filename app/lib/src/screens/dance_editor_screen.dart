@@ -106,6 +106,7 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
   List<Choreographer> _choreographers = [];
   List<Tag> _tags = [];
+  final _stagedTags = <String, Tag>{};
   Map<String, String> _choreographerNames = {};
   Map<String, String> _tagNames = {};
 
@@ -230,11 +231,18 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           setState(() {
             _loadError = null;
             _choreographers = data.choreographers;
-            _tags = data.tags;
+            _tags = [
+              ...data.tags,
+              for (final tag in _stagedTags.values)
+                if (!data.tags.any((existing) => existing.id == tag.id)) tag,
+            ];
             _allDances = data.dances;
             _publishedSources = data.publishedSources;
             _choreographerNames = data.choreographerNames;
-            _tagNames = data.tagNames;
+            _tagNames = {
+              ...data.tagNames,
+              for (final tag in _stagedTags.values) tag.id: tag.name,
+            };
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
           });
@@ -350,11 +358,22 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     setState(() => _saving = true);
     try {
       final dance = _controller.buildDance();
-      await saveDanceWithRelatedLinks(
-        _repos,
-        dance: dance,
-        original: _controller.original,
-      );
+      await _repos.transaction(() async {
+        final tagIds = <String, String>{};
+        for (final tag in _stagedTags.values) {
+          if (!dance.tagIds.contains(tag.id)) continue;
+          tagIds[tag.id] = await _repos.tags.upsert(tag);
+        }
+        final committedDance = dance.copyWith(
+          tagIds: [for (final id in dance.tagIds) tagIds[id] ?? id],
+        );
+        await saveDanceWithRelatedLinks(
+          _repos,
+          dance: committedDance,
+          original: _controller.original,
+        );
+      });
+      _stagedTags.clear();
       // Clear the autosave draft — work is now committed.
       await _controller.clearDraft();
       _controller.markSaved();
@@ -601,17 +620,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// stream — see [_createSource].
   Future<String> _createTag(String name) async {
     final minted = Tag(id: uuidV4(), name: name.trim());
-    // Use the id the repository actually wrote, not the one minted here: if a
-    // soft-deleted tag already held this name, the upsert revives that row and
-    // returns its id (schema v25, #898). Adding the minted id to the dance
-    // instead would reference a row that does not exist.
-    final id = await _repos.tags.upsert(minted);
-    final tag = Tag(id: id, name: minted.name, color: minted.color);
+    _stagedTags[minted.id] = minted;
     if (mounted) {
-      _tags = [..._tags, tag];
-      _tagNames = {..._tagNames, tag.id: name.trim()};
+      setState(() {
+        _tags = [..._tags, minted];
+        _tagNames = {..._tagNames, minted.id: minted.name};
+      });
     }
-    return tag.id;
+    return minted.id;
   }
 
   @override

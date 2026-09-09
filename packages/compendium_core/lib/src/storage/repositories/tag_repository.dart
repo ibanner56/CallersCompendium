@@ -113,6 +113,38 @@ class TagRepository {
     return rows.map(_toModel).toList();
   }
 
+  /// Returns live tags that are attached to at least one non-deleted dance.
+  ///
+  /// This is intentionally narrower than [listAll]: standalone tags remain
+  /// available to administrative surfaces, while pickers that attach tags to
+  /// dances should not offer rows that have no live dance reference.
+  Future<List<Tag>> listReferencedByLiveDances() async {
+    final rows =
+        await (_db.select(_db.tags).join([
+                innerJoin(
+                  _db.danceTags,
+                  _db.danceTags.tagId.equalsExp(_db.tags.id),
+                ),
+                innerJoin(
+                  _db.dances,
+                  _db.dances.id.equalsExp(_db.danceTags.danceId) &
+                      _db.dances.deletedAt.isNull(),
+                ),
+              ])
+              ..where(_db.tags.deletedAt.isNull())
+              ..orderBy([
+                OrderingTerm(expression: _db.tags.name),
+                OrderingTerm(expression: _db.tags.id),
+              ]))
+            .get();
+    final unique = <String, Tag>{};
+    for (final row in rows) {
+      final tag = _toModel(row.readTable(_db.tags));
+      unique[tag.id] = tag;
+    }
+    return unique.values.toList();
+  }
+
   Future<List<({Tag tag, bool deleted})>> listAllWithDeleted() async {
     final rows = await (_db.select(
       _db.tags,

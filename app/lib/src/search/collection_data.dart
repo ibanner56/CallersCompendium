@@ -201,7 +201,7 @@ class CollectionData {
     final normalizedCallerFilter = normalizeCallingHistoryCaller(callerFilter);
     final dances = await repos.dances.listAll();
     final choreographers = await repos.choreographers.listAll();
-    final tags = await repos.tags.listAll();
+    final tags = await repos.tags.listReferencedByLiveDances();
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
     // One read for both: they come from the same query, so asking separately

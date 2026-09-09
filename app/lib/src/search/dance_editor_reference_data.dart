@@ -89,7 +89,7 @@ class DanceEditorReferenceData {
     CompendiumRepositories repos,
   ) async {
     final choreographers = await repos.choreographers.listAll();
-    final tags = await repos.tags.listAll();
+    final tags = await repos.tags.listReferencedByLiveDances();
     final dances = await repos.dances.listAll();
     final publishedSources = await repos.publishedSources.listAll();
     return DanceEditorReferenceData(

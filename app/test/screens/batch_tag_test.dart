@@ -126,6 +126,9 @@ void main() {
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
     await repos.dances.create(_dance(id: 'd2', title: 'Bravo'));
     await repos.dances.create(_dance(id: 'd3', title: 'Charlie'));
+    await repos.dances.create(
+      _dance(id: 'd4', title: 'Tag seed', tagIds: ['t1']),
+    );
     await _pumpScreen(tester, repos);
 
     await _enterSelectionMode(tester);
@@ -155,6 +158,7 @@ void main() {
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't2', name: 'Smooth'));
     await repos.dances.create(_dance(id: 'd1', title: 'Alpha', tagIds: ['t1']));
+    await repos.dances.create(_dance(id: 'd2', title: 'Bravo', tagIds: ['t2']));
     await _pumpScreen(tester, repos);
 
     await _enterSelectionMode(tester);
@@ -244,6 +248,33 @@ void main() {
     expect(tags.map((t) => t.name), contains('Contra Corners'));
     final newTagId = tags.firstWhere((t) => t.name == 'Contra Corners').id;
     expect(_tagIdsOf((await repos.dances.getById('d1'))!), {newTagId});
+  });
+
+  testWidgets('cancelling inline tag creation does not persist the tag', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Cancelled Tag',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-cancel')));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await repos.tags.listAll()).map((tag) => tag.name),
+      isNot(contains('Cancelled Tag')),
+    );
+    expect((await repos.dances.getById('d1'))!.tagIds, isEmpty);
   });
 
   testWidgets('undo restores the prior tag sets', (tester) async {

@@ -29,6 +29,7 @@ Dance _dance({
   String title = 'Original',
   List<Figure> figures = const [],
   List<String> authorIds = const [],
+  List<String> tagIds = const [],
   List<DanceLink> links = const [],
   List<CustomFieldValue> customFields = const [],
   DanceLevel? level,
@@ -40,6 +41,7 @@ Dance _dance({
   title: title,
   figures: figures,
   authorIds: authorIds,
+  tagIds: tagIds,
   links: links,
   customFields: customFields,
   level: level,
@@ -621,6 +623,9 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await repos.dances.create(
+      _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1']),
+    );
     await _pumpEditor(tester, repos);
 
     await _expandMoreDetails(tester);
@@ -646,6 +651,9 @@ void main() {
       await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
       // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't2', name: 'smooth'));
+      await repos.dances.create(
+        _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1', 't2']),
+      );
       await _pumpEditor(tester, repos);
 
       await _expandMoreDetails(tester);
@@ -693,6 +701,31 @@ void main() {
       find.byKey(const ValueKey('tag-input')),
     );
     expect(field.controller!.text, isEmpty);
+    expect(await repos.tags.listAll(), isEmpty);
+  });
+
+  testWidgets('saving a new dance commits its staged inline tag atomically', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpEditor(tester, repos);
+    await tester.enterText(
+      find.byKey(const ValueKey('title-field')),
+      'Tagged dance',
+    );
+    await _expandMoreDetails(tester);
+    await tester.enterText(find.byKey(const ValueKey('tag-input')), 'sparkly');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tag-option-create:sparkly')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-dance')));
+    await tester.pumpAndSettle();
+
+    final savedDance = (await repos.dances.listAll()).single;
+    final savedTag = (await repos.tags.listAll()).single;
+    expect(savedDance.title, 'Tagged dance');
+    expect(savedDance.tagIds, [savedTag.id]);
+    expect(savedTag.name, 'sparkly');
   });
 
   testWidgets('an empty tag entry does not add a chip or corrupt state', (
@@ -701,6 +734,9 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await repos.dances.create(
+      _dance(id: 'd-tag-seed', title: 'Tagged seed', tagIds: ['t1']),
+    );
     await _pumpEditor(tester, repos);
 
     await _expandMoreDetails(tester);
@@ -2444,7 +2480,7 @@ void main() {
           PublishedSource(id: 's1', title: 'Zesty Contras'),
         );
         await repos.dances.create(
-          _dance(id: 'd-other', title: 'Petronella Twirl'),
+          _dance(id: 'd-other', title: 'Petronella Twirl', tagIds: ['t1']),
         );
         await tester.pumpAndSettle();
 
@@ -2503,6 +2539,13 @@ void main() {
         // must not route into the draft.
         // ignore: unused_result
         await repos.tags.upsert(Tag(id: 't-unrelated', name: 'unrelated-tag'));
+        await repos.dances.create(
+          _dance(
+            id: 'd-unrelated-tag',
+            title: 'Unrelated tag seed',
+            tagIds: ['t-unrelated'],
+          ),
+        );
         await tester.pumpAndSettle();
 
         // Negative: the draft is untouched. Re-running `_load()` from a

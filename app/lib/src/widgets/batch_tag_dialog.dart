@@ -1,20 +1,24 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
-import '../data/repositories_scope.dart';
-import '../diagnostics/error_log.dart';
 import '../../l10n/app_localizations.dart';
 
 /// Which batch operation the dialog is picking tags for.
 enum BatchTagMode { add, remove }
 
+class BatchTagSelection {
+  const BatchTagSelection({required this.tagIds, required this.stagedTags});
+
+  final Set<String> tagIds;
+  final List<Tag> stagedTags;
+}
+
 /// Shows the batch-tag picker for the Collection multi-select flow
 /// (`docs/design/ux.md` §1).
 ///
-/// - [BatchTagMode.add] lists **all** existing tags and offers inline creation
-///   of a new tag (minted with [uuidV4] and persisted via
-///   [TagRepository.upsert]); the returned set is the tags to union into every
-///   selected dance.
+/// - [BatchTagMode.add] lists tags referenced by live dances and offers inline
+///   creation of a new tag (minted with [uuidV4]); the returned selection is
+///   committed together with the affected dances.
 /// - [BatchTagMode.remove] lists only [presentTags] (the tags currently on the
 ///   selected dances); the returned set is subtracted from every selected
 ///   dance.
@@ -22,7 +26,7 @@ enum BatchTagMode { add, remove }
 /// Returns the chosen tag ids, or `null` if the user cancelled. Selection uses
 /// [CheckboxListTile] so state is exposed to assistive tech (checkbox role +
 /// checked state) and paired with a text label — never color alone.
-Future<Set<String>?> showBatchTagDialog(
+Future<BatchTagSelection?> showBatchTagDialog(
   BuildContext context, {
   required BatchTagMode mode,
   required List<Tag> tags,
@@ -31,7 +35,7 @@ Future<Set<String>?> showBatchTagDialog(
   final visible = mode == BatchTagMode.remove
       ? tags.where((t) => presentTagIds?.contains(t.id) ?? false).toList()
       : List<Tag>.of(tags);
-  return showDialog<Set<String>>(
+  return showDialog<BatchTagSelection>(
     context: context,
     builder: (_) => _BatchTagDialog(mode: mode, initialTags: visible),
   );
@@ -51,6 +55,7 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
   late List<Tag> _tags = List.of(widget.initialTags)
     ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   final _selected = <String>{};
+  final _stagedTags = <String, Tag>{};
   final _newTagController = TextEditingController();
   bool _creating = false;
 
@@ -81,30 +86,12 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
       return;
     }
     setState(() => _creating = true);
-    final messenger = ScaffoldMessenger.of(context);
-    final l10n = AppLocalizations.of(context);
-    final repos = RepositoriesScope.of(context);
     final minted = Tag(id: uuidV4(), name: name);
-    final Tag tag;
-    try {
-      // The repository may adopt a soft-deleted tag holding this name and
-      // return its id instead of the minted one (schema v25, #898), so build
-      // the local Tag from what it actually wrote.
-      tag = Tag(id: await repos.tags.upsert(minted), name: name);
-    } catch (error, stackTrace) {
-      logCaughtError(error, stackTrace, source: 'batch_tag_dialog._createTag');
-      if (!mounted) return;
-      setState(() => _creating = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text(l10n.collectionCreateTagError)),
-      );
-      return;
-    }
-    if (!mounted) return;
+    _stagedTags[minted.id] = minted;
     setState(() {
-      _tags = [..._tags, tag]
+      _tags = [..._tags, minted]
         ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-      _selected.add(tag.id);
+      _selected.add(minted.id);
       _newTagController.clear();
       _creating = false;
     });
@@ -197,7 +184,15 @@ class _BatchTagDialogState extends State<_BatchTagDialog> {
           key: const ValueKey('batch-tag-confirm'),
           onPressed: _selected.isEmpty
               ? null
-              : () => Navigator.of(context).pop(Set<String>.of(_selected)),
+              : () => Navigator.of(context).pop(
+                  BatchTagSelection(
+                    tagIds: Set<String>.of(_selected),
+                    stagedTags: [
+                      for (final tag in _stagedTags.values)
+                        if (_selected.contains(tag.id)) tag,
+                    ],
+                  ),
+                ),
           child: Text(
             isAdd
                 ? l10n.collectionBatchTagAddConfirm

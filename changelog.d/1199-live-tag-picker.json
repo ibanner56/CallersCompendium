@@ -1,0 +1,14 @@
+{
+  "id": "1199-live-tag-picker",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Tags no longer remain in dance pickers after their last live dance reference is removed, and newly created tags are saved together with the dance that uses them."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Add live-dance tag reference queries without changing soft-delete or restoration semantics."
+    ]
+  }
+}
