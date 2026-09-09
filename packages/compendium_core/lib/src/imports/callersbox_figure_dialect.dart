@@ -1731,23 +1731,30 @@ FigureMatch? _perRoleChoreoAnnotation(String scrubbed) {
   if (match == null) return null;
 
   final extraParams = <String, Object?>{};
-  if (match.moveId == 'roll_away' &&
-      !match.assumedSubject &&
-      roleAssignments.length == 1 &&
-      !match.params.containsKey('whom')) {
-    final relationship = match.params['who'];
-    final nonRollingRole = roleAssignments.single.nonRollingRole;
-    if (relationship is String && nonRollingRole != null) {
-      extraParams['who'] = nonRollingRole;
-      extraParams['whom'] = relationship;
-    }
-  }
+  extraParams.addAll(_rollAwayRoleAssignmentParams(match, roleAssignments));
 
   return _withAnnotationNote(
     match,
     _joinAnnotations(notes),
     extraParams: extraParams,
   );
+}
+
+Map<String, Object?> _rollAwayRoleAssignmentParams(
+  FigureMatch match,
+  List<_PerRoleChoreo> roleAssignments,
+) {
+  if (match.moveId != 'roll_away' ||
+      match.assumedSubject ||
+      roleAssignments.length != 1 ||
+      match.params.containsKey('whom')) {
+    return const {};
+  }
+
+  final relationship = match.params['who'];
+  final nonRollingRole = roleAssignments.single.nonRollingRole;
+  if (relationship is! String || nonRollingRole == null) return const {};
+  return {'who': nonRollingRole, 'whom': relationship};
 }
 
 /// Parses a two-clause per-role choreography body and returns the canonical
@@ -1944,6 +1951,7 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
 
   final notes = <String>[];
   final extraParams = <String, Object?>{};
+  final roleAssignments = <_PerRoleChoreo>[];
 
   for (final annotation in annotations) {
     final body = annotation.body;
@@ -1951,6 +1959,9 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
       final synthesized = _synthesizePerRoleChoreo(body);
       if (synthesized != null) {
         notes.add(synthesized.note);
+        if (synthesized.supportsRollAwayRoleAssignment) {
+          roleAssignments.add(synthesized);
+        }
       } else if (_annotationBodyHasLowercase(body) &&
           !_looksLikePerRoleBody(body)) {
         notes.add(body);
@@ -1983,6 +1994,9 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
     notes.add(_canonicalSquareBracketNote(body));
   }
 
+  if (!extraParams.containsKey('who') && !extraParams.containsKey('whom')) {
+    extraParams.addAll(_rollAwayRoleAssignmentParams(match, roleAssignments));
+  }
   if (notes.isEmpty && extraParams.isEmpty) {
     // A square bracket with only code-like parentheses belongs to a later
     // specialist or the normal recognition path; do not claim it here.
