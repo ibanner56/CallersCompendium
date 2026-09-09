@@ -1243,8 +1243,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Applies a batch tag [mode] to the selected dances. Opens the tag picker,
-  /// then for each affected dance persists the new tag set via
-  /// [DanceRepository.update], announces the result to AT, and offers Undo.
+  /// then persists the new tag sets and staged tags in one transaction,
+  /// announces the result to AT, and offers Undo.
   Future<void> _batchTag(BatchTagMode mode) async {
     final data = _data;
     if (data == null || _selectedIds.isEmpty) return;
@@ -1256,45 +1256,87 @@ class _DanceListScreenState extends State<DanceListScreen> {
         if (data.dancesById[id] case final dance?) ...dance.tagIds,
     };
 
-    // Add lists all tags (even unused ones); Remove is narrowed by the dialog
-    // to only the tags present on the selection.
-    final allTags = await _repos.tags.listAll();
+    // Add lists tags used by live dances; Remove is narrowed by the dialog to
+    // only the tags present on the selection. Inline creations remain staged
+    // until the dialog is confirmed.
+    final allTags = await _repos.tags.listReferencedByLiveDances();
     if (!mounted) return;
-    final chosen = await showBatchTagDialog(
+    final selection = await showBatchTagDialog(
       context,
       mode: mode,
       tags: allTags,
       presentTagIds: presentTagIds,
     );
-    if (chosen == null || chosen.isEmpty || !mounted) return;
+    if (selection == null || selection.tagIds.isEmpty || !mounted) return;
+    final chosen = selection.tagIds;
 
     // Capture prior tag sets so Undo can restore them.
     final priorTags = <String, List<String>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      final current = dance.tagIds;
-      final List<String> next;
-      if (mode == BatchTagMode.add) {
-        next = [
-          ...current,
-          for (final tagId in chosen)
-            if (!current.contains(tagId)) tagId,
-        ];
-      } else {
-        next = [
-          for (final tagId in current)
-            if (!chosen.contains(tagId)) tagId,
-        ];
-      }
-      // Skip dances whose tags did not actually change. Because `next` is
-      // built append-only (add) or subtract-only (remove) from `current`, an
-      // equal length means the set is unchanged.
-      if (next.length == current.length) continue;
-      priorTags[id] = current.toList();
-      await _repos.dances.update(
-        dance.copyWith(tagIds: next, updatedAt: DateTime.now().toUtc()),
-      );
+    final newlyCreatedTagIds = <String>{};
+    try {
+      await _repos.transaction(() async {
+        final pending = <({Dance dance, List<String> next})>[];
+        for (final id in selectedIds) {
+          final dance = await _repos.dances.getById(id);
+          if (dance == null) continue;
+          final current = dance.tagIds;
+          final List<String> next;
+          if (mode == BatchTagMode.add) {
+            next = [
+              ...current,
+              for (final tagId in chosen)
+                if (!current.contains(tagId)) tagId,
+            ];
+          } else {
+            next = [
+              for (final tagId in current)
+                if (!chosen.contains(tagId)) tagId,
+            ];
+          }
+          if (next.length != current.length) {
+            pending.add((dance: dance, next: next));
+          }
+        }
+        if (pending.isEmpty) return;
+
+        final tagIds = <String, String>{};
+        for (final tag in selection.stagedTags) {
+          final existed = await _repos.tags.idByName(
+            tag.name,
+            includeDeleted: true,
+          );
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
+        }
+        for (final (:dance, :next) in pending) {
+          priorTags[dance.id] = dance.tagIds.toList();
+          final committedTagIds = <String>[];
+          final seenTagIds = <String>{};
+          for (final id in next) {
+            final resolvedId = tagIds[id] ?? id;
+            if (seenTagIds.add(resolvedId)) committedTagIds.add(resolvedId);
+          }
+          await _repos.dances.update(
+            dance.copyWith(
+              tagIds: committedTagIds,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          );
+        }
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._batchTag');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).collectionBatchApplyError,
+            ),
+          ),
+        );
+      return;
     }
 
     if (!mounted) return;
@@ -1331,20 +1373,34 @@ class _DanceListScreenState extends State<DanceListScreen> {
       message: message,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => _undoBatchTag(priorTags),
+      onUndo: () => _undoBatchTag(priorTags, newlyCreatedTagIds),
     );
   }
 
   /// Restores the captured [priorTags] for each affected dance (app-side undo;
-  /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchTag(Map<String, List<String>> priorTags) async {
-    for (final entry in priorTags.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
-      );
-    }
+  /// the repository has no batch-undo primitive). Tags created by this batch
+  /// are tombstoned when Undo leaves them unreferenced; adopted rows are kept.
+  Future<void> _undoBatchTag(
+    Map<String, List<String>> priorTags,
+    Set<String> newlyCreatedTagIds,
+  ) async {
+    await _repos.transaction(() async {
+      for (final entry in priorTags.entries) {
+        final dance = await _repos.dances.getById(entry.key);
+        if (dance == null) continue;
+        await _repos.dances.update(
+          dance.copyWith(
+            tagIds: entry.value,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
+      }
+      for (final id in newlyCreatedTagIds) {
+        if (!await _repos.tags.isInUse(id)) {
+          await _repos.tags.delete(id);
+        }
+      }
+    });
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,

@@ -76,20 +76,14 @@ class DanceDetailData {
   /// rather than being an optimisation.
   ///
   /// The burst here is **not** a batch of edits to the dance being shown; it is
-  /// a batch of edits to *other* dances. Batch tagging in the Collection writes
-  /// one dance per transaction in a loop, so tagging 50 dances is 50 commits on
-  /// `dances`, and every one of them wakes this stream even though at most one
-  /// touched the record on screen. Uncoalesced that is 50 full [load] runs — a
-  /// fan-out across five repositories each time — behind a screen whose visible
-  /// content changed at most once.
+  /// a batch of edits to *other* dances. Collection batch tagging writes all
+  /// affected dances in one transaction, but other multi-row operations can
+  /// still produce several source-table notifications. Coalescing prevents
+  /// those notifications from triggering a full [load] for each write.
   ///
-  /// 24 ms, matching the figure measured for the same 50-write batch shape on
-  /// the Collection's own snapshot: inter-commit gaps of median 1.46 ms, p90
-  /// 1.66 ms, max 2.36 ms on in-memory sqlite in a debug build, so the window
-  /// is about 10x the widest observed gap. The measurement is of the *writer*,
-  /// which is the same writer for both consumers; it is quoted rather than
-  /// cited because a number that lives in another file is one this file cannot
-  /// keep true.
+  /// 24 ms remains the shared window for this reference-data stream. It is
+  /// intentionally kept in one place so the editor and detail consumers use
+  /// the same debounce contract.
   ///
   /// ## It is not the only thing bounding reloads, and that was measured
   ///
@@ -98,19 +92,18 @@ class DanceDetailData {
   /// the pause into a single re-run on resume. So backpressure supplies a bound
   /// of its own, before this constant does anything.
   ///
-  /// The figures, for a 10-write burst on in-memory sqlite in a debug build,
-  /// stated as numbers so that deleting this window is a decision about a known
-  /// cost rather than about a description:
+  /// The figures below describe a 10-write burst on in-memory sqlite in a
+  /// debug build, stated as numbers so deleting this window is a decision about
+  /// a known cost rather than about a description:
   ///
   /// | burst shape | window | no window |
   /// |---|---|---|
-  /// | writes awaited one at a time — the batch-tag loop's shape | **1** | **2** |
+  /// | writes awaited one at a time | **1** | **2** |
   /// | writes issued together (`Future.wait`) | 1 | 1 |
   ///
-  /// So what this constant buys, on the shape the app actually produces, is the
-  /// difference between one re-read and two — not between one and ten. Ten was
-  /// the intuition it was nearly justified with, and it is wrong: backpressure
-  /// had already collapsed the burst to two before the window saw it.
+  /// So what this constant buys on a sequential burst is the difference between
+  /// one re-read and two — not between one and ten. Backpressure already
+  /// collapses the burst to two before the window sees it.
   ///
   /// The second row is the reason the first is not stated more strongly.
   /// Concurrent writes commit close enough together that drift dispatches them

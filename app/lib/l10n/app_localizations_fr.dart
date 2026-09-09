@@ -2068,6 +2068,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de créer le tag. Réessayez.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Impossible d\'appliquer les modifications groupées. Réessayez.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Ajouter';
 
   @override

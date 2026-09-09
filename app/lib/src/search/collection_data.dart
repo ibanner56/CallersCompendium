@@ -106,28 +106,23 @@ class CollectionData {
 
   /// The window used to collapse a burst of writes into one reload.
   ///
-  /// The value is measured against the thing it has to span, not chosen for a
-  /// frame budget. Timing the 50-write batch shape (`_applyBatchTags`) gives
-  /// an inter-commit gap of **median 1.46 ms, p90 1.66 ms, max 2.36 ms**
-  /// (in-memory sqlite, debug build). 24 ms is therefore about **10x the
-  /// widest observed gap** — headroom for a slower device rather than a value
-  /// tuned to this one.
+  /// The value is not tied to batch tagging: `DanceListScreen._batchTag` now
+  /// commits once, while other collection operations can still produce
+  /// notification bursts.
+  /// This window is therefore a conservative burst-coalescing choice rather
+  /// than a frame-budget or per-write timing claim.
   ///
   /// Both directions of error, since an unexplained constant invites deletion:
   ///
-  /// - **Too short** — it stops collapsing and the batch leaks reloads. The
-  ///   degradation is proportional rather than a cliff: a burst emits roughly
-  ///   `gap / window` of its writes, so halving the window doubles the
-  ///   reloads. It becomes a full leak only below ~2.4 ms.
+  /// - **Too short** — it stops collapsing and a burst leaks extra reloads.
+  ///   Correctness is unaffected because every emit still carries a complete
+  ///   snapshot.
   /// - **Too long** — the tail of a burst takes longer to settle. A single
   ///   write is never affected in either direction, because the leading edge
   ///   emits immediately; the window is only ever paid by a burst.
   ///
-  /// Note which way the risk runs on real hardware: disk-backed sqlite on a
-  /// phone will have LARGER gaps than the figures above, so the margin is
-  /// smaller in production than in test. It is the proportional degradation
-  /// that makes that acceptable — an under-sized window costs extra reloads,
-  /// never correctness, because every emit still carries a complete snapshot.
+  /// A disk-backed sqlite on a phone may produce wider notification spacing,
+  /// trading extra reloads against the tail latency of a shorter window.
   static const coalesceWindow = Duration(milliseconds: 24);
 
   /// A live [CollectionData], re-read whenever anything it is built from
@@ -154,27 +149,24 @@ class CollectionData {
   ///
   /// ## Why the coalescing window is load-bearing, not a nicety
   ///
-  /// Bursts of sequential writes are normal here. Batch tagging in the
-  /// Collection updates **one dance per transaction in a loop**
-  /// (`dance_list_screen.dart`, `_applyBatchTags`), so tagging 50 dances is 50
-  /// commits, and drift notifies per commit. Without a window, one user action
-  /// would re-run this whole-snapshot load 50 times and re-run the FTS search
-  /// after each — precisely the thrashing issue #340 records, arriving as a
-  /// side effect of fixing staleness.
+  /// Bursts of sequential writes are possible here. Batch tagging in the
+  /// Collection writes all affected dances in one transaction, while other
+  /// collection operations can still emit several source-table notifications.
+  /// Without a window, one user action could re-run this whole-snapshot load
+  /// and the FTS search for each notification — precisely the thrashing issue
+  /// #340 records, arriving as a side effect of fixing staleness.
   ///
-  /// The imperative code this replaces did not need a window because it
-  /// broadcast **once, after** the loop. A stream has no equivalent hook: the
-  /// database announces each commit as it happens and cannot know a batch is
-  /// still in progress. So the window is what preserves the one-action /
-  /// one-reload property that `RefreshCoalescer` gave the scope-based path —
-  /// the same guarantee, moved to where the events now originate.
+  /// The window preserves the one-action / one-reload property that
+  /// `RefreshCoalescer` gave the scope-based path — the same guarantee, moved
+  /// to where the events now originate.
   ///
   /// ## This is a property of the migration, not of this screen
   ///
   /// The general statement of it now lives on [CoalesceTrailing], because the
   /// remaining conversions (issue #768) each meet it and each needs a window
-  /// measured against its own burst shape. What is specific to this call is the
-  /// burst above: 50 commits from one batch, behind a whole-snapshot load.
+  /// measured against its own burst shape. What is specific to this call is
+  /// that batch tagging now emits one transaction-level commit behind a
+  /// whole-snapshot load, while other operations can still produce bursts.
   ///
   /// Emits an initial value immediately, so a subscriber renders without
   /// waiting for a write.
@@ -201,7 +193,7 @@ class CollectionData {
     final normalizedCallerFilter = normalizeCallingHistoryCaller(callerFilter);
     final dances = await repos.dances.listAll();
     final choreographers = await repos.choreographers.listAll();
-    final tags = await repos.tags.listAll();
+    final tags = await repos.tags.listReferencedByLiveDances();
     final defs = await repos.customFieldDefs.listAll();
     final publishedSources = await repos.publishedSources.listAll();
     // One read for both: they come from the same query, so asking separately

@@ -53,7 +53,9 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// Older drafts decode it as `false`.
 ///
 /// v11 -> v12: `level` stores the stable difficulty-level ID. Legacy enum names
-/// remain accepted and map to the fixed shipped IDs.
+/// remain accepted and map to the fixed shipped IDs. It also adds staged inline
+/// tag payloads so provisional tag IDs survive autosave and can be upserted
+/// when the dance is eventually saved.
 const _kDraftVersion = 12;
 
 // ---------------------------------------------------------------------------
@@ -63,10 +65,10 @@ const _kDraftVersion = 12;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v11):
+/// Schema (v12):
 /// ```jsonc
 /// {
-///   "v": 11,
+///   "v": 12,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -76,6 +78,7 @@ const _kDraftVersion = 12;
 ///   "rating": 4,
 ///   "composedOn": "1989", "revisedOn": "2004-03-15",
 ///   "authorIds": ["..."], "tagIds": ["..."], "tunes": ["..."],
+///   "stagedTags": [{"id":"...","name":"...","color":4294901760}],
 ///   "links": [
 ///     {"id":"...", "kind":"source", "url":"...", "label":"..."},
 ///     {"id":"...", "kind":"relatedDance", "targetDanceId":"...", "label":"...",
@@ -122,6 +125,15 @@ String encodeDraft(EditorSnapshot snapshot) {
     'authorIds': snapshot.authorIds,
     'tagIds': snapshot.tagIds,
     'tunes': snapshot.tunes,
+    if (snapshot.stagedTags.isNotEmpty)
+      'stagedTags': [
+        for (final tag in snapshot.stagedTags)
+          {
+            'id': tag.id,
+            'name': tag.name,
+            if (tag.color != null) 'color': tag.color,
+          },
+      ],
     'links': [
       for (final l in snapshot.links)
         {
@@ -230,6 +242,7 @@ EditorSnapshot decodeDraft(Object? value, {Iterable<DifficultyLevel>? levels}) {
     authorIds: _strList(json, 'authorIds'),
     tagIds: _strList(json, 'tagIds'),
     tunes: _strList(json, 'tunes'),
+    stagedTags: _parseStagedTags(json['stagedTags']),
     links: _parseLinks(json['links']),
     sourceCitations: _parseSourceCitations(json['sourceCitations']),
     customValues: _parseCustomValues(json['customValues']),
@@ -259,6 +272,32 @@ List<String> _strList(Map<String, Object?> json, String key) {
       else
         throw FormatException('draft.$key entries must be strings: $e'),
   ];
+}
+
+List<Tag> _parseStagedTags(Object? raw) {
+  if (raw == null) return const [];
+  if (raw is! List) {
+    throw const FormatException('draft.stagedTags must be an array');
+  }
+  return [for (final e in raw) _parseStagedTag(e)];
+}
+
+Tag _parseStagedTag(Object? e) {
+  if (e is! Map) {
+    throw const FormatException('stagedTag entry must be an object');
+  }
+  final m = e.cast<String, Object?>();
+  final id = _str(m, 'id');
+  final name = _str(m, 'name');
+  if (id.isEmpty) throw const FormatException('stagedTag.id is required');
+  if (name.trim().isEmpty) {
+    throw const FormatException('stagedTag.name is required');
+  }
+  final color = m['color'];
+  if (color != null && color is! int) {
+    throw FormatException('stagedTag.color must be an int: $color');
+  }
+  return Tag(id: id, name: name, color: color as int?);
 }
 
 T _parseEnum<T extends Enum>(List<T> values, String name) {

@@ -165,6 +165,7 @@ class DanceEditorController extends ChangeNotifier {
   // ---- Multi-value draft lists ----
   final List<String> authorIds = [];
   final List<String> tagIds = [];
+  final Map<String, Tag> stagedTags = {};
   final List<String> tunes = [];
   final List<LinkDraft> links = [];
 
@@ -511,6 +512,7 @@ class DanceEditorController extends ChangeNotifier {
     sourceCitations: List.unmodifiable(
       sourceCitations.map((c) => c.toCitation()),
     ),
+    stagedTags: List.unmodifiable(stagedTags.values),
     // Custom text/number fields are edited via customTextControllers and do
     // not keep customValues in sync — read from the controllers directly so
     // the snapshot captures whatever the user has typed.
@@ -563,6 +565,9 @@ class DanceEditorController extends ChangeNotifier {
     tagIds
       ..clear()
       ..addAll(s.tagIds);
+    stagedTags
+      ..clear()
+      ..addEntries(s.stagedTags.map((tag) => MapEntry(tag.id, tag)));
     tunes
       ..clear()
       ..addAll(s.tunes);
@@ -924,6 +929,14 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+  }
+
+  void stageTag(Tag tag) {
+    stagedTags[tag.id] = tag;
+  }
+
+  void clearStagedTags() {
+    stagedTags.clear();
   }
 
   void removeTag(String id) {

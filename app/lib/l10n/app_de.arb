@@ -2228,6 +2228,10 @@
   "@collectionCreateTagError": {
     "x-sourceSha256": "57b158c1d625d53d262633ec7332809ba4d0a058e1b1ea036a0fd874f3f5cd1e"
   },
+  "collectionBatchApplyError": "Batchänderungen konnten nicht angewendet werden. Versuchen Sie es erneut.",
+  "@collectionBatchApplyError": {
+    "x-sourceSha256": "bc31eff46d597169250638475f89c56fb1af5876a1d1e906931db235fda0e7f0"
+  },
   "collectionBatchTagAddConfirm": "Hinzufügen",
   "@collectionBatchTagAddConfirm": {
     "x-sourceSha256": "9fd728c66c9a256b121472dabf32a34317aed01d8427d70ec830289cf23a7cc8"

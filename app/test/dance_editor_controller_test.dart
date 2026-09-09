@@ -282,6 +282,41 @@ void main() {
     expect(await repos.settings.contains('editor_draft:new'), isFalse);
   });
 
+  test('autosave preserves staged tags for restored drafts', () async {
+    final repos = openTestRepositories();
+    final controller = await newDanceController(repos);
+    addTearDown(controller.dispose);
+
+    controller.stageTag(
+      Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
+    );
+    controller.addTag('provisional');
+
+    expect(
+      await draftPersisted(repos, 'editor_draft:new'),
+      isTrue,
+      reason: 'the staged tag draft should be persisted',
+    );
+
+    final restored = DanceEditorController(
+      repositories: repos,
+      danceId: null,
+      dialect: Dialect.larksRobins,
+    );
+    addTearDown(restored.dispose);
+    await restored.load(dance: null, fieldDefs: const []);
+
+    final draft = restored.pendingDraft;
+    expect(draft, isNotNull);
+    restored.clearPendingDraft();
+    restored.applyRestoredDraft(draft!);
+
+    expect(restored.tagIds, ['provisional']);
+    expect(restored.stagedTags, {
+      'provisional': Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
+    });
+  });
+
   test('clearDraft awaits every queued autosave, not just the most recently '
       'scheduled one, when writes overlap (issue #616)', () async {
     final delayed = openTestRepositoriesWithDelayedSettings();

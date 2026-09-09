@@ -12,6 +12,7 @@ EditorSnapshot _minimalSnapshot({
   List<LinkSnapshot> links = const [],
   List<SourceCitation> sourceCitations = const [],
   List<FigureDraftSnapshot> figureDrafts = const [],
+  List<Tag> stagedTags = const [],
 }) => EditorSnapshot(
   title: 'Test',
   hook: '',
@@ -29,6 +30,7 @@ EditorSnapshot _minimalSnapshot({
   sourceCitations: sourceCitations,
   customValues: const {},
   figureDrafts: figureDrafts,
+  stagedTags: stagedTags,
 );
 
 // ---------------------------------------------------------------------------
@@ -141,6 +143,22 @@ void main() {
     test('snapshot with no links round-trips cleanly', () {
       final decoded = decodeDraft(encodeDraft(_minimalSnapshot()));
       expect(decoded.links, isEmpty);
+    });
+
+    test('staged tags round-trip through autosave drafts', () {
+      final snapshot = _minimalSnapshot(
+        stagedTags: [
+          Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
+        ],
+      );
+
+      final encoded = encodeDraft(snapshot);
+      expect(encoded, contains('"stagedTags"'));
+
+      final decoded = decodeDraft(encoded);
+      expect(decoded.stagedTags, [
+        Tag(id: 'provisional', name: 'New tag', color: 0xFFFF0000),
+      ]);
     });
 
     test('figure draft assumedSubject round-trips (#460)', () {

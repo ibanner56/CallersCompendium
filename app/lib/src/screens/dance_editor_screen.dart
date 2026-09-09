@@ -105,8 +105,10 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   ];
 
   List<Choreographer> _choreographers = [];
+  List<Tag> _referenceTags = [];
   List<Tag> _tags = [];
   Map<String, String> _choreographerNames = {};
+  final Map<String, String> _knownTagNames = {};
   Map<String, String> _tagNames = {};
 
   /// All reusable published sources (autocomplete options for the picker).
@@ -169,7 +171,26 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
   /// changes. Guarded by [mounted] so a late notification (e.g. from a timer
   /// callback that outlived the route) is a no-op.
   void _onControllerChanged() {
-    if (mounted) setState(() {});
+    if (mounted) {
+      setState(_rebuildTagOptions);
+    }
+  }
+
+  void _rebuildTagOptions() {
+    final staged = _controller.stagedTags.values;
+    final referenceIds = _referenceTags.map((tag) => tag.id).toSet();
+    _knownTagNames.addAll({for (final tag in _referenceTags) tag.id: tag.name});
+    _tags = [
+      ..._referenceTags,
+      for (final tag in staged)
+        if (!referenceIds.contains(tag.id)) tag,
+    ];
+    final selectedIds = _controller.tagIds.toSet();
+    _tagNames = {
+      for (final tag in _tags) tag.id: tag.name,
+      for (final id in selectedIds)
+        if (_knownTagNames[id] != null) id: _knownTagNames[id]!,
+    };
   }
 
   /// Opens the live [DanceEditorReferenceData] subscription (issue #768):
@@ -230,11 +251,14 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
           setState(() {
             _loadError = null;
             _choreographers = data.choreographers;
-            _tags = data.tags;
+            _referenceTags = data.tags;
+            _knownTagNames.addAll({
+              for (final tag in data.tags) tag.id: tag.name,
+            });
+            _rebuildTagOptions();
             _allDances = data.dances;
             _publishedSources = data.publishedSources;
             _choreographerNames = data.choreographerNames;
-            _tagNames = data.tagNames;
             _danceNamesById = data.danceNamesById;
             _sourcesById = data.sourcesById;
           });
@@ -350,13 +374,28 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     setState(() => _saving = true);
     try {
       final dance = _controller.buildDance();
-      await saveDanceWithRelatedLinks(
-        _repos,
-        dance: dance,
-        original: _controller.original,
-      );
+      await _repos.transaction(() async {
+        final tagIds = <String, String>{};
+        for (final tag in _controller.stagedTags.values) {
+          if (!dance.tagIds.contains(tag.id)) continue;
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+        }
+        final committedTagIds = <String>[];
+        final seenTagIds = <String>{};
+        for (final id in dance.tagIds) {
+          final resolvedId = tagIds[id] ?? id;
+          if (seenTagIds.add(resolvedId)) committedTagIds.add(resolvedId);
+        }
+        final committedDance = dance.copyWith(tagIds: committedTagIds);
+        await saveDanceWithRelatedLinks(
+          _repos,
+          dance: committedDance,
+          original: _controller.original,
+        );
+      });
       // Clear the autosave draft — work is now committed.
       await _controller.clearDraft();
+      _controller.clearStagedTags();
       _controller.markSaved();
       if (mounted) {
         Navigator.of(context).pop(dance.id);
@@ -445,6 +484,9 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
 
     if (restore == true) {
       _controller.applyRestoredDraft(draft);
+      setState(() {
+        _rebuildTagOptions();
+      });
     } else {
       await _controller.discardPendingDraft();
     }
@@ -595,23 +637,17 @@ class _DanceEditorScreenState extends State<DanceEditorScreen> {
     });
   }
 
-  /// Mints (or, on a natural-key match, revives — schema v25, #898) a [Tag]
-  /// for [name], upserts it, and returns its id. The cache patch below is
-  /// optimistic, reconciled a moment later by [_subscribeReferenceData]'s
-  /// stream — see [_createSource].
+  /// Mints a [Tag] for [name] and stages it until the owning dance is saved.
+  /// Commit-time natural-key reuse/revival happens in [TagRepository.upsertStaged].
   Future<String> _createTag(String name) async {
     final minted = Tag(id: uuidV4(), name: name.trim());
-    // Use the id the repository actually wrote, not the one minted here: if a
-    // soft-deleted tag already held this name, the upsert revives that row and
-    // returns its id (schema v25, #898). Adding the minted id to the dance
-    // instead would reference a row that does not exist.
-    final id = await _repos.tags.upsert(minted);
-    final tag = Tag(id: id, name: minted.name, color: minted.color);
+    _controller.stageTag(minted);
     if (mounted) {
-      _tags = [..._tags, tag];
-      _tagNames = {..._tagNames, tag.id: name.trim()};
+      setState(() {
+        _rebuildTagOptions();
+      });
     }
-    return tag.id;
+    return minted.id;
   }
 
   @override

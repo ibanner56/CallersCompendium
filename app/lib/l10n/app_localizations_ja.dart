@@ -1966,6 +1966,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionCreateTagError => 'タグを作成できませんでした。もう一度お試しください。';
 
   @override
+  String get collectionBatchApplyError => '一括変更を適用できませんでした。もう一度お試しください。';
+
+  @override
   String get collectionBatchTagAddConfirm => '追加';
 
   @override

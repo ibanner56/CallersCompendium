@@ -2022,6 +2022,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionCreateTagError => 'Could not create tag. Try again.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Could not apply batch changes. Try again.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Add';
 
   @override
