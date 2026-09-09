@@ -1705,7 +1705,8 @@ class FigureRenderer {
     // nothing, so a ContraDB import is unchanged): the rotation `direction`
     // right after the move name, and the "around <whom>" target folded INTO the
     // turn clause — so TCB's "Mad robin clockwise 1 & 1/2 around neighbor"
-    // reads back as "mad robin clockwise 1½ around neighbor, ones in front"
+    // reads back as "mad robin clockwise 1½ around neighbor" when TCB leaves
+    // the in-front role unspecified.
     // rather than doubling the word "around".
     'mad_robin': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
@@ -1725,9 +1726,13 @@ class FigureRenderer {
       final around = (turnWord.isEmpty && swhom.isEmpty)
           ? ''
           : ' ${[turnWord, 'around', swhom].where((p) => p.isNotEmpty).join(' ')}';
-      // Tag the subject so an import-assumed `who` (TCB never states the
-      // in-front role) is marked "(assumed)" rather than read as source fact.
-      final swho = r._subjectWho(params, dialect);
+      // Render the in-front subject only when it is supplied; the explicit
+      // unspecified sentinel is omitted so an import cannot invent a role.
+      final swho = r._subjectToken(
+        params['who'],
+        dialect,
+        omitUnspecified: true,
+      );
       // Only emit the comma + "<subject> in front" when the subject renders
       // non-empty (never "mad robin, " with nothing after it).
       final subject = swho.isEmpty ? '' : ', $swho in front';

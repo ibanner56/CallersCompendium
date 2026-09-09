@@ -148,6 +148,51 @@ class DanceRepository {
     return normalised != null ? dance.copyWith(figures: normalised) : dance;
   }
 
+  /// Normalizes legacy assumed TCB `mad_robin` subjects, recursing into
+  /// `meanwhile` sides. Only figures with an assumed subject and no explicit
+  /// `who` are changed; explicit values remain user/source-authored facts.
+  Dance normaliseTaxonomyV34Public(Dance dance) {
+    List<Figure>? normalised;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _normaliseTaxonomyV34Figure(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  Figure _normaliseTaxonomyV34Figure(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? subs;
+      final origSubs = figure.subFigures;
+      for (var i = 0; i < origSubs.length; i++) {
+        final sub = origSubs[i];
+        final result = _normaliseTaxonomyV34Figure(sub);
+        if (!identical(result, sub) && subs == null) {
+          subs = origSubs.sublist(0, i);
+        }
+        subs?.add(result);
+      }
+      if (subs == null) return figure;
+      return figure.copyWith(
+        params: {...figure.params, 'figures': List<Figure>.unmodifiable(subs)},
+      );
+    }
+    if (figure.move != 'mad_robin' ||
+        !figure.assumedSubject ||
+        figure.params.containsKey('who')) {
+      return figure;
+    }
+    return figure.copyWith(
+      params: {...figure.params, 'who': ParamVocab.unspecified},
+      assumedSubject: false,
+    );
+  }
+
   Figure _normaliseTaxonomyV33Figure(Figure figure) {
     if (figure.isMeanwhile) {
       List<Figure>? subs;
@@ -305,7 +350,11 @@ class DanceRepository {
     );
     // v25 (#870): normalise move ids for inverse-pair aliases before
     // persisting. This is the single convergence point for all figure writers.
-    final normalisedDance = _normaliseMoveIds(dance);
+    // v34 (#1193): normalize legacy assumed mad robins here as well as in the
+    // one-time sweep, so restores and later imports cannot reintroduce them.
+    final normalisedDance = normaliseTaxonomyV34Public(
+      _normaliseMoveIds(dance),
+    );
     await _db
         .into(_db.dances)
         .insertOnConflictUpdate(

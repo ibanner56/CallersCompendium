@@ -1117,15 +1117,14 @@ void main() {
     testWidgets('an out-of-domain value is normalised to the sentinel', (
       tester,
     ) async {
-      // The one case where the field DOES write on open. Every
-      // sentinel-admitting spec defaults TO the sentinel, so a value outside
-      // the domain misses both the value rung and the default rung and the
-      // field falls to "not stated" — which would otherwise leave the draft
-      // still holding the bad token while displaying the opposite, with Clear
-      // hidden (nothing is selected) so the user could not reconcile them in
-      // one step. Storing the sentinel corrects invalid data to exactly what is
-      // displayed; it does not invent a dancer, which is what the guard above
-      // prevents.
+      // The one case where the synthetic `heyMeetTarget` spec used here writes
+      // on open. It defaults to the sentinel, so a value outside the domain
+      // misses both the value rung and the default rung and the field falls to
+      // "not stated" — which would otherwise leave the draft still holding the
+      // bad token while displaying the opposite, with Clear hidden (nothing is
+      // selected) so the user could not reconcile them in one step. Storing the
+      // sentinel corrects invalid data to exactly what is displayed; it does
+      // not invent a dancer, which is what the guard above prevents.
       final read = await _pumpEditor(
         tester,
         paramKey: 'meetTarget',

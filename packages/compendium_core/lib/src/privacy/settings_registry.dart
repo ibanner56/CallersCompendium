@@ -187,6 +187,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'backup_reminder_cadence': _preference,
   '__shareable_text_normalisation_scope__': _backupLocalState,
   '__taxonomy_v33_canonical_rebuild_done__': _installState,
+  '__taxonomy_v34_canonical_rebuild_done__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

@@ -19,6 +19,8 @@ import 'window_service.dart' show kWindowFrameKey;
 /// of truth.
 const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
+const String kTaxonomyV34CanonicalRebuildDoneKey =
+    '__taxonomy_v34_canonical_rebuild_done__';
 
 /// Settings keys that are NOT carried in a backup's `app.settings` map.
 ///
@@ -32,7 +34,8 @@ const String kTaxonomyV33CanonicalRebuildDoneKey =
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
 ///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
-///   [kTaxonomyV33CanonicalRebuildDoneKey].
+///   [kTaxonomyV33CanonicalRebuildDoneKey],
+///   [kTaxonomyV34CanonicalRebuildDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
@@ -47,6 +50,7 @@ const Set<String> kBackupSettingsDenylist = {
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
+  kTaxonomyV34CanonicalRebuildDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
 };

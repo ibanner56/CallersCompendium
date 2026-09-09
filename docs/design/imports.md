@@ -956,6 +956,10 @@ has to be judged in its own context.
   structure. Each recognizer requires BOTH stated facts, so a bare "mad robin" /
   "butterfly whirl" (ContraDB's own phrasing), or a butterfly whirl carrying an
   unmodeled rotation amount ("… counterclockwise 1 & 1/2"), still stays custom.
+  Taxonomy v34 now stores an explicit `who: unspecified` for TCB mad robins,
+  because their "around" pair is `whom`, not the in-front pair; legacy assumed
+  figures are backfilled only when `who` was absent and then rebuilt in
+  canonical/FTS indexes.
   **Directed promenade (#771):** TCB's `clockwise`/`counterclockwise`
   qualifiers now populate `promenade.turn` instead of causing the complete
   line to fall to `custom`. The shared parser accepts TCB's supported
