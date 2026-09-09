@@ -199,6 +199,7 @@ class DelayedProgramRepository extends ProgramRepository {
 
   bool failWrites = false;
   bool failConditionalRollback = false;
+  bool failNextRead = false;
   int? failOnWrite;
   int writesStarted = 0;
   int conditionalRollbackCalls = 0;
@@ -310,6 +311,10 @@ class DelayedProgramRepository extends ProgramRepository {
       _readStarted?.complete();
       await gate.future;
       _activeReadGate = null;
+    }
+    if (failNextRead) {
+      failNextRead = false;
+      throw const InjectedProgramFailure();
     }
     return super.getById(id, includeDeleted: includeDeleted);
   }

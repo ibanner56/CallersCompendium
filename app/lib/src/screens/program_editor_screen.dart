@@ -1878,7 +1878,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       current: _slots.map((s) => s.performedAt),
     );
     final wasDirty = _dirty;
-    _pendingBulkUndoBaseline = _existing;
     final l10n = AppLocalizations.of(context);
     final markedSlotIds = <String>{};
     setState(() {
@@ -1894,6 +1893,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _slots = updatedSlots;
     });
     if (markedSlotIds.isEmpty) return;
+    _pendingBulkUndoBaseline = _existing;
     _markDirty();
     final actionToken = ++_bulkUndoActionToken;
     _pendingBulkUndoSlotIds = {...markedSlotIds};
@@ -2014,6 +2014,24 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           performedAt: actionTimestamp,
           updatedAt: DateTime.now().toUtc(),
         );
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._undoMarkAllPerformed',
+        );
+        if (mounted) {
+          await _restoreEditorAfterUndoFailure(
+            noInterveningEdit: noInterveningEdit,
+            undoEditGeneration: undoEditGeneration,
+          );
+          _showBulkUndoErrorSnackBar(
+            AppLocalizations.of(context).programsUndoPerformedError,
+          );
+        }
+        return;
+      }
+      try {
         if (!mounted) return;
         if (noInterveningEdit && _editGeneration == undoEditGeneration) {
           final live = await _repos.programs.getById(_existing!.id);
@@ -2051,25 +2069,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         logCaughtError(
           error,
           stackTrace,
-          source: 'program_editor_screen._undoMarkAllPerformed',
+          source: 'program_editor_screen._undoMarkAllPerformed.refresh',
         );
         if (mounted) {
-          await _restoreEditorAfterUndoFailure(
-            noInterveningEdit: noInterveningEdit,
-            undoEditGeneration: undoEditGeneration,
+          _showBulkUndoErrorSnackBar(
+            AppLocalizations.of(context).programsUndoRefreshError,
           );
-        }
-        if (mounted) {
-          final messenger = ScaffoldMessenger.of(context);
-          messenger.clearSnackBars();
-          messenger.removeCurrentSnackBar();
-          final message = AppLocalizations.of(
-            context,
-          ).programsUndoPerformedError;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (!messenger.mounted) return;
-            messenger.showSnackBar(SnackBar(content: Text(message)));
-          });
         }
       }
     } else if (canRestoreCleanState) {
@@ -2082,6 +2087,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } else {
       _markDirty();
     }
+  }
+
+  void _showBulkUndoErrorSnackBar(String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    });
   }
 
   // --- Persistence ----------------------------------------------------------

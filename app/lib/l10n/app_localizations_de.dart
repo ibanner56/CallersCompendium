@@ -2391,6 +2391,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Die Markierung konnte nicht rückgängig gemacht werden; die Erledigt-Markierungen bleiben gespeichert.';
 
   @override
+  String get programsUndoRefreshError =>
+      'Die Rücknahme wurde gespeichert, aber der Editor konnte nicht aktualisiert werden.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Als „$title“ dupliziert.';
   }

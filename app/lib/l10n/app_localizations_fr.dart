@@ -2397,6 +2397,10 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible d’annuler le marquage ; les marquages « effectué » restent enregistrés.';
 
   @override
+  String get programsUndoRefreshError =>
+      'L’annulation a été enregistrée, mais l’éditeur n’a pas pu être actualisé.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Dupliqué sous le nom « $title ».';
   }

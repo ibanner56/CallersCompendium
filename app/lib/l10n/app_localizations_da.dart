@@ -2360,6 +2360,10 @@ class AppLocalizationsDa extends AppLocalizations {
       'Markeringen kunne ikke fortrydes; markeringerne som udført forbliver gemt.';
 
   @override
+  String get programsUndoRefreshError =>
+      'Fortrydelsen blev gemt, men editoren kunne ikke opdateres.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Kopieret som „$title“.';
   }

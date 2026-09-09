@@ -1981,6 +1981,7 @@ void main() {
     await repos.programs.update(
       remote!.copyWith(notes: 'Remote note', updatedAt: DateTime.now().toUtc()),
     );
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byType(SnackBarAction));
     await tester.pumpAndSettle();
@@ -1996,6 +1997,46 @@ void main() {
     expect(saved.notes, 'Remote note');
     expect(saved.slots.single.performedAt, isNull);
   });
+
+  testWidgets(
+    'persisted Undo reports refresh failure after rollback succeeds',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.failNextRead = true;
+      await tester.tap(find.byType(SnackBarAction));
+      await tester.pumpAndSettle();
+
+      expect(
+        (await delayed.repos.programs.getById('p1'))!.slots.single.performedAt,
+        isNull,
+        reason: 'The conditional rollback committed before the refresh failed',
+      );
+      expect(
+        find.text('Undo was saved, but the editor could not refresh.'),
+        findsOneWidget,
+      );
+      expect(find.byType(SnackBarAction), findsNothing);
+    },
+  );
 
   testWidgets('Undo uses conditional rollback after a later auto-commit', (
     tester,
@@ -2221,6 +2262,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
     await tester.pump(const Duration(milliseconds: 600));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump();
     delayed.programs.holdNextConditionalRollback();
     await tester.tap(find.byType(SnackBarAction));
     await delayed.programs.conditionalRollbackStarted;
