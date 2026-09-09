@@ -343,7 +343,7 @@ void main() {
 
     test('a circulate hand overrides the preceding balance hand', () async {
       final figures = await _figuresFor([
-        '(4) Balance long wave (NL, women face in)',
+        '(4) Women balance (LH)',
         '(4) Circulate: women cross, men loop right',
       ]);
       final figure = figures.single;
