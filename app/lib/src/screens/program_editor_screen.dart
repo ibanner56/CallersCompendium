@@ -311,7 +311,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
           )
         : const SizedBox.shrink();
-    return Column(children: [Expanded(child: content)]);
+    return Column(
+      children: [
+        if (_previewPersistent && (_previewLoading || _previewError != null))
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              key: const ValueKey('program-preview-close'),
+              tooltip: AppLocalizations.of(context).commonClose,
+              icon: const Icon(Icons.close),
+              onPressed: _clearPreview,
+            ),
+          ),
+        Expanded(child: content),
+      ],
+    );
   }
 
   Future<void> _openSavedPreviewSheet(String danceId) {
