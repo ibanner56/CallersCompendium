@@ -1287,9 +1287,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
         }
         for (final (:dance, :next) in pending) {
           priorTags[dance.id] = dance.tagIds.toList();
+          final committedTagIds = <String>[];
+          final seenTagIds = <String>{};
+          for (final id in next) {
+            final resolvedId = tagIds[id] ?? id;
+            if (seenTagIds.add(resolvedId)) committedTagIds.add(resolvedId);
+          }
           await _repos.dances.update(
             dance.copyWith(
-              tagIds: [for (final id in next) tagIds[id] ?? id],
+              tagIds: committedTagIds,
               updatedAt: DateTime.now().toUtc(),
             ),
           );

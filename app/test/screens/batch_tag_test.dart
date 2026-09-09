@@ -250,6 +250,38 @@ void main() {
     expect(_tagIdsOf((await repos.dances.getById('d1'))!), {newTagId});
   });
 
+  testWidgets('deduplicates staged tags that normalize to one natural key', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Caf\u00E9',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'Cafe\u0301',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+
+    final tags = await repos.tags.listAll();
+    expect(tags, hasLength(1));
+    expect((await repos.dances.getById('d1'))!.tagIds, [tags.single.id]);
+  });
+
   testWidgets('cancelling inline tag creation does not persist the tag', (
     tester,
   ) async {
