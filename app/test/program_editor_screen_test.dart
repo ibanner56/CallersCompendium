@@ -1617,10 +1617,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
     await delayed.programs.writeStarted;
 
-    tester
-        .widget<SnackBarAction>(find.byType(SnackBarAction))
-        .onPressed
-        .call();
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
     await tester.pump();
     delayed.programs.releaseWrite();
     await tester.pumpAndSettle();
