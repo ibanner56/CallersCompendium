@@ -239,6 +239,7 @@ void main() {
     test(
       'author scope searches only the author column for prefix and substring',
       () async {
+        // ignore: unused_result
         await choreographers.upsert(
           Choreographer(id: 'c1', name: 'Alice Smith'),
         );
