@@ -1058,7 +1058,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
-    final displayText = slot.isPurgedDance ? text : _displayProse(text);
+    final displayText = slot.isPurgedDance != false
+        ? text
+        : _displayProse(text);
     return Padding(
       padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
       child: Row(

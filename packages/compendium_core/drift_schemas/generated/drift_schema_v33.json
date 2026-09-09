@@ -843,9 +843,9 @@
             "name": "is_purged_dance",
             "getter_name": "isPurgedDance",
             "moor_type": "int",
-            "nullable": false,
-            "customConstraints": "NOT NULL DEFAULT 0 CHECK (is_purged_dance IN (0, 1))",
-            "default_dart": "const CustomExpression('0')",
+            "nullable": true,
+            "customConstraints": "NULL CHECK (is_purged_dance IN (0, 1))",
+            "default_dart": null,
             "default_client_dart": null,
             "dsl_features": []
           },

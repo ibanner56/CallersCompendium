@@ -403,7 +403,7 @@ String _slotLine(
   } else {
     final text = slot.text!.trim();
     buffer.write(
-      slot.isPurgedDance || !canonicalizeDiscouragedTerms
+      slot.isPurgedDance != false || !canonicalizeDiscouragedTerms
           ? text
           : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
     );

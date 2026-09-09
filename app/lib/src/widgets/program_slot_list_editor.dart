@@ -371,6 +371,7 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
           position: slot.position,
           danceId: slot.danceId,
           text: slot.text,
+          isPurgedDance: slot.isPurgedDance,
           isAlt: slot.isAlt,
           guestCaller: slot.guestCaller,
           plannedMinutes: slot.plannedMinutes,
@@ -894,6 +895,9 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       position: widget.slot.position,
       danceId: _danceId,
       text: noteText.isEmpty ? null : noteText,
+      isPurgedDance: _danceId == null && noteText == widget.slot.text
+          ? widget.slot.isPurgedDance
+          : false,
       isAlt: _isAlt,
       guestCaller: guestText.isEmpty ? null : guestText,
       plannedMinutes: minutes,

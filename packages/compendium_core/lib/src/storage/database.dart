@@ -773,7 +773,8 @@ class CompendiumDatabase extends _$CompendiumDatabase {
       if (from < 33) {
         // Issue #1196: distinguish purge captions from ordinary text-only
         // program slots so display-only conversion never rewrites a tombstone.
-        // Existing rows default to false; purge cleanup marks new captions.
+        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
+        // must stay literal until an explicit edit establishes their kind.
         await m.addColumn(programSlots, programSlots.isPurgedDance);
       }
     },

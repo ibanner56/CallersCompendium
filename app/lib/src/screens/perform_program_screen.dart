@@ -514,7 +514,11 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Display label for a slot: the dance title when it resolves, otherwise its
   /// free text (or a neutral fallback).
-  String _slotLabel(AppLocalizations l10n, ProgramSlot slot) {
+  String _slotLabel(
+    AppLocalizations l10n,
+    ProgramSlot slot, {
+    bool convert = true,
+  }) {
     if (slot.danceId != null) {
       final dance = _danceForSlot(slot);
       if (dance != null) return dance.title;
@@ -522,7 +526,8 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final rawText = slot.text?.trim();
     final text =
         rawText == null ||
-            slot.isPurgedDance ||
+            slot.isPurgedDance != false ||
+            !convert ||
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
         : widget.renderer.renderFreeTextWithCanonicalDiscouragedTerms(
@@ -1164,14 +1169,15 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     // Free-text-only slot (or an unresolved dance id): a simple large-print
     // text card with no figures.
     return PerformTextCard(
-      text: _slotLabel(AppLocalizations.of(context), slot),
+      text: _slotLabel(AppLocalizations.of(context), slot, convert: false),
       textScale: _textScale,
       renderer: widget.renderer,
       dialect: dialect,
       // A slot without a dance id can represent a purged dance title, so keep
       // that tombstone lossless. A non-null unresolved id carries caller prose.
       canonicalizeDiscouragedTerms:
-          slot.danceId != null && CanonicalDiscouragedTermsScope.of(context),
+          slot.isPurgedDance == false &&
+          CanonicalDiscouragedTermsScope.of(context),
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,
     );

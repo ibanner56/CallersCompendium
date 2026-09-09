@@ -767,11 +767,10 @@ class ProgramSlots extends Table with TableInfo {
   late final GeneratedColumn<int> isPurgedDance = GeneratedColumn<int>(
     'is_purged_dance',
     aliasedName,
-    false,
+    true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL DEFAULT 0 CHECK (is_purged_dance IN (0, 1))',
-    defaultValue: const CustomExpression('0'),
+    $customConstraints: 'NULL CHECK (is_purged_dance IN (0, 1))',
   );
   late final GeneratedColumn<int> isAlt = GeneratedColumn<int>(
     'is_alt',

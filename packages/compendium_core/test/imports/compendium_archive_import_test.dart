@@ -113,6 +113,39 @@ void main() {
 
   final now = DateTime.utc(2026, 7, 18);
 
+  test('preserves purge markers when rebuilding imported programs', () {
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      programs: [
+        Program(
+          id: 'orig-purge-program',
+          title: 'Purge',
+          slots: [
+            ProgramSlot(
+              id: 'orig-purge-slot',
+              position: 0,
+              text: 'Lady of the Lake',
+              isPurgedDance: true,
+            ),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+    );
+
+    final result = buildArchivePrograms(
+      archive,
+      danceIdByOriginalId: const {},
+      newId: sequentialIds('program'),
+      newSlotId: sequentialIds('slot'),
+      now: now,
+    );
+
+    expect(result.issues, isEmpty);
+    expect(result.programs.single.slots.single.isPurgedDance, isTrue);
+  });
+
   Future<int> programExistenceStamp(String id) async {
     final rows = await db
         .customSelect(

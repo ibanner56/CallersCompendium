@@ -2142,35 +2142,49 @@ void main() {
   });
 
   group('v32 -> v33 upgrade (issue #1196 purge-caption marker)', () {
-    test('adds the purge-caption marker with a false default', () async {
-      final raw = sqlite3.sqlite3.openInMemory();
-      final historical = GeneratedHelper().databaseForVersion(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-        32,
-      );
-      await historical.customSelect('SELECT 1').get();
-      await historical.close();
+    test(
+      'preserves pre-v33 text-only rows as legacy ambiguous values',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          32,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.customStatement(
+          "INSERT INTO programs "
+          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+          "VALUES ('legacy-program', 'Legacy', '', 'draft', 0, 0, 0)",
+        );
+        await historical.customStatement(
+          "INSERT INTO program_slots "
+          "(id, program_id, position, text, is_alt) "
+          "VALUES ('legacy-slot', 'legacy-program', 0, 'Lady of the Lake', 0)",
+        );
+        await historical.close();
 
-      final db = CompendiumDatabase(
-        NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
-      );
-      addTearDown(() async {
-        await db.close();
-        raw.close();
-      });
-      await db.customSelect('SELECT 1').get();
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
 
-      final columns = await db
-          .customSelect("PRAGMA table_info('program_slots')")
-          .get();
-      final marker = columns.firstWhere(
-        (row) => row.read<String>('name') == 'is_purged_dance',
-      );
-      expect(marker.read<int>('dflt_value'), 0);
+        final columns = await db
+            .customSelect("PRAGMA table_info('program_slots')")
+            .get();
+        final marker = columns.firstWhere(
+          (row) => row.read<String>('name') == 'is_purged_dance',
+        );
+        expect(marker.read<String?>('dflt_value'), isNull);
 
-      final rows = await db.select(db.programSlots).get();
-      expect(rows.every((row) => !row.isPurgedDance), isTrue);
-    });
+        final rows = await db.select(db.programSlots).get();
+        expect(rows, hasLength(1));
+        expect(rows.single.isPurgedDance, isNull);
+      },
+    );
   });
 }
 

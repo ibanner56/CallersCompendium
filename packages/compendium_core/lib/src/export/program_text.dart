@@ -170,7 +170,7 @@ String _slotLine(
     // Purge captions are lossless; ordinary text-only slots are display prose.
     final text = slot.text!.trim();
     buffer.write(
-      slot.isPurgedDance ||
+      slot.isPurgedDance != false ||
               !canonicalizeDiscouragedTerms ||
               renderer == null ||
               dialect == null

@@ -352,6 +352,56 @@ void main() {
       expect(pProv.sourceVersion, '2.3');
     });
 
+    test('preserves purge markers and legacy ambiguity across archives', () {
+      final archive = CompendiumArchive(
+        programs: [
+          Program(
+            id: 'purge-program',
+            title: 'Purge',
+            slots: [
+              ProgramSlot(
+                id: 'purge-slot',
+                position: 0,
+                text: 'Lady of the Lake',
+                isPurgedDance: true,
+              ),
+              ProgramSlot(
+                id: 'legacy-slot',
+                position: 1,
+                text: 'Old text',
+                isPurgedDance: null,
+              ),
+            ],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        ],
+        exportedAt: DateTime.utc(2026),
+      );
+
+      final decoded = decodeArchive(encodeArchive(archive));
+
+      expect(decoded.hasErrors, isFalse);
+      expect(decoded.archive.programs.single.slots, hasLength(2));
+      expect(decoded.archive.programs.single.slots[0].isPurgedDance, isTrue);
+      expect(decoded.archive.programs.single.slots[1].isPurgedDance, isNull);
+    });
+
+    test('reports an invalid purge marker instead of throwing', () {
+      final map = jsonDecode(encodeArchive(_sampleArchive())) as Map;
+      final programs = map['programs'] as List;
+      final slots = (programs.first as Map)['slots'] as List;
+      final slot = slots.first as Map;
+      slot['isPurgedDance'] = true;
+
+      final result = decodeArchive(jsonEncode(map));
+
+      expect(result.archive.programs, hasLength(1));
+      expect(result.archive.programs.single.id, 'p2');
+      expect(result.errors, hasLength(1));
+      expect(result.errors.single.entityType, 'program');
+    });
+
     test('round-trips the added dance statuses by name', () {
       for (final name in ['draft', 'variation']) {
         final status = DanceStatus.values.firstWhere((s) => s.name == name);

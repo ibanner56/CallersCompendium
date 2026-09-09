@@ -31,7 +31,7 @@ class ProgramSlot {
         'danceId/text',
       );
     }
-    if (isPurgedDance && (danceId != null || text == null)) {
+    if (isPurgedDance == true && (danceId != null || text == null)) {
       throw ArgumentError(
         'a purged dance tombstone requires text without a danceId',
         'isPurgedDance',
@@ -58,7 +58,9 @@ class ProgramSlot {
   ///
   /// This marker distinguishes a lossless purge caption from an ordinary
   /// free-text slot such as a break, waltz, or announcement.
-  final bool isPurgedDance;
+  /// `null` preserves the ambiguous text-only shape from pre-v33 storage and
+  /// older archives; those values remain literal until explicitly edited.
+  final bool? isPurgedDance;
 
   /// Alternate dance, decided at event time.
   final bool isAlt;
@@ -88,7 +90,7 @@ class ProgramSlot {
   /// derived, so introducing it needs no schema migration.
   bool get isBreak {
     final t = text;
-    if (danceId != null || isPurgedDance || t == null) return false;
+    if (danceId != null || isPurgedDance == true || t == null) return false;
     return t.trim().toLowerCase() == Program.breakSlotText.toLowerCase();
   }
 

@@ -735,12 +735,20 @@ List<ProgramSlot> _programSlotsFromJson(Object? raw) {
     for (final e in raw)
       () {
         final m = _asMap(e, 'slot');
+        final danceId = _strOrNull(m, 'danceId');
+        final text = _strOrNull(m, 'text');
+        final isPurgedDance = _boolOrNull(m, 'isPurgedDance');
+        if (isPurgedDance == true && (danceId != null || text == null)) {
+          throw const FormatException(
+            'purged dance slot must have text and no danceId',
+          );
+        }
         return ProgramSlot(
           id: _str(m, 'id'),
           position: _int(m, 'position'),
-          danceId: _strOrNull(m, 'danceId'),
-          text: _strOrNull(m, 'text'),
-          isPurgedDance: _boolOr(m, 'isPurgedDance', false),
+          danceId: danceId,
+          text: text,
+          isPurgedDance: isPurgedDance,
           isAlt: _boolOr(m, 'isAlt', false),
           guestCaller: _strOrNull(m, 'guestCaller'),
           plannedMinutes: _intOrNull(m, 'plannedMinutes'),
@@ -845,6 +853,13 @@ int? _intOrNull(Map<String, Object?> m, String key) {
 bool _boolOr(Map<String, Object?> m, String key, bool fallback) {
   final v = m[key];
   if (v == null) return fallback;
+  if (v is! bool) throw FormatException('"$key" must be a boolean');
+  return v;
+}
+
+bool? _boolOrNull(Map<String, Object?> m, String key) {
+  final v = m[key];
+  if (v == null) return null;
   if (v is! bool) throw FormatException('"$key" must be a boolean');
   return v;
 }
