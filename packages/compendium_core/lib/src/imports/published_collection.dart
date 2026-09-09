@@ -128,9 +128,7 @@ class PublishedCollectionArchive {
 
     final result = decodeArchive(payload);
     for (final error in result.errors) {
-      if ((error.entityType == 'archive' ||
-              error.entityType == 'difficultyLevel') &&
-          error.kind == ArchiveErrorKind.read) {
+      if (error.kind == ArchiveErrorKind.read) {
         throw _invalid(
           'Published collection archive could not be decoded: $error',
         );
@@ -310,7 +308,9 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
   StructuredDraft parse(RawRecord raw) {
     final result = decodeArchive(raw.payload);
     final rootError = _rootReadError(result);
-    if (rootError != null || result.archive.dances.length != 1) {
+    if (rootError != null ||
+        result.errors.any((error) => error.kind == ArchiveErrorKind.read) ||
+        result.archive.dances.length != 1) {
       throw parseError(
         source,
         'Published collection record does not contain exactly one dance.',
@@ -318,6 +318,13 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       );
     }
     final dance = result.archive.dances.single;
+    DifficultyLevel? difficultyLevel;
+    for (final level in result.archive.difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) {
+        difficultyLevel = level;
+        break;
+      }
+    }
     final names = <String>[];
     final seen = <String>{};
     final namesById = {
@@ -327,7 +334,12 @@ class _PublishedGenericJsonAdapter implements SourceAdapter {
       final name = namesById[id]?.trim();
       if (seen.add(id) && name != null && name.isNotEmpty) names.add(name);
     }
-    return StructuredDraft(dance: dance, raw: raw, authorNames: names);
+    return StructuredDraft(
+      dance: dance,
+      raw: raw,
+      authorNames: names,
+      difficultyLevelLabel: difficultyLevel?.label,
+    );
   }
 
   static ArchiveError? _rootReadError(ArchiveReadResult result) {

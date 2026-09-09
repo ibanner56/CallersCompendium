@@ -137,6 +137,19 @@ void main() {
       );
     });
 
+    test('rejects a dance that references an undefined difficulty level', () {
+      final root = _root();
+      final dance = Map<String, Object?>.from(
+        (root['dances'] as List).single as Map,
+      )..['difficultyLevelId'] = 'missing-level';
+      root['dances'] = [dance];
+
+      expect(
+        () => PublishedCollectionArchive.decode(_json(root)),
+        throwsA(isA<ImportError>()),
+      );
+    });
+
     test('rejects embedded published provenance', () {
       final root = _root();
       final dance = Map<String, Object?>.from(
@@ -169,6 +182,7 @@ void main() {
   group('PublishedCollectionImporter', () {
     late CompendiumDatabase db;
     late DanceRepository dances;
+    late DifficultyLevelRepository difficultyLevels;
     late CollectionImportEventRepository events;
     late PublishedCollectionImporter importer;
     late _PublishedProvenanceSelectCounter provenanceSelects;
@@ -177,9 +191,14 @@ void main() {
       provenanceSelects = _PublishedProvenanceSelectCounter();
       db = openCountingTestDatabase(provenanceSelects);
       dances = DanceRepository(db, contraTaxonomy);
+      difficultyLevels = DifficultyLevelRepository(db);
       events = CollectionImportEventRepository(db);
       importer = PublishedCollectionImporter(
-        ImportPipeline(dances, ChoreographerRepository(db)),
+        ImportPipeline(
+          dances,
+          ChoreographerRepository(db),
+          difficultyLevels: difficultyLevels,
+        ),
       );
     });
 
@@ -232,6 +251,44 @@ void main() {
       expect(await events.listAll(), hasLength(1));
       expect(await events.heldCount('book'), 1);
       expect(await events.heldCount('book', version: 'v2'), 0);
+    });
+
+    test('clears a published custom level absent from the receiver', () async {
+      final level = DifficultyLevel(
+        id: 'published-workshop',
+        label: 'Workshop',
+        position: 3,
+      );
+      final batch = await importer.plan(
+        _payload(
+          dances: [
+            _dance('custom-level').copyWith(difficultyLevelId: level.id),
+          ],
+          difficultyLevels: [level],
+        ),
+        metadata,
+      );
+
+      expect(batch.records.single.draft.difficultyLevelLabel, 'Workshop');
+      expect(batch.records.single.draft.dance.difficultyLevelId, isNull);
+      expect(
+        batch.records.single.draft.issues.any(
+          (issue) => issue.code == 'cc_inactive_level',
+        ),
+        isTrue,
+      );
+
+      final result = await importer.commit(
+        batch,
+        metadata: metadata,
+        now: DateTime.utc(2026, 8, 20),
+        newId: () => 'imported-custom-level',
+      );
+      expect(result.session.records.single.succeeded, isTrue);
+      expect(
+        (await dances.getById('imported-custom-level'))?.difficultyLevelId,
+        isNull,
+      );
     });
 
     test(
