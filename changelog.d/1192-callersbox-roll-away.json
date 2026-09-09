@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "You now get the rolling role and relationship assigned correctly when you import a CallersBox roll-away annotation."
+      "You now get the non-rolling role and relationship assigned correctly when you import a CallersBox roll-away annotation."
     ]
   },
   "core": {

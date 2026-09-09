@@ -192,6 +192,18 @@ void main() {
         expect(f.note, 'role2s roll right, role1s step aside');
       });
 
+      test('role-first text does not fabricate a relationship', () {
+        final f = _single(
+          'role1s roll away (W roll R, M side-step L) [with women]',
+          beats: 8,
+        );
+        expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role1s');
+        expect(f.assumedSubject, isFalse);
+        expect(f.params, isNot(contains('whom')));
+        expect(f.note, 'role2s roll right, role1s side-step left; with role2s');
+      });
+
       test('note carries canonical role tokens, not raw W/M', () {
         // Proves the note is dialect-renderable.
         final f = _single(

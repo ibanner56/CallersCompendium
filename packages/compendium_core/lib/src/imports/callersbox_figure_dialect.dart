@@ -1753,9 +1753,15 @@ Map<String, Object?> _rollAwayRoleAssignmentParams(
 
   final relationship = match.params['who'];
   final nonRollingRole = roleAssignments.single.nonRollingRole;
-  if (relationship is! String || nonRollingRole == null) return const {};
+  if (relationship is! String ||
+      !_callersBoxRollAwayRelationships.contains(relationship) ||
+      nonRollingRole == null) {
+    return const {};
+  }
   return {'who': nonRollingRole, 'whom': relationship};
 }
+
+const Set<String> _callersBoxRollAwayRelationships = {'neighbors', 'partners'};
 
 /// Parses a two-clause per-role choreography body and returns the canonical
 /// note plus any unambiguous roll-away role assignment, or `null` when the body
