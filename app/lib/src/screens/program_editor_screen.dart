@@ -166,6 +166,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
   bool _autoCommitInFlight = false;
+  int? _autoCommitPersistedGeneration;
   ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
   int _bulkUndoGeneration = 0;
   int _editGeneration = 0;
@@ -958,6 +959,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final oldDraftKey = _draftKey;
       try {
         final persisted = await _persistDraft(draft);
+        _autoCommitPersistedGeneration = generation;
         if (!mounted) return;
         if (wasNew && _existing == null) {
           _existing = persisted;
@@ -1693,7 +1695,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _editGeneration++;
       await _commitQueueTail;
       if (!mounted) return;
-      if (autoCommitWasInFlight) {
+      final autoCommitPersisted =
+          autoCommitWasInFlight &&
+          _autoCommitPersistedGeneration == actionEditGeneration;
+      if (autoCommitPersisted) {
         _markDirty();
       } else {
         await _clearDraft(waitForCommits: false);
