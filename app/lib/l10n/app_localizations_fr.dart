@@ -478,6 +478,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Lorsqu’elle est activée, cette option permet aux détails de la danse d’afficher les noms canoniques des rôles et des figures, et le sélecteur Canonique est disponible pour les dialectes non canoniques. Désactivée par défaut.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Convertir automatiquement tous les termes déconseillés';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Lorsqu’elle est activée, cette option utilise une formulation canonique pour les termes déconseillés pris en charge dans les détails des danses, les notes et les exportations. Le texte enregistré et les champs de saisie restent inchangés. Activée par défaut.';
+
+  @override
   String get settingsDialectNewButton => 'Nouveau dialecte';
 
   @override
@@ -1430,7 +1438,11 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Avancé';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper à progression inversée';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1439,10 +1451,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -2437,6 +2449,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsSaveError => 'Impossible d’enregistrer le programme.';
+
+  @override
+  String get programsUndoPerformedError =>
+      'Impossible d’annuler le marquage ; les marquages « effectué » restent enregistrés.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'L’annulation a été enregistrée, mais l’éditeur n’a pas pu être actualisé.';
 
   @override
   String programsDuplicatedSnack(String title) {

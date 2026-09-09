@@ -15,6 +15,7 @@ EditorSnapshot _minimalSnapshot({
   List<SourceCitation> sourceCitations = const [],
   List<FigureDraftSnapshot> figureDrafts = const [],
   List<Tag> stagedTags = const [],
+  FormationShape formationShape = FormationShape.dupleImproper,
 }) => EditorSnapshot(
   title: 'Test',
   hook: '',
@@ -22,7 +23,7 @@ EditorSnapshot _minimalSnapshot({
   phrase: '',
   formationDetail: '',
   form: DanceForm.contra,
-  formationShape: FormationShape.dupleImproper,
+  formationShape: formationShape,
   progression: Progression.single,
   status: DanceStatus.active,
   authorIds: const [],
@@ -141,6 +142,15 @@ void main() {
               as Map<String, Object?>;
 
       expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+      
+    test('encodes and decodes reverse progression improper formation', () {
+      final reverse = _minimalSnapshot(
+        formationShape: FormationShape.reverseProgressionImproper,
+      );
+
+      final decoded = decodeDraft(encodeDraft(reverse));
+
+      expect(decoded.formationShape, FormationShape.reverseProgressionImproper);
     });
 
     test('encodes and decodes a URL-kind link', () {

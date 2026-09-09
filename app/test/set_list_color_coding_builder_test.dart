@@ -108,7 +108,7 @@ void main() {
     await _pump(tester, colorCoding: true);
 
     // Formation text is present on each row (so colour is redundant).
-    expect(find.textContaining('Duple improper'), findsOneWidget);
+    expect(find.textContaining('Improper'), findsOneWidget);
     expect(find.textContaining('Sicilian circle'), findsOneWidget);
 
     final a0 = _accent(tester, 's0');
@@ -132,7 +132,7 @@ void main() {
     expect(find.byKey(const ValueKey('slot-s0-accent')), findsNothing);
     expect(find.byKey(const ValueKey('slot-s1-accent')), findsNothing);
     // Formation text remains, so the row's type/form is readable without hue.
-    expect(find.textContaining('Duple improper'), findsOneWidget);
+    expect(find.textContaining('Improper'), findsOneWidget);
     expect(find.textContaining('Sicilian circle'), findsOneWidget);
   });
 

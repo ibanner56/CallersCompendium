@@ -1497,10 +1497,12 @@ void main() {
   });
 
   testWidgets('lingo: updateDialect triggers redraw', (tester) async {
-    // Start with canonical (no discouraged terms).
+    // Start with an explicit clean dialect. The canonical dialect intentionally
+    // flags the shipped discouraged vocabulary for editor guidance.
+    final cleanDialect = Dialect(name: 'Clean');
     final ctrl = LingoTextEditingController(
       text: 'gents cross',
-      dialect: Dialect.canonical,
+      dialect: cleanDialect,
     );
     TextSpan? firstSpan;
     TextSpan? secondSpan;

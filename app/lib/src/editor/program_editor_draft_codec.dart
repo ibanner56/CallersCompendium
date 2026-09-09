@@ -103,7 +103,7 @@ class ProgramEditorDraft {
 ///   "hideAlternates": false,
 ///   "slots": [
 ///     {"id":"...", "position":0, "danceId":"...", "isAlt":false},
-///     {"id":"...", "position":1, "text":"Break", "isAlt":false}
+///     {"id":"...", "position":1, "text":"Break", "isPurgedDance":false, "isAlt":false}
 ///   ]
 /// }
 /// ```
@@ -133,6 +133,7 @@ Map<String, Object?> _slotToJson(ProgramSlot s) => {
   'position': s.position,
   if (s.danceId != null) 'danceId': s.danceId,
   if (s.text != null) 'text': s.text,
+  if (s.isPurgedDance != null) 'isPurgedDance': s.isPurgedDance,
   'isAlt': s.isAlt,
   if (s.guestCaller != null) 'guestCaller': s.guestCaller,
   if (s.plannedMinutes != null) 'plannedMinutes': s.plannedMinutes,
@@ -278,12 +279,19 @@ ProgramSlot _parseSlot(Object? e) {
       'program draft slot.plannedMinutes must be an int: $planned',
     );
   }
+  final isPurgedDance = m['isPurgedDance'];
+  if (isPurgedDance != null && isPurgedDance is! bool) {
+    throw FormatException(
+      'program draft slot.isPurgedDance must be a bool: $isPurgedDance',
+    );
+  }
   try {
     return ProgramSlot(
       id: id,
       position: position,
       danceId: _strOrNull(m, 'danceId'),
       text: _strOrNull(m, 'text'),
+      isPurgedDance: isPurgedDance as bool?,
       isAlt: _bool(m, 'isAlt'),
       guestCaller: _strOrNull(m, 'guestCaller'),
       plannedMinutes: planned as int?,

@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -32,7 +33,7 @@ import '../export/program_matrix_pdf.dart';
 import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
-import '../search/facet_labels.dart' show formationLabel;
+import '../search/facet_labels.dart' show formationDisplayLabel;
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
@@ -63,10 +64,11 @@ import '../widgets/program_status_chip.dart';
 /// bottom sheet.
 ///
 /// Language-neutral sentinel stored in [_ProgramEditorScreenState._loadError]
-/// when the requested program no longer exists. Kept locale-independent (rather
-/// than a resolved string) so the message re-localizes if the app language is
-/// switched live while this retained editor is off-screen.
-enum _ProgramLoadError { missing }
+/// when the requested program no longer exists or Undo recovery cannot
+/// reconcile the editor. Kept locale-independent (rather than a resolved
+/// string) so the message re-localizes if the app language is switched live
+/// while this retained editor is off-screen.
+enum _ProgramLoadError { missing, undoRecoveryFailed }
 
 enum _PreviewPane { editor, picker }
 
@@ -165,6 +167,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
+  bool _autoCommitInFlight = false;
+  int? _autoCommitPersistedGeneration;
+  int _bulkUndoActionToken = 0;
+  int? _pendingBulkUndoActionToken;
+  int? _persistedBulkUndoActionToken;
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
+  Set<String>? _pendingBulkUndoSlotIds;
+  Program? _pendingBulkUndoBaseline;
+  DateTime? _pendingBulkUndoTimestamp;
+  bool? _pendingBulkUndoWasDirty;
+  int? _pendingBulkUndoEditGeneration;
+  int _bulkUndoGeneration = 0;
   int _editGeneration = 0;
   int _collectionDataGeneration = 0;
 
@@ -762,12 +776,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       if (!mounted) return;
       if (program != null) {
-        _titleController.text = program.title;
-        _venueController.text = program.venue ?? '';
-        _bandController.text = program.band ?? '';
-        _callerController.text = program.caller ?? '';
-        _levelController.text = program.dancerLevel ?? '';
-        _notesController.text = program.notes;
+        _applyProgramToEditor(program);
         // Resolve the linked venue (if any) up front so the simple-mode
         // read-only fallback can show its name without an async gap.
         if (program.venueId != null) {
@@ -784,12 +793,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (!mounted) return;
       setState(() {
         _setCollectionData(_latestData ?? data);
-        _existing = program;
-        _eventDate = program?.eventDate;
-        _venueId = program?.venueId;
-        _status = program?.status ?? ProgramStatus.draft;
-        _hideAlternates = program?.hideAlternates ?? false;
-        _slots = program?.slots.toList() ?? const [];
+        if (program != null) {
+          _applyProgramToEditor(program);
+        } else {
+          _existing = null;
+          _eventDate = null;
+          _venueId = null;
+          _status = ProgramStatus.draft;
+          _hideAlternates = false;
+          _slots = const [];
+        }
         _loaded = true;
       });
       // Detect an autosaved draft from an interrupted prior session and stage a
@@ -810,6 +823,21 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         });
       }
     }
+  }
+
+  void _applyProgramToEditor(Program program) {
+    _titleController.text = program.title;
+    _venueController.text = program.venue ?? '';
+    _bandController.text = program.band ?? '';
+    _callerController.text = program.caller ?? '';
+    _levelController.text = program.dancerLevel ?? '';
+    _notesController.text = program.notes;
+    _existing = program;
+    _eventDate = program.eventDate;
+    _venueId = program.venueId;
+    _status = program.status;
+    _hideAlternates = program.hideAlternates;
+    _slots = program.slots.toList();
   }
 
   /// Seeds the caller/band controllers for a NEW program from the saved G.3
@@ -846,6 +874,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   void dispose() {
     _autosaveTimer?.cancel();
     _autoCommitTimer?.cancel();
+    _bulkUndoSnackBar?.close();
     _replaceSubscription();
     _pickerCounts.dispose();
     _tabController.dispose();
@@ -940,53 +969,80 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _autoCommit(int generation) async {
-    if (!mounted ||
-        !_autoCommitEnabled ||
-        !_dirty ||
-        generation != _editGeneration) {
-      return;
-    }
-    final draft = _draftProgram;
-    if (draft == null) return;
-    final wasNew = _existing == null;
-    final oldDraftKey = _draftKey;
+    _autoCommitInFlight = true;
     try {
-      final persisted = await _persistDraft(draft);
-      if (!mounted) return;
-      if (wasNew && _existing == null) {
-        _existing = persisted;
-        await _clearDraftKey(oldDraftKey);
-        if (_dirty && generation != _editGeneration) {
+      if (!mounted ||
+          !_autoCommitEnabled ||
+          !_dirty ||
+          generation != _editGeneration) {
+        return;
+      }
+      final draft = _draftProgram;
+      if (draft == null) return;
+      final wasNew = _existing == null;
+      final oldDraftKey = _draftKey;
+      final bulkUndoEditGeneration = _pendingBulkUndoEditGeneration;
+      final bulkUndoActionToken = _pendingBulkUndoActionToken;
+      final bulkUndoSlotIds = _pendingBulkUndoSlotIds;
+      final bulkUndoTimestamp = _pendingBulkUndoTimestamp;
+      try {
+        final persisted = await _persistDraft(draft);
+        _autoCommitPersistedGeneration = generation;
+        if (bulkUndoEditGeneration != null &&
+            bulkUndoActionToken != null &&
+            bulkUndoSlotIds != null &&
+            bulkUndoTimestamp != null &&
+            persisted.slots.any(
+              (slot) =>
+                  bulkUndoSlotIds.contains(slot.id) &&
+                  slot.performedAt == bulkUndoTimestamp,
+            )) {
+          _persistedBulkUndoActionToken = bulkUndoActionToken;
+        }
+        if (!mounted) return;
+        if (wasNew && _existing == null) {
+          _existing = persisted;
+          await _clearDraftKey(oldDraftKey);
+          if (_dirty && generation != _editGeneration) {
+            await _saveDraft();
+          }
+        }
+        if (!mounted || generation != _editGeneration) {
+          if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+          return;
+        }
+        await _clearDraft(waitForCommits: false, resetEditorState: false);
+        if (!mounted) return;
+        if (generation != _editGeneration) {
           await _saveDraft();
+          if (!mounted) return;
+          if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+          return;
+        }
+        setState(() {
+          _existing = persisted;
+          _dirty = false;
+          _slots = persisted.slots;
+        });
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._autoCommit',
+        );
+        if (!mounted) return;
+        if (_saving) return;
+        final errorMessage = AppLocalizations.of(context).programsSaveError;
+        if (_pendingBulkUndoSlotIds != null) {
+          _showBulkUndoSnackBar(message: errorMessage);
+        } else {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(errorMessage)));
         }
       }
-      if (!mounted || generation != _editGeneration) {
-        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
-        return;
-      }
-      await _clearDraft(waitForCommits: false, resetEditorState: false);
-      if (!mounted) return;
-      if (generation != _editGeneration) {
-        await _saveDraft();
-        if (!mounted) return;
-        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
-        return;
-      }
-      setState(() {
-        _existing = persisted;
-        _dirty = false;
-        _slots = persisted.slots;
-      });
-    } catch (error, stackTrace) {
-      logCaughtError(
-        error,
-        stackTrace,
-        source: 'program_editor_screen._autoCommit',
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).programsSaveError)),
-      );
+    } finally {
+      _autoCommitInFlight = false;
     }
   }
 
@@ -1153,6 +1209,244 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final venue = await _repos.venues.getById(id);
     if (!mounted || _venueId != id) return;
     setState(() => _linkedVenue = venue);
+  }
+
+  Future<void> _refreshLinkedVenueForId(String? id) async {
+    if (id == null) {
+      if (mounted) setState(() => _linkedVenue = null);
+      return;
+    }
+    await _refreshLinkedVenue(id);
+  }
+
+  ProgramSlot _mergeUndoSlot({
+    required ProgramSlot atReadStart,
+    required ProgramSlot local,
+    required ProgramSlot live,
+  }) => ProgramSlot(
+    id: local.id,
+    position: local.position == atReadStart.position
+        ? live.position
+        : local.position,
+    danceId: local.danceId == atReadStart.danceId
+        ? live.danceId
+        : local.danceId,
+    text: local.text == atReadStart.text ? live.text : local.text,
+    isAlt: local.isAlt == atReadStart.isAlt ? live.isAlt : local.isAlt,
+    guestCaller: local.guestCaller == atReadStart.guestCaller
+        ? live.guestCaller
+        : local.guestCaller,
+    plannedMinutes: local.plannedMinutes == atReadStart.plannedMinutes
+        ? live.plannedMinutes
+        : local.plannedMinutes,
+    performedAt: local.performedAt == atReadStart.performedAt
+        ? live.performedAt
+        : local.performedAt,
+  );
+
+  Program _mergeUndoProgram({
+    required Program atReadStart,
+    required Program local,
+    required Program live,
+    required List<ProgramSlot> slots,
+  }) => Program(
+    id: live.id,
+    title: local.title == atReadStart.title ? live.title : local.title,
+    eventDate: local.eventDate == atReadStart.eventDate
+        ? live.eventDate
+        : local.eventDate,
+    venue: local.venue == atReadStart.venue ? live.venue : local.venue,
+    venueId: local.venueId == atReadStart.venueId
+        ? live.venueId
+        : local.venueId,
+    band: local.band == atReadStart.band ? live.band : local.band,
+    caller: local.caller == atReadStart.caller ? live.caller : local.caller,
+    dancerLevel: local.dancerLevel == atReadStart.dancerLevel
+        ? live.dancerLevel
+        : local.dancerLevel,
+    notes: local.notes == atReadStart.notes ? live.notes : local.notes,
+    status: local.status == atReadStart.status ? live.status : local.status,
+    hideAlternates: local.hideAlternates == atReadStart.hideAlternates
+        ? live.hideAlternates
+        : local.hideAlternates,
+    slots: slots,
+    createdAt: live.createdAt,
+    updatedAt: live.updatedAt,
+    deletedAt: live.deletedAt,
+    provenance: live.provenance,
+  );
+
+  List<ProgramSlot> _mergeUndoSlots({
+    required List<ProgramSlot> atReadStart,
+    required List<ProgramSlot> local,
+    required List<ProgramSlot> live,
+  }) {
+    final baselineSlotsById = {for (final slot in atReadStart) slot.id: slot};
+    final localSlotsById = {for (final slot in local) slot.id: slot};
+    final liveSlotsById = {for (final slot in live) slot.id: slot};
+    final refreshedSlots = <ProgramSlot>[];
+    for (final slot in local) {
+      final baseline = baselineSlotsById[slot.id];
+      if (baseline == null) {
+        refreshedSlots.add(slot);
+        continue;
+      }
+      final liveSlot = liveSlotsById[slot.id];
+      if (liveSlot == null) {
+        if (slot != baseline) refreshedSlots.add(slot);
+        continue;
+      }
+      refreshedSlots.add(
+        _mergeUndoSlot(atReadStart: baseline, local: slot, live: liveSlot),
+      );
+    }
+    for (final liveSlot in live) {
+      if (!localSlotsById.containsKey(liveSlot.id) &&
+          !baselineSlotsById.containsKey(liveSlot.id)) {
+        refreshedSlots.add(liveSlot);
+      }
+    }
+    refreshedSlots.sort((a, b) => a.position.compareTo(b.position));
+    return _renumber(refreshedSlots);
+  }
+
+  Future<bool> _refreshPerformedAtForUndo() async {
+    final storedBaseline = _pendingBulkUndoBaseline ?? _existing;
+    if (storedBaseline == null) return false;
+    final live = await _repos.programs.getById(storedBaseline.id);
+    if (!mounted) return false;
+    if (live == null) {
+      await _showMissingProgramAfterUndo();
+      return false;
+    }
+    final local = _draftProgram ?? storedBaseline;
+    final merged = _mergeUndoProgram(
+      atReadStart: storedBaseline,
+      local: local,
+      live: live,
+      slots: _mergeUndoSlots(
+        atReadStart: storedBaseline.slots,
+        local: _slots,
+        live: live.slots,
+      ),
+    );
+    setState(() => _applyProgramToEditor(merged));
+    await _refreshLinkedVenueForId(merged.venueId);
+    return true;
+  }
+
+  Future<void> _showMissingProgramAfterUndo() async {
+    if (!mounted) return;
+    _bulkUndoGeneration++;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+    _pendingBulkUndoSlotIds = null;
+    _pendingBulkUndoBaseline = null;
+    _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoWasDirty = null;
+    _pendingBulkUndoEditGeneration = null;
+    _pendingBulkUndoActionToken = null;
+    _persistedBulkUndoActionToken = null;
+    _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
+    setState(() {
+      _existing = null;
+      _loadError = _ProgramLoadError.missing;
+      _dirty = false;
+      _eventDate = null;
+      _venueId = null;
+      _linkedVenue = null;
+      _slots = const [];
+    });
+    await _clearDraft(waitForCommits: false, resetEditorState: false);
+  }
+
+  Future<void> _restoreEditorAfterUndoFailure({
+    required bool noInterveningEdit,
+    required int undoEditGeneration,
+  }) async {
+    try {
+      final live = await _repos.programs.getById(_existing!.id);
+      if (!mounted) return;
+      if (live == null) {
+        await _showMissingProgramAfterUndo();
+        return;
+      }
+      if (noInterveningEdit && _editGeneration == undoEditGeneration) {
+        final baseline = _pendingBulkUndoBaseline ?? _existing!;
+        final local = _draftProgram ?? baseline;
+        final editedDuringRead = _editGeneration != undoEditGeneration;
+        final restored = editedDuringRead
+            ? _mergeUndoProgram(
+                atReadStart: baseline,
+                local: local,
+                live: live,
+                slots: _mergeUndoSlots(
+                  atReadStart: baseline.slots,
+                  local: _slots,
+                  live: live.slots,
+                ),
+              )
+            : live;
+        _applyProgramToEditor(restored);
+        await _refreshLinkedVenueForId(restored.venueId);
+        if (!mounted) return;
+        if (editedDuringRead || _editGeneration != undoEditGeneration) {
+          setState(() {
+            _dirty = true;
+          });
+          _scheduleAutosave();
+          _scheduleAutoCommit();
+          return;
+        }
+        setState(() => _dirty = false);
+        return;
+      }
+      final baseline = _pendingBulkUndoBaseline ?? _existing!;
+      final local = _draftProgram ?? baseline;
+      final merged = _mergeUndoProgram(
+        atReadStart: baseline,
+        local: local,
+        live: live,
+        slots: _mergeUndoSlots(
+          atReadStart: baseline.slots,
+          local: _slots,
+          live: live.slots,
+        ),
+      );
+      setState(() {
+        _applyProgramToEditor(merged);
+        _dirty = true;
+      });
+      await _refreshLinkedVenueForId(merged.venueId);
+      if (!mounted) return;
+      if (_editGeneration != undoEditGeneration) {
+        _scheduleAutosave();
+        _scheduleAutoCommit();
+        return;
+      }
+      _scheduleAutosave();
+      _scheduleAutoCommit();
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_editor_screen._restoreEditorAfterUndoFailure',
+      );
+      await _enterUndoRecoveryFailureState();
+    }
+  }
+
+  Future<void> _enterUndoRecoveryFailureState() async {
+    if (!mounted) return;
+    _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    setState(() {
+      _loadError = _ProgramLoadError.undoRecoveryFailed;
+      _dirty = false;
+    });
+    await _clearDraft(waitForCommits: false, resetEditorState: false);
   }
 
   /// Renumbers positions contiguously (0..n-1) in list order.
@@ -1335,6 +1629,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final data = _data;
     final program = _programToPerform(AppLocalizations.of(context));
     if (data == null || program == null) return;
+    _invalidateBulkUndo();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
@@ -1608,25 +1903,258 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _markAllPerformed() async {
-    final now = DateTime.now().toUtc();
+    if (!mounted || _saving || _pickerImporting) return;
+    final now = nextStoredTimestamp(
+      now: DateTime.now().toUtc(),
+      current: [..._slots.map((s) => s.performedAt), _pendingBulkUndoTimestamp],
+    );
+    final wasDirty = _dirty;
     final l10n = AppLocalizations.of(context);
+    final markedSlotIds = <String>{};
     setState(() {
-      _slots = [
-        for (final s in _slots)
-          s.danceId != null && s.performedAt == null
-              ? s.copyWith(performedAt: now)
-              : s,
-      ];
+      final updatedSlots = <ProgramSlot>[];
+      for (final s in _slots) {
+        if (s.danceId != null && s.performedAt == null) {
+          markedSlotIds.add(s.id);
+          updatedSlots.add(s.copyWith(performedAt: now));
+        } else {
+          updatedSlots.add(s);
+        }
+      }
+      _slots = updatedSlots;
+      if (markedSlotIds.isNotEmpty) {
+        _pendingBulkUndoTimestamp = now;
+      }
     });
+    if (markedSlotIds.isEmpty) return;
+    _pendingBulkUndoBaseline = _existing;
     _markDirty();
+    final actionToken = ++_bulkUndoActionToken;
+    _pendingBulkUndoSlotIds = {...markedSlotIds};
+    _pendingBulkUndoWasDirty = wasDirty;
+    _pendingBulkUndoEditGeneration = _editGeneration;
+    _pendingBulkUndoActionToken = actionToken;
+    _persistedBulkUndoActionToken = null;
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
       Directionality.maybeOf(context) ?? TextDirection.ltr,
     );
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(l10n.programsMarkedAllPerformed)));
+    _showBulkUndoSnackBar();
+  }
+
+  void _showBulkUndoSnackBar({String? message}) {
+    final markedSlotIds = _pendingBulkUndoSlotIds;
+    final actionTimestamp = _pendingBulkUndoTimestamp;
+    final wasDirty = _pendingBulkUndoWasDirty;
+    final actionEditGeneration = _pendingBulkUndoEditGeneration;
+    final actionToken = _pendingBulkUndoActionToken;
+    if (markedSlotIds == null ||
+        actionTimestamp == null ||
+        wasDirty == null ||
+        actionEditGeneration == null ||
+        actionToken == null ||
+        !mounted) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final undoGeneration = ++_bulkUndoGeneration;
+    final snackBar = showUndoSnackBar(
+      messenger,
+      message: message ?? l10n.programsMarkedAllPerformed,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () {
+        if (undoGeneration != _bulkUndoGeneration || _saving) return;
+        _bulkUndoGeneration++;
+        _bulkUndoSnackBar = null;
+        _pendingBulkUndoSlotIds = null;
+        _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoWasDirty = null;
+        _pendingBulkUndoEditGeneration = null;
+        unawaited(
+          _undoMarkAllPerformed(
+            markedSlotIds,
+            actionTimestamp,
+            actionToken: actionToken,
+            wasDirty: wasDirty,
+            actionEditGeneration: actionEditGeneration,
+          ),
+        );
+      },
+    );
+    _bulkUndoSnackBar = snackBar;
+    unawaited(
+      snackBar.closed.then((_) {
+        if (!mounted || _bulkUndoSnackBar != snackBar) return;
+        _bulkUndoSnackBar = null;
+        _pendingBulkUndoSlotIds = null;
+        _pendingBulkUndoTimestamp = null;
+        _pendingBulkUndoWasDirty = null;
+        _pendingBulkUndoEditGeneration = null;
+        _pendingBulkUndoActionToken = null;
+        _persistedBulkUndoActionToken = null;
+      }),
+    );
+  }
+
+  void _invalidateBulkUndo() {
+    _bulkUndoGeneration++;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+    _pendingBulkUndoSlotIds = null;
+    _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoWasDirty = null;
+    _pendingBulkUndoEditGeneration = null;
+    _pendingBulkUndoActionToken = null;
+    _persistedBulkUndoActionToken = null;
+  }
+
+  Future<void> _undoMarkAllPerformed(
+    Set<String> markedSlotIds,
+    DateTime actionTimestamp, {
+    required int actionToken,
+    required bool wasDirty,
+    required int actionEditGeneration,
+  }) async {
+    if (!mounted || _saving) return;
+    final noInterveningEdit = _editGeneration == actionEditGeneration;
+    final canRestoreCleanState =
+        !wasDirty && _dirty && _editGeneration == actionEditGeneration;
+    final autoCommitWasInFlight = _autoCommitInFlight;
+    final autoCommitHadPersisted =
+        _autoCommitPersistedGeneration == actionEditGeneration ||
+        _persistedBulkUndoActionToken == actionToken;
+    setState(() {
+      _slots = [
+        for (final slot in _slots)
+          markedSlotIds.contains(slot.id) && slot.performedAt == actionTimestamp
+              ? slot.copyWith(clearPerformedAt: true)
+              : slot,
+      ];
+    });
+    if (autoCommitHadPersisted || autoCommitWasInFlight) {
+      _autosaveTimer?.cancel();
+      _autoCommitTimer?.cancel();
+      final undoEditGeneration = ++_editGeneration;
+      await _commitQueueTail;
+      if (!mounted) return;
+      _autoCommitTimer?.cancel();
+      final autoCommitPersisted =
+          _autoCommitPersistedGeneration == actionEditGeneration ||
+          _persistedBulkUndoActionToken == actionToken;
+      if (!autoCommitPersisted) {
+        if (canRestoreCleanState) {
+          await _clearDraft(waitForCommits: false);
+        } else {
+          _markDirty();
+        }
+        return;
+      }
+      try {
+        await _repos.programs.clearPerformedAtIfMatches(
+          programId: _existing!.id,
+          slotIds: markedSlotIds,
+          performedAt: actionTimestamp,
+          updatedAt: DateTime.now().toUtc(),
+        );
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._undoMarkAllPerformed',
+        );
+        if (mounted) {
+          await _restoreEditorAfterUndoFailure(
+            noInterveningEdit: noInterveningEdit,
+            undoEditGeneration: undoEditGeneration,
+          );
+          if (!mounted) return;
+          _showBulkUndoErrorSnackBar(
+            AppLocalizations.of(context).programsUndoPerformedError,
+          );
+        }
+        return;
+      }
+      try {
+        if (!mounted) return;
+        if (noInterveningEdit && _editGeneration == undoEditGeneration) {
+          final live = await _repos.programs.getById(_existing!.id);
+          if (!mounted) return;
+          if (live == null) {
+            await _showMissingProgramAfterUndo();
+            return;
+          }
+          final editedDuringRead = _editGeneration != undoEditGeneration;
+          final restored = editedDuringRead
+              ? _mergeUndoProgram(
+                  atReadStart: _pendingBulkUndoBaseline ?? _existing!,
+                  local:
+                      _draftProgram ?? (_pendingBulkUndoBaseline ?? _existing!),
+                  live: live,
+                  slots: _mergeUndoSlots(
+                    atReadStart: (_pendingBulkUndoBaseline ?? _existing!).slots,
+                    local: _slots,
+                    live: live.slots,
+                  ),
+                )
+              : live;
+          _applyProgramToEditor(restored);
+          await _refreshLinkedVenueForId(restored.venueId);
+          if (!mounted) return;
+          if (editedDuringRead || _editGeneration != undoEditGeneration) {
+            _scheduleAutosave();
+            _scheduleAutoCommit();
+            return;
+          }
+          await _clearDraft(waitForCommits: false);
+          return;
+        }
+        final liveStillExists = await _refreshPerformedAtForUndo();
+        if (!mounted) return;
+        if (!liveStillExists) return;
+        if (_dirty) {
+          _scheduleAutosave();
+          _scheduleAutoCommit();
+        } else {
+          await _clearDraft(waitForCommits: false, resetEditorState: false);
+        }
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._undoMarkAllPerformed.refresh',
+        );
+        if (mounted) {
+          await _enterUndoRecoveryFailureState();
+          if (!mounted) return;
+          _showBulkUndoErrorSnackBar(
+            AppLocalizations.of(context).programsUndoRefreshError,
+          );
+        }
+      }
+    } else if (canRestoreCleanState) {
+      _autosaveTimer?.cancel();
+      _autoCommitTimer?.cancel();
+      _editGeneration++;
+      await _commitQueueTail;
+      if (!mounted) return;
+      await _clearDraft(waitForCommits: false);
+    } else {
+      _markDirty();
+    }
+  }
+
+  void _showBulkUndoErrorSnackBar(String message) {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.removeCurrentSnackBar();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!messenger.mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(message)));
+    });
   }
 
   // --- Persistence ----------------------------------------------------------
@@ -1708,6 +2236,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    final restoreBulkUndoOnFailure = _bulkUndoSnackBar != null;
+    final saveStartGeneration = _editGeneration;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
     _autoCommitTimer?.cancel();
     _editGeneration++;
     setState(() => _saving = true);
@@ -1715,12 +2247,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       await _commitQueueTail;
       final draft = _draftProgram;
       if (draft == null) {
-        if (mounted) setState(() => _saving = false);
+        _editGeneration = saveStartGeneration;
+        if (mounted) {
+          setState(() => _saving = false);
+          if (restoreBulkUndoOnFailure) _showBulkUndoSnackBar();
+        }
         return;
       }
       final persisted = await _persistDraft(draft);
       // Work is committed — drop the autosave draft so it can't resurface.
       await _clearDraft();
+      _bulkUndoGeneration++;
+      _bulkUndoSnackBar?.close();
+      _bulkUndoSnackBar = null;
+      _pendingBulkUndoSlotIds = null;
+      _pendingBulkUndoTimestamp = null;
+      _pendingBulkUndoWasDirty = null;
+      _pendingBulkUndoEditGeneration = null;
+      _pendingBulkUndoActionToken = null;
+      _persistedBulkUndoActionToken = null;
       if (!mounted) return;
       setState(() {
         _saving = false;
@@ -1735,15 +2280,23 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         );
         widget.onSaved?.call(persisted.id);
       } else {
+        messenger.hideCurrentSnackBar();
         Navigator.of(context).pop(persisted.id);
       }
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
+      if (_editGeneration == saveStartGeneration + 1) {
+        _editGeneration = saveStartGeneration;
+      }
       setState(() => _saving = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      if (restoreBulkUndoOnFailure) {
+        _showBulkUndoSnackBar(message: l10n.programsSaveError);
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+      }
     }
   }
 
@@ -1926,13 +2479,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   ),
                 ),
               ),
-            if (hasPersistedProgram) ...[
+            if (hasPersistedProgram && _loadError == null) ...[
               if (_slots.any((s) => s.danceId != null))
                 IconButton(
                   key: const ValueKey('mark-all-performed'),
                   tooltip: l10n.programsMarkAllPerformedTooltip,
                   icon: const Icon(Icons.done_all),
-                  onPressed: _pickerImporting ? null : _markAllPerformed,
+                  onPressed: _saving || _pickerImporting
+                      ? null
+                      : _markAllPerformed,
                 ),
               IconButton(
                 key: const ValueKey('duplicate-program'),
@@ -2200,6 +2755,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             altDanceIds: altDanceIds,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
+            formationLabelBuilder: (formation) => formationDisplayLabel(
+              l10n,
+              formation,
+              FigureRenderer(contraTaxonomy),
+              _dialect,
+              canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+                context,
+              ),
+            ),
           ),
         ),
       ],
@@ -2233,7 +2797,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         omittedFreeTextCount: omittedFreeTextCount,
         formatDate: localizations.formatMediumDate,
         labels: programMatrixExportLabels(l10n),
-        formatFormation: (formation) => formationLabel(l10n, formation),
+        formatFormation: (formation) => formationDisplayLabel(
+          l10n,
+          formation,
+          FigureRenderer(contraTaxonomy),
+          _dialect,
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
+        ),
         config: _matrixColumnConfig,
       ),
     );
@@ -2309,10 +2881,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             danceTitles: _titleForDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
+            dialect: _dialect,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,
             onCreateDance: _createDanceFromSlot,
+            reservedPerformedAt: _pendingBulkUndoTimestamp,
             onPickReplacementDance: _data == null
                 ? null
                 : _pickReplacementDance,

@@ -1,0 +1,14 @@
+{
+  "id": "1188-bulk-performed-undo",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "You can undo marking all dances performed from a program without clearing earlier performed history or later edits."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Add an atomic conditional rollback for performed stamps created by a bulk mark action."
+    ]
+  }
+}

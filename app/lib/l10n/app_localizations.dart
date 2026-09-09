@@ -878,6 +878,18 @@ abstract class AppLocalizations {
   /// **'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.'**
   String get settingsDialectCanonicalFigureTextSubtitle;
 
+  /// Setting title for display-only conversion of discouraged dance terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-convert all discouraged terms'**
+  String get settingsDialectCanonicalDiscouragedTermsTitle;
+
+  /// Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.'**
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle;
+
   /// Label of the button (and title of the prompt) that creates a new custom dialect.
   ///
   /// In en, this message translates to:
@@ -2501,8 +2513,14 @@ abstract class AppLocalizations {
   /// Formation shape value: duple improper.
   ///
   /// In en, this message translates to:
-  /// **'Duple improper'**
+  /// **'Improper'**
   String get commonFormationDupleImproper;
+
+  /// Formation shape value: improper formation with reverse progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse progression improper'**
+  String get commonFormationReverseProgressionImproper;
 
   /// Formation shape value: Becket, clockwise progression (CW).
   ///
@@ -2519,13 +2537,13 @@ abstract class AppLocalizations {
   /// Formation shape value: duple proper.
   ///
   /// In en, this message translates to:
-  /// **'Duple proper'**
+  /// **'Proper'**
   String get commonFormationDupleProper;
 
   /// Formation shape value: duple indecent.
   ///
   /// In en, this message translates to:
-  /// **'Duple indecent'**
+  /// **'Indecent'**
   String get commonFormationDupleIndecent;
 
   /// Formation shape value: triple minor.
@@ -3995,6 +4013,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not save the program.'**
   String get programsSaveError;
+
+  /// Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo marking; performed marks remain saved.'**
+  String get programsUndoPerformedError;
+
+  /// Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo was saved, but the editor could not refresh.'**
+  String get programsUndoRefreshError;
 
   /// Snackbar confirming a program was duplicated, quoting the copy's title.
   ///

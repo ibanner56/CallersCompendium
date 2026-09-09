@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -589,11 +590,20 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
 
   DanceExportMenu _exportMenu(BuildContext context, DanceDetailData detail) {
     final l10n = AppLocalizations.of(context);
+    final dialect = ActiveDialectScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     return DanceExportMenu(
       dance: detail.dance,
-      dialect: ActiveDialectScope.of(context),
+      dialect: dialect,
       authorNames: detail.authorNames,
-      formationLabel: formationLabel(l10n, detail.dance.formation),
+      formationLabel: _formationDisplayLabel(
+        l10n,
+        detail.dance.formation,
+        dialect,
+        canonicalDiscouragedTerms,
+      ),
       levelLabel: _levelLabel(l10n, detail.dance),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
@@ -678,11 +688,17 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       detail.dance,
       dialect: dialect,
       authorNames: detail.authorNames,
-      formationLabel: formationLabel(l10n, detail.dance.formation),
+      formationLabel: _formationDisplayLabel(
+        l10n,
+        detail.dance.formation,
+        dialect,
+        CanonicalDiscouragedTermsScope.of(context),
+      ),
       levelLabel: _levelLabel(l10n, detail.dance),
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
       labels: danceExportLabels(l10n),
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
     );
 
     return PopupMenuButton<void>(
@@ -944,6 +960,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     }
   }
 
+  String _formationDisplayLabel(
+    AppLocalizations l10n,
+    Formation formation,
+    Dialect dialect,
+    bool canonicalizeDiscouragedTerms,
+  ) => formationDisplayLabel(
+    l10n,
+    formation,
+    _renderer,
+    dialect,
+    canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+  );
+
   Future<void> _exportDancePdf(Dialect dialect, DanceDetailData detail) async {
     final messenger = ScaffoldMessenger.of(context);
     final l10n = AppLocalizations.of(context);
@@ -954,11 +983,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           detail.dance,
           dialect: dialect,
           authorNames: detail.authorNames,
-          formationLabel: formationLabel(l10n, detail.dance.formation),
+          formationLabel: _formationDisplayLabel(
+            l10n,
+            detail.dance.formation,
+            dialect,
+            CanonicalDiscouragedTermsScope.of(context),
+          ),
           levelLabel: _levelLabel(l10n, detail.dance),
           statusLabel: danceStatusLabel(l10n, detail.dance.status),
           renderer: _renderer,
           labels: danceExportLabels(l10n),
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
         ),
       );
     } on Exception catch (e, stackTrace) {
@@ -1052,6 +1089,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final theme = Theme.of(context);
     final dance = detail.dance;
     final activeDialect = ActiveDialectScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     // When the active dialect is already canonical, _canonicalView is a no-op
     // (both sides of the toggle are identical).  In that case hide the toggle.
     final isCanonicalDialect = activeDialect == Dialect.canonical;
@@ -1091,7 +1131,12 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                             context,
                           )?.overrideFor(dance.formation.shape);
                           final text = Text(
-                            formationLabel(l10n, dance.formation),
+                            _formationDisplayLabel(
+                              l10n,
+                              dance.formation,
+                              dialect,
+                              canonicalDiscouragedTerms,
+                            ),
                           );
                           if (color == null) return text;
                           return Align(
@@ -1135,7 +1180,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 if (dance.hook.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
-                    text: _renderer.renderFreeText(dance.hook, dialect),
+                    text: canonicalDiscouragedTerms
+                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                            dance.hook,
+                            dialect,
+                          )
+                        : _renderer.renderFreeText(dance.hook, dialect),
+                    linkText: dance.hook,
+                    transformUnlinkedText: (value) => canonicalDiscouragedTerms
+                        ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                            value,
+                            dialect,
+                          )
+                        : _renderer.renderFreeText(value, dialect),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1204,7 +1261,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(dance.callingNotes, dialect),
+            text: canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.callingNotes,
+                    dialect,
+                  )
+                : _renderer.renderFreeText(dance.callingNotes, dialect),
+            linkText: dance.callingNotes,
+            transformUnlinkedText: (value) => canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    value,
+                    dialect,
+                  )
+                : _renderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1218,7 +1287,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+            text: canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    dance.walkthrough.trim(),
+                    dialect,
+                  )
+                : _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+            linkText: dance.walkthrough.trim(),
+            transformUnlinkedText: (value) => canonicalDiscouragedTerms
+                ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                    value,
+                    dialect,
+                  )
+                : _renderer.renderFreeText(value, dialect),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1228,7 +1309,19 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionTunes, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.xxs),
-          Text(dance.tunes.join(', ')),
+          Text(
+            canonicalDiscouragedTerms
+                ? dance.tunes
+                      .map(
+                        (tune) => _renderer
+                            .renderFreeTextWithCanonicalDiscouragedTerms(
+                              tune,
+                              dialect,
+                            ),
+                      )
+                      .join(', ')
+                : dance.tunes.join(', '),
+          ),
         ],
         if (dance.links.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
@@ -1277,7 +1370,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             Padding(
               // intentional: 2px optical inset, below the 4px AppSpacing grid
               padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Text('${field.label}: ${field.value}'),
+              child: Text(
+                '${field.label}: ${canonicalDiscouragedTerms ? _renderer.renderFreeTextWithCanonicalDiscouragedTerms(field.value, dialect) : field.value}',
+              ),
             ),
         ],
         // Calling history is a collection-only concept — hidden for a
@@ -1448,9 +1543,16 @@ class _LinkRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final label = link.label?.trim();
+    final canonicalizeDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     final String display;
     if (label != null && label.isNotEmpty) {
-      display = label;
+      display = canonicalizeDiscouragedTerms
+          ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(label, dialect)
+          : label;
     } else if (link.kind == LinkKind.relatedDance) {
       display = relatedDanceTitle ?? link.targetDanceId ?? '';
     } else {
@@ -1650,12 +1752,16 @@ class _SourceCitationRow extends StatelessWidget {
 class _CrossReferenceText extends StatelessWidget {
   const _CrossReferenceText({
     required this.text,
+    this.linkText,
+    this.transformUnlinkedText,
     required this.style,
     required this.linker,
     required this.onOpenDance,
   });
 
   final String text;
+  final String? linkText;
+  final String Function(String text)? transformUnlinkedText;
   final TextStyle? style;
   final DanceTitleLinker linker;
   final void Function(String danceId) onOpenDance;
@@ -1675,7 +1781,7 @@ class _CrossReferenceText extends StatelessWidget {
     );
 
     final spans = linker.spansFor(
-      text,
+      linkText ?? text,
       baseStyle: style,
       buildLink: (matchedText, danceId) => WidgetSpan(
         alignment: PlaceholderAlignment.baseline,
@@ -1697,14 +1803,34 @@ class _CrossReferenceText extends StatelessWidget {
       ),
     );
 
-    if (spans.length == 1 && spans.first is TextSpan) {
+    final displaySpans = transformUnlinkedText == null
+        ? spans
+        : spans.map(_transformUnlinkedSpan).toList();
+
+    if (displaySpans.length == 1 && displaySpans.first is TextSpan) {
       // No links were produced (e.g. all matches resolved to unknown ids);
       // render as plain text.
-      final only = spans.first as TextSpan;
+      final only = displaySpans.first as TextSpan;
       if (only.children == null) {
         return Text(only.text ?? text, style: style);
       }
     }
-    return Text.rich(TextSpan(children: spans));
+    return Text.rich(TextSpan(children: displaySpans));
+  }
+
+  InlineSpan _transformUnlinkedSpan(InlineSpan span) {
+    if (span is! TextSpan || transformUnlinkedText == null) return span;
+    return TextSpan(
+      text: span.text == null ? null : transformUnlinkedText!(span.text!),
+      style: span.style,
+      recognizer: span.recognizer,
+      mouseCursor: span.mouseCursor,
+      onEnter: span.onEnter,
+      onExit: span.onExit,
+      semanticsLabel: span.semanticsLabel,
+      locale: span.locale,
+      spellOut: span.spellOut,
+      children: span.children?.map(_transformUnlinkedSpan).toList(),
+    );
   }
 }

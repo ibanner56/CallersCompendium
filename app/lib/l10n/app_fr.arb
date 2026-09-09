@@ -512,6 +512,14 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
   },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Convertir automatiquement tous les termes déconseillés",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "x-sourceSha256": "c3cd1539f3a19b4f0a2a77daa0b119d57a5052ce0bac40c2c3e6728eec122526"
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "Lorsqu’elle est activée, cette option utilise une formulation canonique pour les termes déconseillés pris en charge dans les détails des danses, les notes et les exportations. Le texte enregistré et les champs de saisie restent inchangés. Activée par défaut.",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "x-sourceSha256": "6da747058b2195c2a5b721e0887ad4866e699160433d7de1e72c10d5deba3652"
+  },
   "settingsDialectNewButton": "Nouveau dialecte",
   "@settingsDialectNewButton": {
     "x-sourceSha256": "185d728af8efa1495bb12ca9389e9904eebb024c700b94df58a74e02b9ed1d6e"
@@ -1592,9 +1600,13 @@
   "@commonDanceLevelAdvanced": {
     "x-sourceSha256": "9f088dbebd6c3c70a5ddbc2c943b11e4ca9acea5757b0b4f2b32479f0dbb747e"
   },
-  "commonFormationDupleImproper": "Duple improper",
+  "commonFormationDupleImproper": "Improper",
   "@commonFormationDupleImproper": {
-    "x-sourceSha256": "7d4809232dd29915bfa8b7a2fd009728a4c9820cd26f06637226d27a567d3680"
+    "x-sourceSha256": "808a0c372428e6e217915030f238b73e494ec4fbb18e8fd5ec2004b7237e2031"
+  },
+  "commonFormationReverseProgressionImproper": "Improper à progression inversée",
+  "@commonFormationReverseProgressionImproper": {
+    "x-sourceSha256": "9883e2a8bdb86a8f098ec334a376e1ab4a57617832057c384fd3e423d8b7dabb"
   },
   "commonFormationBecketCw": "Becket (CW)",
   "@commonFormationBecketCw": {
@@ -1604,13 +1616,13 @@
   "@commonFormationBecketCcw": {
     "x-sourceSha256": "34fbde39ef1bf1a6fb95aa5a2972258e3531c9d0fa5f4e51fde183051cac1544"
   },
-  "commonFormationDupleProper": "Duple proper",
+  "commonFormationDupleProper": "Proper",
   "@commonFormationDupleProper": {
-    "x-sourceSha256": "01c9bd784a2a4c4257c1f26406d7a632cf9375303f2a0ce5c4466f90bee64b24"
+    "x-sourceSha256": "ede828cdf3ce4a7537195a8c6c7f008db69edfea751a2682b3362681b3d36b25"
   },
-  "commonFormationDupleIndecent": "Duple indecent",
+  "commonFormationDupleIndecent": "Indecent",
   "@commonFormationDupleIndecent": {
-    "x-sourceSha256": "e4a67d69292c5a641094b10b623f5919fcdf733a7e2d243ae3a96aa53d29a35d"
+    "x-sourceSha256": "a2eef8c4f9d377392810fdb02e8d4fd912a99e71110a21ee1fbf0fbb5a7f6163"
   },
   "commonFormationTripleMinor": "Triple minor",
   "@commonFormationTripleMinor": {
@@ -2587,6 +2599,14 @@
   "programsSaveError": "Impossible d’enregistrer le programme.",
   "@programsSaveError": {
     "x-sourceSha256": "d7e01bbd514104d066f03048e26a473d8dc2fa0a33a8adeba5030ce82b89d863"
+  },
+  "programsUndoPerformedError": "Impossible d’annuler le marquage ; les marquages « effectué » restent enregistrés.",
+  "@programsUndoPerformedError": {
+    "x-sourceSha256": "fbfde0b54bb73c9f0d1ddc9adbfd71d55cd0c8c3b218a2d419349ad85f5c9aa0"
+  },
+  "programsUndoRefreshError": "L’annulation a été enregistrée, mais l’éditeur n’a pas pu être actualisé.",
+  "@programsUndoRefreshError": {
+    "x-sourceSha256": "ced29e7536a3e95e14bc1ac15990a9c3a9b1a30edac94908f149bb7a89b32e90"
   },
   "programsDuplicatedSnack": "Dupliqué sous le nom « {title} ».",
   "@programsDuplicatedSnack": {

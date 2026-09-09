@@ -197,7 +197,7 @@ void main() {
       expect(_chipBackground(tester, 'chestnut'), const Color(tagColour));
       // The formation, level and rating chips sit in the same Wrap and must be
       // unaffected by their neighbour's colour.
-      for (final sibling in ['Duple improper', 'Intermediate', '3']) {
+      for (final sibling in ['Improper', 'Intermediate', '3']) {
         expect(
           _chipBackground(tester, sibling),
           isNull,

@@ -468,6 +468,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Als dit is ingeschakeld, kunnen dansdetails canonieke rol- en bewegingsnamen tonen en is de schakelaar Canoniek beschikbaar voor niet-canonieke dialecten. Standaard uit.';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Alle afgeraden termen automatisch omzetten';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Als deze optie is ingeschakeld, gebruiken dansdetails, notities en exports canonieke bewoording voor ondersteunde afgeraden termen. Opgeslagen tekst en invoervelden blijven ongewijzigd. Standaard ingeschakeld.';
+
+  @override
   String get settingsDialectNewButton => 'Nieuw dialect';
 
   @override
@@ -1413,7 +1421,11 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Gevorderd';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper met omgekeerde progressie';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1422,10 +1434,10 @@ class AppLocalizationsNl extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -2416,6 +2428,14 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get programsSaveError => 'Het programma kon niet worden opgeslagen.';
+
+  @override
+  String get programsUndoPerformedError =>
+      'De markeringen konden niet ongedaan worden gemaakt; de uitgevoerde markeringen blijven opgeslagen.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Het ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd.';
 
   @override
   String programsDuplicatedSnack(String title) {

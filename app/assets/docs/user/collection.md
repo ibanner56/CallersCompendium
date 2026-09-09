@@ -114,7 +114,7 @@ the **Filters** panel with one tap. It lets you narrow by:
 Two simple rules govern how filters combine, and knowing them makes the panel
 predictable:
 
-- **Within one filter, choices are "any."** Ticking *duple improper* and *becket*
+- **Within one filter, choices are "any."** Ticking *Improper* and *Becket*
   under Formation finds dances in **either** formation.
 - **Across different filters, choices are "all."** Adding an author on top of
   those formations finds dances that match one of the formations **and** are by

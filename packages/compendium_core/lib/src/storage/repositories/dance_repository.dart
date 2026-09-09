@@ -1210,7 +1210,8 @@ class DanceRepository {
       // dance title into a tombstone slot, rather than accepting new input.
       await _db.customUpdate(
         // sync-invariant-exclusion: maintenance-cleanup is idempotent; not a sync record edit.
-        'UPDATE ${_db.programSlots.actualTableName} SET text = ? '
+        'UPDATE ${_db.programSlots.actualTableName} '
+        'SET text = ?, is_purged_dance = 1 '
         'WHERE dance_id = ? AND text IS NULL',
         variables: [
           Variable<String>(normalizeShareableText(d.title)),

@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 
 import 'wcag.dart';
 
-/// Coarse "family" grouping of the 16 canonical [FormationShape]s, used to
+/// Coarse "family" grouping of the 17 canonical [FormationShape]s, used to
 /// drive the optional set-list row **accent colour** (issue #270).
 ///
 /// The families are deliberately few (six) so the palette stays small,
@@ -43,6 +43,7 @@ enum FormationFamily {
 /// enum value so a new shape forces an explicit choice here.
 FormationFamily formationFamilyOf(FormationShape shape) => switch (shape) {
   FormationShape.dupleImproper ||
+  FormationShape.reverseProgressionImproper ||
   FormationShape.dupleProper ||
   FormationShape.dupleIndecent ||
   FormationShape.becketCw ||

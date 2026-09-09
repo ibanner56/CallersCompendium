@@ -53,11 +53,13 @@ ProgramSlot _slot({
   String? text,
   bool isAlt = false,
   int? plannedMinutes,
+  bool? isPurgedDance = false,
 }) => ProgramSlot(
   id: id,
   position: position,
   danceId: danceId,
   text: text,
+  isPurgedDance: isPurgedDance,
   isAlt: isAlt,
   plannedMinutes: plannedMinutes,
 );
@@ -494,6 +496,28 @@ void main() {
     // No alternates here, so the swap control is hidden.
     expect(find.byKey(const ValueKey('perform-alt-swap')), findsNothing);
   });
+
+  testWidgets(
+    'unresolved dance-linked caller notes use the display preference',
+    (tester) async {
+      final data = await _dataWith(const []);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'missing-dance',
+            text: 'Gypsy with the gents',
+            isPurgedDance: null,
+          ),
+        ]),
+      );
+
+      expect(find.text('Shoulder round with the larks'), findsOneWidget);
+    },
+  );
 
   testWidgets('entry from program editor opens the program Perform view', (
     tester,

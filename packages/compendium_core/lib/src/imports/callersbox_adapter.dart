@@ -1463,6 +1463,8 @@ class CallersBoxAdapter implements SourceAdapter {
     FormationShape? shape;
     if (lower.contains('becket')) {
       shape = _becketShape(dance['Direction'], lower, issues);
+    } else if (lower == 'duple minor - reverse progression improper') {
+      shape = FormationShape.reverseProgressionImproper;
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {

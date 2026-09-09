@@ -1461,6 +1461,7 @@ void main() {
       // The tombstone survived and the dance is truly gone.
       expect(purged!.slots.first.danceId, isNull);
       expect(purged.slots.first.text, 'Purged Reel');
+      expect(purged.slots.first.isPurgedDance, isTrue);
 
       // A real exporter's title lookup now misses the purged dance.
       final bytes = await buildProgramPdf(purged, titleFor: (_) => null);

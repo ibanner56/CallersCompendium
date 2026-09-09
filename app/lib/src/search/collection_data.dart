@@ -352,7 +352,8 @@ class CollectionData {
     listCustomFields: [
       for (final def in listFieldDefs)
         for (final value in dance.customFields)
-          if (value.fieldId == def.id) '${def.label}: ${value.value}',
+          if (value.fieldId == def.id)
+            (label: def.label, value: value.value.toString()),
     ],
     lastCalled: lastCalled[dance.id],
     callCounts:

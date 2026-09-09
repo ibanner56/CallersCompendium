@@ -1,4 +1,6 @@
 import '../model/program.dart';
+import '../dialect/dialect.dart';
+import '../dialect/renderer.dart';
 import 'export_labels.dart';
 
 /// Renders a [Program] as a clean, human-readable plain-text set list — the
@@ -11,8 +13,9 @@ import 'export_labels.dart';
 /// The set list is titles + metadata + slot notes only — **not** full per-dance
 /// figure breakdowns. The app layer optionally appends per-dance figure cards
 /// from `danceToPlainText` when the user opts in to "Set list and figures"
-/// (issue #853, ask 2). Dance titles are not dialect
-/// terms, so no canonicalize is applied here.
+/// (issue #853, ask 2). Dance titles are not dialect terms; purge captions
+/// remain lossless while free-text slots and notes may receive display-only
+/// discouraged-term conversion.
 ///
 /// - [titleFor] resolves a slot's [ProgramSlot.danceId] to a dance title;
 ///   return `null` for an unknown/unavailable dance and the renderer falls back
@@ -53,7 +56,16 @@ String programToPlainText(
   String? Function(String venueId)? venueNameFor,
   String Function(DateTime date)? formatDate,
   ProgramExportLabels labels = const ProgramExportLabels(),
+  FigureRenderer? renderer,
+  Dialect? dialect,
+  bool canonicalizeDiscouragedTerms = false,
 }) {
+  if (canonicalizeDiscouragedTerms && (renderer == null || dialect == null)) {
+    throw ArgumentError(
+      'renderer and dialect are required when canonicalizeDiscouragedTerms '
+      'is enabled',
+    );
+  }
   final fmtDate = formatDate ?? _isoDate;
   final lines = <String>[];
 
@@ -79,7 +91,14 @@ String programToPlainText(
     lines.add('${labels.caller}: ${program.caller!.trim()}');
   }
   if (_has(program.dancerLevel)) {
-    lines.add('${labels.level}: ${program.dancerLevel!.trim()}');
+    final level =
+        !canonicalizeDiscouragedTerms || renderer == null || dialect == null
+        ? program.dancerLevel!.trim()
+        : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+            program.dancerLevel!.trim(),
+            dialect,
+          );
+    lines.add('${labels.level}: $level');
   }
 
   final groups = program.outputGrouped;
@@ -87,9 +106,25 @@ String programToPlainText(
     lines.add('');
     var n = 1;
     for (final group in groups) {
-      lines.add('$n. ${_slotLine(group.primary, titleFor, labels)}');
+      final primary = _slotLine(
+        group.primary,
+        titleFor,
+        labels,
+        renderer: renderer,
+        dialect: dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
+      lines.add('$n. $primary');
       for (final alt in group.alternates) {
-        lines.add('   ${labels.alt}: ${_slotLine(alt, titleFor, labels)}');
+        final alternate = _slotLine(
+          alt,
+          titleFor,
+          labels,
+          renderer: renderer,
+          dialect: dialect,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        );
+        lines.add('   ${labels.alt}: $alternate');
       }
       n++;
     }
@@ -98,7 +133,14 @@ String programToPlainText(
   if (_has(program.notes)) {
     lines.add('');
     lines.add('${labels.notes}:');
-    lines.add(program.notes.trim());
+    lines.add(
+      !canonicalizeDiscouragedTerms || renderer == null || dialect == null
+          ? program.notes.trim()
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+              program.notes.trim(),
+              dialect,
+            ),
+    );
   }
 
   return lines.join('\n');
@@ -110,18 +152,38 @@ String programToPlainText(
 String _slotLine(
   ProgramSlot slot,
   String? Function(String danceId) titleFor,
-  ProgramExportLabels labels,
-) {
+  ProgramExportLabels labels, {
+  FigureRenderer? renderer,
+  Dialect? dialect,
+  bool canonicalizeDiscouragedTerms = false,
+}) {
   final buffer = StringBuffer();
 
   if (slot.danceId != null) {
     final title = titleFor(slot.danceId!);
     buffer.write(_has(title) ? title!.trim() : labels.unknownDance);
     // On a dance slot, `text` is a per-slot caller note.
-    if (_has(slot.text)) buffer.write(' — ${slot.text!.trim()}');
+    if (_has(slot.text)) {
+      final note =
+          !canonicalizeDiscouragedTerms || renderer == null || dialect == null
+          ? slot.text!.trim()
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+              slot.text!.trim(),
+              dialect,
+            );
+      buffer.write(' — $note');
+    }
   } else {
-    // Text-only slot (break, waltz, announcement): text is the whole content.
-    buffer.write(slot.text!.trim());
+    // Purge captions are lossless; ordinary text-only slots are display prose.
+    final text = slot.text!.trim();
+    buffer.write(
+      slot.isPurgedDance != false ||
+              !canonicalizeDiscouragedTerms ||
+              renderer == null ||
+              dialect == null
+          ? text
+          : renderer.renderFreeTextWithCanonicalDiscouragedTerms(text, dialect),
+    );
   }
 
   final meta = <String>[

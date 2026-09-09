@@ -5,6 +5,7 @@ import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
+import '../../model/stored_timestamp.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
@@ -236,6 +237,64 @@ class ProgramRepository {
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) =>
       _upsert(program, knownVenueIds: knownVenueIds);
 
+  /// Clears performed stamps created by one bulk mark action.
+  ///
+  /// The slot id and timestamp predicates make this an atomic compare-and-clear
+  /// operation: a later edit to one of the slots, or an edit to another part of
+  /// the program, is preserved instead of being overwritten by a stale
+  /// [Program] snapshot.
+  Future<int> clearPerformedAtIfMatches({
+    required String programId,
+    required Iterable<String> slotIds,
+    required DateTime performedAt,
+    required DateTime updatedAt,
+  }) async {
+    assertUtc(performedAt, 'performedAt');
+    assertUtc(updatedAt, 'updatedAt');
+    final ids = slotIds.toSet();
+    if (ids.isEmpty) return 0;
+
+    return _db.transaction(() async {
+      var cleared = 0;
+      for (final chunk in _chunkIds(ids.toList())) {
+        cleared +=
+            await (_db.update(_db.programSlots)..where(
+                  (t) =>
+                      t.programId.equals(programId) &
+                      t.id.isIn(chunk) &
+                      t.performedAt.equals(performedAt) &
+                      existsQuery(
+                        _db.select(_db.programs)..where(
+                          (p) => p.id.equals(programId) & p.deletedAt.isNull(),
+                        ),
+                      ),
+                ))
+                .write(const ProgramSlotsCompanion(performedAt: Value(null)));
+      }
+      if (cleared == 0) return 0;
+      final liveProgram =
+          await (_db.select(_db.programs)
+                ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (liveProgram == null) return 0;
+      final rollbackUpdatedAt = nextStoredTimestamp(
+        now: updatedAt.isAfter(liveProgram.updatedAt)
+            ? updatedAt
+            : liveProgram.updatedAt.add(storedTimestampTick),
+        current: [liveProgram.updatedAt],
+      );
+      await (_db.update(
+        _db.programs,
+      )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
+        ProgramsCompanion(
+          title: Value(normalizeShareableText(liveProgram.title)),
+          updatedAt: Value(rollbackUpdatedAt),
+        ),
+      );
+      return cleared;
+    });
+  }
+
   Future<void> _upsert(
     Program program, {
     LiveVenueIds? knownVenueIds,
@@ -355,6 +414,7 @@ class ProgramRepository {
               text_: Value(
                 slot.text == null ? null : normalizeShareableText(slot.text!),
               ),
+              isPurgedDance: Value(slot.isPurgedDance),
               isAlt: Value(slot.isAlt),
               guestCaller: Value(
                 slot.guestCaller == null
@@ -621,6 +681,7 @@ class ProgramRepository {
         position: r.position,
         danceId: r.danceId,
         text: r.text_,
+        isPurgedDance: r.isPurgedDance,
         isAlt: r.isAlt,
         guestCaller: r.guestCaller,
         plannedMinutes: r.plannedMinutes,

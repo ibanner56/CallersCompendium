@@ -457,6 +457,13 @@ class AppLocalizationsJa extends AppLocalizations {
       'オンにすると、ダンスの詳細に標準的な役割名と動きの名前を表示でき、標準以外のダイアレクトでは「標準」スイッチを使用できます。デフォルトではオフです。';
 
   @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle => 'すべての非推奨用語を自動変換';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'オンにすると、ダンスの詳細、メモ、エクスポートで、対応する非推奨用語を標準的な表現に置き換えます。保存済みのテキストと入力欄は変更されません。デフォルトでオンです。';
+
+  @override
   String get settingsDialectNewButton => '新しいダイアレクト';
 
   @override
@@ -1353,7 +1360,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'アドバンスド';
 
   @override
-  String get commonFormationDupleImproper => 'デュープルインプロパー';
+  String get commonFormationDupleImproper => 'インプロパー';
+
+  @override
+  String get commonFormationReverseProgressionImproper => '逆進行インプロパー';
 
   @override
   String get commonFormationBecketCw => 'Becket（CW）';
@@ -1362,10 +1372,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket（CCW）';
 
   @override
-  String get commonFormationDupleProper => 'デュープルプロパー';
+  String get commonFormationDupleProper => 'プロパー';
 
   @override
-  String get commonFormationDupleIndecent => 'デュープルインディーセント';
+  String get commonFormationDupleIndecent => 'インディーセント';
 
   @override
   String get commonFormationTripleMinor => 'トリプルマイナー';
@@ -2317,6 +2327,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get programsSaveError => 'プログラムを保存できませんでした。';
+
+  @override
+  String get programsUndoPerformedError => 'マークを取り消せませんでした。実行済みのマークは保存されたままです。';
+
+  @override
+  String get programsUndoRefreshError => '取り消しは保存されましたが、エディターを更新できませんでした。';
 
   @override
   String programsDuplicatedSnack(String title) {

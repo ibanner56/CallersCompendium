@@ -76,6 +76,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
   'canonical_figure_text': _preference,
+  'canonical_discouraged_terms': _preference,
 
   // -- Regional -------------------------------------------------------------
   'app_locale': _preference,

@@ -84,6 +84,41 @@ void main() {
     });
   });
 
+  group('nextStoredTimestamp', () {
+    test('advances past same-second stamps after storage normalization', () {
+      final sameSecond = DateTime.utc(2026, 5, 1, 12);
+      expect(
+        nextStoredTimestamp(
+          now: sameSecond.add(const Duration(milliseconds: 900)),
+          current: [sameSecond],
+        ),
+        sameSecond.add(existenceStampTick),
+      );
+    });
+
+    test('does not jump past unrelated future stamps', () {
+      final sameSecond = DateTime.utc(2026, 5, 1, 12);
+      expect(
+        nextStoredTimestamp(
+          now: sameSecond,
+          current: [sameSecond.add(existenceStampTick * 2)],
+        ),
+        sameSecond,
+      );
+    });
+
+    test('advances through occupied seconds from the intended time', () {
+      final sameSecond = DateTime.utc(2026, 5, 1, 12);
+      expect(
+        nextStoredTimestamp(
+          now: sameSecond,
+          current: [sameSecond, sameSecond.add(existenceStampTick)],
+        ),
+        sameSecond.add(existenceStampTick * 2),
+      );
+    });
+  });
+
   group('the SQL and the reference implementation agree', () {
     late CompendiumDatabase db;
     late CompendiumRepositories repos;
