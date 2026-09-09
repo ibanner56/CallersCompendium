@@ -218,10 +218,12 @@ dd if=/dev/zero of="$oversized_body" bs=1048576 count=16 2>/dev/null
 printf '\0' >> "$oversized_body"
 expect_json_status 400 "16 MiB body reaches Athenaeum" "$boundary_response" \
   --request PUT --header "Authorization: Bearer ${credential}" \
+  --header 'Expect:' \
   --header 'Content-Type: application/json' \
   --data-binary "@${large_body}" "${https_url}/v1/manifests/device-one"
 expect_status 413 "body over 16 MiB is refused" \
   --request PUT --header "Authorization: Bearer ${credential}" \
+  --header 'Expect:' \
   --header 'Content-Type: application/json' \
   --data-binary "@${oversized_body}" "${https_url}/v1/manifests/device-one"
 echo "16 MiB request boundary: passed"
@@ -234,15 +236,17 @@ gzip -c "$raw_body" > "$compressed_body"
 blob_hash=$(sha256sum "$raw_body" | awk '{print $1}')
 expect_status 201 "compressed blob upload" \
   --request PUT --header "Authorization: Bearer ${credential}" \
+  --header 'Expect:' \
   --header 'Content-Type: application/octet-stream' \
   --header 'Content-Encoding: gzip' \
   --data-binary "@${compressed_body}" \
   "${https_url}/v1/blobs/${blob_hash}"
-dd if=/dev/urandom of="$compressed_boundary_raw" bs=1048576 count=16 2>/dev/null
+openssl rand -hex 8388608 | tr -d '\n' > "$compressed_boundary_raw"
 gzip -c "$compressed_boundary_raw" > "$compressed_boundary"
 expect_json_status 400 "compressed 16 MiB body reaches Athenaeum" \
   "$boundary_response" \
   --request PUT --header "Authorization: Bearer ${credential}" \
+  --header 'Expect:' \
   --header 'Content-Type: application/json' \
   --header 'Content-Encoding: gzip' \
   --data-binary "@${compressed_boundary}" \
