@@ -2572,7 +2572,7 @@ FigureMatch? _circulate(String scrubbed) {
   final hand = loop.group(2)?.toLowerCase();
   return FigureMatch(
     'box_circulate',
-    params: {'who': who, if (hand case final hand?) 'hand': hand},
+    params: {'who': who, 'hand': ?hand},
     note: def,
   );
 }
