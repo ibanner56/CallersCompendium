@@ -206,6 +206,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   final _ftsController = TextEditingController();
   FullTextScope _ftsScope = FullTextScope.omni;
+  FullTextScope _localFtsScope = FullTextScope.omni;
   final _facets = FacetSelections();
   final _byPhrase = ByPhraseSelections();
   final _advancedRoot = BuilderGroup();
@@ -447,6 +448,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
+      _ftsScope = _localFtsScope;
       _onlineEnabled = false;
       // Invalidate any in-flight online search so a late response can't
       // repopulate _onlineResults/_onlineError after we've left online mode.
@@ -576,15 +578,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
         (_facets.callStatuses.isNotEmpty &&
             (!mapEquals(previous.callCounts, data.callCounts) ||
                 previous.callerFilter != data.callerFilter)) ||
-        // The author sort orders by choreographer NAME (`_sortByAuthor`), not
-        // by the ids stored on the dance — so a rename reorders the results
-        // while every dance row is byte-identical. Without this the labels
-        // would update from the new snapshot and the ORDER would not, leaving
-        // a list that is visibly sorted wrongly until some unrelated write
-        // happened to force a re-search. Checked only under that sort, so a
-        // rename costs no query in the sorts it cannot reorder.
-        (_sort == CollectionSort.author &&
-            !mapEquals(previous.choreographerNames, data.choreographerNames));
+        // Both author sorting and author-scoped FTS depend on the display-name
+        // map rather than the ids stored on each dance. A rename therefore
+        // changes either the order or the result set while every dance row is
+        // byte-identical.
+        ((!_onlineEnabled &&
+                    (_ftsScope == FullTextScope.omni ||
+                        _ftsScope == FullTextScope.author)) ||
+                _sort == CollectionSort.author) &&
+            !mapEquals(previous.choreographerNames, data.choreographerNames);
     setState(() {
       _data = data;
       _loadError = null;
@@ -796,11 +798,20 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   void _onFtsScopeChanged(FullTextScope? scope) {
-    if (scope == null || scope == _ftsScope || _onlineEnabled) return;
+    if (scope == null || scope == _ftsScope) return;
     _debounceTimer?.cancel();
-    _searchSeq++;
-    setState(() => _ftsScope = scope);
-    unawaited(_runSearch());
+    if (_onlineEnabled) {
+      _onlineSeq++;
+    } else {
+      _searchSeq++;
+    }
+    setState(() {
+      _ftsScope = scope;
+      if (!_onlineEnabled) {
+        _localFtsScope = scope;
+      }
+    });
+    unawaited(_onlineEnabled ? _runOnlineSearch() : _runSearch());
   }
 
   /// Fires the current search immediately (on keyboard "search" / enter). In
@@ -845,6 +856,15 @@ class _DanceListScreenState extends State<DanceListScreen> {
     setState(() {
       _onlineEnabled = value;
       _onlineError = null;
+      if (value) {
+        _localFtsScope = _ftsScope;
+        if (_ftsScope != FullTextScope.title &&
+            _ftsScope != FullTextScope.author) {
+          _ftsScope = FullTextScope.title;
+        }
+      } else {
+        _ftsScope = _localFtsScope;
+      }
       if (!value) {
         _onlineResults = const [];
         _onlineSearching = false;
@@ -892,7 +912,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// By-phrase criteria that actually apply to the active online source: `null`
-  /// for title-only sources ([OnlineSource.supportsByPhrase] == false, e.g.
+  /// for sources without by-phrase support
+  /// ([OnlineSource.supportsByPhrase] == false, e.g.
   /// ContraDB), so any residual by-phrase selection can't leak into a ContraDB
   /// query or keep an empty search "active".
   CallersBoxPhraseQuery? _effectivePhrases() =>
@@ -902,9 +923,11 @@ class _DanceListScreenState extends State<DanceListScreen> {
   /// text and/or by-phrase figures. Guarded by a sequence number so a slow
   /// response can't overwrite a newer query.
   Future<void> _runOnlineSearch() async {
-    final title = _ftsController.text.trim();
+    final text = _ftsController.text.trim();
+    final title = _ftsScope == FullTextScope.title ? text : '';
+    final author = _ftsScope == FullTextScope.author ? text : '';
     final phrases = _effectivePhrases();
-    if (title.isEmpty && phrases == null) {
+    if (title.isEmpty && author.isEmpty && phrases == null) {
       setState(() {
         _onlineResults = const [];
         _onlineError = null;
@@ -920,7 +943,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     });
     try {
       final results = await _online.search(
-        OnlineSearchQuery(title: title, phrases: phrases),
+        OnlineSearchQuery(title: title, author: author, phrases: phrases),
       );
       if (!mounted || seq != _onlineSeq) return;
       setState(() {
@@ -1220,8 +1243,8 @@ class _DanceListScreenState extends State<DanceListScreen> {
   }
 
   /// Applies a batch tag [mode] to the selected dances. Opens the tag picker,
-  /// then for each affected dance persists the new tag set via
-  /// [DanceRepository.update], announces the result to AT, and offers Undo.
+  /// then persists the new tag sets and staged tags in one transaction,
+  /// announces the result to AT, and offers Undo.
   Future<void> _batchTag(BatchTagMode mode) async {
     final data = _data;
     if (data == null || _selectedIds.isEmpty) return;
@@ -1233,45 +1256,87 @@ class _DanceListScreenState extends State<DanceListScreen> {
         if (data.dancesById[id] case final dance?) ...dance.tagIds,
     };
 
-    // Add lists all tags (even unused ones); Remove is narrowed by the dialog
-    // to only the tags present on the selection.
-    final allTags = await _repos.tags.listAll();
+    // Add lists tags used by live dances; Remove is narrowed by the dialog to
+    // only the tags present on the selection. Inline creations remain staged
+    // until the dialog is confirmed.
+    final allTags = await _repos.tags.listReferencedByLiveDances();
     if (!mounted) return;
-    final chosen = await showBatchTagDialog(
+    final selection = await showBatchTagDialog(
       context,
       mode: mode,
       tags: allTags,
       presentTagIds: presentTagIds,
     );
-    if (chosen == null || chosen.isEmpty || !mounted) return;
+    if (selection == null || selection.tagIds.isEmpty || !mounted) return;
+    final chosen = selection.tagIds;
 
     // Capture prior tag sets so Undo can restore them.
     final priorTags = <String, List<String>>{};
-    for (final id in selectedIds) {
-      final dance = await _repos.dances.getById(id);
-      if (dance == null) continue;
-      final current = dance.tagIds;
-      final List<String> next;
-      if (mode == BatchTagMode.add) {
-        next = [
-          ...current,
-          for (final tagId in chosen)
-            if (!current.contains(tagId)) tagId,
-        ];
-      } else {
-        next = [
-          for (final tagId in current)
-            if (!chosen.contains(tagId)) tagId,
-        ];
-      }
-      // Skip dances whose tags did not actually change. Because `next` is
-      // built append-only (add) or subtract-only (remove) from `current`, an
-      // equal length means the set is unchanged.
-      if (next.length == current.length) continue;
-      priorTags[id] = current.toList();
-      await _repos.dances.update(
-        dance.copyWith(tagIds: next, updatedAt: DateTime.now().toUtc()),
-      );
+    final newlyCreatedTagIds = <String>{};
+    try {
+      await _repos.transaction(() async {
+        final pending = <({Dance dance, List<String> next})>[];
+        for (final id in selectedIds) {
+          final dance = await _repos.dances.getById(id);
+          if (dance == null) continue;
+          final current = dance.tagIds;
+          final List<String> next;
+          if (mode == BatchTagMode.add) {
+            next = [
+              ...current,
+              for (final tagId in chosen)
+                if (!current.contains(tagId)) tagId,
+            ];
+          } else {
+            next = [
+              for (final tagId in current)
+                if (!chosen.contains(tagId)) tagId,
+            ];
+          }
+          if (next.length != current.length) {
+            pending.add((dance: dance, next: next));
+          }
+        }
+        if (pending.isEmpty) return;
+
+        final tagIds = <String, String>{};
+        for (final tag in selection.stagedTags) {
+          final existed = await _repos.tags.idByName(
+            tag.name,
+            includeDeleted: true,
+          );
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
+        }
+        for (final (:dance, :next) in pending) {
+          priorTags[dance.id] = dance.tagIds.toList();
+          final committedTagIds = <String>[];
+          final seenTagIds = <String>{};
+          for (final id in next) {
+            final resolvedId = tagIds[id] ?? id;
+            if (seenTagIds.add(resolvedId)) committedTagIds.add(resolvedId);
+          }
+          await _repos.dances.update(
+            dance.copyWith(
+              tagIds: committedTagIds,
+              updatedAt: DateTime.now().toUtc(),
+            ),
+          );
+        }
+      });
+    } catch (error, stackTrace) {
+      logCaughtError(error, stackTrace, source: 'dance_list_screen._batchTag');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context).collectionBatchApplyError,
+            ),
+          ),
+        );
+      return;
     }
 
     if (!mounted) return;
@@ -1308,20 +1373,34 @@ class _DanceListScreenState extends State<DanceListScreen> {
       message: message,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => _undoBatchTag(priorTags),
+      onUndo: () => _undoBatchTag(priorTags, newlyCreatedTagIds),
     );
   }
 
   /// Restores the captured [priorTags] for each affected dance (app-side undo;
-  /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchTag(Map<String, List<String>> priorTags) async {
-    for (final entry in priorTags.entries) {
-      final dance = await _repos.dances.getById(entry.key);
-      if (dance == null) continue;
-      await _repos.dances.update(
-        dance.copyWith(tagIds: entry.value, updatedAt: DateTime.now().toUtc()),
-      );
-    }
+  /// the repository has no batch-undo primitive). Tags created by this batch
+  /// are tombstoned when Undo leaves them unreferenced; adopted rows are kept.
+  Future<void> _undoBatchTag(
+    Map<String, List<String>> priorTags,
+    Set<String> newlyCreatedTagIds,
+  ) async {
+    await _repos.transaction(() async {
+      for (final entry in priorTags.entries) {
+        final dance = await _repos.dances.getById(entry.key);
+        if (dance == null) continue;
+        await _repos.dances.update(
+          dance.copyWith(
+            tagIds: entry.value,
+            updatedAt: DateTime.now().toUtc(),
+          ),
+        );
+      }
+      for (final id in newlyCreatedTagIds) {
+        if (!await _repos.tags.isInUse(id)) {
+          await _repos.tags.delete(id);
+        }
+      }
+    });
   }
 
   /// Sets the difficulty level on the selected dances. Opens the level picker,
@@ -2150,28 +2229,39 @@ class _DanceListScreenState extends State<DanceListScreen> {
             AppSpacing.md,
             0,
           ),
-          child: DropdownButtonFormField<FullTextScope>(
-            key: const ValueKey('collection-search-scope'),
-            initialValue: _ftsScope,
-            decoration: InputDecoration(
-              labelText: l10n.collectionSearchScopeLabel,
-              isDense: true,
+          child: KeyedSubtree(
+            key: ValueKey(
+              'collection-search-scope-state-$_onlineEnabled-$_ftsScope',
             ),
-            items: [
-              DropdownMenuItem(
-                value: FullTextScope.omni,
-                child: Text(l10n.collectionSearchScopeOmni),
+            child: DropdownButtonFormField<FullTextScope>(
+              key: const ValueKey('collection-search-scope'),
+              initialValue: _ftsScope,
+              decoration: InputDecoration(
+                labelText: l10n.collectionSearchScopeLabel,
+                isDense: true,
               ),
-              DropdownMenuItem(
-                value: FullTextScope.title,
-                child: Text(l10n.collectionSearchScopeTitle),
-              ),
-              DropdownMenuItem(
-                value: FullTextScope.figure,
-                child: Text(l10n.collectionSearchScopeFigure),
-              ),
-            ],
-            onChanged: _onlineEnabled ? null : _onFtsScopeChanged,
+              items: [
+                if (!_onlineEnabled)
+                  DropdownMenuItem(
+                    value: FullTextScope.omni,
+                    child: Text(l10n.collectionSearchScopeOmni),
+                  ),
+                DropdownMenuItem(
+                  value: FullTextScope.title,
+                  child: Text(l10n.collectionSearchScopeTitle),
+                ),
+                DropdownMenuItem(
+                  value: FullTextScope.author,
+                  child: Text(l10n.collectionSearchScopeAuthor),
+                ),
+                if (!_onlineEnabled)
+                  DropdownMenuItem(
+                    value: FullTextScope.figure,
+                    child: Text(l10n.collectionSearchScopeFigure),
+                  ),
+              ],
+              onChanged: _onFtsScopeChanged,
+            ),
           ),
         ),
         Padding(
@@ -2221,7 +2311,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
                   // Filters panel stays local-only. By-phrase maps onto TCB's
                   // own "search by phrase" fields, so it's offered for the
                   // Caller's Box source (even with an empty local collection);
-                  // it's hidden for title-only sources (ContraDB).
+                  // it's hidden for sources without by-phrase support (ContraDB).
                   //
                   // The panels suppress their built-in ExpansionTile borders and
                   // rely on explicit dividers interleaved *between* visible

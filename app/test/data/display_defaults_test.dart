@@ -222,6 +222,36 @@ void main() {
     });
   });
 
+  group('meanwhile side defaults (#1197)', () {
+    test('missing and malformed values use two stand_still sides', () {
+      for (final stored in [null, 7, '', 'not json', '{"move":"x"}']) {
+        final sides = meanwhileSideFiguresFromStored(stored);
+        expect(sides, hasLength(2));
+        expect(sides.every((figure) => figure.move == 'stand_still'), isTrue);
+      }
+    });
+
+    test('an empty list requests a deliberately blank insertion', () {
+      expect(meanwhileSideFiguresFromStored('[]'), isEmpty);
+    });
+
+    test('ordinary side figures round-trip, but containers are rejected', () {
+      final sides = [
+        Figure(move: 'balance', params: const {'beats': 4}),
+        Figure(move: 'swing', params: const {'who': 'partners', 'beats': 8}),
+      ];
+      expect(
+        meanwhileSideFiguresFromStored(encodeMeanwhileSideFigures(sides)),
+        hasLength(2),
+      );
+
+      final nested = Figure.meanwhile(figures: sides, beats: 8);
+      final restored = meanwhileSideFiguresFromStored(encodeFigures([nested]));
+      expect(restored, hasLength(2));
+      expect(restored.every((figure) => figure.move == 'stand_still'), isTrue);
+    });
+  });
+
   group('move param overrides (DD.3)', () {
     test('key uses its stable stored string', () {
       expect(kDefaultMoveParamOverridesKey, 'default_move_param_overrides');

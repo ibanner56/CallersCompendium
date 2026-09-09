@@ -192,7 +192,7 @@ Here is how to read it:
 
 - **Dances are rows; moves are columns.**
 - **A pinned Formation column** next to each dance title shows its formation
-  (duple improper, Becket, triple minor, and so on), so you can spot too many
+  (Improper, Becket, triple minor, and so on), so you can spot too many
   non-improper formations stacking up in a row without losing your place
   while scrolling through moves.
 - **Four cell markers** say what is happening at each intersection. Each is an

@@ -303,6 +303,8 @@ class FilterCompiler {
     switch (scope) {
       case FullTextScope.title:
         return columnMatch('title', rawTextQuery);
+      case FullTextScope.author:
+        return columnMatch('authors', rawTextQuery);
       case FullTextScope.figure:
         return columnMatch('figures_text', canonicalQuery);
       case FullTextScope.omni:

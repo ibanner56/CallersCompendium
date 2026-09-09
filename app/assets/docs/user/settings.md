@@ -155,6 +155,9 @@ details are handled when you export.
   [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
   [Perform mode](./perform.md) for more.
+- **Show timer for individual Perform** (on) — shows an elapsed timer and
+  pause/resume control while performing a single dance. Turn it off when you
+  want individual Perform to stay timer-free.
 
 ### Calling history
 
@@ -203,7 +206,7 @@ There's a **High Contrast** theme for maximum legibility — see the
   [formation](./glossary.md#formation) family — contras, triplets, mixers,
   circles, and squares each get their own accent, so you can read the *shape* of a program at a
   glance. Dances marked as [mixers](./glossary.md#mixer) always get the mixer
-  accent regardless of their formation, so a mixer-flagged Duple Improper reads as
+  accent regardless of their formation, so a mixer-flagged Improper reads as
   a mixer rather than a contra. The formation (and "Mixer" when applicable) is
   always shown as text on the row too, so rows stay fully readable without relying
   on colour, and the accents adapt to the High Contrast theme. On by default; turn
@@ -240,6 +243,10 @@ role names and wording the app uses when it describes dances.
 - **Canonical figure text** (off by default) — allow dance details to show
   canonical role and move names. When it is off, dance details open in your
   active dialect and do not show the in-detail **Canonical** switch.
+- **Auto-convert all discouraged terms** (on by default) — show supported
+  discouraged terms in canonical wording across read-only dance details,
+  shorthands, notes, Perform mode, and exports. Saved text and entry fields are
+  unchanged.
 - **Open dance details in canonical terms** — when enabled, and canonical figure
   text is enabled, dance details open in canonical wording. When canonical
   figure text is disabled, this preference is retained but ignored until the
@@ -323,6 +330,11 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to a single
   stand still of eight beats. Clear it for a blank new dance.
+- **Meanwhile defaults** — the ordinary side figures used when you choose **Add
+  meanwhile** while authoring a dance. Leave this list empty to start with two
+  blank sides, or configure up to six ordinary sides. If only one side is
+  configured, the app adds a blank second side so the container can be completed.
+  Invalid or unavailable saved defaults use two stand-still sides.
 - **Move defaults** — preferred parameter values applied automatically when you
   insert a [move](./glossary.md#move) while writing. These override that move's
   built-in defaults, and you can still change any parameter afterwards.

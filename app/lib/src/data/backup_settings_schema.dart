@@ -9,10 +9,12 @@ import 'confirm_before_delete_scope.dart' show kConfirmBeforeDeleteKey;
 import 'decimal_turns_scope.dart' show kDecimalTurnsKey;
 import 'display_defaults.dart'
     show
+        kCanonicalDiscouragedTermsKey,
         kCanonicalFigureTextKey,
         kDefaultCollectionSortKey,
         kDefaultDanceDetailRenderingKey,
         kDefaultDanceFiguresTemplateKey,
+        kDefaultMeanwhileSideFiguresKey,
         kDefaultDanceFormKey,
         kDefaultDanceFormationShapeKey,
         kDefaultDancePhraseStructureKey,
@@ -64,6 +66,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kRequirePerformedForHistoryKey,
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
+    kShowIndividualPerformTimerKey,
     kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
     kPerformCanonicalViewKey,
@@ -81,6 +84,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kUpdateBetaChannelKey,
     kMatrixExactBeatCollisionKey,
     kCanonicalFigureTextKey,
+    kCanonicalDiscouragedTermsKey,
   ])
     key: _isBool,
 
@@ -110,6 +114,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDefaultDancePhraseStructureKey,
     kDefaultDanceProgressionKey,
     kDefaultDanceFiguresTemplateKey,
+    kDefaultMeanwhileSideFiguresKey,
     kDefaultMoveParamOverridesKey,
   ])
     key: _isString,

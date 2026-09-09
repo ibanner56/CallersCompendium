@@ -122,6 +122,63 @@ void main() {
       expect(text, contains('1. Rory O\'More — call slow'));
     });
 
+    test('canonicalizes prose only when enabled and preserves tombstones', () {
+      final source = program(
+        dancerLevel: 'Gypsy level',
+        notes: 'Gypsy with the gents',
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            text: 'Ladies call',
+          ),
+          // A purged dance retains its title in a marked text-only slot.
+          ProgramSlot(
+            id: 's2',
+            position: 1,
+            text: 'Lady of the Lake',
+            isPurgedDance: true,
+          ),
+        ],
+      );
+      final renderer = FigureRenderer(contraTaxonomy);
+
+      final disabled = programToPlainText(
+        source,
+        titleFor: titles,
+        renderer: renderer,
+        dialect: Dialect.larksRobins,
+      );
+      expect(disabled, contains('Gypsy with the gents'));
+      expect(disabled, contains('Level: Gypsy level'));
+      expect(disabled, contains('Rory O\'More — Ladies call'));
+      expect(disabled, contains('Lady of the Lake'));
+
+      final enabled = programToPlainText(
+        source,
+        titleFor: titles,
+        renderer: renderer,
+        dialect: Dialect.larksRobins,
+        canonicalizeDiscouragedTerms: true,
+      );
+      expect(enabled, contains('Shoulder round with the larks'));
+      expect(enabled, contains('Level: Shoulder round level'));
+      expect(enabled, contains('Rory O\'More — Robins call'));
+      expect(enabled, contains('Lady of the Lake'));
+    });
+
+    test('rejects canonicalization without display dependencies', () {
+      expect(
+        () => programToPlainText(
+          program(notes: 'Gypsy'),
+          titleFor: titles,
+          canonicalizeDiscouragedTerms: true,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('appends optional guest caller and planned minutes', () {
       final text = programToPlainText(
         program(

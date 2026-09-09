@@ -9,7 +9,7 @@ import 'import_io.dart' show CallersBoxPhraseQuery;
 /// same source-neutral seam ([OnlineSearchService]); this enum is the single
 /// place that carries their per-source differences — the selector [label] and
 /// the [supportsByPhrase] capability that gates the by-phrase panel (ContraDB
-/// search is title-only). The user-facing per-source attribution line is
+/// has no by-phrase support). The user-facing per-source attribution line is
 /// localized separately by `onlineSourceAttribution` in `online_search_labels`.
 enum OnlineSource {
   callersBox(label: "Caller's Box", supportsByPhrase: true),
@@ -21,8 +21,8 @@ enum OnlineSource {
   final String label;
 
   /// Whether this source accepts by-phrase figure criteria. The Caller's Box
-  /// maps by-phrase onto its own "search by phrase" fields; ContraDB's public
-  /// search API is title-only, so its by-phrase panel is hidden.
+  /// maps by-phrase onto its own "search by phrase" fields; ContraDB has no
+  /// by-phrase search API, so its by-phrase panel is hidden.
   final bool supportsByPhrase;
 }
 
@@ -90,17 +90,20 @@ class OnlineSearchResultRow {
 
 /// A source-neutral online search request.
 ///
-/// [title] is the substring/title query. [phrases] carries by-phrase figure
-/// criteria for sources that support them ([OnlineSource.supportsByPhrase]);
-/// title-only sources ignore it.
+/// Exactly one of [title] and [author] is normally non-empty. Caller's Box may
+/// also run with [phrases] alone. [phrases] carries by-phrase figure criteria
+/// for sources that support them ([OnlineSource.supportsByPhrase]); sources
+/// without by-phrase support ignore it.
 class OnlineSearchQuery {
   const OnlineSearchQuery({
-    required this.title,
+    this.title = '',
+    this.author = '',
     this.phrases,
     this.requireFigures = true,
   });
 
   final String title;
+  final String author;
   final CallersBoxPhraseQuery? phrases;
 
   /// Whether results are limited to dances whose figures the source will

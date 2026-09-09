@@ -56,6 +56,8 @@ import 'src/data/soft_delete_retention.dart';
 import 'src/data/sort_ignore_articles_scope.dart';
 import 'src/data/verbose_figure_rendering_scope.dart';
 import 'src/data/decimal_turns_scope.dart';
+import 'src/data/canonical_discouraged_terms_scope.dart';
+import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
 import 'src/data/venue_entity_mode_scope.dart';
 import 'src/data/walkthrough_snippet_library_controller.dart';
 import 'src/data/walkthrough_snippet_library_scope.dart';
@@ -358,6 +360,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool?> _reduceMotionNotifier = ValueNotifier<bool?>(null);
   final ValueNotifier<bool> _verboseFigureRenderingNotifier = ValueNotifier(
     false,
+  );
+  final ValueNotifier<bool> _canonicalDiscouragedTermsNotifier = ValueNotifier(
+    true,
   );
   final ValueNotifier<bool> _decimalTurnsNotifier = ValueNotifier(false);
   final ValueNotifier<bool> _aggressiveBeatsUpdateNotifier = ValueNotifier(
@@ -1087,6 +1092,13 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (verboseFigures is bool) {
       _verboseFigureRenderingNotifier.value = verboseFigures;
     }
+    final canonicalDiscouragedTerms = await _appData.repositories.settings
+        .get(kCanonicalDiscouragedTermsKey)
+        .catchError(
+          (_) => null,
+        ); // diagnostics: silent — startup settings read failed; falls back to the documented default above.
+    _canonicalDiscouragedTermsNotifier.value =
+        canonicalDiscouragedTerms is! bool || canonicalDiscouragedTerms;
     // Load the "show turns as decimals" display toggle (#368), off by default
     // when unset. Opt-in, so a read failure or missing key stays off (keeps the
     // fraction-glyph default). Coerced through `is bool` so a garbage stored
@@ -1277,6 +1289,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
+    _canonicalDiscouragedTermsNotifier.dispose();
     _decimalTurnsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
@@ -1641,49 +1654,53 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                       child: VerboseFigureRenderingScope(
                                         notifier:
                                             _verboseFigureRenderingNotifier,
-                                        child: DecimalTurnsScope(
-                                          notifier: _decimalTurnsNotifier,
-                                          child: AggressiveBeatsUpdateScope(
-                                            notifier:
-                                                _aggressiveBeatsUpdateNotifier,
-                                            child: ConfirmBeforeDeleteScope(
+                                        child: CanonicalDiscouragedTermsScope(
+                                          notifier:
+                                              _canonicalDiscouragedTermsNotifier,
+                                          child: DecimalTurnsScope(
+                                            notifier: _decimalTurnsNotifier,
+                                            child: AggressiveBeatsUpdateScope(
                                               notifier:
-                                                  _confirmBeforeDeleteNotifier,
-                                              child: ColourDanceThemeScope(
+                                                  _aggressiveBeatsUpdateNotifier,
+                                              child: ConfirmBeforeDeleteScope(
                                                 notifier:
-                                                    _colourDanceThemeNotifier,
-                                                child: SetListColorCodingScope(
+                                                    _confirmBeforeDeleteNotifier,
+                                                child: ColourDanceThemeScope(
                                                   notifier:
-                                                      _setListColorCodingNotifier,
-                                                  child: MatrixCollisionModeScope(
+                                                      _colourDanceThemeNotifier,
+                                                  child: SetListColorCodingScope(
                                                     notifier:
-                                                        _matrixExactBeatCollisionNotifier,
-                                                    child: ProgramMatrixColumnConfigScope(
+                                                        _setListColorCodingNotifier,
+                                                    child: MatrixCollisionModeScope(
                                                       notifier:
-                                                          _programMatrixColumnsNotifier,
-                                                      child: DateFormatScope(
+                                                          _matrixExactBeatCollisionNotifier,
+                                                      child: ProgramMatrixColumnConfigScope(
                                                         notifier:
-                                                            _dateFormatNotifier,
-                                                        child: FirstDayOfWeekScope(
+                                                            _programMatrixColumnsNotifier,
+                                                        child: DateFormatScope(
                                                           notifier:
-                                                              _firstDayOfWeekNotifier,
-                                                          child: LocaleScope(
+                                                              _dateFormatNotifier,
+                                                          child: FirstDayOfWeekScope(
                                                             notifier:
-                                                                _localeNotifier,
-                                                            child: BackupControllerScope(
-                                                              onRestored:
-                                                                  reloadFromSettings,
-                                                              child: CollectionFilterScope(
-                                                                controller:
-                                                                    _collectionFilterController,
-                                                                child: VenueEntityModeScope(
-                                                                  notifier:
-                                                                      _venueEntityModeNotifier,
-                                                                  child: ProgramAutoCommitScope(
+                                                                _firstDayOfWeekNotifier,
+                                                            child: LocaleScope(
+                                                              notifier:
+                                                                  _localeNotifier,
+                                                              child: BackupControllerScope(
+                                                                onRestored:
+                                                                    reloadFromSettings,
+                                                                child: CollectionFilterScope(
+                                                                  controller:
+                                                                      _collectionFilterController,
+                                                                  child: VenueEntityModeScope(
                                                                     notifier:
-                                                                        _autoCommitProgramChangesNotifier,
-                                                                    child:
-                                                                        child!,
+                                                                        _venueEntityModeNotifier,
+                                                                    child: ProgramAutoCommitScope(
+                                                                      notifier:
+                                                                          _autoCommitProgramChangesNotifier,
+                                                                      child:
+                                                                          child!,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ),

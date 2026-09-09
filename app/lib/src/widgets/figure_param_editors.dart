@@ -27,6 +27,7 @@ class FigureParamEditor extends StatelessWidget {
     required this.onChanged,
     required this.dialect,
     this.mixer = false,
+    this.moveId,
   });
 
   /// Stem for the child widget's [ValueKey] (e.g. `figure-0`); the editor
@@ -52,10 +53,14 @@ class FigureParamEditor extends StatelessWidget {
   /// Non-dancer-set params ignore this field entirely.
   final bool mixer;
 
+  /// Move identity used only for display-specific parameter labels.
+  final String? moveId;
+
   String get _key => '$keyPrefix-$paramKey';
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     switch (spec.kind) {
       case ParamKind.dancerSet:
       case ParamKind.dancerPair:
@@ -87,7 +92,7 @@ class FigureParamEditor extends StatelessWidget {
             spec.choices?.contains(ParamVocab.unspecified) ?? false;
         return _RotationStepper(
           fieldKey: _key,
-          label: figureParamKeyLabel(paramKey),
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is num ? value! as num : (allowsUnset ? null : 1.0),
           allowsUnset: allowsUnset,
           onChanged: onChanged,
@@ -95,7 +100,7 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.beats:
         return _IntField(
           fieldKey: _key,
-          label: figureParamKeyLabel(paramKey),
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is int ? value! as int : 0,
           min: 0,
           max: 64,
@@ -104,7 +109,7 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.places:
         return _IntField(
           fieldKey: _key,
-          label: figureParamKeyLabel(paramKey),
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is int
               ? value! as int
               : (spec.defaultValue is int ? spec.defaultValue! as int : 1),
@@ -115,14 +120,14 @@ class FigureParamEditor extends StatelessWidget {
       case ParamKind.text:
         return _TextParamField(
           fieldKey: _key,
-          label: figureParamKeyLabel(paramKey),
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is String ? value! as String : '',
           onChanged: onChanged,
         );
       case ParamKind.flag:
         return _FlagSwitch(
           fieldKey: _key,
-          label: figureParamKeyLabel(paramKey),
+          label: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           value: value is bool ? value! as bool : false,
           onChanged: onChanged,
         );
@@ -173,18 +178,17 @@ class FigureParamEditor extends StatelessWidget {
         current == null &&
         value != null &&
         value != ParamVocab.unspecified) {
-      // An out-of-domain value with no valid substitute available: every
-      // sentinel-admitting spec CURRENTLY IN THIS BRANCH defaults TO the
-      // sentinel, so the default rung misses too and the chain lands on
-      // `null`. (v30 #989: `promenade.turn` is the one sentinel-admitting spec
-      // whose default is a concrete value, not the sentinel — for it, the
-      // default rung above does NOT miss, `current` lands on the concrete
-      // default instead of `null`, and this branch is simply never reached.
-      // That is the correct, desired self-healing behaviour for a concrete
-      // default: an out-of-domain `turn` value corrects to
-      // `'counterclockwise'`, the same way any ordinary non-sentinel spec's
-      // out-of-domain value corrects to its default, rather than to "not
-      // stated".) Normalise the draft to the sentinel rather than leaving it
+      // An out-of-domain value with no valid substitute available: when a
+      // sentinel-admitting spec defaults to the sentinel, the default rung
+      // misses too and the chain lands on `null`. (Two sentinel-admitting specs
+      // have concrete defaults: `mad_robin.who` and `promenade.turn`. For
+      // either, the default rung above does NOT miss, `current` lands on the
+      // concrete default instead of `null`, and this branch is simply never
+      // reached. That is the correct, desired self-healing behaviour for a
+      // concrete default: an out-of-domain value corrects to that declared
+      // default, the same way any ordinary non-sentinel spec does, rather than
+      // to "not stated".)
+      // Normalise the draft to the sentinel rather than leaving it
       // holding a token the field is already displaying as "not stated" —
       // that mismatch would keep rendering the bad token into the figure text
       // while offering no single-step way to fix it, since Clear is hidden
@@ -217,7 +221,7 @@ class FigureParamEditor extends StatelessWidget {
               )
             : null,
         decoration: InputDecoration(
-          labelText: figureParamKeyLabel(paramKey),
+          labelText: figureParamKeyLabel(l10n, paramKey, moveId: moveId),
           isDense: true,
         ),
         items: [

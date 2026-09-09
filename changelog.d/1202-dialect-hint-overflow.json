@@ -1,0 +1,9 @@
+{
+  "id": "1202-dialect-hint-overflow",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "You can read the complete move-substitution guidance on narrow screens."
+    ]
+  }
+}

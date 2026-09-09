@@ -229,6 +229,47 @@ void main() {
     );
 
     test(
+      'restoring a pre-v34 archive after the marker is set normalizes legacy '
+      'mad robins',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(taxonomyV34CanonicalRebuildDoneKey, 'done');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy-mad-robin',
+              title: 'Legacy mad robin',
+              figures: [
+                Figure(
+                  move: 'mad_robin',
+                  assumedSubject: true,
+                  params: const {'direction': 'clockwise'},
+                ),
+              ],
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final restored = await repos.dances.getById('legacy-mad-robin');
+        expect(restored, isNotNull);
+        final figure = restored!.figures.single;
+        expect(figure.params['who'], ParamVocab.unspecified);
+        expect(figure.assumedSubject, isFalse);
+      },
+    );
+
+    test(
       'replace overwrites pre-existing rows rather than duplicating',
       () async {
         final db = openTestDatabase();
@@ -312,6 +353,49 @@ void main() {
       final tagIds = (await repos.tags.listAll()).map((t) => t.id).toSet();
       expect(tagIds, containsAll(<String>['keep', 't1']));
     });
+
+    test(
+      'restore repairs legacy CallersBox roll-away figures even after startup',
+      () async {
+        final db = openTestDatabase();
+        addTearDown(db.close);
+        final repos = CompendiumRepositories(db, contraTaxonomy);
+        await repos.settings.set(callersBoxRollAwayRoleRepairDoneKey, '"done"');
+
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          dances: [
+            Dance(
+              id: 'legacy-callersbox',
+              title: 'Legacy',
+              figures: [
+                Figure(
+                  move: 'roll_away',
+                  params: {'who': 'neighbors', 'beats': 8},
+                  note: 'role2s roll right, role1s side-step left',
+                ),
+              ],
+              provenance: Provenance(
+                source: ProvenanceSource.callersbox,
+                externalId: 'legacy-callersbox',
+                importedAt: DateTime.utc(2024),
+              ),
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final result = await ArchiveRestorer(
+          repos,
+        ).restore(archive, mode: RestoreMode.merge);
+        expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+
+        final restored = await repos.dances.getById('legacy-callersbox');
+        expect(restored?.figures.single.params['who'], 'role1s');
+        expect(restored?.figures.single.params['whom'], 'neighbors');
+      },
+    );
 
     test('merge revives a tombstoned program with a causal stamp', () async {
       final db = openTestDatabase();

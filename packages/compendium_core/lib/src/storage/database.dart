@@ -240,6 +240,21 @@ const String compactDosidoSeesawCanonicalRebuildDoneKey =
 const String taxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild and source normalization
+/// owed by taxonomy v34. Existing Callers Box mad robins that assumed an
+/// unstated in-front role are rewritten with an explicit `unspecified` subject.
+const String taxonomyV34CanonicalRebuildDoneKey =
+    '__taxonomy_v34_canonical_rebuild_done__';
+
+/// Settings key for the one-time repair of legacy CallersBox `roll_away`
+/// figures whose per-role annotation was stored only as a note (#1192).
+///
+/// The pass is provenance-scoped and rewrites only the exact old parser shape;
+/// the marker is written after the source rewrite and derived-index rebuild
+/// succeed.
+const String callersBoxRollAwayRoleRepairDoneKey =
+    '__callersbox_roll_away_role_repair_done__';
+
 /// Settings marker containing the shareable-text normalization algorithm and
 /// exact scope that has been backfilled successfully.
 const String shareableTextNormalisationScopeKey =
@@ -264,7 +279,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 32;
+const int kCompendiumSchemaVersion = 33;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -754,6 +769,13 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         await m.createTable(pendingDeletions);
         await m.createTable(reviewQueue);
         await m.createTable(publishedRecords);
+      }
+      if (from < 33) {
+        // Issue #1196: distinguish purge captions from ordinary text-only
+        // program slots so display-only conversion never rewrites a tombstone.
+        // Existing rows remain null: pre-v33 text-only rows are ambiguous and
+        // must stay literal until an explicit edit establishes their kind.
+        await m.addColumn(programSlots, programSlots.isPurgedDance);
       }
     },
     beforeOpen: (details) async {

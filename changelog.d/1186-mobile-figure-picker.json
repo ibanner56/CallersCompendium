@@ -1,0 +1,9 @@
+{
+  "id": "1186-mobile-figure-picker",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Dismissing the mobile figure picker now leaves an existing stand still figure unchanged and no longer reopens the picker after you enter a new one."
+    ]
+  }
+}

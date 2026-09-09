@@ -57,8 +57,9 @@ import '../taxonomy/contra_taxonomy.dart' show contraTaxonomy;
 /// Each TCB `Authors[]` name is carried on the draft's `authorNames`; the
 /// import pipeline resolves those to real [Choreographer] associations
 /// ([Dance.authorIds]) at commit (match-or-create). Author names are no longer
-/// folded into [Dance.callingNotes]. `FormationBase`/`FormationDetail` classify
-/// to a [FormationShape] best-effort (original kept as [Formation.detail]);
+/// folded into [Dance.callingNotes]. `FormationBase` classifies to a
+/// [FormationShape] best-effort; a separate `FormationDetail` is normalized
+/// into [Formation.detail], while unclassified source text remains there.
 /// `Progression` maps best-effort; `PhraseStructure` empty means the default.
 ///
 /// ## Contract
@@ -902,11 +903,11 @@ class CallersBoxAdapter implements SourceAdapter {
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
     // v25 (#870): thread the balance line's `hand` into the merged figure when
-    // the balance states one and the move accepts a `hand` param. A balance
-    // with `(RH)` folded into `box_the_gnat` sets `hand: right`; with `(LH)`
-    // it sets `hand: left`. The convergence-point normalisation
-    // (DanceRepository._normaliseMoveIds) then re-routes the move id if the
-    // hand contradicts the alias pin.
+    // the balance states one, the move accepts a `hand` param, and the move did
+    // not already state one. A balance with `(RH)` folded into `box_the_gnat`
+    // sets `hand: right`; with `(LH)` it sets `hand: left`. The
+    // convergence-point normalisation (DanceRepository._normaliseMoveIds) then
+    // re-routes the move id if the hand contradicts the alias pin.
     final balanceHand = balance.params['hand'];
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];
@@ -930,7 +931,8 @@ class CallersBoxAdapter implements SourceAdapter {
         ...move.params,
         'balance': true,
         'beats': ?beats,
-        if (balanceHand != null &&
+        if (!move.params.containsKey('hand') &&
+            balanceHand != null &&
             balanceHand != 'unspecified' &&
             targetAcceptsHand)
           'hand': balanceHand,
@@ -1445,19 +1447,24 @@ class CallersBoxAdapter implements SourceAdapter {
     Map<String, Object?> dance,
     List<ImportIssue> issues,
   ) {
-    final base = _sanitizeLine(_asString(dance['FormationBase'])) ?? '';
-    final extra = _sanitizeLine(_asString(dance['FormationDetail'])) ?? '';
+    final base = scrubFigureText(_asString(dance['FormationBase']) ?? '');
+    final extra = scrubFigureText(_asString(dance['FormationDetail']) ?? '');
     final combined = [base, extra].where((s) => s.isNotEmpty).join(' — ');
-    final detail = combined.isEmpty ? null : combined;
+    final sourceDetail = combined.isEmpty ? null : scrubFigureText(combined);
 
-    if (base.isEmpty && extra.isEmpty) {
-      return const Formation(FormationShape.dupleImproper);
+    if (base.isEmpty) {
+      return Formation(
+        FormationShape.dupleImproper,
+        detail: extra.isEmpty ? null : extra,
+      );
     }
 
-    final lower = '$base $extra'.toLowerCase();
+    final lower = base.toLowerCase();
     FormationShape? shape;
     if (lower.contains('becket')) {
       shape = _becketShape(dance['Direction'], lower, issues);
+    } else if (lower == 'duple minor - reverse progression improper') {
+      shape = FormationShape.reverseProgressionImproper;
     } else if (lower.contains('improper')) {
       shape = FormationShape.dupleImproper;
     } else if (lower.contains('indecent')) {
@@ -1494,13 +1501,13 @@ class CallersBoxAdapter implements SourceAdapter {
           severity: ImportIssueSeverity.warning,
           code: 'callersbox_formation_unclassified',
           message:
-              'Formation "${detail ?? base}" did not classify to a known '
+              'Formation "${sourceDetail ?? base}" did not classify to a known '
               'shape; kept as detail on "other".',
         ),
       );
-      return Formation(FormationShape.other, detail: detail);
+      return Formation(FormationShape.other, detail: sourceDetail);
     }
-    return Formation(shape, detail: detail);
+    return Formation(shape, detail: extra.isEmpty ? null : extra);
   }
 
   /// Whether a Caller's Box record is a **mixer** (dancers change partners each

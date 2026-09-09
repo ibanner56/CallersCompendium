@@ -12,7 +12,18 @@ class AppLocalizationsDa extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Et meanwhile-element blev tilføjet.';
+
+  @override
   String get navCollection => 'Samling';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile-standarder';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'De sidefigurer, der indsættes, når du tilføjer et meanwhile-element. Ryd listen for to tomme sider; én konfigureret side får en tom ledsagerside. Du kan redigere elementet efter indsættelsen.';
 
   @override
   String get navPrograms => 'Programmer';
@@ -446,6 +457,14 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsDialectCanonicalFigureTextSubtitle =>
       'Når funktionen er slået til, kan dansedetaljer vise kanoniske rolle- og bevægelsesnavne, og kontakten Kanonisk er tilgængelig for ikke-kanoniske dialekter. Slået fra som standard.';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Konvertér automatisk alle frarådede termer';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Når den er slået til, bruger dansedetaljer, noter og eksporter kanonisk formulering for understøttede frarådede termer. Gemt tekst og indtastningsfelter ændres ikke. Slået til som standard.';
 
   @override
   String get settingsDialectNewButton => 'Ny dialekt';
@@ -991,6 +1010,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Skalér hvert kort, så den fulde dans eller slot passer på skærmen uden at skulle rulle. Deaktiver for at angive størrelsen selv med A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Vis timer til individuel Perform';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
 
   @override
@@ -1371,7 +1398,11 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Avanceret';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper med omvendt progression';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1380,10 +1411,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -1548,6 +1579,13 @@ class AppLocalizationsDa extends AppLocalizations {
       'Søg titler, forfattere, figurer, noter…';
 
   @override
+  String get collectionPickerSearchFieldHint => 'Søg titler, figurer, noter…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Søg online efter danse efter titel…';
+
+  @override
   String get collectionSearchScopeLabel => 'Søg i';
 
   @override
@@ -1555,6 +1593,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Forfatter';
 
   @override
   String get collectionSearchScopeFigure => 'Figur';
@@ -2016,6 +2057,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get collectionCreateTagError => 'Kunne ikke oprette tag. Prøv igen.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Kunne ikke anvende batchændringer. Prøv igen.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Tilføj';
 
   @override
@@ -2435,7 +2480,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsAddDanceButton => 'Tilføj dans';
 
   @override
-  String get programsAddNoteBreakButton => 'Tilføj note / pause';
+  String get programsAddNoteBreakButton => 'Tilføj note / vals';
 
   @override
   String get programsInsertBreakButton => 'Indsæt pause';
@@ -3186,6 +3231,15 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', sat på pause',
+      'other': '',
+    });
+    return 'Forløbet tid $elapsedTime$_temp0';
+  }
+
+  @override
   String performPlannedMin(int planned) {
     return 'planlagt $planned min';
   }
@@ -3564,7 +3618,8 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Søg online danse efter titel…';
+  String get onlineSearchFieldHint =>
+      'Søg online efter danse efter titel eller forfatter…';
 
   @override
   String onlineResultCount(int count) {
@@ -3579,12 +3634,12 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Skriv en titel eller tilføj frase-figurer for at søge $source.';
+    return 'Skriv en titel eller forfatter, eller tilføj figurer efter frase for at søge $source.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Skriv en titel for at søge $source.';
+    return 'Skriv en titel eller forfatter for at søge $source.';
   }
 
   @override
@@ -4220,7 +4275,7 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Indtast en titel for at søge ContraDB.';
+      'Angiv en titel eller forfatter for at søge i ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5316,6 +5371,9 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceEditorAddFigure => 'Tilføj figur';
 
   @override
+  String get danceEditorAddMeanwhile => 'Tilføj meanwhile';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Indsæt i slutningen af figurlisten';
 
@@ -5507,6 +5565,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => 'ikke angivet';
+
+  @override
+  String get figureParamFacingStarBackingUp => 'bakker baglæns';
 
   @override
   String get danceEditorParamClearTooltip => 'Ryd (ikke angivet)';

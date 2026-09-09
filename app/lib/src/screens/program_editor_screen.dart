@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -32,7 +33,7 @@ import '../export/program_matrix_pdf.dart';
 import '../export/share_sanitization.dart';
 import '../search/collection_data.dart';
 import '../search/dance_detail_data.dart';
-import '../search/facet_labels.dart' show formationLabel;
+import '../search/facet_labels.dart' show formationDisplayLabel;
 import '../theme/app_spacing.dart';
 import '../theme/keyboard_dismiss.dart';
 import '../utils/confirm_delete.dart';
@@ -2754,6 +2755,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             altDanceIds: altDanceIds,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
+            formationLabelBuilder: (formation) => formationDisplayLabel(
+              l10n,
+              formation,
+              FigureRenderer(contraTaxonomy),
+              _dialect,
+              canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+                context,
+              ),
+            ),
           ),
         ),
       ],
@@ -2787,7 +2797,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         omittedFreeTextCount: omittedFreeTextCount,
         formatDate: localizations.formatMediumDate,
         labels: programMatrixExportLabels(l10n),
-        formatFormation: (formation) => formationLabel(l10n, formation),
+        formatFormation: (formation) => formationDisplayLabel(
+          l10n,
+          formation,
+          FigureRenderer(contraTaxonomy),
+          _dialect,
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
+        ),
         config: _matrixColumnConfig,
       ),
     );
@@ -2863,6 +2881,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             danceTitles: _titleForDance,
             formationFor: _formationForDance,
             mixerFor: _mixerForDance,
+            dialect: _dialect,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
             onRemove: _removeSlot,

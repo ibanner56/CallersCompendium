@@ -12,6 +12,7 @@ import '../data/import_io.dart';
 import '../data/online_search.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/repositories_scope.dart';
+import '../data/sort_ignore_articles_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../models/dance_list_entry.dart';
 import '../search/collection_data.dart';
@@ -187,6 +188,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
   late CompendiumRepositories _repos;
   bool _started = false;
   bool _requirePerformedForHistory = false;
+  bool _ignoreLeadingArticles = true;
 
   List<DanceListEntry> _results = const [];
   bool _searching = false;
@@ -201,13 +203,18 @@ class _CollectionPickerState extends State<CollectionPicker> {
     final requirePerformedChanged =
         _started && newRequirePerformed != _requirePerformedForHistory;
     _requirePerformedForHistory = newRequirePerformed;
+    final newIgnoreLeadingArticles = SortIgnoreArticlesScope.of(context);
+    final ignoreLeadingArticlesChanged =
+        _started && newIgnoreLeadingArticles != _ignoreLeadingArticles;
+    _ignoreLeadingArticles = newIgnoreLeadingArticles;
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
       _callersBox = widget.callersBoxOnline ?? CallersBoxOnline();
       _contraDb = widget.contraDbOnline ?? ContraDbOnline();
       _runSearch();
-    } else if (requirePerformedChanged && !_onlineEnabled) {
+    } else if ((requirePerformedChanged || ignoreLeadingArticlesChanged) &&
+        !_onlineEnabled) {
       _runSearch();
     }
   }
@@ -338,6 +345,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
         filter,
         dialect: widget.dialect,
         enrichment: widget.enrichment,
+        ignoreLeadingArticles: _ignoreLeadingArticles,
       );
       if (!mounted || seq != _searchSeq) return;
       final choreographerNamesOverride = {
@@ -744,7 +752,7 @@ class _CollectionPickerState extends State<CollectionPicker> {
                       ? l10n.onlineSearchFieldLabel(_onlineSource.label)
                       : l10n.collectionPickerSearchLabel,
                   hintText: _onlineEnabled
-                      ? l10n.onlineSearchFieldHint
+                      ? l10n.collectionPickerOnlineSearchFieldHint
                       : l10n.collectionSearchFieldHint,
                   prefixIcon: Icon(
                     _onlineEnabled ? Icons.cloud_outlined : Icons.search,

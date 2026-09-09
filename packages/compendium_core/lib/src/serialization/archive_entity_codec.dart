@@ -222,6 +222,8 @@ Map<String, Object?> archiveProgramSlotToJson(
   'position': s.position,
   if (includeOptionalFields || s.danceId != null) 'danceId': s.danceId,
   if (includeOptionalFields || s.text != null) 'text': s.text,
+  if (includeOptionalFields || s.isPurgedDance != null)
+    'isPurgedDance': s.isPurgedDance,
   'isAlt': s.isAlt,
   if (includeOptionalFields || s.guestCaller != null)
     'guestCaller': s.guestCaller,

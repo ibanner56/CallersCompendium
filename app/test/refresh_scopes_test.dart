@@ -35,22 +35,26 @@ import 'support/test_repositories.dart';
 void main() {
   final now = DateTime.utc(2026, 1, 1);
 
-  Dance dance({required String id, required String title, DanceLevel? level}) =>
-      Dance(
-        id: id,
-        title: title,
-        authorIds: const [],
-        tagIds: const [],
-        form: DanceForm.contra,
-        formation: const Formation(FormationShape.dupleImproper),
-        status: DanceStatus.active,
-        level: level,
-        figures: const [],
-        customFields: const [],
-        hook: '',
-        createdAt: now,
-        updatedAt: now,
-      );
+  Dance dance({
+    required String id,
+    required String title,
+    DanceLevel? level,
+    List<String> tagIds = const [],
+  }) => Dance(
+    id: id,
+    title: title,
+    authorIds: const [],
+    tagIds: tagIds,
+    form: DanceForm.contra,
+    formation: const Formation(FormationShape.dupleImproper),
+    status: DanceStatus.active,
+    level: level,
+    figures: const [],
+    customFields: const [],
+    hook: '',
+    createdAt: now,
+    updatedAt: now,
+  );
 
   Program program({
     required String id,
@@ -291,6 +295,40 @@ void main() {
       );
     },
   );
+
+  testWidgets('renaming a choreographer refreshes an Omni search', (
+    tester,
+  ) async {
+    final counter = _SearchCounter();
+    final db = openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(counter),
+    );
+    final repos = CompendiumRepositories(db, contraTaxonomy);
+    // ignore: unused_result
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Adams'));
+    await repos.dances.create(
+      dance(id: 'd1', title: 'Alpha').copyWith(authorIds: const ['c1']),
+    );
+    await pump(tester, repos, const DanceListScreen());
+
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'Adams',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha'), findsOne);
+    final searchesBeforeRename = counter.count;
+
+    // The dance row is unchanged, but Omni also searches the denormalized
+    // author column, so the rename must invalidate the result set.
+    // ignore: unused_result
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Zulu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alpha'), findsNothing);
+    expect(counter.count, greaterThan(searchesBeforeRename));
+  });
 
   testWidgets(
     'renaming a choreographer re-sorts the list when sorted by author',
@@ -561,6 +599,16 @@ void main() {
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
       // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+      // Batch picker options intentionally contain only tags referenced by a
+      // live dance; keep the selected dance untagged so the refresh assertion
+      // still observes the batch write.
+      await repos.dances.create(
+        dance(id: 'tag-owner', title: 'Tag owner', tagIds: ['t1']),
+      );
+      expect(
+        (await repos.tags.listReferencedByLiveDances()).map((tag) => tag.id),
+        contains('t1'),
+      );
       // CollectionShell splits at 900 and AppShell puts an 80 px rail beside
       // it, so a real split needs >= 980; 1400 is comfortably past that. No
       // iPhone can reach it, which is why this gap is iPad/desktop only.
@@ -586,9 +634,9 @@ void main() {
       );
       expect(paneTag(), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('batch-select')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
+      // A live tag makes the compact-actions toolbar active, so enter batch
+      // mode through the row's long-press affordance instead.
+      await tester.longPress(find.text('Alpha').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
       await tester.pumpAndSettle();
@@ -966,6 +1014,11 @@ void main() {
       // plausibly happen per item.
       // ignore: unused_result
       await counted.repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+      // Batch picker options intentionally contain only tags referenced by a
+      // live dance.
+      await counted.repos.dances.create(
+        dance(id: 'tag-owner', title: 'Tag owner', tagIds: ['t1']),
+      );
       await pump(
         tester,
         counted.repos,
@@ -978,9 +1031,11 @@ void main() {
       final before = counted.dances.loads;
       expect(before, greaterThan(0), reason: 'the pane loaded at all');
 
-      await tester.tap(find.byKey(const ValueKey('batch-select')));
+      // A live tag makes the compact-actions toolbar active, so enter batch
+      // mode through the row's long-press affordance instead.
+      await tester.longPress(find.text('Dance 0').first);
       await tester.pumpAndSettle();
-      for (var i = 0; i < 5; i++) {
+      for (var i = 1; i < 5; i++) {
         await tester.tap(find.byKey(ValueKey('batch-checkbox-d$i')));
         await tester.pumpAndSettle();
       }
@@ -991,20 +1046,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
       await tester.pumpAndSettle();
 
-      // Five dances written in five transactions, so five wakes reach the
-      // stream. The bound is a *rate*, not a total: the coalescing window emits
-      // on the leading edge and flushes at most once per window thereafter, so
-      // a burst this size settles in two. Asserting exactly one would be
-      // asserting the trailing flush away, and the trailing flush is what
-      // guarantees the last write is not dropped.
-      //
-      // The claim being defended is the gap between 2 and 5 — one reload per
-      // dance written, for a pane showing one of them.
+      // The five dance updates share the outer batch transaction, so the
+      // stream receives one commit and the pane reloads once.
       expect(
         counted.dances.loads - before,
-        lessThanOrEqualTo(2),
+        1,
         reason:
-            'a 5-dance batch must not reload this pane once per dance; '
+            'a 5-dance batch must commit once and reload this pane once; '
             'saw ${counted.dances.loads - before}',
       );
     },

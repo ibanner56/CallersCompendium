@@ -9,6 +9,7 @@ export '../export/share_file.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/export_labels_l10n.dart';
 import '../export/program_pdf.dart';
@@ -130,6 +131,9 @@ class ProgramExportMenu extends StatelessWidget {
     venueNameFor: _venueNameFor,
     formatDate: (d) => _formatDate(context, d),
     labels: programExportLabels(AppLocalizations.of(context)),
+    renderer: FigureRenderer(contraTaxonomy),
+    dialect: ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+    canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
   );
 
   /// Walks [program.outputGrouped] and yields every primary and alternate dance
@@ -220,10 +224,21 @@ class ProgramExportMenu extends StatelessWidget {
         danceToPlainText(
           dance,
           authorNames: authorNames,
-          formationLabel: formationLabel(l10n, dance.formation),
+          formationLabel: formationDisplayLabel(
+            l10n,
+            dance.formation,
+            renderer,
+            dialect,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
           levelLabel: levelLabel,
           statusLabel: danceStatusLabel(l10n, dance.status),
           dialect: dialect,
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
           renderer: renderer,
           labels: danceLabels,
         ),
@@ -438,13 +453,12 @@ class ProgramExportMenu extends StatelessWidget {
     );
 
     final List<({Dance dance, bool isAlternate})>? appendDances;
-    final Dialect? dialect;
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    final renderer = FigureRenderer(contraTaxonomy);
     if (includeFigures) {
       appendDances = _orderedExportDances();
-      dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
     } else {
       appendDances = null;
-      dialect = null;
     }
 
     final layoutPdf = pdfLayouter ?? Printing.layoutPdf;
@@ -459,6 +473,10 @@ class ProgramExportMenu extends StatelessWidget {
         appendDances: appendDances,
         danceLabels: includeFigures ? danceExportLabels(l10n) : null,
         dialect: dialect,
+        renderer: renderer,
+        canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+          context,
+        ),
       ),
     );
   }

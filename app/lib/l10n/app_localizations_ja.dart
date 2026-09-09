@@ -12,7 +12,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement => 'Meanwhileコンテナを追加しました。';
+
+  @override
   String get navCollection => 'コレクション';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhileのデフォルト';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'Meanwhileコンテナを追加すると挿入されるサイド図形です。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。';
 
   @override
   String get navPrograms => 'プログラム';
@@ -435,6 +445,13 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsDialectCanonicalFigureTextSubtitle =>
       'オンにすると、ダンスの詳細に標準的な役割名と動きの名前を表示でき、標準以外のダイアレクトでは「標準」スイッチを使用できます。デフォルトではオフです。';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle => 'すべての非推奨用語を自動変換';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'オンにすると、ダンスの詳細、メモ、エクスポートで、対応する非推奨用語を標準的な表現に置き換えます。保存済みのテキストと入力欄は変更されません。デフォルトでオンです。';
 
   @override
   String get settingsDialectNewButton => '新しいダイアレクト';
@@ -956,6 +973,13 @@ class AppLocalizationsJa extends AppLocalizations {
       '各カードのサイズを調整して、ダンスまたはスロット全体がスクロールなしで画面に収まるようにします。A- / A+で自分でサイズを設定する場合はオフにしてください。';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle => '個別のPerformでタイマーを表示';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      '1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
 
   @override
@@ -1326,7 +1350,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'アドバンスド';
 
   @override
-  String get commonFormationDupleImproper => 'デュープルインプロパー';
+  String get commonFormationDupleImproper => 'インプロパー';
+
+  @override
+  String get commonFormationReverseProgressionImproper => '逆進行インプロパー';
 
   @override
   String get commonFormationBecketCw => 'Becket（CW）';
@@ -1335,10 +1362,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket（CCW）';
 
   @override
-  String get commonFormationDupleProper => 'デュープルプロパー';
+  String get commonFormationDupleProper => 'プロパー';
 
   @override
-  String get commonFormationDupleIndecent => 'デュープルインディーセント';
+  String get commonFormationDupleIndecent => 'インディーセント';
 
   @override
   String get commonFormationTripleMinor => 'トリプルマイナー';
@@ -1499,6 +1526,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionSearchFieldHint => 'タイトル、作者、フィギュア、ノートを検索…';
 
   @override
+  String get collectionPickerSearchFieldHint => 'タイトル、フィギュア、ノートを検索…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint => 'タイトルでオンラインのダンスを検索…';
+
+  @override
   String get collectionSearchScopeLabel => '検索対象';
 
   @override
@@ -1506,6 +1539,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'タイトル';
+
+  @override
+  String get collectionSearchScopeAuthor => '作者';
 
   @override
   String get collectionSearchScopeFigure => 'フィギュア';
@@ -1950,6 +1986,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get collectionCreateTagError => 'タグを作成できませんでした。もう一度お試しください。';
 
   @override
+  String get collectionBatchApplyError => '一括変更を適用できませんでした。もう一度お試しください。';
+
+  @override
   String get collectionBatchTagAddConfirm => '追加';
 
   @override
@@ -2356,7 +2395,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsAddDanceButton => 'ダンスを追加';
 
   @override
-  String get programsAddNoteBreakButton => 'ノート／ブレイクを追加';
+  String get programsAddNoteBreakButton => 'ノート／ワルツを追加';
 
   @override
   String get programsInsertBreakButton => 'ブレイクを挿入';
@@ -3091,6 +3130,15 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': '、一時停止中',
+      'other': '',
+    });
+    return '経過時間 $elapsedTime$_temp0';
+  }
+
+  @override
   String performPlannedMin(int planned) {
     return '予定 $planned分';
   }
@@ -3459,7 +3507,7 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'タイトルでオンラインダンスを検索…';
+  String get onlineSearchFieldHint => 'タイトルまたは作者でオンラインのダンスを検索…';
 
   @override
   String onlineResultCount(int count) {
@@ -3473,12 +3521,12 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'タイトルを入力するかフレーズのフィギュアを追加して$sourceを検索してください。';
+    return '$sourceを検索するには、タイトルまたは作者を入力するか、フレーズ別のフィギュアを追加してください。';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'タイトルを入力して$sourceを検索してください。';
+    return '$sourceを検索するには、タイトルまたは作者を入力してください。';
   }
 
   @override
@@ -4077,7 +4125,8 @@ class AppLocalizationsJa extends AppLocalizations {
       'The Caller\'s Boxのダンスをインポートできませんでした。';
 
   @override
-  String get importErrorContraDbEmptyTitle => 'ContraDBを検索するにはタイトルを入力してください。';
+  String get importErrorContraDbEmptyTitle =>
+      'ContraDBを検索するには、タイトルまたは作者を入力してください。';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5132,6 +5181,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceEditorAddFigure => 'フィギュアを追加';
 
   @override
+  String get danceEditorAddMeanwhile => 'Meanwhileを追加';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'フィギュアリストの末尾にペースト';
 
   @override
@@ -5318,6 +5370,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => '未指定';
+
+  @override
+  String get figureParamFacingStarBackingUp => '後退する人';
 
   @override
   String get danceEditorParamClearTooltip => 'クリア（未指定）';

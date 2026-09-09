@@ -186,7 +186,7 @@ void main() {
       expect(find.byKey(const ValueKey('summary-slot-s2')), findsNothing);
 
       // Primary secondary line surfaces formation + level.
-      expect(find.text('Duple improper · Beginner'), findsOneWidget);
+      expect(find.text('Improper · Beginner'), findsOneWidget);
 
       // The alternate (s1) renders indented (extra left padding) relative to
       // its primary (s0) and shows an "Alt" label + icon, never colour alone.
@@ -301,7 +301,7 @@ void main() {
       expect(
         tester.getSemantics(find.byKey(const ValueKey('summary-slot-s0'))),
         isSemantics(
-          label: 'Chase the Squirrel. Duple improper',
+          label: 'Chase the Squirrel. Improper',
           isButton: true,
           isFocusable: true,
           hasTapAction: true,

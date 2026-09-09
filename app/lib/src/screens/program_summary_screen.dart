@@ -4,6 +4,8 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/date_format_scope.dart';
 import '../data/refresh_coalescer.dart';
 import '../data/regional_formats.dart';
@@ -699,13 +701,13 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         if (program.dancerLevel != null)
           _summaryRow(
             Icons.groups_outlined,
-            l10n.programsSummaryLevel(program.dancerLevel!),
+            l10n.programsSummaryLevel(_displayProse(program.dancerLevel!)),
           ),
         if (program.notes.trim().isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(l10n.programsNotesLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: 4),
-          Text(program.notes),
+          Text(_displayProse(program.notes)),
         ],
         const SizedBox(height: 24),
         Text(
@@ -878,6 +880,14 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     return rows;
   }
 
+  String _displayProse(String text) {
+    if (!CanonicalDiscouragedTermsScope.of(context)) return text;
+    final dialect = ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins;
+    return FigureRenderer(
+      contraTaxonomy,
+    ).renderFreeTextWithCanonicalDiscouragedTerms(text, dialect);
+  }
+
   Widget _slotRow(
     ProgramSlot slot, {
     required String? ordinalLabel,
@@ -978,13 +988,22 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       }
 
       final secondaryParts = <String>[
-        if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null)
+          formationDisplayLabel(
+            l10n,
+            dance.formation,
+            _performRenderer,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
         if (dance?.level != null) danceLevelLabel(l10n, dance!.level!),
         if (dance != null && dance.mixer) l10n.commonMixer,
         // A dance slot may also carry a per-slot caller note (per ProgramSlot
         // docs); surface it like the builder UI does.
         if (slot.text != null && slot.text!.trim().isNotEmpty)
-          l10n.programsSummaryNote(slot.text!.trim()),
+          l10n.programsSummaryNote(_displayProse(slot.text!.trim())),
         ...extras,
       ];
       final secondary = secondaryParts.join(' · ');
@@ -1002,7 +1021,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
       // mixer term to both the visible secondary text and the semantics label.
       final semanticsLabel = [
         slot.isAlt ? l10n.programsSummaryAlternateSemantic(title) : title,
-        if (dance != null) formationLabel(l10n, dance.formation),
+        if (dance != null)
+          formationDisplayLabel(
+            l10n,
+            dance.formation,
+            _performRenderer,
+            ActiveDialectScope.maybeOf(context) ?? Dialect.larksRobins,
+            canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+              context,
+            ),
+          ),
         if (dance != null && dance.mixer) l10n.commonMixer,
         if (performed) l10n.programsPerformed,
       ].join('. ');
@@ -1090,6 +1118,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     }
     // Free-text slot (break / waltz / announcement): non-interactive text.
     final text = (slot.text ?? '').trim();
+    final displayText = slot.isPurgedDance != false
+        ? text
+        : _displayProse(text);
     return Padding(
       padding: EdgeInsets.only(left: indented ? 32 : 0, top: 6, bottom: 6),
       child: Row(
@@ -1108,7 +1139,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
               children: [
                 ?altBadge,
                 Text(
-                  text,
+                  displayText,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontStyle: FontStyle.italic,
                   ),

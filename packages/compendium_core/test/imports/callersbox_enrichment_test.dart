@@ -17,16 +17,32 @@ List<Figure> _parseAll(String rawText, {int beats = 0}) =>
 
 void main() {
   group('roll away', () {
-    test('TCB "Neighbor roll away" → who=neighbors (annotation dropped)', () {
+    test('TCB "Neighbor roll away" assigns role and relationship', () {
       final f = _parse('Neighbor roll away (W roll R, M side-step L)');
       expect(f!.move, 'roll_away');
-      expect(f.params['who'], 'neighbors');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['whom'], 'neighbors');
+      expect(f.note, 'role2s roll right, role1s side-step left');
     });
 
     test('"Partner roll away (across)" → who=partners, dir dropped', () {
       final f = _parse('Partner roll away (across)');
       expect(f!.move, 'roll_away');
       expect(f.params['who'], 'partners');
+    });
+
+    test('ambiguous per-role annotations keep generic roll-away params', () {
+      final noRoll = _parse('Neighbor roll away (W side-step R, M walk L)');
+      final twoRolls = _parse('Neighbor roll away (W roll R, M roll L)');
+      final unsupported = _parse(
+        'Neighbor roll away (W spin R, M side-step L)',
+      );
+
+      for (final f in [noRoll, twoRolls, unsupported]) {
+        expect(f!.move, 'roll_away');
+        expect(f.params['who'], 'neighbors');
+        expect(f.params.containsKey('whom'), isFalse);
+      }
     });
 
     test('canonical "role1s roll away neighbors with a half sashay along"', () {
@@ -172,11 +188,67 @@ void main() {
   });
 
   group('circulate → box_circulate', () {
-    test('"Circulate: women cross, men loop right" → box_circulate + note', () {
-      final f = _parse('Circulate: women cross, men loop right');
-      expect(f!.move, 'box_circulate');
-      expect(f.note, isNotNull);
-      expect(f.note, contains('cross'));
+    test(
+      '"Circulate: women cross, men loop right" → box_circulate + params + note',
+      () {
+        final f = _parse('Circulate: women cross, men loop right');
+        expect(f!.move, 'box_circulate');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['hand'], 'right');
+        expect(f.note, 'role2s cross, role1s loop right');
+      },
+    );
+
+    test(
+      '"Circulate: men cross, women loop left" decodes the crossing subject',
+      () {
+        final f = _parse('Circulate: men cross, women loop left');
+        expect(f!.move, 'box_circulate');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['hand'], 'left');
+        expect(f.note, 'role1s cross, role2s loop left');
+      },
+    );
+
+    test(
+      'circulate without a direction leaves hand at the taxonomy default',
+      () {
+        final f = _parse('Circulate: men cross, women loop');
+        expect(f!.move, 'box_circulate');
+        expect(f.params['who'], 'role1s');
+        expect(f.params.containsKey('hand'), isFalse);
+        expect(f.note, 'role1s cross, role2s loop');
+      },
+    );
+
+    test('circulate with an unknown looping subject stays custom', () {
+      final f = _parse('Circulate: women cross, unknown loop right');
+      expect(f!.isCustom, isTrue);
+      expect(f.params['text'], 'Circulate: role2s cross, unknown loop right');
+    });
+
+    test(
+      'circulate with an unknown looping subject and no inverse stays custom',
+      () {
+        final f = _parse('Circulate: partners cross, unknown loop right');
+        expect(f!.isCustom, isTrue);
+        expect(
+          f.params['text'],
+          'Circulate: partners cross, unknown loop right',
+        );
+      },
+    );
+
+    test('circulate without the loop action stays custom', () {
+      final f = _parse('Circulate: women cross, men right');
+      expect(f!.isCustom, isTrue);
+      expect(f.params['text'], 'Circulate: role2s cross, role1s right');
+    });
+
+    test('circulate with non-inverse subjects stays custom', () {
+      final f = _parse('Circulate: women cross, women loop right');
+      expect(f!.isCustom, isTrue);
+      expect(f.params['text'], 'Circulate: role2s cross, role2s loop right');
     });
 
     test('balance ring + circulate folds balance into box_circulate', () {

@@ -12,7 +12,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Added a meanwhile container.';
+
+  @override
   String get navCollection => 'Collection';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile defaults';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.';
 
   @override
   String get navPrograms => 'Programs';
@@ -442,6 +453,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsDialectCanonicalFigureTextSubtitle =>
       'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Auto-convert all discouraged terms';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.';
 
   @override
   String get settingsDialectNewButton => 'New dialect';
@@ -982,6 +1001,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Show timer for individual Perform';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling history';
 
   @override
@@ -1359,7 +1386,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Advanced';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Reverse progression improper';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1368,10 +1399,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -1536,6 +1567,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Search titles, figures, notes…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Search online dances by title…';
+
+  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override
@@ -1543,6 +1582,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Title';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Author';
 
   @override
   String get collectionSearchScopeFigure => 'Figure';
@@ -2003,6 +2045,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get collectionCreateTagError => 'Could not create tag. Try again.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Could not apply batch changes. Try again.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Add';
 
   @override
@@ -2421,7 +2467,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsAddDanceButton => 'Add dance';
 
   @override
-  String get programsAddNoteBreakButton => 'Add note / break';
+  String get programsAddNoteBreakButton => 'Add note / waltz';
 
   @override
   String get programsInsertBreakButton => 'Insert break';
@@ -3175,6 +3221,15 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', paused',
+      'other': '',
+    });
+    return 'Elapsed time $elapsedTime$_temp0';
+  }
+
+  @override
   String performPlannedMin(int planned) {
     return 'planned $planned min';
   }
@@ -3555,7 +3610,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Search online dances by title…';
+  String get onlineSearchFieldHint =>
+      'Search online dances by title or author…';
 
   @override
   String onlineResultCount(int count) {
@@ -3570,12 +3626,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Type a title or add by-phrase figures to search $source.';
+    return 'Type a title or author, or add by-phrase figures to search $source.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Type a title to search $source.';
+    return 'Type a title or author to search $source.';
   }
 
   @override
@@ -4211,7 +4267,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Enter a title to search ContraDB.';
+      'Enter a title or author to search ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5304,6 +5360,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceEditorAddFigure => 'Add figure';
 
   @override
+  String get danceEditorAddMeanwhile => 'Add meanwhile';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList => 'Paste at end of figure list';
 
   @override
@@ -5494,6 +5553,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => 'not stated';
+
+  @override
+  String get figureParamFacingStarBackingUp => 'backing up';
 
   @override
   String get danceEditorParamClearTooltip => 'Clear (not stated)';

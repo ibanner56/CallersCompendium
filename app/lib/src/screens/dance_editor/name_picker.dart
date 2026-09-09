@@ -162,7 +162,7 @@ class _AddAutocompleteState extends State<_AddAutocomplete> {
         _controller.clear();
         _focusNode.requestFocus();
       },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
         return TextField(
           key: ValueKey('$fieldKey-input'),
           controller: controller,

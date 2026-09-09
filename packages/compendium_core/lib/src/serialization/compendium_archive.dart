@@ -28,7 +28,8 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///   [requiredSchemaVersion]) to trip the "newer than supported" warning
 ///   instead of dropping the venue records. Venue-*less* archives keep being
 ///   stamped v1 so pre-venue readers still accept them byte-compatibly.
-const int archiveSchemaVersion = archiveSchemaVersionVenues;
+/// * **v3** — adds the optional `programSlot.isPurgedDance` discriminator.
+const int archiveSchemaVersion = archiveSchemaVersionProgramSlotMarkers;
 
 /// The original, pre-venue archive envelope version.
 const int archiveSchemaVersionBase = 1;
@@ -37,17 +38,24 @@ const int archiveSchemaVersionBase = 1;
 /// [archiveSchemaVersion]).
 const int archiveSchemaVersionVenues = 2;
 
+/// The envelope version introduced for explicit text-only purge captions.
+const int archiveSchemaVersionProgramSlotMarkers = 3;
+
 /// The minimum envelope version required to represent [archive] without silent
-/// data loss on an older reader: [archiveSchemaVersionVenues] when it carries
-/// any venue data (a non-empty `venues` list, or any program with a non-null
-/// `venueId`), otherwise [archiveSchemaVersionBase].
+/// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
+/// it carries a non-null purge-caption marker, [archiveSchemaVersionVenues] when
+/// it carries venue data, otherwise [archiveSchemaVersionBase].
 ///
 /// The encoder stamps the wire version at `max(archive.schemaVersion, this)` so
-/// venue-bearing archives always advertise v2 (old readers warn instead of
-/// dropping venues) while venue-less archives stay backward-compatible at v1 —
-/// and an explicitly higher requested version is still honored.
+/// archives carrying new fields advertise the required version (old readers
+/// warn instead of dropping them), while unchanged archives stay
+/// backward-compatible — and an explicitly higher requested version is still
+/// honored.
 int requiredSchemaVersion(CompendiumArchive archive) =>
-    archive.venues.isNotEmpty || archive.programs.any((p) => p.venueId != null)
+    archive.programs.any((p) => p.slots.any((s) => s.isPurgedDance != null))
+    ? archiveSchemaVersionProgramSlotMarkers
+    : archive.venues.isNotEmpty ||
+          archive.programs.any((p) => p.venueId != null)
     ? archiveSchemaVersionVenues
     : archiveSchemaVersionBase;
 
@@ -92,8 +100,8 @@ class CompendiumArchive {
 
   /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
   /// [archiveSchemaVersionBase]; the encoder raises the version it actually
-  /// writes to at least [requiredSchemaVersion] so a venue-bearing archive is
-  /// always advertised as v2 even when constructed with the default.
+  /// writes to at least [requiredSchemaVersion] so archives carrying new fields
+  /// advertise their required version even when constructed with the default.
   final int schemaVersion;
 
   /// When the archive was produced (UTC).

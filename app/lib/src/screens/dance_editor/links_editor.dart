@@ -261,7 +261,7 @@ class _RelatedDancePicker extends StatelessWidget {
         return danceOptions.where((o) => o.name.toLowerCase().contains(q));
       },
       onSelected: (choice) => onSelected(choice.id),
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
         return TextField(
           controller: controller,
           focusNode: focusNode,

@@ -4,9 +4,21 @@
   "@appTitle": {
     "description": "The application's name. Shown as the window/task-switcher title via MaterialApp.onGenerateTitle."
   },
+  "danceEditorAddedMeanwhileAnnouncement": "Added a meanwhile container.",
+  "@danceEditorAddedMeanwhileAnnouncement": {
+    "description": "Screen-reader announcement after adding a meanwhile container."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
+  },
+  "settingsDefaultsMeanwhileTitle": "Meanwhile defaults",
+  "@settingsDefaultsMeanwhileTitle": {
+    "description": "Sub-heading for default meanwhile side figures."
+  },
+  "settingsDefaultsMeanwhileSubtitle": "The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.",
+  "@settingsDefaultsMeanwhileSubtitle": {
+    "description": "Explanation for the default meanwhile side-figure editor."
   },
   "navPrograms": "Programs",
   "@navPrograms": {
@@ -591,6 +603,14 @@
   "settingsDialectCanonicalFigureTextSubtitle": "When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.",
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "description": "Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed."
+  },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Auto-convert all discouraged terms",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "description": "Setting title for display-only conversion of discouraged dance terms."
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "description": "Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed."
   },
   "settingsDialectNewButton": "New dialect",
   "@settingsDialectNewButton": {
@@ -1257,6 +1277,14 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "description": "Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls."
   },
+  "settingsShowIndividualPerformTimerTitle": "Show timer for individual Perform",
+  "@settingsShowIndividualPerformTimerTitle": {
+    "description": "Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program."
+  },
+  "settingsShowIndividualPerformTimerSubtitle": "Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.",
+  "@settingsShowIndividualPerformTimerSubtitle": {
+    "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
+  },
   "settingsGeneralCallingHistoryHeader": "Calling history",
   "@settingsGeneralCallingHistoryHeader": {
     "description": "General settings section header for calling-history preferences."
@@ -1729,9 +1757,13 @@
   "@commonDanceLevelAdvanced": {
     "description": "Dance difficulty value: advanced level."
   },
-  "commonFormationDupleImproper": "Duple improper",
+  "commonFormationDupleImproper": "Improper",
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
+  },
+  "commonFormationReverseProgressionImproper": "Reverse progression improper",
+  "@commonFormationReverseProgressionImproper": {
+    "description": "Formation shape value: improper formation with reverse progression."
   },
   "commonFormationBecketCw": "Becket (CW)",
   "@commonFormationBecketCw": {
@@ -1741,11 +1773,11 @@
   "@commonFormationBecketCcw": {
     "description": "Formation shape value: Becket, counter-clockwise progression (CCW)."
   },
-  "commonFormationDupleProper": "Duple proper",
+  "commonFormationDupleProper": "Proper",
   "@commonFormationDupleProper": {
     "description": "Formation shape value: duple proper."
   },
-  "commonFormationDupleIndecent": "Duple indecent",
+  "commonFormationDupleIndecent": "Indecent",
   "@commonFormationDupleIndecent": {
     "description": "Formation shape value: duple indecent."
   },
@@ -1981,6 +2013,14 @@
   "@collectionSearchFieldHint": {
     "description": "Hint text of the local collection search field, listing what is searched."
   },
+  "collectionPickerSearchFieldHint": "Search titles, figures, notes…",
+  "@collectionPickerSearchFieldHint": {
+    "description": "Hint text of the collection picker search field, listing what is searched."
+  },
+  "collectionPickerOnlineSearchFieldHint": "Search online dances by title…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "description": "Hint text of the collection picker when its online search is limited to titles."
+  },
   "collectionSearchScopeLabel": "Search in",
   "@collectionSearchScopeLabel": {
     "description": "Label for the local collection search scope selector."
@@ -1992,6 +2032,10 @@
   "collectionSearchScopeTitle": "Title",
   "@collectionSearchScopeTitle": {
     "description": "Local collection search scope restricted to dance titles."
+  },
+  "collectionSearchScopeAuthor": "Author",
+  "@collectionSearchScopeAuthor": {
+    "description": "Collection search scope restricted to dance authors, including the online author criterion."
   },
   "collectionSearchScopeFigure": "Figure",
   "@collectionSearchScopeFigure": {
@@ -2601,6 +2645,10 @@
   "@collectionCreateTagError": {
     "description": "Snackbar shown when creating a tag fails."
   },
+  "collectionBatchApplyError": "Could not apply batch changes. Try again.",
+  "@collectionBatchApplyError": {
+    "description": "Snackbar shown when applying a batch tag operation fails."
+  },
   "collectionBatchTagAddConfirm": "Add",
   "@collectionBatchTagAddConfirm": {
     "description": "Confirm button of the batch add-tags dialog."
@@ -3203,7 +3251,7 @@
   "@programsAddDanceButton": {
     "description": "Button that opens the dance picker to add a dance slot to the program."
   },
-  "programsAddNoteBreakButton": "Add note / break",
+  "programsAddNoteBreakButton": "Add note / waltz",
   "@programsAddNoteBreakButton": {
     "description": "Button that adds a free-text note or break slot to the program."
   },
@@ -4254,6 +4302,20 @@
       }
     }
   },
+  "performIndividualTimingSemantic": "Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}",
+  "@performIndividualTimingSemantic": {
+    "description": "Screen-reader label for the individual Perform elapsed-timer line.",
+    "placeholders": {
+      "elapsedTime": {
+        "type": "String",
+        "example": "12:34"
+      },
+      "paused": {
+        "type": "String",
+        "example": "no"
+      }
+    }
+  },
   "performPlannedMin": "planned {planned} min",
   "@performPlannedMin": {
     "description": "Visible short label for a slot's planned length in minutes on the perform-mode timing line.",
@@ -4748,7 +4810,7 @@
       }
     }
   },
-  "onlineSearchFieldHint": "Search online dances by title…",
+  "onlineSearchFieldHint": "Search online dances by title or author…",
   "@onlineSearchFieldHint": {
     "description": "Hint text for the online search field."
   },
@@ -4761,7 +4823,7 @@
       }
     }
   },
-  "onlineSearchHintByPhrase": "Type a title or add by-phrase figures to search {source}.",
+  "onlineSearchHintByPhrase": "Type a title or author, or add by-phrase figures to search {source}.",
   "@onlineSearchHintByPhrase": {
     "description": "Empty-query hint for online sources that support by-phrase figure criteria.",
     "placeholders": {
@@ -4771,9 +4833,9 @@
       }
     }
   },
-  "onlineSearchHintTitle": "Type a title to search {source}.",
+  "onlineSearchHintTitle": "Type a title or author to search {source}.",
   "@onlineSearchHintTitle": {
-    "description": "Empty-query hint for online sources that only support title search.",
+    "description": "Empty-query hint for online sources without by-phrase support.",
     "placeholders": {
       "source": {
         "type": "String",
@@ -5557,9 +5619,9 @@
   "@importErrorCallersBoxImportFailed": {
     "description": "Error shown when committing a Caller's Box dance failed. Generic by design; underlying error detail is not shown."
   },
-  "importErrorContraDbEmptyTitle": "Enter a title to search ContraDB.",
+  "importErrorContraDbEmptyTitle": "Enter a title or author to search ContraDB.",
   "@importErrorContraDbEmptyTitle": {
-    "description": "Error shown when a ContraDB search is attempted with no title."
+    "description": "Error shown when a ContraDB search is attempted with no title or author."
   },
   "importErrorContraDbEmptyDanceInput": "Enter a ContraDB dance URL or id to import from.",
   "@importErrorContraDbEmptyDanceInput": {
@@ -7046,6 +7108,10 @@
   "@danceEditorAddFigure": {
     "description": "Button label for adding another figure row."
   },
+  "danceEditorAddMeanwhile": "Add meanwhile",
+  "@danceEditorAddMeanwhile": {
+    "description": "Menu item label for adding an empty meanwhile container."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -7323,6 +7389,10 @@
   "danceEditorParamNotStated": "not stated",
   "@danceEditorParamNotStated": {
     "description": "Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state."
+  },
+  "figureParamFacingStarBackingUp": "backing up",
+  "@figureParamFacingStarBackingUp": {
+    "description": "Display-only label for the facing star move's `who` parameter in figure editors and search controls."
   },
   "danceEditorParamClearTooltip": "Clear (not stated)",
   "@danceEditorParamClearTooltip": {

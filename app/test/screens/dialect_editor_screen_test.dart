@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/screens/dialect_editor_screen.dart';
 
 import '../support/l10n_harness.dart';
+import '../support/screen_size.dart';
 
 void main() {
   Finder validationError() =>
@@ -434,6 +435,32 @@ void main() {
         tester.getTopLeft(find.byKey(const ValueKey('dialect-move-swing'))).dy,
       ),
     );
+  });
+
+  testWidgets('move substitution hints wrap on narrow surfaces', (
+    tester,
+  ) async {
+    await setScreenSize(tester, const Size(320, 720));
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        home: DialectEditorScreen(
+          initial: Dialect(name: 'Narrow', moves: const {'swing': 'twirl'}),
+        ),
+      ),
+    );
+
+    final toggle = find.byKey(const ValueKey('dialect-moves-toggle'));
+    await reveal(tester, toggle);
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    final field = find.byKey(const ValueKey('dialect-move-swing'));
+    expect(field, findsOneWidget);
+    expect(tester.widget<TextField>(field).decoration!.hintMaxLines, 4);
+    expect(find.text('substitution (use %S for handedness)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('adding a wording updates the main preview immediately', (

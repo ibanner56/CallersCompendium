@@ -12,7 +12,18 @@ class AppLocalizationsDe extends AppLocalizations {
   String get appTitle => 'Caller\'s Compendium';
 
   @override
+  String get danceEditorAddedMeanwhileAnnouncement =>
+      'Ein Meanwhile-Container wurde hinzugefügt.';
+
+  @override
   String get navCollection => 'Sammlung';
+
+  @override
+  String get settingsDefaultsMeanwhileTitle => 'Meanwhile-Standards';
+
+  @override
+  String get settingsDefaultsMeanwhileSubtitle =>
+      'Die Seitenfiguren, die beim Hinzufügen eines Meanwhile-Containers verwendet werden. Leere die Liste für zwei leere Seiten; eine konfigurierte Seite erhält eine leere Begleitseite. Du kannst den Container nach dem Einfügen bearbeiten.';
 
   @override
   String get navPrograms => 'Programme';
@@ -448,6 +459,14 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsDialectCanonicalFigureTextSubtitle =>
       'Wenn aktiviert, können Tanzdetails kanonische Rollen- und Bewegungsnamen anzeigen, und der Schalter „Kanonisch“ ist bei nichtkanonischen Dialekten verfügbar. Standardmäßig aus.';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsTitle =>
+      'Alle unerwünschten Begriffe automatisch umwandeln';
+
+  @override
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle =>
+      'Wenn aktiviert, verwenden Tanzdetails, Notizen und Exporte für unterstützte unerwünschte Begriffe eine kanonische Formulierung. Gespeicherter Text und Eingabefelder bleiben unverändert. Standardmäßig aktiviert.';
 
   @override
   String get settingsDialectNewButton => 'Neuer Dialekt';
@@ -1010,6 +1029,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Jede Karte so skalieren, dass der vollständige Tanz oder Slot ohne Scrollen auf den Bildschirm passt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Timer für einzelne Perform-Ansicht anzeigen';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling-Verlauf';
 
   @override
@@ -1394,7 +1421,11 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonDanceLevelAdvanced => 'Fortgeschritten';
 
   @override
-  String get commonFormationDupleImproper => 'Duple improper';
+  String get commonFormationDupleImproper => 'Improper';
+
+  @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper mit umgekehrter Progression';
 
   @override
   String get commonFormationBecketCw => 'Becket (CW)';
@@ -1403,10 +1434,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get commonFormationBecketCcw => 'Becket (CCW)';
 
   @override
-  String get commonFormationDupleProper => 'Duple proper';
+  String get commonFormationDupleProper => 'Proper';
 
   @override
-  String get commonFormationDupleIndecent => 'Duple indecent';
+  String get commonFormationDupleIndecent => 'Indecent';
 
   @override
   String get commonFormationTripleMinor => 'Triple minor';
@@ -1573,6 +1604,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Titel, Autoren, Figuren, Notizen suchen…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Titel, Figuren, Notizen suchen…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Online-Tänze nach Titel suchen…';
+
+  @override
   String get collectionSearchScopeLabel => 'Suchen in';
 
   @override
@@ -1580,6 +1619,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Titel';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Autor';
 
   @override
   String get collectionSearchScopeFigure => 'Figur';
@@ -2043,6 +2085,10 @@ class AppLocalizationsDe extends AppLocalizations {
       'Tag konnte nicht erstellt werden. Versuchen Sie es erneut.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Batchänderungen konnten nicht angewendet werden. Versuchen Sie es erneut.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Hinzufügen';
 
   @override
@@ -2467,7 +2513,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsAddDanceButton => 'Tanz hinzufügen';
 
   @override
-  String get programsAddNoteBreakButton => 'Notiz / Pause hinzufügen';
+  String get programsAddNoteBreakButton => 'Notiz / Walzer hinzufügen';
 
   @override
   String get programsInsertBreakButton => 'Pause einfügen';
@@ -3223,6 +3269,15 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', pausiert',
+      'other': '',
+    });
+    return 'Verstrichene Zeit $elapsedTime$_temp0';
+  }
+
+  @override
   String performPlannedMin(int planned) {
     return 'geplant $planned Min.';
   }
@@ -3608,7 +3663,8 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Online-Tänze nach Titel suchen…';
+  String get onlineSearchFieldHint =>
+      'Online-Tänze nach Titel oder Autor suchen…';
 
   @override
   String onlineResultCount(int count) {
@@ -3623,12 +3679,12 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Geben Sie einen Titel ein oder fügen Sie Phrase-Figuren hinzu, um $source zu durchsuchen.';
+    return 'Gib einen Titel oder Autor ein oder füge Figuren für die Phrasensuche hinzu, um $source zu durchsuchen.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Geben Sie einen Titel ein, um $source zu durchsuchen.';
+    return 'Gib einen Titel oder Autor ein, um $source zu durchsuchen.';
   }
 
   @override
@@ -4272,7 +4328,7 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Geben Sie einen Titel ein, um ContraDB zu durchsuchen.';
+      'Gib einen Titel oder Autor ein, um ContraDB zu durchsuchen.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5385,6 +5441,9 @@ class AppLocalizationsDe extends AppLocalizations {
   String get danceEditorAddFigure => 'Figur hinzufügen';
 
   @override
+  String get danceEditorAddMeanwhile => 'Meanwhile hinzufügen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Am Ende der Figurenliste einfügen';
 
@@ -5579,6 +5638,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => 'nicht angegeben';
+
+  @override
+  String get figureParamFacingStarBackingUp => 'rückwärts';
 
   @override
   String get danceEditorParamClearTooltip => 'Löschen (nicht angegeben)';

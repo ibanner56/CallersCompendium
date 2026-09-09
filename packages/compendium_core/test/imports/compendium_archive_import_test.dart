@@ -113,6 +113,39 @@ void main() {
 
   final now = DateTime.utc(2026, 7, 18);
 
+  test('preserves purge markers when rebuilding imported programs', () {
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      programs: [
+        Program(
+          id: 'orig-purge-program',
+          title: 'Purge',
+          slots: [
+            ProgramSlot(
+              id: 'orig-purge-slot',
+              position: 0,
+              text: 'Lady of the Lake',
+              isPurgedDance: true,
+            ),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+    );
+
+    final result = buildArchivePrograms(
+      archive,
+      danceIdByOriginalId: const {},
+      newId: sequentialIds('program'),
+      newSlotId: sequentialIds('slot'),
+      now: now,
+    );
+
+    expect(result.issues, isEmpty);
+    expect(result.programs.single.slots.single.isPurgedDance, isTrue);
+  });
+
   Future<int> programExistenceStamp(String id) async {
     final rows = await db
         .customSelect(
@@ -845,6 +878,7 @@ void main() {
     CompendiumArchive bundleWithVenue({
       String? programVenueId,
       List<Venue> venues = const [],
+      bool? slotMarker = false,
     }) {
       final d1 = _dance('orig-d1', 'Simplicity Swing');
       final program = Program(
@@ -852,7 +886,14 @@ void main() {
         title: 'Spring Fling',
         venueId: programVenueId,
         status: ProgramStatus.draft,
-        slots: [ProgramSlot(id: 'orig-sl1', position: 0, danceId: 'orig-d1')],
+        slots: [
+          ProgramSlot(
+            id: 'orig-sl1',
+            position: 0,
+            danceId: 'orig-d1',
+            isPurgedDance: slotMarker,
+          ),
+        ],
         createdAt: DateTime.utc(2026, 4, 1),
         updatedAt: DateTime.utc(2026, 4, 1),
       );
@@ -1486,7 +1527,7 @@ void main() {
         // A program first imported from a pre-venue (venue-less) bundle: its
         // requiredSchemaVersion is the base version, so the importer treats it as
         // unable to express `venueId`.
-        final preVenue = bundleWithVenue();
+        final preVenue = bundleWithVenue(slotMarker: null);
         await run(preVenue);
         final imported = (await programs.listAll()).single;
         expect(imported.venueId, isNull);

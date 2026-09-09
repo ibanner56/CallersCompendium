@@ -148,6 +148,10 @@ const String kDefaultDanceDetailRenderingKey = 'default_dance_detail_rendering';
 /// details. Absent/invalid ⇒ off, preserving the active-dialect-only behavior.
 const String kCanonicalFigureTextKey = 'canonical_figure_text';
 
+/// Key used to persist display-time conversion of discouraged dance terms.
+/// Absent/invalid ⇒ on, preserving the default-on behavior.
+const String kCanonicalDiscouragedTermsKey = 'canonical_discouraged_terms';
+
 /// The user's preferred STARTING rendering for the dance-detail figure table
 /// (ROADMAP G.6b).
 ///
@@ -270,6 +274,12 @@ String dancePhraseStructureRawFromStored(Object? stored) {
 /// invalid ⇒ [defaultNewDanceFigureTemplate] (ContraDB's `stand_still × 8`).
 const String kDefaultDanceFiguresTemplateKey = 'default_dance_figures_template';
 
+/// Key used to persist the default side figures for a newly inserted meanwhile
+/// container (issue #1197). Stored as a `figures_json` string containing 0–6
+/// ordinary figures. An empty list intentionally means a blank insertion;
+/// missing or malformed values use two stand-still sides.
+const String kDefaultMeanwhileSideFiguresKey = 'default_meanwhile_side_figures';
+
 /// The default figure list a blank NEW dance begins with when the user hasn't
 /// configured a template (ROADMAP DD.2). Matches ContraDB's new-dance template:
 /// EIGHT `stand_still` figures, each of 8 beats.
@@ -303,6 +313,45 @@ List<Figure> danceFiguresTemplateFromStored(Object? stored) {
   }
   return defaultNewDanceFigureTemplate();
 }
+
+/// The safe fallback for a newly inserted meanwhile when no valid side
+/// preference exists.
+List<Figure> defaultMeanwhileSideFigures() => [
+  Figure(move: 'stand_still', params: const {'beats': 8}),
+  Figure(move: 'stand_still', params: const {'beats': 8}),
+];
+
+/// Resolves the persisted meanwhile-side template for insertion.
+///
+/// Unlike [danceFiguresTemplateFromStored], a valid empty list is meaningful:
+/// it requests a blank two-side editor draft. Decoded entries must be ordinary
+/// figures and the list must fit the core meanwhile side cap.
+List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
+  if (stored is String) {
+    try {
+      final raw = jsonDecode(stored);
+      if (raw is! List ||
+          raw.length > kMaxMeanwhileSides ||
+          raw.any((entry) => entry is! Map || entry['move'] == meanwhileMove)) {
+        return defaultMeanwhileSideFigures();
+      }
+      final figures = decodeFigures(stored);
+      if (figures.length <= kMaxMeanwhileSides &&
+          figures.every((figure) => !figure.isMeanwhile)) {
+        return figures;
+      }
+    } catch (_) {
+      // diagnostics: silent — malformed side defaults use the safe fallback
+    }
+  }
+  return defaultMeanwhileSideFigures();
+}
+
+/// Encodes ordinary meanwhile-side defaults for settings storage.
+String encodeMeanwhileSideFigures(List<Figure> figures) => encodeFigures([
+  for (final figure in figures)
+    if (!figure.isMeanwhile) figure,
+]);
 
 /// Key used to persist the per-move figure-entry parameter overrides (ROADMAP
 /// DD.3). Stored as `jsonEncode(Map<moveId, Map<paramKey, value>>)` holding

@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 33', () {
-      expect(contraTaxonomyVersion, 33);
-      expect(tax.version, 33);
+    test('contraTaxonomyVersion is 34', () {
+      expect(contraTaxonomyVersion, 34);
+      expect(tax.version, 34);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -68,8 +68,9 @@ void main() {
       // redundant normalization snapshots, and schema 31 (#1130) added
       // transitive related-dance link groups; neither changed the taxonomy.
       // Schema 32 adds Device Sync local persistence and likewise does not
-      // change the taxonomy.
-      expect(kCompendiumSchemaVersion, 32);
+      // change the taxonomy. Schema 33 adds a program-slot purge-caption
+      // marker for display-only text handling and likewise does not change it.
+      expect(kCompendiumSchemaVersion, 33);
     });
 
     test('registers with the maintainer-ruled param set', () {

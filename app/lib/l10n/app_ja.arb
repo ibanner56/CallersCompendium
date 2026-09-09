@@ -4,9 +4,21 @@
   "@appTitle": {
     "x-sourceSha256": "5630bc70bb952a4b12483271c7b3b800ffe4e26a7f903af78fc9b109f3bcbb1f"
   },
+  "danceEditorAddedMeanwhileAnnouncement": "Meanwhileコンテナを追加しました。",
+  "@danceEditorAddedMeanwhileAnnouncement": {
+    "x-sourceSha256": "8e45bc8c30a0603904bd6b08fd02f381d1f3ef7c8c97633033cc6e38d032df9d"
+  },
   "navCollection": "コレクション",
   "@navCollection": {
     "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
+  },
+  "settingsDefaultsMeanwhileTitle": "Meanwhileのデフォルト",
+  "@settingsDefaultsMeanwhileTitle": {
+    "x-sourceSha256": "13461f7f717e0763c8fb3e523fcb2ee3806b233a39f02b93885e0a0747f61210"
+  },
+  "settingsDefaultsMeanwhileSubtitle": "Meanwhileコンテナを追加すると挿入されるサイド図形です。空にすると2つの空のサイドになり、1つだけ設定すると空のサイドが1つ追加されます。挿入後にコンテナを編集できます。",
+  "@settingsDefaultsMeanwhileSubtitle": {
+    "x-sourceSha256": "fd52415a558ae2a3b71aec64d34d88e66dbb87e764af095eddf7880b8de71bfc"
   },
   "navPrograms": "プログラム",
   "@navPrograms": {
@@ -487,6 +499,14 @@
   "settingsDialectCanonicalFigureTextSubtitle": "オンにすると、ダンスの詳細に標準的な役割名と動きの名前を表示でき、標準以外のダイアレクトでは「標準」スイッチを使用できます。デフォルトではオフです。",
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "x-sourceSha256": "e812db9cfe7c523f0f5c51be38b93d705416af60435fe0bfa4ba16a028f8df6d"
+  },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "すべての非推奨用語を自動変換",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "x-sourceSha256": "c3cd1539f3a19b4f0a2a77daa0b119d57a5052ce0bac40c2c3e6728eec122526"
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "オンにすると、ダンスの詳細、メモ、エクスポートで、対応する非推奨用語を標準的な表現に置き換えます。保存済みのテキストと入力欄は変更されません。デフォルトでオンです。",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "x-sourceSha256": "6da747058b2195c2a5b721e0887ad4866e699160433d7de1e72c10d5deba3652"
   },
   "settingsDialectNewButton": "新しいダイアレクト",
   "@settingsDialectNewButton": {
@@ -1112,6 +1132,14 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "x-sourceSha256": "5fc58c7fdd31965d66905ccee7c0b386915c511918a7c617de33fdd92c66d0f0"
   },
+  "settingsShowIndividualPerformTimerTitle": "個別のPerformでタイマーを表示",
+  "@settingsShowIndividualPerformTimerTitle": {
+    "x-sourceSha256": "e9260de6229a91b26d5792f5b6bb8ea2d5332f23a8943c2e3c6157f2e2e58ef0"
+  },
+  "settingsShowIndividualPerformTimerSubtitle": "1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。",
+  "@settingsShowIndividualPerformTimerSubtitle": {
+    "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
+  },
   "settingsGeneralCallingHistoryHeader": "コーリング履歴",
   "@settingsGeneralCallingHistoryHeader": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
@@ -1560,9 +1588,13 @@
   "@commonDanceLevelAdvanced": {
     "x-sourceSha256": "9f088dbebd6c3c70a5ddbc2c943b11e4ca9acea5757b0b4f2b32479f0dbb747e"
   },
-  "commonFormationDupleImproper": "デュープルインプロパー",
+  "commonFormationDupleImproper": "インプロパー",
   "@commonFormationDupleImproper": {
-    "x-sourceSha256": "7d4809232dd29915bfa8b7a2fd009728a4c9820cd26f06637226d27a567d3680"
+    "x-sourceSha256": "808a0c372428e6e217915030f238b73e494ec4fbb18e8fd5ec2004b7237e2031"
+  },
+  "commonFormationReverseProgressionImproper": "逆進行インプロパー",
+  "@commonFormationReverseProgressionImproper": {
+    "x-sourceSha256": "9883e2a8bdb86a8f098ec334a376e1ab4a57617832057c384fd3e423d8b7dabb"
   },
   "commonFormationBecketCw": "Becket（CW）",
   "@commonFormationBecketCw": {
@@ -1572,13 +1604,13 @@
   "@commonFormationBecketCcw": {
     "x-sourceSha256": "34fbde39ef1bf1a6fb95aa5a2972258e3531c9d0fa5f4e51fde183051cac1544"
   },
-  "commonFormationDupleProper": "デュープルプロパー",
+  "commonFormationDupleProper": "プロパー",
   "@commonFormationDupleProper": {
-    "x-sourceSha256": "01c9bd784a2a4c4257c1f26406d7a632cf9375303f2a0ce5c4466f90bee64b24"
+    "x-sourceSha256": "ede828cdf3ce4a7537195a8c6c7f008db69edfea751a2682b3362681b3d36b25"
   },
-  "commonFormationDupleIndecent": "デュープルインディーセント",
+  "commonFormationDupleIndecent": "インディーセント",
   "@commonFormationDupleIndecent": {
-    "x-sourceSha256": "e4a67d69292c5a641094b10b623f5919fcdf733a7e2d243ae3a96aa53d29a35d"
+    "x-sourceSha256": "a2eef8c4f9d377392810fdb02e8d4fd912a99e71110a21ee1fbf0fbb5a7f6163"
   },
   "commonFormationTripleMinor": "トリプルマイナー",
   "@commonFormationTripleMinor": {
@@ -1764,6 +1796,14 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
+  "collectionPickerSearchFieldHint": "タイトル、フィギュア、ノートを検索…",
+  "@collectionPickerSearchFieldHint": {
+    "x-sourceSha256": "7d4dc44ffc70ef07a637b21c1ab753ce6dac7d81af0554a06e15232186a89985"
+  },
+  "collectionPickerOnlineSearchFieldHint": "タイトルでオンラインのダンスを検索…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
+  },
   "collectionSearchScopeLabel": "検索対象",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
@@ -1775,6 +1815,10 @@
   "collectionSearchScopeTitle": "タイトル",
   "@collectionSearchScopeTitle": {
     "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
+  },
+  "collectionSearchScopeAuthor": "作者",
+  "@collectionSearchScopeAuthor": {
+    "x-sourceSha256": "d95082a2ee57f3e40e3050662a346e26a872fd4d0baf57d293ac5a883f0f4ff5"
   },
   "collectionSearchScopeFigure": "フィギュア",
   "@collectionSearchScopeFigure": {
@@ -2208,6 +2252,10 @@
   "@collectionCreateTagError": {
     "x-sourceSha256": "57b158c1d625d53d262633ec7332809ba4d0a058e1b1ea036a0fd874f3f5cd1e"
   },
+  "collectionBatchApplyError": "一括変更を適用できませんでした。もう一度お試しください。",
+  "@collectionBatchApplyError": {
+    "x-sourceSha256": "bc31eff46d597169250638475f89c56fb1af5876a1d1e906931db235fda0e7f0"
+  },
   "collectionBatchTagAddConfirm": "追加",
   "@collectionBatchTagAddConfirm": {
     "x-sourceSha256": "9fd728c66c9a256b121472dabf32a34317aed01d8427d70ec830289cf23a7cc8"
@@ -2636,9 +2684,9 @@
   "@programsAddDanceButton": {
     "x-sourceSha256": "285e08017a7bc3224020ed6f9cb6597913092f8028f2573691fd50543e51d08d"
   },
-  "programsAddNoteBreakButton": "ノート／ブレイクを追加",
+  "programsAddNoteBreakButton": "ノート／ワルツを追加",
   "@programsAddNoteBreakButton": {
-    "x-sourceSha256": "e427b867874554edde579f20e60c1f21d95e757dac6ce53f03443c224acee4d7"
+    "x-sourceSha256": "49da911a72e2ae7022df2ba58ec7d6e17094845e3726e5f3dd224613835cc467"
   },
   "programsInsertBreakButton": "ブレイクを挿入",
   "@programsInsertBreakButton": {
@@ -3332,6 +3380,10 @@
   "@performTimingSemantic": {
     "x-sourceSha256": "0d6aab8b25e52107bcf76e2f7ec28d89c963e59cec81b6762b9d60378d5b5040"
   },
+  "performIndividualTimingSemantic": "経過時間 {elapsedTime}{paused, select, yes{、一時停止中} other{}}",
+  "@performIndividualTimingSemantic": {
+    "x-sourceSha256": "c6ce3b32275707f6ac8ea7b7435ae7b506f755786c7605751fecd1018539e918"
+  },
   "performPlannedMin": "予定 {planned}分",
   "@performPlannedMin": {
     "x-sourceSha256": "9ddfab541b67b5f2d1ab7a435666526de971c20c99489d3f6f36ae4bd6c8608a"
@@ -3748,21 +3800,21 @@
   "@onlineSearchFieldLabel": {
     "x-sourceSha256": "580102ecff085a6380121462762b7f671cd143e923d49db39788bad56e3ee95f"
   },
-  "onlineSearchFieldHint": "タイトルでオンラインダンスを検索…",
+  "onlineSearchFieldHint": "タイトルまたは作者でオンラインのダンスを検索…",
   "@onlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
+    "x-sourceSha256": "c7c8810fd4064a5490bb0279304af15ab4b75ae47e39631b64db57ec7636bb2c"
   },
   "onlineResultCount": "{count, plural, other{{count}件のオンライン結果}}",
   "@onlineResultCount": {
     "x-sourceSha256": "70de997e28d65e0ec02101f962391063f42342840a6f2cac9cf35619abaead8e"
   },
-  "onlineSearchHintByPhrase": "タイトルを入力するかフレーズのフィギュアを追加して{source}を検索してください。",
+  "onlineSearchHintByPhrase": "{source}を検索するには、タイトルまたは作者を入力するか、フレーズ別のフィギュアを追加してください。",
   "@onlineSearchHintByPhrase": {
-    "x-sourceSha256": "7410c362559c4cf6eb58f3594b414edf9bb5fc8fef9e68ba24caf5f3ead500e9"
+    "x-sourceSha256": "623c8dfe374551a31466565fa1f337dc4b2e2f078d4aec3beca94658cc8f6b25"
   },
-  "onlineSearchHintTitle": "タイトルを入力して{source}を検索してください。",
+  "onlineSearchHintTitle": "{source}を検索するには、タイトルまたは作者を入力してください。",
   "@onlineSearchHintTitle": {
-    "x-sourceSha256": "9967fe7a7a17bda7306e2e3f68a7a5f17840d0617664fbfdc0217646df1b239f"
+    "x-sourceSha256": "e9b2a7721ca72b726b085b08528fe362e0587b4a39524334c33dc68f913603b1"
   },
   "onlineNoResults": "{source}で検索に一致するダンスがありません。",
   "@onlineNoResults": {
@@ -4304,9 +4356,9 @@
   "@importErrorCallersBoxImportFailed": {
     "x-sourceSha256": "70251f4555fa241276fcbcd41235140323fe60ce6e71bf3cf346e45f5aa2cd53"
   },
-  "importErrorContraDbEmptyTitle": "ContraDBを検索するにはタイトルを入力してください。",
+  "importErrorContraDbEmptyTitle": "ContraDBを検索するには、タイトルまたは作者を入力してください。",
   "@importErrorContraDbEmptyTitle": {
-    "x-sourceSha256": "6adb1a689363a95e10d23a4e4c5b069ca48812bcd502063863045a288e004657"
+    "x-sourceSha256": "09eecfc63a328b106265565c2292a6ff0eaa08f51bcc08e512ef721ba042e616"
   },
   "importErrorContraDbEmptyDanceInput": "インポートするContraDBのダンスURLまたはIDを入力してください。",
   "@importErrorContraDbEmptyDanceInput": {
@@ -5420,6 +5472,10 @@
   "@danceEditorAddFigure": {
     "x-sourceSha256": "e07754295b254c7591ff4adb8acb29a69ec83195ccce0c7cb1adbd4515cd68e0"
   },
+  "danceEditorAddMeanwhile": "Meanwhileを追加",
+  "@danceEditorAddMeanwhile": {
+    "x-sourceSha256": "3d8e36f40c970f8731ce8f6056556c8d842bb2f51faf4d774c2c63dec18d03cb"
+  },
   "danceEditorPasteAtEndOfFigureList": "フィギュアリストの末尾にペースト",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -5571,6 +5627,10 @@
   "danceEditorParamNotStated": "未指定",
   "@danceEditorParamNotStated": {
     "x-sourceSha256": "109df22c5a753d340af3ecee225f7a2a432a65dedfb163736943dfa7af638104"
+  },
+  "figureParamFacingStarBackingUp": "後退する人",
+  "@figureParamFacingStarBackingUp": {
+    "x-sourceSha256": "49f28675862c00650eb5afa2fa95181cf4958c29f0200e5a5b64a047b19d460d"
   },
   "danceEditorParamClearTooltip": "クリア（未指定）",
   "@danceEditorParamClearTooltip": {

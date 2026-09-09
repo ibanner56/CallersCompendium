@@ -1,0 +1,14 @@
+{
+  "id": "1197-empty-meanwhile",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can add an editable meanwhile container from the dance editor's Add menu and configure the side figures used to seed it in Settings."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Classify meanwhile side defaults in the privacy registry so their shareability is enforced consistently."
+    ]
+  }
+}

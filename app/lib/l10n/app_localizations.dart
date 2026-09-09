@@ -112,11 +112,29 @@ abstract class AppLocalizations {
   /// **'Caller\'s Compendium'**
   String get appTitle;
 
+  /// Screen-reader announcement after adding a meanwhile container.
+  ///
+  /// In en, this message translates to:
+  /// **'Added a meanwhile container.'**
+  String get danceEditorAddedMeanwhileAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:
   /// **'Collection'**
   String get navCollection;
+
+  /// Sub-heading for default meanwhile side figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Meanwhile defaults'**
+  String get settingsDefaultsMeanwhileTitle;
+
+  /// Explanation for the default meanwhile side-figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.'**
+  String get settingsDefaultsMeanwhileSubtitle;
 
   /// Bottom/rail navigation label for the programs destination.
   ///
@@ -841,6 +859,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When on, dance details can show canonical role and move names, and the Canonical switch is available on non-canonical dialects. Off by default.'**
   String get settingsDialectCanonicalFigureTextSubtitle;
+
+  /// Setting title for display-only conversion of discouraged dance terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-convert all discouraged terms'**
+  String get settingsDialectCanonicalDiscouragedTermsTitle;
+
+  /// Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed.
+  ///
+  /// In en, this message translates to:
+  /// **'When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.'**
+  String get settingsDialectCanonicalDiscouragedTermsSubtitle;
 
   /// Label of the button (and title of the prompt) that creates a new custom dialect.
   ///
@@ -1778,6 +1808,18 @@ abstract class AppLocalizations {
   /// **'Scale each card so the full dance or slot fits the screen without scrolling. Turn off to set the size yourself with A- / A+.'**
   String get settingsGeneralAutoSizePerformSubtitle;
 
+  /// Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program.
+  ///
+  /// In en, this message translates to:
+  /// **'Show timer for individual Perform'**
+  String get settingsShowIndividualPerformTimerTitle;
+
+  /// Subtitle explaining the default-on individual Perform elapsed-timer toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
+  String get settingsShowIndividualPerformTimerSubtitle;
+
   /// General settings section header for calling-history preferences.
   ///
   /// In en, this message translates to:
@@ -2453,8 +2495,14 @@ abstract class AppLocalizations {
   /// Formation shape value: duple improper.
   ///
   /// In en, this message translates to:
-  /// **'Duple improper'**
+  /// **'Improper'**
   String get commonFormationDupleImproper;
+
+  /// Formation shape value: improper formation with reverse progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse progression improper'**
+  String get commonFormationReverseProgressionImproper;
 
   /// Formation shape value: Becket, clockwise progression (CW).
   ///
@@ -2471,13 +2519,13 @@ abstract class AppLocalizations {
   /// Formation shape value: duple proper.
   ///
   /// In en, this message translates to:
-  /// **'Duple proper'**
+  /// **'Proper'**
   String get commonFormationDupleProper;
 
   /// Formation shape value: duple indecent.
   ///
   /// In en, this message translates to:
-  /// **'Duple indecent'**
+  /// **'Indecent'**
   String get commonFormationDupleIndecent;
 
   /// Formation shape value: triple minor.
@@ -2756,6 +2804,18 @@ abstract class AppLocalizations {
   /// **'Search titles, authors, figures, notes…'**
   String get collectionSearchFieldHint;
 
+  /// Hint text of the collection picker search field, listing what is searched.
+  ///
+  /// In en, this message translates to:
+  /// **'Search titles, figures, notes…'**
+  String get collectionPickerSearchFieldHint;
+
+  /// Hint text of the collection picker when its online search is limited to titles.
+  ///
+  /// In en, this message translates to:
+  /// **'Search online dances by title…'**
+  String get collectionPickerOnlineSearchFieldHint;
+
   /// Label for the local collection search scope selector.
   ///
   /// In en, this message translates to:
@@ -2773,6 +2833,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Title'**
   String get collectionSearchScopeTitle;
+
+  /// Collection search scope restricted to dance authors, including the online author criterion.
+  ///
+  /// In en, this message translates to:
+  /// **'Author'**
+  String get collectionSearchScopeAuthor;
 
   /// Local collection search scope restricted to canonical figures.
   ///
@@ -3421,6 +3487,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not create tag. Try again.'**
   String get collectionCreateTagError;
+
+  /// Snackbar shown when applying a batch tag operation fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not apply batch changes. Try again.'**
+  String get collectionBatchApplyError;
 
   /// Confirm button of the batch add-tags dialog.
   ///
@@ -4071,7 +4143,7 @@ abstract class AppLocalizations {
   /// Button that adds a free-text note or break slot to the program.
   ///
   /// In en, this message translates to:
-  /// **'Add note / break'**
+  /// **'Add note / waltz'**
   String get programsAddNoteBreakButton;
 
   /// Button that inserts a break slot into the program.
@@ -5130,6 +5202,12 @@ abstract class AppLocalizations {
     String paused,
   );
 
+  /// Screen-reader label for the individual Perform elapsed-timer line.
+  ///
+  /// In en, this message translates to:
+  /// **'Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}'**
+  String performIndividualTimingSemantic(String elapsedTime, String paused);
+
   /// Visible short label for a slot's planned length in minutes on the perform-mode timing line.
   ///
   /// In en, this message translates to:
@@ -5765,7 +5843,7 @@ abstract class AppLocalizations {
   /// Hint text for the online search field.
   ///
   /// In en, this message translates to:
-  /// **'Search online dances by title…'**
+  /// **'Search online dances by title or author…'**
   String get onlineSearchFieldHint;
 
   /// Count of online search results shown above the results list.
@@ -5777,13 +5855,13 @@ abstract class AppLocalizations {
   /// Empty-query hint for online sources that support by-phrase figure criteria.
   ///
   /// In en, this message translates to:
-  /// **'Type a title or add by-phrase figures to search {source}.'**
+  /// **'Type a title or author, or add by-phrase figures to search {source}.'**
   String onlineSearchHintByPhrase(String source);
 
-  /// Empty-query hint for online sources that only support title search.
+  /// Empty-query hint for online sources without by-phrase support.
   ///
   /// In en, this message translates to:
-  /// **'Type a title to search {source}.'**
+  /// **'Type a title or author to search {source}.'**
   String onlineSearchHintTitle(String source);
 
   /// Shown when an online search returns no matching dances.
@@ -6596,10 +6674,10 @@ abstract class AppLocalizations {
   /// **'The Caller\'s Box dance couldn\'t be imported.'**
   String get importErrorCallersBoxImportFailed;
 
-  /// Error shown when a ContraDB search is attempted with no title.
+  /// Error shown when a ContraDB search is attempted with no title or author.
   ///
   /// In en, this message translates to:
-  /// **'Enter a title to search ContraDB.'**
+  /// **'Enter a title or author to search ContraDB.'**
   String get importErrorContraDbEmptyTitle;
 
   /// Error shown when the ContraDB dance URL/id field is empty.
@@ -8274,6 +8352,12 @@ abstract class AppLocalizations {
   /// **'Add figure'**
   String get danceEditorAddFigure;
 
+  /// Menu item label for adding an empty meanwhile container.
+  ///
+  /// In en, this message translates to:
+  /// **'Add meanwhile'**
+  String get danceEditorAddMeanwhile;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -8512,6 +8596,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'not stated'**
   String get danceEditorParamNotStated;
+
+  /// Display-only label for the facing star move's `who` parameter in figure editors and search controls.
+  ///
+  /// In en, this message translates to:
+  /// **'backing up'**
+  String get figureParamFacingStarBackingUp;
 
   /// Tooltip for the button that clears a figure parameter back to the unstated state.
   ///

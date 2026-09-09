@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/callersbox_online.dart';
 import 'package:compendium_app/src/data/online_search.dart';
+import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/search/dance_detail_data.dart';
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/widgets/collection_picker.dart';
@@ -64,8 +65,14 @@ Future<void> _pumpPicker(
   void Function(OnlineSearchResultRow result)? onPreviewOnlineStarted,
   void Function(OnlineSearchResultRow result)? onPreviewOnlineEnded,
   void Function(OnlineSearchResultRow result)? onViewOnlineDetails,
+  ValueNotifier<bool>? sortIgnoreArticlesNotifier,
 }) async {
   enrichment ??= SearchEnrichment.empty;
+  final ignoreArticles =
+      sortIgnoreArticlesNotifier ?? ValueNotifier<bool>(true);
+  if (sortIgnoreArticlesNotifier == null) {
+    addTearDown(ignoreArticles.dispose);
+  }
   // A tall surface so the search bar, filter/by-phrase/advanced panels and the
   // results list all lay out without scrolling, keeping control taps stable.
   await tester.binding.setSurfaceSize(const Size(1200, 3000));
@@ -79,22 +86,25 @@ Future<void> _pumpPicker(
       home: Scaffold(
         body: RepositoriesScope(
           repositories: repos,
-          child: CollectionPicker(
-            data: data,
-            dialect: Dialect.larksRobins,
-            enrichment: enrichment,
-            onAddDance: onAddDance,
-            rowAction: rowAction,
-            enableOnlineSearch: enableOnlineSearch,
-            callersBoxOnline: callersBoxOnline,
-            contraDbOnline: contraDbOnline,
-            onDanceImported: onDanceImported,
-            onPreviewDanceStarted: onPreviewDanceStarted,
-            onPreviewDanceEnded: onPreviewDanceEnded,
-            onViewDanceDetails: onViewDanceDetails,
-            onPreviewOnlineStarted: onPreviewOnlineStarted,
-            onPreviewOnlineEnded: onPreviewOnlineEnded,
-            onViewOnlineDetails: onViewOnlineDetails,
+          child: SortIgnoreArticlesScope(
+            notifier: ignoreArticles,
+            child: CollectionPicker(
+              data: data,
+              dialect: Dialect.larksRobins,
+              enrichment: enrichment,
+              onAddDance: onAddDance,
+              rowAction: rowAction,
+              enableOnlineSearch: enableOnlineSearch,
+              callersBoxOnline: callersBoxOnline,
+              contraDbOnline: contraDbOnline,
+              onDanceImported: onDanceImported,
+              onPreviewDanceStarted: onPreviewDanceStarted,
+              onPreviewDanceEnded: onPreviewDanceEnded,
+              onViewDanceDetails: onViewDanceDetails,
+              onPreviewOnlineStarted: onPreviewOnlineStarted,
+              onPreviewOnlineEnded: onPreviewOnlineEnded,
+              onViewOnlineDetails: onViewOnlineDetails,
+            ),
           ),
         ),
       ),
@@ -288,6 +298,63 @@ Future<void> _addPhraseMove(
 }
 
 void main() {
+  testWidgets('title sort ignores leading articles by default', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'the', title: 'The Apple'));
+    await repos.dances.create(_dance(id: 'banana', title: 'Banana'));
+    await repos.dances.create(_dance(id: 'an', title: 'An Zesty Reel'));
+
+    await _pumpPicker(tester, repos, onAddDance: (_) {});
+    await tester.pumpAndSettle();
+
+    expect(_titles(tester), ['The Apple', 'Banana', 'An Zesty Reel']);
+  });
+
+  testWidgets('title sort respects literal text when the setting is off', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'the', title: 'The Apple'));
+    await repos.dances.create(_dance(id: 'banana', title: 'Banana'));
+    await repos.dances.create(_dance(id: 'an', title: 'An Zesty Reel'));
+    final ignoreArticles = ValueNotifier<bool>(false);
+    addTearDown(ignoreArticles.dispose);
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      sortIgnoreArticlesNotifier: ignoreArticles,
+    );
+    await tester.pumpAndSettle();
+
+    expect(_titles(tester), ['An Zesty Reel', 'Banana', 'The Apple']);
+  });
+
+  testWidgets('changing article sorting reorders an open picker', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'the', title: 'The Apple'));
+    await repos.dances.create(_dance(id: 'banana', title: 'Banana'));
+    final ignoreArticles = ValueNotifier<bool>(true);
+    addTearDown(ignoreArticles.dispose);
+
+    await _pumpPicker(
+      tester,
+      repos,
+      onAddDance: (_) {},
+      sortIgnoreArticlesNotifier: ignoreArticles,
+    );
+    await tester.pumpAndSettle();
+    expect(_titles(tester), ['The Apple', 'Banana']);
+
+    ignoreArticles.value = false;
+    await tester.pumpAndSettle();
+
+    expect(_titles(tester), ['Banana', 'The Apple']);
+  });
+
   testWidgets('picker text search keeps the default Omni scope', (
     tester,
   ) async {
@@ -305,6 +372,13 @@ void main() {
 
     await _pumpPicker(tester, repos, onAddDance: (_) {});
     await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('picker-search')))
+          .decoration
+          ?.hintText,
+      'Search titles, authors, figures, notes…',
+    );
     await tester.enterText(
       find.byKey(const ValueKey('picker-search')),
       'swing',
@@ -893,6 +967,13 @@ void main() {
     await _tapVisible(
       tester,
       find.byKey(const ValueKey('picker-online-search-enable')),
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const ValueKey('picker-search')))
+          .decoration
+          ?.hintText,
+      'Search online dances by title…',
     );
     await tester.enterText(
       find.byKey(const ValueKey('picker-search')),

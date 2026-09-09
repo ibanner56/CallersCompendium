@@ -70,6 +70,8 @@ String danceLevelLabel(AppLocalizations l10n, DanceLevel level) =>
 String formationShapeLabel(AppLocalizations l10n, FormationShape shape) =>
     switch (shape) {
       FormationShape.dupleImproper => l10n.commonFormationDupleImproper,
+      FormationShape.reverseProgressionImproper =>
+        l10n.commonFormationReverseProgressionImproper,
       FormationShape.becketCw => l10n.commonFormationBecketCw,
       FormationShape.becketCcw => l10n.commonFormationBecketCcw,
       FormationShape.dupleProper => l10n.commonFormationDupleProper,
@@ -96,6 +98,23 @@ String formationLabel(AppLocalizations l10n, Formation formation) {
   return (detail == null || detail.isEmpty)
       ? base
       : l10n.commonFormationWithDetail(base, detail);
+}
+
+/// Full formation label with the detail rendered through the active dialect.
+String formationDisplayLabel(
+  AppLocalizations l10n,
+  Formation formation,
+  FigureRenderer renderer,
+  Dialect dialect, {
+  required bool canonicalizeDiscouragedTerms,
+}) {
+  final base = formationShapeLabel(l10n, formation.shape);
+  final detail = formation.detail?.trim();
+  if (detail == null || detail.isEmpty) return base;
+  final renderedDetail = canonicalizeDiscouragedTerms
+      ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(detail, dialect)
+      : renderer.renderFreeText(detail, dialect);
+  return l10n.commonFormationWithDetail(base, renderedDetail);
 }
 
 /// Turns `role1s` → `role1s`, `rightDiagonal` → `right diagonal`,
@@ -196,13 +215,20 @@ List<String> figureParamSelectableChoices(List<String> domain) => [
 /// target"), for field labels and the facet's "Any <param>" option.
 ///
 /// The taxonomy carries no display name for a param key ([ParamSpec] has no
-/// `label`), and it declares dozens of them, so per-key localized strings would
-/// be a large, silently-degrading table — a param added to the taxonomy would
-/// fall back to the raw identifier. Humanizing is what the dance editor already
-/// does for the very same keys, so this keeps the two surfaces identical. Named
-/// separately from [humanizeToken] so a future localized table has exactly one
-/// call site to replace.
-String figureParamKeyLabel(String paramKey) => humanizeToken(paramKey);
+/// `label`), and it declares dozens of them. Canonical keys are therefore
+/// humanized by default, while context-specific localized overrides can be
+/// defined here when a UI label differs for a particular move. Keeping both
+/// paths centralized ensures the dance editor and search surfaces stay aligned.
+String figureParamKeyLabel(
+  AppLocalizations l10n,
+  String paramKey, {
+  String? moveId,
+}) {
+  if (moveId == 'facing_star' && paramKey == 'who') {
+    return l10n.figureParamFacingStarBackingUp;
+  }
+  return humanizeToken(paramKey);
+}
 
 /// Display label for a single figure-param [choice].
 ///

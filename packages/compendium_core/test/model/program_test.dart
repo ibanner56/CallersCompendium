@@ -23,6 +23,26 @@ void main() {
       expect(both.text, 'call from the floor');
     });
 
+    test('requires purge markers to identify text-only captions', () {
+      final tombstone = ProgramSlot(
+        id: 's1',
+        position: 0,
+        text: 'Lady of the Lake',
+        isPurgedDance: true,
+      );
+      expect(tombstone.isPurgedDance, isTrue);
+      expect(
+        () => ProgramSlot(
+          id: 's2',
+          position: 1,
+          danceId: 'd1',
+          text: 'caption',
+          isPurgedDance: true,
+        ),
+        throwsArgumentError,
+      );
+    });
+
     test('rejects negative positions', () {
       expect(
         () => ProgramSlot(id: 's1', position: -1, danceId: 'd1'),

@@ -58,6 +58,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'formation_color_overrides': _preference,
   'default_move_param_overrides': _preference,
   'default_dance_figures_template': _preference,
+  'default_meanwhile_side_figures': _preference,
 
   // -- Appearance and accessibility ----------------------------------------
   'active_custom_theme': _preference,
@@ -74,6 +75,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'free_text_entry': _preference,
   'aggressive_beats_update': _preference,
   'canonical_figure_text': _preference,
+  'canonical_discouraged_terms': _preference,
 
   // -- Regional -------------------------------------------------------------
   'app_locale': _preference,
@@ -158,6 +160,7 @@ final Map<String, DataClassification> settingsClassifications = {
         'programs.caller.',
   ),
   'auto_size_perform_cards': _preference,
+  'show_individual_perform_timer': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': _preference,
   'perform_stage_mode': _preference,
@@ -186,6 +189,8 @@ final Map<String, DataClassification> settingsClassifications = {
   'backup_reminder_cadence': _preference,
   '__shareable_text_normalisation_scope__': _backupLocalState,
   '__taxonomy_v33_canonical_rebuild_done__': _installState,
+  '__taxonomy_v34_canonical_rebuild_done__': _installState,
+  '__callersbox_roll_away_role_repair_done__': _installState,
 };
 
 /// Classification for settings keys that are *built at runtime* from a known

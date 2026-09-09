@@ -92,6 +92,11 @@ written down.
 
 Clear the search bar to return to your whole collection.
 
+Use **Search in** to choose the indexed fields: **All fields**, **Title**,
+**Author**, or **Figure**. When **Online search** is enabled in the Advanced
+panel, the same control offers **Title** and **Author**; choose **Author** to
+search author names on Caller's Box or choreographer names on ContraDB.
+
 ## Narrow things down with filters
 
 When you want to slice your library by its properties rather than by words, open
@@ -109,7 +114,7 @@ the **Filters** panel with one tap. It lets you narrow by:
 Two simple rules govern how filters combine, and knowing them makes the panel
 predictable:
 
-- **Within one filter, choices are "any."** Ticking *duple improper* and *becket*
+- **Within one filter, choices are "any."** Ticking *Improper* and *Becket*
   under Formation finds dances in **either** formation.
 - **Across different filters, choices are "all."** Adding an author on top of
   those formations finds dances that match one of the formations **and** are by

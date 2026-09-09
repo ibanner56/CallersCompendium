@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:compendium_app/src/theme/app_theme_extension.dart';
 import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart';
 import 'package:compendium_app/src/editor/figure_draft.dart';
@@ -51,6 +53,12 @@ class _Host extends StatefulWidget {
     this.mixer = false,
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
+    this.wireAddMeanwhile = false,
+    this.meanwhileAdder,
+    this.freeTextAdder,
+    this.allowAdding = true,
+    this.allowDuplicating = true,
+    this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
   }) : taxonomy = taxonomy ?? contraTaxonomy;
@@ -63,6 +71,12 @@ class _Host extends StatefulWidget {
   final bool mixer;
   final bool freeTextEntry;
   final bool wireMeanwhile;
+  final bool wireAddMeanwhile;
+  final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
+  final int Function(List<Figure> figures)? freeTextAdder;
+  final bool allowAdding;
+  final bool allowDuplicating;
+  final bool showPhraseStructure;
 
   /// Wraps the editor in an [AggressiveBeatsUpdateScope] set to this value
   /// (issue #689). Defaults to `false` so existing tests exercise today's
@@ -113,14 +127,35 @@ class _HostState extends State<_Host> {
               mixer: widget.mixer,
               freeTextEntry: widget.freeTextEntry,
               showWordingOverride: widget.showWordingOverride,
+              allowAdding: widget.allowAdding,
+              allowDuplicating: widget.allowDuplicating,
+              showPhraseStructure: widget.showPhraseStructure,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
+              onAddMeanwhile: widget.wireAddMeanwhile
+                  ? () {
+                      final draft = FigureDraft(
+                        meanwhileSides: [FigureDraft(), FigureDraft()],
+                      );
+                      if (widget.meanwhileAdder != null) {
+                        return widget.meanwhileAdder!(widget.drafts);
+                      }
+                      setState(() => widget.drafts.add(draft));
+                      return Future.value(draft.id);
+                    }
+                  : null,
               onAddFreeText: widget.freeTextEntry
-                  ? (figures) => setState(
-                      () => widget.drafts.addAll(
-                        figures.map(FigureDraft.fromFigure),
-                      ),
-                    )
+                  ? (figures) {
+                      if (widget.freeTextAdder != null) {
+                        return widget.freeTextAdder!(figures);
+                      }
+                      setState(
+                        () => widget.drafts.addAll(
+                          figures.map(FigureDraft.fromFigure),
+                        ),
+                      );
+                      return figures.length;
+                    }
                   : null,
               onDelete: (d) => setState(() => widget.drafts.remove(d)),
               onDuplicate: widget.wireDuplicate
@@ -186,12 +221,23 @@ Future<void> _pump(
   bool mixer = false,
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
+  bool wireAddMeanwhile = false,
+  Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
+  int Function(List<Figure> figures)? freeTextAdder,
+  bool allowAdding = true,
+  bool allowDuplicating = true,
+  bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
   Taxonomy? taxonomy,
+  Size surfaceSize = const Size(1200, 2400),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.binding.setSurfaceSize(surfaceSize);
+  tester.view.physicalSize = surfaceSize * tester.view.devicePixelRatio;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    return tester.binding.setSurfaceSize(null);
+  });
   await tester.pumpWidget(
     _Host(
       drafts: drafts,
@@ -202,6 +248,12 @@ Future<void> _pump(
       mixer: mixer,
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
+      wireAddMeanwhile: wireAddMeanwhile,
+      meanwhileAdder: meanwhileAdder,
+      freeTextAdder: freeTextAdder,
+      allowAdding: allowAdding,
+      allowDuplicating: allowDuplicating,
+      showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
     ),
@@ -282,6 +334,14 @@ void main() {
     expect(find.byKey(const ValueKey('figure-add')), findsOneWidget);
   });
 
+  testWidgets('facing star names its who parameter backing up', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'fac', 'facing_star');
+
+    expect(find.text('backing up'), findsOneWidget);
+  });
+
   testWidgets('wording override is opt-in, previews, trims, and resets', (
     tester,
   ) async {
@@ -331,6 +391,89 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('figure-0-move-input')), findsOneWidget);
     expect(drafts, hasLength(1));
+  });
+
+  testWidgets('Add menu inserts an empty meanwhile container', (tester) async {
+    final drafts = <FigureDraft>[];
+    await _pump(tester, drafts, wireAddMeanwhile: true);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pumpAndSettle();
+
+    expect(drafts, hasLength(1));
+    expect(drafts.single.isMeanwhileGroup, isTrue);
+    expect(drafts.single.meanwhileSides, hasLength(2));
+    expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  testWidgets('async meanwhile insertion opens the returned draft', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[];
+    final pending = Completer<String?>();
+    final meanwhile = FigureDraft(
+      meanwhileSides: [FigureDraft(), FigureDraft()],
+    );
+    await _pump(
+      tester,
+      drafts,
+      wireAddMeanwhile: true,
+      meanwhileAdder: (_) => pending.future,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-add-meanwhile')));
+    await tester.pump();
+
+    drafts.add(FigureDraft());
+    await tester.pumpWidget(
+      _Host(
+        drafts: drafts,
+        wireAddMeanwhile: true,
+        meanwhileAdder: (_) => pending.future,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+
+    drafts.add(meanwhile);
+    pending.complete(meanwhile.id);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-0-move-input')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-1-add-side')), findsOneWidget);
+  });
+
+  testWidgets('can suppress phrase labels and beat summary', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    ];
+    await _pump(tester, drafts, showPhraseStructure: false);
+
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('figure-0-label'))).data,
+      isEmpty,
+    );
+    expect(find.byKey(const ValueKey('figure-beats-total')), findsNothing);
+  });
+
+  testWidgets('hides insertion and duplicate actions when capped', (
+    tester,
+  ) async {
+    final drafts = List<FigureDraft>.generate(
+      6,
+      (_) => FigureDraft(move: 'swing', params: {'who': 'partners'}),
+    );
+    await _pump(tester, drafts, allowAdding: false, allowDuplicating: false);
+
+    expect(find.byKey(const ValueKey('figure-add')), findsNothing);
+    await _openMenu(tester, 0);
+    expect(find.byKey(const ValueKey('figure-0-duplicate')), findsNothing);
   });
 
   testWidgets('selecting a move seeds the taxonomy default params', (
@@ -1330,10 +1473,12 @@ void main() {
   });
 
   testWidgets('lingo: updateDialect triggers redraw', (tester) async {
-    // Start with canonical (no discouraged terms).
+    // Start with an explicit clean dialect. The canonical dialect intentionally
+    // flags the shipped discouraged vocabulary for editor guidance.
+    final cleanDialect = Dialect(name: 'Clean');
     final ctrl = LingoTextEditingController(
       text: 'gents cross',
-      dialect: Dialect.canonical,
+      dialect: cleanDialect,
     );
     TextSpan? firstSpan;
     TextSpan? secondSpan;
@@ -2250,6 +2395,52 @@ void main() {
     },
   );
 
+  testWidgets(
+    'dismissing a compact stand_still picker retains the stored figure',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'stand_still', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts, surfaceSize: const Size(360, 720));
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.tapAt(const Offset(180, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(drafts.single.move, 'stand_still');
+      expect(drafts.single.params['beats'], 8);
+    },
+  );
+
+  testWidgets(
+    'selecting stand_still in a compact picker closes without reopening',
+    (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, surfaceSize: const Size(360, 720));
+
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'stand still',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-move-option-stand_still')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.move, 'stand_still');
+      expect(find.byType(BottomSheet), findsNothing);
+    },
+  );
+
   testWidgets('activating a real figure keeps its Move field text', (
     tester,
   ) async {
@@ -2882,6 +3073,25 @@ void main() {
       expect(drafts.single.customOrigin, CustomOrigin.userEntered);
     });
 
+    testWidgets('keeps input when the callback accepts no figures', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, freeTextEntry: true, freeTextAdder: (_) => 0);
+
+      await tester.tap(find.byKey(addKey));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(fieldKey), 'meanwhile-only shorthand');
+      await tester.tap(find.byKey(submitKey));
+      await tester.pumpAndSettle();
+
+      expect(drafts, isEmpty);
+      expect(
+        tester.widget<TextField>(find.byKey(fieldKey)).controller?.text,
+        'meanwhile-only shorthand',
+      );
+    });
+
     testWidgets('a `;`-compound line inserts multiple rows', (tester) async {
       final drafts = <FigureDraft>[];
       await _pump(tester, drafts, freeTextEntry: true);
@@ -3047,6 +3257,20 @@ void main() {
   });
 
   group('meanwhile authoring (#590/#593)', () {
+    testWidgets('facing star side names its who parameter backing up', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'facing_star', params: {'who': 'partners'}),
+        FigureDraft(move: 'balance', params: {'beats': 16}),
+      ];
+      await _pump(tester, drafts);
+      await _tapMenuItem(tester, 0, 'group-with-next');
+      await _openFigure(tester, 0);
+
+      expect(find.text('backing up'), findsOneWidget);
+    });
+
     testWidgets('group with next merges two figures into a meanwhile group '
         'and the shared beats field edits the container beats', (tester) async {
       final drafts = <FigureDraft>[

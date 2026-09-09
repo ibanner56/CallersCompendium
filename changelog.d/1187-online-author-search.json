@@ -1,0 +1,15 @@
+{
+  "id": "1187-online-author-search",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can search your Collection and online dance archives by author, including Caller's Box and ContraDB author searches."
+    ]
+  },
+  "core": {
+    "added": [
+      "Add author-scoped full-text search over the existing derived author index.",
+      "Add author-aware ContraDB search request bodies using the fixed choreographer filter."
+    ]
+  }
+}

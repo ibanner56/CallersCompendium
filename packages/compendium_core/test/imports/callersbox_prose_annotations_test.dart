@@ -139,6 +139,8 @@ void main() {
           beats: 8,
         );
         expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['whom'], 'neighbors');
         expect(f.note, 'role2s roll right, role1s side-step left');
       });
 
@@ -148,8 +150,27 @@ void main() {
           beats: 8,
         );
         expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['whom'], 'neighbors');
         expect(f.note, 'role2s roll left, role1s side-step right');
       });
+
+      test(
+        'mixed square and parenthetical annotations preserve role assignment',
+        () {
+          final f = _single(
+            'Neighbor roll away (W roll R, M side-step L) [with women]',
+            beats: 8,
+          );
+          expect(f.move, 'roll_away');
+          expect(f.params['who'], 'role1s');
+          expect(f.params['whom'], 'neighbors');
+          expect(
+            f.note,
+            'role2s roll right, role1s side-step left; with role2s',
+          );
+        },
+      );
 
       test('M roll R, W side-step L', () {
         final f = _single(
@@ -157,6 +178,8 @@ void main() {
           beats: 8,
         );
         expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['whom'], 'neighbors');
         expect(f.note, 'role1s roll right, role2s side-step left');
       });
 
@@ -167,6 +190,18 @@ void main() {
         );
         expect(f.move, 'roll_away');
         expect(f.note, 'role2s roll right, role1s step aside');
+      });
+
+      test('role-first text does not fabricate a relationship', () {
+        final f = _single(
+          'role1s roll away (W roll R, M side-step L) [with women]',
+          beats: 8,
+        );
+        expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role1s');
+        expect(f.assumedSubject, isFalse);
+        expect(f.params, isNot(contains('whom')));
+        expect(f.note, 'role2s roll right, role1s side-step left; with role2s');
       });
 
       test('note carries canonical role tokens, not raw W/M', () {

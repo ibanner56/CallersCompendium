@@ -64,6 +64,14 @@ trap cleanup EXIT
 
 https_url="https://${host}:${https_port}"
 "$apachectl_bin" -t >/dev/null
+if ! awk '
+  /^[[:space:]]*#/ { next }
+  /^[[:space:]]*Proxy100Continue[[:space:]]+Off[[:space:]]*$/ { found = 1 }
+  END { exit(found ? 0 : 1) }
+' "$apache_config"; then
+  echo "active Apache vhost must contain Proxy100Continue Off" >&2
+  exit 1
+fi
 
 expect_status() {
   expected=$1
@@ -217,11 +225,11 @@ dd if=/dev/zero of="$large_body" bs=1048576 count=16 2>/dev/null
 dd if=/dev/zero of="$oversized_body" bs=1048576 count=16 2>/dev/null
 printf '\0' >> "$oversized_body"
 expect_json_status 400 "16 MiB body reaches Athenaeum" "$boundary_response" \
-  --request PUT --header "Authorization: Bearer ${credential}" \
+  --request PUT --header 'Expect:' --header "Authorization: Bearer ${credential}" \
   --header 'Content-Type: application/json' \
   --data-binary "@${large_body}" "${https_url}/v1/manifests/device-one"
 expect_status 413 "body over 16 MiB is refused" \
-  --request PUT --header "Authorization: Bearer ${credential}" \
+  --request PUT --header 'Expect:' --header "Authorization: Bearer ${credential}" \
   --header 'Content-Type: application/json' \
   --data-binary "@${oversized_body}" "${https_url}/v1/manifests/device-one"
 echo "16 MiB request boundary: passed"
@@ -233,16 +241,27 @@ printf '%s' \
 gzip -c "$raw_body" > "$compressed_body"
 blob_hash=$(sha256sum "$raw_body" | awk '{print $1}')
 expect_status 201 "compressed blob upload" \
-  --request PUT --header "Authorization: Bearer ${credential}" \
+  --request PUT --header 'Expect:' --header "Authorization: Bearer ${credential}" \
   --header 'Content-Type: application/octet-stream' \
   --header 'Content-Encoding: gzip' \
   --data-binary "@${compressed_body}" \
   "${https_url}/v1/blobs/${blob_hash}"
-dd if=/dev/urandom of="$compressed_boundary_raw" bs=1048576 count=16 2>/dev/null
+openssl rand -hex 8388608 > "$compressed_boundary_raw"
+compressed_boundary_size=$(wc -c < "$compressed_boundary_raw")
+if [ "$compressed_boundary_size" -ne 16777217 ]; then
+  echo "compressed boundary fixture generation produced ${compressed_boundary_size} bytes" >&2
+  exit 1
+fi
+truncate -s 16777216 "$compressed_boundary_raw"
+compressed_boundary_size=$(wc -c < "$compressed_boundary_raw")
+if [ "$compressed_boundary_size" -ne 16777216 ]; then
+  echo "compressed boundary fixture is ${compressed_boundary_size} bytes after trimming" >&2
+  exit 1
+fi
 gzip -c "$compressed_boundary_raw" > "$compressed_boundary"
 expect_json_status 400 "compressed 16 MiB body reaches Athenaeum" \
   "$boundary_response" \
-  --request PUT --header "Authorization: Bearer ${credential}" \
+  --request PUT --header 'Expect:' --header "Authorization: Bearer ${credential}" \
   --header 'Content-Type: application/json' \
   --header 'Content-Encoding: gzip' \
   --data-binary "@${compressed_boundary}" \

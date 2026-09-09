@@ -335,15 +335,16 @@ choosers, defaults, `goodBeats`, aliases) is archived in the session files as
     IN FRONT (`madRobinWords` renders "`<who>` in front"); TCB's "around `<X>`"
     names the pair you travel AROUND. Folding the latter into `who` would invert
     the meaning of every ContraDB-imported mad robin, so it gets its own slot.
-    TCB never states the in-front role, so an imported TCB mad robin leaves
-    `who` at the taxonomy default and is flagged as an **assumed subject**.
-  - **Nothing is fabricated for existing data.** Every added param defaults to
-    the `unspecified` sentinel (cf. `hey.pass2`/`hey.meetTarget`), which the
-    renderer emits as the empty string — in the canonical render too. A figure
-    that omits them is therefore **byte-identical** to its v19 canonical text
-    (test-enforced), so `dance_figures.canonicalText` / `dance_fts` / dedupe are
-    untouched and NO DB migration is implied; a figure that *does* state a
-    direction is distinguishable from its mirror image in search and dedupe.
+    TCB never states the in-front role. The v20 recognizer therefore left
+    `who` at the taxonomy default and flagged it as an **assumed subject**;
+    taxonomy v34 now stores the `unspecified` sentinel instead.
+  - **Existing data is normalized by taxonomy v34.** New TCB imports explicitly
+    store `who: unspecified`, while legacy assumed TCB mad robins are
+    backfilled only when `who` was absent. The migration clears the assumed
+    marker and rebuilds `dance_figures.canonicalText` / `dance_fts` / dedupe
+    text once; explicit `who` values remain unchanged. A figure that states a
+    direction is still distinguishable from its mirror image in search and
+    dedupe.
   - **Deliberately not modeled:** a `butterfly_whirl` rotation amount. TCB
     states one on 4/18 lines ("… counterclockwise 1 & 1/2"), but no source
     models it, so per prefer-custom those lines stay `custom` rather than have
@@ -1002,11 +1003,9 @@ fails a PR that moves the constant without adding the matching entry.
     `goodBeats` stays `[4]`.
     Every new param defaults to the `unspecified` sentinel (cf. `hey.pass2`
     / `hey.meetTarget`, v17), which the renderer emits as the empty string.
-    A figure that omits them therefore renders BYTE-IDENTICALLY to v19 —
-    canonical/FTS/dedupe text is unchanged for all existing data, and a
-    ContraDB import keeps asserting nothing about direction or target. The
-    params ride the existing `figures_json` figure codec, so — distinct from
-    CompendiumDatabase.schemaVersion — NO persisted-data migration is implied.
+    At v20 this kept canonical/FTS/dedupe text unchanged for existing data.
+    Taxonomy v34 later changes the `mad_robin.who` default and normalizes the
+    legacy assumed TCB shape; see the v34 ledger entry below.
 - v21: wave-formation balance (issue #295, subsuming #296). Three changes:
     - RENAMES `form_a_short_wave` to `form_short_waves` (display label
       "form short waves", not the old "form a wave"). The v13 split named it
@@ -1583,6 +1582,13 @@ fails a PR that moves the constant without adding the matching entry.
   `taxonomyV33CanonicalRebuildDoneKey`; stored `figures_json` and the SQLite
   schema remain unchanged. Display-only wording fixes for swings, give-and-
   take, and figure-eight direction/target prose do not alter canonical text.
+- v34 (#1193): changes the `mad_robin.who` default to `role2s` and allows the
+  `unspecified` sentinel. Callers Box imports now explicitly store
+  `who: unspecified` because the source names the pair being circled, not the
+  pair stepping in front; the old assumed-subject marker is no longer set.
+  Existing assumed mad robins with no explicit `who` are normalized, including
+  nested `meanwhile` sides, and canonical/FTS rows are rebuilt once under
+  `taxonomyV34CanonicalRebuildDoneKey`. Explicit subjects are preserved.
 
 ## Open questions (to resolve during implementation, with user input)
 

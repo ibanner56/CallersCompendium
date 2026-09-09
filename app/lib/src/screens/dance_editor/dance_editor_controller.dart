@@ -162,6 +162,7 @@ class DanceEditorController extends ChangeNotifier {
   // ---- Multi-value draft lists ----
   final List<String> authorIds = [];
   final List<String> tagIds = [];
+  final Map<String, Tag> stagedTags = {};
   final List<String> tunes = [];
   final List<LinkDraft> links = [];
 
@@ -501,6 +502,7 @@ class DanceEditorController extends ChangeNotifier {
     sourceCitations: List.unmodifiable(
       sourceCitations.map((c) => c.toCitation()),
     ),
+    stagedTags: List.unmodifiable(stagedTags.values),
     // Custom text/number fields are edited via customTextControllers and do
     // not keep customValues in sync — read from the controllers directly so
     // the snapshot captures whatever the user has typed.
@@ -553,6 +555,9 @@ class DanceEditorController extends ChangeNotifier {
     tagIds
       ..clear()
       ..addAll(s.tagIds);
+    stagedTags
+      ..clear()
+      ..addEntries(s.stagedTags.map((tag) => MapEntry(tag.id, tag)));
     tunes
       ..clear()
       ..addAll(s.tunes);
@@ -916,6 +921,14 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
+  void stageTag(Tag tag) {
+    stagedTags[tag.id] = tag;
+  }
+
+  void clearStagedTags() {
+    stagedTags.clear();
+  }
+
   void removeTag(String id) {
     tagIds.remove(id);
     pushUndoNow();
@@ -1058,6 +1071,40 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
+  /// Inserts a meanwhile draft at the end of the list, seeding its sides from
+  /// the current Defaults preference. A stored empty list deliberately becomes
+  /// two blank editor sides; one configured side gets one blank companion so
+  /// the draft remains editable without violating the core two-side invariant.
+  Future<String?> addMeanwhile() async {
+    if (_disposed) return null;
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultMeanwhileSideFiguresKey);
+    } catch (_) {
+      // diagnostics: silent — insertion uses the safe side-default fallback
+    }
+    if (_disposed) return null;
+
+    final configured = meanwhileSideFiguresFromStored(stored);
+    final sides = [
+      for (final figure in configured) FigureDraft.fromFigure(figure),
+    ];
+    if (sides.isEmpty) {
+      sides.addAll([FigureDraft(), FigureDraft()]);
+    } else if (sides.length == 1) {
+      sides.add(FigureDraft());
+    }
+    final group = FigureDraft(meanwhileSides: sides);
+    group.params['beats'] = sides.first.beats;
+    _renderNotesRecursively([group]);
+    figureDrafts.add(group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return group.id;
+  }
+
   /// Inserts the figure(s) parsed from one free-text entry line at the end of
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —
@@ -1065,8 +1112,8 @@ class DanceEditorController extends ChangeNotifier {
   /// which preserves its custom origin so parser-gap customs keep the #398
   /// marker and stay reparse-eligible. A single line may yield more than one
   /// figure (a `;`-compound). Rows are left collapsed. No-op on an empty list.
-  void insertFreeTextFigures(List<Figure> figures) {
-    if (figures.isEmpty) return;
+  int insertFreeTextFigures(List<Figure> figures) {
+    if (figures.isEmpty) return 0;
     final inserted = figures.map(FigureDraft.fromFigure).toList();
     figureDrafts.addAll(inserted);
     _renderNotesRecursively(inserted);
@@ -1074,6 +1121,7 @@ class DanceEditorController extends ChangeNotifier {
     pushUndoNow();
     scheduleAutosave();
     _notify();
+    return inserted.length;
   }
 
   void deleteFigure(FigureDraft draft) {
