@@ -1705,9 +1705,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     required int actionEditGeneration,
   }) async {
     if (!mounted || _saving) return;
+    final noInterveningEdit = _editGeneration == actionEditGeneration;
     final canRestoreCleanState =
         !wasDirty && _dirty && _editGeneration == actionEditGeneration;
     final autoCommitWasInFlight = _autoCommitInFlight;
+    final autoCommitHadPersisted =
+        _autoCommitPersistedGeneration == actionEditGeneration;
     setState(() {
       _slots = [
         for (final slot in _slots)
@@ -1716,20 +1719,68 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               : slot,
       ];
     });
-    if (canRestoreCleanState) {
+    if (autoCommitHadPersisted || autoCommitWasInFlight) {
       _autosaveTimer?.cancel();
       _autoCommitTimer?.cancel();
       _editGeneration++;
       await _commitQueueTail;
       if (!mounted) return;
       final autoCommitPersisted =
-          autoCommitWasInFlight &&
           _autoCommitPersistedGeneration == actionEditGeneration;
-      if (autoCommitPersisted) {
-        _markDirty();
-      } else {
-        await _clearDraft(waitForCommits: false);
+      if (!autoCommitPersisted) {
+        if (canRestoreCleanState) {
+          await _clearDraft(waitForCommits: false);
+        } else {
+          _markDirty();
+        }
+        return;
       }
+      try {
+        await _repos.programs.clearPerformedAtIfMatches(
+          programId: _existing!.id,
+          slotIds: markedSlotIds,
+          performedAt: actionTimestamp,
+          updatedAt: DateTime.now().toUtc(),
+        );
+        if (!mounted) return;
+        if (noInterveningEdit) {
+          final live = await _repos.programs.getById(_existing!.id);
+          if (!mounted) return;
+          if (live != null) {
+            _titleController.text = live.title;
+            _eventDate = live.eventDate;
+            _venueId = live.venueId;
+            _status = live.status;
+            _hideAlternates = live.hideAlternates;
+            _existing = live;
+            _slots = live.slots;
+          }
+          await _clearDraft(waitForCommits: false);
+        } else {
+          _scheduleAutosave();
+          _scheduleAutoCommit();
+        }
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._undoMarkAllPerformed',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context).programsSaveError),
+            ),
+          );
+        }
+      }
+    } else if (canRestoreCleanState) {
+      _autosaveTimer?.cancel();
+      _autoCommitTimer?.cancel();
+      _editGeneration++;
+      await _commitQueueTail;
+      if (!mounted) return;
+      await _clearDraft(waitForCommits: false);
     } else {
       _markDirty();
     }

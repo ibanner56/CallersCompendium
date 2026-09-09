@@ -192,6 +192,7 @@ class DelayedProgramRepository extends ProgramRepository {
   Completer<void>? _writeStarted;
 
   bool failWrites = false;
+  int? failOnWrite;
   int writesStarted = 0;
 
   void holdNextWrite() {
@@ -219,17 +220,19 @@ class DelayedProgramRepository extends ProgramRepository {
     _activeGate = null;
   }
 
+  bool get _shouldFailWrite => failWrites || failOnWrite == writesStarted;
+
   @override
   Future<void> create(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
-    if (failWrites) throw const InjectedProgramFailure();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
     await super.create(program, knownVenueIds: knownVenueIds);
   }
 
   @override
   Future<void> update(Program program, {LiveVenueIds? knownVenueIds}) async {
     await _beforeWrite();
-    if (failWrites) throw const InjectedProgramFailure();
+    if (_shouldFailWrite) throw const InjectedProgramFailure();
     await super.update(program, knownVenueIds: knownVenueIds);
   }
 }
