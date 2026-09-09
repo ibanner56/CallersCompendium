@@ -197,12 +197,12 @@ class FigureRenderer {
   }) {
     final override = figure.isCustom
         ? null
-        : _renderWordingOverride(figure, dialect);
-    if (override != null) {
-      return canonicalizeDiscouragedTerms
-          ? renderDiscouragedTerms(override, dialect)
-          : override;
-    }
+        : _renderWordingOverride(
+            figure,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          );
+    if (override != null) return override;
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
@@ -339,13 +339,13 @@ class FigureRenderer {
     }
     if (figure.isMeanwhile) {
       final override = !forCanonical
-          ? _renderWordingOverride(figure, dialect)
+          ? _renderWordingOverride(
+              figure,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            )
           : null;
-      if (override != null) {
-        return canonicalizeDiscouragedTerms
-            ? renderDiscouragedTerms(override, dialect)
-            : override;
-      }
+      if (override != null) return override;
       // A meanwhile container (#590) renders its concurrent sides joined by a
       // fixed structural separator. `renderCanonical` (forCanonical) MUST stay
       // byte-stable across runs — it is the dedupe/FTS key — so it always
@@ -372,12 +372,12 @@ class FigureRenderer {
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
     if (!forCanonical) {
-      final override = _renderWordingOverride(figure, dialect);
-      if (override != null) {
-        return canonicalizeDiscouragedTerms
-            ? renderDiscouragedTerms(override, dialect)
-            : override;
-      }
+      final override = _renderWordingOverride(
+        figure,
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
+      if (override != null) return override;
     }
     final def = taxonomy.resolve(figure.move);
     if (def == null) {
@@ -902,9 +902,17 @@ class FigureRenderer {
     return base(this, def, params, Dialect.canonical, false, false).template;
   }
 
-  String? _renderWordingOverride(Figure figure, Dialect dialect) {
+  String? _renderWordingOverride(
+    Figure figure,
+    Dialect dialect, {
+    bool canonicalizeDiscouragedTerms = false,
+  }) {
     final text = figure.wordingOverride?.trim();
-    return text == null || text.isEmpty ? null : renderFreeText(text, dialect);
+    if (text == null || text.isEmpty) return null;
+    final displayText = canonicalizeDiscouragedTerms
+        ? renderDiscouragedTerms(text, dialect)
+        : text;
+    return renderFreeText(displayText, dialect);
   }
 
   /// The non-authoritative marker spliced after an ASSUMED subject in the
