@@ -88,6 +88,7 @@ class PerformProgramScreen extends StatefulWidget {
     required this.program,
     required this.data,
     required this.renderer,
+    this.difficultyLevels = const [],
     this.danceOverrides = const {},
     this.authorNameOverrides = const {},
     this.initialGroup = 0,
@@ -101,6 +102,7 @@ class PerformProgramScreen extends StatefulWidget {
   final Program program;
   final CollectionData data;
   final FigureRenderer renderer;
+  final List<DifficultyLevel> difficultyLevels;
 
   /// Freshly imported or created dances that may not yet be present in the
   /// program editor's debounced collection snapshot.
@@ -1163,6 +1165,9 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   DifficultyLevel? _difficultyLevelFor(Dance dance) {
+    for (final level in widget.difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
     for (final level in widget.data.levels) {
       if (level.id == dance.difficultyLevelId) return level;
     }

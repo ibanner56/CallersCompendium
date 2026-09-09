@@ -153,6 +153,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   final ValueNotifier<Map<String, int>> _pickerCounts = ValueNotifier(const {});
 
   CollectionData? _data;
+  List<DifficultyLevel> _difficultyLevels = const [];
   _PreviewPane? _previewPane;
   String? _previewDanceId;
   OnlinePreview? _previewOnline;
@@ -595,8 +596,12 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         trackAllCallers: _trackHistoryForAllCallers,
       );
       final data = await _watchCollectionData(callerFilter);
+      final difficultyLevels = await _repos.difficultyLevels.listAll();
       if (!mounted) return;
-      setState(() => _setCollectionData(_latestData ?? data));
+      setState(() {
+        _setCollectionData(_latestData ?? data);
+        _difficultyLevels = difficultyLevels;
+      });
     } on _SupersededLoad {
       // diagnostics: silent — a newer re-subscribe replaced this one; it owns
       // `_data` now. Not a failure, just a superseded race loser.
@@ -747,6 +752,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         trackAllCallers: _trackHistoryForAllCallers,
       );
       final data = await _watchCollectionData(callerFilter);
+      final difficultyLevels = await _repos.difficultyLevels.listAll();
       Program? program;
       if (!widget.isNew) {
         program = await _repos.programs.getById(widget.programId!);
@@ -754,6 +760,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           if (!mounted) return;
           setState(() {
             _setCollectionData(_latestData ?? data);
+            _difficultyLevels = difficultyLevels;
             _loadError = _ProgramLoadError.missing;
             _loaded = true;
           });
@@ -1341,6 +1348,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           program: program,
           data: data,
           danceOverrides: Map<String, Dance>.of(_createdDances),
+          difficultyLevels: _difficultyLevels,
           authorNameOverrides: {
             for (final entry in _createdChoreographers.entries)
               entry.key: entry.value.name,
@@ -1926,6 +1934,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     difficultyLevelFor: (id) {
                       final dance = _danceById(id);
                       if (dance == null) return null;
+                      for (final level in _difficultyLevels) {
+                        if (level.id == dance.difficultyLevelId) return level;
+                      }
                       for (final level
                           in _data?.levels ?? const <DifficultyLevel>[]) {
                         if (level.id == dance.difficultyLevelId) return level;

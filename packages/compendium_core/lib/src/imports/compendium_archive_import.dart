@@ -9,6 +9,7 @@ import '../model/source_citation.dart';
 import '../model/venue.dart';
 import '../serialization/compendium_archive.dart';
 import '../storage/repositories/custom_field_repository.dart';
+import '../storage/repositories/difficulty_level_repository.dart';
 import '../storage/repositories/program_repository.dart';
 import '../storage/repositories/published_source_repository.dart';
 import '../storage/repositories/tag_repository.dart';
@@ -312,6 +313,7 @@ class CompendiumArchiveImporter {
     TagRepository? tags,
     PublishedSourceRepository? sources,
     CustomFieldDefRepository? customFields,
+    this._difficultyLevels,
   }) : _metadata = tags == null || sources == null || customFields == null
            ? null
            : ShareMetadataImporter(
@@ -324,6 +326,7 @@ class CompendiumArchiveImporter {
   final ProgramRepository _programs;
   final VenueRepository _venues;
   final ShareMetadataImporter? _metadata;
+  final DifficultyLevelRepository? _difficultyLevels;
 
   final GenericJsonAdapter _adapter = GenericJsonAdapter();
 
@@ -365,6 +368,7 @@ class CompendiumArchiveImporter {
     ShareMetadataImportResult? metadata;
     ImportSession? danceSession;
     try {
+      await _commitDifficultyLevels(archive);
       metadata = await _commitMetadata(archive, now: now, newId: mintId);
       final commitBatch = metadata == null
           ? batch
@@ -482,6 +486,7 @@ class CompendiumArchiveImporter {
             await _venues.upsert(_venueWithId(venue, existingMapped, now: now));
             venueIndex.add(existingMapped, venue);
           }
+
           continue;
         }
 
@@ -648,6 +653,19 @@ class CompendiumArchiveImporter {
     }
   }
 
+  Future<void> _commitDifficultyLevels(CompendiumArchive archive) async {
+    if (archive.difficultyLevels.isEmpty) return;
+    final repository = _difficultyLevels;
+    if (repository == null) {
+      throw StateError(
+        'difficulty-level repository is required to import a shared archive',
+      );
+    }
+    for (final level in archive.difficultyLevels) {
+      await repository.upsert(level);
+    }
+  }
+
   Future<ShareMetadataImportResult?> _commitMetadata(
     CompendiumArchive archive, {
     required DateTime now,
@@ -681,6 +699,7 @@ class CompendiumArchiveImporter {
               quality: record.draft.quality,
               issues: record.draft.issues,
               authorNames: record.draft.authorNames,
+              difficultyLevelLabel: record.draft.difficultyLevelLabel,
             ),
             verdict: record.verdict,
           ),

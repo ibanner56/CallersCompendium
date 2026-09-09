@@ -838,6 +838,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         tagFor: (id) => detail.tagsById[id],
         publishedSourceFor: (id) => detail.sourcesById[id],
         customFieldFor: (id) => detail.customFieldsById[id],
+        difficultyLevelFor: (id) =>
+            id == detail.dance.difficultyLevelId ? detail.difficultyLevel : null,
       );
       final fileName = danceShareBundleFileName(
         detail.dance.title,
@@ -879,6 +881,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
         tagFor: (id) => detail.tagsById[id],
         publishedSourceFor: (id) => detail.sourcesById[id],
         customFieldFor: (id) => detail.customFieldsById[id],
+        difficultyLevelFor: (id) =>
+            id == detail.dance.difficultyLevelId ? detail.difficultyLevel : null,
       );
       fileName = danceShareBundleFileName(
         detail.dance.title,

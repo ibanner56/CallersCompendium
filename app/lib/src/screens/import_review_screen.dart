@@ -730,7 +730,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       _planError = null;
     });
     try {
-      final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+      final pipeline = ImportPipeline(
+        _repos.dances,
+        _repos.choreographers,
+        difficultyLevels: _repos.difficultyLevels,
+      );
       final index = await pipeline.buildDedupeIndex();
       // Byte sources (Caller's Companion `.USR`) carry the raw file on
       // `options['bytes']`; text sources carry the pasted/fetched payload.
@@ -1192,7 +1196,11 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
     // Edit is a single-dance affordance, so it always uses the adapter-agnostic
     // dance commit path — even for the Caller's Companion `.USR` byte source,
     // whose programs remain the batch Import button's responsibility.
-    final pipeline = ImportPipeline(_repos.dances, _repos.choreographers);
+    final pipeline = ImportPipeline(
+      _repos.dances,
+      _repos.choreographers,
+      difficultyLevels: _repos.difficultyLevels,
+    );
     try {
       final session = await pipeline.commit(
         ImportBatchResult(records: [plan]),
@@ -1488,6 +1496,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
       tags: _repos.tags,
       sources: _repos.publishedSources,
       customFields: _repos.customFieldDefs,
+      difficultyLevels: _repos.difficultyLevels,
     );
     final result = await importer.commit(
       commitBatch,

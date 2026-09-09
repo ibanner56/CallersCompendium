@@ -160,6 +160,7 @@ class CcDanceMapping {
     required this.dance,
     List<ImportIssue> issues = const [],
     List<String> authorNames = const [],
+    this.difficultyLevelLabel,
   }) : issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);
 
@@ -170,6 +171,8 @@ class CcDanceMapping {
   /// [ImportPipeline] resolves these to [Choreographer] associations at commit;
   /// this mapping never fabricates ids.
   final List<String> authorNames;
+
+  final String? difficultyLevelLabel;
 }
 
 /// Placeholder title used when a CC record supplies no name. Parsing never
@@ -301,7 +304,12 @@ CcDanceMapping mapCallersCompanionDance(
     updatedAt: now,
   );
 
-  return CcDanceMapping(dance: dance, issues: issues, authorNames: authorNames);
+  return CcDanceMapping(
+    dance: dance,
+    issues: issues,
+    authorNames: authorNames,
+    difficultyLevelLabel: record.level?.trim(),
+  );
 }
 
 /// The parsed result of peeling a body line's leading beats prefix: the [beats]
@@ -415,6 +423,45 @@ Figure _withBeats(Figure figure, int beats) {
     ),
   );
   return (null, false);
+}
+
+/// Returns whether [raw] still names [level] in the receiver's active
+/// vocabulary. Legacy aliases are accepted only while a shipped entry retains
+/// its shipped label; a renamed shipped entry must not silently absorb the old
+/// meaning.
+bool callersCompanionDifficultyLabelMatches(
+  String? raw,
+  DifficultyLevel level,
+) {
+  final value = raw?.trim().toLowerCase() ?? '';
+  if (value.isEmpty) return false;
+  if (value == level.label.trim().toLowerCase()) return true;
+  final shipped = DifficultyLevel.knownForId(level.id);
+  if (shipped == null ||
+      level.label.trim().toLowerCase() != shipped.label.toLowerCase()) {
+    return false;
+  }
+  return switch (level.id) {
+    DifficultyLevel.beginnerId => {
+      'beginner',
+      'easy',
+      'novice',
+      'basic',
+    }.contains(value),
+    DifficultyLevel.intermediateId => {
+      'intermediate',
+      'medium',
+      'moderate',
+    }.contains(value),
+    DifficultyLevel.advancedId => {
+      'advanced',
+      'hard',
+      'challenging',
+      'difficult',
+      'expert',
+    }.contains(value),
+    _ => false,
+  };
 }
 
 (DanceForm, String?) _mapForm(String? raw, List<ImportIssue> issues) {

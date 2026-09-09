@@ -381,13 +381,16 @@ class FilterCompiler {
     switch (op) {
       case LevelOp.eq:
         binds.add(difficultyLevelId);
-        return 'level_id = ?';
+        return 'level_id IN (SELECT id FROM difficulty_levels '
+            'WHERE id = ? AND deleted_at IS NULL)';
       case LevelOp.lte:
       case LevelOp.gte:
         final cmp = op == LevelOp.lte ? '<=' : '>=';
         binds.add(difficultyLevelId);
         return 'level_id IN (SELECT id FROM difficulty_levels WHERE position '
-            '$cmp (SELECT position FROM difficulty_levels WHERE id = ?))';
+            '$cmp (SELECT position FROM difficulty_levels '
+            'WHERE id = ? AND deleted_at IS NULL) '
+            'AND deleted_at IS NULL)';
     }
   }
 

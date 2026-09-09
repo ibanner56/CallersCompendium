@@ -328,6 +328,15 @@ class ProgramExportMenu extends StatelessWidget {
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
+      difficultyLevelFor: (id) {
+        for (final dance in _orderedExportDances().map((entry) => entry.dance)) {
+          if (dance.difficultyLevelId == id) {
+            return difficultyLevelFor?.call(dance.id) ??
+                DifficultyLevel.knownForId(id);
+          }
+        }
+        return DifficultyLevel.knownForId(id);
+      },
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(

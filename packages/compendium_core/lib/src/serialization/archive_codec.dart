@@ -269,10 +269,16 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
   // restore (silent data loss). Clamping is deterministic, so a value clamped
   // identically to its option stays valid.
   final clampedDances = _clampDanceChoiceValues(dances, customFields);
-  _reportUnknownDifficultyLevelReferences(clampedDances, {
-    ...DifficultyLevel.shippedIds,
+  final knownDifficultyLevelIds = <String>{
+    if (schemaVersion < archiveSchemaVersionDifficultyLevels)
+      ...DifficultyLevel.shippedIds,
     for (final level in difficultyLevels) level.id,
-  }, errors);
+  };
+  _reportUnknownDifficultyLevelReferences(
+    clampedDances,
+    knownDifficultyLevelIds,
+    errors,
+  );
   final programs = _decodeList(
     root['programs'],
     'program',

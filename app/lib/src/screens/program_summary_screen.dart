@@ -174,6 +174,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Map<String, Dance> _dances = const {};
   Map<String, Venue> _venuesById = const {};
   CollectionData? _collectionData;
+  List<DifficultyLevel> _difficultyLevels = const [];
   bool _loading = true;
   Object? _error;
 
@@ -442,6 +443,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         trackAllCallers: _trackHistoryForAllCallers,
       );
       final data = await _watchCollectionData(callerFilter);
+      final difficultyLevels = await _repos.difficultyLevels.listAll();
       final titles = <String, String>{};
       final dances = <String, Dance>{};
       final ids = {
@@ -472,6 +474,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         _dances = dances;
         _venuesById = venuesById;
         _collectionData = data;
+        _difficultyLevels = difficultyLevels;
         _loading = false;
         _error = null;
       });
@@ -553,6 +556,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         builder: (_) => PerformProgramScreen(
           program: program,
           data: data,
+          difficultyLevels: _difficultyLevels,
           renderer: _performRenderer,
           // Resume where the caller left off (issue #434).
           initialGroup: _performResume?.groupIndex ?? 0,
@@ -1074,6 +1078,9 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
 
   DifficultyLevel? _difficultyLevelFor(Dance? dance) {
     if (dance == null) return null;
+    for (final level in _difficultyLevels) {
+      if (level.id == dance.difficultyLevelId) return level;
+    }
     for (final level in _collectionData?.levels ?? const <DifficultyLevel>[]) {
       if (level.id == dance.difficultyLevelId) return level;
     }

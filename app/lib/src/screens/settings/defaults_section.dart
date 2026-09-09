@@ -518,6 +518,7 @@ class DifficultyLevelsEditor extends StatefulWidget {
 
 class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   List<DifficultyLevel> _levels = const [];
+  final Map<String, String> _pendingLabels = {};
   bool _loading = true;
   bool _requested = false;
 
@@ -598,6 +599,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _rename(DifficultyLevel level, String value) async {
+    _pendingLabels.remove(level.id);
     final label = value.trim();
     if (label.isEmpty || label == level.label) return;
     try {
@@ -622,7 +624,6 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
   }
 
   Future<void> _reorder(int oldIndex, int newIndex) async {
-    if (newIndex > oldIndex) newIndex--;
     final updated = List<DifficultyLevel>.of(_levels);
     final level = updated.removeAt(oldIndex);
     updated.insert(newIndex, level);
@@ -670,12 +671,20 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
             return ListTile(
               key: ValueKey(level.id),
               leading: const Icon(Icons.drag_handle),
-              title: TextFormField(
-                key: ValueKey('difficulty-level-label-${level.id}'),
-                initialValue: level.label,
-                onFieldSubmitted: (value) => _rename(level, value),
-                decoration: const InputDecoration(
-                  border: UnderlineInputBorder(),
+              title: Focus(
+                onFocusChange: (focused) {
+                  if (!focused) {
+                    _rename(level, _pendingLabels[level.id] ?? level.label);
+                  }
+                },
+                child: TextFormField(
+                  key: ValueKey('difficulty-level-label-${level.id}'),
+                  initialValue: level.label,
+                  onChanged: (value) => _pendingLabels[level.id] = value,
+                  onFieldSubmitted: (value) => _rename(level, value),
+                  decoration: const InputDecoration(
+                    border: UnderlineInputBorder(),
+                  ),
                 ),
               ),
               trailing: IconButton(

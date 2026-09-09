@@ -147,6 +147,62 @@ void main() {
     expect(tile.initiallyExpanded, isFalse);
   });
 
+  testWidgets('difficulty vocabulary rename persists when focus is lost', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _scrollTo(
+      tester,
+      const ValueKey('defaults-difficulty-levels-section'),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('defaults-difficulty-levels-section')),
+    );
+    await tester.pumpAndSettle();
+
+    final labelKey = const ValueKey(
+      'difficulty-level-label-${DifficultyLevel.beginnerId}',
+    );
+    await tester.enterText(find.byKey(labelKey), 'Novice');
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+
+    final renamed = await repos.difficultyLevels.getById(
+      DifficultyLevel.beginnerId,
+    );
+    expect(renamed?.label, 'Novice');
+  });
+
+  testWidgets(
+    'difficulty vocabulary reorder uses the displayed destination index',
+    (tester) async {
+      final repos = openTestRepositories();
+      await _pumpDefaults(tester, repos);
+      await _scrollTo(
+        tester,
+        const ValueKey('defaults-difficulty-levels-section'),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('defaults-difficulty-levels-section')),
+      );
+      await tester.pumpAndSettle();
+
+      final list = tester.widget<ReorderableListView>(
+        find.byType(ReorderableListView).first,
+      );
+      list.onReorderItem!(0, 2);
+      await tester.pumpAndSettle();
+
+      final levels = await repos.difficultyLevels.listAll();
+      expect(levels.map((level) => level.id), [
+        DifficultyLevel.intermediateId,
+        DifficultyLevel.advancedId,
+        DifficultyLevel.beginnerId,
+      ]);
+    },
+  );
+
   testWidgets('Display defaults show the historical defaults when unset', (
     tester,
   ) async {

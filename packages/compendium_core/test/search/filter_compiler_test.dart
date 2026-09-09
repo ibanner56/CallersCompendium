@@ -202,10 +202,11 @@ void main() {
   });
 
   group('level leaves', () {
-    test('LevelFilter eq is a plain ID match', () {
+    test('LevelFilter eq matches only a live configured ID', () {
       expect(
         pred(const LevelFilter(DifficultyLevel.intermediateId)),
-        'level_id = ?',
+        'level_id IN (SELECT id FROM difficulty_levels '
+        'WHERE id = ? AND deleted_at IS NULL)',
       );
       expect(
         compiler
@@ -219,7 +220,8 @@ void main() {
       expect(
         pred(const LevelFilter(DifficultyLevel.intermediateId, LevelOp.lte)),
         'level_id IN (SELECT id FROM difficulty_levels WHERE position <= '
-        '(SELECT position FROM difficulty_levels WHERE id = ?))',
+        '(SELECT position FROM difficulty_levels '
+        'WHERE id = ? AND deleted_at IS NULL) AND deleted_at IS NULL)',
       );
       expect(
         compiler
@@ -235,7 +237,8 @@ void main() {
       expect(
         pred(const LevelFilter(DifficultyLevel.advancedId, LevelOp.gte)),
         'level_id IN (SELECT id FROM difficulty_levels WHERE position >= '
-        '(SELECT position FROM difficulty_levels WHERE id = ?))',
+        '(SELECT position FROM difficulty_levels '
+        'WHERE id = ? AND deleted_at IS NULL) AND deleted_at IS NULL)',
       );
       expect(
         compiler

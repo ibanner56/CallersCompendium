@@ -185,8 +185,10 @@ class ArchiveRestorer {
     // a merge. A v3 archive is authoritative, including an intentionally empty
     // vocabulary after a replace.
     if (archive.schemaVersion < archiveSchemaVersionDifficultyLevels) {
+      final existingLevels = await _repos.difficultyLevels.listAllWithDeleted();
+      final existingIds = {for (final row in existingLevels) row.level.id};
       for (final level in DifficultyLevel.shipped) {
-        if (await _repos.difficultyLevels.getById(level.id) != null) continue;
+        if (existingIds.contains(level.id)) continue;
         await _guard('difficultyLevel', level.id, errors, () async {
           await _repos.difficultyLevels.upsert(level);
         });

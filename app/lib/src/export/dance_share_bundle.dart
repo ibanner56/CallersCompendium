@@ -11,6 +11,7 @@ String buildDanceShareBundle(
   required Tag? Function(String id) tagFor,
   required PublishedSource? Function(String id) publishedSourceFor,
   required CustomFieldDef? Function(String id) customFieldFor,
+  DifficultyLevel? Function(String id)? difficultyLevelFor,
   DateTime? now,
 }) {
   final choreographers = <Choreographer>[];
@@ -59,6 +60,20 @@ String buildDanceShareBundle(
     customFields.add(field);
   }
 
+  final difficultyLevels = <DifficultyLevel>[];
+  final difficultyLevelId = dance.difficultyLevelId;
+  if (difficultyLevelId != null) {
+    final level =
+        difficultyLevelFor?.call(difficultyLevelId) ??
+        DifficultyLevel.knownForId(difficultyLevelId);
+    if (level == null) {
+      throw StateError(
+        'dance references missing difficulty level "$difficultyLevelId"',
+      );
+    }
+    difficultyLevels.add(level);
+  }
+
   return encodeArchive(
     CompendiumArchive(
       exportedAt: (now ?? DateTime.now()).toUtc(),
@@ -67,6 +82,7 @@ String buildDanceShareBundle(
       publishedSources: sources,
       customFields: customFields,
       tags: tags,
+      difficultyLevels: difficultyLevels,
     ),
     mode: ArchiveSerializationMode.share,
   );

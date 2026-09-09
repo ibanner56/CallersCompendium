@@ -128,6 +128,7 @@ class StructuredDraft {
     ParseQuality? quality,
     List<ImportIssue> issues = const [],
     List<String> authorNames = const [],
+    this.difficultyLevelLabel,
   }) : quality = quality ?? ParseQuality.ofFigures(dance.figures),
        issues = List.unmodifiable(issues),
        authorNames = List.unmodifiable(authorNames);
@@ -147,6 +148,26 @@ class StructuredDraft {
   /// then writes the resulting ids to [Dance.authorIds]. Names are data, not a
   /// parse failure — the draft is valid whether or not any resolve.
   final List<String> authorNames;
+
+  /// Source label used to resolve legacy difficulty vocabulary against the
+  /// receiver's live configuration, when an adapter provides one.
+  final String? difficultyLevelLabel;
+
+  StructuredDraft copyWith({
+    Dance? dance,
+    RawRecord? raw,
+    ParseQuality? quality,
+    List<ImportIssue>? issues,
+    List<String>? authorNames,
+    String? difficultyLevelLabel,
+  }) => StructuredDraft(
+    dance: dance ?? this.dance,
+    raw: raw ?? this.raw,
+    quality: quality ?? this.quality,
+    issues: issues ?? this.issues,
+    authorNames: authorNames ?? this.authorNames,
+    difficultyLevelLabel: difficultyLevelLabel ?? this.difficultyLevelLabel,
+  );
 
   @override
   String toString() =>

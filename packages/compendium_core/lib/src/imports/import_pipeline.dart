@@ -10,6 +10,8 @@ import '../model/figure.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
+import '../storage/repositories/difficulty_level_repository.dart';
+import 'callers_companion_mapping.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -213,10 +215,11 @@ class ImportSession {
 /// holds no source-specific knowledge. The [ImportPipeline] is safe to reuse
 /// across batches.
 class ImportPipeline {
-  ImportPipeline(this._dances, this._choreographers);
+  ImportPipeline(this._dances, this._choreographers, {this._difficultyLevels});
 
   final DanceRepository _dances;
   final ChoreographerRepository _choreographers;
+  final DifficultyLevelRepository? _difficultyLevels;
 
   /// The [DanceRepository] this pipeline commits/undoes dances through.
   ///
@@ -309,9 +312,10 @@ class ImportPipeline {
         continue;
       }
 
-      final StructuredDraft draft;
+      StructuredDraft draft;
       try {
         draft = adapter.parse(raw);
+        draft = await _resolveConfiguredDifficulty(draft);
       } on ImportError catch (e) {
         errors.add(e);
         continue;
@@ -354,6 +358,31 @@ class ImportPipeline {
       records: records,
       errors: errors,
       dedupeIndex: dedupe,
+    );
+  }
+
+  Future<StructuredDraft> _resolveConfiguredDifficulty(
+    StructuredDraft draft,
+  ) async {
+    final repository = _difficultyLevels;
+    final sourceLabel = draft.difficultyLevelLabel;
+    final id = draft.dance.difficultyLevelId;
+    if (repository == null || sourceLabel == null || id == null) return draft;
+    final active = await repository.getById(id);
+    if (active != null &&
+        callersCompanionDifficultyLabelMatches(sourceLabel, active)) {
+      return draft;
+    }
+    final issue = ImportIssue(
+      severity: ImportIssueSeverity.warning,
+      code: 'cc_inactive_level',
+      message:
+          'Level "$sourceLabel" is not an active configured difficulty; '
+          'left unspecified.',
+    );
+    return draft.copyWith(
+      dance: draft.dance.copyWith(clearDifficultyLevel: true),
+      issues: [...draft.issues, issue],
     );
   }
 
