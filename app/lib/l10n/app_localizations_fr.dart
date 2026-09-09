@@ -1017,6 +1017,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Ajuste chaque fiche pour que la danse ou le créneau complet tienne à l’écran sans défilement. Désactivez pour régler la taille vous-même avec A- / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Afficher le minuteur pour un Perform individuel';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Historique d’appel';
 
   @override
@@ -3222,6 +3230,15 @@ class AppLocalizationsFr extends AppLocalizations {
       'other': '',
     });
     return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', en pause',
+      'other': '',
+    });
+    return 'Temps écoulé $elapsedTime$_temp0';
   }
 
   @override

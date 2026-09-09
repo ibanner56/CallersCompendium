@@ -175,6 +175,40 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets(
+    'individual Perform timer toggle defaults on, is accessible, and persists',
+    (tester) async {
+      final handle = tester.ensureSemantics();
+      final repos = openTestRepositories();
+
+      await _pumpProgram(tester, repos);
+
+      final toggle = find.byKey(
+        const ValueKey('settings-show-individual-perform-timer'),
+      );
+      expect(toggle, findsOneWidget);
+      expect(tester.widget<SwitchListTile>(toggle).value, isTrue);
+      expect(
+        tester.getSemantics(
+          find.descendant(of: toggle, matching: find.byType(Switch)),
+        ),
+        isSemantics(
+          hasToggledState: true,
+          isToggled: true,
+          hasTapAction: true,
+          isEnabled: true,
+        ),
+      );
+
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(tester.widget<SwitchListTile>(toggle).value, isFalse);
+      expect(await repos.settings.get(kShowIndividualPerformTimerKey), isFalse);
+
+      handle.dispose();
+    },
+  );
+
   testWidgets('program auto-commit toggle defaults off and is AT-reachable', (
     tester,
   ) async {

@@ -1010,6 +1010,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Jede Karte so skalieren, dass der vollständige Tanz oder Slot ohne Scrollen auf den Bildschirm passt. Deaktivieren, um die Größe selbst mit A− / A+ einzustellen.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Timer für einzelne Perform-Ansicht anzeigen';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling-Verlauf';
 
   @override
@@ -3212,6 +3220,15 @@ class AppLocalizationsDe extends AppLocalizations {
       'other': '',
     });
     return 'Programmzeit $programTime, Slot-Zeit $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', pausiert',
+      'other': '',
+    });
+    return 'Verstrichene Zeit $elapsedTime$_temp0';
   }
 
   @override

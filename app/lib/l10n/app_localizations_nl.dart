@@ -999,6 +999,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Schaal elke kaart zodat de volledige dans of het slot op het scherm past zonder scrollen. Uitschakelen om de grootte zelf in te stellen met A− / A+.';
 
   @override
+  String get settingsShowIndividualPerformTimerTitle =>
+      'Timer voor individuele Perform tonen';
+
+  @override
+  String get settingsShowIndividualPerformTimerSubtitle =>
+      'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Callerhistorie';
 
   @override
@@ -3195,6 +3203,15 @@ class AppLocalizationsNl extends AppLocalizations {
       'other': '',
     });
     return 'Programmatijd $programTime, slottijd $slotTime$_temp1$_temp2$_temp3';
+  }
+
+  @override
+  String performIndividualTimingSemantic(String elapsedTime, String paused) {
+    String _temp0 = intl.Intl.selectLogic(paused, {
+      'yes': ', gepauzeerd',
+      'other': '',
+    });
+    return 'Verstreken tijd $elapsedTime$_temp0';
   }
 
   @override

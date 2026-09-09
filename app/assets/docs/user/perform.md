@@ -102,8 +102,13 @@ one tap swaps it in place of the primary.
 
 ## Keep time through the evening
 
-For a program, Perform mode shows timing in a status area so you can pace
-yourself:
+Perform mode shows timing in a status area so you can pace yourself. For a
+single dance, it shows:
+
+- an **elapsed timer** for the dance; and
+- a **pause/resume** control for interruptions.
+
+For a program, the status area additionally shows:
 
 - a **running program clock** for the whole evening;
 - a **per-slot elapsed timer** that resets each time you move to a new slot;
@@ -112,7 +117,10 @@ yourself:
 - a **pause/resume** control for interruptions.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
-your program or your dances.
+your program or your dances. The individual elapsed timer is on by default and
+can be hidden under **Settings → Program → Performance → Show timer for
+individual Perform**. A single dance never shows the program clock, slot timing,
+planned length, overrun cue, or slot position.
 
 ## Adjust on the fly
 

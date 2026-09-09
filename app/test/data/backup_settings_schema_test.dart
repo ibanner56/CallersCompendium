@@ -4,7 +4,7 @@ import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
     show kCanonicalFigureTextKey;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
-    show kProgramMatrixColumnsKey;
+    show kProgramMatrixColumnsKey, kShowIndividualPerformTimerKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
@@ -27,6 +27,29 @@ void main() {
       );
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, 1), isFalse);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, null), isFalse);
+    });
+
+    test('individual Perform timer setting accepts only bools', () {
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, 'true'),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, 1),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kShowIndividualPerformTimerKey, null),
+        isFalse,
+      );
     });
 
     test('aggressive beats update (#689) accepts only bools', () {

@@ -18,7 +18,8 @@ import 'package:compendium_app/src/screens/settings_screen.dart'
         kAutoSizePerformKey,
         kPerformCanonicalViewKey,
         kPerformStageModeKey,
-        kPerformTextScaleKey;
+        kPerformTextScaleKey,
+        kShowIndividualPerformTimerKey;
 import 'package:compendium_app/src/theme/app_typography.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -55,16 +56,28 @@ Figure _chain() =>
 /// so a test can deterministically drive the "settings load resolves *after*
 /// the user has already acted" race (ROADMAP G.1).
 class _GatedSettings extends SettingsRepository {
-  _GatedSettings(super.db, {required this.gate, required this.persistedValue});
+  _GatedSettings(
+    super.db, {
+    required this.gate,
+    required this.persistedValue,
+    this.timerGate,
+    this.timerValue,
+  });
 
   final Completer<void> gate;
   final bool persistedValue;
+  final Completer<void>? timerGate;
+  final bool? timerValue;
 
   @override
   Future<Object?> get(String key) async {
     if (key == kAutoSizePerformKey) {
       await gate.future;
       return persistedValue;
+    }
+    if (key == kShowIndividualPerformTimerKey && timerGate != null) {
+      await timerGate!.future;
+      return timerValue;
     }
     return super.get(key);
   }
@@ -76,6 +89,7 @@ Future<void> _pumpPerform(
   List<String> authorNames = const [],
   Dialect? activeDialect,
   bool autoSize = false,
+  bool? showIndividualPerformTimer,
   Size surfaceSize = const Size(1400, 2400),
   DialectLibraryController? dialectLibrary,
 }) async {
@@ -85,6 +99,12 @@ Future<void> _pumpPerform(
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  if (showIndividualPerformTimer != null) {
+    await repos.settings.set(
+      kShowIndividualPerformTimerKey,
+      showIndividualPerformTimer,
+    );
+  }
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
       : DialectLibraryScope(controller: dialectLibrary, child: child);
@@ -613,6 +633,188 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(PerformDanceScreen), findsNothing);
     expect(find.byType(DanceDetailScreen), findsOneWidget);
+  });
+
+  group('individual elapsed timer (issue #1185)', () {
+    testWidgets('is visible and advances by one second by default', (
+      tester,
+    ) async {
+      await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+      expect(find.text('0:00'), findsOneWidget);
+      final card = tester.widget<PerformCard>(find.byType(PerformCard));
+
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(find.text('0:01'), findsOneWidget);
+      expect(tester.widget<PerformCard>(find.byType(PerformCard)), same(card));
+    });
+
+    testWidgets('pause freezes and resume restarts the counter', (
+      tester,
+    ) async {
+      await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('0:01'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('perform-individual-timer-pause')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 2));
+      expect(find.text('0:01'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('perform-individual-timer-pause')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('0:02'), findsOneWidget);
+    });
+
+    testWidgets('pause control exposes its toggled state to assistive tech', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      try {
+        await _pumpPerform(tester, dance: _dance(figures: [_chain()]));
+        final pause = find.byKey(
+          const ValueKey('perform-individual-timer-pause'),
+        );
+
+        expect(
+          tester.getSemantics(pause),
+          isSemantics(
+            isButton: true,
+            hasTapAction: true,
+            hasToggledState: true,
+            isToggled: false,
+          ),
+        );
+
+        await tester.tap(pause);
+        await tester.pump();
+        expect(
+          tester.getSemantics(pause),
+          isSemantics(
+            isButton: true,
+            hasTapAction: true,
+            hasToggledState: true,
+            isToggled: true,
+          ),
+        );
+      } finally {
+        handle.dispose();
+      }
+    });
+
+    testWidgets('waits for the setting and stays absent when opted out', (
+      tester,
+    ) async {
+      final timerGate = Completer<void>();
+      final db = openWidgetTestDatabase();
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: _GatedSettings(
+          db,
+          gate: Completer<void>()..complete(),
+          persistedValue: true,
+          timerGate: timerGate,
+          timerValue: false,
+        ),
+      );
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: PerformDanceScreen(dance: _dance(), renderer: _renderer),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('perform-individual-elapsed')),
+        findsNothing,
+      );
+      timerGate.complete();
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('perform-individual-elapsed')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('starts only after a delayed enabled setting resolves', (
+      tester,
+    ) async {
+      final timerGate = Completer<void>();
+      final db = openWidgetTestDatabase();
+      final repos = CompendiumRepositories(
+        db,
+        contraTaxonomy,
+        settings: _GatedSettings(
+          db,
+          gate: Completer<void>()..complete(),
+          persistedValue: true,
+          timerGate: timerGate,
+          timerValue: true,
+        ),
+      );
+      final notifier = ValueNotifier<Dialect>(Dialect.larksRobins);
+      addTearDown(notifier.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          builder: (context, child) => RepositoriesScope(
+            repositories: repos,
+            child: ActiveDialectScope(notifier: notifier, child: child!),
+          ),
+          home: PerformDanceScreen(dance: _dance(), renderer: _renderer),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('perform-individual-elapsed')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      timerGate.complete();
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('perform-individual-elapsed')),
+        findsOneWidget,
+      );
+      expect(find.text('0:00'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.text('0:01'), findsOneWidget);
+    });
+
+    testWidgets('does not update after leaving Perform', (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'Perform Me'));
+      await _pumpDetail(tester, repos, 'd1');
+
+      await tester.tap(find.byKey(const ValueKey('perform-dance')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('exit-perform')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('perform-exit-confirm')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(PerformDanceScreen), findsNothing);
+      await tester.pump(const Duration(seconds: 2));
+      expect(tester.takeException(), isNull);
+    });
   });
 
   group('auto-size (ROADMAP G.1)', () {

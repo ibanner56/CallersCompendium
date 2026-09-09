@@ -30,6 +30,10 @@ const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
 
+/// Key used to persist the default-on "show an elapsed timer for an individual
+/// dance in Perform" preference. Stored as a bool; absent/unset means on.
+const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';
+
 /// Key used to persist the opt-in "auto-commit program-editor changes"
 /// preference. Defaults to `false`, preserving explicit-save behavior until
 /// the caller enables background commits.

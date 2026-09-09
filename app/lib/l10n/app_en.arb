@@ -1257,6 +1257,14 @@
   "@settingsGeneralAutoSizePerformSubtitle": {
     "description": "Subtitle explaining the auto-size Perform cards toggle. 'A-' and 'A+' refer to text-size controls."
   },
+  "settingsShowIndividualPerformTimerTitle": "Show timer for individual Perform",
+  "@settingsShowIndividualPerformTimerTitle": {
+    "description": "Title of the Program settings toggle that shows an elapsed timer while performing a single dance outside a program."
+  },
+  "settingsShowIndividualPerformTimerSubtitle": "Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.",
+  "@settingsShowIndividualPerformTimerSubtitle": {
+    "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
+  },
   "settingsGeneralCallingHistoryHeader": "Calling history",
   "@settingsGeneralCallingHistoryHeader": {
     "description": "General settings section header for calling-history preferences."
@@ -4239,6 +4247,20 @@
       "over": {
         "type": "String",
         "example": "no"
+      },
+      "paused": {
+        "type": "String",
+        "example": "no"
+      }
+    }
+  },
+  "performIndividualTimingSemantic": "Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}",
+  "@performIndividualTimingSemantic": {
+    "description": "Screen-reader label for the individual Perform elapsed-timer line.",
+    "placeholders": {
+      "elapsedTime": {
+        "type": "String",
+        "example": "12:34"
       },
       "paused": {
         "type": "String",

@@ -155,6 +155,9 @@ details are handled when you export.
   [Perform mode](./glossary.md#perform-mode). Turn it off when you'd rather size
   the text yourself using the **A−** and **A+** buttons while performing. See
   [Perform mode](./perform.md) for more.
+- **Show timer for individual Perform** (on) — shows an elapsed timer and
+  pause/resume control while performing a single dance. Turn it off when you
+  want individual Perform to stay timer-free.
 
 ### Calling history
 

@@ -434,7 +434,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**62 settings keys**: 50 shareable, 7 device-local, 3 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**63 settings keys**: 51 shareable, 7 device-local, 3 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -487,6 +487,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `seed.initialCollection.completed` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `set_list_color_coding` | `dpv:NonPersonalData` | app user | shareable |  |
 | `shorthand_mappings` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_individual_perform_timer` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |
