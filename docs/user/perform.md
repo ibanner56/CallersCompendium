@@ -118,8 +118,8 @@ For a program, the status area additionally shows:
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
 your program or your dances. The individual elapsed timer is on by default and
-can be hidden under **Settings → Program → Performance → Show individual
-Perform timer**. A single dance never shows the program clock, slot timing,
+can be hidden under **Settings → Program → Performance → Show timer for
+individual Perform**. A single dance never shows the program clock, slot timing,
 planned length, overrun cue, or slot position.
 
 ## Adjust on the fly
