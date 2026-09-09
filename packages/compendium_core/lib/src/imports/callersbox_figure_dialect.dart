@@ -2533,24 +2533,50 @@ String _otherShoulder(String s) => s == 'right' ? 'left' : 'right';
 /// never emits the literal "box circulate" and, in the corpus, ~95% of these
 /// lines are immediately preceded by a balance (`Balance ring` / `Balance wave
 /// of four`), i.e. the balance-and-box-circulate figure. This pre-recognizer
-/// maps such a line onto [box_circulate]; the CallersBox cross-line merge then
-/// folds a preceding balance line into `balance: true` (box_circulate is a
-/// balance-merge target). The definition after the colon is the move's
-/// decomposition (not extra choreography), so — mirroring the compound-figure
-/// convention — it is preserved verbatim in the figure `note`, never dropped.
+/// maps such a line onto [box_circulate]; the crossing subject becomes `who`,
+/// an explicit loop direction becomes `hand`, and the scrubbed/canonicalized
+/// definition is retained in the figure `note`. The CallersBox cross-line merge
+/// then folds a preceding balance line into `balance: true` (box_circulate is
+/// a balance-merge target).
 ///
 /// Conservative guards: the head before the colon must be EXACTLY `circulate`
 /// (so `box circulate`, `diagonal circulate`, `column circulate 2`, … all
-/// decline here and fall through), and the definition must be non-empty. Runs
-/// on the scrubbed text (roles already canonicalized) like the other
-/// pre-recognizers.
+/// decline here and fall through), and the definition must exactly contain a
+/// resolvable `<subject> cross, <inverse subject> loop [left|right]` clause.
+/// Unknown, non-inverse, or malformed subjects decline here and fall through to
+/// custom. Runs on the scrubbed text (roles already canonicalized) like the
+/// other pre-recognizers.
 FigureMatch? _circulate(String scrubbed) {
   final colon = scrubbed.indexOf(':');
   if (colon == -1) return null;
   final head = scrubbed.substring(0, colon).trim().toLowerCase();
   final def = scrubbed.substring(colon + 1).trim();
   if (def.isEmpty || head != 'circulate') return null;
-  return FigureMatch('box_circulate', note: def);
+  final comma = def.indexOf(',');
+  if (comma == -1 || def.indexOf(',', comma + 1) != -1) return null;
+
+  final cross = RegExp(
+    r'^(.+?)\s+cross$',
+    caseSensitive: false,
+  ).firstMatch(def.substring(0, comma).trim());
+  final loop = RegExp(
+    r'^(.+?)\s+loop(?:\s+(left|right))?$',
+    caseSensitive: false,
+  ).firstMatch(def.substring(comma + 1).trim());
+  if (cross == null || loop == null) return null;
+
+  final who = resolveDancerSetPhrase(cross.group(1)!);
+  final loopWho = resolveDancerSetPhrase(loop.group(1)!);
+  if (who == null || loopWho == null || loopWho != invertPairDancerSet(who)) {
+    return null;
+  }
+
+  final hand = loop.group(2)?.toLowerCase();
+  return FigureMatch(
+    'box_circulate',
+    params: {'who': who, 'hand': ?hand},
+    note: def,
+  );
 }
 
 /// Decodes TCB's `Square through <n> (<pass list>)` shorthand into a structured

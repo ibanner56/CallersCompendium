@@ -903,11 +903,11 @@ class CallersBoxAdapter implements SourceAdapter {
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
     // v25 (#870): thread the balance line's `hand` into the merged figure when
-    // the balance states one and the move accepts a `hand` param. A balance
-    // with `(RH)` folded into `box_the_gnat` sets `hand: right`; with `(LH)`
-    // it sets `hand: left`. The convergence-point normalisation
-    // (DanceRepository._normaliseMoveIds) then re-routes the move id if the
-    // hand contradicts the alias pin.
+    // the balance states one, the move accepts a `hand` param, and the move did
+    // not already state one. A balance with `(RH)` folded into `box_the_gnat`
+    // sets `hand: right`; with `(LH)` it sets `hand: left`. The
+    // convergence-point normalisation (DanceRepository._normaliseMoveIds) then
+    // re-routes the move id if the hand contradicts the alias pin.
     final balanceHand = balance.params['hand'];
     if (move.move == 'swing') {
       final prefix = move.params['prefix'];
@@ -931,7 +931,8 @@ class CallersBoxAdapter implements SourceAdapter {
         ...move.params,
         'balance': true,
         'beats': ?beats,
-        if (balanceHand != null &&
+        if (!move.params.containsKey('hand') &&
+            balanceHand != null &&
             balanceHand != 'unspecified' &&
             targetAcceptsHand)
           'hand': balanceHand,

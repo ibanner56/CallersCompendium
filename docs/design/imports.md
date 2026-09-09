@@ -932,8 +932,10 @@ has to be judged in its own context.
   through, pass through, promenade, petronella. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
-  outside (→ down/up the hall `moving`), circulate (→ box circulate, balance
-  folded), hall + turn as couples (→ `ender: turnCouple`), hall + turn alone
+  outside (→ down/up the hall `moving`), circulate (→ box circulate with the
+  crossing subject as `who` and explicit loop direction as `hand`, scrubbed/
+  canonicalized clause retained as a note, balance folded), hall + turn as couples
+  (→ `ender: turnCouple`), hall + turn alone
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
   (→ balanced Rory O'More), and directed promenade around the major set
