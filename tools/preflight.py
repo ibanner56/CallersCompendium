@@ -191,6 +191,8 @@ STEPS: tuple[Step, ...] = (
         (
             py("tools/release/test_android_version_code.py"),
             py("tools/release/test_check_beta_prerelease_history.py"),
+            py("tools/release/test_compile_changelog_fragments.py"),
+            py("tools/release/compile_changelog_fragments.py", "--check"),
             py("tools/release/test_gen_sbom.py"),
             py("tools/release/test_gen_release_metadata.py"),
             py("tools/release/test_gen_release_notes.py"),

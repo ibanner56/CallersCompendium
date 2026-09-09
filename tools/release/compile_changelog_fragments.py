@@ -40,6 +40,10 @@ CATEGORY_HEADINGS = {
 }
 VERSION = re.compile(r"^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+RELEASE_VERSION = re.compile(
+    r"^(?P<major>\d+)\.(?P<minor>\d+)\.(?P<patch>\d+)"
+    r"(?:-beta\.(?P<beta>\d+))?$"
+)
 SECTION = re.compile(r"^## \[(?P<version>[^\]]+)\](?: - \d{4}-\d{2}-\d{2})?$", re.MULTILINE)
 CATEGORY = re.compile(r"^### (?P<category>.+?)\s*$", re.MULTILINE)
 
@@ -204,6 +208,32 @@ def _section_bounds(changelog: str, version: str) -> tuple[int, int] | None:
     return start, following
 
 
+def _version_key(version: str) -> tuple[int, int, int, int, int]:
+    match = RELEASE_VERSION.fullmatch(version)
+    if match is None:
+        raise FragmentError(f"unsupported changelog version [{version}]")
+    return (
+        int(match.group("major")),
+        int(match.group("minor")),
+        int(match.group("patch")),
+        1 if match.group("beta") is None else 0,
+        0 if match.group("beta") is None else int(match.group("beta")),
+    )
+
+
+def _require_newest_version(changelog: str, version: str, audience: str) -> None:
+    existing = [
+        match.group("version")
+        for match in SECTION.finditer(changelog)
+        if match.group("version") != "Unreleased"
+    ]
+    if existing and _version_key(version) <= max(_version_key(item) for item in existing):
+        raise FragmentError(
+            f"{audience} version [{version}] must be newer than the newest "
+            f"existing section [{max(existing, key=_version_key)}]"
+        )
+
+
 def _render_entries(entries: dict[str, list[str]], categories: tuple[str, ...]) -> str:
     blocks = []
     for category in categories:
@@ -314,10 +344,14 @@ def compile_changelogs(
     core_entries = _collect(fragments, "core", CATEGORIES)
     if any(core_entries.values()) and (core_version is None or not VERSION.fullmatch(core_version)):
         raise FragmentError("a valid core version is required when pending core entries exist")
-    if any(core_entries.values()) and _section_bounds(core_changelog, core_version) is not None:
-        raise FragmentError("core version already has a changelog section; choose a new version")
+    if any(core_entries.values()):
+        if _section_bounds(core_changelog, core_version) is not None:
+            raise FragmentError("core version already has a changelog section; choose a new version")
+        _require_newest_version(core_changelog, core_version, "core")
     if not any(app_entries.values()) and _section_bounds(app_changelog, app_version) is None:
         raise FragmentError("a new app release section requires app entries")
+    if _section_bounds(app_changelog, app_version) is None:
+        _require_newest_version(app_changelog, app_version, "app")
     app_result = _replace_or_insert(
         app_changelog, version=app_version, date=release_date, entries=app_entries, categories=APP_CATEGORIES
     )

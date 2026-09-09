@@ -8,6 +8,13 @@
 > gate rejects a missing section before it creates a draft; correct the compiled
 > history and retag instead of hand-editing a draft. A **Beta / pre-release** banner is prepended
 > automatically by `gen_release_notes.py` — don't add your own._
+>
+> Pending fragments support one-line bullet entries only. For this one-time
+> introduction, the release maintainer may add the verified header, platform
+> details, limitations, safety, feedback, and license prose to the compiled
+> version section after fragment compilation and before tagging. Do not edit
+> `## [Unreleased]` or any released section; rerun the structural and release
+> note checks after the prose is added.
 
 The first beta has no prior tag to diff against, so notes are written as an
 "introduction," not a changelog. Goal: tell a first-time tester what this is,
