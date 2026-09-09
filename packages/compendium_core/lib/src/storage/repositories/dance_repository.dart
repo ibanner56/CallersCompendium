@@ -992,8 +992,9 @@ class DanceRepository {
   /// links, custom values, provenance, derived figures) via FK; any
   /// `program_slots.dance_id` pointing at a purged dance is set to `NULL`
   /// (the slot's `text`, if any, survives as a tombstone caption). Reusable
-  /// `choreographers` / `published_sources` rows left unreferenced by the purge
-  /// are garbage-collected in the same transaction (#462).
+  /// `choreographers` / `published_sources` / `tags` rows left unreferenced
+  /// after the cascade are garbage-collected in the same transaction
+  /// (#462, #1199).
   Future<int> purgeDeleted({
     required DateTime now,
     Duration retention = const Duration(days: 30),
@@ -1140,20 +1141,28 @@ class DanceRepository {
   }
 
   /// Snapshots the reusable reference rows — `choreographers` (via
-  /// `dance_authors`) and `published_sources` (via `dance_sources`) — cited by
-  /// [danceIds] **before** those dances are hard-deleted, so
+  /// `dance_authors`), `published_sources` (via `dance_sources`), and tags (via
+  /// `dance_tags`) — cited by [danceIds] **before** those dances are
+  /// hard-deleted, so
   /// [_garbageCollectOrphanedRefs] knows exactly which rows might have just
   /// lost their last citation. Scoping to this snapshot keeps the sweep precise:
   /// pre-existing unreferenced rows (e.g. reusable "Traditional"/"Unknown"
   /// choreographers) that this purge did not touch are never candidates for
   /// removal. Called inside the delete transaction of [purgeDeleted] /
   /// [hardDelete] before the `DELETE FROM dances` cascades the join rows away.
-  Future<({Set<String> choreographerIds, Set<String> sourceIds})>
+  Future<
+    ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
+  >
   _referencedRefIds(List<String> danceIds) async {
     final choreographerIds = <String>{};
     final sourceIds = <String>{};
+    final tagIds = <String>{};
     if (danceIds.isEmpty) {
-      return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+      return (
+        choreographerIds: choreographerIds,
+        sourceIds: sourceIds,
+        tagIds: tagIds,
+      );
     }
     for (final chunk in _chunkIds(danceIds)) {
       final authors = await (_db.select(
@@ -1168,13 +1177,24 @@ class DanceRepository {
       for (final r in sources) {
         sourceIds.add(r.sourceId);
       }
+      final tags = await (_db.select(
+        _db.danceTags,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in tags) {
+        tagIds.add(r.tagId);
+      }
     }
-    return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+    return (
+      choreographerIds: choreographerIds,
+      sourceIds: sourceIds,
+      tagIds: tagIds,
+    );
   }
 
   /// Garbage-collects the reusable reference rows in [candidates] (gathered by
   /// [_referencedRefIds]) that, **after** the owning dances were hard-deleted
-  /// and their `dance_authors` / `dance_sources` join rows cascaded away, are
+  /// and their `dance_authors` / `dance_sources` / `dance_tags` join rows
+  /// cascaded away, are
   /// now referenced by ZERO remaining dances (#462). Runs inside the same
   /// delete transaction as [purgeDeleted] / [hardDelete], after the
   /// `DELETE FROM dances`.
@@ -1194,26 +1214,28 @@ class DanceRepository {
   /// owning dances outright with no tombstone of their own, so a tombstone here
   /// would outlive the records that explain it; and nobody *deleted* these rows
   /// — they were collected as a side effect of a retention purge, so
-  /// advertising a deletion the user never performed would be wrong. Giving the
-  /// six new kinds their own retention/purge policy belongs with the sync
+  /// advertising a deletion the user never performed would be wrong. Giving
+  /// tags their own sync retention/purge policy belongs with the sync
   /// implementation, which owns retention; this migration ships none.
-  /// ## Both deletes announce themselves to drift, and here nothing else would
+  /// ## These raw deletes announce themselves to drift, and here nothing else
+  /// would
   ///
-  /// Raw SQL is opaque to drift, so each delete names the table it writes via
+  /// Raw SQL is opaque to drift, so each delete names its target table via
   /// `updates:`. [_cleanupDanglingReferences] explains the mechanism and why
   /// omitting it is silent; this site is the **worse** half of that pair and is
   /// worth separating rather than covering with one shared sentence.
   ///
   /// There, an omission would be masked by a `WritePropagation` rule that fires
   /// on the native `delete(_db.dances)` sharing the transaction. **No such rule
-  /// exists for these two tables.** Every generated rule targeting
-  /// `choreographers` or `published_sources` runs in the opposite direction —
-  /// `choreographers (delete) -> dance_authors`, `published_sources (delete) ->
-  /// dance_sources` — i.e. they are *sources* of propagation, never results of
-  /// it. Nothing in the schema notifies them.
+  /// exists for these three tables.** Every generated rule targeting
+  /// `choreographers`, `published_sources`, or `tags` runs in the opposite
+  /// direction — `choreographers (delete) -> dance_authors`,
+  /// `published_sources (delete) -> dance_sources`, and
+  /// `tags (delete) -> dance_tags` — i.e. they are *sources* of propagation,
+  /// never results of it. Nothing in the schema notifies them.
   ///
-  /// So a `.watch()` over either table would simply never see a row this method
-  /// removes. Demonstrated before the fix, by attaching a watcher to
+  /// So a `.watch()` over any of these three tables would simply never see a
+  /// row this method removes. Demonstrated before the fix, by attaching a watcher to
   /// `choreographers` and purging a dance whose sole author was thereby
   /// orphaned:
   ///
@@ -1223,11 +1245,12 @@ class DanceRepository {
   /// ```
   ///
   /// Nothing watched these tables when the omission was found, so it was
-  /// unobservable rather than harmless — and both are watched now, so the
+  /// unobservable rather than harmless — and all three are watched now, so the
   /// `updates:` sets below are load-bearing today rather than prospectively.
   /// See `dance_hard_delete_test.dart`, which holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
-    ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
+    ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
+    candidates,
   ) async {
     for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
@@ -1251,6 +1274,23 @@ class DanceRepository {
         updateKind: UpdateKind.delete,
       );
     }
+    await _garbageCollectOrphanedTags(candidates.tagIds);
+  }
+
+  Future<void> _garbageCollectOrphanedTags(
+    Iterable<String> candidateIds,
+  ) async {
+    for (final chunk in _chunkIds(candidateIds.toList())) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await _db.customUpdate(
+        'DELETE FROM ${_db.tags.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT tag_id FROM ${_db.danceTags.actualTableName})',
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.tags},
+        updateKind: UpdateKind.delete,
+      );
+    }
   }
 
   /// Immediately and permanently removes the dances identified by [ids]
@@ -1262,8 +1302,10 @@ class DanceRepository {
   /// caption). Unknown ids are ignored. Runs in a single transaction.
   ///
   /// When [gcOrphanedRefs] is `true` (the default), reusable `choreographers` /
-  /// `published_sources` rows this delete leaves referenced by ZERO remaining
-  /// dances are garbage-collected in the same transaction (#462). The
+  /// `published_sources` / `tags` rows this delete leaves referenced by ZERO
+  /// remaining dances are garbage-collected in the same transaction (#462,
+  /// #1199). Tag GC includes rows retained by soft-deleted dances in its
+  /// reference check. The
   /// import-session **undo** path passes `false`: undo is a faithful rollback
   /// to the pre-import state, so it must leave pre-existing reference rows in
   /// place and do its own targeted cleanup of only the rows that import

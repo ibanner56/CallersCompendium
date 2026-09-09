@@ -13,6 +13,7 @@ void main() {
   late ProgramRepository programs;
   late ChoreographerRepository choreographers;
   late PublishedSourceRepository sources;
+  late TagRepository tags;
 
   setUp(() {
     db = openTestDatabase();
@@ -20,6 +21,7 @@ void main() {
     programs = ProgramRepository(db);
     choreographers = ChoreographerRepository(db);
     sources = PublishedSourceRepository(db);
+    tags = TagRepository(db);
   });
 
   tearDown(() => db.close());
@@ -44,6 +46,33 @@ void main() {
     await dances.hardDelete(const []);
     await dances.hardDelete(['does-not-exist']);
     expect(await dances.getById('a'), isNotNull);
+  });
+
+  test(
+    'hardDelete removes tags whose final dance association cascades',
+    () async {
+      // ignore: unused_result
+      await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      await dances.create(sampleDance(id: 'a', tagIds: const ['t1']));
+
+      await dances.hardDelete(['a']);
+
+      expect(await tags.listAllWithDeleted(), isEmpty);
+    },
+  );
+
+  test('hardDelete retains tags cited by a soft-deleted dance', () async {
+    // ignore: unused_result
+    await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+    await dances.create(sampleDance(id: 'a', tagIds: const ['t1']));
+    await dances.create(sampleDance(id: 'b', tagIds: const ['t1']));
+    await dances.softDelete('b', at: DateTime.utc(2026, 1, 2));
+
+    await dances.hardDelete(['a']);
+
+    expect((await tags.listAllWithDeleted()).map((entry) => entry.tag.id), [
+      't1',
+    ]);
   });
 
   test('hardDelete tombstones a dance-only program slot with the dance title '
@@ -190,6 +219,24 @@ void main() {
         expect(await sources.listAll(), isEmpty);
       },
     );
+
+    test('a purge that orphans a tag notifies a tags watcher', () async {
+      // ignore: unused_result
+      await tags.upsert(Tag(id: 't1', name: 'chestnut'));
+      await dances.create(
+        sampleDance(id: 'd1', title: 'Only Tagged Dance', tagIds: const ['t1']),
+      );
+      final probe = await watchCount(db.tags);
+      addTearDown(probe.sub.cancel);
+      expect(probe.seen, [1]);
+
+      await dances.softDelete('d1', at: DateTime.utc(2026, 2));
+      await dances.purgeDeleted(now: DateTime.utc(2026, 6));
+      await pumpEventQueue();
+
+      expect(probe.seen.last, 0);
+      expect(await tags.listAll(), isEmpty);
+    });
 
     test('the dangling-reference cleanup notifies a dance_links watcher on its '
         'own, without relying on the dances delete beside it', () async {

@@ -61,6 +61,9 @@ void main() {
     final repos = openTestRepositories();
     // ignore: unused_result
     await repos.tags.upsert(Tag(id: 't1', name: 'flowy'));
+    await repos.dances.create(
+      dance(id: 'd1', title: 'Tagged dance').copyWith(tagIds: ['t1']),
+    );
 
     final seen = <DanceEditorReferenceData>[];
     final sub = DanceEditorReferenceData.watch(repos).listen(seen.add);

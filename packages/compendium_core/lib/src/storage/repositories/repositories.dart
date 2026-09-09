@@ -102,6 +102,13 @@ class CompendiumRepositories {
   final SettingsRepository settings;
   final SyncLocalRepository syncLocal;
 
+  /// Runs a cross-repository write as one database transaction.
+  ///
+  /// Repository methods may open nested transactions, but the outer boundary
+  /// keeps related records such as staged tags and their owning dances atomic.
+  Future<T> transaction<T>(Future<T> Function() action) =>
+      db.transaction(action);
+
   /// The scope is derived from the live Drift schema and privacy registry, so
   /// adding a shareable text column cannot be missed by the repair sweep.
   List<(String, String)> get _normalisationColumns {

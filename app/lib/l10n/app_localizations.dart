@@ -3452,6 +3452,12 @@ abstract class AppLocalizations {
   /// **'Could not create tag. Try again.'**
   String get collectionCreateTagError;
 
+  /// Snackbar shown when applying a batch tag operation fails.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not apply batch changes. Try again.'**
+  String get collectionBatchApplyError;
+
   /// Confirm button of the batch add-tags dialog.
   ///
   /// In en, this message translates to:

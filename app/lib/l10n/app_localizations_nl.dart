@@ -2048,6 +2048,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Tag kon niet worden aangemaakt. Probeer het opnieuw.';
 
   @override
+  String get collectionBatchApplyError =>
+      'Batchwijzigingen konden niet worden toegepast. Probeer het opnieuw.';
+
+  @override
   String get collectionBatchTagAddConfirm => 'Toevoegen';
 
   @override

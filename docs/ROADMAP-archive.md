@@ -88,10 +88,10 @@ Design items (each produces a design doc + review):
   button or long-pressing a row; tapping rows toggles a leading checkbox; a "N selected" live-region
   count and an exit action manage the mode (swipe-to-delete is suspended while selecting). Two batch
   actions — **Add tags** / **Remove tags** — open a picker (`app/lib/src/widgets/batch_tag_dialog.dart`):
-  Add lists all tags with inline tag creation (`Tag(id: uuidV4())` + `TagRepository.upsert`), Remove
+  Add lists tags referenced by live dances and stages inline tag creation until confirmation; Remove
   lists only tags present on the selected dances. Applying unions (Add) or subtracts (Remove) the
-  chosen tags across every selected dance via per-dance `DanceRepository.update` (dedup, preserving
-  existing order), announces the result to AT (`SemanticsService.sendAnnouncement`), and offers a Snackbar
+  chosen tags across every selected dance in one repository transaction (dedup, preserving existing
+  order), announces the result to AT (`SemanticsService.sendAnnouncement`), and offers a Snackbar
   **Undo** that restores each dance's captured prior tag set. Selection/checkbox state is conveyed by
   a checkmark + row highlight (never color alone) and is keyboard/AT reachable.
 
@@ -535,4 +535,3 @@ taxonomy are unchanged.
   moves fall through to the taxonomy defaults. This is the entry-speed analogue
   of Caller's Companion's per-user "Insert Call" presets, expressed over our
   structured taxonomy rather than free text.
-

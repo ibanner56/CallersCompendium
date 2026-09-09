@@ -156,6 +156,7 @@ class EditorSnapshot {
     required this.sourceCitations,
     required this.customValues,
     required this.figureDrafts,
+    this.stagedTags = const [],
   });
 
   // ---- Text fields ----
@@ -210,6 +211,11 @@ class EditorSnapshot {
   /// themselves are shared entities edited out-of-band; only the citation
   /// (sourceId + page + number) is part of the editor working state.
   final List<SourceCitation> sourceCitations;
+
+  /// Inline tags that exist only in the unsaved editor draft. These payloads
+  /// travel with the provisional IDs in [tagIds] so autosave restoration can
+  /// commit them later.
+  final List<Tag> stagedTags;
 
   // ---- Custom fields ----
   final Map<String, Object?> customValues;
