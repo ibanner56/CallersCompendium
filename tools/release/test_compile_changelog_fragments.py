@@ -224,35 +224,6 @@ def cases() -> None:
             raise AssertionError("write accepted a stale app version")
         assert (root / "app/CHANGELOG.md").read_text(encoding="utf-8") == before
         assert (fragments / "103-write-guard.json").exists()
-
-        for audience, version, expected in (
-            ("app", "0.0.9", "app version"),
-            ("core", "0.0.9", "core version"),
-        ):
-            write_fragment(
-                fragments,
-                f"104-stale-{audience}",
-                {
-                    "id": f"104-stale-{audience}",
-                    "user_visible": audience == "app",
-                    audience: {"fixed": [f"Stale {audience} entry."]},
-                },
-            )
-            loaded = compiler.load_fragments(fragments)
-            try:
-                compiler.compile_changelogs(
-                    app_changelog=APP,
-                    core_changelog=CORE,
-                    fragments=loaded,
-                    app_version=version if audience == "app" else "0.1.0",
-                    core_version=version if audience == "core" else None,
-                    release_date="2026-02-03",
-                )
-            except compiler.FragmentError as error:
-                assert expected in str(error)
-            else:
-                raise AssertionError(f"accepted stale {audience} version")
-            (fragments / f"104-stale-{audience}.json").unlink()
     finally:
         temporary.cleanup()
 

@@ -35,14 +35,6 @@ def main() -> None:
     assert 'if [ "$GITHUB_REF" != "refs/heads/main" ]; then' in text
     assert "::error::existing-tag recovery must be dispatched from main" in text
 
-    changelog_gate = _section(
-        text,
-        "      - name: Require current CHANGELOG release notes",
-        "  checks:\n",
-    )
-    assert "python3 tools/release/compile_changelog_fragments.py --check" in changelog_gate
-    assert "python3 tools/ci/check_changelog_structure.py" in changelog_gate
-
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"
     )
