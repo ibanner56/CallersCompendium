@@ -138,9 +138,9 @@ class StatusFilter extends DanceFilter {
   final DanceStatus status;
 }
 
-/// Ordered comparison operators for a [LevelFilter]. The [DanceLevel] scale is
-/// ordered (enum index = ordinal), so callers can ask for a level exactly
-/// ([eq]), "that level or easier" ([lte]), or "that level or harder" ([gte]) —
+/// Ordered comparison operators for a [LevelFilter]. A level's persisted
+/// position defines the scale, so callers can ask for a level exactly ([eq]),
+/// "that level or easier" ([lte]), or "that level or harder" ([gte]) —
 /// mirroring the numeric operators of [CustomFieldOp] but as a small dedicated
 /// vocabulary (`docs/design/search.md` "Future leaves").
 enum LevelOp {
@@ -154,17 +154,18 @@ enum LevelOp {
   gte,
 }
 
-/// Dances at a given [DanceLevel], compared with [op] on the ordered scale.
+/// Dances at a given difficulty-level ID, compared with [op] on the configured
+/// ordered scale.
 ///
-/// Dances with an **unspecified** level (`dances.level IS NULL`) never match an
-/// ordered comparison ([LevelOp.lte]/[LevelOp.gte]) — an unspecified difficulty
-/// is not a point on the scale. "Mixed level" is a separate axis: see
+/// Dances with an **unspecified** level (`dances.level_id IS NULL`) never match
+/// an ordered comparison ([LevelOp.lte]/[LevelOp.gte]) — an unspecified
+/// difficulty is not a point on the scale. "Mixed level" is a separate axis: see
 /// [MixedLevelFilter].
 @immutable
 class LevelFilter extends DanceFilter {
-  const LevelFilter(this.level, [this.op = LevelOp.eq]);
+  const LevelFilter(this.difficultyLevelId, [this.op = LevelOp.eq]);
 
-  final DanceLevel level;
+  final String difficultyLevelId;
   final LevelOp op;
 }
 
@@ -173,7 +174,7 @@ class LevelFilter extends DanceFilter {
 /// A separate boolean leaf rather than a point on the ordered [LevelFilter]
 /// scale: a mixed-level event spans the difficulty scale, so it is modelled
 /// orthogonally to keep the ordered comparisons total (mirrors
-/// [Dance.mixedLevel] being distinct from [Dance.level]).
+/// [Dance.mixedLevel] being distinct from [Dance.difficultyLevelId]).
 @immutable
 class MixedLevelFilter extends DanceFilter {
   const MixedLevelFilter(this.mixed);

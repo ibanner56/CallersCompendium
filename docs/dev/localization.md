@@ -215,22 +215,33 @@ MaterialApp(
 );
 ```
 
-## Localizing enum labels defined in the Flutter-free core (ADR-001)
+## Localizing labels defined in the Flutter-free core (ADR-001)
 
 The `packages/compendium_core` package must **not** import Flutter or
-`AppLocalizations` (ADR-001, CI-enforced). So an enum defined in core (e.g.
-`DanceLevel`, `DanceStatus`, `Formation`, `Progression`, `DanceForm`,
-`FormationShape`) can't carry its own localized display string. Instead, add an
-**app-side helper** that maps the enum to a localized string:
+`AppLocalizations` (ADR-001, CI-enforced). Fixed vocabularies defined in core
+(such as `DanceStatus`, `Formation`, `Progression`, `DanceForm`, and
+`FormationShape`) can't carry their own localized display string. Configurable
+vocabularies such as `DifficultyLevel` carry user-authored labels, so the
+app-side helper localizes only the shipped IDs and returns custom labels
+unchanged:
 
 ```dart
 // app/lib/src/search/facet_labels.dart
-String danceLevelLabel(AppLocalizations l10n, DanceLevel level) =>
-    switch (level) {
-      DanceLevel.beginner => l10n.commonDanceLevelBeginner,
-      DanceLevel.intermediate => l10n.commonDanceLevelIntermediate,
-      DanceLevel.advanced => l10n.commonDanceLevelAdvanced,
-    };
+String danceLevelLabel(AppLocalizations l10n, DifficultyLevel level) {
+  if (level.id == DifficultyLevel.beginnerId &&
+      level.label == DifficultyLevel.beginner.label) {
+    return l10n.commonDanceLevelBeginner;
+  }
+  if (level.id == DifficultyLevel.intermediateId &&
+      level.label == DifficultyLevel.intermediate.label) {
+    return l10n.commonDanceLevelIntermediate;
+  }
+  if (level.id == DifficultyLevel.advancedId &&
+      level.label == DifficultyLevel.advanced.label) {
+    return l10n.commonDanceLevelAdvanced;
+  }
+  return level.label;
+}
 ```
 
 Call it from widgets: `Text(danceLevelLabel(l10n, dance.level))`. This is the

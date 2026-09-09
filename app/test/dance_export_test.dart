@@ -246,6 +246,53 @@ void main() {
       expect(shared[1].sharePositionOrigin, isNotNull);
     });
 
+    testWidgets('wide dance export embeds a custom difficulty level', (
+      tester,
+    ) async {
+      final custom = DifficultyLevel(
+        id: 'custom-level',
+        label: 'Workshop',
+        position: 3,
+      );
+      final staged = <String, String>{};
+      final dance = _dance().copyWith(difficultyLevelId: custom.id);
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testLocalizationsDelegates,
+          supportedLocales: testSupportedLocales,
+          home: Scaffold(
+            appBar: AppBar(
+              actions: [
+                DanceExportMenu(
+                  dance: dance,
+                  dialect: Dialect.canonical,
+                  authorNames: const [],
+                  formationLabel: 'Duple improper',
+                  statusLabel: 'Active',
+                  difficultyLevelFor: (_) => custom,
+                  bundleFileWriter: (json, fileName) async {
+                    staged[fileName] = json;
+                    return XFile('/tmp/$fileName');
+                  },
+                  shareInvoker: (_) async {},
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('dance-export-menu')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Share dance file'));
+      await tester.pumpAndSettle();
+
+      final payload = jsonDecode(staged.values.single) as Map<String, dynamic>;
+      expect(payload['difficultyLevels'], [
+        {'id': 'custom-level', 'label': 'Workshop', 'position': 3},
+      ]);
+    });
+
     testWidgets('Copy dance puts the rendered card on the clipboard', (
       tester,
     ) async {

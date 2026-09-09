@@ -5,11 +5,14 @@ import 'package:unorm_dart/unorm_dart.dart';
 import '../model/choreographer.dart';
 import '../model/dance.dart';
 import '../model/dance_link.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
 import '../model/provenance.dart';
 import '../storage/repositories/choreographer_repository.dart';
 import '../storage/repositories/dance_repository.dart';
+import '../storage/repositories/difficulty_level_repository.dart';
+import 'callers_companion_mapping.dart';
 import 'dedupe.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
@@ -213,10 +216,11 @@ class ImportSession {
 /// holds no source-specific knowledge. The [ImportPipeline] is safe to reuse
 /// across batches.
 class ImportPipeline {
-  ImportPipeline(this._dances, this._choreographers);
+  ImportPipeline(this._dances, this._choreographers, {this._difficultyLevels});
 
   final DanceRepository _dances;
   final ChoreographerRepository _choreographers;
+  final DifficultyLevelRepository? _difficultyLevels;
 
   /// The [DanceRepository] this pipeline commits/undoes dances through.
   ///
@@ -269,6 +273,7 @@ class ImportPipeline {
     ImportRequest request, {
     DedupeIndex? index,
     double threshold = DedupeIndex.defaultThreshold,
+    bool preserveCanonicalDifficultyIds = false,
   }) async {
     final dedupe = index ?? await buildDedupeIndex();
     final List<DiscoveredRecord> discovered;
@@ -288,6 +293,17 @@ class ImportPipeline {
       );
     }
 
+    final configuredLevels = _difficultyLevels == null
+        ? null
+        : await _difficultyLevels.listAll();
+    final configuredById = <String, DifficultyLevel>{
+      for (final level in configuredLevels ?? const <DifficultyLevel>[])
+        level.id: level,
+    };
+    final configuredByLabel = <String, DifficultyLevel>{
+      for (final level in configuredLevels ?? const <DifficultyLevel>[])
+        _normalizeName(level.label): level,
+    };
     final records = <ImportRecordPlan>[];
     final errors = <ImportError>[];
     for (final record in discovered) {
@@ -309,9 +325,17 @@ class ImportPipeline {
         continue;
       }
 
-      final StructuredDraft draft;
+      StructuredDraft draft;
       try {
         draft = adapter.parse(raw);
+        if (_difficultyLevels != null) {
+          draft = _resolveConfiguredDifficulty(
+            draft,
+            configuredById,
+            configuredByLabel,
+            preserveCanonicalDifficultyIds: preserveCanonicalDifficultyIds,
+          );
+        }
       } on ImportError catch (e) {
         errors.add(e);
         continue;
@@ -354,6 +378,65 @@ class ImportPipeline {
       records: records,
       errors: errors,
       dedupeIndex: dedupe,
+    );
+  }
+
+  StructuredDraft _resolveConfiguredDifficulty(
+    StructuredDraft draft,
+    Map<String, DifficultyLevel> configuredById,
+    Map<String, DifficultyLevel> configuredByLabel, {
+    bool preserveCanonicalDifficultyIds = false,
+  }) {
+    if (draft.dance.mixedLevel) return draft;
+    if (preserveCanonicalDifficultyIds && draft.difficultyLevelIdIsCanonical) {
+      return draft;
+    }
+    final sourceLabel = draft.difficultyLevelLabel;
+    final id = draft.dance.difficultyLevelId;
+    if (sourceLabel == null || sourceLabel.trim().isEmpty) {
+      return draft;
+    }
+    final hasUnmappedLevelIssue = draft.issues.any(
+      (issue) => issue.code == 'cc_unmapped_level',
+    );
+    if (id == null) {
+      if (!hasUnmappedLevelIssue) return draft;
+      final configured = configuredByLabel[_normalizeName(sourceLabel)];
+      if (configured == null) return draft;
+      return draft.copyWith(
+        dance: draft.dance.copyWith(difficultyLevelId: configured.id),
+        issues: [
+          for (final issue in draft.issues)
+            if (issue.code != 'cc_unmapped_level') issue,
+        ],
+      );
+    }
+    final active = configuredById[id];
+    if (active != null &&
+        (draft.difficultyLevelIdIsCanonical ||
+            callersCompanionDifficultyLabelMatches(sourceLabel, active))) {
+      return draft;
+    }
+    final configured = configuredByLabel[_normalizeName(sourceLabel)];
+    if (configured != null) {
+      return draft.copyWith(
+        dance: draft.dance.copyWith(difficultyLevelId: configured.id),
+        issues: [
+          for (final issue in draft.issues)
+            if (issue.code != 'cc_unmapped_level') issue,
+        ],
+      );
+    }
+    final issue = ImportIssue(
+      severity: ImportIssueSeverity.warning,
+      code: 'cc_inactive_level',
+      message:
+          'Level "$sourceLabel" is not an active configured difficulty; '
+          'left unspecified.',
+    );
+    return draft.copyWith(
+      dance: draft.dance.copyWith(clearDifficultyLevel: true),
+      issues: [...draft.issues, issue],
     );
   }
 
@@ -839,7 +922,7 @@ class ImportPipeline {
       _figureListEquality.equals(a.figures, b.figures) &&
       a.hook == b.hook &&
       a.callingNotes == b.callingNotes &&
-      a.level == b.level &&
+      a.difficultyLevelId == b.difficultyLevelId &&
       a.mixedLevel == b.mixedLevel &&
       a.mixer == b.mixer &&
       _stringListEquality.equals(a.tunes, b.tunes);
@@ -903,7 +986,7 @@ class ImportPipeline {
     callingNotes: src.callingNotes,
     walkthrough: src.walkthrough,
     status: src.status,
-    level: src.level,
+    difficultyLevelId: src.difficultyLevelId,
     mixedLevel: src.mixedLevel,
     mixer: src.mixer,
     rating: src.rating,

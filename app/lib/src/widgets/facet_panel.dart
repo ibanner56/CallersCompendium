@@ -39,7 +39,7 @@ class FacetPanel extends StatelessWidget {
   final List<FormationShape> formations;
   final List<Progression> progressions;
   final List<DanceStatus> statuses;
-  final List<DanceLevel> levels;
+  final List<DifficultyLevel> levels;
   final bool hasMixedLevel;
 
   /// Whether any dance is flagged as a mixer; hides the Mixer facet section
@@ -173,8 +173,8 @@ class FacetPanel extends StatelessWidget {
                 key: 'level-${l.name}',
                 label: danceLevelLabel(l10n, l),
                 icon: Icons.signal_cellular_alt,
-                selected: facets.levels.contains(l),
-                onSelected: (sel) => toggle(facets.levels, l, sel),
+                selected: facets.levels.contains(l.id),
+                onSelected: (sel) => toggle(facets.levels, l.id, sel),
               ),
           ],
         ),

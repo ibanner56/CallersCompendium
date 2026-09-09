@@ -83,6 +83,7 @@ class PerformCard extends StatelessWidget {
     required this.textScale,
     this.autoSize = false,
     this.authorNames = const [],
+    this.difficultyLevel,
     this.fitScaleCache,
   });
 
@@ -98,6 +99,7 @@ class PerformCard extends StatelessWidget {
 
   /// Resolved author display names, rendered under the title when non-empty.
   final List<String> authorNames;
+  final DifficultyLevel? difficultyLevel;
 
   /// Parent-owned auto-fit scale cache (see [PerformFitScaleCache]). Passed by a
   /// view that navigates between slots of different card types so the fit does
@@ -126,6 +128,7 @@ class PerformCard extends StatelessWidget {
               renderer: renderer,
               dialect: dialect,
               canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+              difficultyLevel: difficultyLevel,
               chromeScale: chrome,
             ),
             SizedBox(height: AppSpacing.lg * chrome),
@@ -821,6 +824,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.dance,
     required this.authorNames,
+    this.difficultyLevel,
     required this.renderer,
     required this.dialect,
     required this.canonicalizeDiscouragedTerms,
@@ -832,6 +836,7 @@ class _Header extends StatelessWidget {
   final FigureRenderer renderer;
   final Dialect dialect;
   final bool canonicalizeDiscouragedTerms;
+  final DifficultyLevel? difficultyLevel;
 
   /// See [_chromeScale] — shrinks this header's fixed vertical spacing together
   /// with the text when the auto-size fit scales below 1.0.
@@ -841,7 +846,8 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final level = dance.level;
+    final level =
+        difficultyLevel ?? DifficultyLevel.knownForId(dance.difficultyLevelId);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

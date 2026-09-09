@@ -330,6 +330,16 @@ per dance. [Write & edit dances](./authoring.md) covers them in context.
   set your own.
 - **Starting figures** — the figures a new dance begins with; defaults to a single
   stand still of eight beats. Clear it for a blank new dance.
+### Difficulty levels
+
+- **Manage difficulty levels** — define the ordered vocabulary used by dance
+  editors, collection filters, and batch actions. Add a level, rename it, or
+  drag it into a different position; renaming keeps existing dance assignments
+  attached to that level.
+- A level cannot be removed while any dance uses it. Once its assignments are
+  cleared or changed, you can remove it, including one of the levels that ships
+  with the app.
+
 - **Meanwhile defaults** — the ordinary side figures used when you choose **Add
   meanwhile** while authoring a dance. Leave this list empty to start with two
   blank sides, or configure up to six ordinary sides. If only one side is

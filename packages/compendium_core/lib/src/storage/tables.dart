@@ -84,13 +84,14 @@ class Dances extends Table {
   TextColumn get status =>
       text().map(const EnumNameConverter(DanceStatus.values))();
 
-  /// Difficulty on the ordered [DanceLevel] scale, persisted by enum name;
-  /// nullable (`null` = unspecified). Added in schema v4 (CC-parity `Level`).
-  TextColumn get level =>
-      text().nullable().map(const EnumNameConverter(DanceLevel.values))();
+  /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
+  /// schema v34; the migration maps v4's enum-name `level` column to stable
+  /// vocabulary IDs.
+  TextColumn get levelId =>
+      text().nullable().references(DifficultyLevels, #id)();
 
-  /// Marks a dance that spans the difficulty scale; kept separate from [level]
-  /// so the ordered scale stays total. Added in schema v4 (CC `Mixed Level`).
+  /// Marks a dance that spans the difficulty scale; kept separate from
+  /// [levelId]. Added in schema v4 (CC `Mixed Level`).
   BoolColumn get mixedLevel => boolean().withDefault(const Constant(false))();
 
   /// Whether the dance is a **mixer** (dancers change partners each time
@@ -126,6 +127,21 @@ class Dances extends Table {
   /// Existence-transition stamp; see the sync-triple note at the top of this
   /// file. Added in schema v25 (issue #898); `dances` already carried the
   /// other two.
+  DateTimeColumn get existenceAt => dateTime().nullable()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// User-configurable vocabulary for dance difficulty. The three shipped entries
+/// use fixed IDs; custom entries receive UUIDv4 IDs from the repository.
+@DataClassName('DifficultyLevelRow')
+class DifficultyLevels extends Table {
+  TextColumn get id => text()();
+  TextColumn get label => text().unique()();
+  IntColumn get position => integer()();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  DateTimeColumn get deletedAt => dateTime().nullable()();
   DateTimeColumn get existenceAt => dateTime().nullable()();
 
   @override
