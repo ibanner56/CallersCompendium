@@ -35,12 +35,17 @@ import 'support/test_repositories.dart';
 void main() {
   final now = DateTime.utc(2026, 1, 1);
 
-  Dance dance({required String id, required String title, DanceLevel? level}) =>
+  Dance dance({
+    required String id,
+    required String title,
+    DanceLevel? level,
+    List<String> tagIds = const [],
+  }) =>
       Dance(
         id: id,
         title: title,
         authorIds: const [],
-        tagIds: const [],
+        tagIds: tagIds,
         form: DanceForm.contra,
         formation: const Formation(FormationShape.dupleImproper),
         status: DanceStatus.active,
@@ -513,6 +518,16 @@ void main() {
       await repos.dances.create(dance(id: 'd1', title: 'Alpha'));
       // ignore: unused_result
       await repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+      // Batch picker options intentionally contain only tags referenced by a
+      // live dance; keep the selected dance untagged so the refresh assertion
+      // still observes the batch write.
+      await repos.dances.create(
+        dance(id: 'tag-owner', title: 'Tag owner', tagIds: ['t1']),
+      );
+      expect(
+        (await repos.tags.listReferencedByLiveDances()).map((tag) => tag.id),
+        contains('t1'),
+      );
       // CollectionShell splits at 900 and AppShell puts an 80 px rail beside
       // it, so a real split needs >= 980; 1400 is comfortably past that. No
       // iPhone can reach it, which is why this gap is iPad/desktop only.
@@ -538,9 +553,9 @@ void main() {
       );
       expect(paneTag(), findsNothing);
 
-      await tester.tap(find.byKey(const ValueKey('batch-select')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('batch-checkbox-d1')));
+      // A live tag makes the compact-actions toolbar active, so enter batch
+      // mode through the row's long-press affordance instead.
+      await tester.longPress(find.text('Alpha').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
       await tester.pumpAndSettle();
@@ -918,6 +933,11 @@ void main() {
       // plausibly happen per item.
       // ignore: unused_result
       await counted.repos.tags.upsert(Tag(id: 't1', name: 'Gentle'));
+      // Batch picker options intentionally contain only tags referenced by a
+      // live dance.
+      await counted.repos.dances.create(
+        dance(id: 'tag-owner', title: 'Tag owner', tagIds: ['t1']),
+      );
       await pump(
         tester,
         counted.repos,
@@ -930,9 +950,11 @@ void main() {
       final before = counted.dances.loads;
       expect(before, greaterThan(0), reason: 'the pane loaded at all');
 
-      await tester.tap(find.byKey(const ValueKey('batch-select')));
+      // A live tag makes the compact-actions toolbar active, so enter batch
+      // mode through the row's long-press affordance instead.
+      await tester.longPress(find.text('Dance 0').first);
       await tester.pumpAndSettle();
-      for (var i = 0; i < 5; i++) {
+      for (var i = 1; i < 5; i++) {
         await tester.tap(find.byKey(ValueKey('batch-checkbox-d$i')));
         await tester.pumpAndSettle();
       }
