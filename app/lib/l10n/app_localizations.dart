@@ -2465,7 +2465,7 @@ abstract class AppLocalizations {
   /// Formation shape value: duple improper.
   ///
   /// In en, this message translates to:
-  /// **'Duple improper'**
+  /// **'Improper'**
   String get commonFormationDupleImproper;
 
   /// Formation shape value: improper formation with reverse progression.
@@ -2489,13 +2489,13 @@ abstract class AppLocalizations {
   /// Formation shape value: duple proper.
   ///
   /// In en, this message translates to:
-  /// **'Duple proper'**
+  /// **'Proper'**
   String get commonFormationDupleProper;
 
   /// Formation shape value: duple indecent.
   ///
   /// In en, this message translates to:
-  /// **'Duple indecent'**
+  /// **'Indecent'**
   String get commonFormationDupleIndecent;
 
   /// Formation shape value: triple minor.

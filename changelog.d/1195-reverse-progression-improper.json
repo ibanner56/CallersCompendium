@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Added Reverse progression improper as a selectable, searchable, colorable, and exportable formation."
+      "You can select, search, color, and export Reverse progression improper formations."
     ]
   },
   "core": {

@@ -1737,7 +1737,7 @@
   "@commonDanceLevelAdvanced": {
     "description": "Dance difficulty value: advanced level."
   },
-  "commonFormationDupleImproper": "Duple improper",
+  "commonFormationDupleImproper": "Improper",
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
   },
@@ -1753,11 +1753,11 @@
   "@commonFormationBecketCcw": {
     "description": "Formation shape value: Becket, counter-clockwise progression (CCW)."
   },
-  "commonFormationDupleProper": "Duple proper",
+  "commonFormationDupleProper": "Proper",
   "@commonFormationDupleProper": {
     "description": "Formation shape value: duple proper."
   },
-  "commonFormationDupleIndecent": "Duple indecent",
+  "commonFormationDupleIndecent": "Indecent",
   "@commonFormationDupleIndecent": {
     "description": "Formation shape value: duple indecent."
   },

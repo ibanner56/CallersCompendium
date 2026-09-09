@@ -266,12 +266,12 @@ String _isoDate(DateTime date) {
 /// uses to localize this for real exports.
 String _englishFormationLabel(Formation formation) {
   final base = switch (formation.shape) {
-    FormationShape.dupleImproper => 'Duple improper',
+    FormationShape.dupleImproper => 'Improper',
     FormationShape.reverseProgressionImproper => 'Reverse progression improper',
     FormationShape.becketCw => 'Becket (CW)',
     FormationShape.becketCcw => 'Becket (CCW)',
-    FormationShape.dupleProper => 'Duple proper',
-    FormationShape.dupleIndecent => 'Duple indecent',
+    FormationShape.dupleProper => 'Proper',
+    FormationShape.dupleIndecent => 'Indecent',
     FormationShape.tripleMinor => 'Triple minor',
     FormationShape.threeFaceThree => 'Three-face-three',
     FormationShape.fourFaceFour => 'Four-face-four',
