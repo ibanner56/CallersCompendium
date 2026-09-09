@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../validation/validation.dart';
 import 'enums.dart';
 import 'provenance.dart';
+import 'stored_timestamp.dart';
 
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 
@@ -471,8 +472,9 @@ class Program {
   );
 
   /// Returns a copy in which every **dance-linked** slot (`danceId != null`)
-  /// that has no [ProgramSlot.performedAt] is stamped performed at this
-  /// program's [eventDate] when set, else at [fallback].
+  /// that has no [ProgramSlot.performedAt] is stamped performed at the first
+  /// unused stored timestamp at or after this program's [eventDate] when set,
+  /// else at [fallback].
   ///
   /// This backs the "auto-stamp when a program's status becomes performed"
   /// behaviour (issue #356): a program's *status* being performed and its
@@ -490,7 +492,10 @@ class Program {
   /// When nothing needs stamping the same instance is returned unchanged (no
   /// spurious `updatedAt` churn is introduced here; callers manage that).
   Program stampDanceSlotsPerformed({required DateTime fallback}) {
-    final stamp = eventDate ?? fallback;
+    final stamp = nextStoredTimestamp(
+      now: eventDate ?? fallback,
+      current: slots.map((s) => s.performedAt),
+    );
     var changed = false;
     final next = <ProgramSlot>[];
     for (final s in slots) {

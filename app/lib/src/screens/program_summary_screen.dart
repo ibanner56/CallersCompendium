@@ -189,6 +189,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   /// Shared renderer for the large-print Perform view (mirrors
   /// [ProgramEditorScreen]'s `_performRenderer`).
   static final FigureRenderer _performRenderer = FigureRenderer(contraTaxonomy);
+  ScaffoldFeatureController<SnackBar, SnackBarClosedReason>? _bulkUndoSnackBar;
 
   /// Collapses a burst of refresh requests into a single [_load].
   ///
@@ -239,6 +240,16 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     BuildContext routeContext,
     DanceDetailData detail,
   ) => _reimport.open(routeContext, detail);
+
+  void _invalidateBulkUndo() {
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+  }
+
+  void _openBuilder() {
+    _invalidateBulkUndo();
+    widget.onOpenBuilder();
+  }
 
   /// The live Collection reference data for this pane (issue #768).
   ///
@@ -550,6 +561,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final program = _program;
     final data = _collectionData;
     if (program == null || data == null || program.slots.isEmpty) return;
+    _invalidateBulkUndo();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PerformProgramScreen(
@@ -593,7 +605,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           ? FloatingActionButton.extended(
               key: const ValueKey('open-builder'),
               heroTag: 'open-builder',
-              onPressed: widget.onOpenBuilder,
+              onPressed: _openBuilder,
               icon: const Icon(Icons.edit_note),
               label: Text(l10n.programsEditProgram),
             )
@@ -763,21 +775,39 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Future<void> _markAllPerformed() async {
     final program = _program;
     if (program == null) return;
-    final now = DateTime.now().toUtc();
-    final updated = program.copyWith(
-      slots: [
-        for (final s in program.slots)
-          s.danceId != null && s.performedAt == null
-              ? s.copyWith(performedAt: now)
-              : s,
-      ],
-      updatedAt: now,
+    final now = nextStoredTimestamp(
+      now: DateTime.now().toUtc(),
+      current: program.slots.map((s) => s.performedAt),
     );
+    final markedSlotIds = <String>{};
+    final updatedSlots = <ProgramSlot>[];
+    for (final s in program.slots) {
+      if (s.danceId != null && s.performedAt == null) {
+        markedSlotIds.add(s.id);
+        updatedSlots.add(s.copyWith(performedAt: now));
+      } else {
+        updatedSlots.add(s);
+      }
+    }
+    if (markedSlotIds.isEmpty) return;
+    final updated = program.copyWith(slots: updatedSlots, updatedAt: now);
     await _repos.programs.update(updated);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(AppLocalizations.of(context).programsMarkedAllPerformed),
+    final l10n = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    _bulkUndoSnackBar = showUndoSnackBar(
+      messenger,
+      message: l10n.programsMarkedAllPerformed,
+      undoLabel: l10n.commonUndo,
+      accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
+      onUndo: () => unawaited(
+        _undoMarkAllPerformed(
+          programId: program.id,
+          markedSlotIds: markedSlotIds,
+          actionTimestamp: now,
+          messenger: messenger,
+          errorMessage: l10n.programsUndoPerformedError,
+        ),
       ),
     );
     // Mark-all-performed is exactly the write that made the Collection's
@@ -785,6 +815,36 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     // for that reason; the badge and the calling history watch `program_slots`
     // themselves now, so the write reaches them unaided and this pane's own
     // stream re-emits for it.
+  }
+
+  Future<void> _undoMarkAllPerformed({
+    required String programId,
+    required Set<String> markedSlotIds,
+    required DateTime actionTimestamp,
+    required ScaffoldMessengerState messenger,
+    required String errorMessage,
+  }) async {
+    try {
+      await _repos.programs.clearPerformedAtIfMatches(
+        programId: programId,
+        slotIds: markedSlotIds,
+        performedAt: actionTimestamp,
+        updatedAt: DateTime.now().toUtc(),
+      );
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_summary_screen._undoMarkAllPerformed',
+      );
+      messenger
+        ..clearSnackBars()
+        ..removeCurrentSnackBar();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!messenger.mounted) return;
+        messenger.showSnackBar(SnackBar(content: Text(errorMessage)));
+      });
+    }
   }
 
   /// Builds the read-only, ordered set list. Primaries are numbered 1..n and
