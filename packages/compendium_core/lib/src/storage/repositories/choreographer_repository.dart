@@ -32,6 +32,8 @@ class ChoreographerRepository {
       final current = await (_db.select(
         _db.choreographers,
       )..where((t) => t.id.equals(c.id))).getSingleOrNull();
+      final authorIndexChanged =
+          current == null || current.name != name || current.deletedAt != null;
       final collidingEdit =
           current != null && incumbent != null && incumbent.id != c.id;
       final id = collidingEdit
@@ -82,7 +84,9 @@ class ChoreographerRepository {
         key: id,
         at: now,
       );
-      await _refreshAuthorIndex(id);
+      if (authorIndexChanged) {
+        await _refreshAuthorIndex(id);
+      }
       return id;
     });
   }
@@ -90,27 +94,23 @@ class ChoreographerRepository {
   /// Keeps the denormalized author text in both FTS tables aligned with a
   /// choreographer rename without rebuilding unrelated dance-derived rows.
   Future<void> _refreshAuthorIndex(String choreographerId) async {
-    final dances = await (_db.select(
-      _db.danceAuthors,
-    )..where((t) => t.choreographerId.equals(choreographerId))).get();
-    for (final dance in dances) {
-      final row = await _db
-          .customSelect(
-            'SELECT group_concat(name, \' \') AS authors '
-            'FROM (SELECT c.name FROM dance_authors da '
-            'JOIN choreographers c ON c.id = da.choreographer_id '
-            'WHERE da.dance_id = ? AND c.deleted_at IS NULL '
-            'ORDER BY da.position)',
-            variables: [Variable<String>(dance.danceId)],
-          )
-          .getSingle();
-      final authors = row.read<String?>('authors') ?? '';
-      for (final table in const ['dance_fts', 'dance_substring_fts']) {
-        await _db.customStatement(
-          'UPDATE $table SET authors = ? WHERE dance_id = ?',
-          [authors, dance.danceId],
-        );
-      }
+    for (final table in const ['dance_fts', 'dance_substring_fts']) {
+      await _db.customStatement(
+        'UPDATE $table '
+        'SET authors = ('
+        '  SELECT group_concat(name, \' \') FROM ('
+        '    SELECT c.name FROM dance_authors da '
+        '    JOIN choreographers c ON c.id = da.choreographer_id '
+        '    WHERE da.dance_id = $table.dance_id '
+        '      AND c.deleted_at IS NULL '
+        '    ORDER BY da.position'
+        '  )'
+        ') '
+        'WHERE dance_id IN ('
+        '  SELECT dance_id FROM dance_authors WHERE choreographer_id = ?'
+        ')',
+        [choreographerId],
+      );
     }
   }
 

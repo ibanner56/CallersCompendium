@@ -802,10 +802,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<DropdownButtonFormField<FullTextScope>>(
+          .state<FormFieldState<FullTextScope>>(
             find.byKey(const ValueKey('collection-search-scope')),
           )
-          .initialValue,
+          .value,
       FullTextScope.title,
     );
 
@@ -813,10 +813,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<DropdownButtonFormField<FullTextScope>>(
+          .state<FormFieldState<FullTextScope>>(
             find.byKey(const ValueKey('collection-search-scope')),
           )
-          .initialValue,
+          .value,
       FullTextScope.figure,
     );
   });
@@ -841,10 +841,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<DropdownButtonFormField<FullTextScope>>(
+          .state<FormFieldState<FullTextScope>>(
             find.byKey(const ValueKey('collection-search-scope')),
           )
-          .initialValue,
+          .value,
       FullTextScope.title,
     );
 
@@ -852,10 +852,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<DropdownButtonFormField<FullTextScope>>(
+          .state<FormFieldState<FullTextScope>>(
             find.byKey(const ValueKey('collection-search-scope')),
           )
-          .initialValue,
+          .value,
       FullTextScope.figure,
     );
   });
@@ -902,10 +902,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<DropdownButtonFormField<FullTextScope>>(
+            .state<FormFieldState<FullTextScope>>(
               find.byKey(const ValueKey('collection-search-scope')),
             )
-            .initialValue,
+            .value,
         FullTextScope.title,
       );
       await tester.tap(find.byKey(const ValueKey('online-search-enable')));

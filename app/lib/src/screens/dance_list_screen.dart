@@ -2171,34 +2171,39 @@ class _DanceListScreenState extends State<DanceListScreen> {
             AppSpacing.md,
             0,
           ),
-          child: DropdownButtonFormField<FullTextScope>(
-            key: const ValueKey('collection-search-scope'),
-            initialValue: _ftsScope,
-            decoration: InputDecoration(
-              labelText: l10n.collectionSearchScopeLabel,
-              isDense: true,
+          child: KeyedSubtree(
+            key: ValueKey(
+              'collection-search-scope-state-$_onlineEnabled-$_ftsScope',
             ),
-            items: [
-              if (!_onlineEnabled)
-                DropdownMenuItem(
-                  value: FullTextScope.omni,
-                  child: Text(l10n.collectionSearchScopeOmni),
-                ),
-              DropdownMenuItem(
-                value: FullTextScope.title,
-                child: Text(l10n.collectionSearchScopeTitle),
+            child: DropdownButtonFormField<FullTextScope>(
+              key: const ValueKey('collection-search-scope'),
+              initialValue: _ftsScope,
+              decoration: InputDecoration(
+                labelText: l10n.collectionSearchScopeLabel,
+                isDense: true,
               ),
-              DropdownMenuItem(
-                value: FullTextScope.author,
-                child: Text(l10n.collectionSearchScopeAuthor),
-              ),
-              if (!_onlineEnabled)
+              items: [
+                if (!_onlineEnabled)
+                  DropdownMenuItem(
+                    value: FullTextScope.omni,
+                    child: Text(l10n.collectionSearchScopeOmni),
+                  ),
                 DropdownMenuItem(
-                  value: FullTextScope.figure,
-                  child: Text(l10n.collectionSearchScopeFigure),
+                  value: FullTextScope.title,
+                  child: Text(l10n.collectionSearchScopeTitle),
                 ),
-            ],
-            onChanged: _onFtsScopeChanged,
+                DropdownMenuItem(
+                  value: FullTextScope.author,
+                  child: Text(l10n.collectionSearchScopeAuthor),
+                ),
+                if (!_onlineEnabled)
+                  DropdownMenuItem(
+                    value: FullTextScope.figure,
+                    child: Text(l10n.collectionSearchScopeFigure),
+                  ),
+              ],
+              onChanged: _onFtsScopeChanged,
+            ),
           ),
         ),
         Padding(
