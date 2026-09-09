@@ -1847,6 +1847,37 @@ void main() {
     expect(saved!.slots.single.performedAt, isNotNull);
   });
 
+  testWidgets('mark all performed is disabled during explicit Save', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, delayed.repos, programId: 'p1');
+
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await delayed.programs.writeStarted;
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const ValueKey('mark-all-performed')))
+          .onPressed,
+      isNull,
+    );
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
+  });
+
   testWidgets('failed explicit Save preserves bulk performed Undo', (
     tester,
   ) async {
@@ -2406,6 +2437,10 @@ void main() {
       find.byKey(const ValueKey('program-title')),
       'Before Undo',
     );
+    final remote = await delayed.repos.programs.getById('p1');
+    await delayed.repos.programs.update(
+      remote!.copyWith(notes: 'Remote note', updatedAt: DateTime.now().toUtc()),
+    );
     delayed.programs.failConditionalRollback = true;
     await tester.tap(find.byType(SnackBarAction));
     await tester.pump(const Duration(milliseconds: 600));
@@ -2413,8 +2448,47 @@ void main() {
 
     final saved = await delayed.repos.programs.getById('p1');
     expect(saved!.title, 'Before Undo');
+    expect(saved.notes, 'Remote note');
     expect(saved.slots.single.performedAt, isNotNull);
   });
+
+  testWidgets(
+    'persisted Undo shows missing state after deletion during clean live refresh',
+    (tester) async {
+      final delayed = openTestRepositoriesWithDelayedPrograms();
+      await delayed.repos.dances.create(
+        _dance(id: 'd1', title: 'Newly Called'),
+      );
+      await delayed.repos.programs.create(
+        _program(
+          id: 'p1',
+          slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+        ),
+      );
+      await _pumpBuilder(
+        tester,
+        delayed.repos,
+        programId: 'p1',
+        autoCommit: true,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+      delayed.programs.holdNextRead();
+      await tester.tap(find.byType(SnackBarAction));
+      await delayed.programs.readStarted;
+      await delayed.repos.programs.softDelete(
+        'p1',
+        at: DateTime.utc(2030, 1, 1),
+      );
+      delayed.programs.releaseRead();
+      await tester.pumpAndSettle();
+
+      expect(find.text('This program no longer exists.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('save-program')), findsNothing);
+    },
+  );
 
   testWidgets(
     'persisted Undo does not resurrect a program deleted during live refresh',
@@ -2454,6 +2528,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
 
+      expect(find.text('This program no longer exists.'), findsOneWidget);
       expect(await delayed.repos.programs.getById('p1'), isNull);
       expect(
         (await delayed.repos.programs.getById(

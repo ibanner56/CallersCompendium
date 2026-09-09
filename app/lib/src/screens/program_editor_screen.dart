@@ -1273,19 +1273,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     provenance: live.provenance,
   );
 
-  Future<bool> _refreshPerformedAtForUndo() async {
-    final storedBaseline = _pendingBulkUndoBaseline ?? _existing;
-    if (storedBaseline == null) return false;
-    final live = await _repos.programs.getById(storedBaseline.id);
-    if (!mounted || live == null) return false;
-    final local = _draftProgram ?? storedBaseline;
-    final baselineSlotsById = {
-      for (final slot in storedBaseline.slots) slot.id: slot,
-    };
-    final localSlotsById = {for (final slot in _slots) slot.id: slot};
-    final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
+  List<ProgramSlot> _mergeUndoSlots({
+    required List<ProgramSlot> atReadStart,
+    required List<ProgramSlot> local,
+    required List<ProgramSlot> live,
+  }) {
+    final baselineSlotsById = {for (final slot in atReadStart) slot.id: slot};
+    final localSlotsById = {for (final slot in local) slot.id: slot};
+    final liveSlotsById = {for (final slot in live) slot.id: slot};
     final refreshedSlots = <ProgramSlot>[];
-    for (final slot in _slots) {
+    for (final slot in local) {
       final baseline = baselineSlotsById[slot.id];
       if (baseline == null) {
         refreshedSlots.add(slot);
@@ -1300,32 +1297,79 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         _mergeUndoSlot(atReadStart: baseline, local: slot, live: liveSlot),
       );
     }
-    for (final liveSlot in live.slots) {
+    for (final liveSlot in live) {
       if (!localSlotsById.containsKey(liveSlot.id) &&
           !baselineSlotsById.containsKey(liveSlot.id)) {
         refreshedSlots.add(liveSlot);
       }
     }
     refreshedSlots.sort((a, b) => a.position.compareTo(b.position));
+    return _renumber(refreshedSlots);
+  }
+
+  Future<bool> _refreshPerformedAtForUndo() async {
+    final storedBaseline = _pendingBulkUndoBaseline ?? _existing;
+    if (storedBaseline == null) return false;
+    final live = await _repos.programs.getById(storedBaseline.id);
+    if (!mounted) return false;
+    if (live == null) {
+      await _showMissingProgramAfterUndo();
+      return false;
+    }
+    final local = _draftProgram ?? storedBaseline;
     final merged = _mergeUndoProgram(
       atReadStart: storedBaseline,
       local: local,
       live: live,
-      slots: _renumber(refreshedSlots),
+      slots: _mergeUndoSlots(
+        atReadStart: storedBaseline.slots,
+        local: _slots,
+        live: live.slots,
+      ),
     );
     setState(() => _applyProgramToEditor(merged));
     await _refreshLinkedVenueForId(merged.venueId);
     return true;
   }
 
+  Future<void> _showMissingProgramAfterUndo() async {
+    if (!mounted) return;
+    _bulkUndoGeneration++;
+    _bulkUndoSnackBar?.close();
+    _bulkUndoSnackBar = null;
+    _pendingBulkUndoSlotIds = null;
+    _pendingBulkUndoBaseline = null;
+    _pendingBulkUndoTimestamp = null;
+    _pendingBulkUndoWasDirty = null;
+    _pendingBulkUndoEditGeneration = null;
+    _pendingBulkUndoActionToken = null;
+    _persistedBulkUndoActionToken = null;
+    _autosaveTimer?.cancel();
+    _autoCommitTimer?.cancel();
+    _editGeneration++;
+    setState(() {
+      _existing = null;
+      _loadError = _ProgramLoadError.missing;
+      _dirty = false;
+      _eventDate = null;
+      _venueId = null;
+      _linkedVenue = null;
+      _slots = const [];
+    });
+    await _clearDraft(waitForCommits: false, resetEditorState: false);
+  }
+
   Future<void> _restoreEditorAfterUndoFailure({
-    required Set<String> markedSlotIds,
     required bool noInterveningEdit,
     required int undoEditGeneration,
   }) async {
     try {
       final live = await _repos.programs.getById(_existing!.id);
-      if (!mounted || live == null) return;
+      if (!mounted) return;
+      if (live == null) {
+        await _showMissingProgramAfterUndo();
+        return;
+      }
       if (noInterveningEdit && _editGeneration == undoEditGeneration) {
         _applyProgramToEditor(live);
         await _refreshLinkedVenueForId(live.venueId);
@@ -1341,31 +1385,29 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         setState(() => _dirty = false);
         return;
       }
-      final baselineSlotsById = {
-        for (final slot
-            in (_pendingBulkUndoBaseline ?? _existing)?.slots ??
-                const <ProgramSlot>[])
-          slot.id: slot,
-      };
-      final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
+      final baseline = _pendingBulkUndoBaseline ?? _existing!;
+      final local = _draftProgram ?? baseline;
+      final merged = _mergeUndoProgram(
+        atReadStart: baseline,
+        local: local,
+        live: live,
+        slots: _mergeUndoSlots(
+          atReadStart: baseline.slots,
+          local: _slots,
+          live: live.slots,
+        ),
+      );
       setState(() {
-        _slots = [
-          for (final slot in _slots)
-            if (!markedSlotIds.contains(slot.id))
-              slot
-            else if (liveSlotsById[slot.id] == null)
-              slot
-            else if (baselineSlotsById[slot.id] == null)
-              slot.copyWith(performedAt: liveSlotsById[slot.id]!.performedAt)
-            else
-              _mergeUndoSlot(
-                atReadStart: baselineSlotsById[slot.id]!,
-                local: slot,
-                live: liveSlotsById[slot.id]!,
-              ),
-        ];
+        _applyProgramToEditor(merged);
         _dirty = true;
       });
+      await _refreshLinkedVenueForId(merged.venueId);
+      if (!mounted) return;
+      if (_editGeneration != undoEditGeneration) {
+        _scheduleAutosave();
+        _scheduleAutoCommit();
+        return;
+      }
       _scheduleAutosave();
       _scheduleAutoCommit();
     } catch (error, stackTrace) {
@@ -1830,6 +1872,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _markAllPerformed() async {
+    if (!mounted || _saving || _pickerImporting) return;
     final now = nextStoredTimestamp(
       now: DateTime.now().toUtc(),
       current: _slots.map((s) => s.performedAt),
@@ -1981,6 +2024,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             return;
           }
           if (live == null) {
+            await _showMissingProgramAfterUndo();
             return;
           }
           _applyProgramToEditor(live);
@@ -2011,7 +2055,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         );
         if (mounted) {
           await _restoreEditorAfterUndoFailure(
-            markedSlotIds: markedSlotIds,
             noInterveningEdit: noInterveningEdit,
             undoEditGeneration: undoEditGeneration,
           );
@@ -2369,7 +2412,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                   key: const ValueKey('mark-all-performed'),
                   tooltip: l10n.programsMarkAllPerformedTooltip,
                   icon: const Icon(Icons.done_all),
-                  onPressed: _pickerImporting ? null : _markAllPerformed,
+                  onPressed: _saving || _pickerImporting
+                      ? null
+                      : _markAllPerformed,
                 ),
               IconButton(
                 key: const ValueKey('duplicate-program'),
