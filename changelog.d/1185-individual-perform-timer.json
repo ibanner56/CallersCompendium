@@ -5,5 +5,10 @@
     "added": [
       "You can track elapsed time and pause or resume while performing a single dance, with an opt-out under Program > Performance."
     ]
+  },
+  "core": {
+    "added": [
+      "Classify the individual Perform timer preference as a shareable user setting."
+    ]
   }
 }
