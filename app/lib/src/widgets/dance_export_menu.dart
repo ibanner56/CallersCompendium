@@ -58,6 +58,7 @@ class DanceExportMenu extends StatelessWidget {
     this.tagsById = const {},
     this.sourcesById = const {},
     this.customFieldsById = const {},
+    this.difficultyLevelFor,
     this.shareInvoker,
     this.bundleFileWriter,
     this.pdfLayouter,
@@ -75,6 +76,7 @@ class DanceExportMenu extends StatelessWidget {
   final Map<String, Tag> tagsById;
   final Map<String, PublishedSource> sourcesById;
   final Map<String, CustomFieldDef> customFieldsById;
+  final DifficultyLevel? Function(String id)? difficultyLevelFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
@@ -143,6 +145,7 @@ class DanceExportMenu extends StatelessWidget {
       tagFor: (id) => tagsById[id],
       publishedSourceFor: (id) => sourcesById[id],
       customFieldFor: (id) => customFieldsById[id],
+      difficultyLevelFor: difficultyLevelFor,
     );
     final fileName = danceShareBundleFileName(
       dance.title,

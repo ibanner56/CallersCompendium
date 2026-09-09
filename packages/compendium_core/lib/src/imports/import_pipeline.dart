@@ -388,6 +388,16 @@ class ImportPipeline {
         callersCompanionDifficultyLabelMatches(sourceLabel, active)) {
       return draft;
     }
+    final configured = await repository.findByLabel(sourceLabel);
+    if (configured != null) {
+      return draft.copyWith(
+        dance: draft.dance.copyWith(difficultyLevelId: configured.id),
+        issues: [
+          for (final issue in draft.issues)
+            if (issue.code != 'cc_unmapped_level') issue,
+        ],
+      );
+    }
     final issue = ImportIssue(
       severity: ImportIssueSeverity.warning,
       code: 'cc_inactive_level',

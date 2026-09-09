@@ -242,7 +242,7 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
     warnings,
     dropped,
   );
-  final difficultyLevels = _withoutDuplicateDifficultyLevels(
+  final decodedDifficultyLevels = _withoutDuplicateDifficultyLevels(
     _decodeList(
       root['difficultyLevels'],
       'difficultyLevel',
@@ -269,6 +269,17 @@ ArchiveReadResult archiveFromJson(Map<String, Object?> root) {
   // restore (silent data loss). Clamping is deterministic, so a value clamped
   // identically to its option stays valid.
   final clampedDances = _clampDanceChoiceValues(dances, customFields);
+  final decodedDifficultyLevelIds = {
+    for (final level in decodedDifficultyLevels) level.id,
+  };
+  final difficultyLevels = <DifficultyLevel>[
+    ...decodedDifficultyLevels,
+    if (schemaVersion < archiveSchemaVersionDifficultyLevels)
+      for (final level in DifficultyLevel.shipped)
+        if (decodedDifficultyLevelIds.add(level.id) &&
+            clampedDances.any((dance) => dance.difficultyLevelId == level.id))
+          level,
+  ];
   final knownDifficultyLevelIds = <String>{
     if (schemaVersion < archiveSchemaVersionDifficultyLevels)
       ...DifficultyLevel.shippedIds,

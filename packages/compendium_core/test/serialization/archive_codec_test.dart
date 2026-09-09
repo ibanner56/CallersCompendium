@@ -398,6 +398,9 @@ void main() {
         decoded.archive.dances.single.difficultyLevelId,
         DifficultyLevel.advancedId,
       );
+      final redecoded = decodeArchive(encodeArchive(decoded.archive));
+      expect(redecoded.errors, isEmpty);
+      expect(redecoded.archive.difficultyLevels, [DifficultyLevel.advanced]);
     });
 
     test(

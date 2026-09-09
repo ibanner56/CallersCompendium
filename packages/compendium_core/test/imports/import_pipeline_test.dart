@@ -83,6 +83,43 @@ void main() {
       );
     });
 
+    test(
+      'prefers an exact configured label over a stale shipped alias mapping',
+      () async {
+        final advanced = await difficultyLevels.getById(
+          DifficultyLevel.advancedId,
+        );
+        expect(advanced, isNotNull);
+        await difficultyLevels.upsert(
+          advanced!.copyWith(label: 'Expert'),
+          at: now,
+        );
+        final custom = await difficultyLevels.createCustom(
+          label: 'Advanced',
+          position: 3,
+        );
+
+        final batch = await pipeline.plan(
+          FakeSourceAdapter([
+            record(
+              'custom-alias',
+              'Custom Alias Dance',
+              difficultyLevelLabel: 'Advanced',
+            ),
+          ]),
+          const ImportRequest(),
+        );
+
+        expect(batch.records.single.draft.dance.difficultyLevelId, custom.id);
+        expect(
+          batch.records.single.draft.issues.any(
+            (issue) => issue.code == 'cc_inactive_level',
+          ),
+          isFalse,
+        );
+      },
+    );
+
     test('a new dance is inserted with a full provenance row', () async {
       final adapter = FakeSourceAdapter([
         record(
