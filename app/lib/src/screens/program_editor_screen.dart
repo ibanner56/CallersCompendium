@@ -66,7 +66,7 @@ import '../widgets/program_status_chip.dart';
 /// when the requested program no longer exists. Kept locale-independent (rather
 /// than a resolved string) so the message re-localizes if the app language is
 /// switched live while this retained editor is off-screen.
-enum _ProgramLoadError { missing }
+enum _ProgramLoadError { missing, undoRecoveryFailed }
 
 enum _PreviewPane { editor, picker }
 
@@ -1371,10 +1371,25 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         return;
       }
       if (noInterveningEdit && _editGeneration == undoEditGeneration) {
-        _applyProgramToEditor(live);
-        await _refreshLinkedVenueForId(live.venueId);
+        final baseline = _pendingBulkUndoBaseline ?? _existing!;
+        final local = _draftProgram ?? baseline;
+        final editedDuringRead = _editGeneration != undoEditGeneration;
+        final restored = editedDuringRead
+            ? _mergeUndoProgram(
+                atReadStart: baseline,
+                local: local,
+                live: live,
+                slots: _mergeUndoSlots(
+                  atReadStart: baseline.slots,
+                  local: _slots,
+                  live: live.slots,
+                ),
+              )
+            : live;
+        _applyProgramToEditor(restored);
+        await _refreshLinkedVenueForId(restored.venueId);
         if (!mounted) return;
-        if (_editGeneration != undoEditGeneration) {
+        if (editedDuringRead || _editGeneration != undoEditGeneration) {
           setState(() {
             _dirty = true;
           });
@@ -1416,6 +1431,14 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         stackTrace,
         source: 'program_editor_screen._restoreEditorAfterUndoFailure',
       );
+      if (!mounted) return;
+      _autosaveTimer?.cancel();
+      _autoCommitTimer?.cancel();
+      setState(() {
+        _loadError = _ProgramLoadError.undoRecoveryFailed;
+        _dirty = false;
+      });
+      await _clearDraft(waitForCommits: false, resetEditorState: false);
     }
   }
 
@@ -2025,6 +2048,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             noInterveningEdit: noInterveningEdit,
             undoEditGeneration: undoEditGeneration,
           );
+          if (!mounted) return;
           _showBulkUndoErrorSnackBar(
             AppLocalizations.of(context).programsUndoPerformedError,
           );
@@ -2036,19 +2060,28 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (noInterveningEdit && _editGeneration == undoEditGeneration) {
           final live = await _repos.programs.getById(_existing!.id);
           if (!mounted) return;
-          if (_editGeneration != undoEditGeneration) {
-            _scheduleAutosave();
-            _scheduleAutoCommit();
-            return;
-          }
           if (live == null) {
             await _showMissingProgramAfterUndo();
             return;
           }
-          _applyProgramToEditor(live);
-          await _refreshLinkedVenueForId(live.venueId);
+          final editedDuringRead = _editGeneration != undoEditGeneration;
+          final restored = editedDuringRead
+              ? _mergeUndoProgram(
+                  atReadStart: _pendingBulkUndoBaseline ?? _existing!,
+                  local:
+                      _draftProgram ?? (_pendingBulkUndoBaseline ?? _existing!),
+                  live: live,
+                  slots: _mergeUndoSlots(
+                    atReadStart: (_pendingBulkUndoBaseline ?? _existing!).slots,
+                    local: _slots,
+                    live: live.slots,
+                  ),
+                )
+              : live;
+          _applyProgramToEditor(restored);
+          await _refreshLinkedVenueForId(restored.venueId);
           if (!mounted) return;
-          if (_editGeneration != undoEditGeneration) {
+          if (editedDuringRead || _editGeneration != undoEditGeneration) {
             _scheduleAutosave();
             _scheduleAutoCommit();
             return;
