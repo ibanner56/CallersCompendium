@@ -64,6 +64,14 @@ trap cleanup EXIT
 
 https_url="https://${host}:${https_port}"
 "$apachectl_bin" -t >/dev/null
+if ! awk '
+  /^[[:space:]]*#/ { next }
+  /^[[:space:]]*Proxy100Continue[[:space:]]+Off[[:space:]]*$/ { found = 1 }
+  END { exit(found ? 0 : 1) }
+' "$apache_config"; then
+  echo "active Apache vhost must contain Proxy100Continue Off" >&2
+  exit 1
+fi
 
 expect_status() {
   expected=$1
@@ -238,7 +246,13 @@ expect_status 201 "compressed blob upload" \
   --header 'Content-Encoding: gzip' \
   --data-binary "@${compressed_body}" \
   "${https_url}/v1/blobs/${blob_hash}"
-openssl rand -hex 8388608 | tr -d '\n' > "$compressed_boundary_raw"
+openssl rand -hex 8388608 > "$compressed_boundary_raw"
+compressed_boundary_size=$(wc -c < "$compressed_boundary_raw")
+if [ "$compressed_boundary_size" -ne 16777217 ]; then
+  echo "compressed boundary fixture generation produced ${compressed_boundary_size} bytes" >&2
+  exit 1
+fi
+truncate -s 16777216 "$compressed_boundary_raw"
 gzip -c "$compressed_boundary_raw" > "$compressed_boundary"
 expect_json_status 400 "compressed 16 MiB body reaches Athenaeum" \
   "$boundary_response" \
