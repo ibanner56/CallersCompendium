@@ -37,10 +37,14 @@ Dance _dance(
   updatedAt: _now,
 );
 
-CompendiumArchive _archive(List<Dance> dances) => CompendiumArchive(
+CompendiumArchive _archive(
+  List<Dance> dances, {
+  List<DifficultyLevel> difficultyLevels = const [],
+}) => CompendiumArchive(
   schemaVersion: archiveSchemaVersion,
   exportedAt: _now,
   dances: dances,
+  difficultyLevels: difficultyLevels,
   choreographers: [Choreographer(id: 'c1', name: 'Cary Ravitz')],
   publishedSources: [PublishedSource(id: 's1', title: 'Give-and-Take')],
   customFields: [
@@ -123,6 +127,29 @@ void main() {
       final d2 = byId['d2']!.dance;
       expect(d2.figures.single.isCustom, isTrue);
       expect(byId['d2']!.quality.isFullyCustom, isTrue);
+    });
+
+    test('preserves the referenced difficulty definition per dance', () async {
+      final level = DifficultyLevel(
+        id: 'custom-workshop',
+        label: 'Workshop',
+        position: 3,
+      );
+      final dance = _dance(
+        'custom-level',
+        'Custom Level',
+      ).copyWith(difficultyLevelId: level.id);
+      final adapter = GenericJsonAdapter();
+      final records = await adapter.discover(
+        ImportRequest(
+          payload: encodeArchive(_archive([dance], difficultyLevels: [level])),
+        ),
+      );
+      final raw = await adapter.fetch(records.single);
+      final decoded = decodeArchive(raw.payload).archive;
+
+      expect(decoded.dances.single.difficultyLevelId, level.id);
+      expect(decoded.difficultyLevels, [level]);
     });
 
     test('pipeline preserves every archive dance content field', () async {

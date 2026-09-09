@@ -15,10 +15,14 @@ Dance _dance(String id, {String walkthrough = '', Provenance? provenance}) =>
       updatedAt: DateTime.utc(2026, 1, 1),
     );
 
-String _payload({List<Dance>? dances}) => encodeArchive(
+String _payload({
+  List<Dance>? dances,
+  List<DifficultyLevel> difficultyLevels = const [],
+}) => encodeArchive(
   CompendiumArchive(
     exportedAt: DateTime.utc(2026, 1, 1),
     dances: dances ?? [_dance('d1')],
+    difficultyLevels: difficultyLevels,
   ),
 );
 
@@ -50,6 +54,28 @@ void main() {
         PublishedCollectionArchive.decode(_payload()).dances,
         hasLength(1),
       );
+    });
+
+    test('accepts and preserves referenced difficulty definitions', () async {
+      final level = DifficultyLevel(
+        id: 'custom-workshop',
+        label: 'Workshop',
+        position: 3,
+      );
+      final dance = _dance(
+        'custom-level',
+      ).copyWith(difficultyLevelId: level.id);
+      final adapter = PublishedCollectionAdapter(metadata);
+      final records = await adapter.discover(
+        ImportRequest(
+          payload: _payload(dances: [dance], difficultyLevels: [level]),
+        ),
+      );
+      final raw = await adapter.fetch(records.single);
+      final decoded = decodeArchive(raw.payload).archive;
+
+      expect(decoded.dances.single.difficultyLevelId, level.id);
+      expect(decoded.difficultyLevels, [level]);
     });
 
     for (final entity in [
