@@ -137,14 +137,14 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
           onTap: onSelected,
         );
       },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, autofocus) {
         return TextField(
           key: widget.fieldKey == null
               ? null
               : ValueKey('${widget.fieldKey}-input'),
           controller: controller,
           focusNode: focusNode,
-          autofocus: widget.autofocus,
+          autofocus: autofocus,
           decoration: InputDecoration(
             labelText: widget.labelText,
             hintText: widget.hintText,

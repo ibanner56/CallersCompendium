@@ -767,7 +767,7 @@ class MoveTypeAheadField extends StatelessWidget {
           onTap: onSelected,
         );
       },
-      fieldViewBuilder: (context, controller, focusNode, onSubmit) {
+      fieldViewBuilder: (context, controller, focusNode, onSubmit, _) {
         return TextField(
           key: fieldKey == null ? null : ValueKey('$fieldKey-input'),
           controller: controller,

@@ -189,9 +189,14 @@ Future<void> _pump(
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
   Taxonomy? taxonomy,
+  Size surfaceSize = const Size(1200, 2400),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 2400));
-  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.binding.setSurfaceSize(surfaceSize);
+  tester.view.physicalSize = surfaceSize * tester.view.devicePixelRatio;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    return tester.binding.setSurfaceSize(null);
+  });
   await tester.pumpWidget(
     _Host(
       drafts: drafts,
@@ -2247,6 +2252,52 @@ void main() {
       // The stored draft is NOT mutated: collapsing as-is keeps stand_still × 8.
       expect(drafts.single.move, 'stand_still');
       expect(drafts.single.params['beats'], 8);
+    },
+  );
+
+  testWidgets(
+    'dismissing a compact stand_still picker retains the stored figure',
+    (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'stand_still', params: {'beats': 8}),
+      ];
+      await _pump(tester, drafts, surfaceSize: const Size(360, 720));
+
+      await tester.tap(find.byKey(const ValueKey('figure-0-summary')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.tapAt(const Offset(180, 10));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(drafts.single.move, 'stand_still');
+      expect(drafts.single.params['beats'], 8);
+    },
+  );
+
+  testWidgets(
+    'selecting stand_still in a compact picker closes without reopening',
+    (tester) async {
+      final drafts = <FigureDraft>[];
+      await _pump(tester, drafts, surfaceSize: const Size(360, 720));
+
+      await tester.tap(find.byKey(const ValueKey('figure-add')));
+      await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsOneWidget);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('figure-0-move-input')),
+        'stand still',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey('figure-0-move-option-stand_still')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(drafts.single.move, 'stand_still');
+      expect(find.byType(BottomSheet), findsNothing);
     },
   );
 
