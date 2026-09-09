@@ -93,7 +93,8 @@ per IP, 1,000 failures per minute server-wide, and 60 store creations per
 minute. A saturated server-wide failure budget must not block authenticated
 access to an existing store.
 
-Use a no-redirect probe after every Apache change:
+Use a no-redirect probe after every Apache change in a direct-origin or staging
+deployment:
 
 ```sh
 ATHENAEUM_CREDENTIAL='encoded-credential-for-a-new-disposable-store' \
@@ -118,6 +119,99 @@ Run it against a freshly restarted staging container because the failure
 and creation budgets are in memory. Save the labeled output as release
 evidence. The harness uses curl `--resolve` to connect both listeners to
 host loopback while preserving the configured hostname for Host/SNI.
+
+## Cloudflare proxy topology
+
+Cloudflare proxying is an optional topology change, not a DNS-only change. It
+changes the Apache connection peer from the client to a Cloudflare address, so
+the vhost must be configured before the DNS record is proxied.
+
+In Cloudflare, configure the zone to use **Full (strict)** TLS, leave **Pseudo
+IPv4** off, and add a cache rule that bypasses cache for
+`https://sync.example.invalid/v1/*`. Do not attach a Worker route to
+`/v1/*`. A zone-wide HTTPS redirect must exclude `/v1/*`: plaintext Device
+Sync requests must remain refusals, not redirects.
+
+Enable Apache's `remoteip` module, then fetch Cloudflare's published trusted
+proxy ranges. Write the IPv4 and IPv6 lists separately: the IPv4 endpoint does
+not guarantee a trailing newline, and concatenating them directly can create
+an invalid CIDR.
+
+```sh
+sudo a2enmod remoteip headers
+sudo install -d -m 755 /etc/apache2/cloudflare
+tmp=$(mktemp)
+curl --fail --silent --show-error https://www.cloudflare.com/ips-v4 > "$tmp"
+printf '\n' >> "$tmp"
+curl --fail --silent --show-error https://www.cloudflare.com/ips-v6 >> "$tmp"
+sudo install -m 644 "$tmp" /etc/apache2/cloudflare/trusted-proxies.conf
+rm -f "$tmp"
+sudo apachectl configtest
+sudo systemctl reload apache2
+```
+
+Inside only the Athenaeum `*:443` vhost, configure the trusted client address
+and replace the reference `RequestHeader` directive:
+
+```apache
+RemoteIPHeader CF-Connecting-IP
+RemoteIPTrustedProxyList /etc/apache2/cloudflare/trusted-proxies.conf
+RequestHeader set X-Forwarded-For expr=%{REMOTE_ADDR}
+```
+
+`CF-Connecting-IP` is a single client address. Apache accepts it only when the
+socket peer is in the published Cloudflare ranges; it then derives
+`X-Forwarded-For` from the resolved `REMOTE_ADDR`. Do not use an incoming
+`X-Forwarded-For` value, and do not use Cloudflare Pseudo IPv4's **Overwrite
+Headers** mode.
+
+When the host also serves non-Cloudflare sites on `:80` or `:443`, do not add a
+host-wide Cloudflare-only firewall rule. Instead, require Cloudflare
+Authenticated Origin Pulls only in the Athenaeum HTTPS vhost. Download
+Cloudflare's global Origin Pull CA:
+
+```sh
+sudo curl --fail --silent --show-error \
+  https://developers.cloudflare.com/ssl/static/authenticated_origin_pull_ca.pem \
+  --output /etc/apache2/cloudflare/origin-pull-ca.pem
+```
+
+Add the following after `SSLCertificateKeyFile` in that `*:443` vhost, initially
+using `optional`:
+
+```apache
+SSLCACertificateFile /etc/apache2/cloudflare/origin-pull-ca.pem
+SSLVerifyClient optional
+SSLVerifyDepth 1
+```
+
+Reload Apache, enable **Global Authenticated Origin Pulls** under
+**SSL/TLS > Origin Server** in Cloudflare, and confirm the proxied HTTPS
+endpoint still returns the expected unauthenticated `401`. Then change
+`SSLVerifyClient optional` to `SSLVerifyClient require` and reload Apache.
+Global Origin Pulls causes Cloudflare to present its certificate for proxied
+hostnames in the zone; enforcement remains Athenaeum-only because this vhost
+alone requires client authentication.
+
+Verify both paths after enforcement. Substitute the origin's real public IP:
+
+```sh
+curl --max-time 15 --max-redirs 0 --include \
+  http://sync.example.invalid/v1/store
+curl --max-time 15 --include \
+  https://sync.example.invalid/v1/store
+curl --noproxy '*' --connect-timeout 5 --max-time 15 \
+  --resolve sync.example.invalid:443:ORIGIN_IP \
+  --include https://sync.example.invalid/v1/store
+```
+
+The public HTTP request must be a refusal rather than a redirect, and public
+HTTPS must return Athenaeum's unauthenticated `401`. The direct HTTPS request
+must fail TLS client-certificate verification without returning an HTTP
+response. The standard smoke harness intentionally connects to loopback, so it
+cannot run while `SSLVerifyClient require` is enforced; use a direct/staging
+topology for that harness and a disposable public create/lookup/delete round
+trip for the Cloudflare path.
 
 ## Operations
 
