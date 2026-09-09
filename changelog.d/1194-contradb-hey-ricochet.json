@@ -1,0 +1,14 @@
+{
+  "id": "1194-contradb-hey-ricochet",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "You can import ContraDB hey ricochets with their structured timing and dancer-position flags."
+    ]
+  },
+  "core": {
+    "fixed": [
+      "Retain structured ricochet flags when parsing rendered ContraDB hey figures."
+    ]
+  }
+}

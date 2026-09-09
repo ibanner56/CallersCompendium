@@ -2,13 +2,14 @@ import 'dart:convert';
 
 import 'package:meta/meta.dart';
 
-/// One row of a **ContraDB** online title-search result.
+/// One row of a **ContraDB** online title- or choreographer-search result.
 ///
 /// Unlike The Caller's Box (which has no JSON search surface — see
 /// `callersbox_search.dart`), ContraDB exposes a JSON search API at
 /// `POST https://contradb.com/api/v1/dances` (the Rails controller skips CSRF
 /// verification, so no token/login/cookie is needed). [buildContraDbSearchBody]
-/// builds the request body for a title query and [parseContraDbSearchResults]
+/// builds the request body for a title or choreographer query and
+/// [parseContraDbSearchResults]
 /// turns the JSON response into these lightweight rows.
 ///
 /// The [id] is the ContraDB dance id; the app turns it into the per-dance
@@ -60,11 +61,12 @@ class ContraDbSearchResult {
 /// matches for a title query.
 const int contraDbSearchCount = 20;
 
-/// Builds the JSON request body for a ContraDB **title** search.
+/// Builds the JSON request body for a ContraDB **title** or **choreographer**
+/// search.
 ///
-/// ContraDB's array query DSL (`lib/filter_dances.rb`) treats `["title", q]` as
-/// a case-insensitive substring match on the dance title. The endpoint accepts
-/// `count` (page size), `offset` (page start), and an optional `sort_by`
+/// ContraDB's array query DSL (`lib/filter_dances.rb`) treats `["title", q]` and
+/// `["choreographer", q]` as case-insensitive substring matches on the selected
+/// field. The endpoint accepts `count` (page size), `offset` (page start), and an optional `sort_by`
 /// (`"titleA"` sorts by title ascending).
 ///
 /// Returns the body as a JSON-encoded string ready to POST. The [query] is sent
@@ -73,12 +75,16 @@ const int contraDbSearchCount = 20;
 /// should avoid searching on empty input.
 String buildContraDbSearchBody(
   String query, {
+  String filter = 'title',
   int count = contraDbSearchCount,
   int offset = 0,
   String sortBy = 'titleA',
 }) {
+  if (filter != 'title' && filter != 'choreographer') {
+    throw ArgumentError.value(filter, 'filter');
+  }
   return jsonEncode(<String, Object?>{
-    'filter': <Object?>['title', query],
+    'filter': <Object?>[filter, query],
     'count': count,
     'offset': offset,
     'sort_by': sortBy,

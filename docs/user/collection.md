@@ -92,6 +92,11 @@ written down.
 
 Clear the search bar to return to your whole collection.
 
+Use **Search in** to choose the indexed fields: **All fields**, **Title**,
+**Author**, or **Figure**. When **Online search** is enabled in the Advanced
+panel, the same control offers **Title** and **Author**; choose **Author** to
+search author names on Caller's Box or choreographer names on ContraDB.
+
 ## Narrow things down with filters
 
 When you want to slice your library by its properties rather than by words, open

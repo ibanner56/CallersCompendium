@@ -2023,6 +2023,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             spec: entry.value,
             dialect: widget.dialect,
             mixer: widget.mixer,
+            moveId: draft.move,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'beats') {
@@ -2594,6 +2595,7 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             spec: entry.value,
             dialect: widget.dialect,
             mixer: widget.mixer,
+            moveId: draft.move,
             value: draft.params[entry.key] ?? entry.value.defaultValue,
             onChanged: (v) {
               if (entry.key == 'who') draft.assumedSubject = false;

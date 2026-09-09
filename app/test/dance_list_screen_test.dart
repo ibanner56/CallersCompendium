@@ -1,12 +1,16 @@
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:compendium_app/src/data/callersbox_online.dart';
+import 'package:compendium_app/src/data/contradb_online.dart';
+import 'package:compendium_app/src/data/import_io.dart';
 
 import 'package:compendium_app/src/data/active_dialect_scope.dart';
 import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
@@ -51,6 +55,9 @@ Future<void> _pumpScreen(
   CompendiumRepositories repos, {
   Dialect? activeDialect,
   bool sortIgnoreArticles = true,
+  CallersBoxOnline? callersBoxOnline,
+  ContraDbOnline? contraDbOnline,
+  CollectionFilterController? filterController,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -67,6 +74,11 @@ Future<void> _pumpScreen(
   addTearDown(customThemes.dispose);
   final sortIgnoreArticlesNotifier = ValueNotifier<bool>(sortIgnoreArticles);
   addTearDown(sortIgnoreArticlesNotifier.dispose);
+  final activeFilterController =
+      filterController ?? CollectionFilterController();
+  if (filterController == null) {
+    addTearDown(activeFilterController.dispose);
+  }
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -81,13 +93,19 @@ Future<void> _pumpScreen(
               notifier: notifier,
               child: SortIgnoreArticlesScope(
                 notifier: sortIgnoreArticlesNotifier,
-                child: child!,
+                child: CollectionFilterScope(
+                  controller: activeFilterController,
+                  child: child!,
+                ),
               ),
             ),
           ),
         ),
       ),
-      home: const DanceListScreen(),
+      home: DanceListScreen(
+        callersBoxOnline: callersBoxOnline,
+        contraDbOnline: contraDbOnline,
+      ),
     ),
   );
 }
@@ -742,6 +760,188 @@ void main() {
     expect(find.text('Swing Title'), findsOneWidget);
     expect(find.text('Plain Title'), findsNothing);
   });
+
+  testWidgets('author scope searches the local author index', (tester) async {
+    final repos = openTestRepositories();
+    // ignore: unused_result
+    await repos.choreographers.upsert(
+      Choreographer(id: 'c1', name: 'Alice Smith'),
+    );
+    await repos.dances.create(
+      _dance(id: 'author', title: 'Plain Title', authorIds: const ['c1']),
+    );
+    await repos.dances.create(_dance(id: 'other', title: 'Other Title'));
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Author').last);
+    await tester.pumpAndSettle();
+    await _search(tester, 'Alice');
+
+    expect(find.text('Plain Title'), findsOneWidget);
+    expect(find.text('Other Title'), findsNothing);
+  });
+
+  testWidgets('online mode restores the prior local scope when disabled', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+
+    await _pumpScreen(tester, repos);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Figure').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .state<FormFieldState<FullTextScope>>(
+            find.byKey(const ValueKey('collection-search-scope')),
+          )
+          .value,
+      FullTextScope.title,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .state<FormFieldState<FullTextScope>>(
+            find.byKey(const ValueKey('collection-search-scope')),
+          )
+          .value,
+      FullTextScope.figure,
+    );
+  });
+
+  testWidgets('external tag filtering restores the prior local scope', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final filterController = CollectionFilterController();
+    addTearDown(filterController.dispose);
+
+    await _pumpScreen(tester, repos, filterController: filterController);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Figure').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .state<FormFieldState<FullTextScope>>(
+            find.byKey(const ValueKey('collection-search-scope')),
+          )
+          .value,
+      FullTextScope.title,
+    );
+
+    filterController.filterByTag('tag-1');
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .state<FormFieldState<FullTextScope>>(
+            find.byKey(const ValueKey('collection-search-scope')),
+          )
+          .value,
+      FullTextScope.figure,
+    );
+  });
+
+  testWidgets(
+    'online mode exposes title and author scopes and forwards author',
+    (tester) async {
+      final repos = openTestRepositories();
+      String? callersUrl;
+      ContraDbSearchRequest? contraDbRequest;
+      final callers = CallersBoxOnline(
+        searchFetcher: (url) async {
+          callersUrl = url;
+          return '<html><body></body></html>';
+        },
+      );
+      final contraDb = ContraDbOnline(
+        searchFetcher: (request) async {
+          contraDbRequest = request;
+          return '{"numberMatching":0,"dances":[]}';
+        },
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Plain',
+          figures: [
+            Figure(move: 'swing', params: const {'beats': 16}),
+          ],
+        ),
+      );
+
+      await _pumpScreen(
+        tester,
+        repos,
+        callersBoxOnline: callers,
+        contraDbOnline: contraDb,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .state<FormFieldState<FullTextScope>>(
+              find.byKey(const ValueKey('collection-search-scope')),
+            )
+            .value,
+        FullTextScope.title,
+      );
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Figure').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+      await tester.pumpAndSettle();
+      expect(find.text('All fields'), findsNothing);
+      expect(find.text('Figure'), findsNothing);
+      expect(find.text('Title'), findsWidgets);
+      expect(find.text('Author'), findsWidgets);
+      await tester.tap(find.text('Author').last);
+      await tester.pumpAndSettle();
+      await _search(tester, ' Alice Smith ');
+      expect(Uri.parse(callersUrl!).queryParameters, {'author': 'Alice Smith'});
+      final callersUrlBeforeClear = callersUrl;
+      await tester.enterText(find.byType(TextField).first, '');
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(callersUrl, callersUrlBeforeClear);
+      await tester.enterText(find.byType(TextField).first, 'Alice Smith');
+      await tester.pump(const Duration(milliseconds: 700));
+
+      await tester.tap(find.byKey(const ValueKey('online-source-selector')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('ContraDB').last);
+      await tester.pumpAndSettle();
+      expect(contraDbRequest?.query, 'Alice Smith');
+      expect(contraDbRequest?.filter, 'choreographer');
+    },
+  );
 
   testWidgets('a facet chip filters the list', (tester) async {
     final repos = openTestRepositories();

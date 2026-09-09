@@ -125,6 +125,7 @@ export 'src/storage/database.dart'
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         compactDosidoSeesawCanonicalRebuildDoneKey,
         taxonomyV33CanonicalRebuildDoneKey,
+        taxonomyV34CanonicalRebuildDoneKey,
         shareableTextNormalisationScopeKey,
         kSectionRuleVersion,
         kCompendiumSchemaVersion,

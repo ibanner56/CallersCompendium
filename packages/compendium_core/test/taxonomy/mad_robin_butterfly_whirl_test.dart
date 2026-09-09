@@ -22,9 +22,9 @@ import 'package:compendium_core/testing.dart';
 ///   ContraDB's mad robin `who` is a third concept again ("`<who>` in front"),
 ///   which is why TCB's target gets its own `whom` slot.
 ///
-/// Everything added defaults to the `unspecified` sentinel, so a figure that
-/// omits it renders byte-identically to v19 — asserted here against the real
-/// v19 canonical strings.
+/// Optional source facts default to the `unspecified` sentinel. Mad robin's
+/// in-front pair intentionally retains the concrete `role2s` default, while
+/// butterfly whirl's new parameters omit their clauses when unstated.
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
@@ -37,15 +37,45 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy', () {
-    test('contraTaxonomyVersion is 33', () {
-      expect(contraTaxonomyVersion, 33);
-      expect(tax.version, 33);
+    test('contraTaxonomyVersion is 34', () {
+      expect(contraTaxonomyVersion, 34);
+      expect(tax.version, 34);
     });
 
     test('mad_robin gains direction + whom, keeping who/turn/beats', () {
       final def = tax.resolve('mad_robin')!;
       expect(def.params.keys, ['who', 'turn', 'direction', 'whom', 'beats']);
-      expect(def.params['who']!.defaultValue, 'ones');
+      expect(def.params['who']!.defaultValue, 'role2s');
+      expect(def.params['who']!.choices, [
+        'everyone',
+        'role1s',
+        'role2s',
+        'ones',
+        'twos',
+        'firstCorners',
+        'secondCorners',
+        'partners',
+        'neighbors',
+        'sameRoles',
+        'shadows',
+        'secondShadows',
+        'prevNeighbors',
+        'nextNeighbors',
+        'thirdNeighbors',
+        'fourthNeighbors',
+        'prevPartners',
+        'nextPartners',
+        'thirdPartners',
+        'fourthPartners',
+        'fifthPartners',
+        'centers',
+        'onesRole1',
+        'onesRole2',
+        'twosRole1',
+        'twosRole2',
+        ParamVocab.unspecified,
+      ]);
+      expect(def.params['who']!.validate(ParamVocab.unspecified), isTrue);
       expect(def.params['turn']!.defaultValue, 1.0);
       // Issue #739: the NATURAL kind. `direction` wore `ParamKind.choice` from
       // v20 until #726/#736 (editor + validator) and #746 (search facet) taught
@@ -116,6 +146,24 @@ void main() {
     test('both moves validate at their defaults and with stated params', () {
       expect(tax.validateFigure(Figure(move: 'mad_robin')), isEmpty);
       expect(tax.validateFigure(Figure(move: 'butterfly_whirl')), isEmpty);
+      for (final who in ParamVocab.dancerSets) {
+        expect(
+          tax.validateFigure(
+            testFigure(move: 'mad_robin', params: {'who': who}),
+          ),
+          isEmpty,
+          reason: 'mad_robin.who preserves dancer-set token $who',
+        );
+      }
+      expect(
+        tax.validateFigure(
+          testFigure(
+            move: 'mad_robin',
+            params: const {'who': ParamVocab.unspecified},
+          ),
+        ),
+        isEmpty,
+      );
       expect(
         tax.validateFigure(
           Figure(
@@ -182,13 +230,10 @@ void main() {
     });
   });
 
-  group('renderCanonical is byte-identical for pre-v20 figures', () {
-    // The whole point of the `unspecified` sentinel: adding params to the
-    // render templates must not disturb the dedupe/FTS key of a single stored
-    // figure. These are the exact v19 strings.
+  group('renderCanonical carries mad robin defaults and sentinels', () {
     final cases = <String, Figure>{
-      'ones mad robin once': Figure(move: 'mad_robin'),
-      'ones mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
+      'role2s mad robin once': Figure(move: 'mad_robin'),
+      'role2s mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
       'neighbors mad robin once': Figure(
         move: 'mad_robin',
         params: {'who': 'neighbors'},
@@ -222,6 +267,19 @@ void main() {
           ),
           renderer.renderCanonical(Figure(move: 'butterfly_whirl')),
         );
+        expect(
+          renderer.renderCanonical(
+            testFigure(
+              move: 'mad_robin',
+              params: const {
+                'who': ParamVocab.unspecified,
+                'direction': 'clockwise',
+                'whom': 'neighbors',
+              },
+            ),
+          ),
+          'mad robin once clockwise neighbors',
+        );
       },
     );
   });
@@ -239,7 +297,7 @@ void main() {
             },
           ),
         ),
-        'ones mad robin 1½ clockwise neighbors',
+        'role2s mad robin 1½ clockwise neighbors',
       );
     });
 
@@ -268,10 +326,10 @@ void main() {
   });
 
   group('display rendering', () {
-    test('bare figures read exactly as they did in v19', () {
+    test('bare figures use the v34 defaults', () {
       expect(
         renderer.render(Figure(move: 'mad_robin'), d),
-        'mad robin, ones in front',
+        'mad robin, role2s in front',
       );
       expect(
         renderer.render(Figure(move: 'butterfly_whirl'), d),
@@ -288,7 +346,7 @@ void main() {
           ),
           d,
         ),
-        'mad robin clockwise around neighbor, ones in front',
+        'mad robin clockwise around neighbor, role2s in front',
       );
       // A stated amount joins the SAME clause — never "1½ around around N".
       expect(
@@ -303,14 +361,14 @@ void main() {
           ),
           d,
         ),
-        'mad robin counterclockwise 1½ around partner, ones in front',
+        'mad robin counterclockwise 1½ around partner, role2s in front',
       );
     });
 
     test('mad robin keeps the v19 bare "<turn> around" clause', () {
       expect(
         renderer.render(Figure(move: 'mad_robin', params: {'turn': 1.5}), d),
-        'mad robin 1½ around, ones in front',
+        'mad robin 1½ around, role2s in front',
       );
     });
 
@@ -319,7 +377,7 @@ void main() {
         Figure(move: 'mad_robin', params: const {'direction': 'clockwise'}),
         d,
       );
-      expect(line, 'mad robin clockwise, ones in front');
+      expect(line, 'mad robin clockwise, role2s in front');
       expect(line, isNot(contains('around')));
       expect(line, isNot(contains('unspecified')));
     });
@@ -336,12 +394,12 @@ void main() {
       );
     });
 
-    test('an import-assumed mad robin subject is flagged, not stated', () {
+    test('an imported mad robin keeps its in-front role unspecified', () {
       final f = parseTcb('Mad robin clockwise around neighbor')!;
-      expect(f.assumedSubject, isTrue);
-      expect(renderer.render(f, d), contains('(assumed)'));
-      // …but the canonical/dedupe text never carries the marker.
-      expect(renderer.renderCanonical(f), isNot(contains('assumed')));
+      expect(f.assumedSubject, isFalse);
+      expect(f.params['who'], ParamVocab.unspecified);
+      expect(renderer.render(f, d), 'mad robin clockwise around neighbor');
+      expect(renderer.renderCanonical(f), 'mad robin once clockwise neighbors');
     });
 
     test('an unexpected imported value is surfaced, never blanked', () {
@@ -354,7 +412,7 @@ void main() {
           ),
           d,
         ),
-        'mad robin some imported spin, ones in front',
+        'mad robin some imported spin, role2s in front',
       );
     });
   });
@@ -366,8 +424,8 @@ void main() {
       expect(f.move, 'mad_robin');
       expect(f.params['direction'], 'clockwise');
       expect(f.params['whom'], 'neighbors');
-      // TCB never states the in-front role, so it must NOT be invented.
-      expect(f.params.containsKey('who'), isFalse);
+      // TCB never states the in-front role, so it is explicit but unspecified.
+      expect(f.params['who'], ParamVocab.unspecified);
       expect(f.params.containsKey('turn'), isFalse);
       expect(f.beats, 8);
     });

@@ -1544,6 +1544,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Search titles, authors, figures, notes…';
 
   @override
+  String get collectionPickerSearchFieldHint =>
+      'Search titles, figures, notes…';
+
+  @override
+  String get collectionPickerOnlineSearchFieldHint =>
+      'Search online dances by title…';
+
+  @override
   String get collectionSearchScopeLabel => 'Search in';
 
   @override
@@ -1551,6 +1559,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get collectionSearchScopeTitle => 'Title';
+
+  @override
+  String get collectionSearchScopeAuthor => 'Author';
 
   @override
   String get collectionSearchScopeFigure => 'Figure';
@@ -3564,7 +3575,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get onlineSearchFieldHint => 'Search online dances by title…';
+  String get onlineSearchFieldHint =>
+      'Search online dances by title or author…';
 
   @override
   String onlineResultCount(int count) {
@@ -3579,12 +3591,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String onlineSearchHintByPhrase(String source) {
-    return 'Type a title or add by-phrase figures to search $source.';
+    return 'Type a title or author, or add by-phrase figures to search $source.';
   }
 
   @override
   String onlineSearchHintTitle(String source) {
-    return 'Type a title to search $source.';
+    return 'Type a title or author to search $source.';
   }
 
   @override
@@ -4220,7 +4232,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get importErrorContraDbEmptyTitle =>
-      'Enter a title to search ContraDB.';
+      'Enter a title or author to search ContraDB.';
 
   @override
   String get importErrorContraDbEmptyDanceInput =>
@@ -5503,6 +5515,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceEditorParamNotStated => 'not stated';
+
+  @override
+  String get figureParamFacingStarBackingUp => 'backing up';
 
   @override
   String get danceEditorParamClearTooltip => 'Clear (not stated)';

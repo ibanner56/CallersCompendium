@@ -640,6 +640,20 @@ void _paramChoiceTests() {
   // drift again.
   // -------------------------------------------------------------------------
   group('has-figure param dropdowns are humanized and dialect-aware', () {
+    testWidgets('facing star names its who parameter backing up', (
+      tester,
+    ) async {
+      final figure = BuilderFigure(move: 'facing_star');
+      await _pump(
+        tester,
+        root: BuilderGroup(
+          children: [BuilderThen(before: figure, after: BuilderFigure())],
+        ),
+      );
+      expect(find.text('Any backing up'), findsOneWidget);
+      expect(find.text('Any backing up'), findsOneWidget);
+    });
+
     /// A "hey"-shaped move: one dancerSet param carrying the sentinel, exactly
     /// like the shipped `hey.meetTarget`.
     Taxonomy taxonomyWithMeetTarget() => Taxonomy(

@@ -6,9 +6,10 @@ import 'package:test/test.dart';
 /// All fixtures are **synthetic**, hand-built to the confirmed live DOM of
 /// `contradb.com/dances/1` (see the adapter doc comment): `h1.dance-show-title`,
 /// `p.dance-show-choreographer`, `p.dance-show-formation`, and the
-/// `table.contra-table-nonfluid` figures table with `td.dance-show-beats` +
-/// `div.show-figure` cells, empty-section continuation rows, and `<u>` / `⁋`
-/// progression markers. No live network is used.
+/// optional `div.dance-show-preamble`, and the `table.contra-table-nonfluid`
+/// figures table with `td.dance-show-beats` + `div.show-figure` cells,
+/// empty-section continuation rows, and `<u>` / `⁋` progression markers. No
+/// live network is used.
 
 /// Wraps a dance body in the minimal page chrome ContraDB serves.
 String _page(String body) =>
@@ -173,9 +174,47 @@ void main() {
       );
       expect(draft.dance.title, 'The Rendezvous');
       expect(draft.dance.formation.shape, FormationShape.dupleImproper);
-      expect(draft.dance.formation.detail, 'improper');
+      expect(draft.dance.formation.detail, isNull);
       expect(draft.dance.callingNotes, isNot(contains('Adina Gordon')));
       expect(draft.dance.callingNotes, contains('Imported from ContraDB.'));
+    });
+
+    test('routes the normalized preamble to formation detail', () async {
+      final draft = await _importOne(
+        _page(
+          '<h1 class="dance-show-title">Preamble</h1>'
+          '<p class="dance-show-formation">formation: improper</p>'
+          '<div class="dance-show-preamble"><p>Careful of the '
+          'ladies\u200B gypsy.\nLast time.</p></div>',
+        ),
+      );
+      expect(draft.dance.formation.shape, FormationShape.dupleImproper);
+      expect(
+        draft.dance.formation.detail,
+        'Careful of the role2s shoulder round. Last time.',
+      );
+      expect(draft.dance.callingNotes, isNot(contains('Careful of the')));
+    });
+
+    test('puts preamble before unknown formation detail', () async {
+      final draft = await _importOne(
+        _page(
+          '<h1 class="dance-show-title">Unknown</h1>'
+          '<p class="dance-show-formation">formation: spiral ladies\u200B</p>'
+          '<div class="dance-show-preamble"><p>Start with a gypsy.</p></div>',
+        ),
+      );
+      expect(draft.dance.formation.shape, FormationShape.other);
+      expect(
+        draft.dance.formation.detail,
+        'Start with a shoulder round.\n\nspiral role2s',
+      );
+      expect(
+        draft.issues.any(
+          (issue) => issue.code == 'contradb_html_formation_unclassified',
+        ),
+        isTrue,
+      );
     });
 
     test(
@@ -193,7 +232,7 @@ void main() {
         // Stored title/author/formation are stripped of the spoofing characters.
         expect(draft.dance.title, 'Petronella');
         expect(draft.authorNames, ['Adina Gordon']);
-        expect(draft.dance.formation.detail, 'improper');
+        expect(draft.dance.formation.detail, isNull);
         expect(containsDisallowedText(draft.dance.title), isFalse);
       },
     );
@@ -262,15 +301,15 @@ void main() {
       expect(draft.authorNames, ['Alice Smith', 'Bob Jones']);
     });
 
-    test('an unknown formation falls back to other + a warning', () async {
+    test('an unknown formation is normalized detail with a warning', () async {
       final draft = await _importOne(
         _page(
           '<h1 class="dance-show-title">Weird</h1>'
-          '<p class="dance-show-formation">formation: spiral galaxy</p>',
+          '<p class="dance-show-formation">formation: spiral ladies\u200B</p>',
         ),
       );
       expect(draft.dance.formation.shape, FormationShape.other);
-      expect(draft.dance.formation.detail, 'spiral galaxy');
+      expect(draft.dance.formation.detail, 'spiral role2s');
       expect(
         draft.issues.any(
           (i) => i.code == 'contradb_html_formation_unclassified',
@@ -558,6 +597,23 @@ void main() {
       expect(f[6].move, 'swing');
       expect(f[6].params['who'], 'partners');
       expect(f[6].params['prefix'], 'balance');
+    });
+
+    test('structures a rendered hey ricochet', () async {
+      final draft = await _importOne(
+        _dancePage('Ricochet Hey', const [
+          (
+            16,
+            'gentlespoons start a full hey - lefts in center, rights on ends - '
+                'gentlespoons ricochet second time',
+          ),
+        ]),
+      );
+      final f = draft.dance.figures.single;
+      expect(f.isCustom, isFalse);
+      expect(f.move, 'hey');
+      expect(f.params['rico3'], isTrue);
+      expect(f.note, isNull);
     });
 
     test('dances/81 structures every figure incl. the ocean-wave split', () async {

@@ -250,6 +250,75 @@ void main() {
     );
 
     test(
+      'author scope searches only the author column for prefix and substring',
+      () async {
+        // ignore: unused_result
+        await choreographers.upsert(
+          Choreographer(id: 'c1', name: 'Alice Smith'),
+        );
+        await dances.create(
+          _dance(id: 'author', title: 'Plain', authorIds: ['c1']),
+        );
+        await dances.create(
+          _dance(
+            id: 'title',
+            title: 'Alice Smith Special',
+            figures: [
+              Figure(move: 'balance', params: const {'beats': 16}),
+            ],
+          ),
+        );
+        await dances.create(
+          _dance(
+            id: 'figure',
+            title: 'Plain',
+            figures: [
+              // invalid-fixture: synthetic unknown move verifies figure-only
+              // text cannot satisfy an author-scoped search
+              Figure(move: 'alice_smith', params: const {'beats': 16}),
+            ],
+          ),
+        );
+
+        expect(
+          await dances.search(
+            const FullTextFilter('Al', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Smith', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+
+        // A choreographer rename must refresh both denormalized author indexes;
+        // otherwise the new name is invisible until a full derived rebuild.
+        // ignore: unused_result
+        await choreographers.upsert(Choreographer(id: 'c1', name: 'Bob Jones'));
+        expect(
+          await dances.search(
+            const FullTextFilter('Bo', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Jones', scope: FullTextScope.author),
+          ),
+          ['author'],
+        );
+        expect(
+          await dances.search(
+            const FullTextFilter('Alice', scope: FullTextScope.author),
+          ),
+          isEmpty,
+        );
+      },
+    );
+
+    test(
       'Omni keeps canonical cross-field matching and raw title fallback',
       () async {
         await dances.create(

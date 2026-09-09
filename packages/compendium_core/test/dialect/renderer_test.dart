@@ -1984,7 +1984,7 @@ void main() {
       final cases = <String, Figure>{
         'partners zig zag left': Figure(move: 'zig_zag'),
         'slice left couple straight': Figure(move: 'slice'),
-        'ones mad robin once': Figure(move: 'mad_robin'),
+        'role2s mad robin once': Figure(move: 'mad_robin'),
         'role2s revolving door right partners': Figure(move: 'revolving_door'),
         'role2s box circulate': Figure(move: 'box_circulate'),
         // Explicit-param variants prove the display reword never leaks into
@@ -2005,7 +2005,7 @@ void main() {
           move: 'slice',
           params: {'slice': 'right', 'return': 'diagonal'},
         ),
-        'ones mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
+        'role2s mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
         'role2s revolving door left partners': Figure(
           move: 'revolving_door',
           params: {'hand': 'left'},
@@ -2093,16 +2093,16 @@ void main() {
     });
 
     group('mad_robin (base-line reorder)', () {
-      test('default reads "mad robin, ones in front"', () {
+      test('default reads "mad robin, role2s in front"', () {
         expect(
           renderer.render(Figure(move: 'mad_robin'), d),
-          'mad robin, ones in front',
+          'mad robin, role2s in front',
         );
       });
       test('non-default turn adds the "<turn> around" clause', () {
         expect(
           renderer.render(Figure(move: 'mad_robin', params: {'turn': 1.5}), d),
-          'mad robin 1½ around, ones in front',
+          'mad robin 1½ around, role2s in front',
         );
       });
       test('non-default subject is singularized', () {
@@ -2195,14 +2195,13 @@ void main() {
           'mad robin',
         );
       });
-      test('mad_robin surfaces an explicit unspecified subject', () {
+      test('mad_robin omits an explicit unspecified subject', () {
         expect(
           renderer.render(
-            // invalid-fixture: value is deliberately out of domain — unspecified is not a valid mad_robin subject
             Figure(move: 'mad_robin', params: {'who': 'unspecified'}),
             d,
           ),
-          'mad robin, unspecified in front',
+          'mad robin',
         );
       });
       test('revolving_door surfaces unknown who/whom/hand values', () {
@@ -2757,7 +2756,7 @@ void main() {
           Dialect.canonical,
           decimals: true,
         ),
-        'mad robin 1.5 around, ones in front',
+        'mad robin 1.5 around, role2s in front',
       );
     });
   });

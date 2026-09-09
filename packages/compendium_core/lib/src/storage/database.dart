@@ -245,6 +245,12 @@ const String compactDosidoSeesawCanonicalRebuildDoneKey =
 const String taxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild and source normalization
+/// owed by taxonomy v34. Existing Callers Box mad robins that assumed an
+/// unstated in-front role are rewritten with an explicit `unspecified` subject.
+const String taxonomyV34CanonicalRebuildDoneKey =
+    '__taxonomy_v34_canonical_rebuild_done__';
+
 /// Settings marker containing the shareable-text normalization algorithm and
 /// exact scope that has been backfilled successfully.
 const String shareableTextNormalisationScopeKey =

@@ -292,6 +292,40 @@ void main() {
     },
   );
 
+  testWidgets('renaming a choreographer refreshes an Omni search', (
+    tester,
+  ) async {
+    final counter = _SearchCounter();
+    final db = openWidgetTestDatabase(
+      executor: NativeDatabase.memory().interceptWith(counter),
+    );
+    final repos = CompendiumRepositories(db, contraTaxonomy);
+    // ignore: unused_result
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Adams'));
+    await repos.dances.create(
+      dance(id: 'd1', title: 'Alpha').copyWith(authorIds: const ['c1']),
+    );
+    await pump(tester, repos, const DanceListScreen());
+
+    await tester.enterText(
+      find.byKey(const ValueKey('collection-search-field')),
+      'Adams',
+    );
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pumpAndSettle();
+    expect(find.text('Alpha'), findsOne);
+    final searchesBeforeRename = counter.count;
+
+    // The dance row is unchanged, but Omni also searches the denormalized
+    // author column, so the rename must invalidate the result set.
+    // ignore: unused_result
+    await repos.choreographers.upsert(Choreographer(id: 'c1', name: 'Zulu'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alpha'), findsNothing);
+    expect(counter.count, greaterThan(searchesBeforeRename));
+  });
+
   testWidgets(
     'renaming a choreographer re-sorts the list when sorted by author',
     (tester) async {

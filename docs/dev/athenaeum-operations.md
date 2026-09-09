@@ -9,8 +9,8 @@ the loopback-only forwarded-address trust boundary.
 
 ## First deployment
 
-1. Install Docker, Apache 2.4, and the Apache modules `ssl`, `headers`, `proxy`,
-   `proxy_http`, `reqtimeout`, and `rewrite`.
+1. Install Docker, Apache 2.4.40 or newer, and the Apache modules `ssl`,
+   `headers`, `proxy`, `proxy_http`, `reqtimeout`, and `rewrite`.
 2. Create a dedicated directory owned by the container user for the three
    SQLite databases and blob directory:
 

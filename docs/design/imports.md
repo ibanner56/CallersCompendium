@@ -38,7 +38,7 @@ fetch → RawRecord → parse → StructuredDraft → canonicalize → dedupe �
 | **fetch** | Adapter obtains bytes (file pick, URL, snapshot archive). Never blocks on network for local work. |
 | **RawRecord** | Source-native payload preserved verbatim in memory + source id/version. The payload feeds `parse` and is **not persisted** — it was stored in `provenance.raw_payload` until schema v21 dropped that column (#781), because nothing read it back. Re-import dedupes on `(source, externalId)` and re-fetches from the source, so it needs no stored copy. |
 | **parse** | Adapter maps fields and parses figures into structured `Figure[]`. **Parsing never fails a dance**: any unparseable figure line becomes a `custom` figure carrying its beats and text. A dance can arrive 100% custom and still be searchable. |
-| **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; formation strings mapped to the enum (+detail). |
+| **canonicalize** | Free text through the dialect `canonicalize()` chokepoint; terms/synonyms (incl. legacy "gypsy") mapped to canonical vocabulary; recognized formation strings map to the enum, with only source-specific detail retained separately. |
 | **dedupe** | Match by (source, externalId) first — re-import updates provenance and offers diff. Otherwise fuzzy (NFC-composed, normalized title + author) → user chooses link/duplicate/skip. Free-text imports feed their raw author names (see *Author resolution*) into this signal. An exact-normalized-title match with an overlapping tokenized author set is always a **confident match** (`DedupeCandidate.confident` / `DedupeVerdict.hasConfidentMatch`, issue #685) — it is guaranteed to surface as `ambiguous` regardless of how the score threshold is tuned, so inconsistent author-string formatting across sources can never silently resolve to `isNew`. Non-interactive callers (e.g. program import) treat a confident match as a hard **skip**, never a silent duplicate (see *Multi-author tokenization*). |
 | **review** | Batch imports land in a review queue: per-dance parse quality score (% structured vs custom figures), side-by-side raw vs parsed. Accept-all is one tap; nothing silently mutates existing user data. |
 | **commit** | Transactional; provenance row written; author names resolved to `Choreographer` associations (see *Author resolution*); import session log kept for undo. |
@@ -405,11 +405,19 @@ declines the collapse.
   only path a user can actually reach; they import a dance by pasting its URL.
   The adapter walks the dance table rows into `(section-label, beats, figure-text)`
   and routes each figure line through the shared free-text parser.
+  Formation text is normalized before classification; recognized formation text
+  is stored as shape only unless the page's optional
+  `div.dance-show-preamble` supplies normalized `Formation.detail`; unclassified
+  formation text is retained as detail, after any preamble and with a warning.
 - A second, **deprecated** adapter (`ContraDbAdapter`) maps ContraDB's internal
   `figures_json` positional move/parameter model move-for-move onto our taxonomy
   (positional→named table per move, gyre → shoulder_round term migration). It is
   **`@Deprecated` and wired into no live path** — that JSON input is unobtainable
   from the site — and is retained only as reference prior art plus its unit tests.
+  Its recognized `start_type` is shape-only; normalized `preamble` is stored in
+  `Formation.detail`, and only `notes` is stored in `callingNotes`. If an
+  unclassified `start_type` and preamble coexist, both are retained in detail
+  with the preamble first.
 - **`star promenade` is DECLINED, not mapped (taxonomy v26, #843).** ContraDB's
   `who`+`hand` name, as a pair, the dancers with a hand in the CENTRE. Our `who`
   names the dancer you PICK UP on the side (owner ruling, 2026-08-06), and the
@@ -924,8 +932,10 @@ has to be judged in its own context.
   through, pass through, promenade, petronella. **Enriched for CallersBox
   (#553):** roll away, cross trails, figure eight, form (a) long wave(s), trade
   (→ pass by), pass/cross-by left/right (→ pass by), lead down/up & go down/up
-  outside (→ down/up the hall `moving`), circulate (→ box circulate, balance
-  folded), hall + turn as couples (→ `ender: turnCouple`), hall + turn alone
+  outside (→ down/up the hall `moving`), circulate (→ box circulate with the
+  crossing subject as `who` and explicit loop direction as `hand`, scrubbed/
+  canonicalized clause retained as a note, balance folded), hall + turn as couples
+  (→ `ender: turnCouple`), hall + turn alone
   (→ `ender: turnAlone` when dancer subjects agree), shoulder round + swing
   (→ meltdown swing with adjacent source beats), balance wave + slide
   (→ balanced Rory O'More), and directed promenade around the major set
@@ -946,6 +956,10 @@ has to be judged in its own context.
   structure. Each recognizer requires BOTH stated facts, so a bare "mad robin" /
   "butterfly whirl" (ContraDB's own phrasing), or a butterfly whirl carrying an
   unmodeled rotation amount ("… counterclockwise 1 & 1/2"), still stays custom.
+  Taxonomy v34 now stores an explicit `who: unspecified` for TCB mad robins,
+  because their "around" pair is `whom`, not the in-front pair; legacy assumed
+  figures are backfilled only when `who` was absent and then rebuilt in
+  canonical/FTS indexes.
   **Directed promenade (#771):** TCB's `clockwise`/`counterclockwise`
   qualifiers now populate `promenade.turn` instead of causing the complete
   line to fall to `custom`. The shared parser accepts TCB's supported

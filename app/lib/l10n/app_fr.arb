@@ -1772,6 +1772,14 @@
   "@collectionSearchFieldHint": {
     "x-sourceSha256": "3316ce957d763fd3d3fa139ab42e7736d82431aa9416c2a6195085f9d1222861"
   },
+  "collectionPickerSearchFieldHint": "Titres, figures, notes…",
+  "@collectionPickerSearchFieldHint": {
+    "x-sourceSha256": "7d4dc44ffc70ef07a637b21c1ab753ce6dac7d81af0554a06e15232186a89985"
+  },
+  "collectionPickerOnlineSearchFieldHint": "Rechercher des danses en ligne par titre…",
+  "@collectionPickerOnlineSearchFieldHint": {
+    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
+  },
   "collectionSearchScopeLabel": "Rechercher dans",
   "@collectionSearchScopeLabel": {
     "x-sourceSha256": "fa792556a141483d685478f00d7e2cbe39e976b77da623aa3e2db312822c662c"
@@ -1783,6 +1791,10 @@
   "collectionSearchScopeTitle": "Titre",
   "@collectionSearchScopeTitle": {
     "x-sourceSha256": "7e8cd2056da73a7fefb6cd91f4e5d199d08d9058c517b9a2476b1b520324d674"
+  },
+  "collectionSearchScopeAuthor": "Auteur",
+  "@collectionSearchScopeAuthor": {
+    "x-sourceSha256": "d95082a2ee57f3e40e3050662a346e26a872fd4d0baf57d293ac5a883f0f4ff5"
   },
   "collectionSearchScopeFigure": "Figure",
   "@collectionSearchScopeFigure": {
@@ -3752,21 +3764,21 @@
   "@onlineSearchFieldLabel": {
     "x-sourceSha256": "580102ecff085a6380121462762b7f671cd143e923d49db39788bad56e3ee95f"
   },
-  "onlineSearchFieldHint": "Rechercher des danses en ligne par titre…",
+  "onlineSearchFieldHint": "Rechercher des danses en ligne par titre ou auteur…",
   "@onlineSearchFieldHint": {
-    "x-sourceSha256": "cd119080cf8c74b9df89c95993269772360109c079b3fab8b8e16b595ca4ba50"
+    "x-sourceSha256": "c7c8810fd4064a5490bb0279304af15ab4b75ae47e39631b64db57ec7636bb2c"
   },
   "onlineResultCount": "{count, plural, =1{1 résultat en ligne} other{{count} résultats en ligne}}",
   "@onlineResultCount": {
     "x-sourceSha256": "70de997e28d65e0ec02101f962391063f42342840a6f2cac9cf35619abaead8e"
   },
-  "onlineSearchHintByPhrase": "Saisissez un titre ou ajoutez des figures par phrase pour rechercher sur {source}.",
+  "onlineSearchHintByPhrase": "Saisissez un titre ou un auteur, ou ajoutez des figures par phrase pour rechercher dans {source}.",
   "@onlineSearchHintByPhrase": {
-    "x-sourceSha256": "7410c362559c4cf6eb58f3594b414edf9bb5fc8fef9e68ba24caf5f3ead500e9"
+    "x-sourceSha256": "623c8dfe374551a31466565fa1f337dc4b2e2f078d4aec3beca94658cc8f6b25"
   },
-  "onlineSearchHintTitle": "Saisissez un titre pour rechercher sur {source}.",
+  "onlineSearchHintTitle": "Saisissez un titre ou un auteur pour rechercher dans {source}.",
   "@onlineSearchHintTitle": {
-    "x-sourceSha256": "9967fe7a7a17bda7306e2e3f68a7a5f17840d0617664fbfdc0217646df1b239f"
+    "x-sourceSha256": "e9b2a7721ca72b726b085b08528fe362e0587b4a39524334c33dc68f913603b1"
   },
   "onlineNoResults": "Aucune danse sur {source} ne correspond à votre recherche.",
   "@onlineNoResults": {
@@ -4308,9 +4320,9 @@
   "@importErrorCallersBoxImportFailed": {
     "x-sourceSha256": "70251f4555fa241276fcbcd41235140323fe60ce6e71bf3cf346e45f5aa2cd53"
   },
-  "importErrorContraDbEmptyTitle": "Saisissez un titre pour rechercher dans ContraDB.",
+  "importErrorContraDbEmptyTitle": "Saisissez un titre ou un auteur pour rechercher dans ContraDB.",
   "@importErrorContraDbEmptyTitle": {
-    "x-sourceSha256": "6adb1a689363a95e10d23a4e4c5b069ca48812bcd502063863045a288e004657"
+    "x-sourceSha256": "09eecfc63a328b106265565c2292a6ff0eaa08f51bcc08e512ef721ba042e616"
   },
   "importErrorContraDbEmptyDanceInput": "Saisissez une URL ou un identifiant de danse ContraDB pour importer.",
   "@importErrorContraDbEmptyDanceInput": {
@@ -5575,6 +5587,10 @@
   "danceEditorParamNotStated": "non précisé",
   "@danceEditorParamNotStated": {
     "x-sourceSha256": "109df22c5a753d340af3ecee225f7a2a432a65dedfb163736943dfa7af638104"
+  },
+  "figureParamFacingStarBackingUp": "à reculons",
+  "@figureParamFacingStarBackingUp": {
+    "x-sourceSha256": "49f28675862c00650eb5afa2fa95181cf4958c29f0200e5a5b64a047b19d460d"
   },
   "danceEditorParamClearTooltip": "Effacer (non précisé)",
   "@danceEditorParamClearTooltip": {

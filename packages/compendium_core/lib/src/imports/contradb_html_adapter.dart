@@ -39,6 +39,7 @@ import 'structured_draft.dart';
 /// - `h1.dance-show-title` — dance title.
 /// - `p.dance-show-choreographer` — `by: <strong><a href=…>NAME</a></strong>`.
 /// - `p.dance-show-formation` — `formation: <free text>`.
+/// - `div.dance-show-preamble` — optional source-specific detail prose.
 /// - `table.contra-table-nonfluid` — the figures table. Each `<tr>` holds three
 ///   `<td>`s: a section label (A1/A2/B1/B2 — **empty on continuation rows**), a
 ///   `td.dance-show-beats`, and a `div.show-figure` with the figure text. A
@@ -58,8 +59,11 @@ import 'structured_draft.dart';
 ///
 /// ## Metadata
 /// - `h1.dance-show-title` → title (missing → a `ContraDB dance <id>` stub).
-/// - `p.dance-show-formation` → [FormationShape] best-effort (original kept as
-///   [Formation.detail]; unknown → [FormationShape.other] + a warning).
+/// - `p.dance-show-formation` → [FormationShape] best-effort; recognized text
+///   is shape-only unless a preamble supplies [Formation.detail], while unknown
+///   text is kept as normalized detail on [FormationShape.other] with a warning.
+/// - `div.dance-show-preamble` → normalized [Formation.detail], before unknown
+///   formation text when both are present.
 /// - `p.dance-show-choreographer` name → carried on the draft's `authorNames`
 ///   and resolved to a real [Choreographer] association ([Dance.authorIds]) by
 ///   the import pipeline (match-or-create); no longer folded into
@@ -375,11 +379,17 @@ class ContraDbHtmlAdapter implements SourceAdapter {
   Formation _parseFormation(dom.Document document, List<ImportIssue> issues) {
     final raw = document.querySelector('p.dance-show-formation')?.text.trim();
     final stripped = _stripLeadingLabel(raw, 'formation');
-    final detailText = stripped == null
-        ? null
-        : sanitizeImportedText(stripped, allowLineBreaks: false).trim();
+    final detailText = stripped == null ? null : scrubFigureText(stripped);
+    final preambleRaw = document
+        .querySelector('div.dance-show-preamble')
+        ?.text
+        .trim();
+    final preamble = preambleRaw == null ? null : scrubFigureText(preambleRaw);
     if (detailText == null || detailText.isEmpty) {
-      return const Formation(FormationShape.dupleImproper);
+      return Formation(
+        FormationShape.dupleImproper,
+        detail: preamble == null || preamble.isEmpty ? null : preamble,
+      );
     }
 
     final lower = detailText.toLowerCase();
@@ -419,18 +429,25 @@ class ContraDbHtmlAdapter implements SourceAdapter {
     }
 
     if (shape == null) {
+      final sourceDetail = [
+        preamble,
+        detailText,
+      ].whereType<String>().where((text) => text.isNotEmpty).join('\n\n');
       issues.add(
         ImportIssue(
           severity: ImportIssueSeverity.warning,
           code: 'contradb_html_formation_unclassified',
           message:
-              'Formation "$detailText" did not classify to a known shape; kept '
-              'as detail on "other".',
+              'Formation "$sourceDetail" did not classify to a known shape; '
+              'kept as detail on "other".',
         ),
       );
-      return Formation(FormationShape.other, detail: detailText);
+      return Formation(FormationShape.other, detail: sourceDetail);
     }
-    return Formation(shape, detail: detailText);
+    return Formation(
+      shape,
+      detail: preamble == null || preamble.isEmpty ? null : preamble,
+    );
   }
 
   // --- Notes -----------------------------------------------------------------

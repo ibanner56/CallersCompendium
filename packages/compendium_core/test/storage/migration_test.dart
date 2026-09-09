@@ -24,7 +24,8 @@ import 'package:compendium_core/src/storage/database.dart'
     show
         VenueProvenanceCompanion,
         VenuesCompanion,
-        taxonomyV33CanonicalRebuildDoneKey;
+        taxonomyV33CanonicalRebuildDoneKey,
+        taxonomyV34CanonicalRebuildDoneKey;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
 import 'package:path/path.dart' as p;
@@ -265,6 +266,216 @@ void main() {
             )
             .getSingle();
         expect(completed.read<String>('value_json'), '"done"');
+      },
+    );
+  });
+
+  group('taxonomy v34 mad robin canonical rebuild', () {
+    test(
+      'normalizes assumed TCB subjects and retries safely after interruption',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _FailingOnceRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final legacyFigures = [
+          Figure(
+            move: 'mad_robin',
+            params: const {'direction': 'clockwise', 'whom': 'neighbors'},
+            assumedSubject: true,
+          ),
+          Figure.meanwhile(
+            figures: [
+              Figure(
+                move: 'mad_robin',
+                params: const {
+                  'direction': 'counterclockwise',
+                  'whom': 'partners',
+                },
+                assumedSubject: true,
+              ),
+              Figure(
+                move: 'swing',
+                params: const {'who': 'partners', 'beats': 16},
+              ),
+            ],
+            beats: 8,
+          ),
+          Figure(
+            move: 'mad_robin',
+            params: const {
+              'who': 'ones',
+              'direction': 'clockwise',
+              'whom': 'partners',
+            },
+            assumedSubject: true,
+          ),
+        ];
+        await repos.dances.create(
+          Dance(
+            id: 'v34-canonical',
+            title: 'v34 canonical',
+            figures: legacyFigures,
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        // Seed the pre-v34 persisted shape below the repository write
+        // convergence point. This keeps the test focused on ensureMigrated's
+        // source rewrite and retry-safe rebuild rather than the later ingress
+        // guard.
+        await db.customUpdate(
+          'UPDATE dances SET figures_json = ? WHERE id = ?',
+          variables: [
+            Variable<String>(encodeFigures(legacyFigures)),
+            Variable<String>('v34-canonical'),
+          ],
+          updates: {db.dances},
+        );
+        final legacy = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        final legacyFirst =
+            (jsonDecode(legacy.read<String>('figures_json')) as List<dynamic>)
+                    .first
+                as Map<String, dynamic>;
+        expect(
+          (legacyFirst['params'] as Map<String, dynamic>).containsKey('who'),
+          isFalse,
+        );
+        expect(legacyFirst['assumedSubject'], isTrue);
+
+        for (final key in [
+          purgeCorruptionRepairDoneKey,
+          inversePairNormalisationDoneKey,
+          starPromenadeHandRemovalDoneKey,
+          gripSingleFileCanonicalInclusionDoneKey,
+          promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+          compactDosidoSeesawCanonicalRebuildDoneKey,
+          chainHandBackfillDoneKey,
+          taxonomyV33CanonicalRebuildDoneKey,
+        ]) {
+          await repos.settings.set(key, 'done');
+        }
+        await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale canonical'),
+            Variable<String>('v34-canonical'),
+          ],
+          updates: {db.danceFigures},
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale figures'),
+            Variable<String>('v34-canonical'),
+          ],
+        );
+
+        await expectLater(repos.ensureMigrated(), throwsA(isA<StateError>()));
+        expect(repos.rebuildAttempts, 1);
+
+        final rewritten = await db
+            .customSelect(
+              'SELECT figures_json FROM dances WHERE id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        final rewrittenFigures =
+            jsonDecode(rewritten.read<String>('figures_json')) as List<dynamic>;
+        final rewrittenFirst = rewrittenFigures[0] as Map<String, dynamic>;
+        final rewrittenMeanwhile = rewrittenFigures[1] as Map<String, dynamic>;
+        final rewrittenMeanwhileParams =
+            rewrittenMeanwhile['params'] as Map<String, dynamic>;
+        final rewrittenNested =
+            (rewrittenMeanwhileParams['figures'] as List<dynamic>)[0]
+                as Map<String, dynamic>;
+        final rewrittenExplicit = rewrittenFigures[2] as Map<String, dynamic>;
+        expect(
+          (rewrittenFirst['params'] as Map<String, dynamic>)['who'],
+          ParamVocab.unspecified,
+        );
+        expect(rewrittenFirst.containsKey('assumedSubject'), isFalse);
+        expect(
+          (rewrittenNested['params'] as Map<String, dynamic>)['who'],
+          ParamVocab.unspecified,
+        );
+        expect(rewrittenNested.containsKey('assumedSubject'), isFalse);
+        expect(
+          (rewrittenExplicit['params'] as Map<String, dynamic>)['who'],
+          'ones',
+        );
+        expect(rewrittenExplicit['assumedSubject'], isTrue);
+        final pendingRebuild = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(derivedRebuildRequiredKey)],
+            )
+            .get();
+        expect(pendingRebuild, isNotEmpty);
+        final incomplete = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV34CanonicalRebuildDoneKey)],
+            )
+            .get();
+        expect(incomplete, isEmpty);
+
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, 2);
+
+        final dance = (await repos.dances.getById('v34-canonical'))!;
+        final expectedCanonical = [
+          'mad robin once clockwise neighbors',
+          'mad robin once counterclockwise partners',
+          'partners swing',
+          'ones mad robin once clockwise partners',
+        ];
+        final rows = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures '
+              'WHERE dance_id = ? ORDER BY idx',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .get();
+        expect(
+          rows.map((row) => row.read<String>('canonical_text')).toList(),
+          expectedCanonical,
+        );
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable<String>('v34-canonical')],
+            )
+            .getSingle();
+        expect(fts.read<String>('figures_text'), expectedCanonical.join(' '));
+        final pendingAfterRetry = await db
+            .customSelect(
+              'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(derivedRebuildRequiredKey)],
+            )
+            .get();
+        expect(pendingAfterRetry, isEmpty);
+        final completed = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
+              variables: [Variable<String>(taxonomyV34CanonicalRebuildDoneKey)],
+            )
+            .getSingle();
+        expect(completed.read<String>('value_json'), '"done"');
+        expect(dance.figures.first.params['who'], ParamVocab.unspecified);
+        expect(
+          dance.figures[1].subFigures.first.params['who'],
+          ParamVocab.unspecified,
+        );
+        expect(dance.figures[2].params['who'], 'ones');
+        expect(dance.figures[2].assumedSubject, isTrue);
       },
     );
   });

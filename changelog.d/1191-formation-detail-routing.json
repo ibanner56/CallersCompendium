@@ -1,0 +1,14 @@
+{
+  "id": "1191-formation-detail-routing",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Imported formations now keep recognized shape and source detail separate, so formation names are not duplicated in dance details."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Route normalized formation detail independently across the CallersBox and ContraDB adapters, retaining unclassified source text and ContraDB HTML/JSON preambles."
+    ]
+  }
+}

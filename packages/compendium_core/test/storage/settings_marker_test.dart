@@ -31,13 +31,16 @@ void main() {
   setUp(() async {
     db = openTestDatabase();
     // Keep unrelated migration tests focused on their marker. The compact-name
-    // test below removes this marker to exercise the new sweep.
+    // test below removes its marker to exercise that sweep.
     await SettingsRepository(
       db,
     ).set(compactDosidoSeesawCanonicalRebuildDoneKey, 'done');
     await SettingsRepository(
       db,
     ).set(taxonomyV33CanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(taxonomyV34CanonicalRebuildDoneKey, 'done');
   });
   tearDown(() => db.close());
 

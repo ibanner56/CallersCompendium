@@ -188,8 +188,11 @@ class Figure {
   ///
   /// Additive and backward compatible: defaults to `false`, is written to JSON
   /// only when `true`, and absent/legacy data decodes as `false`, so no schema
-  /// migration is required. It is a DISPLAY/provenance flag only — it never
-  /// changes the canonical (search/dedupe) render, which stays byte-stable.
+  /// migration is required. It remains a DISPLAY/provenance flag and never
+  /// changes the canonical (search/dedupe) render. Taxonomy v34 also uses this
+  /// provenance bit at the repository write boundary to normalize legacy
+  /// assumed `mad_robin` subjects before persistence; the bit itself still
+  /// does not participate in canonical rendering.
   final bool assumedSubject;
 
   /// A per-dance, per-figure-instance **walkthrough snippet override** (#411):
