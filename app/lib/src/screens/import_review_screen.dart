@@ -746,7 +746,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         _selected.adapterFactory(),
         request,
         index: index,
-        preserveCanonicalDifficultyIds: _effectivePickedBundle != null,
+        preserveCanonicalDifficultyIds: _effectiveSharedBundle != null,
       );
       await _adoptBatch(batch);
     } catch (e, stackTrace) {
@@ -1188,6 +1188,7 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
   /// committed so the batch [_commit] never writes it again, and the live
   /// Collection is refreshed both after the commit and after the editor returns.
   Future<void> _editRow(int i) async {
+    if (_effectiveSharedBundle != null) return;
     final planned = _planForRow(i);
     // Edit is disabled for skipped rows, so there is nothing to commit.
     if (planned == null) return;
