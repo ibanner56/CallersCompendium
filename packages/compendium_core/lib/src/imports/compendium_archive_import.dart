@@ -2,6 +2,7 @@ import 'package:meta/meta.dart';
 
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/enums.dart';
 import '../model/program.dart';
 import '../model/provenance.dart';
@@ -36,6 +37,12 @@ class ArchiveProgramsResult {
 
   final List<Program> programs;
   final List<ImportIssue> issues;
+}
+
+class _DifficultyLevelImportLedger {
+  final insertedIds = <String>[];
+  final priorStates = <({DifficultyLevel level, bool deleted})>[];
+  final _capturedIds = <String>{};
 }
 
 /// Rebuilds the [archive]'s [Program]s for insertion into the live collection,
@@ -220,13 +227,22 @@ class CompendiumArchiveImportResult {
     this.programRestoreAt,
     List<String> insertedVenueIds = const [],
     List<String> restoredVenueIds = const [],
+    List<String> insertedDifficultyLevelIds = const [],
+    List<({DifficultyLevel level, bool deleted})> difficultyLevelPriorStates =
+        const [],
   }) : programs = List.unmodifiable(programs),
        programIssues = List.unmodifiable(programIssues),
        insertedProgramIds = List.unmodifiable(insertedProgramIds),
        updatedProgramPriorStates = List.unmodifiable(updatedProgramPriorStates),
        restoredProgramIds = List.unmodifiable(restoredProgramIds),
        insertedVenueIds = List.unmodifiable(insertedVenueIds),
-       restoredVenueIds = List.unmodifiable(restoredVenueIds);
+       restoredVenueIds = List.unmodifiable(restoredVenueIds),
+       insertedDifficultyLevelIds = List.unmodifiable(
+         insertedDifficultyLevelIds,
+       ),
+       difficultyLevelPriorStates = List.unmodifiable(
+         difficultyLevelPriorStates,
+       );
 
   /// The dance-side session (inserted dance ids, updated-dance prior states,
   /// created choreographer ids) — reverted via [ImportPipeline.undo].
@@ -265,6 +281,15 @@ class CompendiumArchiveImportResult {
   /// Ids of tombstoned venues restored by an exact provenance match. Soft-deleted
   /// again on [undo] unless a surviving program references one.
   final List<String> restoredVenueIds;
+
+  /// Difficulty-level ids inserted by this import; hard-deleted on [undo]
+  /// after dependent dances have been reverted.
+  final List<String> insertedDifficultyLevelIds;
+
+  /// Difficulty-level rows overwritten or revived by this import, including
+  /// whether each row was tombstoned before the import.
+  final List<({DifficultyLevel level, bool deleted})>
+  difficultyLevelPriorStates;
 
   /// Non-fatal issues raised while rebuilding the programs (unresolved dance
   /// references, skipped empty slots) — never fatal.
@@ -365,10 +390,11 @@ class CompendiumArchiveImporter {
     final restoredProgramIdSet = <String>{};
     final insertedVenueIds = <String>[];
     final restoredVenueIds = <String>[];
+    final difficultyLevels = _DifficultyLevelImportLedger();
     ShareMetadataImportResult? metadata;
     ImportSession? danceSession;
     try {
-      await _commitDifficultyLevels(archive);
+      await _commitDifficultyLevels(archive, ledger: difficultyLevels);
       metadata = await _commitMetadata(archive, now: now, newId: mintId);
       final commitBatch = metadata == null
           ? batch
@@ -625,6 +651,8 @@ class CompendiumArchiveImporter {
         programRestoreAt: restoredProgramIds.isEmpty ? null : now,
         insertedVenueIds: insertedVenueIds,
         restoredVenueIds: restoredVenueIds,
+        insertedDifficultyLevelIds: difficultyLevels.insertedIds,
+        difficultyLevelPriorStates: difficultyLevels.priorStates,
       );
     } catch (_) {
       // Compensate in reverse-dependency order: remove inserted programs and
@@ -649,11 +677,15 @@ class CompendiumArchiveImporter {
       }
       if (danceSession != null) await _pipeline.undo(danceSession);
       if (metadata != null) await _metadata!.undo(metadata);
+      await _undoDifficultyLevels(difficultyLevels, at: now);
       rethrow;
     }
   }
 
-  Future<void> _commitDifficultyLevels(CompendiumArchive archive) async {
+  Future<void> _commitDifficultyLevels(
+    CompendiumArchive archive, {
+    required _DifficultyLevelImportLedger ledger,
+  }) async {
     if (archive.difficultyLevels.isEmpty) return;
     final repository = _difficultyLevels;
     if (repository == null) {
@@ -661,8 +693,37 @@ class CompendiumArchiveImporter {
         'difficulty-level repository is required to import a shared archive',
       );
     }
+    final existing = {
+      for (final item in await repository.listAllWithDeleted())
+        item.level.id: item,
+    };
     for (final level in archive.difficultyLevels) {
+      final previous = existing[level.id];
+      if (previous == null) {
+        ledger.insertedIds.add(level.id);
+      } else if (ledger._capturedIds.add(level.id)) {
+        ledger.priorStates.add(previous);
+      }
       await repository.upsert(level);
+    }
+  }
+
+  Future<void> _undoDifficultyLevels(
+    _DifficultyLevelImportLedger ledger, {
+    required DateTime at,
+  }) async {
+    final repository = _difficultyLevels;
+    if (repository == null) return;
+    for (final id in ledger.insertedIds) {
+      if (await repository.isInUse(id)) continue;
+      await repository.hardDelete([id]);
+    }
+    for (final prior in ledger.priorStates) {
+      if (await repository.isInUse(prior.level.id)) continue;
+      await repository.upsert(prior.level, at: at);
+      if (prior.deleted) {
+        await repository.delete(prior.level.id, at: at);
+      }
     }
   }
 
@@ -826,6 +887,12 @@ class CompendiumArchiveImporter {
     if (result.metadata != null) {
       await _metadata!.undo(result.metadata!);
     }
+    await _undoDifficultyLevels(
+      _DifficultyLevelImportLedger()
+        ..insertedIds.addAll(result.insertedDifficultyLevelIds)
+        ..priorStates.addAll(result.difficultyLevelPriorStates),
+      at: undoAt,
+    );
     result._undone = true;
   }
 

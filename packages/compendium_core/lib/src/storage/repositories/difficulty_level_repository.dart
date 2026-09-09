@@ -172,6 +172,14 @@ class DifficultyLevelRepository {
         deleted: false,
       );
 
+  Future<void> hardDelete(Iterable<String> ids) async {
+    for (final id in ids) {
+      await (_db.delete(
+        _db.difficultyLevels,
+      )..where((t) => t.id.equals(id))).go();
+    }
+  }
+
   DifficultyLevel _toModel(DifficultyLevelRow row) =>
       DifficultyLevel(id: row.id, label: row.label, position: row.position);
 
@@ -197,7 +205,7 @@ class DifficultyLevelRepository {
         .insertOnConflictUpdate(
           DifficultyLevelsCompanion.insert(
             id: normalized.id,
-          label: normalizeShareableText(normalized.label),
+            label: normalizeShareableText(normalized.label),
             position: normalized.position,
             updatedAt: Value(now),
           ),
