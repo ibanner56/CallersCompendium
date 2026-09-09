@@ -54,9 +54,10 @@ class CallersBoxOnline implements OnlineSearchService {
   OnlineSource get source => OnlineSource.callersBox;
 
   /// Searches The Caller's Box by [OnlineSearchQuery.title],
-  /// [OnlineSearchQuery.author], and/or by-phrase figure
-  /// [OnlineSearchQuery.phrases] and returns the parsed result rows. Title,
-  /// author, and phrase criteria are serialized using TCB's fixed field names.
+  /// [OnlineSearchQuery.author], or by-phrase figure
+  /// [OnlineSearchQuery.phrases] and returns the parsed result rows. Title and
+  /// author are mutually exclusive text criteria; phrase criteria can be added
+  /// to either one. All criteria are serialized using TCB's fixed field names.
   /// Throws a typed [UrlFetchException] on any fetch failure, or when there is
   /// nothing to search.
   ///

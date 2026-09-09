@@ -365,9 +365,9 @@ install notes follow.
   affects display only; canonical search and deduplication remain unchanged.
 
 - **Collection search** — search can now be scoped to **All fields**, **Title**,
-  **Author**, or **Figure**. Short prefixes and longer literal substrings,
-  including punctuation-spanning title text, use derived local indexes; online
-  search supports **Title** and **Author**.
+  or **Figure**. Short prefixes and longer literal substrings, including
+  punctuation-spanning title text, use derived local indexes; online search
+  remains title-only.
 
 - **Program editor auto-save** — enable **Settings → Program → Auto-save program
   changes** to commit valid edits as you work and avoid the discard warning when

@@ -256,7 +256,11 @@ void main() {
           _dance(
             id: 'figure',
             title: 'Plain',
-            figures: [Figure(move: 'alice_smith', params: const {'beats': 16})],
+            figures: [
+              // invalid-fixture: synthetic unknown move verifies figure-only
+              // text cannot satisfy an author-scoped search
+              Figure(move: 'alice_smith', params: const {'beats': 16}),
+            ],
           ),
         );
 

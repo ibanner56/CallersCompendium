@@ -10,6 +10,7 @@ import 'package:compendium_app/src/data/app_theme_scope.dart';
 import 'package:compendium_app/src/data/custom_themes_controller.dart';
 import 'package:compendium_app/src/data/custom_themes_scope.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
+import 'package:compendium_app/src/data/collection_filter_scope.dart';
 import 'package:compendium_app/src/data/repositories_scope.dart';
 import 'package:compendium_app/src/data/sort_ignore_articles_scope.dart';
 import 'package:compendium_app/src/screens/dance_detail_screen.dart';
@@ -56,6 +57,7 @@ Future<void> _pumpScreen(
   bool sortIgnoreArticles = true,
   CallersBoxOnline? callersBoxOnline,
   ContraDbOnline? contraDbOnline,
+  CollectionFilterController? filterController,
 }) async {
   // A tall surface so the search bar, filter/advanced panels and results are
   // all laid out without scrolling, keeping chip/control taps stable.
@@ -72,6 +74,11 @@ Future<void> _pumpScreen(
   addTearDown(customThemes.dispose);
   final sortIgnoreArticlesNotifier = ValueNotifier<bool>(sortIgnoreArticles);
   addTearDown(sortIgnoreArticlesNotifier.dispose);
+  final activeFilterController =
+      filterController ?? CollectionFilterController();
+  if (filterController == null) {
+    addTearDown(activeFilterController.dispose);
+  }
   await tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: testLocalizationsDelegates,
@@ -86,7 +93,10 @@ Future<void> _pumpScreen(
               notifier: notifier,
               child: SortIgnoreArticlesScope(
                 notifier: sortIgnoreArticlesNotifier,
-                child: child!,
+                child: CollectionFilterScope(
+                  controller: activeFilterController,
+                  child: child!,
+                ),
               ),
             ),
           ),
@@ -800,6 +810,45 @@ void main() {
     );
 
     await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<DropdownButtonFormField<FullTextScope>>(
+            find.byKey(const ValueKey('collection-search-scope')),
+          )
+          .initialValue,
+      FullTextScope.figure,
+    );
+  });
+
+  testWidgets('external tag filtering restores the prior local scope', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    final filterController = CollectionFilterController();
+    addTearDown(filterController.dispose);
+
+    await _pumpScreen(tester, repos, filterController: filterController);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('collection-search-scope')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Figure').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('advanced-panel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('online-search-enable')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<DropdownButtonFormField<FullTextScope>>(
+            find.byKey(const ValueKey('collection-search-scope')),
+          )
+          .initialValue,
+      FullTextScope.title,
+    );
+
+    filterController.filterByTag('tag-1');
     await tester.pumpAndSettle();
     expect(
       tester

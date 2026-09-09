@@ -448,6 +448,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
       _advancedRoot.children.clear();
       _advancedRoot.kind = GroupKind.all;
       _advancedEnabled = false;
+      _ftsScope = _localFtsScope;
       _onlineEnabled = false;
       // Invalidate any in-flight online search so a late response can't
       // repopulate _onlineResults/_onlineError after we've left online mode.
