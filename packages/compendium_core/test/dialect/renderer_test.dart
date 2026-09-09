@@ -327,6 +327,18 @@ void main() {
         renderer.renderSummaryWithCanonicalDiscouragedTerms(figure, larks),
         'Shoulder round with the larks',
       );
+
+      final ladyDialect = Dialect(
+        name: 'Ladies/Robins',
+        roles: const {'role1': RoleTerm('lady'), 'role2': RoleTerm('robin')},
+      );
+      expect(
+        renderer.renderSummaryWithCanonicalDiscouragedTerms(
+          Figure(move: 'swing', wordingOverride: 'role1s cross'),
+          ladyDialect,
+        ),
+        'ladies cross',
+      );
     });
   });
 
