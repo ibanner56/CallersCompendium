@@ -1911,16 +1911,20 @@ FigureMatch? _bracketAnnotation(String scrubbed) {
 
     final isLeading = scrubbed.substring(0, annotation.start).trim().isEmpty;
     final who = resolveDancerSetPhrase(body);
+    final matchWho = match.params['who'];
+    final whoIsUnspecified = matchWho == ParamVocab.unspecified;
     if (isLeading &&
         who != null &&
         def.params.containsKey('who') &&
-        !match.params.containsKey('who') &&
+        (!match.params.containsKey('who') || whoIsUnspecified) &&
         !extraParams.containsKey('who')) {
       extraParams['who'] = who;
       continue;
     }
 
-    if (isLeading && who == null && match.assumedSubject) {
+    if (isLeading &&
+        who == null &&
+        (match.assumedSubject || whoIsUnspecified)) {
       // The bracket supplies an unmodelled (often non-duple) subject while the
       // grammar would otherwise default one. Preserve fidelity by staying custom.
       return const FigureMatch.customFallback();
