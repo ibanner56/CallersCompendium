@@ -97,6 +97,19 @@ def test_admin_marker_allows_tracking_maintenance() -> None:
     )
 
 
+def test_admin_marker_allows_preflight_gate_and_its_supporting_files() -> None:
+    assert (
+        validate(
+            paths=["CONTRIBUTING.md", "tools/preflight.py", "tools/test_preflight.py"],
+            title="Fix preflight",
+            body="<!-- tracking-admin -->",
+            head_ref="preflight-fvm-repair",
+            author_association="OWNER",
+        )
+        == []
+    )
+
+
 def test_admin_marker_is_owner_only() -> None:
     errors = validate(
         paths=[".github/tracking/adr-004/units/W10.json"],

@@ -23,11 +23,13 @@ ADMIN_PATHS = {
     ".github/workflows/_checks.yml",
     ".github/workflows/ci.yml",
     ".github/workflows/device-sync-tracking.yml",
+    "CONTRIBUTING.md",
     "docs/adr/004-device-sync-and-athenaeum.md",
     "docs/design/sync-implementation.md",
     "docs/design/sync-spec.md",
     "docs/design/sync.md",
     "tools/preflight.py",
+    "tools/test_preflight.py",
 }
 CONTROL_PATH_PREFIXES = ("tools/tracking/",)
 CONTROL_PATHS = {
