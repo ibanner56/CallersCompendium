@@ -32,7 +32,8 @@ const String kTaxonomyV33CanonicalRebuildDoneKey =
 ///   that
 ///   must not travel between machines or be rewritten by restoring an old file:
 ///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
-///   [kTaxonomyV33CanonicalRebuildDoneKey].
+///   [kTaxonomyV33CanonicalRebuildDoneKey],
+///   [callersBoxRollAwayRoleRepairDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
 ///   privacy classes are not [EgressClass.deviceLocal]:
@@ -47,6 +48,7 @@ const Set<String> kBackupSettingsDenylist = {
   kLastBackupAtKey,
   kBackupReminderCadenceKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
+  callersBoxRollAwayRoleRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
 };

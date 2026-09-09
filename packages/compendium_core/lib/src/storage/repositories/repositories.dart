@@ -1340,15 +1340,25 @@ class CompendiumRepositories {
         .get();
     if (done.isNotEmpty) return alreadyRebuilt;
 
-    final allDances = await dances.listAll(includeDeleted: true);
+    final legacyRows = await db
+        .customSelect(
+          'SELECT dances.id, dances.figures_json, provenance.source '
+          'FROM dances LEFT JOIN provenance '
+          'ON provenance.dance_id = dances.id',
+          readsFrom: {db.dances, db.provenance},
+        )
+        .get();
     var rewroteAny = false;
     await db.transaction(() async {
-      for (final dance in allDances) {
-        if (dance.provenance?.source != ProvenanceSource.callersbox) {
+      for (final row in legacyRows) {
+        if (row.read<String?>('source') != ProvenanceSource.callersbox.name) {
           continue;
         }
-        final repaired = dances.repairLegacyCallersBoxRollAwayPublic(dance);
-        if (identical(repaired, dance)) continue;
+        final figures = decodeFigures(row.read<String>('figures_json'));
+        final repaired = dances.repairLegacyCallersBoxRollAwayFiguresPublic(
+          figures,
+        );
+        if (identical(repaired, figures)) continue;
         rewroteAny = true;
         // Rewrite only figures_json; the bulk rebuild below refreshes all
         // derived rows after every source rewrite has committed.
@@ -1359,8 +1369,8 @@ class CompendiumRepositories {
           'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
           'WHERE id = ?',
           variables: [
-            Variable<String>(encodeFigures(repaired.figures)),
-            Variable<String>(dance.id),
+            Variable<String>(encodeFigures(repaired)),
+            Variable<String>(row.read<String>('id')),
           ],
           updates: {db.dances},
           updateKind: UpdateKind.update,

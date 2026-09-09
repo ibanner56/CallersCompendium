@@ -243,8 +243,17 @@ class DanceRepository {
   /// to CallersBox provenance; this transformer only recognizes the exact
   /// persisted figure shape emitted by the buggy parser.
   Dance repairLegacyCallersBoxRollAwayPublic(Dance dance) {
+    final repaired = repairLegacyCallersBoxRollAwayFiguresPublic(dance.figures);
+    if (identical(repaired, dance.figures)) return dance;
+    return dance.copyWith(figures: repaired);
+  }
+
+  /// Repairs the figures in a dance without requiring the caller to hydrate
+  /// unrelated dance metadata or child relations.
+  List<Figure> repairLegacyCallersBoxRollAwayFiguresPublic(
+    List<Figure> figures,
+  ) {
     List<Figure>? repaired;
-    final figures = dance.figures;
     for (var i = 0; i < figures.length; i++) {
       final figure = figures[i];
       final result = _repairLegacyCallersBoxRollAway(figure);
@@ -253,7 +262,7 @@ class DanceRepository {
       }
       repaired?.add(result);
     }
-    return repaired != null ? dance.copyWith(figures: repaired) : dance;
+    return repaired ?? figures;
   }
 
   Figure _repairLegacyCallersBoxRollAway(Figure figure) {
@@ -278,6 +287,7 @@ class DanceRepository {
     }
 
     if (figure.move != 'roll_away' ||
+        figure.assumedSubject ||
         figure.params.containsKey('whom') ||
         !_legacyCallersBoxRollAwayRelationships.contains(
           figure.params['who'],
