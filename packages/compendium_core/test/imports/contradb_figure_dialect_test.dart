@@ -820,6 +820,15 @@ void main() {
       expect(f.params['rico1'], isNot(true));
       expect(f.note, suffix);
     });
+
+    test('timed half hey ricochet remains verbatim in the note', () {
+      const suffix = '- role2s ricochet first time';
+      final f = _parse(
+        'role2s start a half hey - rights in center, lefts on ends $suffix',
+      );
+      expect(f.params['rico1'], isNot(true));
+      expect(f.note, suffix);
+    });
   });
 
   group('contraDbHtmlFigureFrontEnd — note splitting (verbatim tail)', () {

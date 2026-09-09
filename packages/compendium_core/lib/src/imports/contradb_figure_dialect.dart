@@ -753,13 +753,17 @@ bool _eatHeyRicochetClause(
   if (who == null || !s.eat('ricochet')) return false;
 
   var meetingOffset = 0;
-  if (s.eat('first')) {
-    if (!s.eat('time')) return false;
-  } else if (s.eat('second')) {
-    if (!s.eat('time')) return false;
-    meetingOffset = 2;
-  } else if (length != 'half') {
-    return false;
+  if (length == 'half') {
+    if (s.peek() == 'first' || s.peek() == 'second') return false;
+  } else {
+    if (s.eat('first')) {
+      if (!s.eat('time')) return false;
+    } else if (s.eat('second')) {
+      if (!s.eat('time')) return false;
+      meetingOffset = 2;
+    } else {
+      return false;
+    }
   }
 
   final slot = _heyRicochetSlot(who, pass1, length, meetingOffset);
