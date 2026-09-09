@@ -63,9 +63,10 @@ import '../widgets/program_status_chip.dart';
 /// bottom sheet.
 ///
 /// Language-neutral sentinel stored in [_ProgramEditorScreenState._loadError]
-/// when the requested program no longer exists. Kept locale-independent (rather
-/// than a resolved string) so the message re-localizes if the app language is
-/// switched live while this retained editor is off-screen.
+/// when the requested program no longer exists or Undo recovery cannot
+/// reconcile the editor. Kept locale-independent (rather than a resolved
+/// string) so the message re-localizes if the app language is switched live
+/// while this retained editor is off-screen.
 enum _ProgramLoadError { missing, undoRecoveryFailed }
 
 enum _PreviewPane { editor, picker }
