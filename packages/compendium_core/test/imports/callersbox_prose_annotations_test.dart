@@ -139,6 +139,8 @@ void main() {
           beats: 8,
         );
         expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['whom'], 'neighbors');
         expect(f.note, 'role2s roll right, role1s side-step left');
       });
 
@@ -148,6 +150,8 @@ void main() {
           beats: 8,
         );
         expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role1s');
+        expect(f.params['whom'], 'neighbors');
         expect(f.note, 'role2s roll left, role1s side-step right');
       });
 
@@ -157,6 +161,8 @@ void main() {
           beats: 8,
         );
         expect(f.move, 'roll_away');
+        expect(f.params['who'], 'role2s');
+        expect(f.params['whom'], 'neighbors');
         expect(f.note, 'role1s roll right, role2s side-step left');
       });
 
