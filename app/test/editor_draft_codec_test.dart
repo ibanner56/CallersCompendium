@@ -142,7 +142,8 @@ void main() {
               as Map<String, Object?>;
 
       expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
-      
+    });
+
     test('encodes and decodes reverse progression improper formation', () {
       final reverse = _minimalSnapshot(
         formationShape: FormationShape.reverseProgressionImproper,
