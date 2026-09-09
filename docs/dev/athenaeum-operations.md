@@ -142,20 +142,88 @@ refusals, not redirects.
 Enable Apache's `remoteip` module, then fetch Cloudflare's published trusted
 proxy ranges. Write the IPv4 and IPv6 lists separately: the IPv4 endpoint does
 not guarantee a trailing newline, and concatenating them directly can create
-an invalid CIDR.
+an invalid CIDR. Do not replace the existing list unless both downloads
+succeed; a partial list collapses affected clients into a Cloudflare-edge
+rate-limit bucket.
 
 ```sh
 sudo a2enmod remoteip headers
 sudo install -d -m 755 /etc/apache2/cloudflare
-tmp=$(mktemp)
-curl --fail --silent --show-error https://www.cloudflare.com/ips-v4 > "$tmp"
-printf '\n' >> "$tmp"
-curl --fail --silent --show-error https://www.cloudflare.com/ips-v6 >> "$tmp"
-sudo install -m 644 "$tmp" /etc/apache2/cloudflare/trusted-proxies.conf
-rm -f "$tmp"
-sudo apachectl configtest
-sudo systemctl reload apache2
+sudo tee /usr/local/sbin/athenaeum-refresh-cloudflare-proxies >/dev/null <<'EOF'
+#!/bin/sh
+set -eu
+
+directory=/etc/apache2/cloudflare
+target=$directory/trusted-proxies.conf
+candidate=$(mktemp "$directory/.trusted-proxies.conf.XXXXXX")
+previous=
+cleanup() {
+  [ -z "$candidate" ] || rm -f "$candidate"
+  [ -z "$previous" ] || rm -f "$previous"
+}
+trap cleanup EXIT HUP INT TERM
+
+curl --fail --silent --show-error https://www.cloudflare.com/ips-v4 > "$candidate"
+printf '\n' >> "$candidate"
+curl --fail --silent --show-error https://www.cloudflare.com/ips-v6 >> "$candidate"
+chmod 644 "$candidate"
+
+if [ -e "$target" ]; then
+  previous=$(mktemp "$directory/.trusted-proxies.previous.XXXXXX")
+  cp -p "$target" "$previous"
+fi
+mv -f "$candidate" "$target"
+candidate=
+
+if apachectl configtest && systemctl reload apache2; then
+  exit 0
+fi
+
+if [ -n "$previous" ]; then
+  mv -f "$previous" "$target"
+  previous=
+else
+  rm -f "$target"
+fi
+if ! apachectl configtest || ! systemctl reload apache2; then
+  echo "previous trusted-proxy list restored, but Apache reload failed" >&2
+fi
+exit 1
+EOF
+sudo chmod 755 /usr/local/sbin/athenaeum-refresh-cloudflare-proxies
+sudo /usr/local/sbin/athenaeum-refresh-cloudflare-proxies
+sudo tee /etc/systemd/system/athenaeum-cloudflare-proxies.service >/dev/null <<'EOF'
+[Unit]
+Description=Refresh Cloudflare trusted proxy ranges for Athenaeum
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/athenaeum-refresh-cloudflare-proxies
+EOF
+sudo tee /etc/systemd/system/athenaeum-cloudflare-proxies.timer >/dev/null <<'EOF'
+[Unit]
+Description=Weekly Athenaeum Cloudflare trusted proxy range refresh
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target
+EOF
+sudo systemctl daemon-reload
+sudo systemctl enable --now athenaeum-cloudflare-proxies.timer
 ```
+
+The updater downloads both address families into a same-directory candidate and
+atomically replaces the live list only after both succeed. If Apache rejects
+the candidate or cannot reload, it restores the previous list. The timer runs
+weekly after downtime and the service exits nonzero on every failed download,
+config test, or Apache reload; route that service failure to the host's
+operator-alert path.
 
 Inside only the Athenaeum `*:443` vhost, configure the trusted client address
 and replace the reference `RequestHeader` directive:
@@ -218,7 +286,52 @@ must fail TLS client-certificate verification without returning an HTTP
 response. The standard smoke harness intentionally connects to loopback, so it
 cannot run while `SSLVerifyClient require` is enforced; use a direct/staging
 topology for that harness and a disposable public create/lookup/delete round
-trip for the Cloudflare path.
+trip for the Cloudflare path. That lifecycle probe does not prove that
+Cloudflare client-IP handling works.
+
+To verify the Cloudflare client-IP path, use two real external clients with
+different public egress addresses during a quiet maintenance window. From each
+client, first record the address Cloudflare sees:
+
+```sh
+curl --silent https://sync.example.invalid/cdn-cgi/trace |
+  awk -F= '$1 == "ip" { print $2 }'
+```
+
+Send the following requests from client A, changing the supplied
+`X-Forwarded-For` value on the last request. Its first 20 requests must return
+`401`; its 21st must return `429`. This proves that a client cannot escape its
+rate-limit bucket by spoofing that header.
+
+```sh
+endpoint='https://sync.example.invalid/v1/store'
+request_status() {
+  curl --noproxy '*' --silent --show-error --max-time 15 \
+    --output /dev/null --write-out '%{http_code}\n' \
+    --header 'Authorization: Bearer invalid-credential' \
+    --header "$1" "$endpoint"
+}
+for attempt in $(seq 1 20); do
+  test "$(request_status 'X-Forwarded-For: 198.51.100.1')" = 401
+done
+test "$(request_status 'X-Forwarded-For: 203.0.113.1')" = 429
+```
+
+While client A is still rate-limited, send one request from client B with the
+same invalid authorization. It must return `401`, not `429`. Correlate each
+request with the redacted Apache access log by timestamp: its `%h` client
+address must match the address reported by `/cdn-cgi/trace`, never a
+Cloudflare range. This verifies both independent client buckets and the
+trusted `CF-Connecting-IP` path without logging credentials or request
+headers.
+
+```sh
+curl --noproxy '*' --silent --show-error --max-time 15 \
+  --output /dev/null --write-out '%{http_code}\n' \
+  --header 'Authorization: Bearer invalid-credential' \
+  --header 'X-Forwarded-For: 203.0.113.1' \
+  https://sync.example.invalid/v1/store
+```
 
 ## Operations
 
