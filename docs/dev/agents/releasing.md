@@ -39,6 +39,10 @@ step-by-step does not prevent on its own.
   only `vX.Y.Z-beta` and `vX.Y.Z` are valid. A beta establishes the shared
   section, and stable refreshes both signed update channels while beta refreshes
   beta only.
+- **Release codenames live on annotated tags.** Starting with the next minor
+  release, carry the prior codename forward or choose a new one by adding one
+  `Release codename: <name>` line to the tag message. The workflow uses it as
+  the GitHub Release title; legacy tags without the line fall back to the tag.
 - **Guard concurrency mechanically, not by agreement.** Two agents able to tag
   is a real hazard, but deference between them fails silently the moment one
   stops existing. Compare the candidate commit against the newest release tag,

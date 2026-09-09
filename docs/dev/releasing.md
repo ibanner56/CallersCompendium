@@ -33,7 +33,7 @@ This is the operator runbook for cutting a desktop release. It documents the
 
 - [What the pipeline produces](#what-the-pipeline-produces) — 55 lines
 - [Safety model](#safety-model) — 15 lines
-- [Cutting a release](#cutting-a-release) — 233 lines
+- [Cutting a release](#cutting-a-release) — 255 lines
 - [CHANGELOG-driven release notes](#changelog-driven-release-notes) — 48 lines
 - [Software Bill of Materials (SBOM)](#software-bill-of-materials-sbom) — 74 lines
 - [Publishing the update manifest (GitHub Pages)](#publishing-the-update-manifest-github-pages) — 124 lines
@@ -278,22 +278,36 @@ and produces no Android artifact.
    Tagging a pre-merge SHA points the release at a tree with pending fragments,
    so the `meta` gate fails before builds. If the tag is already pushed, delete
    and re-push it at the right commit before the draft is published.
-4. Tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
+4. Choose the release codename. Starting with the next minor release, every new
+   tag carries either the previous release's codename or a new one. The codename
+   is stored in the annotated tag, so it survives workflow retries and can be
+   carried forward without relying on a local prompt or a mutable release title.
+   Use a short title (80 characters or fewer, with no control characters), then
+   tag and push. The only accepted tags are stable `vX.Y.Z` and bare beta
    `vX.Y.Z-beta`; beta creates a GitHub prerelease. **Name the commit
    explicitly** — a bare `git tag v0.2.0` tags whatever `HEAD` happens to be,
    which is the release branch if you never switched off it:
 
    ```sh
-   git tag v0.2.0 "$(git rev-parse origin/main)"
-   git push origin v0.2.0
+   tag=v0.3.0
+   codename="Autumn Waltz"
+   printf 'Release %s\n\nRelease codename: %s\n' "$tag" "$codename" |
+     git tag -a "$tag" "$(git rev-parse origin/main)" -F -
+   git push origin "$tag"
    ```
 
+   To carry the prior codename, read it from the prior annotated tag with
+   `git for-each-ref --format='%(contents)' refs/tags/<previous-tag> |
+   python3 tools/release/resolve_release_codename.py --tag-message` and reuse
+   that value. Legacy tags without an annotation remain recoverable, but new
+   release tags should always include one.
 5. Watch the run under **Actions → Release**. It resolves + validates metadata
    (pending fragments or a direct compatibility-queue edit fail here, fast; schema changes also require a
    current Data / Migrations range), gates on the reusable checks, builds +
    packages on all three OSes, creates the **draft** release (`publish`), then
    **verifies each artifact's SLSA provenance and SBOM attestation** (`verify`).
-6. Review the draft under **Releases**: confirm the desktop binaries and, when
+6. Review the draft under **Releases**: confirm its title is the selected
+   codename, then confirm the desktop binaries and, when
    Android signing was configured, the additional Android APK; then confirm `SHA256SUMS`,
    both refreshed channel manifests (stable releases attach `stable.json` and
    `beta.json`; betas attach `beta.json`) and their `.sig` files are present and
