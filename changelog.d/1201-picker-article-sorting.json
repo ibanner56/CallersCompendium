@@ -1,0 +1,9 @@
+{
+  "id": "1201-picker-article-sorting",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "You can now sort the Program editor and Perform dance pickers by the first meaningful word when \"Ignore leading articles when sorting\" is enabled, including while a picker is open."
+    ]
+  }
+}
