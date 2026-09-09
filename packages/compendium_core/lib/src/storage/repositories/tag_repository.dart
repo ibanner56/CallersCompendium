@@ -112,12 +112,20 @@ class TagRepository {
     if (existingId == null) return upsert(tag, at: at);
 
     // Preserve the incumbent's spelling so a legacy case-only duplicate is
-    // revived through the existing exact-key adoption path.
+    // adopted through the existing exact-key path. A different staged ID is
+    // a new entity, so adoption must clear the tombstone's retained joins;
+    // retrying the incumbent ID remains a revival and keeps them.
     final existing = await (_db.select(
       _db.tags,
     )..where((t) => t.id.equals(existingId))).getSingle();
+    if (tag.id == existing.id) {
+      return upsert(
+        Tag(id: existing.id, name: existing.name, color: tag.color),
+        at: at,
+      );
+    }
     return upsert(
-      Tag(id: existing.id, name: existing.name, color: tag.color),
+      Tag(id: tag.id, name: existing.name, color: tag.color),
       at: at,
     );
   }

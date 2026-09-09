@@ -71,6 +71,30 @@ void main() {
     expect(await repo.getById('provisional-dead'), isNull);
   });
 
+  test('adopting a tombstoned key clears its retained dance joins', () async {
+    // Adoption is a newly created tag with a reused natural key, not a
+    // revival of the deleted tag. Its retained associations must not return.
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 'old', name: 'Hidden'));
+    final oldDance = Dance(
+      id: 'old-dance',
+      title: 'Old dance',
+      tagIds: const ['old'],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await dances.create(oldDance);
+    await repo.delete('old');
+
+    expect(
+      await repo.upsertStaged(Tag(id: 'provisional', name: 'Hidden')),
+      'old',
+    );
+    await repo.restore('old', at: DateTime.utc(2026, 1, 2));
+
+    expect((await dances.getById(oldDance.id))!.tagIds, isEmpty);
+  });
+
   test('upsertStaged matches natural keys case-insensitively', () async {
     // Legacy databases can contain case-only duplicates because the unique
     // constraint is case-sensitive. Prefer a live row, then the smallest id.
