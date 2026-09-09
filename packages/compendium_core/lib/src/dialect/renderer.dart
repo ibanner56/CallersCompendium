@@ -27,15 +27,14 @@ typedef _AssembledTemplate = ({Set<String> slots, String text});
 /// [FigureRenderer._displayBaseRenderers]). Computes the slots for a move that
 /// adopts ContraDB's `words()` sentence structure verbatim. Never invoked for
 /// the canonical render (which keeps expanding `renderTemplate`).
-typedef _DisplayBaseRenderer =
-    _DisplayTemplate Function(
-      FigureRenderer r,
-      MoveDef def,
-      Map<String, Object?> params,
-      Dialect dialect,
-      bool verbose,
-      bool decimals,
-    );
+typedef _DisplayBaseRenderer = _DisplayTemplate Function(
+  FigureRenderer r,
+  MoveDef def,
+  Map<String, Object?> params,
+  Dialect dialect,
+  bool verbose,
+  bool decimals,
+);
 
 /// Expands a display template in one pass.
 ///
@@ -1246,8 +1245,19 @@ class FigureRenderer {
 
   /// Free-text (notes, hooks, custom figures): apply role-term substitution
   /// with case preservation. Move-name substitution does not apply to prose.
-  String renderFreeText(String text, Dialect dialect) {
-    final map = <String, String>{};
+  ///
+  /// When [canonicalizeDiscouragedTerms] is true, the known discouraged
+  /// spellings are replaced at display time with the active dialect's role
+  /// terms (or canonical role tokens) and the safe shoulder-round wording.
+  /// Stored text is never changed.
+  String renderFreeText(
+    String text,
+    Dialect dialect, {
+    bool canonicalizeDiscouragedTerms = false,
+  }) {
+    final map = <String, String>{
+      if (canonicalizeDiscouragedTerms) ..._discouragedDisplayTerms(dialect),
+    };
     for (final entry in dialect.roles.entries) {
       map[entry.key] = entry.value.singular; // role1 -> Lark
       map['${entry.key}s'] = entry.value.plural; // role1s -> Larks
@@ -1258,6 +1268,18 @@ class FigureRenderer {
       preserveCase: true,
     ).apply(text);
   }
+
+  static Map<String, String> _discouragedDisplayTerms(Dialect dialect) => {
+    'gypsy': 'shoulder round',
+    'gyre': 'shoulder round',
+    'gent': _roleTerm('role1', dialect),
+    'gents': _roleTerm('role1s', dialect),
+    'men': _roleTerm('role1s', dialect),
+    'lady': _roleTerm('role2', dialect),
+    'ladies': _roleTerm('role2s', dialect),
+    'women': _roleTerm('role2s', dialect),
+    'ravens': _roleTerm('role2s', dialect),
+  };
 
   /// Human phrasing for a set-relative facing token, shared by the derived
   /// rotation-gate ending facing (issue #294) and swing's `endFacing` clause

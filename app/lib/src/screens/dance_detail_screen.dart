@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../l10n/app_localizations.dart';
 import '../data/active_dialect_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/collection_filter_scope.dart';
 import '../data/dialect_library_scope.dart';
 import '../data/display_defaults.dart';
@@ -683,6 +684,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
       statusLabel: danceStatusLabel(l10n, detail.dance.status),
       renderer: _renderer,
       labels: danceExportLabels(l10n),
+      canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(context),
     );
 
     return PopupMenuButton<void>(
@@ -959,6 +961,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           statusLabel: danceStatusLabel(l10n, detail.dance.status),
           renderer: _renderer,
           labels: danceExportLabels(l10n),
+          canonicalizeDiscouragedTerms: CanonicalDiscouragedTermsScope.of(
+            context,
+          ),
         ),
       );
     } on Exception catch (e, stackTrace) {
@@ -1052,6 +1057,9 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final theme = Theme.of(context);
     final dance = detail.dance;
     final activeDialect = ActiveDialectScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     // When the active dialect is already canonical, _canonicalView is a no-op
     // (both sides of the toggle are identical).  In that case hide the toggle.
     final isCanonicalDialect = activeDialect == Dialect.canonical;
@@ -1087,9 +1095,8 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                         builder: (context) {
                           // Per-formation label colour (issue #367): highlight
                           // only when the user overrode this shape.
-                          final color = FormationColorsScope.of(
-                            context,
-                          )?.overrideFor(dance.formation.shape);
+                          final color = FormationColorsScope.of(context)
+                              ?.overrideFor(dance.formation.shape);
                           final text = Text(
                             formationLabel(l10n, dance.formation),
                           );
@@ -1135,7 +1142,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 if (dance.hook.isNotEmpty) ...[
                   const SizedBox(height: AppSpacing.md),
                   _CrossReferenceText(
-                    text: _renderer.renderFreeText(dance.hook, dialect),
+                    text: _renderer.renderFreeText(
+                      dance.hook,
+                      dialect,
+                      canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                    ),
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1204,7 +1215,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(dance.callingNotes, dialect),
+            text: _renderer.renderFreeText(
+              dance.callingNotes,
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+            ),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1218,7 +1233,11 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           ),
           const SizedBox(height: AppSpacing.xxs),
           _CrossReferenceText(
-            text: _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+            text: _renderer.renderFreeText(
+              dance.walkthrough.trim(),
+              dialect,
+              canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+            ),
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,

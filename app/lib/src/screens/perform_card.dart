@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../data/formation_colors_scope.dart';
 import '../data/decimal_turns_scope.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../data/reduce_motion_scope.dart';
 import '../../l10n/app_localizations.dart';
 import '../search/facet_labels.dart';
@@ -109,6 +110,9 @@ class PerformCard extends StatelessWidget {
   Widget _body(BuildContext context, double scale) {
     final mediaQuery = MediaQuery.of(context);
     final chrome = _chromeScale(scale);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     return MediaQuery(
       data: mediaQuery.copyWith(textScaler: _effectiveScaler(context, scale)),
       child: Padding(
@@ -134,10 +138,13 @@ class PerformCard extends StatelessWidget {
               _SectionTitle(AppLocalizations.of(context).performCallingNotes),
               SizedBox(height: AppSpacing.xs * chrome),
               Text(
-                renderer.renderFreeText(dance.callingNotes, dialect),
-                style: Theme.of(
-                  context,
-                ).textTheme.headlineSmall?.merge(AppTypography.performBody),
+                renderer.renderFreeText(
+                  dance.callingNotes,
+                  dialect,
+                  canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                ),
+                style: Theme.of(context).textTheme.headlineSmall
+                    ?.merge(AppTypography.performBody),
               ),
             ],
           ],
@@ -837,9 +844,8 @@ class _Header extends StatelessWidget {
           text: formationLabel(l10n, dance.formation),
           // Per-formation label colour (issue #367): highlight only when the
           // user overrode this shape (override-only).
-          highlightColor: FormationColorsScope.of(
-            context,
-          )?.overrideFor(dance.formation.shape),
+          highlightColor: FormationColorsScope.of(context)
+              ?.overrideFor(dance.formation.shape),
         ),
         if (level != null) ...[
           SizedBox(height: AppSpacing.xs * chromeScale),
@@ -963,6 +969,9 @@ class _Figures extends StatelessWidget {
 
     final sectioned = deriveSections(figures, phraseStructure);
     final decimals = DecimalTurnsScope.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final children = <Widget>[];
     String? lastLabel;
     for (final sf in sectioned) {
@@ -1002,7 +1011,11 @@ class _Figures extends StatelessWidget {
           mainSpans = [
             for (final span in parseInlineEmphasis(raw))
               EmphasisSpan(
-                text: renderer.renderFreeText(span.text, dialect),
+                text: renderer.renderFreeText(
+                  span.text,
+                  dialect,
+                  canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+                ),
                 bold: span.bold,
                 underline: span.underline,
               ),
@@ -1020,7 +1033,11 @@ class _Figures extends StatelessWidget {
         noteSpans = [
           for (final span in parseInlineEmphasis(rawNote))
             EmphasisSpan(
-              text: renderer.renderFreeText(span.text, dialect),
+              text: renderer.renderFreeText(
+                span.text,
+                dialect,
+                canonicalizeDiscouragedTerms: canonicalDiscouragedTerms,
+              ),
               bold: span.bold,
               underline: span.underline,
             ),
@@ -1146,9 +1163,9 @@ class _FigureRow extends StatelessWidget {
                       message: l10n.performProgression,
                       child: Icon(
                         progressionIcon,
-                        size: MediaQuery.textScalerOf(
-                          context,
-                        ).scale(textStyle?.fontSize ?? 24).clamp(20.0, 32.0),
+                        size: MediaQuery.textScalerOf(context)
+                            .scale(textStyle?.fontSize ?? 24)
+                            .clamp(20.0, 32.0),
                         color: theme.colorScheme.primary,
                       ),
                     )

@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../data/canonical_discouraged_terms_scope.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 
@@ -39,6 +40,9 @@ class PerformWalkthroughOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final canonicalDiscouragedTerms = CanonicalDiscouragedTermsScope.of(
+      context,
+    );
     final text = walkthrough.trim();
 
     return Stack(
@@ -94,9 +98,8 @@ class PerformWalkthroughOverlay extends StatelessWidget {
                           ),
                           IconButton(
                             key: const ValueKey('perform-walkthrough-close'),
-                            tooltip: MaterialLocalizations.of(
-                              context,
-                            ).closeButtonTooltip,
+                            tooltip: MaterialLocalizations.of(context)
+                                .closeButtonTooltip,
                             icon: const Icon(Icons.close),
                             onPressed: onClose,
                           ),
@@ -108,7 +111,12 @@ class PerformWalkthroughOverlay extends StatelessWidget {
                           child: Text(
                             text.isEmpty
                                 ? l10n.performWalkthroughEmpty
-                                : renderer.renderFreeText(text, dialect),
+                                : renderer.renderFreeText(
+                                    text,
+                                    dialect,
+                                    canonicalizeDiscouragedTerms:
+                                        canonicalDiscouragedTerms,
+                                  ),
                             style: theme.textTheme.titleMedium?.merge(
                               AppTypography.performBody,
                             ),

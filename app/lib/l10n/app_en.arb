@@ -604,6 +604,14 @@
   "@settingsDialectCanonicalFigureTextSubtitle": {
     "description": "Explanation of the canonical figure text availability gate; it must not imply that saved dance text or entry settings are changed."
   },
+  "settingsDialectCanonicalDiscouragedTermsTitle": "Use canonical dance terms",
+  "@settingsDialectCanonicalDiscouragedTermsTitle": {
+    "description": "Setting title for display-only conversion of discouraged dance terms."
+  },
+  "settingsDialectCanonicalDiscouragedTermsSubtitle": "When on, dance details, notes, and exports use canonical wording for supported discouraged terms. Saved text and entry fields are unchanged. On by default.",
+  "@settingsDialectCanonicalDiscouragedTermsSubtitle": {
+    "description": "Explanation of the display-only canonical discouraged-term setting; it must not imply that saved dance text or entry settings are changed."
+  },
   "settingsDialectNewButton": "New dialect",
   "@settingsDialectNewButton": {
     "description": "Label of the button (and title of the prompt) that creates a new custom dialect."

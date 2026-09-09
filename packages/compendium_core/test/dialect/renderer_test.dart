@@ -271,6 +271,38 @@ void main() {
         'swing your neighbor',
       );
     });
+
+    test('converts supported discouraged terms only when opted in', () {
+      const note = 'Gypsy with the gents and Ravens; gyre next.';
+      expect(renderer.renderFreeText(note, larks), note);
+      expect(
+        renderer.renderFreeText(
+          note,
+          larks,
+          canonicalizeDiscouragedTerms: true,
+        ),
+        'Shoulder round with the larks and Robins; shoulder round next.',
+      );
+      expect(
+        renderer.renderFreeText(
+          'Ladies and women, men and gent.',
+          Dialect.canonical,
+          canonicalizeDiscouragedTerms: true,
+        ),
+        'Role2s and role2s, role1s and role1.',
+      );
+    });
+
+    test('preserves boundaries, names, and punctuation', () {
+      expect(
+        renderer.renderFreeText(
+          'Mad Robin and gypsyism are not replacements; gypsy!',
+          larks,
+          canonicalizeDiscouragedTerms: true,
+        ),
+        'Mad Robin and gypsyism are not replacements; shoulder round!',
+      );
+    });
   });
 
   group('unknown moves', () {
@@ -1096,18 +1128,15 @@ void main() {
         );
       });
       // issue #576: a set `meetTarget` names WHICH pair you run until you meet.
-      String sTarget(
-        String length,
-        String meetTarget,
-      ) => renderer.renderSummary(
-        invalidTestFigure(
-          move: 'hey',
-          params: {'length': length, 'meetTarget': meetTarget},
-          reason:
-              'callers pass an out-of-domain meetTarget to prove the renderer surfaces it rather than blanking it',
-        ),
-        d,
-      );
+      String sTarget(String length, String meetTarget) =>
+          renderer.renderSummary(
+            invalidTestFigure(
+              move: 'hey',
+              params: {'length': length, 'meetTarget': meetTarget},
+              reason: 'callers pass an out-of-domain meetTarget to prove the renderer surfaces it rather than blanking it',
+            ),
+            d,
+          );
       test('lessThanHalf names the meetTarget pair (bare "meet")', () {
         expect(
           sTarget('lessThanHalf', 'partners'),
@@ -1803,45 +1832,42 @@ void main() {
     });
 
     // Issue #873: pass_by and pass_through shoulder rendering.
-    group(
-      'pass_by renders the shoulder at every value (ContraDB figureGenericWords)',
-      () {
-        // ContraDB always emits the shoulder for pass by (figureGenericWords).
-        // Word forms from ContraDB `stringParamShoulders`: "right shoulders" /
-        // "left shoulders" / "* shoulders".
-        test('default right: neighbor pass by right shoulders', () {
-          expect(
-            renderer.render(Figure(move: 'pass_by'), d),
-            'neighbor pass by right shoulders',
-          );
-        });
-        test('left: neighbor pass by left shoulders', () {
-          expect(
-            renderer.render(
-              Figure(move: 'pass_by', params: {'shoulder': 'left'}),
-              d,
-            ),
-            'neighbor pass by left shoulders',
-          );
-        });
-        // invalid-fixture: value is deliberately out of domain — pass_by surfaces an unknown shoulder value via the %S expansion rather than blanking it
-        test('wildcard: neighbor pass by * shoulders', () {
-          expect(
-            renderer.render(
-              Figure(move: 'pass_by', params: {'shoulder': '*'}),
-              d,
-            ),
-            'neighbor pass by * shoulders',
-          );
-        });
-        test('verbose output matches terse', () {
-          expect(
-            renderer.renderVerbose(Figure(move: 'pass_by'), d),
-            'neighbor pass by right shoulders',
-          );
-        });
-      },
-    );
+    group('pass_by renders the shoulder at every value (ContraDB figureGenericWords)', () {
+      // ContraDB always emits the shoulder for pass by (figureGenericWords).
+      // Word forms from ContraDB `stringParamShoulders`: "right shoulders" /
+      // "left shoulders" / "* shoulders".
+      test('default right: neighbor pass by right shoulders', () {
+        expect(
+          renderer.render(Figure(move: 'pass_by'), d),
+          'neighbor pass by right shoulders',
+        );
+      });
+      test('left: neighbor pass by left shoulders', () {
+        expect(
+          renderer.render(
+            Figure(move: 'pass_by', params: {'shoulder': 'left'}),
+            d,
+          ),
+          'neighbor pass by left shoulders',
+        );
+      });
+      // invalid-fixture: value is deliberately out of domain — pass_by surfaces an unknown shoulder value via the %S expansion rather than blanking it
+      test('wildcard: neighbor pass by * shoulders', () {
+        expect(
+          renderer.render(
+            Figure(move: 'pass_by', params: {'shoulder': '*'}),
+            d,
+          ),
+          'neighbor pass by * shoulders',
+        );
+      });
+      test('verbose output matches terse', () {
+        expect(
+          renderer.renderVerbose(Figure(move: 'pass_by'), d),
+          'neighbor pass by right shoulders',
+        );
+      });
+    });
 
     group('pass_by canonical is byte-identical regardless of shoulder', () {
       // The canonical render uses the bare renderTemplate ({who} {move}) —
@@ -1871,108 +1897,108 @@ void main() {
       });
     });
 
-    group(
-      'pass_through renders shoulder only for non-right values (ContraDB passThroughWords)',
-      () {
-        // ContraDB: right shoulder is implicit (suppressed); left and * are
-        // rendered explicitly. The default "along" direction continues to be
-        // silenced on all paths.
-        test('default (right shoulder + along dir): pass through', () {
-          expect(
-            renderer.render(Figure(move: 'pass_through'), d),
-            'pass through',
-          );
-        });
-        test(
-          'left shoulder suppresses dir default: pass through left shoulders',
-          () {
-            expect(
-              renderer.render(
-                Figure(move: 'pass_through', params: {'shoulder': 'left'}),
-                d,
-              ),
-              'pass through left shoulders',
-            );
-          },
+    group('pass_through renders shoulder only for non-right values (ContraDB passThroughWords)', () {
+      // ContraDB: right shoulder is implicit (suppressed); left and * are
+      // rendered explicitly. The default "along" direction continues to be
+      // silenced on all paths.
+      test('default (right shoulder + along dir): pass through', () {
+        expect(
+          renderer.render(Figure(move: 'pass_through'), d),
+          'pass through',
         );
-        // invalid-fixture: value is deliberately out of domain — pass_through surfaces an unknown shoulder value rather than blanking it
-        test('wildcard shoulder: pass through * shoulders', () {
+      });
+      test(
+        'left shoulder suppresses dir default: pass through left shoulders',
+        () {
           expect(
             renderer.render(
-              Figure(move: 'pass_through', params: {'shoulder': '*'}),
-              d,
-            ),
-            'pass through * shoulders',
-          );
-        });
-        test('non-default dir still renders (right shoulder suppressed)', () {
-          expect(
-            renderer.render(
-              Figure(move: 'pass_through', params: {'dir': 'across'}),
-              d,
-            ),
-            'pass through across',
-          );
-        });
-        test('left shoulder + non-default dir: both render', () {
-          expect(
-            renderer.render(
-              Figure(
-                move: 'pass_through',
-                params: {'shoulder': 'left', 'dir': 'across'},
-              ),
-              d,
-            ),
-            'pass through left shoulders across',
-          );
-        });
-        test('verbose output matches terse', () {
-          expect(
-            renderer.renderVerbose(
               Figure(move: 'pass_through', params: {'shoulder': 'left'}),
               d,
             ),
             'pass through left shoulders',
           );
-        });
-      },
-    );
-
-    group('pass_through canonical is byte-identical regardless of shoulder', () {
-      // The canonical render keeps expanding {move} {dir} — the base renderer
-      // is display-only.
-      test('default: canonical unchanged', () {
+        },
+      );
+      // invalid-fixture: value is deliberately out of domain — pass_through surfaces an unknown shoulder value rather than blanking it
+      test('wildcard shoulder: pass through * shoulders', () {
         expect(
-          renderer.renderCanonical(Figure(move: 'pass_through')),
-          'pass through along',
-        );
-      });
-      test('left shoulder: canonical unchanged', () {
-        expect(
-          renderer.renderCanonical(
-            Figure(move: 'pass_through', params: {'shoulder': 'left'}),
-          ),
-          'pass through along',
-        );
-      });
-      // invalid-fixture: value is deliberately out of domain — pass_through canonical keeps bare {move} {dir} expansion regardless of shoulder
-      test('wildcard shoulder: canonical unchanged', () {
-        expect(
-          renderer.renderCanonical(
+          renderer.render(
             Figure(move: 'pass_through', params: {'shoulder': '*'}),
+            d,
           ),
-          'pass through along',
+          'pass through * shoulders',
         );
       });
-      test('non-default dir: canonical unchanged', () {
+      test('non-default dir still renders (right shoulder suppressed)', () {
         expect(
-          renderer.renderCanonical(
+          renderer.render(
             Figure(move: 'pass_through', params: {'dir': 'across'}),
+            d,
           ),
           'pass through across',
         );
       });
+      test('left shoulder + non-default dir: both render', () {
+        expect(
+          renderer.render(
+            Figure(
+              move: 'pass_through',
+              params: {'shoulder': 'left', 'dir': 'across'},
+            ),
+            d,
+          ),
+          'pass through left shoulders across',
+        );
+      });
+      test('verbose output matches terse', () {
+        expect(
+          renderer.renderVerbose(
+            Figure(move: 'pass_through', params: {'shoulder': 'left'}),
+            d,
+          ),
+          'pass through left shoulders',
+        );
+      });
     });
+
+    group(
+      'pass_through canonical is byte-identical regardless of shoulder',
+      () {
+        // The canonical render keeps expanding {move} {dir} — the base renderer
+        // is display-only.
+        test('default: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(Figure(move: 'pass_through')),
+            'pass through along',
+          );
+        });
+        test('left shoulder: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(
+              Figure(move: 'pass_through', params: {'shoulder': 'left'}),
+            ),
+            'pass through along',
+          );
+        });
+        // invalid-fixture: value is deliberately out of domain — pass_through canonical keeps bare {move} {dir} expansion regardless of shoulder
+        test('wildcard shoulder: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(
+              Figure(move: 'pass_through', params: {'shoulder': '*'}),
+            ),
+            'pass through along',
+          );
+        });
+        test('non-default dir: canonical unchanged', () {
+          expect(
+            renderer.renderCanonical(
+              Figure(move: 'pass_through', params: {'dir': 'across'}),
+            ),
+            'pass through across',
+          );
+        });
+      },
+    );
   });
 
   group('PR2 display parity — idioms & adopted ContraDB wording', () {
@@ -2571,22 +2597,25 @@ void main() {
           'square through 6 - partner balance & pull by right, then neighbor pull by left',
         );
       });
-      test('cross_trails surfaces an unknown subject (structural clause kept)', () {
-        // ContraDB always emits both dir/shoulder clauses; an empty second
-        // subject leaves the (still meaningful) structural clause, and the
-        // unknown first subject is humanized rather than dropped.
-        expect(
-          renderer.render(
-            // invalid-fixture: value is deliberately out of domain — cross_trails surfaces an unknown subject (structural clause kept)
-            Figure(
-              move: 'cross_trails',
-              params: {'who': 'someImportedGroup', 'who2': ''},
+      test(
+        'cross_trails surfaces an unknown subject (structural clause kept)',
+        () {
+          // ContraDB always emits both dir/shoulder clauses; an empty second
+          // subject leaves the (still meaningful) structural clause, and the
+          // unknown first subject is humanized rather than dropped.
+          expect(
+            renderer.render(
+              // invalid-fixture: value is deliberately out of domain — cross_trails surfaces an unknown subject (structural clause kept)
+              Figure(
+                move: 'cross_trails',
+                params: {'who': 'someImportedGroup', 'who2': ''},
+              ),
+              d,
             ),
-            d,
-          ),
-          'cross trails - some imported group across the set right shoulders, along the set left shoulders',
-        );
-      });
+            'cross trails - some imported group across the set right shoulders, along the set left shoulders',
+          );
+        },
+      );
       test('poussette drops the direction clause for an unknown turn', () {
         expect(
           renderer.render(
@@ -2655,8 +2684,7 @@ void main() {
     Figure allemande(num turn) => invalidTestFigure(
       move: 'allemande',
       params: {'turn': turn},
-      reason:
-          'the decimals-display sweep uses turn values beyond the taxonomy domain',
+      reason: 'the decimals-display sweep uses turn values beyond the taxonomy domain',
     );
 
     test('renders turn amounts as leading-zero decimals when opted in', () {

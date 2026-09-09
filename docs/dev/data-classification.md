@@ -450,6 +450,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `auto_commit_program_changes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `auto_size_perform_cards` | `dpv:NonPersonalData` | app user | shareable |  |
 | `backup_reminder_cadence` | `dpv:NonPersonalData` | app user | shareable |  |
+| `canonical_discouraged_terms` | `dpv:NonPersonalData` | app user | shareable |  |
 | `canonical_figure_text` | `dpv:NonPersonalData` | app user | shareable |  |
 | `collection_tile_visible_fields` | `dpv:NonPersonalData` | app user | shareable |  |
 | `colour_dance_theme` | `dpv:NonPersonalData` | app user | shareable |  |
