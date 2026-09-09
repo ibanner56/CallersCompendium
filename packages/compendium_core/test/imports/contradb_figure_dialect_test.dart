@@ -812,6 +812,15 @@ void main() {
       expect(f.note, isNull);
     });
 
+    test('ricochet followed by a comma-prefixed note keeps both', () {
+      final f = _parse(
+        'role2s start a full hey - rights in center, lefts on ends - '
+        'role2s ricochet first time, face across',
+      );
+      expect(f.params['rico1'], isTrue);
+      expect(f.note, ', face across');
+    });
+
     test('malformed ricochet suffix remains verbatim in the note', () {
       const suffix = '- role2s maybe ricochet first time';
       final f = _parse(
@@ -838,6 +847,15 @@ void main() {
       expect(f.params['rico1'], isTrue);
       expect(f.params['rico2'], isTrue);
       expect(f.note, isNull);
+    });
+
+    test('out-of-order ricochets remain verbatim in the note', () {
+      const suffix = '- role1s ricochet first time, role2s ricochet first time';
+      final f = _parse(
+        'role2s start a full hey - rights in center, lefts on ends $suffix',
+      );
+      expect(f.params['rico1'], isNot(true));
+      expect(f.note, suffix);
     });
 
     test(

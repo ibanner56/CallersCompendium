@@ -732,6 +732,12 @@ bool _eatHeyRicochets(
     return false;
   }
   while (s.previousTokenEndsWith(',')) {
+    final clauseSave = s.pos;
+    if (!_looksLikeHeyRicochetClause(s)) {
+      s.reset(clauseSave);
+      s.includePreviousCommaInNote();
+      break;
+    }
     if (!_eatHeyRicochetClause(s, pass1, length, slots)) {
       s.reset(save);
       return false;
@@ -767,9 +773,24 @@ bool _eatHeyRicochetClause(
   }
 
   final slot = _heyRicochetSlot(who, pass1, length, meetingOffset);
-  if (slot == null || slots.contains(slot)) return false;
+  if (slot == null ||
+      slots.contains(slot) ||
+      (slots.isNotEmpty && slot <= slots.last)) {
+    return false;
+  }
   slots.add(slot);
   return true;
+}
+
+bool _looksLikeHeyRicochetClause(_Scan s) {
+  final save = s.pos;
+  if (_subject(s) == null) {
+    s.reset(save);
+    return false;
+  }
+  final result = s.peek() == 'ricochet' || s.peek() == 'maybe';
+  s.reset(save);
+  return result;
 }
 
 int? _heyRicochetSlot(
@@ -1862,6 +1883,7 @@ class _Scan {
   final List<String> _tokens = <String>[];
   final List<int> _starts = <int>[];
   int _i = 0;
+  int? _noteStartOverride;
 
   int get pos => _i;
   void reset(int p) => _i = p;
@@ -1904,11 +1926,20 @@ class _Scan {
   bool previousTokenEndsWith(String suffix) =>
       _i > 0 && _tokens[_i - 1].endsWith(suffix);
 
+  /// Includes the comma ending the previous token in the remaining note.
+  void includePreviousCommaInNote() {
+    if (_i == 0) return;
+    final comma = _tokens[_i - 1].lastIndexOf(',');
+    if (comma >= 0) _noteStartOverride = _starts[_i - 1] + comma;
+  }
+
   /// The verbatim remaining text from the current token to the end, trimmed;
   /// null when the template consumed the whole line.
   String? note() {
-    if (_i >= _tokens.length) return null;
-    final tail = text.substring(_starts[_i]).trim();
+    final start =
+        _noteStartOverride ?? (_i < _tokens.length ? _starts[_i] : null);
+    if (start == null) return null;
+    final tail = text.substring(start).trim();
     return tail.isEmpty ? null : tail;
   }
 }
