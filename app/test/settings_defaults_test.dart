@@ -685,6 +685,37 @@ void main() {
     );
   });
 
+  testWidgets('Meanwhile free-text composer closes when reaching six sides', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.settings.set(kFreeTextEntryKey, true);
+    await _pumpDefaults(tester, repos);
+    await tester.binding.setSurfaceSize(const Size(1200, 3000));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('meanwhile-side-add')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('meanwhile-side-free-text-field')),
+      'circle left 3/4; turn alone; circle left 3/4; turn alone',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('meanwhile-side-free-text-submit')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('meanwhile-side-5-summary')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('meanwhile-side-free-text-field')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('meanwhile-side-add')), findsNothing);
+  });
+
   testWidgets('Starting figures can add a meanwhile template', (tester) async {
     final repos = openTestRepositories();
     await _pumpDefaults(tester, repos);

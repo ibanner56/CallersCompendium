@@ -273,7 +273,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // insertion callback removed) while it was open. Route through
     // [_dismissFreeText] so focus is restored to the Add button rather than
     // stranded on the TextField that is about to be removed from the tree.
-    if (_freeTextComposing && !_freeTextEnabled) {
+    if (_freeTextComposing && (!_freeTextEnabled || !widget.allowAdding)) {
       _dismissFreeText();
     }
   }
@@ -572,7 +572,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ),
           ),
           const SizedBox(height: 4),
-          if (_freeTextComposing)
+          if (_freeTextComposing && widget.allowAdding)
             _buildFreeTextComposer(context)
           else
             Align(
@@ -751,7 +751,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             ],
           ),
         const SizedBox(height: 8),
-        if (_freeTextComposing)
+        if (_freeTextComposing && widget.allowAdding)
           _buildFreeTextComposer(context)
         else
           Row(
