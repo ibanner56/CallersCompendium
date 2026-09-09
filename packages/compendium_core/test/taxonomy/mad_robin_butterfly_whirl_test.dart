@@ -47,15 +47,16 @@ void main() {
       expect(def.params.keys, ['who', 'turn', 'direction', 'whom', 'beats']);
       expect(def.params['who']!.defaultValue, 'role2s');
       expect(def.params['who']!.choices, [
+        'everyone',
         'role1s',
         'role2s',
         'ones',
         'twos',
+        'firstCorners',
+        'secondCorners',
         'partners',
         'neighbors',
         'sameRoles',
-        'firstCorners',
-        'secondCorners',
         'shadows',
         'secondShadows',
         'prevNeighbors',
@@ -67,6 +68,11 @@ void main() {
         'thirdPartners',
         'fourthPartners',
         'fifthPartners',
+        'centers',
+        'onesRole1',
+        'onesRole2',
+        'twosRole1',
+        'twosRole2',
         ParamVocab.unspecified,
       ]);
       expect(def.params['who']!.validate(ParamVocab.unspecified), isTrue);
@@ -140,6 +146,24 @@ void main() {
     test('both moves validate at their defaults and with stated params', () {
       expect(tax.validateFigure(Figure(move: 'mad_robin')), isEmpty);
       expect(tax.validateFigure(Figure(move: 'butterfly_whirl')), isEmpty);
+      for (final who in ParamVocab.dancerSets) {
+        expect(
+          tax.validateFigure(
+            Figure(move: 'mad_robin', params: {'who': who}),
+          ),
+          isEmpty,
+          reason: 'mad_robin.who preserves dancer-set token $who',
+        );
+      }
+      expect(
+        tax.validateFigure(
+          Figure(
+            move: 'mad_robin',
+            params: const {'who': ParamVocab.unspecified},
+          ),
+        ),
+        isEmpty,
+      );
       expect(
         tax.validateFigure(
           Figure(

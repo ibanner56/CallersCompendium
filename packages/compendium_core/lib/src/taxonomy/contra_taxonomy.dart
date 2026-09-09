@@ -765,7 +765,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'who': ParamSpec(
           ParamKind.dancerSet,
           defaultValue: 'role2s',
-          choices: _pairOrUnspecified,
+          choices: _dancerOrUnspecified,
         ),
         // ContraDB `once_around`/`circling`: how far you travel around
         // (1.0 == 360°, ContraDB's default). TCB writes "1 & 1/2" / "1/2".
