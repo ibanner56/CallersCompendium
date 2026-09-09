@@ -2892,6 +2892,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Vis alle kolonner';
 
   @override
+  String get programsMatrixHideAlternatesSemantic => 'Skjul alternative rækker';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic => 'Vis alternative rækker';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,

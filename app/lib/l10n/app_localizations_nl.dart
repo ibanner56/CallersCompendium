@@ -2912,6 +2912,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Alle kolommen weergeven';
 
   @override
+  String get programsMatrixHideAlternatesSemantic =>
+      'Alternatieve rijen verbergen';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic =>
+      'Alternatieve rijen weergeven';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,

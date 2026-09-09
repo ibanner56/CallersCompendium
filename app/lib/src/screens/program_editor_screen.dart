@@ -240,9 +240,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPersistent = persistent;
     });
     try {
-      final preview = await _onlineServiceFor(
-        result.source,
-      ).loadPreview(_repos, result);
+      final preview = await _onlineServiceFor(result.source)
+          .loadPreview(_repos, result);
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
         _previewOnline = preview;
@@ -256,9 +255,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
-        _previewError = AppLocalizations.of(
-          context,
-        ).onlineLoadError(result.source.label);
+        _previewError = AppLocalizations.of(context)
+            .onlineLoadError(result.source.label);
         _previewLoading = false;
       });
     }
@@ -380,9 +378,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    AppLocalizations.of(
-                      context,
-                    ).onlineLoadError(result.source.label),
+                    AppLocalizations.of(context)
+                        .onlineLoadError(result.source.label),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -433,6 +430,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// program id). Never affects the PDF export, which always renders every
   /// column regardless of what's hidden on screen.
   final Set<String> _hiddenMatrixColumns = {};
+
+  /// Whether alternate rows are included in the on-screen matrix. This is a
+  /// transient view preference, independent of the persisted set-list output
+  /// flag [_hideAlternates].
+  bool _showMatrixAlternates = true;
 
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
@@ -1036,9 +1038,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (_pendingBulkUndoSlotIds != null) {
           _showBulkUndoSnackBar(message: errorMessage);
         } else {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(errorMessage)));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(errorMessage)));
         }
       }
     } finally {
@@ -2293,9 +2294,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (restoreBulkUndoOnFailure) {
         _showBulkUndoSnackBar(message: l10n.programsSaveError);
       } else {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
       }
     }
   }
@@ -2679,6 +2679,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final rows = <Dance>[];
     final rowHalves = <ProgramHalf?>[];
     final altDanceIds = <String>{};
+    final altRowIndices = <int>{};
     var omittedFreeText = 0;
     for (var i = 0; i < _slots.length; i++) {
       final slot = _slots[i];
@@ -2697,7 +2698,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           );
       rows.add(dance);
       rowHalves.add(halvesForSlots[i]);
-      if (slot.isAlt) altDanceIds.add(danceId);
+      if (slot.isAlt) {
+        altDanceIds.add(danceId);
+        altRowIndices.add(rows.length - 1);
+      }
     }
 
     final matrix = buildProgramMatrix(
@@ -2730,6 +2734,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     : null,
               ),
               IconButton(
+                key: const ValueKey('program-matrix-toggle-alternates'),
+                icon: const Icon(Icons.alt_route),
+                tooltip: _showMatrixAlternates
+                    ? l10n.programsMatrixHideAlternatesSemantic
+                    : l10n.programsMatrixShowAlternatesSemantic,
+                onPressed: () {
+                  setState(
+                    () => _showMatrixAlternates = !_showMatrixAlternates,
+                  );
+                },
+              ),
+              IconButton(
                 key: const ValueKey('program-matrix-export-pdf'),
                 icon: const Icon(Icons.picture_as_pdf_outlined),
                 tooltip: l10n.exportMatrixPdfTooltip,
@@ -2753,6 +2769,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             config: _matrixColumnConfig,
             omittedFreeTextCount: omittedFreeText,
             altDanceIds: altDanceIds,
+            altRowIndices: altRowIndices,
+            showAlternates: _showMatrixAlternates,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
             formationLabelBuilder: (formation) => formationDisplayLabel(
