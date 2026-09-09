@@ -1918,13 +1918,15 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
       }
       _slots = updatedSlots;
+      if (markedSlotIds.isNotEmpty) {
+        _pendingBulkUndoTimestamp = now;
+      }
     });
     if (markedSlotIds.isEmpty) return;
     _pendingBulkUndoBaseline = _existing;
     _markDirty();
     final actionToken = ++_bulkUndoActionToken;
     _pendingBulkUndoSlotIds = {...markedSlotIds};
-    _pendingBulkUndoTimestamp = now;
     _pendingBulkUndoWasDirty = wasDirty;
     _pendingBulkUndoEditGeneration = _editGeneration;
     _pendingBulkUndoActionToken = actionToken;
