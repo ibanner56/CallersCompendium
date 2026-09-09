@@ -1741,6 +1741,10 @@
   "@commonFormationDupleImproper": {
     "description": "Formation shape value: duple improper."
   },
+  "commonFormationReverseProgressionImproper": "Reverse progression improper",
+  "@commonFormationReverseProgressionImproper": {
+    "description": "Formation shape value: improper formation with reverse progression."
+  },
   "commonFormationBecketCw": "Becket (CW)",
   "@commonFormationBecketCw": {
     "description": "Formation shape value: Becket, clockwise progression (CW)."

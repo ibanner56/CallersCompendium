@@ -267,6 +267,7 @@ String _isoDate(DateTime date) {
 String _englishFormationLabel(Formation formation) {
   final base = switch (formation.shape) {
     FormationShape.dupleImproper => 'Duple improper',
+    FormationShape.reverseProgressionImproper => 'Reverse progression improper',
     FormationShape.becketCw => 'Becket (CW)',
     FormationShape.becketCcw => 'Becket (CCW)',
     FormationShape.dupleProper => 'Duple proper',

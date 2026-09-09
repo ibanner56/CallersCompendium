@@ -1370,6 +1370,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get commonFormationDupleImproper => 'Duple improper';
 
   @override
+  String get commonFormationReverseProgressionImproper =>
+      'Reverse progression improper';
+
+  @override
   String get commonFormationBecketCw => 'Becket (CW)';
 
   @override

@@ -1,0 +1,14 @@
+{
+  "id": "1195-reverse-progression-improper",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Added Reverse progression improper as a selectable, searchable, colorable, and exportable formation."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Callers Box imports now preserve the Reverse progression improper formation as a first-class shape."
+    ]
+  }
+}

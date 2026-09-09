@@ -1572,6 +1572,10 @@
   "@commonFormationDupleImproper": {
     "x-sourceSha256": "7d4809232dd29915bfa8b7a2fd009728a4c9820cd26f06637226d27a567d3680"
   },
+  "commonFormationReverseProgressionImproper": "Improper met omgekeerde progressie",
+  "@commonFormationReverseProgressionImproper": {
+    "x-sourceSha256": "9883e2a8bdb86a8f098ec334a376e1ab4a57617832057c384fd3e423d8b7dabb"
+  },
   "commonFormationBecketCw": "Becket (CW)",
   "@commonFormationBecketCw": {
     "x-sourceSha256": "5c8d06031cfb22badb4395cd9c6c10f286756870c87a1adcf9ba93c6f92715e3"

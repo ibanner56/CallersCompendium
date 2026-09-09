@@ -43,6 +43,7 @@ enum FormationFamily {
 /// enum value so a new shape forces an explicit choice here.
 FormationFamily formationFamilyOf(FormationShape shape) => switch (shape) {
   FormationShape.dupleImproper ||
+  FormationShape.reverseProgressionImproper ||
   FormationShape.dupleProper ||
   FormationShape.dupleIndecent ||
   FormationShape.becketCw ||

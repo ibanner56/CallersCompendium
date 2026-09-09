@@ -2468,6 +2468,12 @@ abstract class AppLocalizations {
   /// **'Duple improper'**
   String get commonFormationDupleImproper;
 
+  /// Formation shape value: improper formation with reverse progression.
+  ///
+  /// In en, this message translates to:
+  /// **'Reverse progression improper'**
+  String get commonFormationReverseProgressionImproper;
+
   /// Formation shape value: Becket, clockwise progression (CW).
   ///
   /// In en, this message translates to:

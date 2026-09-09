@@ -1382,6 +1382,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get commonFormationDupleImproper => 'Duple improper';
 
   @override
+  String get commonFormationReverseProgressionImproper =>
+      'Improper med omvendt progression';
+
+  @override
   String get commonFormationBecketCw => 'Becket (CW)';
 
   @override

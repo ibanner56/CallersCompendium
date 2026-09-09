@@ -1336,6 +1336,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get commonFormationDupleImproper => 'デュープルインプロパー';
 
   @override
+  String get commonFormationReverseProgressionImproper => '逆進行インプロパー';
+
+  @override
   String get commonFormationBecketCw => 'Becket（CW）';
 
   @override
