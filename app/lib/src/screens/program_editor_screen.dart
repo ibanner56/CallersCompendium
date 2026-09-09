@@ -1654,7 +1654,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
       onUndo: () {
-        if (undoGeneration != _bulkUndoGeneration) return;
+        if (undoGeneration != _bulkUndoGeneration || _saving) return;
         _bulkUndoGeneration++;
         _bulkUndoSnackBar = null;
         unawaited(
@@ -1782,9 +1782,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
-    _bulkUndoGeneration++;
-    _bulkUndoSnackBar?.close();
-    _bulkUndoSnackBar = null;
     _autoCommitTimer?.cancel();
     _editGeneration++;
     setState(() => _saving = true);
@@ -1798,6 +1795,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       final persisted = await _persistDraft(draft);
       // Work is committed — drop the autosave draft so it can't resurface.
       await _clearDraft();
+      _bulkUndoGeneration++;
+      _bulkUndoSnackBar?.close();
+      _bulkUndoSnackBar = null;
       if (!mounted) return;
       setState(() {
         _saving = false;

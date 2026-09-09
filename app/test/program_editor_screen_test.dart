@@ -1649,12 +1649,48 @@ void main() {
     await delayed.programs.writeStarted;
     await tester.pumpAndSettle();
 
-    expect(find.byType(SnackBarAction), findsNothing);
+    expect(find.byType(SnackBarAction), findsOneWidget);
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    await tester.pump();
+    expect(find.byType(SnackBarAction), findsOneWidget);
     delayed.programs.releaseWrite();
     await tester.pumpAndSettle();
 
+    expect(find.byType(SnackBarAction), findsNothing);
     final saved = await delayed.repos.programs.getById('p1');
     expect(saved!.slots.single.performedAt, isNotNull);
+  });
+
+  testWidgets('failed explicit Save preserves bulk performed Undo', (
+    tester,
+  ) async {
+    final failing = openTestRepositoriesWithFailingPrograms();
+    failing.programs.failWrites = false;
+    await failing.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await failing.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(tester, failing.repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pumpAndSettle();
+    failing.programs.failWrites = true;
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SnackBarAction), findsOneWidget);
+    failing.programs.failWrites = false;
+    tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await failing.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
   });
 
   testWidgets(
