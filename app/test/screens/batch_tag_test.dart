@@ -305,6 +305,30 @@ void main() {
     expect((await repos.tags.listAll()).map((tag) => tag.id), ['old']);
   });
 
+  testWidgets('does not persist a staged tag when its dance is deleted', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1', title: 'Alpha'));
+    await _pumpScreen(tester, repos);
+
+    await _enterSelectionMode(tester);
+    await _toggle(tester, 'd1');
+    await tester.tap(find.byKey(const ValueKey('batch-add-tags')));
+    await tester.pumpAndSettle();
+    await repos.dances.softDelete('d1', at: DateTime.utc(2026, 2, 1));
+    await tester.enterText(
+      find.byKey(const ValueKey('batch-new-tag-field')),
+      'No Owner',
+    );
+    await tester.tap(find.byKey(const ValueKey('batch-create-tag')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
+    await tester.pumpAndSettle();
+
+    expect((await repos.tags.listAll()).map((tag) => tag.name), isEmpty);
+  });
+
   testWidgets('undo restores the prior tag sets', (tester) async {
     final repos = openTestRepositories();
     // ignore: unused_result

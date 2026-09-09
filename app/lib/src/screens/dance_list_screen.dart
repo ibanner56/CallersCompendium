@@ -1252,15 +1252,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
     final newlyCreatedTagIds = <String>{};
     try {
       await _repos.transaction(() async {
-        final tagIds = <String, String>{};
-        for (final tag in selection.stagedTags) {
-          final existed = await _repos.tags.idByName(
-            tag.name,
-            includeDeleted: true,
-          );
-          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
-          if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
-        }
+        final pending = <({Dance dance, List<String> next})>[];
         for (final id in selectedIds) {
           final dance = await _repos.dances.getById(id);
           if (dance == null) continue;
@@ -1270,7 +1262,7 @@ class _DanceListScreenState extends State<DanceListScreen> {
             next = [
               ...current,
               for (final tagId in chosen)
-                if (!current.contains(tagId)) tagIds[tagId] ?? tagId,
+                if (!current.contains(tagId)) tagId,
             ];
           } else {
             next = [
@@ -1278,13 +1270,28 @@ class _DanceListScreenState extends State<DanceListScreen> {
                 if (!chosen.contains(tagId)) tagId,
             ];
           }
-          // Skip dances whose tags did not actually change. Because `next` is
-          // built append-only (add) or subtract-only (remove) from `current`, an
-          // equal length means the set is unchanged.
-          if (next.length == current.length) continue;
-          priorTags[id] = current.toList();
+          if (next.length != current.length) {
+            pending.add((dance: dance, next: next));
+          }
+        }
+        if (pending.isEmpty) return;
+
+        final tagIds = <String, String>{};
+        for (final tag in selection.stagedTags) {
+          final existed = await _repos.tags.idByName(
+            tag.name,
+            includeDeleted: true,
+          );
+          tagIds[tag.id] = await _repos.tags.upsertStaged(tag);
+          if (existed == null) newlyCreatedTagIds.add(tagIds[tag.id]!);
+        }
+        for (final (:dance, :next) in pending) {
+          priorTags[dance.id] = dance.tagIds.toList();
           await _repos.dances.update(
-            dance.copyWith(tagIds: next, updatedAt: DateTime.now().toUtc()),
+            dance.copyWith(
+              tagIds: [for (final id in next) tagIds[id] ?? id],
+              updatedAt: DateTime.now().toUtc(),
+            ),
           );
         }
       });
