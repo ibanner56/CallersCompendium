@@ -3,12 +3,12 @@
   "user_visible": true,
   "app": {
     "fixed": [
-      "Tags no longer remain in dance pickers after their last live dance reference is removed; newly created tags are saved together with the dance that uses them and survive an autosave restore."
+      "Tags are physically removed after their final dance association is removed, while associations retained by soft-deleted dances remain restorable; newly created tags are saved together with the dance that uses them and survive an autosave restore."
     ]
   },
   "core": {
     "fixed": [
-      "Add live-dance tag reference queries without changing soft-delete or restoration semantics."
+      "Add live-dance tag reference queries and transactionally garbage-collect tags after their final association is removed without breaking soft-delete or restoration semantics."
     ]
   }
 }

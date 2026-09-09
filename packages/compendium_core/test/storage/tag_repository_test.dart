@@ -104,4 +104,49 @@ void main() {
       expect((await dances.getById('d1'))!.tagIds, ['t1']);
     },
   );
+
+  test('removing a tag association deletes an unreferenced tag row', () async {
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+    final dance = Dance(
+      id: 'd1',
+      title: 'Some Dance',
+      tagIds: const ['t1'],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await dances.create(dance);
+
+    await dances.update(dance.copyWith(tagIds: const []));
+
+    expect(await repo.listAllWithDeleted(), isEmpty);
+  });
+
+  test('retains a tag referenced by a soft-deleted dance', () async {
+    // ignore: unused_result
+    await repo.upsert(Tag(id: 't1', name: 'chestnut'));
+    final archivedDance = Dance(
+      id: 'd2',
+      title: 'Archived Dance',
+      tagIds: const ['t1'],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await dances.create(archivedDance);
+    await dances.softDelete('d2', at: DateTime.utc(2026, 1, 2));
+
+    final liveDance = Dance(
+      id: 'd1',
+      title: 'Live Dance',
+      tagIds: const ['t1'],
+      createdAt: DateTime.utc(2026),
+      updatedAt: DateTime.utc(2026),
+    );
+    await dances.create(liveDance);
+    await dances.update(liveDance.copyWith(tagIds: const []));
+
+    expect((await repo.listAllWithDeleted()).map((entry) => entry.tag.id), [
+      't1',
+    ]);
+  });
 }

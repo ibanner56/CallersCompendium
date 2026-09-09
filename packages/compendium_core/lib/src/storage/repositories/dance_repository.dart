@@ -370,6 +370,11 @@ class DanceRepository {
           );
     }
 
+    final previousTagRows = await (_db.select(
+      _db.danceTags,
+    )..where((t) => t.danceId.equals(dance.id))).get();
+    final previousTagIds = previousTagRows.map((row) => row.tagId).toSet();
+
     await (_db.delete(
       _db.danceTags,
     )..where((t) => t.danceId.equals(dance.id))).go();
@@ -378,6 +383,12 @@ class DanceRepository {
           .into(_db.danceTags)
           .insert(DanceTagsCompanion.insert(danceId: dance.id, tagId: tagId));
     }
+    // A tag is eligible for physical cleanup only after this dance's old
+    // joins are gone. The query below still sees joins from soft-deleted
+    // dances, preserving associations that can be restored later.
+    await _garbageCollectOrphanedTags(
+      previousTagIds.difference(dance.tagIds.toSet()),
+    );
 
     await (_db.delete(
       _db.danceLinks,
@@ -1091,20 +1102,28 @@ class DanceRepository {
   }
 
   /// Snapshots the reusable reference rows — `choreographers` (via
-  /// `dance_authors`) and `published_sources` (via `dance_sources`) — cited by
-  /// [danceIds] **before** those dances are hard-deleted, so
+  /// `dance_authors`), `published_sources` (via `dance_sources`), and tags (via
+  /// `dance_tags`) — cited by [danceIds] **before** those dances are
+  /// hard-deleted, so
   /// [_garbageCollectOrphanedRefs] knows exactly which rows might have just
   /// lost their last citation. Scoping to this snapshot keeps the sweep precise:
   /// pre-existing unreferenced rows (e.g. reusable "Traditional"/"Unknown"
   /// choreographers) that this purge did not touch are never candidates for
   /// removal. Called inside the delete transaction of [purgeDeleted] /
   /// [hardDelete] before the `DELETE FROM dances` cascades the join rows away.
-  Future<({Set<String> choreographerIds, Set<String> sourceIds})>
+  Future<
+    ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
+  >
   _referencedRefIds(List<String> danceIds) async {
     final choreographerIds = <String>{};
     final sourceIds = <String>{};
+    final tagIds = <String>{};
     if (danceIds.isEmpty) {
-      return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+      return (
+        choreographerIds: choreographerIds,
+        sourceIds: sourceIds,
+        tagIds: tagIds,
+      );
     }
     for (final chunk in _chunkIds(danceIds)) {
       final authors = await (_db.select(
@@ -1119,13 +1138,24 @@ class DanceRepository {
       for (final r in sources) {
         sourceIds.add(r.sourceId);
       }
+      final tags = await (_db.select(
+        _db.danceTags,
+      )..where((t) => t.danceId.isIn(chunk))).get();
+      for (final r in tags) {
+        tagIds.add(r.tagId);
+      }
     }
-    return (choreographerIds: choreographerIds, sourceIds: sourceIds);
+    return (
+      choreographerIds: choreographerIds,
+      sourceIds: sourceIds,
+      tagIds: tagIds,
+    );
   }
 
   /// Garbage-collects the reusable reference rows in [candidates] (gathered by
   /// [_referencedRefIds]) that, **after** the owning dances were hard-deleted
-  /// and their `dance_authors` / `dance_sources` join rows cascaded away, are
+  /// and their `dance_authors` / `dance_sources` / `dance_tags` join rows
+  /// cascaded away, are
   /// now referenced by ZERO remaining dances (#462). Runs inside the same
   /// delete transaction as [purgeDeleted] / [hardDelete], after the
   /// `DELETE FROM dances`.
@@ -1145,8 +1175,8 @@ class DanceRepository {
   /// owning dances outright with no tombstone of their own, so a tombstone here
   /// would outlive the records that explain it; and nobody *deleted* these rows
   /// — they were collected as a side effect of a retention purge, so
-  /// advertising a deletion the user never performed would be wrong. Giving the
-  /// six new kinds their own retention/purge policy belongs with the sync
+  /// advertising a deletion the user never performed would be wrong. Giving
+  /// tags their own sync retention/purge policy belongs with the sync
   /// implementation, which owns retention; this migration ships none.
   /// ## Both deletes announce themselves to drift, and here nothing else would
   ///
@@ -1178,7 +1208,8 @@ class DanceRepository {
   /// `updates:` sets below are load-bearing today rather than prospectively.
   /// See `dance_hard_delete_test.dart`, which holds that scenario as a guard.
   Future<void> _garbageCollectOrphanedRefs(
-    ({Set<String> choreographerIds, Set<String> sourceIds}) candidates,
+    ({Set<String> choreographerIds, Set<String> sourceIds, Set<String> tagIds})
+    candidates,
   ) async {
     for (final chunk in _chunkIds(candidates.choreographerIds.toList())) {
       final placeholders = List.filled(chunk.length, '?').join(', ');
@@ -1199,6 +1230,23 @@ class DanceRepository {
         'AND id NOT IN (SELECT source_id FROM dance_sources)',
         variables: [for (final id in chunk) Variable<String>(id)],
         updates: {_db.publishedSources},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    await _garbageCollectOrphanedTags(candidates.tagIds);
+  }
+
+  Future<void> _garbageCollectOrphanedTags(
+    Iterable<String> candidateIds,
+  ) async {
+    for (final chunk in _chunkIds(candidateIds.toList())) {
+      final placeholders = List.filled(chunk.length, '?').join(', ');
+      await _db.customUpdate(
+        'DELETE FROM ${_db.tags.actualTableName} '
+        'WHERE id IN ($placeholders) '
+        'AND id NOT IN (SELECT tag_id FROM ${_db.danceTags.actualTableName})',
+        variables: [for (final id in chunk) Variable<String>(id)],
+        updates: {_db.tags},
         updateKind: UpdateKind.delete,
       );
     }
