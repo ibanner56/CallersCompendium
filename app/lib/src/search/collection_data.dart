@@ -87,9 +87,9 @@ class CollectionData {
   final List<Progression> progressions;
   final List<DanceStatus> statuses;
 
-  /// Distinct assigned [DanceLevel]s present in the collection (sorted by
-  /// ordinal); unspecified levels are excluded so an empty facet doesn't show.
-  final List<DanceLevel> levels;
+  /// Configured difficulty levels that are assigned to at least one dance,
+  /// ordered by the persisted vocabulary position.
+  final List<DifficultyLevel> levels;
 
   /// Whether any dance is flagged mixed-level (drives the Mixed level facet).
   final bool hasMixedLevel;
@@ -229,9 +229,14 @@ class CollectionData {
       ..sort((a, b) => a.index.compareTo(b.index));
     final statuses = dances.map((d) => d.status).toSet().toList()
       ..sort((a, b) => a.index.compareTo(b.index));
-    final levels =
-        dances.map((d) => d.level).whereType<DanceLevel>().toSet().toList()
-          ..sort((a, b) => a.index.compareTo(b.index));
+    final configuredLevels = await repos.difficultyLevels.listAll();
+    final usedLevelIds = {
+      for (final dance in dances)
+        if (dance.difficultyLevelId != null) dance.difficultyLevelId!,
+    };
+    final levels = configuredLevels
+        .where((level) => usedLevelIds.contains(level.id))
+        .toList();
     final hasMixedLevel = dances.any((d) => d.mixedLevel);
     final hasMixer = dances.any((d) => d.mixer);
     final hasRating = dances.any((d) => d.rating != null);
@@ -342,8 +347,17 @@ class CollectionData {
   DanceListEntry entryFor(
     Dance dance, {
     Map<String, String> choreographerNamesOverride = const {},
-  }) => DanceListEntry(
+  }) {
+    DifficultyLevel? difficultyLevel;
+    for (final level in levels) {
+      if (level.id == dance.difficultyLevelId) {
+        difficultyLevel = level;
+        break;
+      }
+    }
+    return DanceListEntry(
     dance: dance,
+    difficultyLevel: difficultyLevel,
     authorNames: [
       for (final id in dance.authorIds)
         ?(choreographerNamesOverride[id] ?? choreographerNames[id]),
@@ -365,5 +379,6 @@ class CollectionData {
     lastCalled: lastCalled[dance.id],
     callCounts:
         callCounts[dance.id] ?? const DanceCallCounts(all: 0, performed: 0),
-  );
+    );
+  }
 }

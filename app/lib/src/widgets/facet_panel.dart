@@ -39,7 +39,7 @@ class FacetPanel extends StatelessWidget {
   final List<FormationShape> formations;
   final List<Progression> progressions;
   final List<DanceStatus> statuses;
-  final List<DanceLevel> levels;
+  final List<DifficultyLevel> levels;
   final bool hasMixedLevel;
 
   /// Whether any dance is flagged as a mixer; hides the Mixer facet section

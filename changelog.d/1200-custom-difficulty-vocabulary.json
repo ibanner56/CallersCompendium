@@ -1,0 +1,14 @@
+{
+  "id": "1200-custom-difficulty-vocabulary",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can now define, rename, reorder, and remove your own ordered dance difficulty levels from Settings > Defaults; existing dance assignments stay attached when a level is renamed, and levels in use cannot be removed."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Replace the fixed DanceLevel enum with a persisted ordered difficulty vocabulary that carries stable IDs through storage and archive compatibility."
+    ]
+  }
+}

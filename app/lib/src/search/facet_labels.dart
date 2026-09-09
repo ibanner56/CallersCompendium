@@ -57,13 +57,14 @@ String danceStatusLabel(AppLocalizations l10n, DanceStatus s) => switch (s) {
   DanceStatus.variation => l10n.commonDanceStatusVariation,
 };
 
-/// Human-readable label for a difficulty [DanceLevel] (app UI string, not a
-/// dialect term).
-String danceLevelLabel(AppLocalizations l10n, DanceLevel level) =>
-    switch (level) {
-      DanceLevel.beginner => l10n.commonDanceLevelBeginner,
-      DanceLevel.intermediate => l10n.commonDanceLevelIntermediate,
-      DanceLevel.advanced => l10n.commonDanceLevelAdvanced,
+/// Human-readable label for a difficulty level (app UI string, not a dialect
+/// term). Shipped levels retain localization; custom labels are user data.
+String danceLevelLabel(AppLocalizations l10n, DifficultyLevel level) =>
+    switch (level.id) {
+      DifficultyLevel.beginnerId => l10n.commonDanceLevelBeginner,
+      DifficultyLevel.intermediateId => l10n.commonDanceLevelIntermediate,
+      DifficultyLevel.advancedId => l10n.commonDanceLevelAdvanced,
+      _ => level.label,
     };
 
 /// Localized label for a [FormationShape], for chips and filters.

@@ -49,6 +49,10 @@ class DifficultyLevel {
     advanced,
   ]);
 
+  /// Compatibility view of the three shipped values for pre-vocabulary
+  /// callers. Configured custom levels are loaded from the repository.
+  static List<DifficultyLevel> get values => shipped;
+
   static final shippedIds = Set<String>.unmodifiable({
     beginnerId,
     intermediateId,
@@ -58,6 +62,14 @@ class DifficultyLevel {
   final String id;
   final String label;
   final int position;
+
+  /// Legacy enum spelling used only by compatibility codecs.
+  String get name => switch (id) {
+    beginnerId => 'beginner',
+    intermediateId => 'intermediate',
+    advancedId => 'advanced',
+    _ => id,
+  };
 
   DifficultyLevel copyWith({String? label, int? position}) => DifficultyLevel(
     id: id,
@@ -74,4 +86,5 @@ class DifficultyLevel {
 
   @override
   int get hashCode => Object.hash(id, label, position);
+
 }

@@ -48,7 +48,8 @@ class Dance {
     this.callingNotes = '',
     this.walkthrough = '',
     this.status = DanceStatus.active,
-    this.difficultyLevelId,
+    String? difficultyLevelId,
+    DifficultyLevel? level,
     this.mixedLevel = false,
     this.mixer = false,
     this.rating,
@@ -63,7 +64,8 @@ class Dance {
     required this.createdAt,
     required this.updatedAt,
     this.deletedAt,
-  }) : authorIds = List.unmodifiable(authorIds),
+  }) : difficultyLevelId = difficultyLevelId ?? level?.id,
+       authorIds = List.unmodifiable(authorIds),
        // Parse eagerly so an invalid structure fails at construction.
        phraseStructure = PhraseStructure.parse(phraseStructure),
        figures = List.unmodifiable(figures),
@@ -123,6 +125,19 @@ class Dance {
   /// level never changes the dance's persisted reference. Distinct from
   /// [mixedLevel].
   final String? difficultyLevelId;
+
+  /// Compatibility projection for the former enum API.
+  ///
+  /// Custom IDs are intentionally not synthesized into a label-bearing value;
+  /// callers that need the configured vocabulary must read
+  /// [CompendiumRepositories.difficultyLevels].
+  @Deprecated('Use difficultyLevelId and DifficultyLevelRepository.')
+  DifficultyLevel? get level => switch (difficultyLevelId) {
+    DifficultyLevel.beginnerId => DifficultyLevel.beginner,
+    DifficultyLevel.intermediateId => DifficultyLevel.intermediate,
+    DifficultyLevel.advancedId => DifficultyLevel.advanced,
+    _ => null,
+  };
 
   /// Marks an event/dance that spans the difficulty scale rather than sitting
   /// at a single [difficultyLevelId]. Kept separate from the selected level.
@@ -234,6 +249,7 @@ class Dance {
     String? walkthrough,
     DanceStatus? status,
     String? difficultyLevelId,
+    @Deprecated('Use difficultyLevelId.') DifficultyLevel? level,
     bool clearDifficultyLevel = false,
     bool? mixedLevel,
     bool? mixer,
@@ -268,7 +284,7 @@ class Dance {
     status: status ?? this.status,
     difficultyLevelId: clearDifficultyLevel
         ? null
-        : (difficultyLevelId ?? this.difficultyLevelId),
+        : (difficultyLevelId ?? level?.id ?? this.difficultyLevelId),
     mixedLevel: mixedLevel ?? this.mixedLevel,
     mixer: mixer ?? this.mixer,
     rating: clearRating ? null : (rating ?? this.rating),

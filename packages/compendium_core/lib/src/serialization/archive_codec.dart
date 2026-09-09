@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/dance_link.dart';
 import '../model/enums.dart';
 import '../model/figure.dart';
@@ -521,7 +522,7 @@ Dance _danceFromJson(Map<String, Object?> m) => Dance(
   ),
   level: m['level'] == null
       ? null
-      : _enumByName(DanceLevel.values, _str(m, 'level'), 'level'),
+      : _difficultyByName(_str(m, 'level'), 'level'),
   mixedLevel: _boolOr(m, 'mixedLevel', false),
   mixer: _boolOr(m, 'mixer', false),
   rating: _intOrNull(m, 'rating'),
@@ -910,6 +911,21 @@ T _enumByName<T extends Enum>(List<T> values, String name, String field) {
     if (v.name == name) return v;
   }
   throw _UnknownEnumValueException(field, name);
+}
+
+DifficultyLevel _difficultyByName(String name, String field) {
+  final id = switch (name) {
+    'beginner' || DifficultyLevel.beginnerId => DifficultyLevel.beginnerId,
+    'intermediate' || DifficultyLevel.intermediateId =>
+      DifficultyLevel.intermediateId,
+    'advanced' || DifficultyLevel.advancedId => DifficultyLevel.advancedId,
+    _ => throw FormatException('unknown difficulty level "$name" for $field'),
+  };
+  return switch (id) {
+    DifficultyLevel.beginnerId => DifficultyLevel.beginner,
+    DifficultyLevel.intermediateId => DifficultyLevel.intermediate,
+    _ => DifficultyLevel.advanced,
+  };
 }
 
 T _enumByNameOr<T extends Enum>(

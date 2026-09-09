@@ -442,7 +442,11 @@ class DanceEditorForm extends StatelessWidget {
           onChanged: controller.setStatus,
         ),
         const SizedBox(height: AppSpacing.md),
-        LevelDropdown(value: controller.level, onChanged: controller.setLevel),
+        LevelDropdown(
+          value: controller.level,
+          levels: controller.difficultyLevels,
+          onChanged: controller.setLevel,
+        ),
         const SizedBox(height: AppSpacing.xs),
         CheckboxListTile(
           key: const ValueKey('mixed-level-field'),

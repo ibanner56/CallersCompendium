@@ -51,7 +51,10 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// occurrence). Older drafts decode each figure with `wordingOverride: null`.
 /// v10 -> v11: adds the optional `transitive` flag to related-dance links.
 /// Older drafts decode it as `false`.
-const _kDraftVersion = 11;
+///
+/// v11 -> v12: `level` stores the stable difficulty-level ID. Legacy enum names
+/// remain accepted and map to the fixed shipped IDs.
+const _kDraftVersion = 12;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -108,7 +111,7 @@ String encodeDraft(EditorSnapshot snapshot) {
     'formationShape': snapshot.formationShape.name,
     'progression': snapshot.progression.name,
     'status': snapshot.status.name,
-    if (snapshot.level != null) 'level': snapshot.level!.name,
+    if (snapshot.level != null) 'level': snapshot.level!.id,
     'mixedLevel': snapshot.mixedLevel,
     'mixer': snapshot.mixer,
     if (snapshot.rating != null) 'rating': snapshot.rating,
@@ -180,7 +183,10 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Throws [FormatException] for unknown future versions (`v > _kDraftVersion`)
 /// or for structurally invalid content. Unknown top-level keys are silently
 /// ignored (forward-compat).
-EditorSnapshot decodeDraft(Object? value) {
+EditorSnapshot decodeDraft(
+  Object? value, {
+  Iterable<DifficultyLevel>? levels,
+}) {
   final Map<String, Object?> json;
   if (value is String) {
     // SettingsRepository round-trips through jsonDecode, so we expect a Map.
@@ -218,7 +224,7 @@ EditorSnapshot decodeDraft(Object? value) {
     ),
     progression: _parseEnum(Progression.values, _str(json, 'progression')),
     status: _parseEnum(DanceStatus.values, _str(json, 'status')),
-    level: _parseNullableEnum(DanceLevel.values, json['level']),
+    level: _parseDifficulty(json['level'], levels ?? DifficultyLevel.shipped),
     mixedLevel: _bool(json, 'mixedLevel'),
     mixer: _bool(json, 'mixer'),
     rating: _parseNullableRating(json['rating']),
@@ -264,6 +270,26 @@ T _parseEnum<T extends Enum>(List<T> values, String name) {
     orElse: () => throw FormatException(
       'unknown enum value "$name" for ${values.first.runtimeType}',
     ),
+  );
+}
+
+DifficultyLevel? _parseDifficulty(
+  Object? raw,
+  Iterable<DifficultyLevel> levels,
+) {
+  if (raw == null) return null;
+  if (raw is! String) {
+    throw FormatException('draft.level must be a string: $raw');
+  }
+  final legacyId = switch (raw) {
+    'beginner' => DifficultyLevel.beginnerId,
+    'intermediate' => DifficultyLevel.intermediateId,
+    'advanced' => DifficultyLevel.advancedId,
+    _ => raw,
+  };
+  return levels.cast<DifficultyLevel?>().firstWhere(
+    (level) => level?.id == legacyId,
+    orElse: () => throw FormatException('unknown difficulty level "$raw"'),
   );
 }
 

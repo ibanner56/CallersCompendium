@@ -1,3 +1,5 @@
+import 'difficulty_level.dart';
+
 /// Dance form discriminator. Figure taxonomies are per-form, so `ecd` and
 /// `square` can be populated later without schema surgery.
 enum DanceForm { contra, ecd, square }
@@ -7,6 +9,13 @@ enum Progression { none, single, double, triple, quadruple, other }
 
 /// Lifecycle status of a dance (mirrors The Caller's Box vocabulary).
 enum DanceStatus { active, deprecated, broken, draft, variation }
+
+/// Backward-compatible source alias for the shipped difficulty values.
+///
+/// New code should use [DifficultyLevel] and persist its `id`. This alias keeps
+/// existing integrations source-compatible while they migrate from the former
+/// enum API.
+typedef DanceLevel = DifficultyLevel;
 
 /// Lifecycle status of a program (set list).
 enum ProgramStatus { draft, finalized, performed }

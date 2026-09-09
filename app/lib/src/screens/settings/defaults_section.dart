@@ -507,6 +507,176 @@ class _DefaultsSectionState extends State<DefaultsSection> {
   }
 }
 
+/// Edits the ordered vocabulary used by dance difficulty assignments.
+class DifficultyLevelsEditor extends StatefulWidget {
+  const DifficultyLevelsEditor({super.key});
+
+  @override
+  State<DifficultyLevelsEditor> createState() => _DifficultyLevelsEditorState();
+}
+
+class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
+  List<DifficultyLevel> _levels = const [];
+  bool _loading = true;
+  bool _requested = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_requested) {
+      _requested = true;
+      _reload();
+    }
+  }
+
+  Future<void> _reload() async {
+    final levels = await RepositoriesScope.of(context).difficultyLevels.listAll();
+    if (!mounted) return;
+    setState(() {
+      _levels = levels;
+      _loading = false;
+    });
+  }
+
+  void _report(Object error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.toString())),
+    );
+  }
+
+  Future<void> _add() async {
+    final controller = TextEditingController();
+    final label = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context).commonAdd),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: InputDecoration(
+            labelText: AppLocalizations.of(context).danceEditorLevelLabel,
+          ),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(AppLocalizations.of(context).commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: Text(AppLocalizations.of(context).commonSave),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    final normalized = label?.trim() ?? '';
+    if (normalized.isEmpty) return;
+    try {
+      await RepositoriesScope.of(context).difficultyLevels.createCustom(
+        label: normalized,
+        position: _levels.length,
+      );
+      await _reload();
+    } catch (error) {
+      _report(error);
+    }
+  }
+
+  Future<void> _rename(DifficultyLevel level, String value) async {
+    final label = value.trim();
+    if (label.isEmpty || label == level.label) return;
+    try {
+      await RepositoriesScope.of(context).difficultyLevels.upsert(
+        level.copyWith(label: label),
+      );
+      await _reload();
+    } catch (error) {
+      _report(error);
+    }
+  }
+
+  Future<void> _delete(DifficultyLevel level) async {
+    try {
+      await RepositoriesScope.of(context).difficultyLevels.delete(level.id);
+      await _reload();
+    } catch (error) {
+      _report(error);
+    }
+  }
+
+  Future<void> _reorder(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    final updated = List<DifficultyLevel>.of(_levels);
+    final level = updated.removeAt(oldIndex);
+    updated.insert(newIndex, level);
+    setState(() => _levels = updated);
+    try {
+      await RepositoriesScope.of(context).difficultyLevels.reorder(
+        updated.map((level) => level.id).toList(),
+      );
+    } catch (error) {
+      _report(error);
+      await _reload();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Padding(
+        padding: EdgeInsets.all(AppSpacing.md),
+        child: LinearProgressIndicator(),
+      );
+    }
+    final l10n = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ListTile(
+          title: Text(l10n.danceEditorLevelLabel),
+          subtitle: Text(l10n.settingsDefaultsAuthoringHeader),
+          trailing: IconButton(
+            key: const ValueKey('difficulty-level-add'),
+            tooltip: l10n.commonAdd,
+            icon: const Icon(Icons.add),
+            onPressed: _add,
+          ),
+        ),
+        ReorderableListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: _levels.length,
+          onReorder: _reorder,
+          itemBuilder: (context, index) {
+            final level = _levels[index];
+            return ListTile(
+              key: ValueKey(level.id),
+              leading: const Icon(Icons.drag_handle),
+              title: TextFormField(
+                key: ValueKey('difficulty-level-label-${level.id}'),
+                initialValue: level.label,
+                onFieldSubmitted: (value) => _rename(level, value),
+                decoration: const InputDecoration(
+                  border: UnderlineInputBorder(),
+                ),
+              ),
+              trailing: IconButton(
+                key: ValueKey('difficulty-level-delete-${level.id}'),
+                tooltip: l10n.commonDelete,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _delete(level),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
 /// The Defaults section: app-wide default values, grouped to mirror the
 /// ROADMAP's "Defaults (settings pane)" structure. It populates the
 /// **Program defaults** subsection (ROADMAP G.3), the **Display defaults**
@@ -814,6 +984,7 @@ class _DefaultsView extends StatelessWidget {
           },
         ),
         SectionHeader(title: l10n.settingsDefaultsAuthoringHeader),
+        const DifficultyLevelsEditor(),
         ListTile(
           title: Text(l10n.settingsDefaultsFormTitle),
           subtitle: Text(l10n.settingsDefaultsFormSubtitle),

@@ -19,9 +19,10 @@ class DifficultyLevelRepository {
     required int position,
     String Function()? newId,
   }) async {
+    final normalizedLabel = _normalizeLabel(label);
     final level = DifficultyLevel(
       id: (newId ?? uuidV4)(),
-      label: normalizeShareableText(label),
+      label: normalizedLabel,
       position: position,
     );
     await upsert(level);
@@ -29,19 +30,34 @@ class DifficultyLevelRepository {
   }
 
   /// Inserts or updates a vocabulary entry without changing its stable ID.
-  Future<void> upsert(DifficultyLevel level) {
+  Future<void> upsert(DifficultyLevel level) async {
     final normalized = level.copyWith(
-      label: normalizeShareableText(level.label),
+      label: _normalizeLabel(level.label),
     );
-    return _db
-        .into(_db.difficultyLevels)
-        .insertOnConflictUpdate(
-          DifficultyLevelsCompanion.insert(
-            id: normalized.id,
-            label: normalized.label,
-            position: normalized.position,
-          ),
+    await _db.transaction(() async {
+      final duplicateRows = (await _db.select(_db.difficultyLevels).get())
+          .where(
+            (row) =>
+                row.id != normalized.id &&
+                row.label.toLowerCase() == normalized.label.toLowerCase(),
+          )
+          .toList();
+      final duplicate = duplicateRows.isEmpty ? null : duplicateRows.first;
+      if (duplicate != null) {
+        throw StateError(
+          'difficulty level labels must be unique: "${normalized.label}"',
         );
+      }
+      await _db
+          .into(_db.difficultyLevels)
+          .insertOnConflictUpdate(
+            DifficultyLevelsCompanion.insert(
+              id: normalized.id,
+              label: normalized.label,
+              position: normalized.position,
+            ),
+          );
+    });
   }
 
   Future<DifficultyLevel?> getById(String id) async {
@@ -100,9 +116,6 @@ class DifficultyLevelRepository {
   /// custom-field and venue guards: no dance can acquire a reference in the
   /// check-then-delete gap.
   Future<void> delete(String id) => _db.transaction(() async {
-    if (DifficultyLevel.shippedIds.contains(id)) {
-      throw StateError('cannot delete shipped difficulty level "$id"');
-    }
     final references = _db.dances.id.count();
     final count =
         await (_db.selectOnly(_db.dances)
@@ -123,4 +136,12 @@ class DifficultyLevelRepository {
 
   DifficultyLevel _toModel(DifficultyLevelRow row) =>
       DifficultyLevel(id: row.id, label: row.label, position: row.position);
+
+  String _normalizeLabel(String raw) {
+    final label = normalizeShareableText(raw).trim();
+    if (label.isEmpty) {
+      throw ArgumentError.value(raw, 'label', 'must not be empty');
+    }
+    return label;
+  }
 }
