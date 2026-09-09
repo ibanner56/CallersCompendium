@@ -1136,7 +1136,7 @@ Nine kinds produce blobs: `dance`, `program`, `choreographer`, `tag`,
 | --- | --- |
 | `v` | Envelope version. A client MUST refuse an unknown value rather than guess. |
 | `kind` | One of the nine above. |
-| `id` | The record's id — a UUID for the eight entity kinds, the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
+| `id` | The record's id — a UUID for entity kinds other than `difficultyLevel`, one of the fixed shipped IDs or a UUID for `difficultyLevel`, and the settings key for `kind: "setting"` (§4.4). Unique **within its kind only**; see §4.5. |
 | `updatedAt` | Content discriminator. UTC, one-tick precision (§2). Plain local clock. |
 | `deletedAt` | Non-null means tombstone. Plain local clock; also the retention timestamp. |
 | `existenceAt` | Orders live↔deleted transitions. Causally stamped; see §6.4. |

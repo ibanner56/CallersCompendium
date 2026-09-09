@@ -133,6 +133,20 @@ void main() {
     );
   });
 
+  testWidgets('difficulty vocabulary setting starts collapsed', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _scrollTo(
+      tester,
+      const ValueKey('defaults-difficulty-levels-section'),
+    );
+
+    final tile = tester.widget<ExpansionTile>(
+      find.byKey(const ValueKey('defaults-difficulty-levels-section')),
+    );
+    expect(tile.initiallyExpanded, isFalse);
+  });
+
   testWidgets('Display defaults show the historical defaults when unset', (
     tester,
   ) async {

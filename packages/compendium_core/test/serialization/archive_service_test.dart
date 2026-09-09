@@ -390,6 +390,39 @@ void main() {
       },
     );
 
+    test(
+      'full backup preserves an intentionally empty difficulty vocabulary',
+      () async {
+        final sourceDb = openTestDatabase();
+        addTearDown(sourceDb.close);
+        final sourceRepos = CompendiumRepositories(sourceDb, contraTaxonomy);
+        for (final level in await sourceRepos.difficultyLevels.listAll()) {
+          await sourceRepos.difficultyLevels.delete(level.id);
+        }
+
+        final exported = await ArchiveExporter(
+          sourceRepos,
+        ).export(exportedAt: DateTime.utc(2026, 7, 15));
+        final decoded = archiveFromJson(archiveToJson(exported));
+        expect(decoded.errors, isEmpty);
+        expect(
+          decoded.archive.schemaVersion,
+          archiveSchemaVersionDifficultyLevels,
+        );
+        expect(decoded.archive.difficultyLevels, isEmpty);
+
+        final targetDb = openTestDatabase();
+        addTearDown(targetDb.close);
+        final targetRepos = CompendiumRepositories(targetDb, contraTaxonomy);
+        final result = await ArchiveRestorer(
+          targetRepos,
+        ).restore(decoded.archive);
+
+        expect(result.errors, isEmpty);
+        expect(await targetRepos.difficultyLevels.listAll(), isEmpty);
+      },
+    );
+
     test('merge revives a tombstoned program with a causal stamp', () async {
       final db = openTestDatabase();
       addTearDown(db.close);

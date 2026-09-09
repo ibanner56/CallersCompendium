@@ -1002,7 +1002,7 @@ class _DefaultsView extends StatelessWidget {
         ExpansionTile(
           key: const ValueKey('defaults-difficulty-levels-section'),
           title: Text(l10n.danceEditorLevelLabel),
-          initiallyExpanded: true,
+          initiallyExpanded: false,
           children: const [DifficultyLevelsEditor()],
         ),
         ListTile(

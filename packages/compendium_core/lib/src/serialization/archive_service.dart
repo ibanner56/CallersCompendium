@@ -40,6 +40,9 @@ class ArchiveExporter {
     final ts = (exportedAt ?? DateTime.now()).toUtc();
     return _repos.db.transaction(
       () async => CompendiumArchive(
+        // Full backups are vocabulary-aware even when every level has been
+        // deleted, so an empty list remains authoritative on restore.
+        schemaVersion: archiveSchemaVersionDifficultyLevels,
         exportedAt: ts,
         dances: await _repos.dances.listAll(includeDeleted: includeDeleted),
         programs: await _repos.programs.listAll(includeDeleted: includeDeleted),
