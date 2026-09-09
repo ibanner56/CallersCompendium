@@ -1608,7 +1608,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _markAllPerformed() async {
-    final now = DateTime.now().toUtc();
+    final now = nextStoredTimestamp(
+      now: DateTime.now().toUtc(),
+      current: _slots.map((s) => s.performedAt),
+    );
+    final wasDirty = _dirty;
     final l10n = AppLocalizations.of(context);
     final markedSlotIds = <String>{};
     setState(() {
@@ -1625,6 +1629,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     });
     if (markedSlotIds.isEmpty) return;
     _markDirty();
+    final actionEditGeneration = _editGeneration;
     SemanticsService.sendAnnouncement(
       View.of(context),
       l10n.programsMarkedAllPerformed,
@@ -1636,15 +1641,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       message: l10n.programsMarkedAllPerformed,
       undoLabel: l10n.commonUndo,
       accessibleNavigation: MediaQuery.accessibleNavigationOf(context),
-      onUndo: () => unawaited(_undoMarkAllPerformed(markedSlotIds, now)),
+      onUndo: () => unawaited(
+        _undoMarkAllPerformed(
+          markedSlotIds,
+          now,
+          wasDirty: wasDirty,
+          actionEditGeneration: actionEditGeneration,
+        ),
+      ),
     );
   }
 
   Future<void> _undoMarkAllPerformed(
     Set<String> markedSlotIds,
-    DateTime actionTimestamp,
-  ) async {
+    DateTime actionTimestamp, {
+    required bool wasDirty,
+    required int actionEditGeneration,
+  }) async {
     if (!mounted) return;
+    final canRestoreCleanState =
+        !wasDirty && _dirty && _editGeneration == actionEditGeneration;
     setState(() {
       _slots = [
         for (final slot in _slots)
@@ -1653,7 +1669,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               : slot,
       ];
     });
-    _markDirty();
+    if (canRestoreCleanState) {
+      await _clearDraft();
+    } else {
+      _markDirty();
+    }
   }
 
   // --- Persistence ----------------------------------------------------------

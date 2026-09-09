@@ -2356,6 +2356,10 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsSaveError => 'Kunne ikke gemme programmet.';
 
   @override
+  String get programsUndoPerformedError =>
+      'Markeringen kunne ikke fortrydes; markeringerne som udført forbliver gemt.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Kopieret som „$title“.';
   }

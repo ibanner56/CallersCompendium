@@ -355,7 +355,12 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
     if (slot.performedAt == null) {
       widget.onSlotChanged(
         i,
-        slot.copyWith(performedAt: DateTime.now().toUtc()),
+        slot.copyWith(
+          performedAt: nextStoredTimestamp(
+            now: DateTime.now().toUtc(),
+            current: widget.slots.map((s) => s.performedAt),
+          ),
+        ),
       );
       SemanticsService.sendAnnouncement(
         View.of(context),

@@ -84,6 +84,30 @@ void main() {
     });
   });
 
+  group('nextStoredTimestamp', () {
+    test('advances past same-second stamps after storage normalization', () {
+      final sameSecond = DateTime.utc(2026, 5, 1, 12);
+      expect(
+        nextStoredTimestamp(
+          now: sameSecond.add(const Duration(milliseconds: 900)),
+          current: [sameSecond],
+        ),
+        sameSecond.add(existenceStampTick),
+      );
+    });
+
+    test('advances past every current stamp in storage order', () {
+      final sameSecond = DateTime.utc(2026, 5, 1, 12);
+      expect(
+        nextStoredTimestamp(
+          now: sameSecond,
+          current: [sameSecond.add(existenceStampTick), sameSecond],
+        ),
+        sameSecond.add(existenceStampTick * 2),
+      );
+    });
+  });
+
   group('the SQL and the reference implementation agree', () {
     late CompendiumDatabase db;
     late CompendiumRepositories repos;

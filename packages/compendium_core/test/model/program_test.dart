@@ -615,6 +615,26 @@ void main() {
       expect(twice.slots.single.performedAt, existing);
     });
 
+    test('moves new performed stamps past same-second existing stamps', () {
+      final existing = DateTime.utc(2026, 3, 15);
+      final p = program(
+        eventDate: existing.add(const Duration(milliseconds: 900)),
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            performedAt: existing,
+          ),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2'),
+        ],
+      );
+
+      final stamped = p.stampDanceSlotsPerformed(fallback: now);
+
+      expect(stamped.slots[1].performedAt, existing.add(existenceStampTick));
+    });
+
     test('leaves free-text / note slots untouched', () {
       final p = program(
         eventDate: DateTime.utc(2026, 3, 15),

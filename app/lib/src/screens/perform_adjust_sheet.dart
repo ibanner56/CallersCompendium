@@ -150,7 +150,10 @@ class _PerformAdjustSheetState extends State<PerformAdjustSheet> {
   // --- Edits ----------------------------------------------------------------
 
   void _toggleCurrentPerformed() {
-    final now = DateTime.now().toUtc();
+    final now = nextStoredTimestamp(
+      now: DateTime.now().toUtc(),
+      current: _working.slots.map((s) => s.performedAt),
+    );
     ProgramSlot? edited;
     final slots = [
       for (final s in _working.slots)

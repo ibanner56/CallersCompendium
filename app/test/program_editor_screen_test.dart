@@ -1578,6 +1578,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
+      expect(
+        await repos.settings.contains('program_editor_draft:p1'),
+        isFalse,
+        reason: 'Undo with no intervening edit restores the clean draft state',
+      );
       await tester.tap(find.byKey(const ValueKey('save-program')));
       await tester.pumpAndSettle();
 

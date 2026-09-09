@@ -128,9 +128,9 @@ export 'src/storage/database.dart'
         kSectionRuleVersion,
         kCompendiumSchemaVersion,
         kMinSupportedSchemaVersion;
-// Only the pure pieces of `existence.dart` are public: the rule itself, the
-// tick it is pinned to, and the unix-seconds conversion, all of which the tests
-// exercise directly.
+// Only the pure pieces of the timestamp and existence modules are public: the
+// timestamp rules, the ticks they are pinned to, and the unix-seconds
+// conversion, all of which the tests exercise directly.
 //
 // The SQL writers (`applyUpsertExistence`, `stampExistenceTransition`,
 // `adoptTombstonedNaturalKey`, `seedExistenceIfMissing`) are deliberately NOT
@@ -140,8 +140,9 @@ export 'src/storage/database.dart'
 // (docs/design/storage.md), not a convention. Every existence stamp has to go
 // through the repository that also maintains the row's other invariants, so
 // keep these internal to `lib/src/storage/`.
-export 'src/storage/existence.dart'
-    show existenceStampTick, nextExistenceStamp, unixSeconds;
+export 'src/storage/existence.dart' show existenceStampTick, nextExistenceStamp;
+export 'src/model/stored_timestamp.dart'
+    show nextStoredTimestamp, storedTimestampTick, unixSeconds;
 export 'src/storage/repositories/choreographer_repository.dart';
 export 'src/storage/repositories/collection_import_event_repository.dart';
 export 'src/storage/repositories/custom_field_repository.dart'

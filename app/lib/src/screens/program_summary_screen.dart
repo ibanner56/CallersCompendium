@@ -761,7 +761,10 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
   Future<void> _markAllPerformed() async {
     final program = _program;
     if (program == null) return;
-    final now = DateTime.now().toUtc();
+    final now = nextStoredTimestamp(
+      now: DateTime.now().toUtc(),
+      current: program.slots.map((s) => s.performedAt),
+    );
     final markedSlotIds = <String>{};
     final updatedSlots = <ProgramSlot>[];
     for (final s in program.slots) {
@@ -789,7 +792,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
           markedSlotIds: markedSlotIds,
           actionTimestamp: now,
           messenger: messenger,
-          errorMessage: l10n.programsSaveError,
+          errorMessage: l10n.programsUndoPerformedError,
         ),
       ),
     );

@@ -3924,6 +3924,12 @@ abstract class AppLocalizations {
   /// **'Could not save the program.'**
   String get programsSaveError;
 
+  /// Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not undo marking; performed marks remain saved.'**
+  String get programsUndoPerformedError;
+
   /// Snackbar confirming a program was duplicated, quoting the copy's title.
   ///
   /// In en, this message translates to:

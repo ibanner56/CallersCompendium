@@ -3095,6 +3095,10 @@
   "@programsSaveError": {
     "description": "Snackbar shown when saving the program fails."
   },
+  "programsUndoPerformedError": "Could not undo marking; performed marks remain saved.",
+  "@programsUndoPerformedError": {
+    "description": "Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved."
+  },
   "programsDuplicatedSnack": "Duplicated as \"{title}\".",
   "@programsDuplicatedSnack": {
     "description": "Snackbar confirming a program was duplicated, quoting the copy's title.",
