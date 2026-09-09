@@ -1313,10 +1313,9 @@ class FigureRenderer {
   /// Free-text (notes, hooks, custom figures): apply role-term substitution
   /// with case preservation. Move-name substitution does not apply to prose.
   ///
-  /// When [canonicalizeDiscouragedTerms] is true, the known discouraged
-  /// spellings are replaced at display time with the active dialect's role
-  /// terms (or canonical role tokens) and the safe shoulder-round wording.
-  /// Stored text is never changed.
+  /// To also convert known discouraged spellings at display time, use
+  /// [renderFreeTextWithCanonicalDiscouragedTerms]. Stored text is never
+  /// changed.
   String renderFreeText(String text, Dialect dialect) {
     final map = <String, String>{};
     for (final entry in dialect.roles.entries) {

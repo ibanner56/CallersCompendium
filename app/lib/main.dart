@@ -1289,6 +1289,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
+    _canonicalDiscouragedTermsNotifier.dispose();
     _decimalTurnsNotifier.dispose();
     _aggressiveBeatsUpdateNotifier.dispose();
     _confirmBeforeDeleteNotifier.dispose();
