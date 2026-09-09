@@ -624,6 +624,7 @@ class _DifficultyLevelsEditorState extends State<DifficultyLevelsEditor> {
       ).difficultyLevels.upsert(level.copyWith(label: label));
       await _reload();
     } catch (error, stackTrace) {
+      _labelControllers[level.id]?.text = level.label;
       logCaughtError(error, stackTrace, source: 'defaults_section._rename');
       _report(error);
     }

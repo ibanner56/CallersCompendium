@@ -204,6 +204,35 @@ void main() {
     expect(find.textContaining('must not be empty'), findsOneWidget);
   });
 
+  testWidgets('failed difficulty rename resets the field', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos);
+    await _scrollTo(
+      tester,
+      const ValueKey('defaults-difficulty-levels-section'),
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('defaults-difficulty-levels-section')),
+    );
+    await tester.pumpAndSettle();
+
+    final labelKey = const ValueKey(
+      'difficulty-level-label-${DifficultyLevel.beginnerId}',
+    );
+    await tester.enterText(find.byKey(labelKey), 'Intermediate');
+    tester.binding.focusManager.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextFormField>(find.byKey(labelKey)).controller?.text,
+      'Beginner',
+    );
+    expect(
+      (await repos.difficultyLevels.getById(DifficultyLevel.beginnerId))?.label,
+      'Beginner',
+    );
+  });
+
   testWidgets(
     'difficulty vocabulary reorder uses the displayed destination index',
     (tester) async {

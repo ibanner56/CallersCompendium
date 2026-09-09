@@ -134,6 +134,27 @@ void main() {
       expect(custom.id, isNotEmpty);
     });
 
+    test(
+      'two-argument construction retains shipped difficulty mappings',
+      () async {
+        final legacyPipeline = ImportPipeline(dances, choreographers);
+        final batch = await legacyPipeline.plan(
+          FakeSourceAdapter([
+            record('shipped-level', 'Shipped Level Dance')
+              ..['difficultyLevelId'] = DifficultyLevel.intermediateId,
+          ], difficultyLevelLabel: 'Intermediate'),
+          const ImportRequest(),
+        );
+
+        final draft = batch.records.single.draft;
+        expect(draft.dance.difficultyLevelId, DifficultyLevel.intermediateId);
+        expect(
+          draft.issues.any((issue) => issue.code == 'cc_inactive_level'),
+          isFalse,
+        );
+      },
+    );
+
     test('a new dance is inserted with a full provenance row', () async {
       final adapter = FakeSourceAdapter([
         record(

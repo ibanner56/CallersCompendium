@@ -2741,6 +2741,50 @@ void main() {
     );
 
     testWidgets(
+      'picking a bundle with only a custom difficulty uses the archive importer',
+      (tester) async {
+        final repos = openTestRepositories();
+        final archive = CompendiumArchive(
+          exportedAt: DateTime.utc(2026, 7, 15),
+          schemaVersion: archiveSchemaVersionDifficultyLevels,
+          difficultyLevels: [
+            DifficultyLevel(
+              id: 'custom-workshop',
+              label: 'Workshop',
+              position: 3,
+            ),
+          ],
+          dances: [
+            Dance(
+              id: 'custom-dance',
+              title: 'Custom Workshop Dance',
+              difficultyLevelId: 'custom-workshop',
+              createdAt: DateTime.utc(2026, 1, 1),
+              updatedAt: DateTime.utc(2026, 1, 1),
+            ),
+          ],
+        );
+
+        final payload = encodeArchive(archive);
+        expect(decodeArchive(payload).archive.difficultyLevels, hasLength(1));
+        await pumpWithPicker(tester, repos, payload);
+        await _toReview(tester);
+        await tester.tap(find.byKey(const ValueKey('import-commit-button')));
+        await tester.pumpAndSettle();
+
+        final dances = await repos.dances.listAll();
+        expect(
+          dances.single.difficultyLevelId,
+          'custom-workshop',
+        );
+        expect(
+          (await repos.difficultyLevels.getById('custom-workshop'))?.label,
+          'Workshop',
+        );
+      },
+    );
+
+    testWidgets(
       'a harmless edit to the paste field after picking a .ccshare still '
       'commits the dance and program',
       (tester) async {

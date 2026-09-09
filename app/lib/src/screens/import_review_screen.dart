@@ -360,7 +360,8 @@ class _ImportReviewScreenState extends State<ImportReviewScreen> {
         final hasMetadata =
             archive.tags.isNotEmpty ||
             archive.publishedSources.isNotEmpty ||
-            archive.customFields.isNotEmpty;
+            archive.customFields.isNotEmpty ||
+            archive.difficultyLevels.isNotEmpty;
         if (!hasRootError &&
             (archive.programs.isNotEmpty ||
                 (archive.dances.isNotEmpty && hasMetadata))) {

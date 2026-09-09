@@ -292,8 +292,9 @@ class ImportPipeline {
       );
     }
 
-    final configuredLevels =
-        await _difficultyLevels?.listAll() ?? const <DifficultyLevel>[];
+    final configuredLevels = _difficultyLevels == null
+        ? DifficultyLevel.shipped
+        : await _difficultyLevels!.listAll();
     final configuredById = <String, DifficultyLevel>{
       for (final level in configuredLevels) level.id: level,
     };
