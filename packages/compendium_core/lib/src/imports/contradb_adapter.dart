@@ -7,6 +7,7 @@ import '../model/formation.dart';
 import '../taxonomy/param_types.dart';
 import '../util/text_sanitizer.dart';
 import 'author_tokenizer.dart';
+import 'figure_text_scrub.dart';
 import 'import_error.dart';
 import 'raw_record.dart';
 import 'source_adapter.dart';
@@ -60,11 +61,12 @@ import 'structured_draft.dart';
 /// The ContraDB choreographer name is carried on the draft's `authorNames`; the
 /// import pipeline resolves it to a real [Choreographer] association
 /// ([Dance.authorIds]) at commit (match-or-create). It is no longer folded into
-/// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `preamble` +
-/// `notes` → [Dance.callingNotes]. `start_type` free text is classified to a
-/// [FormationShape] best-effort (its original text preserved in
-/// [Formation.detail]); an unclassifiable string yields a warning and
-/// [FormationShape.other].
+/// [Dance.callingNotes]. ContraDB `hook` → [Dance.hook]; `notes` →
+/// [Dance.callingNotes]; normalized `preamble` → [Formation.detail].
+/// `start_type` free text is classified to a [FormationShape] best-effort;
+/// recognized text is shape-only, while an unclassifiable string yields a
+/// warning and [FormationShape.other]. If both an unclassifiable `start_type`
+/// and a preamble are present, both normalized values are retained in detail.
 ///
 /// ## Deprecated — use [ContraDbHtmlAdapter] instead
 /// This JSON adapter is **not wired into any live import path**: ContraDB serves
@@ -190,7 +192,11 @@ class ContraDbAdapter implements SourceAdapter {
 
     final issues = <ImportIssue>[];
     final figures = _parseFigures(dance['figures_json'], issues);
-    final formation = _parseFormation(dance['start_type'], issues);
+    final formation = _parseFormation(
+      dance['start_type'],
+      dance['preamble'],
+      issues,
+    );
     final choreographer = _sanitizeLine(_choreographerName(dance));
 
     return StructuredDraft(
@@ -495,13 +501,26 @@ class ContraDbAdapter implements SourceAdapter {
     );
   }
 
-  Formation _parseFormation(Object? startType, List<ImportIssue> issues) {
-    final text = _sanitizeLine(_asString(startType));
-    if (text == null || text.isEmpty) {
-      return const Formation(FormationShape.dupleImproper);
+  Formation _parseFormation(
+    Object? startType,
+    Object? preamble,
+    List<ImportIssue> issues,
+  ) {
+    final text = scrubFigureText(_asString(startType) ?? '');
+    final detail = scrubFigureText(_asString(preamble) ?? '');
+    String? detailForUnknown(String source) {
+      final parts = [detail, source].where((part) => part.isNotEmpty);
+      final combined = parts.join('\n\n');
+      return combined.isEmpty ? null : combined;
+    }
+
+    if (text.isEmpty) {
+      return Formation(
+        FormationShape.dupleImproper,
+        detail: detail.isEmpty ? null : detail,
+      );
     }
     final lower = text.toLowerCase();
-    final detail = text;
 
     FormationShape? shape;
     if (lower.contains('becket')) {
@@ -538,9 +557,9 @@ class ContraDbAdapter implements SourceAdapter {
               'formation; kept as detail on "other".',
         ),
       );
-      return Formation(FormationShape.other, detail: detail);
+      return Formation(FormationShape.other, detail: detailForUnknown(text));
     }
-    return Formation(shape, detail: detail);
+    return Formation(shape, detail: detail.isEmpty ? null : detail);
   }
 
   // --- Notes -----------------------------------------------------------------
@@ -550,10 +569,6 @@ class ContraDbAdapter implements SourceAdapter {
     // The choreographer name is resolved to a Choreographer association by the
     // import pipeline (Dance.authorIds) via the draft's authorNames, so it is
     // no longer folded into the notes.
-    final preamble = _asString(dance['preamble'])?.trim();
-    if (preamble != null && preamble.isNotEmpty) {
-      parts.add('Preamble: $preamble');
-    }
     final notes = _asString(dance['notes'])?.trim();
     if (notes != null && notes.isNotEmpty) {
       parts.add(notes);
