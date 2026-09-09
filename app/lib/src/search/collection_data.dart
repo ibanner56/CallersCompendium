@@ -106,28 +106,22 @@ class CollectionData {
 
   /// The window used to collapse a burst of writes into one reload.
   ///
-  /// The value is measured against the thing it has to span, not chosen for a
-  /// frame budget. Timing the 50-write batch shape (`_applyBatchTags`) gives
-  /// an inter-commit gap of **median 1.46 ms, p90 1.66 ms, max 2.36 ms**
-  /// (in-memory sqlite, debug build). 24 ms is therefore about **10x the
-  /// widest observed gap** — headroom for a slower device rather than a value
-  /// tuned to this one.
+  /// The value is not tied to batch tagging: `_applyBatchTags` now commits once,
+  /// while other collection operations can still produce notification bursts.
+  /// This window is therefore a conservative burst-coalescing choice rather
+  /// than a frame-budget or per-write timing claim.
   ///
   /// Both directions of error, since an unexplained constant invites deletion:
   ///
-  /// - **Too short** — it stops collapsing and the batch leaks reloads. The
-  ///   degradation is proportional rather than a cliff: a burst emits roughly
-  ///   `gap / window` of its writes, so halving the window doubles the
-  ///   reloads. It becomes a full leak only below ~2.4 ms.
+  /// - **Too short** — it stops collapsing and a burst leaks extra reloads.
+  ///   Correctness is unaffected because every emit still carries a complete
+  ///   snapshot.
   /// - **Too long** — the tail of a burst takes longer to settle. A single
   ///   write is never affected in either direction, because the leading edge
   ///   emits immediately; the window is only ever paid by a burst.
   ///
-  /// Note which way the risk runs on real hardware: disk-backed sqlite on a
-  /// phone will have LARGER gaps than the figures above, so the margin is
-  /// smaller in production than in test. It is the proportional degradation
-  /// that makes that acceptable — an under-sized window costs extra reloads,
-  /// never correctness, because every emit still carries a complete snapshot.
+  /// A disk-backed sqlite on a phone may produce wider notification spacing,
+  /// trading extra reloads against the tail latency of a shorter window.
   static const coalesceWindow = Duration(milliseconds: 24);
 
   /// A live [CollectionData], re-read whenever anything it is built from
