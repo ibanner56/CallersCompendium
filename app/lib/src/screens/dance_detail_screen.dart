@@ -1149,6 +1149,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                             dialect,
                           )
                         : _renderer.renderFreeText(dance.hook, dialect),
+                    linkText: dance.hook,
+                    transformUnlinkedText: canonicalDiscouragedTerms
+                        ? (value) => _renderer
+                              .renderFreeTextWithCanonicalDiscouragedTerms(
+                                value,
+                                dialect,
+                              )
+                        : null,
                     style: theme.textTheme.bodyLarge,
                     linker: detail.crossRefLinker,
                     onOpenDance: _openDance,
@@ -1223,6 +1231,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     dialect,
                   )
                 : _renderer.renderFreeText(dance.callingNotes, dialect),
+            linkText: dance.callingNotes,
+            transformUnlinkedText: canonicalDiscouragedTerms
+                ? (value) =>
+                      _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                        value,
+                        dialect,
+                      )
+                : null,
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1242,6 +1258,14 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                     dialect,
                   )
                 : _renderer.renderFreeText(dance.walkthrough.trim(), dialect),
+            linkText: dance.walkthrough.trim(),
+            transformUnlinkedText: canonicalDiscouragedTerms
+                ? (value) =>
+                      _renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+                        value,
+                        dialect,
+                      )
+                : null,
             style: theme.textTheme.bodyMedium,
             linker: detail.crossRefLinker,
             onOpenDance: _openDance,
@@ -1673,12 +1697,16 @@ class _SourceCitationRow extends StatelessWidget {
 class _CrossReferenceText extends StatelessWidget {
   const _CrossReferenceText({
     required this.text,
+    this.linkText,
+    this.transformUnlinkedText,
     required this.style,
     required this.linker,
     required this.onOpenDance,
   });
 
   final String text;
+  final String? linkText;
+  final String Function(String text)? transformUnlinkedText;
   final TextStyle? style;
   final DanceTitleLinker linker;
   final void Function(String danceId) onOpenDance;
@@ -1698,7 +1726,7 @@ class _CrossReferenceText extends StatelessWidget {
     );
 
     final spans = linker.spansFor(
-      text,
+      linkText ?? text,
       baseStyle: style,
       buildLink: (matchedText, danceId) => WidgetSpan(
         alignment: PlaceholderAlignment.baseline,
@@ -1720,14 +1748,34 @@ class _CrossReferenceText extends StatelessWidget {
       ),
     );
 
-    if (spans.length == 1 && spans.first is TextSpan) {
+    final displaySpans = transformUnlinkedText == null
+        ? spans
+        : spans.map(_transformUnlinkedSpan).toList();
+
+    if (displaySpans.length == 1 && displaySpans.first is TextSpan) {
       // No links were produced (e.g. all matches resolved to unknown ids);
       // render as plain text.
-      final only = spans.first as TextSpan;
+      final only = displaySpans.first as TextSpan;
       if (only.children == null) {
         return Text(only.text ?? text, style: style);
       }
     }
-    return Text.rich(TextSpan(children: spans));
+    return Text.rich(TextSpan(children: displaySpans));
+  }
+
+  InlineSpan _transformUnlinkedSpan(InlineSpan span) {
+    if (span is! TextSpan || transformUnlinkedText == null) return span;
+    return TextSpan(
+      text: span.text == null ? null : transformUnlinkedText!(span.text!),
+      style: span.style,
+      recognizer: span.recognizer,
+      mouseCursor: span.mouseCursor,
+      onEnter: span.onEnter,
+      onExit: span.onExit,
+      semanticsLabel: span.semanticsLabel,
+      locale: span.locale,
+      spellOut: span.spellOut,
+      children: span.children?.map(_transformUnlinkedSpan).toList(),
+    );
   }
 }
