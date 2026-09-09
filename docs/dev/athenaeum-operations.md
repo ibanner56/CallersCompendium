@@ -127,10 +127,17 @@ changes the Apache connection peer from the client to a Cloudflare address, so
 the vhost must be configured before the DNS record is proxied.
 
 In Cloudflare, configure the zone to use **Full (strict)** TLS, leave **Pseudo
-IPv4** off, and add a cache rule that bypasses cache for
-`https://sync.example.invalid/v1/*`. Do not attach a Worker route to
-`/v1/*`. A zone-wide HTTPS redirect must exclude `/v1/*`: plaintext Device
-Sync requests must remain refusals, not redirects.
+IPv4** off, and add a cache-bypass rule whose filter matches both the exact
+`/v1` path and every `/v1/` descendant. For example:
+
+```txt
+(http.host eq "sync.example.invalid" and
+ (http.request.uri.path eq "/v1" or starts_with(http.request.uri.path, "/v1/")))
+```
+
+Do not attach a Worker route that matches `/v1` or `/v1/*`. A zone-wide HTTPS
+redirect must exclude both paths: plaintext Device Sync requests must remain
+refusals, not redirects.
 
 Enable Apache's `remoteip` module, then fetch Cloudflare's published trusted
 proxy ranges. Write the IPv4 and IPv6 lists separately: the IPv4 endpoint does
