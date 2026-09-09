@@ -5,6 +5,7 @@ import '../../analysis/half_calling_stats.dart';
 import '../../model/enums.dart';
 import '../../model/program.dart';
 import '../../model/provenance.dart' as model;
+import '../../model/stored_timestamp.dart';
 import '../database.dart';
 import '../existence.dart';
 import '../shareable_text.dart';
@@ -276,12 +277,18 @@ class ProgramRepository {
                 ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
               .getSingleOrNull();
       if (liveProgram == null) return 0;
+      final rollbackUpdatedAt = nextStoredTimestamp(
+        now: updatedAt.isAfter(liveProgram.updatedAt)
+            ? updatedAt
+            : liveProgram.updatedAt.add(storedTimestampTick),
+        current: [liveProgram.updatedAt],
+      );
       await (_db.update(
         _db.programs,
       )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
         ProgramsCompanion(
           title: Value(normalizeShareableText(liveProgram.title)),
-          updatedAt: Value(updatedAt),
+          updatedAt: Value(rollbackUpdatedAt),
         ),
       );
       return cleared;

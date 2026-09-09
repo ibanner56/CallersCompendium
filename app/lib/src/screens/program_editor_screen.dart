@@ -1782,6 +1782,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (_pickerImporting) return;
     if (!_formKey.currentState!.validate()) return;
     final l10n = AppLocalizations.of(context);
+    final saveStartGeneration = _editGeneration;
     _autoCommitTimer?.cancel();
     _editGeneration++;
     setState(() => _saving = true);
@@ -1789,6 +1790,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       await _commitQueueTail;
       final draft = _draftProgram;
       if (draft == null) {
+        _editGeneration = saveStartGeneration;
         if (mounted) setState(() => _saving = false);
         return;
       }
@@ -1818,6 +1820,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     } catch (error, stackTrace) {
       logCaughtError(error, stackTrace, source: 'program_editor_screen._save');
       if (!mounted) return;
+      if (_editGeneration == saveStartGeneration + 1) {
+        _editGeneration = saveStartGeneration;
+      }
       setState(() => _saving = false);
       ScaffoldMessenger.of(
         context,

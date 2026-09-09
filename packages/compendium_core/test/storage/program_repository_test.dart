@@ -378,6 +378,38 @@ void main() {
       expect(loaded.slots[3].performedAt, DateTime.utc(2025, 12, 31, 20));
     });
 
+    test('stamps rollback strictly after the live program timestamp', () async {
+      final actionAt = DateTime.utc(2026, 1, 1, 20);
+      final current = DateTime.utc(2026, 1, 1, 21);
+      final program = sampleProgram(
+        updatedAt: current,
+        slots: [
+          ProgramSlot(
+            id: 's1',
+            position: 0,
+            text: 'Undo me',
+            performedAt: actionAt,
+          ),
+        ],
+      );
+      await repo.create(program);
+
+      expect(
+        await repo.clearPerformedAtIfMatches(
+          programId: program.id,
+          slotIds: ['s1'],
+          performedAt: actionAt,
+          updatedAt: current,
+        ),
+        1,
+      );
+
+      expect(
+        (await repo.getById(program.id))!.updatedAt,
+        current.add(storedTimestampTick),
+      );
+    });
+
     test(
       'conditionally clears large slot batches within one transaction',
       () async {

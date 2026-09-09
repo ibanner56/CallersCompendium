@@ -1686,11 +1686,14 @@ void main() {
     failing.programs.failWrites = false;
     tester.widget<SnackBarAction>(find.byType(SnackBarAction)).onPressed.call();
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('save-program')));
-    await tester.pumpAndSettle();
 
     final saved = await failing.repos.programs.getById('p1');
     expect(saved!.slots.single.performedAt, isNull);
+    expect(
+      await failing.repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+      reason: 'Undo after a failed clean Save restores the clean draft state',
+    );
   });
 
   testWidgets(
