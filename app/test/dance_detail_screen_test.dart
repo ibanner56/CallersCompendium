@@ -1233,34 +1233,45 @@ void main() {
     expect(find.text('See this one'), findsOneWidget);
   });
 
-  testWidgets(
-    'relatedDance link with dangling targetDanceId shows placeholder',
-    (tester) async {
-      final repos = openTestRepositories();
-      // Create the target dance and then soft-delete it to simulate a link
-      // whose target has been removed from the visible collection.
-      await repos.dances.create(_dance(id: 'gone-target', title: 'Was Here'));
-      await repos.dances.create(
-        _dance(
-          id: 'd1',
-          links: [
-            DanceLink(
-              id: 'l1',
-              kind: LinkKind.relatedDance,
-              targetDanceId: 'gone-target',
-              label: '',
-            ),
-          ],
-        ),
-      );
-      await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
+  testWidgets('relatedDance link to a soft-deleted target is hidden', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    // Create the target dance and then soft-delete it to simulate a link
+    // whose target has been removed from the visible collection.
+    await repos.dances.create(_dance(id: 'gone-target', title: 'Was Here'));
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        links: [
+          DanceLink(
+            id: 'l1',
+            kind: LinkKind.relatedDance,
+            targetDanceId: 'gone-target',
+            label: '',
+            transitive: true,
+          ),
+        ],
+      ),
+    );
+    await repos.dances.softDelete('gone-target', at: DateTime.now().toUtc());
 
-      await _pumpDetail(tester, repos, 'd1');
+    await _pumpDetail(tester, repos, 'd1');
 
-      // Falls back to placeholder text because getById returns null.
-      expect(find.text('(missing dance)'), findsOneWidget);
-    },
-  );
+    // Soft deletion preserves the link for restoration, but it is not shown
+    // while the target is tombstoned.
+    expect(find.byKey(const ValueKey('link-row-l1')), findsNothing);
+    expect(find.text('(missing dance)'), findsNothing);
+
+    await repos.dances.restore(
+      'gone-target',
+      at: DateTime.now().toUtc().add(const Duration(seconds: 1)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('link-row-l1')), findsOneWidget);
+    expect(find.text('Was Here'), findsOneWidget);
+  });
 
   testWidgets('relatedDance link is tappable when target exists', (
     tester,

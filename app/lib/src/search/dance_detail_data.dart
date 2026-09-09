@@ -34,6 +34,7 @@ class DanceDetailData {
     this.customFieldsById = const {},
     required this.customFields,
     required this.relatedDanceTitles,
+    this.tombstonedRelatedDanceIds = const {},
     required this.sourcesById,
     required this.crossRefLinker,
   });
@@ -56,8 +57,15 @@ class DanceDetailData {
   final List<CustomFieldDisplay> customFields;
 
   /// Maps targetDanceId → title for relatedDance links whose target exists.
-  /// Missing entries indicate the target dance has been deleted/purged.
+  /// Missing entries indicate the target row no longer exists; soft-deleted
+  /// targets are listed separately in [tombstonedRelatedDanceIds].
   final Map<String, String> relatedDanceTitles;
+
+  /// Target IDs for relatedDance links whose dances are soft-deleted.
+  ///
+  /// These links remain persisted so restoring the target can reveal them
+  /// again, but the detail screen omits them while the target is tombstoned.
+  final Set<String> tombstonedRelatedDanceIds;
 
   /// Maps sourceId → the cited [PublishedSource] for each of the dance's
   /// [SourceCitation]s (missing entries indicate a purged source).
@@ -190,6 +198,7 @@ class DanceDetailData {
     // explicit, O(1) positional index (rather than relying on set iteration
     // order and O(n) elementAt).
     final relatedDanceTitles = <String, String>{};
+    final tombstonedRelatedDanceIds = <String>{};
     final targetIds = dance.links
         .where(
           (l) => l.kind == LinkKind.relatedDance && l.targetDanceId != null,
@@ -199,10 +208,12 @@ class DanceDetailData {
         .toList();
     if (targetIds.isNotEmpty) {
       final fetched = await Future.wait(
-        targetIds.map((id) => repos.dances.getById(id)),
+        targetIds.map((id) => repos.dances.getById(id, includeDeleted: true)),
       );
       for (final (i, related) in fetched.indexed) {
-        if (related != null) {
+        if (related?.isDeleted == true) {
+          tombstonedRelatedDanceIds.add(targetIds[i]);
+        } else if (related != null) {
           relatedDanceTitles[targetIds[i]] = related.title;
         }
       }
@@ -252,6 +263,7 @@ class DanceDetailData {
             (label: def.label, value: _formatFieldValue(value.value)),
       ],
       relatedDanceTitles: relatedDanceTitles,
+      tombstonedRelatedDanceIds: tombstonedRelatedDanceIds,
       sourcesById: sourcesById,
       crossRefLinker: crossRefLinker,
     );

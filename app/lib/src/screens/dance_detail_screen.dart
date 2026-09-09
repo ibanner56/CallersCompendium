@@ -1327,24 +1327,28 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionLinks, style: theme.textTheme.titleMedium),
           for (final link in dance.links)
-            _LinkRow(
-              key: ValueKey('link-row-${link.id}'),
-              link: link,
-              relatedDanceTitle: link.kind == LinkKind.relatedDance
-                  ? (detail.relatedDanceTitles[link.targetDanceId ?? ''] ??
-                        l10n.danceMissingRelated)
-                  : null,
-              // Routed through [_openDance] rather than pushing inline: this
-              // was a second, un-awaited copy of the same navigation, so a
-              // dance renamed on the pushed screen left this row showing the
-              // old title (issue #768).
-              onTap:
-                  link.kind == LinkKind.relatedDance &&
-                      link.targetDanceId != null &&
-                      detail.relatedDanceTitles.containsKey(link.targetDanceId)
-                  ? () => _openDance(link.targetDanceId!)
-                  : null,
-            ),
+            if (link.kind != LinkKind.relatedDance ||
+                !detail.tombstonedRelatedDanceIds.contains(link.targetDanceId))
+              _LinkRow(
+                key: ValueKey('link-row-${link.id}'),
+                link: link,
+                relatedDanceTitle: link.kind == LinkKind.relatedDance
+                    ? (detail.relatedDanceTitles[link.targetDanceId ?? ''] ??
+                          l10n.danceMissingRelated)
+                    : null,
+                // Routed through [_openDance] rather than pushing inline: this
+                // was a second, un-awaited copy of the same navigation, so a
+                // dance renamed on the pushed screen left this row showing the
+                // old title (issue #768).
+                onTap:
+                    link.kind == LinkKind.relatedDance &&
+                        link.targetDanceId != null &&
+                        detail.relatedDanceTitles.containsKey(
+                          link.targetDanceId,
+                        )
+                    ? () => _openDance(link.targetDanceId!)
+                    : null,
+              ),
         ],
         if (dance.sourceCitations.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
@@ -1533,7 +1537,7 @@ class _LinkRow extends StatelessWidget {
   final DanceLink link;
 
   /// For relatedDance links: the target dance's title, or `"(missing dance)"`
-  /// if the target has been deleted/purged.  `null` for non-relatedDance links.
+  /// if the target row no longer exists. `null` for non-relatedDance links.
   final String? relatedDanceTitle;
 
   /// If non-null, the row is tappable and calls this callback.
