@@ -1215,33 +1215,64 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     await _refreshLinkedVenue(id);
   }
 
-  Future<bool> _refreshPerformedAtForUndo(Set<String> markedSlotIds) async {
-    final readGeneration = _editGeneration;
-    final performedAtAtReadStart = {
-      for (final slot in _slots) slot.id: slot.performedAt,
-    };
+  ProgramSlot _mergeUndoSlot({
+    required ProgramSlot atReadStart,
+    required ProgramSlot local,
+    required ProgramSlot live,
+  }) => ProgramSlot(
+    id: local.id,
+    position: local.position == atReadStart.position
+        ? live.position
+        : local.position,
+    danceId: local.danceId == atReadStart.danceId
+        ? live.danceId
+        : local.danceId,
+    text: local.text == atReadStart.text ? live.text : local.text,
+    isAlt: local.isAlt == atReadStart.isAlt ? live.isAlt : local.isAlt,
+    guestCaller: local.guestCaller == atReadStart.guestCaller
+        ? live.guestCaller
+        : local.guestCaller,
+    plannedMinutes: local.plannedMinutes == atReadStart.plannedMinutes
+        ? live.plannedMinutes
+        : local.plannedMinutes,
+    performedAt: local.performedAt == atReadStart.performedAt
+        ? live.performedAt
+        : local.performedAt,
+  );
+
+  Future<bool> _refreshPerformedAtForUndo() async {
+    final slotsAtReadStart = List<ProgramSlot>.of(_slots);
     final live = await _repos.programs.getById(_existing!.id);
     if (!mounted || live == null) return false;
+    final slotsAtReadStartById = {
+      for (final slot in slotsAtReadStart) slot.id: slot,
+    };
+    final localSlotsById = {for (final slot in _slots) slot.id: slot};
     final liveSlotsById = {for (final slot in live.slots) slot.id: slot};
-    final editDuringRead = _editGeneration != readGeneration;
     final refreshedSlots = <ProgramSlot>[];
     for (final slot in _slots) {
-      if (!markedSlotIds.contains(slot.id)) {
+      final atReadStart = slotsAtReadStartById[slot.id];
+      if (atReadStart == null) {
         refreshedSlots.add(slot);
         continue;
       }
-      final performedAt =
-          editDuringRead && performedAtAtReadStart[slot.id] != slot.performedAt
-          ? slot.performedAt
-          : liveSlotsById[slot.id]?.performedAt;
+      final liveSlot = liveSlotsById[slot.id];
+      if (liveSlot == null) {
+        if (slot != atReadStart) refreshedSlots.add(slot);
+        continue;
+      }
       refreshedSlots.add(
-        performedAt == null
-            ? slot.copyWith(clearPerformedAt: true)
-            : slot.copyWith(performedAt: performedAt),
+        _mergeUndoSlot(atReadStart: atReadStart, local: slot, live: liveSlot),
       );
     }
+    for (final liveSlot in live.slots) {
+      if (!localSlotsById.containsKey(liveSlot.id) &&
+          !slotsAtReadStartById.containsKey(liveSlot.id)) {
+        refreshedSlots.add(liveSlot);
+      }
+    }
     setState(() {
-      _slots = refreshedSlots;
+      _slots = _renumber(refreshedSlots);
     });
     return true;
   }
@@ -1905,7 +1936,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           await _clearDraft(waitForCommits: false);
           return;
         }
-        final liveStillExists = await _refreshPerformedAtForUndo(markedSlotIds);
+        final liveStillExists = await _refreshPerformedAtForUndo();
         if (!mounted) return;
         if (!liveStillExists) return;
         _scheduleAutosave();
