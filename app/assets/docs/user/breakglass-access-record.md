@@ -12,14 +12,6 @@ No sync ID, credential, manifest content, or secure output path is recorded here
 - **Executed at (UTC):** `<YYYY-MM-DDTHH:MM:SSZ>`
 - **Notes:** `<extended description>`
 
-## [2026-09-09] Test BreakGlass Audit and Execution
-
-- **Operator:** ibanner56
-- **Reason:** ADR-004/W16 verification of break-glass access and its separate audit log
-- **Scope:** One disposable Athenaeum store and its `device-one` manifest
-- **Executed at (UTC):** `2026-09-09T06:20:00Z`
-- **Notes:** Initial break-glass testing and process design, verifying the live sync host.
-
 ## [2026-09-09] Test lost sync-ID support
 
 - **Operator:** ibanner56
@@ -30,3 +22,11 @@ No sync ID, credential, manifest content, or secure output path is recorded here
   derived key and has no account, email, or identity lookup path. After ownership
   verification through the normal support process, the user is directed to create
   a new store and configure a new sync ID.
+
+## [2026-09-09] Test BreakGlass Audit and Execution
+
+- **Operator:** ibanner56
+- **Reason:** ADR-004/W16 verification of break-glass access and its separate audit log
+- **Scope:** One disposable Athenaeum store and its `device-one` manifest
+- **Executed at (UTC):** `2026-09-09T06:20:00Z`
+- **Notes:** Initial break-glass testing and process design, verifying the live sync host.
