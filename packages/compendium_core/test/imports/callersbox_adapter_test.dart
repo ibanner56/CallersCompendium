@@ -465,6 +465,25 @@ void main() {
         expect(draft.dance.formation.detail, 'Zia — role2s shoulder round');
       });
 
+      test(
+        'does not let FormationDetail classify an unknown FormationBase',
+        () async {
+          final draft = await _importOne(
+            jsonEncode(
+              _dance(formationBase: 'Zia', formationDetail: 'Improper'),
+            ),
+          );
+          expect(draft.dance.formation.shape, FormationShape.other);
+          expect(draft.dance.formation.detail, 'Zia — Improper');
+          expect(
+            draft.issues.any(
+              (issue) => issue.code == 'callersbox_formation_unclassified',
+            ),
+            isTrue,
+          );
+        },
+      );
+
       test('classifies Becket, and unknown → other + warning', () async {
         final becket = await _importOne(
           jsonEncode(_dance(formationBase: 'Duple Minor - Becket')),

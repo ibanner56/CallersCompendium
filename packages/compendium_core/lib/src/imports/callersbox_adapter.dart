@@ -1453,11 +1453,14 @@ class CallersBoxAdapter implements SourceAdapter {
     final combined = [base, extra].where((s) => s.isNotEmpty).join(' — ');
     final sourceDetail = combined.isEmpty ? null : scrubFigureText(combined);
 
-    if (base.isEmpty && extra.isEmpty) {
-      return const Formation(FormationShape.dupleImproper);
+    if (base.isEmpty) {
+      return Formation(
+        FormationShape.dupleImproper,
+        detail: extra.isEmpty ? null : extra,
+      );
     }
 
-    final lower = '$base $extra'.toLowerCase();
+    final lower = base.toLowerCase();
     FormationShape? shape;
     if (lower.contains('becket')) {
       shape = _becketShape(dance['Direction'], lower, issues);
