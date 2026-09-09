@@ -965,20 +965,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('batch-tag-confirm')));
       await tester.pumpAndSettle();
 
-      // Five dances written in five transactions, so five wakes reach the
-      // stream. The bound is a *rate*, not a total: the coalescing window emits
-      // on the leading edge and flushes at most once per window thereafter, so
-      // a burst this size settles in two. Asserting exactly one would be
-      // asserting the trailing flush away, and the trailing flush is what
-      // guarantees the last write is not dropped.
-      //
-      // The claim being defended is the gap between 2 and 5 — one reload per
-      // dance written, for a pane showing one of them.
+      // The five dance updates share the outer batch transaction, so the
+      // stream receives one commit and the pane reloads once.
       expect(
         counted.dances.loads - before,
-        lessThanOrEqualTo(2),
+        1,
         reason:
-            'a 5-dance batch must not reload this pane once per dance; '
+            'a 5-dance batch must commit once and reload this pane once; '
             'saw ${counted.dances.loads - before}',
       );
     },
