@@ -254,30 +254,26 @@ class ProgramRepository {
     if (ids.isEmpty) return 0;
 
     return _db.transaction(() async {
-      final cleared =
-          await (_db.update(_db.programSlots)..where(
-                (t) =>
-                    t.programId.equals(programId) &
-                    t.id.isIn(ids) &
-                    t.performedAt.equals(performedAt) &
-                    existsQuery(
-                      _db.select(_db.programs)..where(
-                        (p) => p.id.equals(programId) & p.deletedAt.isNull(),
+      var cleared = 0;
+      for (final chunk in _chunkIds(ids.toList())) {
+        cleared +=
+            await (_db.update(_db.programSlots)..where(
+                  (t) =>
+                      t.programId.equals(programId) &
+                      t.id.isIn(chunk) &
+                      t.performedAt.equals(performedAt) &
+                      existsQuery(
+                        _db.select(_db.programs)..where(
+                          (p) => p.id.equals(programId) & p.deletedAt.isNull(),
+                        ),
                       ),
-                    ),
-              ))
-              .write(const ProgramSlotsCompanion(performedAt: Value(null)));
+                ))
+                .write(const ProgramSlotsCompanion(performedAt: Value(null)));
+      }
       if (cleared == 0) return 0;
-      await (_db.update(
-        _db.programs,
-      )..where((t) => t.id.equals(programId) & t.deletedAt.isNull())).write(
-        ProgramsCompanion(
-          // The slot body changed above; leave all unrelated program
-          // fields absent while making the paired content update explicit.
-          title: const Value.absent(),
-          updatedAt: Value(updatedAt),
-        ),
-      );
+      await (_db.update(_db.programs)
+            ..where((t) => t.id.equals(programId) & t.deletedAt.isNull()))
+          .write(ProgramsCompanion(updatedAt: Value(updatedAt)));
       return cleared;
     });
   }

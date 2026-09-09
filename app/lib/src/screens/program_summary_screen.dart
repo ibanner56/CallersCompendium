@@ -772,6 +772,7 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
         updatedSlots.add(s);
       }
     }
+    if (markedSlotIds.isEmpty) return;
     final updated = program.copyWith(slots: updatedSlots, updatedAt: now);
     await _repos.programs.update(updated);
     if (!mounted) return;

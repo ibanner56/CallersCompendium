@@ -378,6 +378,38 @@ void main() {
       expect(loaded.slots[3].performedAt, DateTime.utc(2025, 12, 31, 20));
     });
 
+    test(
+      'conditionally clears large slot batches within one transaction',
+      () async {
+        final actionAt = DateTime.utc(2026, 1, 1, 20);
+        final program = sampleProgram(
+          slots: [
+            for (var i = 0; i < 1001; i++)
+              ProgramSlot(
+                id: 's$i',
+                position: i,
+                text: 'Slot $i',
+                performedAt: actionAt,
+              ),
+          ],
+        );
+        await repo.create(program);
+
+        expect(
+          await repo.clearPerformedAtIfMatches(
+            programId: program.id,
+            slotIds: program.slots.map((slot) => slot.id),
+            performedAt: actionAt,
+            updatedAt: DateTime.utc(2026, 1, 1, 21),
+          ),
+          1001,
+        );
+
+        final loaded = await repo.getById(program.id);
+        expect(loaded!.slots.every((slot) => slot.performedAt == null), isTrue);
+      },
+    );
+
     test('does not roll back a soft-deleted program', () async {
       final actionAt = DateTime.utc(2026, 1, 1, 20);
       final deletedAt = DateTime.utc(2026, 1, 1, 21);

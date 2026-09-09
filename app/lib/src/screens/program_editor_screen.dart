@@ -1623,6 +1623,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       }
       _slots = updatedSlots;
     });
+    if (markedSlotIds.isEmpty) return;
     _markDirty();
     SemanticsService.sendAnnouncement(
       View.of(context),
@@ -1761,6 +1762,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         );
         widget.onSaved?.call(persisted.id);
       } else {
+        messenger.hideCurrentSnackBar();
         Navigator.of(context).pop(persisted.id);
       }
     } catch (error, stackTrace) {

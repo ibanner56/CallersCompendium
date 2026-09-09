@@ -1574,6 +1574,8 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Undo'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('save-program')));

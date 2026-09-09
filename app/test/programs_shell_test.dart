@@ -593,6 +593,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+      await tester.pumpAndSettle();
 
       final marked = await repos.programs.getById('p1');
       await repos.programs.update(
