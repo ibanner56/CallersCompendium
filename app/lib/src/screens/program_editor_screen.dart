@@ -165,6 +165,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   bool _dirty = false;
   final Set<Object> _pickerImportOwners = {};
   bool _autoCommitEnabled = false;
+  bool _autoCommitInFlight = false;
   int _editGeneration = 0;
   int _collectionDataGeneration = 0;
 
@@ -940,53 +941,60 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   }
 
   Future<void> _autoCommit(int generation) async {
-    if (!mounted ||
-        !_autoCommitEnabled ||
-        !_dirty ||
-        generation != _editGeneration) {
-      return;
-    }
-    final draft = _draftProgram;
-    if (draft == null) return;
-    final wasNew = _existing == null;
-    final oldDraftKey = _draftKey;
+    _autoCommitInFlight = true;
     try {
-      final persisted = await _persistDraft(draft);
-      if (!mounted) return;
-      if (wasNew && _existing == null) {
-        _existing = persisted;
-        await _clearDraftKey(oldDraftKey);
-        if (_dirty && generation != _editGeneration) {
-          await _saveDraft();
-        }
-      }
-      if (!mounted || generation != _editGeneration) {
-        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+      if (!mounted ||
+          !_autoCommitEnabled ||
+          !_dirty ||
+          generation != _editGeneration) {
         return;
       }
-      await _clearDraft(waitForCommits: false, resetEditorState: false);
-      if (!mounted) return;
-      if (generation != _editGeneration) {
-        await _saveDraft();
+      final draft = _draftProgram;
+      if (draft == null) return;
+      final wasNew = _existing == null;
+      final oldDraftKey = _draftKey;
+      try {
+        final persisted = await _persistDraft(draft);
         if (!mounted) return;
-        if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
-        return;
+        if (wasNew && _existing == null) {
+          _existing = persisted;
+          await _clearDraftKey(oldDraftKey);
+          if (_dirty && generation != _editGeneration) {
+            await _saveDraft();
+          }
+        }
+        if (!mounted || generation != _editGeneration) {
+          if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+          return;
+        }
+        await _clearDraft(waitForCommits: false, resetEditorState: false);
+        if (!mounted) return;
+        if (generation != _editGeneration) {
+          await _saveDraft();
+          if (!mounted) return;
+          if (_autoCommitEnabled && _dirty) _scheduleAutoCommit();
+          return;
+        }
+        setState(() {
+          _existing = persisted;
+          _dirty = false;
+          _slots = persisted.slots;
+        });
+      } catch (error, stackTrace) {
+        logCaughtError(
+          error,
+          stackTrace,
+          source: 'program_editor_screen._autoCommit',
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context).programsSaveError),
+          ),
+        );
       }
-      setState(() {
-        _existing = persisted;
-        _dirty = false;
-        _slots = persisted.slots;
-      });
-    } catch (error, stackTrace) {
-      logCaughtError(
-        error,
-        stackTrace,
-        source: 'program_editor_screen._autoCommit',
-      );
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context).programsSaveError)),
-      );
+    } finally {
+      _autoCommitInFlight = false;
     }
   }
 
@@ -1661,6 +1669,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     if (!mounted) return;
     final canRestoreCleanState =
         !wasDirty && _dirty && _editGeneration == actionEditGeneration;
+    final autoCommitWasInFlight = _autoCommitInFlight;
     setState(() {
       _slots = [
         for (final slot in _slots)
@@ -1670,7 +1679,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       ];
     });
     if (canRestoreCleanState) {
-      await _clearDraft();
+      _autosaveTimer?.cancel();
+      _autoCommitTimer?.cancel();
+      _editGeneration++;
+      await _commitQueueTail;
+      if (!mounted) return;
+      if (autoCommitWasInFlight) {
+        _markDirty();
+      } else {
+        await _clearDraft(waitForCommits: false);
+      }
     } else {
       _markDirty();
     }

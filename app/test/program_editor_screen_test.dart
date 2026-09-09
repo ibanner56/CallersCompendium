@@ -1593,6 +1593,46 @@ void main() {
     },
   );
 
+  testWidgets('Undo corrects a marked auto-commit that is already in flight', (
+    tester,
+  ) async {
+    final delayed = openTestRepositoriesWithDelayedPrograms();
+    await delayed.repos.dances.create(_dance(id: 'd1', title: 'Newly Called'));
+    await delayed.repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [ProgramSlot(id: 's0', position: 0, danceId: 'd1')],
+      ),
+    );
+    await _pumpBuilder(
+      tester,
+      delayed.repos,
+      programId: 'p1',
+      autoCommit: true,
+    );
+
+    delayed.programs.holdNextWrite();
+    await tester.tap(find.byKey(const ValueKey('mark-all-performed')));
+    await tester.pump(const Duration(milliseconds: 600));
+    await delayed.programs.writeStarted;
+
+    tester
+        .widget<SnackBarAction>(find.byType(SnackBarAction))
+        .onPressed
+        ?.call();
+    await tester.pump();
+    delayed.programs.releaseWrite();
+    await tester.pumpAndSettle();
+
+    final saved = await delayed.repos.programs.getById('p1');
+    expect(saved!.slots.single.performedAt, isNull);
+    expect(
+      await delayed.repos.settings.contains('program_editor_draft:p1'),
+      isFalse,
+    );
+  });
+
   testWidgets(
     'persists a mark-performed made via the builder-routed Perform path',
     (tester) async {
