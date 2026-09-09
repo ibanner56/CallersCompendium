@@ -48,6 +48,15 @@ class FragmentError(ValueError):
     """A fragment or compilation input violates the release-note contract."""
 
 
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    data: dict[str, object] = {}
+    for key, value in pairs:
+        if key in data:
+            raise ValueError(f"duplicate JSON key {key!r}")
+        data[key] = value
+    return data
+
+
 @dataclass(frozen=True)
 class Fragment:
     identifier: str
@@ -103,8 +112,10 @@ def load_fragments(directory: Path) -> list[Fragment]:
     seen: set[str] = set()
     for path in fragment_paths(directory):
         try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
+            data = json.loads(
+                path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
+            )
+        except (OSError, ValueError) as error:
             raise FragmentError(f"{path}: invalid JSON: {error}") from error
         if not isinstance(data, dict):
             raise FragmentError(f"{path}: fragment must be a JSON object")

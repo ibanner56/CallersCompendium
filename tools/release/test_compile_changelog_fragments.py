@@ -278,6 +278,30 @@ def cases() -> None:
         finally:
             temporary.cleanup()
 
+    for name, contents in (
+        (
+            "duplicate-top-level",
+            '{"id":"duplicate-top-level","user_visible":true,'
+            '"app":{"added":["first"]},"app":{"fixed":["second"]}}',
+        ),
+        (
+            "duplicate-nested",
+            '{"id":"duplicate-nested","user_visible":true,'
+            '"app":{"added":["first"],"added":["second"]}}',
+        ),
+    ):
+        temporary, root = fixture_repo()
+        try:
+            (root / "changelog.d" / f"{name}.json").write_text(contents, encoding="utf-8")
+            try:
+                compiler.load_fragments(root / "changelog.d")
+            except compiler.FragmentError as error:
+                assert "duplicate JSON key" in str(error)
+            else:
+                raise AssertionError(f"{name} fragment passed")
+        finally:
+            temporary.cleanup()
+
     temporary, root = fixture_repo()
     try:
         write_fragment(
