@@ -306,6 +306,13 @@ void main() {
         ),
         'Menéndez called the dance; Shoulder round、next.',
       );
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Gypsy𐄀next and Gypsy𠀀next',
+          larks,
+        ),
+        'Shoulder round𐄀next and Gypsy𠀀next',
+      );
     });
 
     test('preserves possessive plural grammar', () {
