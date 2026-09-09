@@ -287,6 +287,14 @@ void main() {
     expect(find.byKey(const ValueKey('figure-add')), findsOneWidget);
   });
 
+  testWidgets('facing star names its who parameter backing up', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'fac', 'facing_star');
+
+    expect(find.text('backing up'), findsOneWidget);
+  });
+
   testWidgets('wording override is opt-in, previews, trims, and resets', (
     tester,
   ) async {
@@ -3098,6 +3106,20 @@ void main() {
   });
 
   group('meanwhile authoring (#590/#593)', () {
+    testWidgets('facing star side names its who parameter backing up', (
+      tester,
+    ) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(move: 'facing_star', params: {'who': 'partners'}),
+        FigureDraft(move: 'balance', params: {'beats': 16}),
+      ];
+      await _pump(tester, drafts);
+      await _tapMenuItem(tester, 0, 'group-with-next');
+      await _openFigure(tester, 0);
+
+      expect(find.text('backing up'), findsOneWidget);
+    });
+
     testWidgets('group with next merges two figures into a meanwhile group '
         'and the shared beats field edits the container beats', (tester) async {
       final drafts = <FigureDraft>[

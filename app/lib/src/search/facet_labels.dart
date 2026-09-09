@@ -202,7 +202,16 @@ List<String> figureParamSelectableChoices(List<String> domain) => [
 /// does for the very same keys, so this keeps the two surfaces identical. Named
 /// separately from [humanizeToken] so a future localized table has exactly one
 /// call site to replace.
-String figureParamKeyLabel(String paramKey) => humanizeToken(paramKey);
+String figureParamKeyLabel(
+  AppLocalizations l10n,
+  String paramKey, {
+  String? moveId,
+}) {
+  if (moveId == 'facing_star' && paramKey == 'who') {
+    return l10n.figureParamFacingStarBackingUp;
+  }
+  return humanizeToken(paramKey);
+}
 
 /// Display label for a single figure-param [choice].
 ///

@@ -868,7 +868,7 @@ class _ParamDropdown extends StatelessWidget {
     // With nothing left to pick, "Any" alone is not a filter — offering a
     // one-item dropdown that cannot constrain anything is just noise.
     if (selectable.isEmpty) return const SizedBox.shrink();
-    final label = figureParamKeyLabel(paramKey);
+    final label = figureParamKeyLabel(l10n, paramKey, moveId: figure.move);
     final stored = figure.params[paramKey] as String?;
     // Defensive: a value outside the selectable list would trip
     // `DropdownButton`'s single-match assertion. Unreachable through the UI —

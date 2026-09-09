@@ -36,7 +36,11 @@ from that tag, so new entries need no visible or manually maintained suffix.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Fixed
+
+- **Facing star parameters** — you now see “backing up” instead of “who” for
+  the facing star dancer parameter in figure entry, search, defaults, and
+  matrix controls.
 
 ## [0.3.1] - 2026-09-03
 

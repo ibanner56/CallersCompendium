@@ -787,7 +787,13 @@ class _ParameterizedColumnDialogState
                         key: ValueKey(
                           'matrix-parameterized-constraint-${entry.key}',
                         ),
-                        label: Text(figureParamKeyLabel(entry.key)),
+                        label: Text(
+                          figureParamKeyLabel(
+                            l10n,
+                            entry.key,
+                            moveId: _baseMove,
+                          ),
+                        ),
                         selected: _selected.contains(entry.key),
                         onSelected: (selected) =>
                             _toggleParam(entry.key, selected),
@@ -809,6 +815,7 @@ class _ParameterizedColumnDialogState
                         onChanged: (value) =>
                             setState(() => _params[entry.key] = value),
                         dialect: Dialect.canonical,
+                        moveId: _baseMove,
                       ),
                     ),
               ],
@@ -1116,7 +1123,9 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
                       key: ValueKey(
                         'matrix-compound-step-$index-constraint-${entry.key}',
                       ),
-                      label: Text(figureParamKeyLabel(entry.key)),
+                      label: Text(
+                        figureParamKeyLabel(l10n, entry.key, moveId: step.move),
+                      ),
                       selected: step.selected.contains(entry.key),
                       onSelected: (selected) =>
                           _toggleParam(index, entry.key, selected),
@@ -1137,6 +1146,7 @@ class _CompoundColumnDialogState extends State<_CompoundColumnDialog> {
                       value: step.params[entry.key],
                       onChanged: (value) => _setParam(index, entry.key, value),
                       dialect: Dialect.canonical,
+                      moveId: step.move,
                     ),
                   ),
             ],

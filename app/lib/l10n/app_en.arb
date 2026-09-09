@@ -7338,6 +7338,10 @@
   "@danceEditorParamNotStated": {
     "description": "Shown in the figure parameter editor when the source never stated a value for this parameter, so none may be assumed. Used by the rotation stepper and by the choice dropdowns whose parameter admits the unstated state."
   },
+  "figureParamFacingStarBackingUp": "backing up",
+  "@figureParamFacingStarBackingUp": {
+    "description": "Display-only label for the facing star move's `who` parameter in figure editors and search controls."
+  },
   "danceEditorParamClearTooltip": "Clear (not stated)",
   "@danceEditorParamClearTooltip": {
     "description": "Tooltip for the button that clears a figure parameter back to the unstated state."

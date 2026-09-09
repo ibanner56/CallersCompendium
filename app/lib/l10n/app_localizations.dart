@@ -8519,6 +8519,12 @@ abstract class AppLocalizations {
   /// **'not stated'**
   String get danceEditorParamNotStated;
 
+  /// Display-only label for the facing star move's `who` parameter in figure editors and search controls.
+  ///
+  /// In en, this message translates to:
+  /// **'backing up'**
+  String get figureParamFacingStarBackingUp;
+
   /// Tooltip for the button that clears a figure parameter back to the unstated state.
   ///
   /// In en, this message translates to:

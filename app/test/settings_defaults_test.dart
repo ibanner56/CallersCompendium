@@ -783,6 +783,23 @@ void main() {
       });
     });
 
+    testWidgets('facing star labels its who override backing up', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(
+        kDefaultMoveParamOverridesKey,
+        encodeMoveParamOverrides({
+          'facing_star': {'who': 'partners'},
+        }),
+      );
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 4500));
+      await tester.pumpAndSettle();
+
+      expect(find.text('backing up'), findsOneWidget);
+    });
+
     testWidgets('resetting a param to its default drops it from storage', (
       tester,
     ) async {
