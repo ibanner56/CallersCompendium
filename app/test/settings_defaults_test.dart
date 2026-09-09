@@ -191,6 +191,7 @@ void main() {
       final list = tester.widget<ReorderableListView>(
         find.byType(ReorderableListView).first,
       );
+      expect(list.buildDefaultDragHandles, isFalse);
       expect(
         find.descendant(
           of: find.byType(ReorderableListView).first,
