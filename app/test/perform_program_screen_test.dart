@@ -53,11 +53,13 @@ ProgramSlot _slot({
   String? text,
   bool isAlt = false,
   int? plannedMinutes,
+  bool? isPurgedDance = false,
 }) => ProgramSlot(
   id: id,
   position: position,
   danceId: danceId,
   text: text,
+  isPurgedDance: isPurgedDance,
   isAlt: isAlt,
   plannedMinutes: plannedMinutes,
 );
@@ -508,6 +510,7 @@ void main() {
             position: 0,
             danceId: 'missing-dance',
             text: 'Gypsy with the gents',
+            isPurgedDance: null,
           ),
         ]),
       );

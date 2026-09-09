@@ -298,6 +298,16 @@ void main() {
       );
     });
 
+    test('does not rewrite a discouraged prefix in a Unicode name', () {
+      expect(
+        renderer.renderFreeTextWithCanonicalDiscouragedTerms(
+          'Menéndez called the dance',
+          larks,
+        ),
+        'Menéndez called the dance',
+      );
+    });
+
     test('preserves possessive plural grammar', () {
       expect(
         renderer.renderFreeTextWithCanonicalDiscouragedTerms(

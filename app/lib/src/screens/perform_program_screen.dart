@@ -526,7 +526,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
     final rawText = slot.text?.trim();
     final text =
         rawText == null ||
-            slot.isPurgedDance != false ||
+            (slot.danceId == null && slot.isPurgedDance != false) ||
             !convert ||
             !CanonicalDiscouragedTermsScope.of(context)
         ? rawText
@@ -1176,7 +1176,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       // A slot without a dance id can represent a purged dance title, so keep
       // that tombstone lossless. A non-null unresolved id carries caller prose.
       canonicalizeDiscouragedTerms:
-          slot.isPurgedDance == false &&
+          (slot.danceId != null || slot.isPurgedDance == false) &&
           CanonicalDiscouragedTermsScope.of(context),
       autoSize: _autoSize,
       fitScaleCache: _fitScaleCache,

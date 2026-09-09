@@ -32,6 +32,11 @@ String _applyCase(String matched, String replacement) {
 
 /// Compiled set of `term → replacement` rules.
 class Substitutor {
+  // Dart's \w is ASCII-only; include Unicode letters, marks, and numbers so
+  // a discouraged term cannot match the prefix of a non-ASCII name.
+  static const _wordCharacterClass =
+      r'\w\u00C0-\u02FF\u0300-\u036F\u0370-\u1FFF\u2C00-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF';
+
   Substitutor(
     Map<String, String> replacements, {
     this.caseInsensitive = false,
@@ -46,7 +51,13 @@ class Substitutor {
     _pattern = keys.isEmpty
         ? null
         : RegExp(
-            r'(?<![\w])(?:' + keys.map(RegExp.escape).join('|') + r')(?![\w])',
+            '(?<![' +
+                _wordCharacterClass +
+                r'])(?:' +
+                keys.map(RegExp.escape).join('|') +
+                r')(?![' +
+                _wordCharacterClass +
+                r'])',
             caseSensitive: !caseInsensitive,
           );
   }
