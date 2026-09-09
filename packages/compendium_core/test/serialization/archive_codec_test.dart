@@ -371,6 +371,12 @@ void main() {
                 text: 'Old text',
                 isPurgedDance: null,
               ),
+              ProgramSlot(
+                id: 'ordinary-slot',
+                position: 2,
+                text: 'Gypsy mixer',
+                isPurgedDance: false,
+              ),
             ],
             createdAt: DateTime.utc(2026),
             updatedAt: DateTime.utc(2026),
@@ -382,9 +388,10 @@ void main() {
       final decoded = decodeArchive(encodeArchive(archive));
 
       expect(decoded.hasErrors, isFalse);
-      expect(decoded.archive.programs.single.slots, hasLength(2));
+      expect(decoded.archive.programs.single.slots, hasLength(3));
       expect(decoded.archive.programs.single.slots[0].isPurgedDance, isTrue);
       expect(decoded.archive.programs.single.slots[1].isPurgedDance, isNull);
+      expect(decoded.archive.programs.single.slots[2].isPurgedDance, isFalse);
     });
 
     test('reports an invalid purge marker instead of throwing', () {

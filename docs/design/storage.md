@@ -454,10 +454,11 @@ can still fire.
   manifest retains its epoch; all six tables are device-scoped except the
   retransmitted pending tombstone blob.
 - v33 (issue #1196): adds `program_slots.is_purged_dance`, an explicit marker
-  for text captions left behind when a dance is purged. Existing slots default
-  to `false`; new purge captions are marked so ordinary text-only announcements
-  can receive display-only discouraged-term conversion without rewriting
-  tombstone titles.
+  for text captions left behind when a dance is purged. New slots use `false`
+  for ordinary text-only announcements, while pre-v33
+  rows remain `NULL` because their text-only meaning is ambiguous. New purge
+  captions are marked so ordinary text-only announcements can receive
+  display-only discouraged-term conversion without rewriting tombstone titles.
 
 ## The delete model
 
