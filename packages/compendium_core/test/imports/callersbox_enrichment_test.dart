@@ -17,16 +17,30 @@ List<Figure> _parseAll(String rawText, {int beats = 0}) =>
 
 void main() {
   group('roll away', () {
-    test('TCB "Neighbor roll away" → who=neighbors (annotation dropped)', () {
+    test('TCB "Neighbor roll away" assigns role and relationship', () {
       final f = _parse('Neighbor roll away (W roll R, M side-step L)');
       expect(f!.move, 'roll_away');
-      expect(f.params['who'], 'neighbors');
+      expect(f.params['who'], 'role1s');
+      expect(f.params['whom'], 'neighbors');
+      expect(f.note, 'role2s roll right, role1s side-step left');
     });
 
     test('"Partner roll away (across)" → who=partners, dir dropped', () {
       final f = _parse('Partner roll away (across)');
       expect(f!.move, 'roll_away');
       expect(f.params['who'], 'partners');
+    });
+
+    test('ambiguous per-role annotations keep generic roll-away params', () {
+      final noRoll = _parse('Neighbor roll away (W side-step R, M walk L)');
+      final twoRolls = _parse('Neighbor roll away (W roll R, M roll L)');
+      final unsupported = _parse('Neighbor roll away (W spin R, M side-step L)');
+
+      for (final f in [noRoll, twoRolls, unsupported]) {
+        expect(f!.move, 'roll_away');
+        expect(f.params['who'], 'neighbors');
+        expect(f.params.containsKey('whom'), isFalse);
+      }
     });
 
     test('canonical "role1s roll away neighbors with a half sashay along"', () {
