@@ -301,6 +301,79 @@ void main() {
     },
   );
 
+  test('undo restores difficulty levels after a label handoff', () async {
+    final levelA = await difficultyLevels.createCustom(
+      label: 'A',
+      position: 3,
+      newId: () => 'level-a',
+    );
+    final levelB = await difficultyLevels.createCustom(
+      label: 'B',
+      position: 4,
+      newId: () => 'level-b',
+    );
+    final archive = CompendiumArchive(
+      exportedAt: now,
+      difficultyLevels: [
+        levelA.copyWith(label: 'C', position: 3),
+        levelB.copyWith(label: 'A', position: 4),
+      ],
+    );
+
+    final result = await importer.commit(
+      ImportBatchResult(records: const []),
+      archive,
+      now: now,
+    );
+    expect(
+      await difficultyLevels.getById(levelA.id),
+      archive.difficultyLevels[0],
+    );
+    expect(
+      await difficultyLevels.getById(levelB.id),
+      archive.difficultyLevels[1],
+    );
+
+    await importer.undo(result, now: () => now.add(const Duration(minutes: 1)));
+    expect(await difficultyLevels.getById(levelA.id), levelA);
+    expect(await difficultyLevels.getById(levelB.id), levelB);
+  });
+
+  test(
+    'late shared-import failure rolls back a difficulty label handoff',
+    () async {
+      final levelA = await difficultyLevels.createCustom(
+        label: 'A',
+        position: 3,
+        newId: () => 'level-a',
+      );
+      final levelB = await difficultyLevels.createCustom(
+        label: 'B',
+        position: 4,
+        newId: () => 'level-b',
+      );
+      final archive = CompendiumArchive(
+        exportedAt: now,
+        difficultyLevels: [
+          levelA.copyWith(label: 'C', position: 3),
+          levelB.copyWith(label: 'A', position: 4),
+        ],
+        tags: [Tag(id: 'archive-tag', name: 'Archive tag')],
+      );
+
+      await expectLater(
+        importer.commit(
+          ImportBatchResult(records: const []),
+          archive,
+          now: now,
+        ),
+        throwsStateError,
+      );
+      expect(await difficultyLevels.getById(levelA.id), levelA);
+      expect(await difficultyLevels.getById(levelB.id), levelB);
+    },
+  );
+
   test(
     'remaps slot dance references to the newly-committed dance ids',
     () async {
