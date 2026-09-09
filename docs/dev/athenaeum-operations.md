@@ -298,12 +298,15 @@ curl --silent https://sync.example.invalid/cdn-cgi/trace |
   awk -F= '$1 == "ip" { print $2 }'
 ```
 
-Send the following requests from client A, changing the supplied
-`X-Forwarded-For` value on the last request. Its first 20 requests must return
-`401`; its 21st must return `429`. This proves that a client cannot escape its
-rate-limit bucket by spoofing that header.
+Leave client A idle for two minutes so its burst bucket is full. Then send 21
+invalid requests concurrently and change the supplied `X-Forwarded-For` value
+on the immediate follow-up. The concurrent batch must contain exactly 20
+`401` responses and one `429`; the changed-header follow-up must also return
+`429`. This proves that a client cannot escape its rate-limit bucket by
+spoofing that header.
 
 ```sh
+sleep 120
 endpoint='https://sync.example.invalid/v1/store'
 request_status() {
   curl --noproxy '*' --silent --show-error --max-time 15 \
@@ -311,9 +314,19 @@ request_status() {
     --header 'Authorization: Bearer invalid-credential' \
     --header "$1" "$endpoint"
 }
-for attempt in $(seq 1 20); do
-  test "$(request_status 'X-Forwarded-For: 198.51.100.1')" = 401
+
+responses=$(mktemp -d)
+cleanup_responses() {
+  find "$responses" -type f -delete
+  rmdir "$responses"
+}
+trap cleanup_responses EXIT HUP INT TERM
+for attempt in $(seq 1 21); do
+  request_status 'X-Forwarded-For: 198.51.100.1' > "$responses/$attempt" &
 done
+wait
+test "$(grep -hcx 401 "$responses"/* | awk '{ total += $1 } END { print total + 0 }')" = 20
+test "$(grep -hcx 429 "$responses"/* | awk '{ total += $1 } END { print total + 0 }')" = 1
 test "$(request_status 'X-Forwarded-For: 203.0.113.1')" = 429
 ```
 
