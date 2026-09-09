@@ -34,7 +34,9 @@ void main() {
     test('ambiguous per-role annotations keep generic roll-away params', () {
       final noRoll = _parse('Neighbor roll away (W side-step R, M walk L)');
       final twoRolls = _parse('Neighbor roll away (W roll R, M roll L)');
-      final unsupported = _parse('Neighbor roll away (W spin R, M side-step L)');
+      final unsupported = _parse(
+        'Neighbor roll away (W spin R, M side-step L)',
+      );
 
       for (final f in [noRoll, twoRolls, unsupported]) {
         expect(f!.move, 'roll_away');

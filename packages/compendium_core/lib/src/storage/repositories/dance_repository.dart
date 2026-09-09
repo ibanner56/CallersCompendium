@@ -70,6 +70,15 @@ class DerivedRebuildProgress {
 typedef DerivedRebuildProgressCallback =
     void Function(DerivedRebuildProgress progress);
 
+const Set<String> _legacyCallersBoxRollAwayRelationships = {
+  'neighbors',
+  'partners',
+};
+
+final RegExp _legacyCallersBoxRollAwayClauseRe = RegExp(
+  r'^(role1s|role2s) (roll|side-step|step aside)(?: (left|right))?$',
+);
+
 /// CRUD + search for [Dance]s.
 ///
 /// Every write rebuilds the derived indexes ([DanceFigures] rows,
@@ -272,6 +281,83 @@ class DanceRepository {
       backfilled?.add(result);
     }
     return backfilled != null ? dance.copyWith(figures: backfilled) : dance;
+  }
+
+  /// Repairs the legacy CallersBox `roll_away` subject/relationship assignment
+  /// (#1192), recursing into `meanwhile` sides. The caller must scope this pass
+  /// to CallersBox provenance; this transformer only recognizes the exact
+  /// persisted figure shape emitted by the buggy parser.
+  Dance repairLegacyCallersBoxRollAwayPublic(Dance dance) {
+    List<Figure>? repaired;
+    final figures = dance.figures;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _repairLegacyCallersBoxRollAway(figure);
+      if (!identical(result, figure) && repaired == null) {
+        repaired = figures.sublist(0, i);
+      }
+      repaired?.add(result);
+    }
+    return repaired != null ? dance.copyWith(figures: repaired) : dance;
+  }
+
+  Figure _repairLegacyCallersBoxRollAway(Figure figure) {
+    if (figure.isMeanwhile) {
+      List<Figure>? repaired;
+      final subFigures = figure.subFigures;
+      for (var i = 0; i < subFigures.length; i++) {
+        final subFigure = subFigures[i];
+        final result = _repairLegacyCallersBoxRollAway(subFigure);
+        if (!identical(result, subFigure) && repaired == null) {
+          repaired = subFigures.sublist(0, i);
+        }
+        repaired?.add(result);
+      }
+      if (repaired == null) return figure;
+      return figure.copyWith(
+        params: {
+          ...figure.params,
+          'figures': List<Figure>.unmodifiable(repaired),
+        },
+      );
+    }
+
+    if (figure.move != 'roll_away' ||
+        figure.params.containsKey('whom') ||
+        !_legacyCallersBoxRollAwayRelationships.contains(
+          figure.params['who'],
+        )) {
+      return figure;
+    }
+
+    final clauses = _legacyCallersBoxRollAwayClauses(figure.note);
+    if (clauses == null) return figure;
+    final rolling = clauses.where((clause) => clause.$2 == 'roll').toList();
+    final nonRolling = clauses.where((clause) => clause.$2 != 'roll').toList();
+    if (rolling.length != 1 || nonRolling.length != 1) return figure;
+
+    return figure.copyWith(
+      params: {
+        ...figure.params,
+        'who': nonRolling.single.$1,
+        'whom': figure.params['who'],
+      },
+      assumedSubject: false,
+    );
+  }
+
+  List<(String, String)>? _legacyCallersBoxRollAwayClauses(String? note) {
+    if (note == null) return null;
+    final clauses = note.split(', ');
+    if (clauses.length != 2) return null;
+    final parsed = <(String, String)>[];
+    for (final clause in clauses) {
+      final match = _legacyCallersBoxRollAwayClauseRe.firstMatch(clause);
+      if (match == null) return null;
+      parsed.add((match.group(1)!, match.group(2)!));
+    }
+    if (parsed[0].$1 == parsed[1].$1) return null;
+    return parsed;
   }
 
   /// Backfills a single figure's `chain.hand`, recursing into `meanwhile`

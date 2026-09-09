@@ -438,6 +438,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
+| `__callersbox_roll_away_role_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__shareable_text_normalisation_scope__` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `__taxonomy_v33_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v34_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
