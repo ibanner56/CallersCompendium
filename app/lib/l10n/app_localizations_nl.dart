@@ -589,40 +589,40 @@ class AppLocalizationsNl extends AppLocalizations {
       'Vooraf ingevuld in nieuwe programma\'s; aanpasbaar per programma.';
 
   @override
-  String get settingsDefaultsStartingProgramTitle => 'Starting program';
+  String get settingsDefaultsStartingProgramTitle => 'Startprogramma';
 
   @override
   String get settingsDefaultsStartingProgramSubtitle =>
-      'Dance and note entries added to manually created programs.';
+      'Dansen en notities die aan handmatig gemaakte programma\'s worden toegevoegd.';
 
   @override
-  String get settingsDefaultsStartingProgramPickerTitle => 'Add a dance';
+  String get settingsDefaultsStartingProgramPickerTitle => 'Een dans toevoegen';
 
   @override
-  String get settingsDefaultsStartingProgramAddDance => 'Dance';
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
 
   @override
-  String get settingsDefaultsStartingProgramAddText => 'Note';
+  String get settingsDefaultsStartingProgramAddText => 'Notitie';
 
   @override
-  String get settingsDefaultsStartingProgramAddBreak => 'Add break';
+  String get settingsDefaultsStartingProgramAddBreak => 'Pauze toevoegen';
 
   @override
-  String get settingsDefaultsStartingProgramTextLabel => 'Note text';
+  String get settingsDefaultsStartingProgramTextLabel => 'Tekst van notitie';
 
   @override
   String get settingsDefaultsStartingProgramNoteLabel =>
-      'Caller note (optional)';
+      'Notitie van caller (optioneel)';
 
   @override
-  String get settingsDefaultsStartingProgramMoveUp => 'Move up';
+  String get settingsDefaultsStartingProgramMoveUp => 'Omhoog';
 
   @override
-  String get settingsDefaultsStartingProgramMoveDown => 'Move down';
+  String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
 
   @override
   String settingsDefaultsStartingProgramUnavailableDance(String id) {
-    return 'Unavailable dance ($id)';
+    return 'Niet-beschikbare dans ($id)';
   }
 
   @override

@@ -215,7 +215,8 @@ List<StartingProgramTemplateEntry>? tryDecodeStartingProgramTemplate(
       );
     }
     return entries;
-  } on Object {
+  } catch (_) {
+    // diagnostics: silent — malformed settings data returns null.
     return null;
   }
 }

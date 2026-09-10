@@ -656,6 +656,50 @@
   "@settingsDefaultsPrefilledHelper": {
     "x-sourceSha256": "c02385b75a59383fbbb2ad8fe7fcd9f72bfa6101f4f628b8c1860a081a678fef"
   },
+  "settingsDefaultsStartingProgramTitle": "開始プログラム",
+  "@settingsDefaultsStartingProgramTitle": {
+    "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
+  },
+  "settingsDefaultsStartingProgramSubtitle": "手動で作成したプログラムに追加するダンスとメモ。",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "x-sourceSha256": "5263ff112c8931c2a4483aad83d69af9478ace82f9f0606180306ef902ddddd3"
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "ダンスを追加",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
+  },
+  "settingsDefaultsStartingProgramAddDance": "ダンス",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "settingsDefaultsStartingProgramAddText": "メモ",
+  "@settingsDefaultsStartingProgramAddText": {
+    "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
+  },
+  "settingsDefaultsStartingProgramAddBreak": "休憩を追加",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "x-sourceSha256": "7d6ad44637b1bd724b5c7defdab64e78e25805878c2326c5ba4a81e1b48bb50c"
+  },
+  "settingsDefaultsStartingProgramTextLabel": "メモのテキスト",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "x-sourceSha256": "369e75791f2d58551e3a06b30954568b580ba9c5871e07481d9b9c8a61abacfb"
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "caller のメモ（任意）",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
+  },
+  "settingsDefaultsStartingProgramMoveUp": "上へ移動",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "x-sourceSha256": "c66feb5eb8f217c76bfb0f1b41e3ee73ab41cb9959fae8284911bd3ad3816086"
+  },
+  "settingsDefaultsStartingProgramMoveDown": "下へ移動",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
+  },
+  "settingsDefaultsStartingProgramUnavailableDance": "利用できないダンス（{id}）",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
+  },
   "settingsDefaultsBandLabel": "デフォルトバンド",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"
