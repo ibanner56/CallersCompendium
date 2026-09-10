@@ -1128,7 +1128,7 @@ void main() {
             position: 0,
             text: 'Primary',
             guestCaller: 'Original guest',
-            plannedMinutes: 8,
+            danceMinutes: 8,
             performedAt: DateTime.utc(2026, 1, 1, 19),
           ),
           ProgramSlot(
@@ -1198,7 +1198,7 @@ void main() {
       false,
     ]);
     expect(saved.slots[2].guestCaller, 'Original guest');
-    expect(saved.slots[2].plannedMinutes, 8);
+    expect(saved.slots[2].danceMinutes, 8);
     expect(saved.slots[2].performedAt, DateTime.utc(2026, 1, 1, 19));
     expect(saved.slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
   });
@@ -1308,7 +1308,7 @@ void main() {
       'Guest caller',
     );
     await tester.enterText(
-      find.byKey(const ValueKey('slot-edit-minutes')),
+      find.byKey(const ValueKey('slot-edit-dance-minutes')),
       '12',
     );
     await tester.tap(find.byKey(const ValueKey('slot-edit-alt')));
@@ -1333,14 +1333,14 @@ void main() {
       true,
     ]);
     expect(slots[2].guestCaller, 'Guest caller');
-    expect(slots[2].plannedMinutes, 12);
+    expect(slots[2].danceMinutes, 12);
 
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
     final saved = await repos.programs.getById('p1');
     expect(saved!.slots[2].text, 'Promoted note');
     expect(saved.slots[2].guestCaller, 'Guest caller');
-    expect(saved.slots[2].plannedMinutes, 12);
+    expect(saved.slots[2].danceMinutes, 12);
     expect(saved.slots[2].isAlt, isFalse);
     expect(saved.slots[3].text, 'Primary 2');
     expect(saved.slots[3].isAlt, isTrue);
