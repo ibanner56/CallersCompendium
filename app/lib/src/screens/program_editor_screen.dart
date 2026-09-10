@@ -240,8 +240,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _previewPersistent = persistent;
     });
     try {
-      final preview = await _onlineServiceFor(result.source)
-          .loadPreview(_repos, result);
+      final preview = await _onlineServiceFor(
+        result.source,
+      ).loadPreview(_repos, result);
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
         _previewOnline = preview;
@@ -255,8 +256,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       );
       if (!mounted || generation != _previewGeneration) return;
       setState(() {
-        _previewError = AppLocalizations.of(context)
-            .onlineLoadError(result.source.label);
+        _previewError = AppLocalizations.of(
+          context,
+        ).onlineLoadError(result.source.label);
         _previewLoading = false;
       });
     }
@@ -378,8 +380,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
               if (snapshot.hasError) {
                 return Center(
                   child: Text(
-                    AppLocalizations.of(context)
-                        .onlineLoadError(result.source.label),
+                    AppLocalizations.of(
+                      context,
+                    ).onlineLoadError(result.source.label),
                     textAlign: TextAlign.center,
                   ),
                 );
@@ -1038,8 +1041,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         if (_pendingBulkUndoSlotIds != null) {
           _showBulkUndoSnackBar(message: errorMessage);
         } else {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(errorMessage)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(errorMessage)));
         }
       }
     } finally {
@@ -2294,8 +2298,9 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       if (restoreBulkUndoOnFailure) {
         _showBulkUndoSnackBar(message: l10n.programsSaveError);
       } else {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.programsSaveError)));
       }
     }
   }
@@ -2723,17 +2728,6 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               IconButton(
-                key: const ValueKey('program-matrix-reset-hidden-columns'),
-                icon: const Icon(Icons.visibility),
-                tooltip: l10n.programsMatrixShowAllColumnsSemantic,
-                onPressed:
-                    matrix.columns.any(
-                      (c) => _hiddenMatrixColumns.contains(c.moveId),
-                    )
-                    ? () => setState(_hiddenMatrixColumns.clear)
-                    : null,
-              ),
-              IconButton(
                 key: const ValueKey('program-matrix-toggle-alternates'),
                 icon: const Icon(Icons.alt_route),
                 tooltip: _showMatrixAlternates
@@ -2744,6 +2738,17 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                     () => _showMatrixAlternates = !_showMatrixAlternates,
                   );
                 },
+              ),
+              IconButton(
+                key: const ValueKey('program-matrix-reset-hidden-columns'),
+                icon: const Icon(Icons.visibility),
+                tooltip: l10n.programsMatrixShowAllColumnsSemantic,
+                onPressed:
+                    matrix.columns.any(
+                      (c) => _hiddenMatrixColumns.contains(c.moveId),
+                    )
+                    ? () => setState(_hiddenMatrixColumns.clear)
+                    : null,
               ),
               IconButton(
                 key: const ValueKey('program-matrix-export-pdf'),

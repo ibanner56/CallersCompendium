@@ -3215,10 +3215,18 @@ void main() {
     (tester) async {
       final repos = openTestRepositories();
       await repos.dances.create(
-        _dance(id: 'd1', title: 'Primary', figures: [Figure(move: 'swing')]),
+        _dance(
+          id: 'd1',
+          title: 'Primary',
+          figures: [Figure(move: 'swing')],
+        ),
       );
       await repos.dances.create(
-        _dance(id: 'd2', title: 'Alternate', figures: [Figure(move: 'balance')]),
+        _dance(
+          id: 'd2',
+          title: 'Alternate',
+          figures: [Figure(move: 'balance')],
+        ),
       );
       await repos.programs.create(
         _program(
@@ -3236,10 +3244,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Primary'), findsOneWidget);
       expect(find.text('Alternate'), findsOneWidget);
-      expect(
-        find.byTooltip('Hide alternate rows'),
-        findsOneWidget,
-      );
+      expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('program-matrix-toggle-alternates')),
@@ -3268,10 +3273,18 @@ void main() {
   ) async {
     final repos = openTestRepositories();
     await repos.dances.create(
-      _dance(id: 'd1', title: 'Primary', figures: [Figure(move: 'swing')]),
+      _dance(
+        id: 'd1',
+        title: 'Primary',
+        figures: [Figure(move: 'swing')],
+      ),
     );
     await repos.dances.create(
-      _dance(id: 'd2', title: 'Alternate', figures: [Figure(move: 'balance')]),
+      _dance(
+        id: 'd2',
+        title: 'Alternate',
+        figures: [Figure(move: 'balance')],
+      ),
     );
     await repos.programs.create(
       _program(

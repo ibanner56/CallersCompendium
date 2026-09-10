@@ -268,7 +268,9 @@ void main() {
     expect(find.text('Primary'), findsOneWidget);
     expect(find.text('Alternate'), findsNothing);
     expect(
-      find.bySemanticsLabel(RegExp(r'^Programming matrix: 1 dances by 3 moves')),
+      find.bySemanticsLabel(
+        RegExp(r'^Programming matrix: 1 dances by 3 moves'),
+      ),
       findsOneWidget,
     );
   });
@@ -694,7 +696,9 @@ void main() {
       expect(find.byIcon(Icons.alt_route), findsWidgets);
     });
 
-    testWidgets('hiding alternates updates compact move totals', (tester) async {
+    testWidgets('hiding alternates updates compact move totals', (
+      tester,
+    ) async {
       await pumpNarrow(
         tester,
         dances: [
