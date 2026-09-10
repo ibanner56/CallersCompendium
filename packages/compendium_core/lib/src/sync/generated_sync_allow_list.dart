@@ -14,6 +14,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'customFields.fieldId',
     'customFields.value',
     'deletedAt',
+    'difficultyLevelId',
     'figures',
     'form',
     'formation',
@@ -21,7 +22,6 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'formation.shape',
     'hook',
     'id',
-    'level',
     'links',
     'links.id',
     'links.kind',
@@ -106,6 +106,7 @@ const Map<SyncRecordKind, Set<String>> generatedShareableWirePaths = {
     'showInList',
     'type',
   },
+  SyncRecordKind.difficultyLevel: {'id', 'label', 'position'},
   SyncRecordKind.venue: {
     'eventName',
     'genericSchedule',

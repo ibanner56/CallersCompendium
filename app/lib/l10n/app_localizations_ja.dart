@@ -2355,6 +2355,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsSaveError => 'プログラムを保存できませんでした。';
 
   @override
+  String get programsUndoPerformedError => 'マークを取り消せませんでした。実行済みのマークは保存されたままです。';
+
+  @override
+  String get programsUndoRefreshError => '取り消しは保存されましたが、エディターを更新できませんでした。';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return '「$title」として複製しました。';
   }

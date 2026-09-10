@@ -68,6 +68,7 @@ jobs:
       recovery: ${{ steps.resolve.outputs.recovery }}
       release_ref: ${{ steps.resolve.outputs.release_ref }}
       source_sha: ${{ steps.resolve.outputs.source_sha }}
+      codename: ${{ steps.resolve.outputs.codename }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -127,6 +128,39 @@ jobs:
             fi
           fi
 
+          codename="$tag"
+          if [ -n "$tag" ]; then
+            # Codenames become required at the next minor after the current
+            # 0.3.x line. Lightweight tags before that adoption point are
+            # legacy; their commit messages are never parsed as tag metadata.
+            IFS=. read -r tag_major tag_minor tag_patch <<< "${version%-beta}"
+            codename_required=false
+            if (( tag_major > 0 || (tag_major == 0 && tag_minor >= 4) )); then
+              codename_required=true
+            fi
+            tag_object_type="$(git cat-file -t "$release_ref")"
+            if [ "$tag_object_type" = "tag" ]; then
+              tag_message="$(git for-each-ref --format='%(contents)' "$release_ref")"
+              annotated_codename="$(
+                printf '%s' "$tag_message" |
+                  python3 tools/release/resolve_release_codename.py --tag-message
+              )"
+              if [ -n "$annotated_codename" ]; then
+                codename="$annotated_codename"
+              elif [ "$codename_required" = "true" ]; then
+                echo "::error::release tag '$tag' must contain exactly one 'Release codename: <name>' line"
+                exit 1
+              else
+                echo "::warning::legacy tag '$tag' has no release codename; using the tag as its title"
+              fi
+            elif [ "$tag_object_type" = "commit" ] && [ "$codename_required" = "true" ]; then
+              echo "::error::release tag '$tag' must be annotated and contain a release codename"
+              exit 1
+            else
+              echo "::warning::legacy lightweight tag '$tag' has no release codename; using the tag as its title"
+            fi
+          fi
+
           # Recovery runs load this fixed workflow from main but build the immutable
           # tagged source. A normal dispatch and tag push already resolve to their
           # event commit, so this checkout is harmless for those modes.
@@ -171,9 +205,10 @@ jobs:
             echo "recovery=$recovery"
             echo "release_ref=$release_ref"
             echo "source_sha=$source_sha"
+            echo "codename=$codename"
           } >> "$GITHUB_OUTPUT"
 
-          echo "Resolved: version=$version tag=$tag channel=$channel android_version_code=$android_version_code prerelease=$prerelease recovery=$recovery source_sha=$source_sha"
+          echo "Resolved: version=$version tag=$tag channel=$channel codename=$codename android_version_code=$android_version_code prerelease=$prerelease recovery=$recovery source_sha=$source_sha"
 
       # Fail-fast CHANGELOG checks run for tag pushes and recoveries; a build-only
       # workflow_dispatch dry run remains exempt.
@@ -1511,6 +1546,7 @@ jobs:
           CHANNEL: ${{ needs.meta.outputs.channel }}
           CHANNELS: ${{ needs.meta.outputs.manifest_channels }}
           PRERELEASE: ${{ needs.meta.outputs.prerelease }}
+          CODENAME: ${{ needs.meta.outputs.codename }}
         run: |
           set -euo pipefail
           files=(dist/CallersCompendium-* "dist/SHA256SUMS" "dist/sbom-${VERSION}.cdx.json")
@@ -1531,7 +1567,7 @@ jobs:
             gh release create "$TAG" "${files[@]}" \
               --draft \
               "${pre_flag[@]}" \
-              --title "$TAG" \
+              --title "$CODENAME" \
               --notes-file release-notes.md
           fi
 

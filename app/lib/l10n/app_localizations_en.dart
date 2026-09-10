@@ -2425,6 +2425,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsSaveError => 'Could not save the program.';
 
   @override
+  String get programsUndoPerformedError =>
+      'Could not undo marking; performed marks remain saved.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Undo was saved, but the editor could not refresh.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Duplicated as \"$title\".';
   }

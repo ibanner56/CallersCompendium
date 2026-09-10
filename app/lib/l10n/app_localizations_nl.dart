@@ -2455,6 +2455,14 @@ class AppLocalizationsNl extends AppLocalizations {
   String get programsSaveError => 'Het programma kon niet worden opgeslagen.';
 
   @override
+  String get programsUndoPerformedError =>
+      'De markeringen konden niet ongedaan worden gemaakt; de uitgevoerde markeringen blijven opgeslagen.';
+
+  @override
+  String get programsUndoRefreshError =>
+      'Het ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd.';
+
+  @override
   String programsDuplicatedSnack(String title) {
     return 'Gedupliceerd als “$title”.';
   }

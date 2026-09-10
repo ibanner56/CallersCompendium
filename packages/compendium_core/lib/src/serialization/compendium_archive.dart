@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import '../model/choreographer.dart';
 import '../model/custom_field.dart';
 import '../model/dance.dart';
+import '../model/difficulty_level.dart';
 import '../model/program.dart';
 import '../model/published_source.dart';
 import '../model/tag.dart';
@@ -28,7 +29,9 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 ///   [requiredSchemaVersion]) to trip the "newer than supported" warning
 ///   instead of dropping the venue records. Venue-*less* archives keep being
 ///   stamped v1 so pre-venue readers still accept them byte-compatibly.
-/// * **v3** — adds the optional `programSlot.isPurgedDance` discriminator.
+/// * **v3** — adds ordered `difficultyLevels` and the stable
+///   `dance.difficultyLevelId` relationship.
+/// * **v4** — adds the optional `programSlot.isPurgedDance` discriminator.
 const int archiveSchemaVersion = archiveSchemaVersionProgramSlotMarkers;
 
 /// The original, pre-venue archive envelope version.
@@ -38,26 +41,38 @@ const int archiveSchemaVersionBase = 1;
 /// [archiveSchemaVersion]).
 const int archiveSchemaVersionVenues = 2;
 
+/// The envelope version introduced with configurable difficulty-level entities
+/// and stable dance difficulty-level IDs.
+const int archiveSchemaVersionDifficultyLevels = 3;
+
 /// The envelope version introduced for explicit text-only purge captions.
-const int archiveSchemaVersionProgramSlotMarkers = 3;
+const int archiveSchemaVersionProgramSlotMarkers = 4;
 
 /// The minimum envelope version required to represent [archive] without silent
 /// data loss on an older reader: [archiveSchemaVersionProgramSlotMarkers] when
-/// it carries a non-null purge-caption marker, [archiveSchemaVersionVenues] when
-/// it carries venue data, otherwise [archiveSchemaVersionBase].
+/// it carries a purge-caption marker, [archiveSchemaVersionDifficultyLevels]
+/// when it carries configured difficulty levels or a dance-level ID,
+/// [archiveSchemaVersionVenues] when it carries any venue data, otherwise
+/// [archiveSchemaVersionBase].
 ///
 /// The encoder stamps the wire version at `max(archive.schemaVersion, this)` so
-/// archives carrying new fields advertise the required version (old readers
-/// warn instead of dropping them), while unchanged archives stay
-/// backward-compatible — and an explicitly higher requested version is still
-/// honored.
-int requiredSchemaVersion(CompendiumArchive archive) =>
-    archive.programs.any((p) => p.slots.any((s) => s.isPurgedDance != null))
-    ? archiveSchemaVersionProgramSlotMarkers
-    : archive.venues.isNotEmpty ||
+/// venue-bearing archives always advertise v2 (old readers warn instead of
+/// dropping venues) while venue-less archives stay backward-compatible at v1 —
+/// and an explicitly higher requested version is still honored.
+int requiredSchemaVersion(CompendiumArchive archive) {
+  final hasDifficulty =
+      archive.difficultyLevels.isNotEmpty ||
+      archive.dances.any((d) => d.difficultyLevelId != null);
+  final hasPurgeMarker = archive.programs.any(
+    (p) => p.slots.any((s) => s.isPurgedDance != null),
+  );
+  if (hasPurgeMarker) return archiveSchemaVersionProgramSlotMarkers;
+  if (hasDifficulty) return archiveSchemaVersionDifficultyLevels;
+  return archive.venues.isNotEmpty ||
           archive.programs.any((p) => p.venueId != null)
-    ? archiveSchemaVersionVenues
-    : archiveSchemaVersionBase;
+      ? archiveSchemaVersionVenues
+      : archiveSchemaVersionBase;
+}
 
 /// How a [CompendiumArchive] is applied to a live dataset on restore.
 enum RestoreMode {
@@ -96,6 +111,7 @@ class CompendiumArchive {
     this.customFields = const [],
     this.tags = const [],
     this.venues = const [],
+    this.difficultyLevels = const [],
   });
 
   /// The [archiveSchemaVersion] this archive is stamped as. Defaults to
@@ -119,6 +135,9 @@ class CompendiumArchive {
   /// `venues` array and decode to an empty list.
   final List<Venue> venues;
 
+  /// Configurable difficulty vocabulary in display order.
+  final List<DifficultyLevel> difficultyLevels;
+
   @override
   bool operator ==(Object other) =>
       other is CompendiumArchive &&
@@ -130,7 +149,8 @@ class CompendiumArchive {
       _listEq.equals(other.publishedSources, publishedSources) &&
       _listEq.equals(other.customFields, customFields) &&
       _listEq.equals(other.tags, tags) &&
-      _listEq.equals(other.venues, venues);
+      _listEq.equals(other.venues, venues) &&
+      _listEq.equals(other.difficultyLevels, difficultyLevels);
 
   @override
   int get hashCode => Object.hash(
@@ -143,6 +163,7 @@ class CompendiumArchive {
     _listEq.hash(customFields),
     _listEq.hash(tags),
     _listEq.hash(venues),
+    _listEq.hash(difficultyLevels),
   );
 }
 
@@ -161,6 +182,7 @@ int compendiumArchiveEntityCount(CompendiumArchive archive) =>
     archive.choreographers.length +
     archive.programs.length +
     archive.venues.length +
+    archive.difficultyLevels.length +
     archive.publishedSources.length +
     archive.customFields.length +
     archive.tags.length;

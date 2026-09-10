@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' show Table, TableInfo, UpdateKind, Variable;
 
+import '../model/stored_timestamp.dart';
 import 'database.dart';
 import 'utc_datetime.dart';
 
@@ -55,7 +56,7 @@ import 'utc_datetime.dart';
 /// `+ 1 tick` — pinned to storage rather than to a magnitude. This constant is
 /// that tick for this schema, so the two agree by construction rather than by
 /// coincidence.
-const Duration existenceStampTick = Duration(seconds: _tickSeconds);
+const Duration existenceStampTick = storedTimestampTick;
 
 /// The tick in whole seconds — the single source for both the Dart reference
 /// implementation above and the SQL below, so the two cannot disagree about it.
@@ -97,9 +98,6 @@ DateTime nextExistenceStamp({required DateTime now, DateTime? current}) {
   final superseding = asUtc(current).add(existenceStampTick);
   return superseding.isAfter(localNow) ? superseding : localNow;
 }
-
-/// Unix-seconds form of a stamp, matching drift's `DateTimeColumn` mapping.
-int unixSeconds(DateTime at) => asUtc(at).millisecondsSinceEpoch ~/ 1000;
 
 /// SQL form of [nextExistenceStamp], taking the clock as a bound parameter.
 ///

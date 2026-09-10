@@ -1413,28 +1413,30 @@ class _DanceListScreenState extends State<DanceListScreen> {
     if (data == null || _selectedIds.isEmpty) return;
 
     final selectedIds = Set<String>.of(_selectedIds);
-    final choice = await showBatchLevelDialog(context);
+    final levels = await _repos.difficultyLevels.listAll();
+    if (!mounted) return;
+    final choice = await showBatchLevelDialog(context, levels: levels);
     if (choice == null || !mounted) return;
 
     // Capture prior levels so Undo can restore each dance individually (the
     // batch write collapses them to a single target level).
-    final priorLevels = <String, DanceLevel?>{};
+    final priorLevels = <String, String?>{};
     for (final id in selectedIds) {
       final dance = await _repos.dances.getById(id);
       if (dance == null) continue;
-      priorLevels[id] = dance.level;
+      priorLevels[id] = dance.difficultyLevelId;
     }
 
     final count = await _repos.dances.setLevelForMany(
       priorLevels.keys,
-      level: choice.level,
-      clearLevel: choice.clear,
+      difficultyLevelId: choice.level?.id,
+      clearDifficultyLevel: choice.clear,
       now: DateTime.now().toUtc(),
     );
 
     // Narrow the captured priors to only the dances that actually changed, so
     // Undo doesn't rewrite (and re-stamp) untouched dances.
-    final target = choice.clear ? null : choice.level;
+    final target = choice.clear ? null : choice.level?.id;
     priorLevels.removeWhere((_, prior) => prior == target);
 
     if (!mounted) return;
@@ -1476,14 +1478,14 @@ class _DanceListScreenState extends State<DanceListScreen> {
 
   /// Restores the captured [priorLevels] for each affected dance (app-side undo;
   /// the repository has no batch-undo primitive).
-  Future<void> _undoBatchLevel(Map<String, DanceLevel?> priorLevels) async {
+  Future<void> _undoBatchLevel(Map<String, String?> priorLevels) async {
     for (final entry in priorLevels.entries) {
       final dance = await _repos.dances.getById(entry.key);
       if (dance == null) continue;
       await _repos.dances.update(
         dance.copyWith(
-          level: entry.value,
-          clearLevel: entry.value == null,
+          difficultyLevelId: entry.value,
+          clearDifficultyLevel: entry.value == null,
           updatedAt: DateTime.now().toUtc(),
         ),
       );

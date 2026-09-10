@@ -34,6 +34,7 @@ void main() {
       'choreographers': SyncRecordKind.choreographer,
       'publishedSources': SyncRecordKind.publishedSource,
       'customFields': SyncRecordKind.customFieldDef,
+      'difficultyLevels': SyncRecordKind.difficultyLevel,
       'tags': SyncRecordKind.tag,
       'venues': SyncRecordKind.venue,
     };
@@ -64,7 +65,7 @@ void main() {
         }
       }
     }
-    expect(observedRecords, greaterThanOrEqualTo(7));
+    expect(observedRecords, greaterThanOrEqualTo(8));
 
     final mappedSources = {
       for (final fields in syncWireFields.values)
@@ -99,6 +100,7 @@ void main() {
       'choreographers': SyncRecordKind.choreographer,
       'publishedSources': SyncRecordKind.publishedSource,
       'customFields': SyncRecordKind.customFieldDef,
+      'difficultyLevels': SyncRecordKind.difficultyLevel,
       'tags': SyncRecordKind.tag,
       'venues': SyncRecordKind.venue,
     };
@@ -108,6 +110,7 @@ void main() {
       SyncRecordKind.choreographer: 'Alice Choreo',
       SyncRecordKind.publishedSource: 'Zesty Contras',
       SyncRecordKind.customFieldDef: 'tempo',
+      SyncRecordKind.difficultyLevel: 'Intermediate',
       SyncRecordKind.tag: 'chestnut',
       SyncRecordKind.venue: 'Public Hall',
     };
@@ -343,7 +346,7 @@ CompendiumArchive _sampleArchive() {
     hook: 'zesty',
     callingNotes: 'teach',
     walkthrough: 'walk',
-    level: DanceLevel.intermediate,
+    difficultyLevelId: DifficultyLevel.intermediateId,
     rating: 5,
     tunes: const ['Reel'],
     customFields: [
@@ -437,6 +440,7 @@ CompendiumArchive _sampleArchive() {
     choreographers: [choreographer],
     publishedSources: [source],
     customFields: [customField, privateCustomField],
+    difficultyLevels: [DifficultyLevel.intermediate],
     tags: [Tag(id: 't1', name: 'chestnut', color: 7)],
     venues: [venue],
   );

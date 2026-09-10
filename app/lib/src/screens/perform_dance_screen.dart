@@ -33,10 +33,12 @@ class PerformDanceScreen extends StatefulWidget {
     required this.dance,
     required this.renderer,
     this.authorNames = const [],
+    this.difficultyLevel,
   });
 
   final Dance dance;
   final FigureRenderer renderer;
+  final DifficultyLevel? difficultyLevel;
 
   /// Resolved author display names (the detail screen already resolves these
   /// from choreographer ids). Rendered under the title when non-empty.
@@ -522,6 +524,7 @@ class _PerformDanceScreenState extends State<PerformDanceScreen>
                     textScale: _textScale,
                     autoSize: _autoSize,
                     authorNames: widget.authorNames,
+                    difficultyLevel: widget.difficultyLevel,
                   ),
                   // The walkthrough overlay is a sibling of the card — never a
                   // child routed through its `_FitToHeight` measurement — so

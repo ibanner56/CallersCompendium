@@ -15,6 +15,7 @@ import 'choreographer_repository.dart';
 import 'collection_import_event_repository.dart';
 import 'custom_field_repository.dart';
 import 'dance_repository.dart';
+import 'difficulty_level_repository.dart';
 import 'program_repository.dart';
 import 'published_source_repository.dart';
 import 'settings_repository.dart';
@@ -61,7 +62,7 @@ Future<void> _retireMissingNormalisationSkips(CompendiumDatabase db) async {
 /// wires up storage once (`CompendiumRepositories(db, taxonomy)`) instead of
 /// constructing each repository individually.
 class CompendiumRepositories {
-  /// [settings] and [dances] exist as **test seams**, and only as that: each
+  /// [settings], [dances], and [venues] exist as **test seams**, and only as that: each
   /// defaults to the real repository, so no production call site passes either.
   ///
   /// A test that needs to count how many times a screen re-read its data
@@ -78,13 +79,15 @@ class CompendiumRepositories {
     DanceRepository? dances,
     CollectionImportEventRepository? collectionImports,
     ProgramRepository? programs,
+    VenueRepository? venues,
   }) : dances = dances ?? DanceRepository(db, taxonomy),
        choreographers = ChoreographerRepository(db),
        tags = TagRepository(db),
+       difficultyLevels = DifficultyLevelRepository(db),
        customFieldDefs = CustomFieldDefRepository(db),
        programs = programs ?? ProgramRepository(db),
        publishedSources = PublishedSourceRepository(db),
-       venues = VenueRepository(db),
+       venues = venues ?? VenueRepository(db),
        collectionImports =
            collectionImports ?? CollectionImportEventRepository(db),
        settings = settings ?? SettingsRepository(db),
@@ -94,6 +97,7 @@ class CompendiumRepositories {
   final DanceRepository dances;
   final ChoreographerRepository choreographers;
   final TagRepository tags;
+  final DifficultyLevelRepository difficultyLevels;
   final CustomFieldDefRepository customFieldDefs;
   final ProgramRepository programs;
   final PublishedSourceRepository publishedSources;
@@ -139,6 +143,7 @@ class CompendiumRepositories {
   static const _naturalKeys = <(String, String)>[
     ('choreographers', 'name'),
     ('tags', 'name'),
+    ('difficulty_levels', 'label'),
     ('custom_field_defs', 'key'),
   ];
 
@@ -147,7 +152,7 @@ class CompendiumRepositories {
   /// snapshot (issue #768).
   ///
   /// A **change signal**, not the data: it carries no payload, because the
-  /// snapshot is assembled app-side from a fan-out of queries across six
+  /// snapshot is assembled app-side from a fan-out of queries across seven
   /// repositories and there is no single row set to hand back. Callers pair it
   /// with their own loader (see `CollectionData.watch`).
   ///
@@ -159,10 +164,11 @@ class CompendiumRepositories {
   /// set is the union of what `CollectionData.load` reads:
   ///
   /// * `dances` — the collection itself, and every facet vocabulary derived
-  ///   from it (forms, formations, progressions, statuses, levels, and the
+  ///   from it (forms, formations, progressions, statuses, and the
   ///   mixed-level / mixer / rating flags).
   /// * `choreographers` — author names, and the author facet.
   /// * `tags` — tag names and colours, and the tag facet.
+  /// * `difficulty_levels` — the configurable difficulty vocabulary.
   /// * `custom_field_defs` — the list/searchable field definitions.
   /// * `published_sources` — the cited-source facet.
   /// * `program_slots` and `programs` — the per-dance call tallies and
@@ -353,6 +359,7 @@ class CompendiumRepositories {
           db.dances,
           db.choreographers,
           db.tags,
+          db.difficultyLevels,
           db.customFieldDefs,
           db.publishedSources,
           db.programSlots,
@@ -406,6 +413,7 @@ class CompendiumRepositories {
   ///   related-dance links and cross-reference candidates.
   /// * `choreographers` — resolved author names.
   /// * `tags` — tag names and colours.
+  /// * `difficulty_levels` — the selected difficulty label.
   /// * `custom_field_defs` — the labels custom-field values are displayed under.
   /// * `published_sources` — the cited sources a record expands its citations
   ///   into.
@@ -462,6 +470,7 @@ class CompendiumRepositories {
           db.dances,
           db.choreographers,
           db.tags,
+          db.difficultyLevels,
           db.customFieldDefs,
           db.publishedSources,
         },

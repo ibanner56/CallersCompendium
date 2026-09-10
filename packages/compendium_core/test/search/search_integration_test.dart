@@ -17,7 +17,7 @@ Dance _dance({
   FormationShape formation = FormationShape.dupleImproper,
   Progression progression = Progression.single,
   DanceStatus status = DanceStatus.active,
-  DanceLevel? level,
+  String? difficultyLevelId,
   bool mixedLevel = false,
   int? rating,
   PartialDate? composedOn,
@@ -36,7 +36,7 @@ Dance _dance({
     formation: Formation(formation),
     progression: progression,
     status: status,
-    level: level,
+    difficultyLevelId: difficultyLevelId,
     mixedLevel: mixedLevel,
     rating: rating,
     composedOn: composedOn,
@@ -123,29 +123,42 @@ void main() {
 
     test('Level: eq matches exactly, ordered ops respect the scale', () async {
       await dances.create(
-        _dance(id: 'beg', title: 'Beg', level: DanceLevel.beginner),
+        _dance(
+          id: 'beg',
+          title: 'Beg',
+          difficultyLevelId: DifficultyLevel.beginnerId,
+        ),
       );
       await dances.create(
-        _dance(id: 'int', title: 'Int', level: DanceLevel.intermediate),
+        _dance(
+          id: 'int',
+          title: 'Int',
+          difficultyLevelId: DifficultyLevel.intermediateId,
+        ),
       );
       await dances.create(
-        _dance(id: 'adv', title: 'Adv', level: DanceLevel.advanced),
+        _dance(
+          id: 'adv',
+          title: 'Adv',
+          difficultyLevelId: DifficultyLevel.advancedId,
+        ),
       );
       // Unspecified level: never matches any Level leaf.
       await dances.create(_dance(id: 'non', title: 'None'));
 
-      expect(await dances.search(const LevelFilter(DanceLevel.intermediate)), [
-        'int',
-      ]);
+      expect(
+        await dances.search(const LevelFilter(DifficultyLevel.intermediateId)),
+        ['int'],
+      );
       expect(
         await dances.search(
-          const LevelFilter(DanceLevel.intermediate, LevelOp.lte),
+          const LevelFilter(DifficultyLevel.intermediateId, LevelOp.lte),
         ),
         ['beg', 'int'],
       );
       expect(
         await dances.search(
-          const LevelFilter(DanceLevel.intermediate, LevelOp.gte),
+          const LevelFilter(DifficultyLevel.intermediateId, LevelOp.gte),
         ),
         ['adv', 'int'],
       );

@@ -227,9 +227,14 @@ explicitly mark N/A with a reason. "Gate" = must pass before tagging.
 
 ## 9. Tag & publish
 - [ ] Release notes drafted (see the [first-beta](release-notes-first-beta.md) / [recurring &amp; stable](release-notes-recurring.md) guide) and reviewed.
-- [ ] Annotated tag created on the exact reviewed commit: `vX.Y.Z-beta` or
-  `vX.Y.Z`.
+- [ ] Starting with the next minor release, the codename choice is recorded:
+  carry forward the prior codename or choose a new one. The annotated tag
+  contains exactly one `Release codename: <name>` line (80 characters or fewer,
+  no control characters), and is on the exact reviewed commit: `vX.Y.Z-beta` or
+  `vX.Y.Z`. Legacy tags without this line are recovered with the tag as their
+  title.
 - [ ] GitHub Release created from the tag, marked "Pre-release", artifacts attached.
+- [ ] GitHub Release title matches the codename carried by the tag.
 - [ ] Post-publish: download each artifact FROM the release and re-launch once
  (catches broken uploads).
 

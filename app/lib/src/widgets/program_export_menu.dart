@@ -64,6 +64,7 @@ class ProgramExportMenu extends StatelessWidget {
     this.venuesById = const {},
     this.danceFor,
     this.choreographerFor,
+    this.difficultyLevelFor,
     this.shareInvoker,
     this.bundleFileWriter,
     this.pdfLayouter,
@@ -90,6 +91,7 @@ class ProgramExportMenu extends StatelessWidget {
   /// reference and author attribution survives the round-trip. Optional and
   /// best-effort: an unresolved id is simply omitted from the bundle.
   final Choreographer? Function(String id)? choreographerFor;
+  final DifficultyLevel? Function(String danceId)? difficultyLevelFor;
 
   /// Test seam for the share call; defaults to [SharePlus.instance.share].
   final ShareInvoker? shareInvoker;
@@ -214,8 +216,11 @@ class ProgramExportMenu extends StatelessWidget {
       ];
       // Level label mirrors the dance_detail_screen pattern.
       final String? levelLabel;
-      if (dance.level != null) {
-        final base = danceLevelLabel(l10n, dance.level!);
+      final difficultyLevel =
+          difficultyLevelFor?.call(dance.id) ??
+          DifficultyLevel.knownForId(dance.difficultyLevelId);
+      if (difficultyLevel != null) {
+        final base = danceLevelLabel(l10n, difficultyLevel);
         levelLabel = dance.mixedLevel ? l10n.exportLevelWithMixed(base) : base;
       } else {
         levelLabel = dance.mixedLevel ? l10n.exportLevelMixedOnly : null;
@@ -338,6 +343,17 @@ class ProgramExportMenu extends StatelessWidget {
       danceFor: resolveDance,
       choreographerFor: choreographerFor ?? (_) => null,
       venueFor: (id) => venuesById[id],
+      difficultyLevelFor: (id) {
+        for (final dance in _orderedExportDances().map(
+          (entry) => entry.dance,
+        )) {
+          if (dance.difficultyLevelId == id) {
+            return difficultyLevelFor?.call(dance.id) ??
+                DifficultyLevel.knownForId(id);
+          }
+        }
+        return DifficultyLevel.knownForId(id);
+      },
       includeVenueContact: includeVenueContact,
     );
     final fileName = programShareBundleFileName(

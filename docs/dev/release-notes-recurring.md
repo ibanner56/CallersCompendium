@@ -53,6 +53,9 @@ Rewrite each kept item from the user's POV. Example transform:
 - Version, date, and a 1–2 line theme ("This beta focuses on import fidelity and
  program planning").
 - For betas: keep the "pre-release / expect rough edges + feedback channel" banner.
+- Starting with the next minor release, select either the previous codename or a
+ new codename. The release workflow uses the codename from the annotated tag as
+ the GitHub Release title.
 
 ## EXTRA sections for STABLE (1.0.0+) releases
 - **Upgrade guide** — explicit steps if anything is non-automatic; back-up advice.

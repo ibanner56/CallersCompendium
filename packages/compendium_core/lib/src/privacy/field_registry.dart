@@ -53,8 +53,7 @@ const _recordStamp = DataClassification(
       'devices.',
 );
 
-/// An existence-transition stamp (`existence_at`), added to every syncable kind
-/// in schema v25 (issue #898).
+/// An existence-transition stamp (`existence_at`) on every syncable kind.
 ///
 /// A bare timestamp with no data subject: it records *when* a record last
 /// crossed between existing and deleted, never who did it, from where, or on
@@ -75,7 +74,7 @@ const _existenceStamp = DataClassification(
   note:
       'Existence-transition stamp. A bare timestamp with no data subject; must '
       'travel or a receiver cannot decide which of two disagreeing copies is '
-      'the later existence decision, and deletions resurrect. Added in #898.',
+      'the later existence decision, and deletions resurrect.',
 );
 
 /// Local repair bookkeeping. It identifies rows whose shareable natural key
@@ -118,8 +117,7 @@ const _syncTombstonePayload = DataClassification(
       'shareable because pending deletion retransmits it to sync peers.',
 );
 
-/// A soft-delete tombstone (`deleted_at`) on a kind that gained one in schema
-/// v25 (issue #898).
+/// A soft-delete tombstone (`deleted_at`) on a syncable kind.
 ///
 /// Same reasoning as `dances.deleted_at`, which has carried it since long
 /// before Device Sync: absence never means deletion, so the tombstone itself
@@ -133,7 +131,7 @@ const _tombstone = DataClassification(
   note:
       'Soft-delete tombstone; see dances.deleted_at. Must travel, or a peer '
       'that has not synced recently resurrects a deleted record. Added to this '
-      'kind in #898.',
+      'kind.',
 );
 
 /// A freeform note attached to a person, place or source record.
@@ -191,7 +189,7 @@ final Map<String, DataClassification> fieldClassifications = {
   'dances.calling_notes': _choreography,
   'dances.walkthrough': _choreography,
   'dances.status': _choreography,
-  'dances.level': _choreography,
+  'dances.level_id': _key,
   'dances.mixed_level': _choreography,
   'dances.mixer': _choreography,
   'dances.rating': _choreography,
@@ -209,6 +207,14 @@ final Map<String, DataClassification> fieldClassifications = {
         'recently will resurrect a dance the user deleted elsewhere.',
   ),
   'dances.existence_at': _existenceStamp,
+
+  // ------------------------------------------------------ difficulty_levels --
+  'difficulty_levels.id': _key,
+  'difficulty_levels.label': _choreography,
+  'difficulty_levels.position': _choreography,
+  'difficulty_levels.updated_at': _recordStamp,
+  'difficulty_levels.deleted_at': _tombstone,
+  'difficulty_levels.existence_at': _existenceStamp,
 
   // -------------------------------------------------------- choreographers --
   'choreographers.id': _key,

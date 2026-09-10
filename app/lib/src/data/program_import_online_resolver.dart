@@ -245,7 +245,11 @@ Future<_SourceAttempt> _attemptSource(
       // #686: figures genuinely differ — auto-import as a distinct
       // variation, linked back to the matched dance, same outcome as the
       // interactive "Import as a variation" choice, applied unattended.
-      final pipeline = ImportPipeline(repos.dances, repos.choreographers);
+      final pipeline = ImportPipeline(
+        repos.dances,
+        repos.choreographers,
+        difficultyLevels: repos.difficultyLevels,
+      );
       final session = await pipeline.commit(
         ImportBatchResult(records: [preview.plan]),
         now: now ?? DateTime.now().toUtc(),

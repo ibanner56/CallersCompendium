@@ -2632,6 +2632,14 @@
   "@programsSaveError": {
     "x-sourceSha256": "d7e01bbd514104d066f03048e26a473d8dc2fa0a33a8adeba5030ce82b89d863"
   },
+  "programsUndoPerformedError": "De markeringen konden niet ongedaan worden gemaakt; de uitgevoerde markeringen blijven opgeslagen.",
+  "@programsUndoPerformedError": {
+    "x-sourceSha256": "fbfde0b54bb73c9f0d1ddc9adbfd71d55cd0c8c3b218a2d419349ad85f5c9aa0"
+  },
+  "programsUndoRefreshError": "Het ongedaan maken is opgeslagen, maar de editor kon niet worden vernieuwd.",
+  "@programsUndoRefreshError": {
+    "x-sourceSha256": "ced29e7536a3e95e14bc1ac15990a9c3a9b1a30edac94908f149bb7a89b32e90"
+  },
   "programsDuplicatedSnack": "Gedupliceerd als “{title}”.",
   "@programsDuplicatedSnack": {
     "x-sourceSha256": "1e8abaccfd4d132fe2f88a47470b52b6877382f7f0dbd132e013442a426db6b5"

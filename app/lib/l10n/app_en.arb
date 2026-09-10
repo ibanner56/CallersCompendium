@@ -3192,6 +3192,14 @@
   "@programsSaveError": {
     "description": "Snackbar shown when saving the program fails."
   },
+  "programsUndoPerformedError": "Could not undo marking; performed marks remain saved.",
+  "@programsUndoPerformedError": {
+    "description": "Snackbar shown when undoing a bulk performed marking fails; the performed marks remain saved."
+  },
+  "programsUndoRefreshError": "Undo was saved, but the editor could not refresh.",
+  "@programsUndoRefreshError": {
+    "description": "Snackbar shown when bulk performed Undo is saved but the editor cannot refresh afterward."
+  },
   "programsDuplicatedSnack": "Duplicated as \"{title}\".",
   "@programsDuplicatedSnack": {
     "description": "Snackbar confirming a program was duplicated, quoting the copy's title.",
