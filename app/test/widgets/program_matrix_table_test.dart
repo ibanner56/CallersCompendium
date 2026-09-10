@@ -712,6 +712,26 @@ void main() {
       );
     });
 
+    testWidgets(
+      'hiding alternates excludes alternate-only moves from compact semantics',
+      (tester) async {
+        await pumpNarrow(
+          tester,
+          dances: [
+            dance('d1', 'Primary', [swing()]),
+            dance('d2', 'Alternate', [move('balance')]),
+          ],
+          altRowIndices: {1},
+          showAlternates: false,
+        );
+
+        expect(
+          find.bySemanticsLabel('Programming matrix: 1 dances by 1 move'),
+          findsOneWidget,
+        );
+      },
+    );
+
     testWidgets('shows the formation badge only for non-default formations', (
       tester,
     ) async {

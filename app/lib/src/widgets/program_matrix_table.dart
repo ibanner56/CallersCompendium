@@ -190,7 +190,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         // caller has hidden (#669): a hidden column isn't part of what's on
         // screen, so it shouldn't be part of the announced count either.
         final moveCount = compact
-            ? _presentColumnCount(matrix, widget.hiddenColumns)
+            ? _presentColumnCount(matrix, visibleRows, widget.hiddenColumns)
             : _visibleColumnCount(matrix, widget.hiddenColumns);
         final content = compact
             ? _CompactMatrix(
@@ -1044,11 +1044,15 @@ class _CompactMatrix extends StatelessWidget {
 /// compact view actually renders (it drops columns no dance uses). Also
 /// excludes any [hiddenColumns] (#669), so the announced count matches what's
 /// actually rendered.
-int _presentColumnCount(ProgramMatrix matrix, Set<String> hiddenColumns) {
+int _presentColumnCount(
+  ProgramMatrix matrix,
+  List<int> visibleRows,
+  Set<String> hiddenColumns,
+) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
     if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
-    for (var r = 0; r < matrix.rows.length; r++) {
+    for (final r in visibleRows) {
       if (matrix.isPresent(r, c)) {
         count++;
         break;
