@@ -7,7 +7,7 @@ void main() {
 
   group('figureSnippetSignature', () {
     test('folds taxonomy defaults so explicit == defaulted', () {
-      // allemande defaults: who=neighbors, hand=right, turn=1.0.
+      // allemande defaults: who=neighbors, hand=right, travel=1.0.
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
@@ -54,8 +54,8 @@ void main() {
         Figure(move: 'allemande', params: {'turn': 1.0}),
         tax,
       );
-      expect(sig, contains('turn=1'));
-      expect(sig, isNot(contains('turn=1.0')));
+      expect(sig, contains('travel=1'));
+      expect(sig, isNot(contains('travel=1.0')));
     });
 
     test('is deterministic regardless of param insertion order', () {

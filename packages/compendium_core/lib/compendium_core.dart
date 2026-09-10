@@ -126,6 +126,7 @@ export 'src/storage/database.dart'
         compactDosidoSeesawCanonicalRebuildDoneKey,
         taxonomyV33CanonicalRebuildDoneKey,
         taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
         callersBoxRollAwayRoleRepairDoneKey,
         shareableTextNormalisationScopeKey,
         kSectionRuleVersion,

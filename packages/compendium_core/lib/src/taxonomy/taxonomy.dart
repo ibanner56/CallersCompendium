@@ -129,7 +129,12 @@ class Taxonomy {
   /// move is known (issue #358). Use [validateFigure] to detect the
   /// `unknown_move` condition; this method deliberately never fails.
   Map<String, Object?> effectiveParams(Figure figure) {
-    final def = resolve(figure.move);
+    // Keep reads tolerant of v34 figures that have not crossed a persistence
+    // boundary yet.  The normalizer is lossless and gives every consumer the
+    // v35 vocabulary without requiring each renderer/editor to duplicate the
+    // compatibility table.
+    final normalized = normalizeFigureV35(figure);
+    final def = resolve(normalized.move);
     if (def == null) {
       // Unknown move: return a best-effort copy of the figure's own params
       // (never mutate [figure.params]). Preserve an authored `beats`; only
@@ -137,23 +142,23 @@ class Taxonomy {
       // duration/phrase math doesn't read 0 beats for a move we can't
       // recognize. We can't know the real per-move count, so a generic
       // default is the correct non-destructive choice.
-      final effective = Map<String, Object?>.of(figure.params);
+      final effective = Map<String, Object?>.of(normalized.params);
       effective.putIfAbsent('beats', () => _unknownMoveBeatsFallback);
       return effective;
     }
 
-    final alias = aliases[figure.move];
+    final alias = aliases[normalized.move];
     final effective = {
       for (final entry in def.params.entries)
-        entry.key: figure.params.containsKey(entry.key)
-            ? figure.params[entry.key]
+        entry.key: normalized.params.containsKey(entry.key)
+            ? normalized.params[entry.key]
             : (alias?.pinnedParams.containsKey(entry.key) ?? false)
             ? alias!.pinnedParams[entry.key]
             : entry.value.defaultValue,
     };
     final paramBeats = def.paramBeats;
     if (paramBeats != null &&
-        !figure.params.containsKey('beats') &&
+        !normalized.params.containsKey('beats') &&
         !(alias?.pinnedParams.containsKey('beats') ?? false)) {
       final derived = paramBeats.byValue[effective[paramBeats.param]];
       if (derived != null) effective['beats'] = derived;

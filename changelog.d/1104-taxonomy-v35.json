@@ -1,0 +1,17 @@
+{
+  "id": "1104-taxonomy-v35",
+  "user_visible": true,
+  "app": {
+    "changed": [
+      "Align figure parameter names and pull-by variants across imports, rendering, and editing."
+    ],
+    "data_migrations": [
+      "Upgrade existing v34 figure data and saved snippet signatures to the v35 taxonomy while preserving nested figures and snippet conflicts."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Ship the v35 taxonomy contract and compatibility normalization for legacy figures."
+    ]
+  }
+}

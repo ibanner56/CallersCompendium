@@ -2,6 +2,7 @@ import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
 import '../model/figure.dart';
+import 'snippet_signature.dart';
 import '../util/text_sanitizer.dart';
 
 /// Upper bound on the number of distinct entries a [WalkthroughSnippetLibrary]
@@ -27,8 +28,20 @@ const MapEquality<String, String> _mapEq = MapEquality<String, String>();
 /// library never stores or emits markup.
 @immutable
 class WalkthroughSnippetLibrary {
-  WalkthroughSnippetLibrary(Map<String, String> snippets)
-    : _snippets = Map.unmodifiable(_normalize(snippets));
+  WalkthroughSnippetLibrary(
+    Map<String, String> snippets, {
+    Map<String, List<String>> conflicts = const {},
+  }) : _snippets = Map.unmodifiable(_normalize(snippets)),
+       _conflicts = Map.unmodifiable({
+         for (final entry in conflicts.entries)
+           entry.key: List<String>.unmodifiable(
+             _normalize(
+               entry.value.asMap().map(
+                 (index, value) => MapEntry('$index', value),
+               ),
+             ).values,
+           ),
+       });
 
   /// An empty library (no snippets).
   static final WalkthroughSnippetLibrary empty = WalkthroughSnippetLibrary(
@@ -36,9 +49,13 @@ class WalkthroughSnippetLibrary {
   );
 
   final Map<String, String> _snippets;
+  final Map<String, List<String>> _conflicts;
 
   /// Read-only view of all snippets, keyed by figure signature.
   Map<String, String> get snippets => _snippets;
+
+  /// Values retained when a signature migration merged distinct old keys.
+  Map<String, List<String>> get conflicts => _conflicts;
 
   /// Number of stored snippets.
   int get length => _snippets.length;
@@ -70,19 +87,21 @@ class WalkthroughSnippetLibrary {
       next[signature] = clamped;
     }
     if (_mapEq.equals(next, _snippets)) return this;
-    return WalkthroughSnippetLibrary(next);
+    return WalkthroughSnippetLibrary(next, conflicts: _conflicts);
   }
 
   /// Returns a copy without the entry for [signature].
   WalkthroughSnippetLibrary without(String signature) {
     if (!_snippets.containsKey(signature)) return this;
     final next = Map<String, String>.of(_snippets)..remove(signature);
-    return WalkthroughSnippetLibrary(next);
+    return WalkthroughSnippetLibrary(next, conflicts: _conflicts);
   }
 
   /// Serializes to `{'snippets': {signature: text, …}}`.
   Map<String, Object?> toJson() => {
+    'version': kFigureSnippetSignatureVersion,
     'snippets': Map<String, String>.of(_snippets),
+    if (_conflicts.isNotEmpty) 'conflicts': _conflicts,
   };
 
   /// Reconstructs a library from [toJson] output. Tolerant: a missing/typewrong
@@ -93,21 +112,45 @@ class WalkthroughSnippetLibrary {
     final raw = json['snippets'];
     if (raw is! Map) return empty;
     final collected = <String, String>{};
+    final conflicts = <String, List<String>>{};
     for (final entry in raw.entries) {
       final value = entry.value;
       if (value is! String) continue;
       final clamped = _clamp(value);
       if (clamped.trim().isEmpty) continue;
-      collected[entry.key.toString()] = clamped;
+      final key = json['version'] == kFigureSnippetSignatureVersion
+          ? entry.key.toString()
+          : migrateFigureSnippetSignature(entry.key.toString());
+      final prior = collected[key];
+      if (prior != null && prior != clamped) {
+        conflicts.putIfAbsent(key, () => [prior]).add(clamped);
+        collected[key] = [
+          prior,
+          clamped,
+        ].reduce((a, b) => a.compareTo(b) <= 0 ? a : b);
+      } else {
+        collected[key] = clamped;
+      }
+    }
+    final rawConflicts = json['conflicts'];
+    if (rawConflicts is Map) {
+      for (final entry in rawConflicts.entries) {
+        final values = entry.value;
+        if (values is! List) continue;
+        final key = migrateFigureSnippetSignature(entry.key.toString());
+        conflicts
+            .putIfAbsent(key, () => [])
+            .addAll(values.whereType<String>().map(_clamp));
+      }
     }
     if (collected.length <= kMaxSnippetLibraryEntries) {
-      return WalkthroughSnippetLibrary(collected);
+      return WalkthroughSnippetLibrary(collected, conflicts: conflicts);
     }
     final keys = collected.keys.toList()..sort();
     final capped = <String, String>{
       for (final k in keys.take(kMaxSnippetLibraryEntries)) k: collected[k]!,
     };
-    return WalkthroughSnippetLibrary(capped);
+    return WalkthroughSnippetLibrary(capped, conflicts: conflicts);
   }
 
   /// Normalizes every value on the way in — the single chokepoint all
@@ -134,8 +177,12 @@ class WalkthroughSnippetLibrary {
   @override
   bool operator ==(Object other) =>
       other is WalkthroughSnippetLibrary &&
-      _mapEq.equals(other._snippets, _snippets);
+      _mapEq.equals(other._snippets, _snippets) &&
+      const DeepCollectionEquality().equals(other._conflicts, _conflicts);
 
   @override
-  int get hashCode => _mapEq.hash(_snippets);
+  int get hashCode => Object.hash(
+    _mapEq.hash(_snippets),
+    const DeepCollectionEquality().hash(_conflicts),
+  );
 }

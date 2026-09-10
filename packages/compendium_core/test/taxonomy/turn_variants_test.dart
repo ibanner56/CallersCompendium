@@ -6,9 +6,9 @@ void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
 
-  test('taxonomy v34 registers both turn variants', () {
-    expect(contraTaxonomyVersion, 34);
-    expect(tax.version, 34);
+  test('taxonomy v35 registers both turn variants', () {
+    expect(contraTaxonomyVersion, 35);
+    expect(tax.version, 35);
     expect(tax.resolve('turn_as_couples')?.id, 'turn_as_couples');
     expect(tax.resolve('two_hand_turn')?.id, 'two_hand_turn');
   });
@@ -30,12 +30,14 @@ void main() {
 
   test('two hand turn mirrors allemande without hand', () {
     final def = tax.resolve('two_hand_turn')!;
-    expect(def.params.keys, containsAll(['who', 'turn', 'beats']));
+    expect(def.params.keys, containsAll(['who', 'travel', 'beats']));
     expect(def.params.containsKey('hand'), isFalse);
     expect(tax.effectiveParams(Figure(move: 'two_hand_turn')), {
       'who': 'partners',
-      'turn': 1.0,
+      'travel': 1.0,
       'beats': 8,
+      // `effectiveParams` retains the v34 spelling for older renderers.
+      'turn': 1.0,
     });
     expect(
       renderer.renderCanonical(Figure(move: 'two_hand_turn')),
@@ -58,7 +60,7 @@ void main() {
 
     final twoHandTurn = parseFigureLine('Partner two hand turn 1/2');
     expect(twoHandTurn?.move, 'two_hand_turn');
-    expect(twoHandTurn?.params, {'who': 'partners', 'turn': 0.5});
+    expect(twoHandTurn?.params, {'who': 'partners', 'travel': 0.5});
   });
 
   test('turn as couples does not claim trailing choreography', () {

@@ -26,9 +26,9 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy — the v23 move', () {
-    test('contraTaxonomyVersion is 34', () {
-      expect(contraTaxonomyVersion, 34);
-      expect(tax.version, 34);
+    test('contraTaxonomyVersion is 35', () {
+      expect(contraTaxonomyVersion, 35);
+      expect(tax.version, 35);
     });
 
     test('v23 is purely additive — it owed no schema migration of its own', () {
@@ -70,7 +70,7 @@ void main() {
       // Schema 32 adds Device Sync local persistence and likewise does not
       // change the taxonomy. Schema 33 adds a program-slot purge-caption
       // marker and schema 34 adds difficulty vocabulary; neither changes it.
-      expect(kCompendiumSchemaVersion, 34);
+      expect(kCompendiumSchemaVersion, 35);
     });
 
     test('registers with the maintainer-ruled param set', () {

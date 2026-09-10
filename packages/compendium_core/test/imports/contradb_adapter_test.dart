@@ -203,11 +203,11 @@ void main() {
         final allemande = _figureFor(draft, 'allemande');
         expect(allemande.params['who'], 'neighbors');
         expect(allemande.params['hand'], 'right');
-        expect(allemande.params['turn'], 1.0); // 360° → 1 turn
+        expect(allemande.params['travel'], 1.0); // 360° → 1 turn
         expect(allemande.params['beats'], 8);
 
         final circle = _figureFor(draft, 'circle');
-        expect(circle.params['turn'], 'left');
+        expect(circle.params['direction'], 'left');
         expect(circle.params['places'], 4);
 
         // Nothing fell back to custom.
@@ -322,7 +322,7 @@ void main() {
         final sr = _figureFor(draft, 'shoulder_round');
         expect(sr.params['who'], 'neighbors');
         expect(sr.params['shoulder'], 'right');
-        expect(sr.params['turn'], 1.0);
+        expect(sr.params['travel'], 1.0);
         expect(draft.quality.customFigures, 0);
       });
 

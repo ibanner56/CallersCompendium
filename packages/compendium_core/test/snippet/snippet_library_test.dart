@@ -66,6 +66,25 @@ void main() {
       expect(restored, lib);
     });
 
+    test('v1 signature collisions retain the selected and losing values', () {
+      final lib = WalkthroughSnippetLibrary.fromJson({
+        'version': 1,
+        'snippets': {
+          'allemande(hand=left,turn=1)': 'Zed wording',
+          'allemande(hand=left,travel=1)': 'Alpha wording',
+        },
+      });
+      expect(lib.resolve('allemande(hand=left,travel=1)'), 'Alpha wording');
+      expect(
+        lib.conflicts['allemande(hand=left,travel=1)'],
+        containsAll(<String>['Zed wording', 'Alpha wording']),
+      );
+      expect(
+        WalkthroughSnippetLibrary.fromJson(lib.toJson()).conflicts,
+        lib.conflicts,
+      );
+    });
+
     test('fromJson is tolerant of malformed input', () {
       expect(WalkthroughSnippetLibrary.fromJson({}), isEmpty);
       expect(

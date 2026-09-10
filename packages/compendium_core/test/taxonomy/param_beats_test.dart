@@ -33,10 +33,10 @@ void main() {
     });
   });
 
-  group('figure_8 half -> beats (ContraDB half_or_full * 16)', () {
+  group('figure_8 fraction -> beats (ContraDB half_or_full * 16)', () {
     test('half is 8, full is 16', () {
-      expect(beatsFor('figure_8', {'half': 'half'}), 8);
-      expect(beatsFor('figure_8', {'half': 'full'}), 16);
+      expect(beatsFor('figure_8', {'fraction': 'half'}), 8);
+      expect(beatsFor('figure_8', {'fraction': 'full'}), 16);
     });
 
     test('default (half) derives the flat spec default of 8', () {
@@ -44,7 +44,7 @@ void main() {
     });
 
     test('an explicit beats value wins over the derived count', () {
-      expect(beatsFor('figure_8', {'half': 'full', 'beats': 8}), 8);
+      expect(beatsFor('figure_8', {'fraction': 'full', 'beats': 8}), 8);
     });
   });
 
@@ -140,14 +140,14 @@ void main() {
     });
 
     test(
-      'circle keeps its flat 8 across turn/places changes (#262 no-snap)',
+      'circle keeps its flat 8 across direction/places changes (#262 no-snap)',
       () {
         // Circle carries no paramBeats, so its default beats never move when the
         // direction or amount change — the editor must not snap a user's count.
         expect(beatsFor('circle'), 8);
-        expect(beatsFor('circle', {'turn': 'right'}), 8);
-        expect(beatsFor('circle', {'turn': 'left', 'places': 3}), 8);
-        expect(beatsFor('circle', {'turn': 'right', 'places': 8}), 8);
+        expect(beatsFor('circle', {'direction': 'right'}), 8);
+        expect(beatsFor('circle', {'direction': 'left', 'places': 3}), 8);
+        expect(beatsFor('circle', {'direction': 'right', 'places': 8}), 8);
       },
     );
   });
@@ -164,9 +164,9 @@ void main() {
       });
     });
 
-    test('figure_8 drives beats off its half param', () {
+    test('figure_8 drives beats off its fraction param', () {
       final pb = tax.resolve('figure_8')!.paramBeats!;
-      expect(pb.param, 'half');
+      expect(pb.param, 'fraction');
       expect(pb.byValue, {'half': 8, 'full': 16});
     });
 

@@ -12,7 +12,7 @@ void main() {
       'neighbors allemande right once': Figure(move: 'allemande'),
       'neighbors allemande left 1½': Figure(
         move: 'allemande',
-        params: {'hand': 'left', 'turn': 1.5},
+        params: {'hand': 'left', 'travel': 1.5},
       ),
       'partners dosido once': Figure(
         move: 'do_si_do',
@@ -21,7 +21,7 @@ void main() {
       'balance the ring': Figure(move: 'balance_the_ring'),
       'pass through across': Figure(
         move: 'pass_through',
-        params: {'dir': 'across'},
+        params: {'where': 'across'},
       ),
       'role2s chain across': Figure(move: 'chain'),
       // Role tokens stay canonical (no dialect) in canonical rendering.
@@ -36,7 +36,7 @@ void main() {
 
     test('quarter-turn rotation words', () {
       String r(num t) => renderer.renderCanonical(
-        testFigure(move: 'allemande', params: {'turn': t}),
+        testFigure(move: 'allemande', params: {'travel': t}),
       );
       expect(r(0.5), contains('½'));
       expect(r(0.75), contains('¾'));
@@ -500,7 +500,7 @@ void main() {
     test('figure eight puts fraction first and describes its direction', () {
       final figure = Figure(
         move: 'figure_8',
-        params: {'who': 'ones', 'half': 'half', 'dir': 'below'},
+        params: {'who': 'ones', 'fraction': 'half', 'where': 'below'},
       );
       expect(
         renderer.render(figure, Dialect.canonical),
@@ -512,7 +512,7 @@ void main() {
     test('figure eight direction uses the effective default subject', () {
       expect(
         renderer.render(
-          Figure(move: 'figure_8', params: {'dir': 'below'}),
+          Figure(move: 'figure_8', params: {'where': 'below'}),
           Dialect.canonical,
         ),
         'ones half figure 8 down between twos',
@@ -524,28 +524,28 @@ void main() {
     test('spells out mixed-turn rotations, no glyphs', () {
       expect(
         renderer.renderVerbose(
-          Figure(move: 'allemande', params: {'hand': 'left', 'turn': 1.5}),
+          Figure(move: 'allemande', params: {'hand': 'left', 'travel': 1.5}),
           larks,
         ),
         'neighbor allemande left one and a half times',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'allemande', params: {'turn': 1.25}),
+          Figure(move: 'allemande', params: {'travel': 1.25}),
           larks,
         ),
         'neighbor allemande right one and a quarter times',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'allemande', params: {'turn': 1.75}),
+          Figure(move: 'allemande', params: {'travel': 1.75}),
           larks,
         ),
         'neighbor allemande right one and three quarters times',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'allemande', params: {'turn': 2.5}),
+          Figure(move: 'allemande', params: {'travel': 2.5}),
           larks,
         ),
         'neighbor allemande right two and a half times',
@@ -562,7 +562,7 @@ void main() {
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'allemande', params: {'turn': 2}),
+          Figure(move: 'allemande', params: {'travel': 2}),
           larks,
         ),
         'neighbor allemande right twice',
@@ -571,7 +571,7 @@ void main() {
 
     test('describes partial single turns as travel around the ring', () {
       String r(num t) => renderer.renderVerbose(
-        testFigure(move: 'allemande', params: {'turn': t}),
+        testFigure(move: 'allemande', params: {'travel': t}),
         larks,
       );
       expect(r(0.25), endsWith('a quarter of the way'));
@@ -582,7 +582,7 @@ void main() {
     test('output carries no notation glyphs', () {
       for (final t in [0.25, 0.5, 0.75, 1, 1.5, 2, 2.5]) {
         final out = renderer.renderVerbose(
-          testFigure(move: 'allemande', params: {'turn': t}),
+          testFigure(move: 'allemande', params: {'travel': t}),
           larks,
         );
         expect(
@@ -610,14 +610,14 @@ void main() {
     test('spells out fraction params without camelCase', () {
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'half': 'threeQuarter'}),
+          Figure(move: 'figure_8', params: {'fraction': 'threeQuarter'}),
           larks,
         ),
         'ones three quarters figure 8',
       );
       expect(
         renderer.renderVerbose(
-          Figure(move: 'figure_8', params: {'half': 'full'}),
+          Figure(move: 'figure_8', params: {'fraction': 'full'}),
           larks,
         ),
         'ones the whole way figure 8',
@@ -1069,8 +1069,8 @@ void main() {
         'petronella': Figure(move: 'petronella'),
         'everyone Rory O\'More right': Figure(move: 'rory_o_more'),
         'pull by along right': Figure(
-          move: 'pull_by_direction',
-          params: {'balance': true},
+          move: 'pull_by',
+          params: {'where': 'along', 'balance': true},
         ),
         'role2s box circulate': Figure(
           move: 'box_circulate',
@@ -1085,8 +1085,8 @@ void main() {
           params: {'balance': true},
         ),
         'neighbors pull by right': Figure(
-          move: 'pull_by_dancers',
-          params: {'balance': true},
+          move: 'pull_by',
+          params: {'who': 'neighbors', 'balance': true},
         ),
         'long lines': Figure(move: 'long_lines'),
       };
@@ -1307,11 +1307,11 @@ void main() {
         expect(renderer.renderSummary(f, d), 'petronella');
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
-      test('pull_by_direction (leading) surfaces balance when set', () {
-        final f = Figure(move: 'pull_by_direction', params: {'balance': true});
+      test('pull_by (leading) surfaces balance when set', () {
+        final f = Figure(move: 'pull_by', params: {'balance': true});
         expect(renderer.renderSummary(f, d), 'balance & pull by right');
         // default (balance:false) is untouched.
-        final g = Figure(move: 'pull_by_direction');
+        final g = Figure(move: 'pull_by');
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
       });
       test('rory_o_more (leading, balance before subject)', () {
@@ -1357,8 +1357,11 @@ void main() {
         );
         expect(renderer.renderSummary(f, d), renderer.render(f, d));
       });
-      test('pull_by_dancers (after-who) inserts balance before the move', () {
-        final f = Figure(move: 'pull_by_dancers', params: {'balance': true});
+      test('pull_by (after-who) inserts balance before the move', () {
+        final f = Figure(
+          move: 'pull_by',
+          params: {'who': 'neighbors', 'balance': true},
+        );
         expect(
           renderer.renderSummary(f, d),
           'neighbor balance & pull by right',
@@ -1367,7 +1370,7 @@ void main() {
           renderer.renderSummary(f, d, verbose: true),
           'neighbor balance and pull by right',
         );
-        final g = Figure(move: 'pull_by_dancers');
+        final g = Figure(move: 'pull_by');
         expect(renderer.renderSummary(g, d), renderer.render(g, d));
       });
       test('verbose expands the connective to "balance and"', () {
@@ -1480,7 +1483,10 @@ void main() {
         // the `unspecified` sentinel), matching the pre-existing rule for
         // `dir` — a concrete default is never silenced in canonical.
         'partners promenade counterclockwise across': Figure(move: 'promenade'),
-        'pull by along right': Figure(move: 'pull_by_direction'),
+        'pull by along right': Figure(
+          move: 'pull_by',
+          params: {'where': 'along'},
+        ),
         'everyone down the hall forward': Figure(move: 'down_the_hall'),
         'everyone up the hall forward': Figure(move: 'up_the_hall'),
         'everyone turn alone': Figure(move: 'turn_alone'),
@@ -1508,7 +1514,7 @@ void main() {
       test('pass_through keeps a non-default direction', () {
         expect(
           renderer.render(
-            Figure(move: 'pass_through', params: {'dir': 'across'}),
+            Figure(move: 'pass_through', params: {'where': 'across'}),
             d,
           ),
           'pass through across',
@@ -1532,7 +1538,7 @@ void main() {
       );
       test('chain keeps a non-default direction', () {
         expect(
-          renderer.render(Figure(move: 'chain', params: {'dir': 'along'}), d),
+          renderer.render(Figure(move: 'chain', params: {'where': 'along'}), d),
           'role2s chain along',
         );
       });
@@ -1655,7 +1661,7 @@ void main() {
           'the default turn "counterclockwise"', () {
         expect(
           renderer.render(
-            Figure(move: 'promenade', params: {'dir': 'along'}),
+            Figure(move: 'promenade', params: {'where': 'along'}),
             d,
           ),
           'partner promenade counterclockwise along',
@@ -1664,7 +1670,10 @@ void main() {
       test('promenade keeps a non-default direction and drops '
           'turn for directions without turns', () {
         expect(
-          renderer.render(Figure(move: 'promenade', params: {'dir': 'up'}), d),
+          renderer.render(
+            Figure(move: 'promenade', params: {'where': 'up'}),
+            d,
+          ),
           'partner promenade up',
         );
       });
@@ -1674,9 +1683,9 @@ void main() {
             Figure(
               move: 'promenade',
               params: {
-                'dir': 'along',
+                'where': 'along',
                 'destination': 'nextNeighbors',
-                'turn': 'clockwise',
+                'direction': 'clockwise',
               },
             ),
             d,
@@ -1684,16 +1693,13 @@ void main() {
           'partner promenade clockwise along to next neighbors',
         );
       });
-      test('pull_by_direction drops the default "along"', () {
-        expect(
-          renderer.render(Figure(move: 'pull_by_direction'), d),
-          'pull by right',
-        );
+      test('pull_by drops the default "along"', () {
+        expect(renderer.render(Figure(move: 'pull_by'), d), 'pull by right');
       });
-      test('pull_by_direction keeps a non-default direction', () {
+      test('pull_by keeps a non-default direction', () {
         expect(
           renderer.render(
-            Figure(move: 'pull_by_direction', params: {'dir': 'across'}),
+            Figure(move: 'pull_by', params: {'where': 'across'}),
             d,
           ),
           'pull by across right',
@@ -2013,7 +2019,7 @@ void main() {
         test('non-default dir still renders (right shoulder suppressed)', () {
           expect(
             renderer.render(
-              Figure(move: 'pass_through', params: {'dir': 'across'}),
+              Figure(move: 'pass_through', params: {'where': 'across'}),
               d,
             ),
             'pass through across',
@@ -2024,7 +2030,7 @@ void main() {
             renderer.render(
               Figure(
                 move: 'pass_through',
-                params: {'shoulder': 'left', 'dir': 'across'},
+                params: {'shoulder': 'left', 'where': 'across'},
               ),
               d,
             ),
@@ -2072,7 +2078,7 @@ void main() {
       test('non-default dir: canonical unchanged', () {
         expect(
           renderer.renderCanonical(
-            Figure(move: 'pass_through', params: {'dir': 'across'}),
+            Figure(move: 'pass_through', params: {'where': 'across'}),
           ),
           'pass through across',
         );
@@ -2096,7 +2102,7 @@ void main() {
         // the search/dedupe text.
         'partners zig zag right': Figure(
           move: 'zig_zag',
-          params: {'turn': 'right'},
+          params: {'slide': 'right'},
         ),
         'neighbors zig zag left': Figure(
           move: 'zig_zag',
@@ -2110,7 +2116,10 @@ void main() {
           move: 'slice',
           params: {'slice': 'right', 'return': 'diagonal'},
         ),
-        'role2s mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
+        'role2s mad robin 1½': Figure(
+          move: 'mad_robin',
+          params: {'travel': 1.5},
+        ),
         'role2s revolving door left partners': Figure(
           move: 'revolving_door',
           params: {'hand': 'left'},
@@ -2138,7 +2147,7 @@ void main() {
       test('turn=right mirrors the direction words', () {
         expect(
           renderer.render(
-            Figure(move: 'zig_zag', params: {'turn': 'right'}),
+            Figure(move: 'zig_zag', params: {'slide': 'right'}),
             d,
           ),
           'zig right zag left with partner',
@@ -2206,7 +2215,10 @@ void main() {
       });
       test('non-default turn adds the "<turn> around" clause', () {
         expect(
-          renderer.render(Figure(move: 'mad_robin', params: {'turn': 1.5}), d),
+          renderer.render(
+            Figure(move: 'mad_robin', params: {'travel': 1.5}),
+            d,
+          ),
           'mad robin 1½ around, role2s in front',
         );
       });
@@ -2350,15 +2362,15 @@ void main() {
         // search/dedupe text.
         'partners cross trails along neighbors': Figure(
           move: 'cross_trails',
-          params: {'dir': 'along'},
+          params: {'where': 'along'},
         ),
         'ones poussette neighbors full counterclockwise': Figure(
           move: 'poussette',
-          params: {'half': 'full', 'turn': 'counterclockwise'},
+          params: {'fraction': 'full', 'direction': 'counterclockwise'},
         ),
         'ones facing star counterclockwise 3 places': Figure(
           move: 'facing_star',
-          params: {'turn': 'counterclockwise'},
+          params: {'direction': 'counterclockwise'},
         ),
         'partners square through 2 places': Figure(
           move: 'square_through',
@@ -2415,7 +2427,7 @@ void main() {
       test('counterclockwise direction', () {
         expect(
           renderer.render(
-            Figure(move: 'orbit', params: {'turn': 'counterclockwise'}),
+            Figure(move: 'orbit', params: {'direction': 'counterclockwise'}),
             d,
           ),
           'ones orbit counterclockwise ½',
@@ -2439,7 +2451,7 @@ void main() {
       test('dir=along mirrors to "across the set" for the second pair', () {
         expect(
           renderer.render(
-            Figure(move: 'cross_trails', params: {'dir': 'along'}),
+            Figure(move: 'cross_trails', params: {'where': 'along'}),
             d,
           ),
           'cross trails - partner along the set right shoulders, neighbor across the set left shoulders',
@@ -2459,7 +2471,7 @@ void main() {
           renderer.render(
             Figure(
               move: 'poussette',
-              params: {'half': 'full', 'turn': 'counterclockwise'},
+              params: {'fraction': 'full', 'direction': 'counterclockwise'},
             ),
             d,
           ),
@@ -2478,7 +2490,10 @@ void main() {
       test('counterclockwise derives the right hand', () {
         expect(
           renderer.render(
-            Figure(move: 'facing_star', params: {'turn': 'counterclockwise'}),
+            Figure(
+              move: 'facing_star',
+              params: {'direction': 'counterclockwise'},
+            ),
             d,
           ),
           'facing star counterclockwise 3 places with ones putting their right hands in and backing up',
@@ -2696,7 +2711,7 @@ void main() {
         expect(
           renderer.render(
             // invalid-fixture: value is deliberately out of domain — poussette drops the direction clause for an unknown turn
-            Figure(move: 'poussette', params: {'turn': 'sideways'}),
+            Figure(move: 'poussette', params: {'direction': 'sideways'}),
             d,
           ),
           'half poussette - ones pull neighbor',
@@ -2759,7 +2774,7 @@ void main() {
   group('decimals display flag (#368)', () {
     Figure allemande(num turn) => invalidTestFigure(
       move: 'allemande',
-      params: {'turn': turn},
+      params: {'travel': turn},
       reason:
           'the decimals-display sweep uses turn values beyond the taxonomy domain',
     );
@@ -2831,7 +2846,7 @@ void main() {
         params: {
           'pair': 'partners',
           'direction': 'counterclockwise',
-          'turn': 0.75,
+          'travel': 0.75,
           'beats': 6,
         },
       );
@@ -2857,7 +2872,7 @@ void main() {
     test('composes with mad_robin turn', () {
       expect(
         renderer.render(
-          Figure(move: 'mad_robin', params: {'turn': 1.5}),
+          Figure(move: 'mad_robin', params: {'travel': 1.5}),
           Dialect.canonical,
           decimals: true,
         ),
@@ -2873,7 +2888,7 @@ void main() {
     // Template path (allemande) + base-renderer path (the merged gate).
     Figure allemande({required bool assumed}) => Figure(
       move: 'allemande',
-      params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+      params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.5},
       assumedSubject: assumed,
     );
     Figure gate({required bool assumed}) => Figure(
@@ -2881,7 +2896,7 @@ void main() {
       params: {
         'pair': 'partners',
         'direction': 'counterclockwise',
-        'turn': 0.75,
+        'travel': 0.75,
       },
       assumedSubject: assumed,
     );
@@ -2958,7 +2973,7 @@ void main() {
           renderer.render(
             Figure(
               move: 'allemande',
-              params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+              params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.5},
             ),
             dialect,
           ),
@@ -2971,7 +2986,7 @@ void main() {
               params: {
                 'pair': 'partners',
                 'direction': 'counterclockwise',
-                'turn': 0.75,
+                'travel': 0.75,
               },
             ),
             dialect,
@@ -3082,14 +3097,14 @@ void main() {
 
     test('circle global wording retains its automatic single-file prefix', () {
       final dialect = Dialect.larksRobins.copyWith(
-        moveWordings: const {'circle': '{move} around {turn} {places}'},
+        moveWordings: const {'circle': '{move} around {direction} {places}'},
       );
 
       expect(
         renderer.render(
           Figure(
             move: 'circle',
-            params: {'singleFile': true, 'turn': 'left', 'places': 4},
+            params: {'singleFile': true, 'direction': 'left', 'places': 4},
           ),
           dialect,
         ),
@@ -3107,8 +3122,8 @@ void main() {
             'neither': '{subject} {move} {balance}',
           },
           'promenade': {
-            'ordinary': '{who} {move} {turn} {direction} {destination}',
-            'singleFile': '{prefix} {move} {turn} {direction} {destination}',
+            'ordinary': '{who} {move} {direction} {where} {destination}',
+            'singleFile': '{prefix} {move} {direction} {where} {destination}',
           },
         },
       );

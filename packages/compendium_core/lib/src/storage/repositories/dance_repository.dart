@@ -169,10 +169,15 @@ class DanceRepository {
       if (!identical(result, figure) && normalised == null) {
         normalised = figures.sublist(0, i);
       }
+
       normalised?.add(result);
     }
     return normalised != null ? dance.copyWith(figures: normalised) : dance;
   }
+
+  /// Normalizes legacy v34 figure ids and parameter keys recursively.
+  Dance normaliseTaxonomyV35Public(Dance dance) =>
+      _normaliseTaxonomyV35Dance(dance);
 
   Figure _normaliseTaxonomyV34Figure(Figure figure) {
     if (figure.isMeanwhile) {
