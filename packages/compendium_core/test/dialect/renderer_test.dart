@@ -1266,6 +1266,28 @@ void main() {
         expect(rendered, isNot(contains('rolling away')));
       });
 
+      test(
+        'take-only give-and-take stays gerundized under a custom dialect',
+        () {
+          final figure = Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'give_and_take', params: {'give': false}),
+            ],
+            beats: 16,
+          );
+          final dialect = Dialect(
+            name: 'Custom give-and-take',
+            moves: const {'give_and_take': 'hand off and receive'},
+          );
+
+          expect(
+            renderer.renderSummary(figure, dialect),
+            contains('taking partner'),
+          );
+        },
+      );
+
       test('nested meanwhile modifier child honors its wording override', () {
         final nested = Figure.meanwhile(
           figures: [

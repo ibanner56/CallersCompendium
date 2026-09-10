@@ -740,15 +740,13 @@ class FigureRenderer {
     final hasDialectMoveSubstitution = dialect.moves.containsKey(def.id);
     final isTakeOnly =
         def.id == 'give_and_take' && figure.params['give'] == false;
-    final sourceName = isTakeOnly && !hasDialectMoveSubstitution
-        ? 'take'
-        : renderedName;
+    final sourceName = isTakeOnly ? 'take' : renderedName;
     if (sourceName.isEmpty || !rendered.contains(sourceName)) {
       return _gerundiveRenderedFallback(figure.move, rendered);
     }
     return rendered.replaceFirst(
       sourceName,
-      isTakeOnly && !hasDialectMoveSubstitution
+      isTakeOnly
           ? 'taking'
           : hasDialectMoveSubstitution
           ? _gerundiveDialectMoveName(renderedName)
