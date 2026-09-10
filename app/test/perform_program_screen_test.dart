@@ -1323,6 +1323,36 @@ void main() {
     },
   );
 
+  testWidgets(
+    'walkthrough cue stays absent when walkthrough minutes are unset or zero',
+    (tester) async {
+      for (final walkthroughMinutes in <int?>[null, 0]) {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+        await _pumpProgram(
+          tester,
+          data: data,
+          program: _program([
+            _slot(
+              id: 's1',
+              position: 0,
+              danceId: 'd1',
+              walkthroughMinutes: walkthroughMinutes,
+              danceMinutes: 1,
+            ),
+          ]),
+        );
+
+        await tester.pump(const Duration(seconds: 61));
+        expect(
+          find.byKey(const ValueKey('perform-walkthrough-complete')),
+          findsNothing,
+          reason: 'walkthroughMinutes=$walkthroughMinutes',
+        );
+        expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+      }
+    },
+  );
+
   testWidgets('pause stops the timers and resume continues them', (
     tester,
   ) async {

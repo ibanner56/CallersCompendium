@@ -118,8 +118,10 @@ For a program, the status area additionally shows:
 
 - a **running program clock** for the whole evening;
 - a **per-slot elapsed timer** that resets each time you move to a new slot;
-- a slot's planned length shown as **"planned N min,"** with a gentle cue when you
-  run past it; and
+- a slot's planned length shown as **"planned N min (W:D),"** where `W` is the
+  walkthrough minutes and `D` is the dance minutes;
+- when walkthrough minutes are set, a gentle cue after the walkthrough portion;
+  the final overrun cue waits until the combined walkthrough and dance duration;
 - a **pause/resume** control for interruptions.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes
