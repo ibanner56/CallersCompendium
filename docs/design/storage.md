@@ -137,6 +137,16 @@ PR that reintroduces a per-version artefact below the floor.
 
 ## Schema version history
 
+- v35 (issues #1104 and #1233): replaces nullable
+  `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+  `dance_minutes`, copying every legacy value, including explicit zero, to
+  `dance_minutes`; existing walkthrough values are NULL. It also rewrites
+  persisted figure parameter keys and consolidates the legacy
+  `pull_by_dancers`/`pull_by_direction` move IDs. The recursive taxonomy
+  normalization covers nested `meanwhile` figures and rebuilds the derived
+  figure and search indexes; program-slot timing is structured metadata and
+  does not feed those indexes.
+
 `CompendiumDatabase.schemaVersion` (in
 [`database.dart`](../../packages/compendium_core/lib/src/storage/database.dart))
 is the on-disk schema version, and this is its per-version log. It lives here
@@ -470,10 +480,13 @@ can still fire.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
-- v35 (issue #1104): rewrites persisted figure parameter keys and consolidates
-  the legacy `pull_by_dancers`/`pull_by_direction` move IDs to the v35 taxonomy
-  representation. The migration recursively normalizes nested `meanwhile`
-  figures and rebuilds the derived figure and search indexes.
+- v35 (issues #1104 and #1233): rewrites persisted figure parameter keys and
+  consolidates the legacy `pull_by_dancers`/`pull_by_direction` move IDs to
+  the v35 taxonomy representation, and replaces nullable
+  `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+  `dance_minutes`. The migration recursively normalizes nested `meanwhile`
+  figures, copies legacy slot timing to `dance_minutes`, and rebuilds the
+  derived figure and search indexes.
 
 ## The delete model
 

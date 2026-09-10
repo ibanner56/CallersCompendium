@@ -874,8 +874,16 @@ class ProgramSlots extends Table with TableInfo {
     requiredDuringInsert: false,
     $customConstraints: 'NULL',
   );
-  late final GeneratedColumn<int> plannedMinutes = GeneratedColumn<int>(
-    'planned_minutes',
+  late final GeneratedColumn<int> walkthroughMinutes = GeneratedColumn<int>(
+    'walkthrough_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> danceMinutes = GeneratedColumn<int>(
+    'dance_minutes',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -900,7 +908,8 @@ class ProgramSlots extends Table with TableInfo {
     isPurgedDance,
     isAlt,
     guestCaller,
-    plannedMinutes,
+    walkthroughMinutes,
+    danceMinutes,
     performedAt,
   ];
   @override

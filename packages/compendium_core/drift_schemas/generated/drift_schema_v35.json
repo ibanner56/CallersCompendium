@@ -965,8 +965,18 @@
             "dsl_features": []
           },
           {
-            "name": "planned_minutes",
-            "getter_name": "plannedMinutes",
+            "name": "walkthrough_minutes",
+            "getter_name": "walkthroughMinutes",
+            "moor_type": "int",
+            "nullable": true,
+            "customConstraints": "NULL",
+            "default_dart": null,
+            "default_client_dart": null,
+            "dsl_features": []
+          },
+          {
+            "name": "dance_minutes",
+            "getter_name": "danceMinutes",
             "moor_type": "int",
             "nullable": true,
             "customConstraints": "NULL",

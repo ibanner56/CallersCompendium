@@ -320,10 +320,13 @@ const int kMinSupportedSchemaVersion = 20;
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
 ///
-/// - v35 (issue #1104): normalizes persisted figure parameter keys and
-///   consolidates the two legacy pull-by move ids. The source JSON is
-///   rewritten recursively, including nested `meanwhile` figures; derived
-///   figure/search rows are rebuilt after the rewrite.
+/// - v35 (issues #1104 and #1233): normalizes persisted figure parameter keys
+///   and consolidates the two legacy pull-by move ids; replaces
+///   `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+///   `dance_minutes`, copying every existing value to dance minutes. The
+///   taxonomy source JSON is rewritten recursively, including nested
+///   `meanwhile` figures; derived figure/search rows are rebuilt after the
+///   rewrite.
 ///
 /// - v34 (issue #1200): adds the Device Sync timestamp triple to the
 ///   difficulty-level vocabulary, converting level deletion into a tombstone.
@@ -874,6 +877,19 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         }
       }
       if (from < 35) {
+        await m.alterTable(
+          TableMigration(
+            programSlots,
+            columnTransformer: {
+              programSlots.walkthroughMinutes: const CustomExpression<int>(
+                'NULL',
+              ),
+              programSlots.danceMinutes: const CustomExpression<int>(
+                'planned_minutes',
+              ),
+            },
+          ),
+        );
         // Issue #1104: taxonomy v35 renamed persisted parameter keys and
         // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
         // renderer are unavailable from MigrationStrategy, so record a

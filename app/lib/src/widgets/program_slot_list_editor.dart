@@ -436,7 +436,8 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
           isPurgedDance: slot.isPurgedDance,
           isAlt: slot.isAlt,
           guestCaller: slot.guestCaller,
-          plannedMinutes: slot.plannedMinutes,
+          walkthroughMinutes: slot.walkthroughMinutes,
+          danceMinutes: slot.danceMinutes,
         ),
       );
       SemanticsService.sendAnnouncement(
@@ -595,8 +596,8 @@ class _SlotTile extends StatelessWidget {
       if (!isDanceSlot && (slot.text?.trim().isNotEmpty ?? false)) '',
       if (slot.guestCaller != null)
         l10n.programsSummaryGuest(slot.guestCaller!),
-      if (slot.plannedMinutes != null)
-        l10n.programsPlannedMinutes(slot.plannedMinutes!),
+      if (slot.plannedTotalMinutes != null)
+        l10n.programsPlannedMinutes(slot.plannedTotalMinutes!),
     ]..removeWhere((s) => s.isEmpty);
 
     return Opacity(
@@ -872,7 +873,7 @@ class _PasteButton extends StatelessWidget {
 }
 
 /// Dialog to edit a slot's dance (via in-place replacement, issue #964), and
-/// its per-slot note, guest caller, planned minutes, and alt flag. Returns the
+/// its per-slot note, guest caller, split planned timing, and alt flag. Returns the
 /// updated [ProgramSlot] (or null if cancelled).
 class _SlotEditDialog extends StatefulWidget {
   const _SlotEditDialog({
@@ -905,8 +906,11 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   late final TextEditingController _guest = TextEditingController(
     text: widget.slot.guestCaller ?? '',
   );
-  late final TextEditingController _minutes = TextEditingController(
-    text: widget.slot.plannedMinutes?.toString() ?? '',
+  late final TextEditingController _walkthroughMinutes = TextEditingController(
+    text: widget.slot.walkthroughMinutes?.toString() ?? '',
+  );
+  late final TextEditingController _danceMinutes = TextEditingController(
+    text: widget.slot.danceMinutes?.toString() ?? '',
   );
   late bool _isAlt = widget.slot.isAlt;
 
@@ -914,7 +918,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   /// local state (not committed to the caller) until [_save] — cancelling the
   /// dialog discards a pick exactly like every other edit here.
   late String? _danceId = widget.slot.danceId;
-  String? _minutesError;
+  String? _walkthroughMinutesError;
+  String? _danceMinutesError;
   String? _noteError;
 
   bool get _isDanceSlot => _danceId != null;
@@ -927,7 +932,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
   void dispose() {
     _note.dispose();
     _guest.dispose();
-    _minutes.dispose();
+    _walkthroughMinutes.dispose();
+    _danceMinutes.dispose();
     super.dispose();
   }
 
@@ -952,7 +958,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
     final l10n = AppLocalizations.of(context);
     final noteText = _note.text.trim();
     final guestText = _guest.text.trim();
-    final minutesText = _minutes.text.trim();
+    final walkthroughMinutesText = _walkthroughMinutes.text.trim();
+    final danceMinutesText = _danceMinutes.text.trim();
 
     // A free-text slot must keep some text (its danceId is null); a dance slot
     // may clear its optional caller note entirely.
@@ -961,15 +968,32 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
       return;
     }
 
-    int? minutes;
-    if (minutesText.isNotEmpty) {
-      final parsed = int.tryParse(minutesText);
+    int? parseMinutes(String text, void Function(String?) setError) {
+      if (text.isEmpty) return null;
+      final parsed = int.tryParse(text);
       if (parsed == null || parsed < 0) {
-        setState(() => _minutesError = l10n.programsWholeNumberError);
-        return;
+        setError(l10n.programsWholeNumberError);
+        return null;
       }
-      minutes = parsed;
+      return parsed;
     }
+
+    var valid = true;
+    final walkthroughMinutes = parseMinutes(
+      walkthroughMinutesText,
+      (error) => setState(() {
+        _walkthroughMinutesError = error;
+        valid = false;
+      }),
+    );
+    final danceMinutes = parseMinutes(
+      danceMinutesText,
+      (error) => setState(() {
+        _danceMinutesError = error;
+        valid = false;
+      }),
+    );
+    if (!valid) return;
 
     final updated = ProgramSlot(
       id: widget.slot.id,
@@ -981,7 +1005,8 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
           : false,
       isAlt: _isAlt,
       guestCaller: guestText.isEmpty ? null : guestText,
-      plannedMinutes: minutes,
+      walkthroughMinutes: walkthroughMinutes,
+      danceMinutes: danceMinutes,
       performedAt: widget.slot.performedAt,
     );
     if (_danceId != widget.slot.danceId && _danceId != null) {
@@ -1067,16 +1092,39 @@ class _SlotEditDialogState extends State<_SlotEditDialog> {
               ),
             ),
             const SizedBox(height: 12),
+            Text(
+              l10n.programsPlannedTimingHeader,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 8),
             TextField(
-              key: const ValueKey('slot-edit-minutes'),
-              controller: _minutes,
+              key: const ValueKey('slot-edit-walkthrough-minutes'),
+              controller: _walkthroughMinutes,
               keyboardType: TextInputType.number,
               onChanged: (_) {
-                if (_minutesError != null) setState(() => _minutesError = null);
+                if (_walkthroughMinutesError != null) {
+                  setState(() => _walkthroughMinutesError = null);
+                }
               },
               decoration: InputDecoration(
-                labelText: l10n.programsPlannedMinutesLabel,
-                errorText: _minutesError,
+                labelText: l10n.programsWalkthroughMinutesLabel,
+                errorText: _walkthroughMinutesError,
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              key: const ValueKey('slot-edit-dance-minutes'),
+              controller: _danceMinutes,
+              keyboardType: TextInputType.number,
+              onChanged: (_) {
+                if (_danceMinutesError != null) {
+                  setState(() => _danceMinutesError = null);
+                }
+              },
+              decoration: InputDecoration(
+                labelText: l10n.programsDanceMinutesLabel,
+                errorText: _danceMinutesError,
                 border: const OutlineInputBorder(),
               ),
             ),

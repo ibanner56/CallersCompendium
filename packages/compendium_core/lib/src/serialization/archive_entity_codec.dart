@@ -236,8 +236,10 @@ Map<String, Object?> archiveProgramSlotToJson(
   'isAlt': s.isAlt,
   if (includeOptionalFields || s.guestCaller != null)
     'guestCaller': s.guestCaller,
-  if (includeOptionalFields || s.plannedMinutes != null)
-    'plannedMinutes': s.plannedMinutes,
+  if (includeOptionalFields || s.walkthroughMinutes != null)
+    'walkthroughMinutes': s.walkthroughMinutes,
+  if (includeOptionalFields || s.danceMinutes != null)
+    'danceMinutes': s.danceMinutes,
   if (includeOptionalFields || s.performedAt != null)
     'performedAt': s.performedAt == null ? null : archiveIso(s.performedAt!),
 };

@@ -23,7 +23,8 @@ class ProgramSlot {
     this.isPurgedDance = false,
     this.isAlt = false,
     this.guestCaller,
-    this.plannedMinutes,
+    this.walkthroughMinutes,
+    this.danceMinutes,
     this.performedAt,
   }) {
     if (danceId == null && text == null) {
@@ -41,12 +42,15 @@ class ProgramSlot {
     if (position < 0) {
       throw ArgumentError.value(position, 'position', 'must be >= 0');
     }
-    if (plannedMinutes != null && plannedMinutes! < 0) {
+    if (walkthroughMinutes != null && walkthroughMinutes! < 0) {
       throw ArgumentError.value(
-        plannedMinutes,
-        'plannedMinutes',
+        walkthroughMinutes,
+        'walkthroughMinutes',
         'must be >= 0',
       );
+    }
+    if (danceMinutes != null && danceMinutes! < 0) {
+      throw ArgumentError.value(danceMinutes, 'danceMinutes', 'must be >= 0');
     }
   }
 
@@ -70,9 +74,18 @@ class ProgramSlot {
   /// caller leads it. Structured (not folded into [text]).
   final String? guestCaller;
 
-  /// Planned length of the slot in minutes (CC `SetItem.Time`). Structured,
-  /// distinct from any free-text timing note in [text]; `>= 0` when present.
-  final int? plannedMinutes;
+  /// Planned walkthrough length in minutes; `>= 0` when present.
+  final int? walkthroughMinutes;
+
+  /// Planned dance length in minutes (CC `SetItem.Time`). Structured, distinct
+  /// from any free-text timing note in [text]; `>= 0` when present.
+  final int? danceMinutes;
+
+  /// Combined planned slot length, when either split duration is present.
+  int? get plannedTotalMinutes {
+    if (walkthroughMinutes == null && danceMinutes == null) return null;
+    return (walkthroughMinutes ?? 0) + (danceMinutes ?? 0);
+  }
 
   /// Set when the slot was actually called; feeds dance calling history
   /// (which is derived by query, never stored on the dance).
@@ -105,10 +118,12 @@ class ProgramSlot {
     bool? isPurgedDance,
     bool? isAlt,
     String? guestCaller,
-    int? plannedMinutes,
+    int? walkthroughMinutes,
+    int? danceMinutes,
     DateTime? performedAt,
     bool clearGuestCaller = false,
-    bool clearPlannedMinutes = false,
+    bool clearWalkthroughMinutes = false,
+    bool clearDanceMinutes = false,
     bool clearPerformedAt = false,
   }) => ProgramSlot(
     id: id,
@@ -120,9 +135,12 @@ class ProgramSlot {
         (text != null && text != this.text ? false : this.isPurgedDance),
     isAlt: isAlt ?? this.isAlt,
     guestCaller: clearGuestCaller ? null : (guestCaller ?? this.guestCaller),
-    plannedMinutes: clearPlannedMinutes
+    walkthroughMinutes: clearWalkthroughMinutes
         ? null
-        : (plannedMinutes ?? this.plannedMinutes),
+        : (walkthroughMinutes ?? this.walkthroughMinutes),
+    danceMinutes: clearDanceMinutes
+        ? null
+        : (danceMinutes ?? this.danceMinutes),
     performedAt: clearPerformedAt ? null : (performedAt ?? this.performedAt),
   );
 
@@ -136,7 +154,8 @@ class ProgramSlot {
       other.isPurgedDance == isPurgedDance &&
       other.isAlt == isAlt &&
       other.guestCaller == guestCaller &&
-      other.plannedMinutes == plannedMinutes &&
+      other.walkthroughMinutes == walkthroughMinutes &&
+      other.danceMinutes == danceMinutes &&
       other.performedAt == performedAt;
 
   @override
@@ -148,7 +167,8 @@ class ProgramSlot {
     isPurgedDance,
     isAlt,
     guestCaller,
-    plannedMinutes,
+    walkthroughMinutes,
+    danceMinutes,
     performedAt,
   );
 }
@@ -472,7 +492,8 @@ class Program {
           isPurgedDance: s.isPurgedDance,
           isAlt: s.isAlt,
           guestCaller: s.guestCaller,
-          plannedMinutes: s.plannedMinutes,
+          walkthroughMinutes: s.walkthroughMinutes,
+          danceMinutes: s.danceMinutes,
         ),
     ],
     createdAt: now,

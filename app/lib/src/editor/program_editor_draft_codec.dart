@@ -109,7 +109,7 @@ class ProgramEditorDraft {
 /// ```
 /// Nullable metadata (`eventDate`/`venue`/`venueId`/`band`/`caller`/
 /// `dancerLevel`) and nullable per-slot fields (`danceId`/`text`/`guestCaller`/
-/// `plannedMinutes`/`performedAt`) are omitted when unset.
+/// `walkthroughMinutes`/`danceMinutes`/`performedAt`) are omitted when unset.
 String encodeProgramDraft(ProgramEditorDraft draft) {
   return jsonEncode({
     'v': _kProgramDraftVersion,
@@ -136,7 +136,8 @@ Map<String, Object?> _slotToJson(ProgramSlot s) => {
   if (s.isPurgedDance != null) 'isPurgedDance': s.isPurgedDance,
   'isAlt': s.isAlt,
   if (s.guestCaller != null) 'guestCaller': s.guestCaller,
-  if (s.plannedMinutes != null) 'plannedMinutes': s.plannedMinutes,
+  if (s.walkthroughMinutes != null) 'walkthroughMinutes': s.walkthroughMinutes,
+  if (s.danceMinutes != null) 'danceMinutes': s.danceMinutes,
   if (s.performedAt != null)
     'performedAt': s.performedAt!.toUtc().toIso8601String(),
 };
@@ -273,10 +274,16 @@ ProgramSlot _parseSlot(Object? e) {
       'program draft slot.position must be an int: $position',
     );
   }
-  final planned = m['plannedMinutes'];
-  if (planned != null && planned is! int) {
+  final walkthrough = m['walkthroughMinutes'];
+  if (walkthrough != null && walkthrough is! int) {
     throw FormatException(
-      'program draft slot.plannedMinutes must be an int: $planned',
+      'program draft slot.walkthroughMinutes must be an int: $walkthrough',
+    );
+  }
+  final dance = m['danceMinutes'] ?? m['plannedMinutes'];
+  if (dance != null && dance is! int) {
+    throw FormatException(
+      'program draft slot.danceMinutes must be an int: $dance',
     );
   }
   final isPurgedDance = m['isPurgedDance'];
@@ -294,14 +301,15 @@ ProgramSlot _parseSlot(Object? e) {
       isPurgedDance: isPurgedDance as bool?,
       isAlt: _bool(m, 'isAlt'),
       guestCaller: _strOrNull(m, 'guestCaller'),
-      plannedMinutes: planned as int?,
+      walkthroughMinutes: walkthrough as int?,
+      danceMinutes: dance as int?,
       performedAt: _dateOrNull(m['performedAt'], 'slot.performedAt'),
     );
   } on ArgumentError catch (err) {
     // diagnostics: silent — converts ArgumentError to FormatException and rethrows;
     // The ProgramSlot constructor throws ArgumentError (a Dart Error, not an
     // Exception) for a slot with neither danceId nor text, a negative position,
-    // or negative plannedMinutes. Surface it as a FormatException so the load
+    // or negative split timing values. Surface it as a FormatException so the load
     // path's discard-on-error handling treats the whole draft as corrupt rather
     // than letting an Error escape and abort the editor load.
     throw FormatException('invalid program draft slot: ${err.message}');

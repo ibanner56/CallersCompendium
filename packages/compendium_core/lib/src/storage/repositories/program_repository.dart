@@ -459,7 +459,8 @@ class ProgramRepository {
                     ? null
                     : normalizeShareableText(slot.guestCaller!),
               ),
-              plannedMinutes: Value(slot.plannedMinutes),
+              walkthroughMinutes: Value(slot.walkthroughMinutes),
+              danceMinutes: Value(slot.danceMinutes),
               performedAt: Value(slot.performedAt),
             ),
           );
@@ -722,7 +723,8 @@ class ProgramRepository {
         isPurgedDance: r.isPurgedDance,
         isAlt: r.isAlt,
         guestCaller: r.guestCaller,
-        plannedMinutes: r.plannedMinutes,
+        walkthroughMinutes: r.walkthroughMinutes,
+        danceMinutes: r.danceMinutes,
         performedAt: asUtcOrNull(r.performedAt),
       );
     } on ArgumentError {

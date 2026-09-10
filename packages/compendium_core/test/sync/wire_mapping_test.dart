@@ -201,6 +201,33 @@ void main() {
     );
   });
 
+  test('accepts queued legacy program timing as dance timing', () {
+    final blob = SyncRecordBlob.fromJson({
+      'v': syncWireVersion,
+      'kind': 'program',
+      'id': 'p1',
+      'updatedAt': '2026-07-15T12:00:00Z',
+      'deletedAt': null,
+      'existenceAt': '2026-07-15T12:00:00Z',
+      'body': {
+        'id': 'p1',
+        'slots': [
+          {
+            'id': 's1',
+            'position': 0,
+            'danceId': 'd1',
+            'isAlt': false,
+            'plannedMinutes': 8,
+          },
+        ],
+      },
+    });
+
+    final slot = (blob.body['slots']! as List).single as Map<String, Object?>;
+    expect(slot['plannedMinutes'], isNull);
+    expect(slot['danceMinutes'], 8);
+  });
+
   test('resolves exact, prefixed, and unknown setting keys fail closed', () {
     expect(
       isShareableWirePath(
@@ -392,7 +419,8 @@ CompendiumArchive _sampleArchive() {
         text: 'note',
         isAlt: true,
         guestCaller: 'Bob',
-        plannedMinutes: 12,
+        walkthroughMinutes: 3,
+        danceMinutes: 9,
         performedAt: _now,
       ),
     ],
