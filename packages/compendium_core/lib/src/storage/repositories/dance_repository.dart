@@ -176,8 +176,25 @@ class DanceRepository {
   }
 
   /// Normalizes legacy v34 figure ids and parameter keys recursively.
-  Dance normaliseTaxonomyV35Public(Dance dance) =>
-      _normaliseTaxonomyV35Dance(dance);
+  List<Figure> normaliseTaxonomyV35FiguresPublic(List<Figure> figures) {
+    List<Figure>? normalised;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _taxonomy.normalizeFigureV35(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised ?? figures;
+  }
+
+  Dance normaliseTaxonomyV35Public(Dance dance) {
+    final figures = normaliseTaxonomyV35FiguresPublic(dance.figures);
+    return identical(figures, dance.figures)
+        ? dance
+        : dance.copyWith(figures: figures);
+  }
 
   Figure _normaliseTaxonomyV34Figure(Figure figure) {
     if (figure.isMeanwhile) {

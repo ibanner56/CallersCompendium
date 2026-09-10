@@ -102,6 +102,17 @@ void main() {
       expect(tax.effectiveParams(normalized)['shoulder'], 'left');
     });
 
+    test('unchanged meanwhile normalization preserves figure identity', () {
+      final figure = Figure.meanwhile(
+        beats: 8,
+        figures: [
+          Figure(move: 'swing'),
+          Figure(move: 'allemande'),
+        ],
+      );
+      expect(tax.normalizeFigureV35(figure), same(figure));
+    });
+
     test('unknown move preserves an authored beats and passes params through '
         '(#358)', () {
       // invalid-fixture: move is deliberately outside the taxonomy — alias pins take effect but figure params still win

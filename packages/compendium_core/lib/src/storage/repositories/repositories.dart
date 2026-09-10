@@ -24,6 +24,7 @@ import 'tag_repository.dart';
 import 'venue_repository.dart';
 
 const _shareableTextNormalisationAlgorithmVersion = 2;
+const _taxonomyV35MigrationPageSize = 128;
 
 String _normaliseStoredColumn(String column, String raw) {
   const jsonColumns = {'figures_json', 'tunes_json', 'choices_json'};
@@ -1301,32 +1302,68 @@ class CompendiumRepositories {
         .get();
     if (pending.isEmpty) return alreadyRebuilt;
 
-    final rewrites = <(String, String)>[];
-    for (final dance in await dances.listAll(includeDeleted: true)) {
-      final normalized = dances.normaliseTaxonomyV35Public(dance);
-      if (!identical(normalized, dance)) {
-        rewrites.add((dance.id, encodeFigures(normalized.figures)));
+    var rewroteAny = false;
+    String? afterId;
+    while (true) {
+      final rows = afterId == null
+          ? await db
+                .customSelect(
+                  'SELECT id, figures_json FROM ${db.dances.actualTableName} '
+                  'ORDER BY id LIMIT ?',
+                  variables: [Variable<int>(_taxonomyV35MigrationPageSize)],
+                )
+                .get()
+          : await db
+                .customSelect(
+                  'SELECT id, figures_json FROM ${db.dances.actualTableName} '
+                  'WHERE id > ? ORDER BY id LIMIT ?',
+                  variables: [
+                    Variable<String>(afterId),
+                    Variable<int>(_taxonomyV35MigrationPageSize),
+                  ],
+                )
+                .get();
+      if (rows.isEmpty) break;
+      afterId = rows.last.read<String>('id');
+
+      final rewrites = <(String, String)>[];
+      for (final row in rows) {
+        final figures = decodeFigures(row.read<String>('figures_json'));
+        final normalized = dances.normaliseTaxonomyV35FiguresPublic(figures);
+        if (!identical(normalized, figures)) {
+          rewrites.add((row.read<String>('id'), encodeFigures(normalized)));
+        }
       }
+      if (rewrites.isEmpty) continue;
+
+      rewroteAny = true;
+      await db.transaction(() async {
+        for (final (danceId, figuresJson) in rewrites) {
+          // normalization-structure-exempt: maintenance writes encoded figures
+          // produced by the canonical taxonomy normalizer.
+          await db.customUpdate(
+            // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+            'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+            'WHERE id = ?',
+            variables: [
+              Variable<String>(figuresJson),
+              Variable<String>(danceId),
+            ],
+            updates: {db.dances},
+            updateKind: UpdateKind.update,
+          );
+        }
+        // Keep the rebuild owed if the process stops between pages.
+        await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
+      });
     }
 
-    final rebuildOwed = !alreadyRebuilt || rewrites.isNotEmpty;
-    await db.transaction(() async {
-      for (final (danceId, figuresJson) in rewrites) {
-        // normalization-structure-exempt: maintenance writes encoded figures
-        // produced by the canonical taxonomy normalizer.
-        await db.customUpdate(
-          // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
-          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
-          'WHERE id = ?',
-          variables: [Variable<String>(figuresJson), Variable<String>(danceId)],
-          updates: {db.dances},
-          updateKind: UpdateKind.update,
-        );
-      }
-      if (rebuildOwed) {
+    final rebuildOwed = !alreadyRebuilt || rewroteAny;
+    if (rebuildOwed && !rewroteAny) {
+      await db.transaction(() async {
         await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
-      }
-    });
+      });
+    }
 
     if (rebuildOwed) {
       await runDerivedRebuild(onProgress: onProgress);

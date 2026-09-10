@@ -3,20 +3,14 @@ import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR2 "dancer-interaction" moves: gate, give_and_take,
-/// pull_by, pull_by, cross_trails, plus the roll_away `whom`
+/// pull_by, cross_trails, plus the roll_away `whom`
 /// extension. All reuse the existing ParamKind set (no new vocabulary).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
   final larks = Dialect.larksRobins;
 
-  const newMoves = [
-    'gate',
-    'give_and_take',
-    'pull_by',
-    'pull_by',
-    'cross_trails',
-  ];
+  const newMoves = ['gate', 'give_and_take', 'pull_by', 'cross_trails'];
 
   group('registration & defaults', () {
     for (final id in [...newMoves, 'roll_away']) {

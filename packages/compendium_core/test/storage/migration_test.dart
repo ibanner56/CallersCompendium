@@ -1308,47 +1308,46 @@ void main() {
       }
     });
 
-    test(
-      'every live row shares ONE T0, across tables as well as rows',
-      () async {
-        // The normative rule is "a single constant T0, identical for every live
-        // row" — not "a plausible timestamp per row". The fixture's two live
-        // dances were written years apart (2020 and 2026), so a back-fill that
-        // copied each row's own `updated_at` would produce two different values
-        // here and fail. That is the mutation this test exists to catch.
-        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-        addTearDown(db.close);
+    test('every live row shares ONE T0, across tables as well as rows', () async {
+      // The normative rule is "a single constant T0, identical for every live
+      // row" — not "a plausible timestamp per row". The fixture's two live
+      // dances were written years apart (2020 and 2026), so a back-fill that
+      // copied each row's own `updated_at` would produce two different values
+      // here and fail. That is the mutation this test exists to catch.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
 
-        final rows = await db
-            .customSelect(
-              'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
-              'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
-              'UNION SELECT existence_at FROM tags '
-              'UNION SELECT existence_at FROM choreographers '
-              'UNION SELECT existence_at FROM published_sources '
-              'UNION SELECT existence_at FROM custom_field_defs '
-              'UNION SELECT existence_at FROM venues '
-              "UNION SELECT existence_at FROM settings "
-              "WHERE key = 'migration_setting'",
-            )
-            .get();
-        // UNION dedupes, so one row means one distinct value.
-        expect(
-          rows,
-          hasLength(1),
-          reason:
-              'every live row across all eight tables must carry the same T0; '
-              'got ${[for (final r in rows) r.data.values.first]}',
-        );
-        final t0 = rows.single.data.values.first as int?;
-        expect(t0, isNotNull, reason: 'T0 must not be left NULL');
-        expect(
-          t0,
-          greaterThanOrEqualTo(beforeMigration),
-          reason: 'T0 is sampled when the migration runs, not baked in',
-        );
-      },
-    );
+      // Internal migration markers intentionally have no existence_at. Include
+      // every live, syncable setting rather than naming one fixture key.
+      final rows = await db
+          .customSelect(
+            'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
+            'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
+            'UNION SELECT existence_at FROM tags '
+            'UNION SELECT existence_at FROM choreographers '
+            'UNION SELECT existence_at FROM published_sources '
+            'UNION SELECT existence_at FROM custom_field_defs '
+            'UNION SELECT existence_at FROM venues '
+            "UNION SELECT existence_at FROM settings "
+            'WHERE deleted_at IS NULL AND existence_at IS NOT NULL',
+          )
+          .get();
+      // UNION dedupes, so one row means one distinct value.
+      expect(
+        rows,
+        hasLength(1),
+        reason:
+            'every live row across all eight tables must carry the same T0; '
+            'got ${[for (final r in rows) r.data.values.first]}',
+      );
+      final t0 = rows.single.data.values.first as int?;
+      expect(t0, isNotNull, reason: 'T0 must not be left NULL');
+      expect(
+        t0,
+        greaterThanOrEqualTo(beforeMigration),
+        reason: 'T0 is sampled when the migration runs, not baked in',
+      );
+    });
 
     test('an already-tombstoned row keeps its own deleted_at, not T0', () async {
       // The one case where a pre-existing column carries the right meaning.

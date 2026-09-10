@@ -179,13 +179,24 @@ class Taxonomy {
   /// `params['figures']`, and imports/restores use the same write path as
   /// ordinary edits.
   Figure normalizeFigureV35(Figure figure) {
-    final children = figure.isMeanwhile
-        ? figure.subFigures.map(normalizeFigureV35).toList(growable: false)
-        : null;
+    List<Figure>? children;
+    if (figure.isMeanwhile) {
+      final originalChildren = figure.subFigures;
+      for (var i = 0; i < originalChildren.length; i++) {
+        final child = originalChildren[i];
+        final normalizedChild = normalizeFigureV35(child);
+        if (!identical(normalizedChild, child) && children == null) {
+          children = originalChildren.sublist(0, i);
+        }
+        children?.add(normalizedChild);
+      }
+    }
     final legacyMove = figure.move;
     final move = normalizeV35MoveId(legacyMove);
     final params = normalizeV35Params(legacyMove, figure.params);
-    if (children != null) params['figures'] = children;
+    if (children != null) {
+      params['figures'] = List<Figure>.unmodifiable(children);
+    }
     if (move == figure.move && _sameParams(params, figure.params)) {
       return figure;
     }
