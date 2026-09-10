@@ -3704,7 +3704,7 @@ abstract class AppLocalizations {
   /// **'Links'**
   String get danceSectionLinks;
 
-  /// Placeholder for a related-dance link whose target has been deleted.
+  /// Placeholder for a related-dance link whose target row is absent; soft-deleted targets are hidden instead.
   ///
   /// In en, this message translates to:
   /// **'(missing dance)'**

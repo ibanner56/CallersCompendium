@@ -2815,7 +2815,7 @@
   },
   "danceMissingRelated": "(missing dance)",
   "@danceMissingRelated": {
-    "description": "Placeholder for a related-dance link whose target has been deleted."
+    "description": "Placeholder for a related-dance link whose target row is absent; soft-deleted targets are hidden instead."
   },
   "danceSectionPublishedSources": "Published sources",
   "@danceSectionPublishedSources": {
