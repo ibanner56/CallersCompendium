@@ -161,16 +161,28 @@ const int _maxStartingProgramTemplateTextLength = 500;
 /// Encodes the semantic starting-program template as a versioned JSON string.
 String encodeStartingProgramTemplate(
   List<StartingProgramTemplateEntry> entries,
-) => jsonEncode({
-  'version': _startingProgramTemplateVersion,
-  'slots': [
-    for (final entry in entries)
-      {
-        if (entry.danceId != null) 'danceId': entry.danceId,
-        if (entry.text != null) 'text': entry.text,
-      },
-  ],
-});
+) {
+  final slots = <Map<String, Object?>>[];
+  for (final entry in entries) {
+    if (slots.length == _maxStartingProgramTemplateEntries) break;
+    final danceId = entry.danceId?.trim();
+    final rawText = entry.text;
+    final text = rawText == null || rawText.trim().isEmpty
+        ? null
+        : rawText.length > _maxStartingProgramTemplateTextLength
+        ? rawText.substring(0, _maxStartingProgramTemplateTextLength)
+        : rawText;
+    if ((danceId == null || danceId.isEmpty) && text == null) continue;
+    final slot = <String, Object?>{};
+    if (danceId?.isNotEmpty ?? false) slot['danceId'] = danceId;
+    if (text != null) slot['text'] = text;
+    slots.add(slot);
+  }
+  return jsonEncode({
+    'version': _startingProgramTemplateVersion,
+    'slots': slots,
+  });
+}
 
 /// Decodes a starting-program template, returning `null` for any invalid
 /// payload. The caller can then fall back to the empty template.

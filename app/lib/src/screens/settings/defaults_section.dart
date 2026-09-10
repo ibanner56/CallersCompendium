@@ -638,7 +638,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() {
           _startingProgramTemplate[index] = StartingProgramTemplateEntry(
             danceId: entry.danceId,
-            text: text,
+            text: text.trim().isEmpty ? null : text.trim(),
           );
         });
         _persistStartingProgramTemplate();
@@ -1157,60 +1157,6 @@ class _DefaultsView extends StatelessWidget {
     return ListView(
       keyboardDismissBehavior: kTextEntryKeyboardDismiss,
       children: [
-        ExpansionTile(
-          key: const ValueKey('defaults-program-group'),
-          title: Text(l10n.settingsDefaultsProgramHeader),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.xxs,
-                AppSpacing.md,
-                AppSpacing.xs,
-              ),
-              child: TextField(
-                key: const ValueKey('defaults-program-caller'),
-                controller: programCallerController,
-                onChanged: onDefaultProgramCallerChanged,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: l10n.settingsDefaultsCallerLabel,
-                  helperText: l10n.settingsDefaultsPrefilledHelper,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.md,
-                AppSpacing.xxs,
-                AppSpacing.md,
-                AppSpacing.xs,
-              ),
-              child: TextField(
-                key: const ValueKey('defaults-program-band'),
-                controller: programBandController,
-                onChanged: onDefaultProgramBandChanged,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: l10n.settingsDefaultsBandLabel,
-                  helperText: l10n.settingsDefaultsPrefilledHelper,
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ),
-            _StartingProgramTemplateEditor(
-              entries: startingProgramTemplate,
-              dancesById: startingProgramDances,
-              onAddDance: onAddStartingProgramDance,
-              onAddText: onAddStartingProgramText,
-              onUpdateText: onUpdateStartingProgramText,
-              onAddBreak: onAddStartingProgramBreak,
-              onRemove: onRemoveStartingProgramEntry,
-              onReorder: onReorderStartingProgramEntry,
-            ),
-          ],
-        ),
         SectionHeader(title: l10n.settingsDefaultsDisplayHeader),
         ListTile(
           title: Text(l10n.settingsDefaultsSortTitle),
@@ -1360,6 +1306,60 @@ class _DefaultsView extends StatelessWidget {
               ],
             );
           },
+        ),
+        ExpansionTile(
+          key: const ValueKey('defaults-program-group'),
+          title: Text(l10n.settingsDefaultsProgramHeader),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xxs,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: TextField(
+                key: const ValueKey('defaults-program-caller'),
+                controller: programCallerController,
+                onChanged: onDefaultProgramCallerChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsCallerLabel,
+                  helperText: l10n.settingsDefaultsPrefilledHelper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.xxs,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: TextField(
+                key: const ValueKey('defaults-program-band'),
+                controller: programBandController,
+                onChanged: onDefaultProgramBandChanged,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  labelText: l10n.settingsDefaultsBandLabel,
+                  helperText: l10n.settingsDefaultsPrefilledHelper,
+                  border: const OutlineInputBorder(),
+                ),
+              ),
+            ),
+            _StartingProgramTemplateEditor(
+              entries: startingProgramTemplate,
+              dancesById: startingProgramDances,
+              onAddDance: onAddStartingProgramDance,
+              onAddText: onAddStartingProgramText,
+              onUpdateText: onUpdateStartingProgramText,
+              onAddBreak: onAddStartingProgramBreak,
+              onRemove: onRemoveStartingProgramEntry,
+              onReorder: onReorderStartingProgramEntry,
+            ),
+          ],
         ),
         ExpansionTile(
           key: const ValueKey('defaults-authoring-group'),
@@ -1654,7 +1654,7 @@ class _StartingProgramTemplateEditorState
               builder: (context) {
                 final entry = widget.entries[index];
                 return ListTile(
-                  key: ValueKey('starting-program-entry-$index'),
+                  key: ValueKey(entry),
                   dense: true,
                   title: Text(
                     entry.danceId == null
@@ -1667,7 +1667,7 @@ class _StartingProgramTemplateEditorState
                   subtitle: entry.danceId == null
                       ? null
                       : TextFormField(
-                          key: ValueKey('starting-program-note-$index'),
+                          key: ValueKey('starting-program-note-$entry'),
                           initialValue: entry.text ?? '',
                           decoration: InputDecoration(
                             labelText:

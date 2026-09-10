@@ -882,10 +882,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       return const [];
     }
     final template = startingProgramTemplateFromStored(stored);
+    final availableDances = _latestData?.dancesById ?? data.dancesById;
     final slots = <ProgramSlot>[];
     for (final entry in template) {
       if (entry.danceId != null &&
-          !data.dancesById.containsKey(entry.danceId)) {
+          !availableDances.containsKey(entry.danceId)) {
         continue;
       }
       slots.add(

@@ -29,7 +29,7 @@ Future<void> _pumpDefaults(
   CompendiumRepositories repos, {
   bool expandGroups = true,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 900));
+  await tester.binding.setSurfaceSize(const Size(1200, 4500));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -89,6 +89,9 @@ Future<void> _pumpDefaults(
     await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView).last, const Offset(0, -700));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('defaults-authoring-group')),
+    );
     await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
     await tester.pumpAndSettle();
   }
@@ -127,6 +130,20 @@ void main() {
       'Guest caller',
       Program.breakSlotText,
     ]);
+  });
+
+  test('starting program encoder emits only decoder-accepted entries', () {
+    final encoded = encodeStartingProgramTemplate([
+      for (var i = 0; i < 101; i++)
+        StartingProgramTemplateEntry(
+          danceId: 'dance-$i',
+          text: i == 0 ? 'x' * 501 : null,
+        ),
+    ]);
+
+    final decoded = tryDecodeStartingProgramTemplate(encoded);
+    expect(decoded, hasLength(100));
+    expect(decoded!.first.text, hasLength(500));
   });
 
   test(
