@@ -1324,38 +1324,60 @@ void main() {
   );
 
   testWidgets(
-    'walkthrough cue stays absent when walkthrough minutes are unset or zero',
+    'walkthrough cue stays absent when walkthrough minutes are unset',
     (tester) async {
-      for (final walkthroughMinutes in <int?>[null, 0]) {
-        final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
-        await _pumpProgram(
-          tester,
-          data: data,
-          program: _program([
-            _slot(
-              id: 's1',
-              position: 0,
-              danceId: 'd1',
-              walkthroughMinutes: walkthroughMinutes,
-              danceMinutes: 1,
-            ),
-          ]),
-        );
+      final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 1),
+        ]),
+      );
 
-        await tester.pump(const Duration(seconds: 1));
-        expect(
-          find.byKey(const ValueKey('perform-walkthrough-complete')),
-          findsNothing,
-          reason: 'walkthroughMinutes=$walkthroughMinutes',
-        );
-        await tester.pump(const Duration(seconds: 61));
-        expect(
-          find.byKey(const ValueKey('perform-walkthrough-complete')),
-          findsNothing,
-          reason: 'walkthroughMinutes=$walkthroughMinutes',
-        );
-        expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
-      }
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 61));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'walkthrough cue stays absent when walkthrough minutes are zero',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 0,
+            danceMinutes: 1,
+          ),
+        ]),
+      );
+
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 61));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
     },
   );
 
