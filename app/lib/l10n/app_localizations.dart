@@ -4914,6 +4914,32 @@ abstract class AppLocalizations {
   /// **'{half, select, first{1st} other{2nd}}'**
   String programsMatrixHalfShort(String half);
 
+  /// Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.
+  ///
+  /// In en, this message translates to:
+  /// **'{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}'**
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber);
+
+  /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and its numbered program section.
+  ///
+  /// In en, this message translates to:
+  /// **'{alt, select, yes{{section, select, none{Alternate dance: {title}} other{Alternate dance: {title}, section {section}}}} other{{section, select, none{Dance: {title}} other{Dance: {title}, section {section}}}}}'**
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  );
+
+  /// Compact matrix dance-chip label with alternate-dance and numbered-section qualifiers.
+  ///
+  /// In en, this message translates to:
+  /// **'{alt, select, yes{{section, select, none{{title} (alternate dance)} other{{title} (alternate dance, section {section})}}} other{{section, select, none{{title}} other{{title} (section {section})}}}}'**
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  );
+
   /// Header label for the matrix's pinned formation column (#663), naming what the column shows.
   ///
   /// In en, this message translates to:

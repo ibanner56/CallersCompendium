@@ -7,10 +7,9 @@ import '../model/program.dart';
 /// across every program that includes it (issue #378). Derived — like calling
 /// history itself — never stored.
 ///
-/// "Half" reuses the program's derived first/second half (the merged
-/// [Program.halvesForSlots] / [Program.halfAtIndex]): everything before a
-/// program's first break slot is the first half, everything after is the
-/// second; a program with no break contributes nothing here.
+/// "Half" is a history-only projection of the program's numbered sections:
+/// section 1 is the first half, sections 2 and later are the second; break and
+/// break-less slots contribute nothing here.
 ///
 /// Counting is **per slot occurrence**, matching calling-history semantics
 /// (one record per matching slot): a dance appearing twice in the second half
@@ -85,16 +84,18 @@ class HalfCallingStats {
 /// list is sorted by [ProgramSlot.position] internally before deriving halves,
 /// so callers may pass rows straight from a query).
 ///
-/// Half attribution reuses [Program.halvesForSlots] (no duplicated half
-/// logic). For each program the first/last **dance slot** of each half is
+/// Half attribution reuses [Program.sectionsForSlots] plus the explicit
+/// first/second projection (no duplicated section logic). For each program the
+/// first/last **dance slot** of each half is
 /// located, then every slot referencing [danceId] contributes to the counts.
 ///
 /// When [performedOnly] is true, only occurrences whose
 /// [ProgramSlot.performedAt] is set are counted — mirroring
 /// `ProgramRepository.callingHistoryForDance`'s flag (ROADMAP G.2, off by
-/// default). The full slot list is always used to derive halves and the
-/// first/last positions regardless of [performedOnly], since program structure
-/// is independent of whether a slot was marked performed.
+/// default). The full slot list is always used to derive numbered sections and
+/// the first/last positions regardless of [performedOnly], since program
+/// structure is independent of whether a slot was marked performed. Sections
+/// are projected to the legacy first/second history buckets below.
 HalfCallingStats computeHalfCallingStats({
   required String danceId,
   required Iterable<List<ProgramSlot>> programs,
@@ -109,7 +110,7 @@ HalfCallingStats computeHalfCallingStats({
     if (rawSlots.isEmpty) continue;
     final slots = [...rawSlots]
       ..sort((a, b) => a.position.compareTo(b.position));
-    final halves = Program.halvesForSlots(slots);
+    final sections = Program.sectionsForSlots(slots);
 
     // First dance slot of the first half; last dance slot of the second half.
     // Defined over dance slots only (danceId != null) so free-text slots never
@@ -118,7 +119,7 @@ HalfCallingStats computeHalfCallingStats({
     int? secondHalfCloserIndex;
     for (var i = 0; i < slots.length; i++) {
       if (slots[i].danceId == null) continue;
-      final half = halves[i];
+      final half = _historyHalfForSection(sections[i]);
       if (half == ProgramHalf.first) {
         firstHalfOpenerIndex ??= i;
       } else if (half == ProgramHalf.second) {
@@ -130,7 +131,7 @@ HalfCallingStats computeHalfCallingStats({
       final slot = slots[i];
       if (slot.danceId != danceId) continue;
       if (performedOnly && slot.performedAt == null) continue;
-      final half = halves[i];
+      final half = _historyHalfForSection(sections[i]);
       if (half == ProgramHalf.first) {
         firstHalf++;
         if (i == firstHalfOpenerIndex) openedFirstHalf++;
@@ -147,4 +148,9 @@ HalfCallingStats computeHalfCallingStats({
     openedFirstHalfCount: openedFirstHalf,
     closedSecondHalfCount: closedSecondHalf,
   );
+}
+
+ProgramHalf? _historyHalfForSection(int? section) {
+  if (section == null) return null;
+  return section == 1 ? ProgramHalf.first : ProgramHalf.second;
 }

@@ -190,6 +190,12 @@ Defaults** and new programs will prefill them — see
 The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
 
+Break slots divide the grid into numbered sections. Dances before the first
+break are in the **1st** section, dances between breaks are in the **2nd**,
+**3rd**, and later sections, and break slots themselves are unnumbered. These
+labels describe the matrix only; calling-history summaries continue to group
+the 2nd and later sections together as the second half.
+
 *The program matrix with moves as columns, dances as rows, pinned headers, and
 markers that explain how figures are introduced and reused.*
 
