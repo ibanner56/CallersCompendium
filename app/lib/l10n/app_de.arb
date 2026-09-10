@@ -1140,6 +1140,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
   },
+  "settingsShowProgramSlotCallerNotesTitle": "Caller-Notizen in der Programm-Perform-Ansicht anzeigen",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Nicht leere Caller-Notizen pro Slot über dem Tanztitel in der Programm-Perform-Ansicht anzeigen.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "x-sourceSha256": "3643d4c4bffc8af03f4f7feb2363c0cf70bacf9663bb4c84a84f2eed5fb51b1c"
+  },
   "settingsGeneralCallingHistoryHeader": "Calling-Verlauf",
   "@settingsGeneralCallingHistoryHeader": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
@@ -3415,6 +3423,10 @@
   "performOverSuffix": " über",
   "@performOverSuffix": {
     "x-sourceSha256": "1dd5a67f8afc17b092e937172d1903e40bb1ca68cd7444f946650ecac8dfcaac"
+  },
+  "performSlotCallerNote": "Caller-Notiz",
+  "@performSlotCallerNote": {
+    "x-sourceSha256": "d2b28bddb944b16a222d1bdb75c290a08ba8dec28530924ad9ef12b09af101ea"
   },
   "performCallingNotes": "Calling-Notizen",
   "@performCallingNotes": {

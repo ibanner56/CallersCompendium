@@ -39,6 +39,10 @@ const String kAutoSizePerformKey = 'auto_size_perform_cards';
 /// dance in Perform" preference. Stored as a bool; absent/unset means on.
 const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';
 
+/// Key used to persist the default-on "show per-slot caller notes in program
+/// Perform" preference.
+const String kShowProgramSlotCallerNotesKey = 'show_program_slot_caller_notes';
+
 /// Key used to persist the opt-in "auto-commit program-editor changes"
 /// preference. Defaults to `false`, preserving explicit-save behavior until
 /// the caller enables background commits.

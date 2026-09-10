@@ -1045,6 +1045,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Afficher les notes du caller dans le Perform d’un programme';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Afficher les notes de caller non vides de chaque créneau au-dessus du titre de la danse dans le Perform d’un programme.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Historique d’appel';
 
   @override
@@ -3333,6 +3341,9 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' dépassé';
+
+  @override
+  String get performSlotCallerNote => 'Note du caller';
 
   @override
   String get performCallingNotes => 'Notes d’appel';

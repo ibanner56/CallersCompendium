@@ -1114,6 +1114,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final dialect = _canonicalFigureTextEnabled && _canonicalView
         ? Dialect.canonical
         : activeDialect;
+    final visibleLinks = dance.links
+        .where(
+          (link) =>
+              link.kind != LinkKind.relatedDance ||
+              !detail.tombstonedRelatedDanceIds.contains(link.targetDanceId),
+        )
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -1339,10 +1346,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 : dance.tunes.join(', '),
           ),
         ],
-        if (dance.links.isNotEmpty) ...[
+        if (visibleLinks.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionLinks, style: theme.textTheme.titleMedium),
-          for (final link in dance.links)
+          for (final link in visibleLinks)
             _LinkRow(
               key: ValueKey('link-row-${link.id}'),
               link: link,
@@ -1550,7 +1557,7 @@ class _LinkRow extends StatelessWidget {
   final DanceLink link;
 
   /// For relatedDance links: the target dance's title, or `"(missing dance)"`
-  /// if the target has been deleted/purged.  `null` for non-relatedDance links.
+  /// if the target row no longer exists. `null` for non-relatedDance links.
   final String? relatedDanceTitle;
 
   /// If non-null, the row is tappable and calls this callback.

@@ -158,6 +158,9 @@ details are handled when you export.
 - **Show timer for individual Perform** (on) — shows an elapsed timer and
   pause/resume control while performing a single dance. Turn it off when you
   want individual Perform to stay timer-free.
+- **Show caller notes in program Perform** (on) — shows each non-empty
+  per-slot caller note above the dance title while performing a program. Turn it
+  off when you want the program card to show only the dance's own details.
 
 ### Calling history
 

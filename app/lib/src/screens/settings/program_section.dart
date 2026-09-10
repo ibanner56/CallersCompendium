@@ -41,6 +41,9 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _showIndividualPerformTimer;
   bool _showIndividualPerformTimerRequested = false;
   bool _showIndividualPerformTimerUserSet = false;
+  bool? _showProgramSlotCallerNotes;
+  bool _showProgramSlotCallerNotesRequested = false;
+  bool _showProgramSlotCallerNotesUserSet = false;
   bool? _autoCommitProgramChanges;
   bool _autoCommitRequested = false;
   bool _autoCommitUserSet = false;
@@ -104,6 +107,34 @@ class _ProgramSectionState extends State<ProgramSection> {
     });
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kShowIndividualPerformTimerKey, value);
+  }
+
+  void _ensureProgramSlotCallerNotesLoaded(BuildContext context) {
+    if (_showProgramSlotCallerNotesRequested) return;
+    _showProgramSlotCallerNotesRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kShowProgramSlotCallerNotesKey)
+        .then((value) {
+          if (!mounted || _showProgramSlotCallerNotesUserSet) return;
+          setState(
+            () => _showProgramSlotCallerNotes = value is bool ? value : true,
+          );
+        })
+        .catchError((_) {
+          // diagnostics: silent — use the default-on setting behavior.
+          if (!mounted || _showProgramSlotCallerNotesUserSet) return;
+          setState(() => _showProgramSlotCallerNotes = true);
+        });
+  }
+
+  Future<void> _onProgramSlotCallerNotesChanged(bool value) async {
+    setState(() {
+      _showProgramSlotCallerNotesUserSet = true;
+      _showProgramSlotCallerNotes = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kShowProgramSlotCallerNotesKey, value);
   }
 
   void _ensureAutoCommitLoaded(BuildContext context) {
@@ -222,6 +253,7 @@ class _ProgramSectionState extends State<ProgramSection> {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
     _ensureVenueCallCountLoaded(context);
+    _ensureProgramSlotCallerNotesLoaded(context);
     final scopedAutoCommit = ProgramAutoCommitScope.maybeOf(context);
     if (scopedAutoCommit == null) _ensureAutoCommitLoaded(context);
     return _ProgramView(
@@ -235,6 +267,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onAutoSizeChanged: _onAutoSizeChanged,
       showIndividualPerformTimer: _showIndividualPerformTimer ?? true,
       onShowIndividualPerformTimerChanged: _onIndividualTimerChanged,
+      showProgramSlotCallerNotes: _showProgramSlotCallerNotes ?? true,
+      onShowProgramSlotCallerNotesChanged: _onProgramSlotCallerNotesChanged,
       autoCommitProgramChanges:
           scopedAutoCommit ?? _autoCommitProgramChanges ?? false,
       onAutoCommitChanged: _onAutoCommitChanged,
@@ -263,6 +297,8 @@ class _ProgramView extends StatelessWidget {
     required this.onAutoSizeChanged,
     required this.showIndividualPerformTimer,
     required this.onShowIndividualPerformTimerChanged,
+    required this.showProgramSlotCallerNotes,
+    required this.onShowProgramSlotCallerNotesChanged,
     required this.autoCommitProgramChanges,
     required this.onAutoCommitChanged,
     required this.requirePerformedForHistory,
@@ -291,6 +327,8 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onAutoSizeChanged;
   final bool showIndividualPerformTimer;
   final ValueChanged<bool> onShowIndividualPerformTimerChanged;
+  final bool showProgramSlotCallerNotes;
+  final ValueChanged<bool> onShowProgramSlotCallerNotesChanged;
   final bool autoCommitProgramChanges;
   final ValueChanged<bool> onAutoCommitChanged;
 
@@ -363,6 +401,13 @@ class _ProgramView extends StatelessWidget {
           subtitle: Text(l10n.settingsShowIndividualPerformTimerSubtitle),
           value: showIndividualPerformTimer,
           onChanged: onShowIndividualPerformTimerChanged,
+        ),
+        SwitchListTile(
+          key: const ValueKey('settings-show-program-slot-caller-notes'),
+          title: Text(l10n.settingsShowProgramSlotCallerNotesTitle),
+          subtitle: Text(l10n.settingsShowProgramSlotCallerNotesSubtitle),
+          value: showProgramSlotCallerNotes,
+          onChanged: onShowProgramSlotCallerNotesChanged,
         ),
         SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
         SwitchListTile(

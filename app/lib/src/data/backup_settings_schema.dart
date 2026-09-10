@@ -68,6 +68,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
     kShowIndividualPerformTimerKey,
+    kShowProgramSlotCallerNotesKey,
     kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
     kPerformCanonicalViewKey,

@@ -1027,6 +1027,14 @@ class AppLocalizationsNl extends AppLocalizations {
       'Verstreken tijd tonen tijdens het uitvoeren van een enkele dans. De timer start zodra deze wordt weergegeven en kan worden gepauzeerd.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Callernotities in programma-Perform tonen';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Niet-lege callernotities per slot boven de danstitel in programma-Perform tonen.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Callerhistorie';
 
   @override
@@ -3307,6 +3315,9 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Callernotitie';
 
   @override
   String get performCallingNotes => 'Callnotities';

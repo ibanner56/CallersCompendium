@@ -77,6 +77,12 @@ active dialect, and is remembered too. It appears only when you are using a
 dialect other than the shared wording. See
 [Dialect](./dialects.md#peek-at-the-canonical-wording).
 
+When performing a program, a non-empty caller note attached to the current slot
+appears above the dance title. This is on by default and can be turned off in
+**Settings › Program › Performance** with **Show caller notes in program
+Perform**. The note is display-only: it does not change the dance's calling
+notes, search, or exports.
+
 **Tap tempo** opens the metronome sheet, and **Show walkthrough** — which appears
 when the dance has a walkthrough written — overlays it on the card.
 
