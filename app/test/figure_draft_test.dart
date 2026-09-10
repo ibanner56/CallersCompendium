@@ -307,5 +307,24 @@ void main() {
 
       expect(draft.toFigure()!.params['future'], 'keep-me');
     });
+
+    test('preserves container metadata on open/save', () {
+      final original =
+          Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'roll_away'),
+            ],
+            beats: 8,
+          ).copyWith(
+            schemaVersion: 7,
+            customOrigin: CustomOrigin.importGap,
+            assumedSubject: true,
+            walkthroughOverride: 'walk this through',
+            wordingOverride: 'use this wording',
+          );
+
+      expect(FigureDraft.fromFigure(original).toFigure(), original);
+    });
   });
 }

@@ -2627,7 +2627,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildWordingOverride(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    if (draft.move == null || draft.move == customMove) {
+    if ((draft.move == null && !draft.isContainerDraft) ||
+        draft.move == customMove) {
       return const SizedBox.shrink();
     }
     final value = draft.wordingOverride ?? '';

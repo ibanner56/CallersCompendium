@@ -741,7 +741,7 @@ class FigureRenderer {
         def.id == 'give_and_take' && figure.params['give'] == false;
     final sourceName = isTakeOnly ? 'take' : renderedName;
     if (sourceName.isEmpty || !rendered.contains(sourceName)) {
-      return rendered;
+      return _gerundiveRenderedFallback(figure.move, rendered);
     }
     return rendered.replaceFirst(
       sourceName,
@@ -797,7 +797,10 @@ class FigureRenderer {
       'star_promenade': 'doing a star promenade',
       'star_through': 'starring through',
       'stand_still': 'standing still',
+      'star': 'starring',
       'turn_single': 'turning single',
+      'turn_alone': 'turning alone',
+      'turn_as_couples': 'turning as couples',
       'up_the_hall': 'going up the hall',
       // Aliases must retain their authored wording rather than inheriting the
       // resolved target's gerund (for example, see_saw -> do_si_do).
@@ -821,6 +824,12 @@ class FigureRenderer {
         : last;
     words.add('${stem}ing');
     return words.join(' ');
+  }
+
+  String _gerundiveRenderedFallback(String moveId, String rendered) {
+    if (moveId != 'zig_zag') return rendered;
+    final zigged = rendered.replaceFirst(RegExp(r'\bzig\b'), 'zigging');
+    return zigged.replaceFirst(RegExp(r'\bzag\b'), 'and zagging');
   }
 
   Map<String, String> _renderTemplateSlots(

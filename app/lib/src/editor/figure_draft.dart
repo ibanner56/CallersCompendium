@@ -259,7 +259,7 @@ class FigureDraft {
       final extraParams = Map<String, Object?>.of(params)
         ..remove('beats')
         ..remove('figures');
-      return modifierFigures != null
+      final rebuilt = modifierFigures != null
           ? Figure.modifier(
               figures: cappedChildren,
               beats: beats,
@@ -276,6 +276,16 @@ class FigureDraft {
               progression: progression,
               wordingOverride: _trimOptionalOverride(wordingOverride),
             );
+      final trimmedWalkthrough = walkthroughOverride?.trim();
+      return rebuilt.copyWith(
+        schemaVersion: schemaVersion,
+        customOrigin: customOrigin,
+        assumedSubject: assumedSubject,
+        walkthroughOverride:
+            trimmedWalkthrough == null || trimmedWalkthrough.isEmpty
+            ? null
+            : trimmedWalkthrough,
+      );
     }
     final id = move;
     if (id == null) return null;

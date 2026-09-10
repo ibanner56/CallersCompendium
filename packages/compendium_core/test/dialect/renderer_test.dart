@@ -1339,6 +1339,26 @@ void main() {
         expect(rendered, isNot(contains('doing-si-do')));
         expect(rendered, isNot(contains('boxing the gnat')));
       });
+
+      test('modifier gerundives cover remaining verb phrases', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'turn_as_couples'),
+            Figure(move: 'turn_alone'),
+            Figure(move: 'star', params: const {'hand': 'right'}),
+            Figure(move: 'zig_zag'),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('turning as couples'));
+        expect(rendered, contains('turning alone'));
+        expect(rendered, contains('starring'));
+        expect(rendered, contains('zigging'));
+        expect(rendered, contains('zagging'));
+      });
     });
 
     group('hey length', () {

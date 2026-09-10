@@ -384,6 +384,24 @@ void main() {
     );
   });
 
+  testWidgets('fresh containers offer a wording override', (tester) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll_away'),
+        ],
+      )..params['beats'] = 8,
+    ];
+    await _pump(tester, drafts, showWordingOverride: true);
+    await _openFigure(tester, 0);
+
+    expect(
+      find.byKey(const ValueKey('figure-0-add-wording-override')),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('add creates an empty figure row', (tester) async {
     final drafts = <FigureDraft>[];
     await _pump(tester, drafts);
