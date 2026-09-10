@@ -591,6 +591,43 @@ class AppLocalizationsDa extends AppLocalizations {
       'Udfyldes i nye programmer; kan redigeres per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogram';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danse og noter, der føjes til manuelt oprettede programmer.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Tilføj pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notetekst';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-note (valgfri)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Flyt op';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Utilgængelig dans ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override
@@ -1018,6 +1055,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Vis callernoter i program-Perform';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Vis ikke-tomme callernoter pr. slot over dansens titel i program-Perform.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
 
   @override
@@ -1035,6 +1080,26 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal programmer ledet af den caller samt programmer uden registreret caller (behandlet som dine egne). Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Gentagne spillesteder i dansehistorikken';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Vis de øverste spillesteder, hvor en dans blev kaldt mere end én gang. Sæt til 0 for at skjule denne oversigt.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spillesteder',
+      one: '1 spillested',
+      zero: 'Vis ikke',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
@@ -2202,6 +2267,17 @@ class AppLocalizationsDa extends AppLocalizations {
   String get danceCallingHistoryError => 'Kunne ikke indlæse kaldehistorikken.';
 
   @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Kaldt $count gange på $venue',
+      one: 'Kaldt 1 gang på $venue',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get danceShowCanonicalTerms => 'Vis kanoniske termer';
 
   @override
@@ -2905,6 +2981,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixShowAlternatesSemantic => 'Vis alternative rækker';
 
   @override
+  String get programsMatrixShowPhrasesSemantic => 'Vis fraseetiketter';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Vis tilstedeværelsesglyffer';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2946,13 +3028,14 @@ class AppLocalizationsDa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', gentages i samme frase som en nabodans',
-      'beats': ', deler slag med en nabodans',
+      'phrase': ', gentages i samme frase som en tilstødende dans',
+      'beats': ', deler taktslag med en tilstødende dans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2967,7 +3050,11 @@ class AppLocalizationsDa extends AppLocalizations {
       'no': 'ikke til stede',
       'other': 'til stede$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', frase(r): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override
@@ -3270,6 +3357,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Caller-note';
 
   @override
   String get performCallingNotes => 'Kaldsnotes';

@@ -17,7 +17,8 @@ import 'package:compendium_app/src/screens/settings_screen.dart'
         kAutoSizePerformKey,
         kPerformCanonicalViewKey,
         kPerformStageModeKey,
-        kPerformTextScaleKey;
+        kPerformTextScaleKey,
+        kShowProgramSlotCallerNotesKey;
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -92,7 +93,9 @@ Future<void> _pumpProgram(
   int initialGroup = 0,
   Dialect? activeDialect,
   bool autoSize = false,
+  bool showProgramSlotCallerNotes = true,
   Size surfaceSize = const Size(1400, 2400),
+  bool settle = true,
   DialectLibraryController? dialectLibrary,
   Map<String, Dance> danceOverrides = const {},
   Map<String, String> authorNameOverrides = const {},
@@ -103,6 +106,10 @@ Future<void> _pumpProgram(
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  await repos.settings.set(
+    kShowProgramSlotCallerNotesKey,
+    showProgramSlotCallerNotes,
+  );
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
       : DialectLibraryScope(controller: dialectLibrary, child: child);
@@ -126,7 +133,7 @@ Future<void> _pumpProgram(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 /// Reads the current text of a keyed [Text] widget (e.g. the running clock or
@@ -222,6 +229,116 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('perform-prev')));
     await tester.pumpAndSettle();
     expect(find.text('First Dance'), findsOneWidget);
+  });
+
+  testWidgets('program Perform shows per-slot caller notes above the title', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Call this one gently',
+        ),
+      ]),
+      data: data,
+    );
+
+    expect(find.text('Caller note: Call this one gently'), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('perform-slot-caller-note')))
+          .dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('perform-title'))).dy,
+      ),
+    );
+  });
+
+  testWidgets('program Perform canonicalizes caller notes by default', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Gypsy with the gents',
+        ),
+      ]),
+      data: data,
+    );
+
+    expect(
+      find.text('Caller note: Shoulder round with the larks'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('program Perform hides per-slot caller notes when disabled', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      showProgramSlotCallerNotes: false,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', text: 'Hidden note'),
+      ]),
+      data: data,
+    );
+
+    expect(find.textContaining('Hidden note'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('perform-slot-caller-note')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'program Perform does not flash caller notes while loading a disabled setting',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+      await _pumpProgram(
+        tester,
+        showProgramSlotCallerNotes: false,
+        settle: false,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1', text: 'Hidden note'),
+        ]),
+        data: data,
+      );
+
+      expect(find.textContaining('Hidden note'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Hidden note'), findsNothing);
+    },
+  );
+
+  testWidgets('program Perform omits whitespace-only caller notes', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', text: '   \n\t'),
+      ]),
+      data: data,
+    );
+
+    expect(
+      find.byKey(const ValueKey('perform-slot-caller-note')),
+      findsNothing,
+    );
+    expect(find.textContaining('Caller note:'), findsNothing);
   });
 
   group('AppBar responsive overflow (issue #433)', () {
@@ -1325,6 +1442,47 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byKey(const ValueKey('perform-text')), findsOneWidget);
     });
+
+    testWidgets(
+      'recomputes the fit for the same dance with a different caller note',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Short')]);
+        const longNote =
+            'Call the transition slowly, then repeat the ending phrase twice '
+            'before moving on to the next figure. Keep the timing steady and '
+            'give the dancers room to breathe before starting the final '
+            'sequence.';
+        await _pumpProgram(
+          tester,
+          data: data,
+          autoSize: true,
+          surfaceSize: const Size(500, 450),
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1', text: 'Brief note'),
+            _slot(id: 's2', position: 1, danceId: 'd1', text: longNote),
+          ]),
+        );
+
+        final shortTitleHeight = tester
+            .getSize(find.byKey(const ValueKey('perform-title')))
+            .height;
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.text('Caller note: $longNote'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(
+          tester.getSize(find.byKey(const ValueKey('perform-title'))).height,
+          lessThan(shortTitleHeight),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('perform-prev')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.text('Caller note: $longNote'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets(
       'revisiting a fitted slot keeps its scale (no auto-size grow-in flash)',

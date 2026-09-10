@@ -596,6 +596,43 @@ class AppLocalizationsDe extends AppLocalizations {
       'In neuen Programmen vorausgefüllt; pro Programm bearbeitbar.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogramm';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Tänze und Notizen, die zu manuell erstellten Programmen hinzugefügt werden.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tanz hinzufügen';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Tanz';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Notiz';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Pause hinzufügen';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notiztext';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-Notiz (optional)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Nach oben';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Nach unten';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Nicht verfügbarer Tanz ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
 
   @override
@@ -1037,6 +1074,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Caller-Notizen in der Programm-Perform-Ansicht anzeigen';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Nicht leere Caller-Notizen pro Slot über dem Tanztitel in der Programm-Perform-Ansicht anzeigen.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling-Verlauf';
 
   @override
@@ -1054,6 +1099,26 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen Programme, die von diesem Caller geleitet wurden, sowie Programme ohne eingetragenen Caller (die als Ihre eigenen gezählt werden). Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Mehrfach genutzte Veranstaltungsorte im Anrufverlauf';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. Auf 0 setzen, um diese Übersicht auszublenden.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Veranstaltungsorte',
+      one: '1 Veranstaltungsort',
+      zero: 'Nicht anzeigen',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
@@ -2231,6 +2296,17 @@ class AppLocalizationsDe extends AppLocalizations {
       'Der Ansageverlauf konnte nicht geladen werden.';
 
   @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count-mal an $venue aufgerufen',
+      one: '1-mal an $venue aufgerufen',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get danceShowCanonicalTerms => 'Kanonische Begriffe anzeigen';
 
   @override
@@ -2941,6 +3017,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Alternative Zeilen anzeigen';
 
   @override
+  String get programsMatrixShowPhrasesSemantic =>
+      'Phrasenbezeichnungen anzeigen';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Präsenzsymbole anzeigen';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2982,13 +3065,15 @@ class AppLocalizationsDe extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', wiederholt sich in derselben Phrase wie ein Nachbartanz',
-      'beats': ', teilt Takte mit einem Nachbartanz',
+      'phrase':
+          ', wiederholt sich in derselben Phrase wie ein angrenzender Tanz',
+      'beats': ', teilt Taktschläge mit einem angrenzenden Tanz',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -3003,7 +3088,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'no': 'nicht vorhanden',
       'other': 'vorhanden$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', Phrase(n): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override
@@ -3309,6 +3398,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' über';
+
+  @override
+  String get performSlotCallerNote => 'Caller-Notiz';
 
   @override
   String get performCallingNotes => 'Calling-Notizen';

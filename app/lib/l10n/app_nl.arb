@@ -656,6 +656,50 @@
   "@settingsDefaultsPrefilledHelper": {
     "x-sourceSha256": "c02385b75a59383fbbb2ad8fe7fcd9f72bfa6101f4f628b8c1860a081a678fef"
   },
+  "settingsDefaultsStartingProgramTitle": "Startprogramma",
+  "@settingsDefaultsStartingProgramTitle": {
+    "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
+  },
+  "settingsDefaultsStartingProgramSubtitle": "Dansen en notities die aan handmatig gemaakte programma's worden toegevoegd.",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "x-sourceSha256": "5263ff112c8931c2a4483aad83d69af9478ace82f9f0606180306ef902ddddd3"
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "Een dans toevoegen",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
+  },
+  "settingsDefaultsStartingProgramAddDance": "Dans",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "settingsDefaultsStartingProgramAddText": "Notitie",
+  "@settingsDefaultsStartingProgramAddText": {
+    "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
+  },
+  "settingsDefaultsStartingProgramAddBreak": "Pauze toevoegen",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "x-sourceSha256": "7d6ad44637b1bd724b5c7defdab64e78e25805878c2326c5ba4a81e1b48bb50c"
+  },
+  "settingsDefaultsStartingProgramTextLabel": "Tekst van notitie",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "x-sourceSha256": "369e75791f2d58551e3a06b30954568b580ba9c5871e07481d9b9c8a61abacfb"
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "Notitie van caller (optioneel)",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
+  },
+  "settingsDefaultsStartingProgramMoveUp": "Omhoog",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "x-sourceSha256": "c66feb5eb8f217c76bfb0f1b41e3ee73ab41cb9959fae8284911bd3ad3816086"
+  },
+  "settingsDefaultsStartingProgramMoveDown": "Omlaag",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
+  },
+  "settingsDefaultsStartingProgramUnavailableDance": "Niet-beschikbare dans ({id})",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
+  },
   "settingsDefaultsBandLabel": "Standaard band",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"
@@ -1140,6 +1184,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
   },
+  "settingsShowProgramSlotCallerNotesTitle": "Callernotities in programma-Perform tonen",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Niet-lege callernotities per slot boven de danstitel in programma-Perform tonen.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "x-sourceSha256": "3643d4c4bffc8af03f4f7feb2363c0cf70bacf9663bb4c84a84f2eed5fb51b1c"
+  },
   "settingsGeneralCallingHistoryHeader": "Callerhistorie",
   "@settingsGeneralCallingHistoryHeader": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
@@ -1159,6 +1211,18 @@
   "settingsGeneralTrackHistoryForAllCallersSubtitle": "Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als uw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "x-sourceSha256": "b07a802d076006a8e3c62ad016048de051cc378c847bff0a8bf97bba3dcf0b02"
+  },
+  "settingsProgramVenueCallCountTitle": "Herhaalde locaties in de belgeschiedenis",
+  "@settingsProgramVenueCallCountTitle": {
+    "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
+  },
+  "settingsProgramVenueCallCountSubtitle": "Toon de belangrijkste locaties waar een dans meer dan één keer is gecalld. Stel in op 0 om dit overzicht te verbergen.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Niet tonen} =1{1 locatie} other{{count} locaties}}",
+  "@settingsProgramVenueCallCountOption": {
+    "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
   },
   "settingsGeneralAccessibilityHeader": "Toegankelijkheid",
   "@settingsGeneralAccessibilityHeader": {
@@ -2412,6 +2476,10 @@
   "@danceCallingHistoryError": {
     "x-sourceSha256": "5b904ba8025bb80c5193a39f3c7f73cde1abae09c07a25f743e7206318a76e08"
   },
+  "danceVenueCallCount": "{count, plural, =1{1 keer gecalld bij {venue}} other{{count} keer gecalld bij {venue}}}",
+  "@danceVenueCallCount": {
+    "x-sourceSha256": "0046b9ca011ff24c3e6640bd63f208089cd477cee692ff4cceccdcf06ca835e1"
+  },
   "danceShowCanonicalTerms": "Canonieke termen tonen",
   "@danceShowCanonicalTerms": {
     "x-sourceSha256": "6a744d6afa3942ba490b599806189e37f4a72c812aaf9f456ff9cb6dec3548b0"
@@ -3124,6 +3192,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
+  "programsMatrixShowPhrasesSemantic": "Fraselabels tonen",
+  "@programsMatrixShowPhrasesSemantic": {
+    "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
+  },
+  "programsMatrixHidePhrasesSemantic": "Aanwezigheidsglyphs tonen",
+  "@programsMatrixHidePhrasesSemantic": {
+    "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternatieve dans: {title}, eerste helft} second{Alternatieve dans: {title}, tweede helft} other{Alternatieve dans: {title}}}} other{{half, select, first{Dans: {title}, eerste helft} second{Dans: {title}, tweede helft} other{Dans: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
@@ -3140,9 +3216,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}{phrases, select, none{} other{, frase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
+    "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternatieve dans, eerste helft)} second{{title} (alternatieve dans, tweede helft)} other{{title} (alternatieve dans)}}} other{{half, select, first{{title} (eerste helft)} second{{title} (tweede helft)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
@@ -3411,6 +3487,10 @@
   "performOverSuffix": " over",
   "@performOverSuffix": {
     "x-sourceSha256": "1dd5a67f8afc17b092e937172d1903e40bb1ca68cd7444f946650ecac8dfcaac"
+  },
+  "performSlotCallerNote": "Callernotitie",
+  "@performSlotCallerNote": {
+    "x-sourceSha256": "d2b28bddb944b16a222d1bdb75c290a08ba8dec28530924ad9ef12b09af101ea"
   },
   "performCallingNotes": "Callnotities",
   "@performCallingNotes": {

@@ -23,10 +23,12 @@ import 'display_defaults.dart'
         kDefaultProgramBandKey,
         kDefaultProgramCallerKey,
         kDefaultProgramSortKey,
+        kDefaultStartingProgramKey,
         kLastUsedCollectionSortDirectionKey,
         kLastUsedCollectionSortKey,
         kLastUsedProgramSortDirectionKey,
-        kLastUsedProgramSortKey;
+        kLastUsedProgramSortKey,
+        tryDecodeStartingProgramTemplate;
 import 'formation_colors_controller.dart' show kFormationColorOverridesKey;
 import 'locale_scope.dart' show kLocaleKey;
 import 'reduce_motion_scope.dart' show kReduceMotionKey;
@@ -36,6 +38,7 @@ import 'set_list_color_coding_scope.dart' show kSetListColorCodingKey;
 import 'shorthand_mappings_controller.dart' show kShorthandMappingsKey;
 import 'soft_delete_retention.dart' show kSoftDeleteRetentionKey;
 import 'verbose_figure_rendering_scope.dart' show kVerboseFigureRenderingKey;
+import 'venue_call_count_scope.dart' show kVenueCallCountMax;
 import 'walkthrough_snippet_library_controller.dart'
     show kWalkthroughSnippetsKey;
 
@@ -67,6 +70,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kTrackHistoryForAllCallersKey,
     kAutoSizePerformKey,
     kShowIndividualPerformTimerKey,
+    kShowProgramSlotCallerNotesKey,
     kAutoCommitProgramChangesKey,
     kPerformStageModeKey,
     kPerformCanonicalViewKey,
@@ -119,6 +123,10 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   ])
     key: _isString,
 
+  // The starting-program template is a JSON string with an invariant-checked
+  // semantic codec, not merely an arbitrary string.
+  kDefaultStartingProgramKey: _isValidStartingProgramTemplate,
+
   // Numbers. The in-Perform manual text scale is used for layout sizing, so a
   // non-finite (NaN/Infinity) value is rejected outright rather than flowing
   // into a size calculation. It mirrors the live reader's contract exactly
@@ -130,6 +138,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
   // Retention window is a non-negative day count (0 = "never auto-purge"). A
   // negative or non-int value is rejected so it can't silently alter purging.
   kSoftDeleteRetentionKey: _isNonNegativeInt,
+  kVenueCallCountKey: _isVenueCallCount,
 
   // Structured container blobs. Their controllers decode the CONTENTS
   // defensively (skipping bad entries), so here we only enforce the outer
@@ -150,7 +159,11 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
 
 bool _isBool(Object? v) => v is bool;
 bool _isString(Object? v) => v is String;
+bool _isValidStartingProgramTemplate(Object? v) =>
+    tryDecodeStartingProgramTemplate(v) != null;
 bool _isNonNegativeInt(Object? v) => v is int && v >= 0;
+bool _isVenueCallCount(Object? v) =>
+    v is int && v >= 0 && v <= kVenueCallCountMax;
 bool _isValidPerformScale(Object? v) =>
     v is num && v.isFinite && v >= kPerformMinScale;
 bool _isMap(Object? v) => v is Map;

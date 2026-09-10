@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -20,13 +22,31 @@ import 'package:compendium_app/src/search/program_sort.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
+final _now = DateTime.utc(2026, 1, 1);
+
+Dance _dance({required String id, required String title}) => Dance(
+  id: id,
+  title: title,
+  authorIds: const [],
+  tagIds: const [],
+  form: DanceForm.contra,
+  formation: const Formation(FormationShape.dupleImproper),
+  status: DanceStatus.active,
+  figures: const [],
+  customFields: const [],
+  hook: '',
+  createdAt: _now,
+  updatedAt: _now,
+);
+
 /// Pumps the settings screen on a wide surface backed by [repos] and opens the
 /// Defaults section.
 Future<void> _pumpDefaults(
   WidgetTester tester,
-  CompendiumRepositories repos,
-) async {
-  await tester.binding.setSurfaceSize(const Size(1200, 900));
+  CompendiumRepositories repos, {
+  bool expandGroups = true,
+}) async {
+  await tester.binding.setSurfaceSize(const Size(1200, 4500));
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final dialect = ValueNotifier<Dialect>(Dialect.larksRobins);
@@ -81,41 +101,137 @@ Future<void> _pumpDefaults(
 
   await tester.tap(find.byKey(const ValueKey('settings-nav-defaults')));
   await tester.pumpAndSettle();
+  if (expandGroups) {
+    await tester.tap(find.byKey(const ValueKey('defaults-program-group')));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).last, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('defaults-authoring-group')),
+    );
+    await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+    await tester.pumpAndSettle();
+  }
 }
 
 /// Scrolls the Defaults content list until [key] is visible. The
-/// Dance-authoring subsection sits below the fold on the test surface.
-///
-/// The settings screen on a wide surface (1200 px) shows two vertical
-/// [Scrollable]s (the sidebar and the content list) and several horizontal
-/// ones from text-field overflow controllers. We select the last vertical
-/// scrollable to scroll the content list, regardless of how many scrollables
-/// are in the tree, so adding a new section doesn't break this helper.
-///
-/// We exclude scrollables using [NeverScrollableScrollPhysics] rather than
-/// just taking the last match: the Dance-authoring subsection embeds a
-/// [ReorderableListView] (in `FigureListEditor`) with that physics, and once
-/// keys below it are scrolled to (#942), it becomes the actual last vertical
-/// scrollable in the tree — which cannot itself be scrolled and cannot reach
-/// keys past it.
+/// Dance-authoring subsection sits below the fold on the test surface; the
+/// tester selects the relevant ancestor scrollable for the target.
 Future<void> _scrollTo(WidgetTester tester, Key key) async {
-  final verticals = find.byWidgetPredicate(
-    (w) =>
-        w is Scrollable &&
-        w.axisDirection == AxisDirection.down &&
-        w.physics is! NeverScrollableScrollPhysics,
-  );
-  await tester.scrollUntilVisible(
-    find.byKey(key),
-    120,
-    scrollable: verticals.last,
-    maxScrolls: 100,
-  );
+  await tester.ensureVisible(find.byKey(key));
   await tester.pumpAndSettle();
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('starting program templates round-trip semantic entries', () {
+    final encoded = encodeStartingProgramTemplate([
+      const StartingProgramTemplateEntry(danceId: 'dance-1'),
+      const StartingProgramTemplateEntry(
+        danceId: 'dance-2',
+        text: 'Guest caller',
+      ),
+      const StartingProgramTemplateEntry(text: Program.breakSlotText),
+    ]);
+
+    final decoded = tryDecodeStartingProgramTemplate(encoded);
+    expect(decoded, isNotNull);
+    expect(decoded!.map((entry) => entry.danceId), [
+      'dance-1',
+      'dance-2',
+      null,
+    ]);
+    expect(decoded.map((entry) => entry.text), [
+      null,
+      'Guest caller',
+      Program.breakSlotText,
+    ]);
+  });
+
+  test('starting program encoder emits only decoder-accepted entries', () {
+    final encoded = encodeStartingProgramTemplate([
+      for (var i = 0; i < 101; i++)
+        StartingProgramTemplateEntry(
+          danceId: 'dance-$i',
+          text: i == 0 ? 'x' * 501 : null,
+        ),
+    ]);
+
+    final decoded = tryDecodeStartingProgramTemplate(encoded);
+    expect(decoded, hasLength(100));
+    expect(decoded!.first.text, hasLength(500));
+  });
+
+  test(
+    'starting program templates reject malformed or unsupported entries',
+    () {
+      expect(
+        tryDecodeStartingProgramTemplate(
+          jsonEncode({
+            'version': 1,
+            'slots': <Map<String, Object?>>[{}],
+          }),
+        ),
+        isNull,
+      );
+      expect(
+        tryDecodeStartingProgramTemplate(
+          jsonEncode({
+            'version': 1,
+            'slots': [
+              {'danceId': 'dance-1', 'id': 'persisted-id'},
+            ],
+          }),
+        ),
+        isNull,
+      );
+      expect(startingProgramTemplateFromStored('not-json'), isEmpty);
+    },
+  );
+
+  testWidgets('program and authoring groups start collapsed', (tester) async {
+    final repos = openTestRepositories();
+    await _pumpDefaults(tester, repos, expandGroups: false);
+
+    expect(find.byKey(const ValueKey('defaults-program-caller')), findsNothing);
+    expect(find.byKey(const ValueKey('defaults-dance-form')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('defaults-program-group')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('defaults-program-caller')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'starting program notes keep their dance when edited and reordered',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second dance'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(danceId: 'd1'),
+          const StartingProgramTemplateEntry(danceId: 'd2'),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      final noteField = find.byType(TextFormField).first;
+      await tester.enterText(noteField, 'Guest caller');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Move down').first);
+      await tester.pumpAndSettle();
+
+      final stored = startingProgramTemplateFromStored(
+        await repos.settings.get(kDefaultStartingProgramKey),
+      );
+      expect(stored.map((entry) => entry.danceId), ['d2', 'd1']);
+      expect(stored.last.text, 'Guest caller');
+    },
+  );
 
   testWidgets('Defaults appears as a settings section', (tester) async {
     final repos = openTestRepositories();

@@ -16,6 +16,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
+import '../data/venue_call_count_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/dance_share_bundle.dart';
@@ -211,6 +212,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// (issue #583). Tracked so [didChangeDependencies] can reload the calling
   /// history when the setting is toggled while this screen is open.
   bool _trackHistoryForAllCallers = false;
+  int _venueCallCount = kVenueCallCountDefault;
 
   /// When `false` the figure table renders in the user's active dialect;
   /// when `true` it renders canonical role/move tokens.  The toggle is hidden
@@ -250,6 +252,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
+    _venueCallCount = VenueCallCountScope.of(context);
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -1111,6 +1114,13 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     final dialect = _canonicalFigureTextEnabled && _canonicalView
         ? Dialect.canonical
         : activeDialect;
+    final visibleLinks = dance.links
+        .where(
+          (link) =>
+              link.kind != LinkKind.relatedDance ||
+              !detail.tombstonedRelatedDanceIds.contains(link.targetDanceId),
+        )
+        .toList();
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -1336,10 +1346,10 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
                 : dance.tunes.join(', '),
           ),
         ],
-        if (dance.links.isNotEmpty) ...[
+        if (visibleLinks.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.danceSectionLinks, style: theme.textTheme.titleMedium),
-          for (final link in dance.links)
+          for (final link in visibleLinks)
             _LinkRow(
               key: ValueKey('link-row-${link.id}'),
               link: link,
@@ -1399,6 +1409,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             danceId: widget.danceId!,
             performedOnly: _requirePerformedForHistory,
             trackAllCallers: _trackHistoryForAllCallers,
+            venueCallCount: _venueCallCount,
             onOpenProgram: _openProgram,
           ),
       ],
@@ -1546,7 +1557,7 @@ class _LinkRow extends StatelessWidget {
   final DanceLink link;
 
   /// For relatedDance links: the target dance's title, or `"(missing dance)"`
-  /// if the target has been deleted/purged.  `null` for non-relatedDance links.
+  /// if the target row no longer exists. `null` for non-relatedDance links.
   final String? relatedDanceTitle;
 
   /// If non-null, the row is tappable and calls this callback.

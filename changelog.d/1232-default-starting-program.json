@@ -1,0 +1,14 @@
+{
+  "id": "1232-default-starting-program",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can configure a default starting program template for manually created programs."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Classify the default starting-program preference as a shareable app-user setting in the privacy registry."
+    ]
+  }
+}

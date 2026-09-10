@@ -576,6 +576,42 @@ class AppLocalizationsJa extends AppLocalizations {
       '新しいプログラムに事前入力されます。プログラムごとに編集可能です。';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => '開始プログラム';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      '手動で作成したプログラムに追加するダンスとメモ。';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'ダンスを追加';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'ダンス';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'メモ';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => '休憩を追加';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'メモのテキスト';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel => 'caller のメモ（任意）';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => '上へ移動';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => '下へ移動';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return '利用できないダンス（$id）';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'デフォルトバンド';
 
   @override
@@ -980,6 +1016,14 @@ class AppLocalizationsJa extends AppLocalizations {
       '1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'プログラムのPerformでコーラーのメモを表示';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'プログラムのPerformで、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
 
   @override
@@ -997,6 +1041,25 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラム、およびコーラーが記録されていないプログラム（自分のプログラムとして扱われます）が含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
+
+  @override
+  String get settingsProgramVenueCallCountTitle => 'コーリング履歴に繰り返し登場する会場';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'ダンスを2回以上コールした主な会場を表示します。0にするとこの概要を非表示にします。';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count会場',
+      one: '1会場',
+      zero: '表示しない',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
@@ -2125,6 +2188,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCallingHistoryError => 'コール履歴を読み込めませんでした。';
 
   @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$venueで$count回コール',
+      one: '$venueで1回コール',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get danceShowCanonicalTerms => '正式な用語で表示';
 
   @override
@@ -2810,6 +2884,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixShowAlternatesSemantic => '代替行を表示';
 
   @override
+  String get programsMatrixShowPhrasesSemantic => 'フレーズラベルを表示';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => '存在グリフを表示';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2851,13 +2931,14 @@ class AppLocalizationsJa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': '、隣接するダンスと同じフレーズで繰り返される',
-      'beats': '、隣接するダンスと拍が重なる',
+      'phrase': '、隣接するダンスと同じフレーズで繰り返し',
+      'beats': '、隣接するダンスと拍を共有',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2869,10 +2950,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'other': '',
     });
     String _temp3 = intl.Intl.selectLogic(present, {
-      'no': '未使用',
-      'other': '使用中$_temp0$_temp1$_temp2',
+      'no': 'なし',
+      'other': 'あり$_temp0$_temp1$_temp2',
     });
-    return '$dance、$move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': '、フレーズ：$phrases',
+    });
+    return '$dance、$move：$_temp3$_temp4';
   }
 
   @override
@@ -3167,6 +3252,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' 超過';
+
+  @override
+  String get performSlotCallerNote => 'コーラーメモ';
 
   @override
   String get performCallingNotes => 'コーリングノート';

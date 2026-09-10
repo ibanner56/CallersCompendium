@@ -159,8 +159,18 @@ final Map<String, DataClassification> settingsClassifications = {
         'themselves. Personal data, shareable for the same reason as '
         'programs.caller.',
   ),
+  'default_starting_program': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'User-authored semantic slot template for manually created programs. '
+        'It contains selected dance references and caller notes, so it travels '
+        'with the user preference in local backups.',
+  ),
   'auto_size_perform_cards': _preference,
   'show_individual_perform_timer': _preference,
+  'show_program_slot_caller_notes': _preference,
   'auto_commit_program_changes': _preference,
   'perform_canonical_view': _preference,
   'perform_stage_mode': _preference,
@@ -175,6 +185,7 @@ final Map<String, DataClassification> settingsClassifications = {
   ),
   'require_performed_for_history': _preference,
   'track_history_for_all_callers': _preference,
+  'venue_call_count': _preference,
 
   // -- Installation state ---------------------------------------------------
   'window_frame': _installState,

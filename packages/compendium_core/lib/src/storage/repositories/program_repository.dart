@@ -95,6 +95,34 @@ class DanceCallingRecord {
   );
 }
 
+/// The number of matching calling-history records at one venue identity.
+///
+/// Linked venues remain keyed by [venueId], while free-text venues are keyed by
+/// normalized [venue]. The app resolves linked labels before displaying or
+/// ordering these values because the venue catalogue is app-side state.
+@immutable
+class VenueCallCount {
+  const VenueCallCount({
+    required this.venueId,
+    required this.venue,
+    required this.count,
+  });
+
+  final String? venueId;
+  final String? venue;
+  final int count;
+
+  @override
+  bool operator ==(Object other) =>
+      other is VenueCallCount &&
+      other.venueId == venueId &&
+      other.venue == venue &&
+      other.count == count;
+
+  @override
+  int get hashCode => Object.hash(venueId, venue, count);
+}
+
 /// How many times a dance has been called, aggregated across every non-deleted
 /// program, produced by [ProgramRepository.countByDance].
 ///
@@ -150,13 +178,18 @@ class DanceCallCounts {
 /// list and a stats summary that disagree.
 @immutable
 class DanceCallingHistory {
-  const DanceCallingHistory({required this.records, required this.halfStats});
+  const DanceCallingHistory({
+    required this.records,
+    required this.halfStats,
+    required this.venueCounts,
+  });
 
   /// Empty history with empty stats — what a dance that has never been called
   /// resolves to.
   static const empty = DanceCallingHistory(
     records: [],
     halfStats: HalfCallingStats.empty,
+    venueCounts: [],
   );
 
   /// Programs including the dance, most-recent first. Same value and ordering
@@ -166,6 +199,11 @@ class DanceCallingHistory {
   /// Same value as [ProgramRepository.halfCallingStatsForDance] for the same
   /// arguments.
   final HalfCallingStats halfStats;
+
+  /// Counts grouped by stable linked-venue identity or normalized free text.
+  /// Counts include every matching record, including duplicate slots in a
+  /// single program. The app filters, labels, orders, and limits this list.
+  final List<VenueCallCount> venueCounts;
 }
 
 /// The program-derived per-dance tallies the Collection list renders, delivered
@@ -927,6 +965,40 @@ class ProgramRepository {
       ),
   ];
 
+  List<VenueCallCount> _venueCountsFromRecords(
+    List<DanceCallingRecord> records,
+  ) {
+    final counts = <String, VenueCallCount>{};
+    for (final record in records) {
+      final normalizedVenue = _normalizedVenueText(record.venue);
+      final key = record.venueId == null
+          ? normalizedVenue == null
+                ? null
+                : 'text:$normalizedVenue'
+          : 'id:${record.venueId}';
+      if (key == null) continue;
+      final current = counts[key];
+      counts[key] = VenueCallCount(
+        venueId: record.venueId,
+        venue: current?.venue ?? _displayVenueText(record.venue),
+        count: (current?.count ?? 0) + 1,
+      );
+    }
+    return counts.values.toList(growable: false);
+  }
+
+  String? _normalizedVenueText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  }
+
+  String? _displayVenueText(String? value) {
+    final trimmed = value?.trim();
+    if (trimmed == null || trimmed.isEmpty) return null;
+    return trimmed.replaceAll(RegExp(r'\s+'), ' ');
+  }
+
   /// Reactive [callingHistoryForDance] + [halfCallingStatsForDance]: emits the
   /// current calling history immediately, then again whenever a write changes
   /// it. Arguments mean exactly what they do on the one-shot methods.
@@ -1012,6 +1084,7 @@ class ProgramRepository {
           programIds: {for (final r in records) r.programId}.toList(),
           performedOnly: performedOnly,
         ),
+        venueCounts: _venueCountsFromRecords(records),
       );
     });
   }
