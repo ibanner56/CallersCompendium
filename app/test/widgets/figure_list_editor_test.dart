@@ -54,6 +54,7 @@ class _Host extends StatefulWidget {
     this.freeTextEntry = false,
     this.wireMeanwhile = true,
     this.wireAddMeanwhile = false,
+    this.wireAddModifier = false,
     this.meanwhileAdder,
     this.freeTextAdder,
     this.allowAdding = true,
@@ -72,6 +73,7 @@ class _Host extends StatefulWidget {
   final bool freeTextEntry;
   final bool wireMeanwhile;
   final bool wireAddMeanwhile;
+  final bool wireAddModifier;
   final Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder;
   final int Function(List<Figure> figures)? freeTextAdder;
   final bool allowAdding;
@@ -140,6 +142,15 @@ class _HostState extends State<_Host> {
                       if (widget.meanwhileAdder != null) {
                         return widget.meanwhileAdder!(widget.drafts);
                       }
+                      setState(() => widget.drafts.add(draft));
+                      return Future.value(draft.id);
+                    }
+                  : null,
+              onAddModifier: widget.wireAddModifier
+                  ? () {
+                      final draft = FigureDraft(
+                        modifierFigures: [FigureDraft(), FigureDraft()],
+                      );
                       setState(() => widget.drafts.add(draft));
                       return Future.value(draft.id);
                     }
@@ -222,6 +233,7 @@ Future<void> _pump(
   bool freeTextEntry = false,
   bool wireMeanwhile = true,
   bool wireAddMeanwhile = false,
+  bool wireAddModifier = false,
   Future<String?> Function(List<FigureDraft> drafts)? meanwhileAdder,
   int Function(List<Figure> figures)? freeTextAdder,
   bool allowAdding = true,
@@ -249,6 +261,7 @@ Future<void> _pump(
       freeTextEntry: freeTextEntry,
       wireMeanwhile: wireMeanwhile,
       wireAddMeanwhile: wireAddMeanwhile,
+      wireAddModifier: wireAddModifier,
       meanwhileAdder: meanwhileAdder,
       freeTextAdder: freeTextAdder,
       allowAdding: allowAdding,
@@ -426,6 +439,17 @@ void main() {
     expect(drafts.single.isMeanwhileGroup, isTrue);
     expect(drafts.single.meanwhileSides, hasLength(2));
     expect(find.byKey(const ValueKey('figure-0-add-side')), findsOneWidget);
+  });
+
+  testWidgets('Add menu hides unavailable container actions', (tester) async {
+    final drafts = <FigureDraft>[];
+    await _pump(tester, drafts, wireAddModifier: true);
+
+    await tester.tap(find.byKey(const ValueKey('figure-add')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('figure-add-meanwhile')), findsNothing);
+    expect(find.byKey(const ValueKey('figure-add-modifier')), findsOneWidget);
   });
 
   testWidgets('async meanwhile insertion opens the returned draft', (

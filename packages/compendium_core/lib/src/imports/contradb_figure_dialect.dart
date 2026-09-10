@@ -137,9 +137,10 @@ final RegExp _whileConnective = RegExp(r'\bwhiles?\b', caseSensitive: false);
 ///   pre-#591 whole-custom line.
 /// - **Security bound.** [splitTopLevelOnWord] only ever splits on the FIRST
 ///   top-level connective, so this always yields exactly 2 sides — always
-///   within [kMaxMeanwhileSides]. Sides are ordinary (non-meanwhile) figures,
-///   so [Figure.meanwhile]'s flat-only precondition can never fail here — no
-///   `try`/`catch` is needed around the factory call.
+///   within [kMaxMeanwhileSides]. Sides are ordinary (non-container) figures
+///   from [parseFigureLine], so this importer path cannot create a nested
+///   container and the direct factory call is safe. The persisted model still
+///   permits one bounded opposite-kind nesting level.
 Figure? parseContraDbFigureLine(
   String rawText, {
   int beats = 0,
@@ -376,8 +377,9 @@ FigureMatch? _doSiDo(String text) {
 /// [Taxonomy] deliberately does not register, so the container is built
 /// DIRECTLY here — exactly like [parseContraDbFigureLine]'s `while` fan-out —
 /// bypassing [parseFigureLine]'s validate step. Sides are ordinary
-/// (non-meanwhile) figures, so [Figure.meanwhile]'s flat-only precondition
-/// cannot fail here.
+/// (non-container) figures, so this importer-specific path cannot create a
+/// nested container; the persisted model still permits bounded opposite-kind
+/// nesting elsewhere.
 Figure? _allemandeOrbitMeanwhile(
   String text, {
   required int beats,

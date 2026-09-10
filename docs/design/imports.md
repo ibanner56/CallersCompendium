@@ -782,11 +782,13 @@ still governs what is reachable.
   `2..kMaxMeanwhileSides` at the import layer — a hostile/malformed line with
   more separators than the model allows safely degrades to the pre-#591
   whole-custom fallback rather than throwing or silently truncating sides.
-  Sides are never themselves `meanwhile` (flat only), so the model's
-  recursive-nesting defenses stay reserved for the untrusted deserialization
-  path. Each side is scrubbed via the same `scrubFigureText` pass as any other
-  figure line, so bidi/zero-width sanitization parity (#444/#611) holds
-  per-side by construction.
+  Sides are never themselves containers: this importer-specific path emits
+  ordinary figures, so its direct `meanwhile` construction cannot create a
+  nested container. The model's bounded opposite-kind nesting remains
+  available to authored and deserialized figures. Each side is scrubbed via
+  the same `scrubFigureText` pass as any other figure line, so
+  bidi/zero-width sanitization parity (#444/#611) holds per-side by
+  construction.
 - **Shared beats, counted once:** the source states one combined beat total
   for the whole line, never per-side — it lands on the container's `beats`
   only (sides carry none), so `deriveSections` cumulative totals stay

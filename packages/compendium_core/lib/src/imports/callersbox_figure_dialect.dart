@@ -610,9 +610,10 @@ bool _areComplementaryRoles(String first, String second) =>
 ///   side is beats-absent. This keeps [deriveSections]' cumulative beat total
 ///   byte-identical to the pre-#591 whole-custom line (the container counts
 ///   once, exactly like the single custom figure it replaces).
-/// - **Flat only.** Sides are ordinary (non-meanwhile) figures from
-///   [parseFigureLine], so [Figure.meanwhile]'s flat-only precondition can
-///   never fail here — no `try/catch` is needed around the factory call.
+/// - **Importer-specific ordinary sides.** Sides are ordinary
+///   (non-container) figures from [parseFigureLine], so this importer path
+///   cannot create a nested container and the direct factory call is safe.
+///   The persisted model still permits one bounded opposite-kind nesting level.
 Figure? meanwhileFromDoublePipe(
   String rawText, {
   required int beats,

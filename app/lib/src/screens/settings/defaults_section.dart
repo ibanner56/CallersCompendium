@@ -806,6 +806,22 @@ class _DefaultsSectionState extends State<DefaultsSection> {
         setState(() => _defaultModifierDrafts.add(FigureDraft()));
         _persistModifierDefaults();
       },
+      onModifierAddFreeText: (figures) {
+        final ordinaryFigures = figures
+            .where((figure) => !figure.isContainer)
+            .toList();
+        if (ordinaryFigures.isEmpty) return 0;
+        final remaining = kMaxModifierFigures - _defaultModifierDrafts.length;
+        if (remaining <= 0) return 0;
+        final accepted = ordinaryFigures.take(remaining).toList();
+        setState(
+          () => _defaultModifierDrafts.addAll(
+            accepted.map(FigureDraft.fromFigure),
+          ),
+        );
+        _persistModifierDefaults();
+        return accepted.length;
+      },
       onModifierDelete: (draft) {
         setState(() => _defaultModifierDrafts.remove(draft));
         _persistModifierDefaults();
@@ -1115,6 +1131,7 @@ class _DefaultsView extends StatelessWidget {
     required this.modifierDrafts,
     required this.onModifierChanged,
     required this.onModifierAdd,
+    required this.onModifierAddFreeText,
     required this.onModifierDelete,
     required this.onModifierDuplicate,
     required this.onModifierReorder,
@@ -1187,6 +1204,7 @@ class _DefaultsView extends StatelessWidget {
   final List<FigureDraft> modifierDrafts;
   final VoidCallback onModifierChanged;
   final VoidCallback onModifierAdd;
+  final int Function(List<Figure>) onModifierAddFreeText;
   final ValueChanged<FigureDraft> onModifierDelete;
   final ValueChanged<FigureDraft> onModifierDuplicate;
   final void Function(int oldIndex, int newIndex) onModifierReorder;
@@ -1641,6 +1659,7 @@ class _DefaultsView extends StatelessWidget {
                 )?.store,
                 onChanged: onModifierChanged,
                 onAdd: onModifierAdd,
+                onAddFreeText: onModifierAddFreeText,
                 onDelete: onModifierDelete,
                 onDuplicate: onModifierDuplicate,
                 onReorder: onModifierReorder,

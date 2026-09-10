@@ -531,11 +531,12 @@ class _FigureListEditorState extends State<FigureListEditor> {
           onPressed: _addFigure,
           child: Text(l10n.danceEditorAddFigure),
         ),
-        MenuItemButton(
-          key: _key('add-meanwhile'),
-          onPressed: _addMeanwhile,
-          child: Text(l10n.danceEditorAddMeanwhile),
-        ),
+        if (onAddMeanwhile != null)
+          MenuItemButton(
+            key: _key('add-meanwhile'),
+            onPressed: _addMeanwhile,
+            child: Text(l10n.danceEditorAddMeanwhile),
+          ),
         if (onAddModifier != null)
           MenuItemButton(
             key: _key('add-modifier'),
