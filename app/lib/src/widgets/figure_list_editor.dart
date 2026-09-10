@@ -2210,9 +2210,13 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      l10n.danceEditorMeanwhileSidesCapReached(
-                        kMaxMeanwhileSides,
-                      ),
+                      isModifier
+                          ? l10n.danceEditorModifierChildrenCapReached(
+                              kMaxMeanwhileSides,
+                            )
+                          : l10n.danceEditorMeanwhileSidesCapReached(
+                              kMaxMeanwhileSides,
+                            ),
                       key: ValueKey(
                         '$keyPrefix-${isModifier ? 'modifier' : 'meanwhile'}-cap',
                       ),

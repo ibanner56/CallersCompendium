@@ -3688,6 +3688,29 @@ void main() {
       expect(drafts.single.toFigure()!.subFigures, hasLength(6));
     });
 
+    testWidgets('modifier cap uses ordered-child wording', (tester) async {
+      final drafts = <FigureDraft>[
+        FigureDraft(
+          modifierFigures: [
+            for (var i = 0; i < kMaxMeanwhileSides; i++)
+              FigureDraft(move: 'swing', params: {'beats': 8}),
+          ],
+        )..params['beats'] = 8,
+      ];
+      await _pump(tester, drafts);
+      await _openFigure(tester, 0);
+
+      expect(find.byKey(const ValueKey('figure-0-add-side')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('figure-0-modifier-cap')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Maximum of 6 ordered modifier figures.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets(
       'flat-only: a meanwhile side never offers its own "group with next" '
       'affordance',

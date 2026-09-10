@@ -7575,6 +7575,16 @@
       }
     }
   },
+  "danceEditorModifierChildrenCapReached": "Maximum of {max} ordered modifier figures.",
+  "@danceEditorModifierChildrenCapReached": {
+    "description": "Inline message shown in place of the add-child button once a modifier has reached the maximum allowed number of ordered children.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
   "danceEditorUnrecognizedMoveReadOnly": "Unrecognized move \"{move}\" — not in this version's taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.",
   "@danceEditorUnrecognizedMoveReadOnly": {
     "description": "Read-only explanation for a figure whose move id is not in the active taxonomy.",

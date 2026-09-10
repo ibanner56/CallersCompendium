@@ -5570,6 +5570,11 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return '順序付きモディファイアは最大$max件です。';
+  }
+
+  @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
     return '認識されないムーブ「$move」— このバージョンのタクソノミーにありません。データを保持するために読み取り専用で表示されています。ムーブが認識されるようになると再び通常通り編集できます。並べ替えや削除はできます。';
   }

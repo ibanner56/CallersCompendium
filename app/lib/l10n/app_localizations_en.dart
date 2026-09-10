@@ -5758,6 +5758,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return 'Maximum of $max ordered modifier figures.';
+  }
+
+  @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
     return 'Unrecognized move \"$move\" — not in this version\'s taxonomy. Shown read-only so its data is preserved; it will edit normally again if the move becomes known. You can still reorder or delete it.';
   }

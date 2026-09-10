@@ -5760,6 +5760,10 @@
   "@danceEditorMeanwhileSidesCapReached": {
     "x-sourceSha256": "b04f2bb612932cbe221e8ee973c09d661fe37cb05afbbc2d4b387b8696fa9d51"
   },
+  "danceEditorModifierChildrenCapReached": "Maximum de {max} figures de modificateur ordonnées.",
+  "@danceEditorModifierChildrenCapReached": {
+    "x-sourceSha256": "d657262be366dec047ac516293020642046665ec8d8b0dd625af800d795b2eb4"
+  },
   "danceEditorUnrecognizedMoveReadOnly": "Mouvement non reconnu « {move} » — absent de la taxonomie de cette version. Affiché en lecture seule pour préserver ses données ; il sera à nouveau modifiable si le mouvement devient connu. Vous pouvez toujours le réorganiser ou le supprimer.",
   "@danceEditorUnrecognizedMoveReadOnly": {
     "x-sourceSha256": "ea59592f268ee79d773aa1eb2d7ccb6b00dcc918387a6c547677dbba792da372"

@@ -5771,6 +5771,11 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return 'Maksimalt $max ordnede modifikatorfigurer.';
+  }
+
+  @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
     return 'Ukendt bevægelse „$move“ – ikke i denne versions taksonomi. Vist som skrivebeskyttet, så dens data er bevaret; den kan redigeres normalt igen, hvis bevægelsen kendes. Du kan stadig omarrangere eller slette den.';
   }

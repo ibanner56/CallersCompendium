@@ -5862,6 +5862,11 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return 'Maximum de $max figures de modificateur ordonnées.';
+  }
+
+  @override
   String danceEditorUnrecognizedMoveReadOnly(String move) {
     return 'Mouvement non reconnu « $move » — absent de la taxonomie de cette version. Affiché en lecture seule pour préserver ses données ; il sera à nouveau modifiable si le mouvement devient connu. Vous pouvez toujours le réorganiser ou le supprimer.';
   }

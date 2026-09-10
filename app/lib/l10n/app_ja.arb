@@ -5760,6 +5760,10 @@
   "@danceEditorMeanwhileSidesCapReached": {
     "x-sourceSha256": "b04f2bb612932cbe221e8ee973c09d661fe37cb05afbbc2d4b387b8696fa9d51"
   },
+  "danceEditorModifierChildrenCapReached": "順序付きモディファイアは最大{max}件です。",
+  "@danceEditorModifierChildrenCapReached": {
+    "x-sourceSha256": "d657262be366dec047ac516293020642046665ec8d8b0dd625af800d795b2eb4"
+  },
   "danceEditorUnrecognizedMoveReadOnly": "認識されないムーブ「{move}」— このバージョンのタクソノミーにありません。データを保持するために読み取り専用で表示されています。ムーブが認識されるようになると再び通常通り編集できます。並べ替えや削除はできます。",
   "@danceEditorUnrecognizedMoveReadOnly": {
     "x-sourceSha256": "ea59592f268ee79d773aa1eb2d7ccb6b00dcc918387a6c547677dbba792da372"

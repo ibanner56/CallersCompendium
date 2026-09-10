@@ -8807,6 +8807,12 @@ abstract class AppLocalizations {
   /// **'Maximum of {max} concurrent figures.'**
   String danceEditorMeanwhileSidesCapReached(int max);
 
+  /// Inline message shown in place of the add-child button once a modifier has reached the maximum allowed number of ordered children.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of {max} ordered modifier figures.'**
+  String danceEditorModifierChildrenCapReached(int max);
+
   /// Read-only explanation for a figure whose move id is not in the active taxonomy.
   ///
   /// In en, this message translates to:
