@@ -3116,11 +3116,11 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
-  "programsMatrixShowPhrasesSemantic": "Afficher les libelles de phrase",
+  "programsMatrixShowPhrasesSemantic": "Afficher les libellés de phrase",
   "@programsMatrixShowPhrasesSemantic": {
     "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
   },
-  "programsMatrixHidePhrasesSemantic": "Afficher les glyphes de presence",
+  "programsMatrixHidePhrasesSemantic": "Afficher les glyphes de présence",
   "@programsMatrixHidePhrasesSemantic": {
     "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
   },
@@ -3140,7 +3140,7 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{present{collision, select, phrase{, se repete dans la meme phrase qu'une danse adjacente} beats{, partage des temps avec une danse adjacente} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, premiere figure de la danse} other{}}}}{phrases, select, none{} other{, phrase(s) : {phrases}}}",
+  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, phrase{, se répète dans la même phrase qu'une danse voisine} beats{, partage des temps avec une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}{phrases, select, none{} other{, phrase(s) : {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },

@@ -2920,7 +2920,7 @@ class AppLocalizationsNl extends AppLocalizations {
       'Alternatieve rijen weergeven';
 
   @override
-  String get programsMatrixShowPhrasesSemantic => 'Fasemarkeringen tonen';
+  String get programsMatrixShowPhrasesSemantic => 'Fraselabels tonen';
 
   @override
   String get programsMatrixHidePhrasesSemantic => 'Aanwezigheidsglyphs tonen';
@@ -2973,12 +2973,12 @@ class AppLocalizationsNl extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', herhaald in dezelfde frase als een aangrenzende dans',
-      'beats': ', deelt tellen met een aangrenzende dans',
+      'phrase': ', herhaalt in dezelfde frase als een aangrenzende dans',
+      'beats': ', deelt beats met een aangrenzende dans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
-      'yes': ', hier geintroduceerd',
+      'yes': ', hier geïntroduceerd',
       'other': '',
     });
     String _temp2 = intl.Intl.selectLogic(first, {

@@ -3116,7 +3116,7 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
-  "programsMatrixShowPhrasesSemantic": "Fasemarkeringen tonen",
+  "programsMatrixShowPhrasesSemantic": "Fraselabels tonen",
   "@programsMatrixShowPhrasesSemantic": {
     "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
   },
@@ -3140,7 +3140,7 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaald in dezelfde frase als een aangrenzende dans} beats{, deelt tellen met een aangrenzende dans} other{}}{debut, select, yes{, hier geintroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}{phrases, select, none{} other{, frase(n): {phrases}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}{phrases, select, none{} other{, frase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },

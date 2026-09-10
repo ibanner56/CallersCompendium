@@ -1369,7 +1369,7 @@ class _DanceChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(markIcon, size: 14, color: markColor),
+            if (!phraseMode) Icon(markIcon, size: 14, color: markColor),
             if (isAlt) ...[
               const SizedBox(width: 3),
               Icon(

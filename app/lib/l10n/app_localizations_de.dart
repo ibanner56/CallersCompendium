@@ -2939,7 +2939,7 @@ class AppLocalizationsDe extends AppLocalizations {
       'Phrasenbezeichnungen anzeigen';
 
   @override
-  String get programsMatrixHidePhrasesSemantic => 'Prasenzsymbole anzeigen';
+  String get programsMatrixHidePhrasesSemantic => 'Präsenzsymbole anzeigen';
 
   @override
   String programsMatrixRowHeaderSemantic(
@@ -2991,11 +2991,11 @@ class AppLocalizationsDe extends AppLocalizations {
     String _temp0 = intl.Intl.selectLogic(collision, {
       'phrase':
           ', wiederholt sich in derselben Phrase wie ein angrenzender Tanz',
-      'beats': ', teilt Taktschlage mit einem angrenzenden Tanz',
+      'beats': ', teilt Taktschläge mit einem angrenzenden Tanz',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
-      'yes': ', hier eingefuhrt',
+      'yes': ', hier eingeführt',
       'other': '',
     });
     String _temp2 = intl.Intl.selectLogic(first, {

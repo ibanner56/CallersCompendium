@@ -3120,7 +3120,7 @@
   "@programsMatrixShowPhrasesSemantic": {
     "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
   },
-  "programsMatrixHidePhrasesSemantic": "Prasenzsymbole anzeigen",
+  "programsMatrixHidePhrasesSemantic": "Präsenzsymbole anzeigen",
   "@programsMatrixHidePhrasesSemantic": {
     "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
   },
@@ -3140,7 +3140,7 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein angrenzender Tanz} beats{, teilt Taktschlage mit einem angrenzenden Tanz} other{}}{debut, select, yes{, hier eingefuhrt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}{phrases, select, none{} other{, Phrase(n): {phrases}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein angrenzender Tanz} beats{, teilt Taktschläge mit einem angrenzenden Tanz} other{}}{debut, select, yes{, hier eingeführt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}{phrases, select, none{} other{, Phrase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },

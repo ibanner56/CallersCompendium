@@ -2943,11 +2943,11 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get programsMatrixShowPhrasesSemantic =>
-      'Afficher les libelles de phrase';
+      'Afficher les libellés de phrase';
 
   @override
   String get programsMatrixHidePhrasesSemantic =>
-      'Afficher les glyphes de presence';
+      'Afficher les glyphes de présence';
 
   @override
   String programsMatrixRowHeaderSemantic(
@@ -3000,8 +3000,8 @@ class AppLocalizationsFr extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', se repete dans la meme phrase qu\'une danse adjacente',
-      'beats': ', partage des temps avec une danse adjacente',
+      'phrase': ', se répète dans la même phrase qu\'une danse voisine',
+      'beats': ', partage des temps avec une danse voisine',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -3009,18 +3009,18 @@ class AppLocalizationsFr extends AppLocalizations {
       'other': '',
     });
     String _temp2 = intl.Intl.selectLogic(first, {
-      'yes': ', premiere figure de la danse',
+      'yes': ', première figure de la danse',
       'other': '',
     });
     String _temp3 = intl.Intl.selectLogic(present, {
       'no': 'absent',
-      'other': 'present$_temp0$_temp1$_temp2',
+      'other': 'présent$_temp0$_temp1$_temp2',
     });
     String _temp4 = intl.Intl.selectLogic(phrases, {
       'none': '',
-      'other': ', phrase(s) : $phrases',
+      'other': ', phrase(s) : $phrases',
     });
-    return '$dance, $move : $_temp3$_temp4';
+    return '$dance, $move : $_temp3$_temp4';
   }
 
   @override

@@ -2901,8 +2901,7 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixShowPhrasesSemantic => 'Vis fraseetiketter';
 
   @override
-  String get programsMatrixHidePhrasesSemantic =>
-      'Vis tilstedevaerelsesglyffer';
+  String get programsMatrixHidePhrasesSemantic => 'Vis tilstedeværelsesglyffer';
 
   @override
   String programsMatrixRowHeaderSemantic(
@@ -2952,8 +2951,8 @@ class AppLocalizationsDa extends AppLocalizations {
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', gentages i samme frase som en tilstodende dans',
-      'beats': ', deler taktslag med en tilstodende dans',
+      'phrase': ', gentages i samme frase som en tilstødende dans',
+      'beats': ', deler taktslag med en tilstødende dans',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2961,7 +2960,7 @@ class AppLocalizationsDa extends AppLocalizations {
       'other': '',
     });
     String _temp2 = intl.Intl.selectLogic(first, {
-      'yes': ', dansens forste figur',
+      'yes': ', dansens første figur',
       'other': '',
     });
     String _temp3 = intl.Intl.selectLogic(present, {
