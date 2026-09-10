@@ -93,6 +93,7 @@ Future<void> _pumpProgram(
   bool autoSize = false,
   bool showProgramSlotCallerNotes = true,
   Size surfaceSize = const Size(1400, 2400),
+  bool settle = true,
   DialectLibraryController? dialectLibrary,
   Map<String, Dance> danceOverrides = const {},
   Map<String, String> authorNameOverrides = const {},
@@ -130,7 +131,7 @@ Future<void> _pumpProgram(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 /// Reads the current text of a keyed [Text] widget (e.g. the running clock or
@@ -298,6 +299,26 @@ void main() {
       findsNothing,
     );
   });
+
+  testWidgets(
+    'program Perform does not flash caller notes while loading a disabled setting',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+      await _pumpProgram(
+        tester,
+        showProgramSlotCallerNotes: false,
+        settle: false,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1', text: 'Hidden note'),
+        ]),
+        data: data,
+      );
+
+      expect(find.textContaining('Hidden note'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Hidden note'), findsNothing);
+    },
+  );
 
   testWidgets('program Perform omits whitespace-only caller notes', (
     tester,

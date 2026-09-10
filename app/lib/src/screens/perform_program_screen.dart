@@ -221,7 +221,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
 
   /// Whether per-slot caller notes are shown above dance titles in program
   /// Perform. Defaults on and is persisted as a Program setting.
-  bool _showProgramSlotCallerNotes = true;
+  bool? _showProgramSlotCallerNotes;
 
   /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
   /// display-only aid for the caller during an event: never persisted and never
@@ -328,12 +328,13 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         .then((v) {
           if (!mounted) return;
           final enabled = v is bool ? v : true;
-          if (enabled != _showProgramSlotCallerNotes) {
-            setState(() => _showProgramSlotCallerNotes = enabled);
-          }
+          setState(() => _showProgramSlotCallerNotes = enabled);
         })
         .catchError((_) {
-          // diagnostics: silent — keeps the default-on behavior.
+          if (mounted) {
+            // diagnostics: caller-note pref read failed; default on.
+            setState(() => _showProgramSlotCallerNotes = true);
+          }
         });
   }
 
@@ -1174,7 +1175,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       if (dance != null) {
         return PerformCard(
           dance: dance,
-          callerNote: _showProgramSlotCallerNotes ? slot.text : null,
+          callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
           renderer: widget.renderer,
           dialect: dialect,
           textScale: _textScale,
