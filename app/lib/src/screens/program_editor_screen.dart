@@ -1893,6 +1893,26 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     _markDirty();
   }
 
+  void _promoteAlternate(int index, ProgramSlot updated) {
+    setState(() {
+      final list = [..._slots];
+      var primaryIndex = index - 1;
+      while (primaryIndex >= 0 && list[primaryIndex].isAlt) {
+        primaryIndex--;
+      }
+
+      if (primaryIndex < 0) {
+        list[index] = updated.copyWith(isAlt: false);
+      } else {
+        final primary = list[primaryIndex];
+        list[primaryIndex] = updated.copyWith(isAlt: false);
+        list[index] = primary.copyWith(isAlt: true);
+      }
+      _slots = _renumber(list);
+    });
+    _markDirty();
+  }
+
   void _removeSlot(int index) {
     setState(() {
       final list = [..._slots]..removeAt(index);
@@ -2990,6 +3010,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             ),
             onReorder: _reorderSlot,
             onSlotChanged: _updateSlot,
+            onPromoteAlternate: _promoteAlternate,
             onRemove: _removeSlot,
             onCreateDance: _createDanceFromSlot,
             reservedPerformedAt: _pendingBulkUndoTimestamp,
