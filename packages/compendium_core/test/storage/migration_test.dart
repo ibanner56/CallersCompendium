@@ -504,10 +504,7 @@ void main() {
         ),
         Figure.meanwhile(
           figures: [
-            Figure(
-              move: 'circle',
-              params: const {'turn': 'left', 'beats': 8},
-            ),
+            Figure(move: 'circle', params: const {'turn': 'left', 'beats': 8}),
             Figure(move: 'swing'),
           ],
           beats: 8,
@@ -540,10 +537,7 @@ void main() {
       final circle = dance.figures[1].subFigures.firstWhere(
         (figure) => figure.move == 'circle',
       );
-      expect(
-        circle.params['direction'],
-        'left',
-      );
+      expect(circle.params['direction'], 'left');
       expect(circle.params.containsKey('turn'), isFalse);
       final marker = await db
           .customSelect(
