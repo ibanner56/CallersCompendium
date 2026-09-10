@@ -1004,7 +1004,7 @@ class DanceRow extends DataClass implements Insertable<DanceRow> {
   final DanceStatus status;
 
   /// Selected [DifficultyLevels] row, nullable when unspecified. Added in
-  /// schema v33; the migration maps v4's enum-name `level` column to stable
+  /// schema v34; the migration maps v4's enum-name `level` column to stable
   /// vocabulary IDs.
   final String? levelId;
 
@@ -4217,12 +4217,22 @@ class $ProgramSlotsTable extends ProgramSlots
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _plannedMinutesMeta = const VerificationMeta(
-    'plannedMinutes',
+  static const VerificationMeta _walkthroughMinutesMeta =
+      const VerificationMeta('walkthroughMinutes');
+  @override
+  late final GeneratedColumn<int> walkthroughMinutes = GeneratedColumn<int>(
+    'walkthrough_minutes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _danceMinutesMeta = const VerificationMeta(
+    'danceMinutes',
   );
   @override
-  late final GeneratedColumn<int> plannedMinutes = GeneratedColumn<int>(
-    'planned_minutes',
+  late final GeneratedColumn<int> danceMinutes = GeneratedColumn<int>(
+    'dance_minutes',
     aliasedName,
     true,
     type: DriftSqlType.int,
@@ -4249,7 +4259,8 @@ class $ProgramSlotsTable extends ProgramSlots
     isPurgedDance,
     isAlt,
     guestCaller,
-    plannedMinutes,
+    walkthroughMinutes,
+    danceMinutes,
     performedAt,
   ];
   @override
@@ -4321,12 +4332,21 @@ class $ProgramSlotsTable extends ProgramSlots
         ),
       );
     }
-    if (data.containsKey('planned_minutes')) {
+    if (data.containsKey('walkthrough_minutes')) {
       context.handle(
-        _plannedMinutesMeta,
-        plannedMinutes.isAcceptableOrUnknown(
-          data['planned_minutes']!,
-          _plannedMinutesMeta,
+        _walkthroughMinutesMeta,
+        walkthroughMinutes.isAcceptableOrUnknown(
+          data['walkthrough_minutes']!,
+          _walkthroughMinutesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('dance_minutes')) {
+      context.handle(
+        _danceMinutesMeta,
+        danceMinutes.isAcceptableOrUnknown(
+          data['dance_minutes']!,
+          _danceMinutesMeta,
         ),
       );
     }
@@ -4380,9 +4400,13 @@ class $ProgramSlotsTable extends ProgramSlots
         DriftSqlType.string,
         data['${effectivePrefix}guest_caller'],
       ),
-      plannedMinutes: attachedDatabase.typeMapping.read(
+      walkthroughMinutes: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
-        data['${effectivePrefix}planned_minutes'],
+        data['${effectivePrefix}walkthrough_minutes'],
+      ),
+      danceMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dance_minutes'],
       ),
       performedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -4406,7 +4430,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
   final bool? isPurgedDance;
   final bool isAlt;
   final String? guestCaller;
-  final int? plannedMinutes;
+  final int? walkthroughMinutes;
+  final int? danceMinutes;
   final DateTime? performedAt;
   const ProgramSlotRow({
     required this.id,
@@ -4417,7 +4442,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     this.isPurgedDance,
     required this.isAlt,
     this.guestCaller,
-    this.plannedMinutes,
+    this.walkthroughMinutes,
+    this.danceMinutes,
     this.performedAt,
   });
   @override
@@ -4439,8 +4465,11 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     if (!nullToAbsent || guestCaller != null) {
       map['guest_caller'] = Variable<String>(guestCaller);
     }
-    if (!nullToAbsent || plannedMinutes != null) {
-      map['planned_minutes'] = Variable<int>(plannedMinutes);
+    if (!nullToAbsent || walkthroughMinutes != null) {
+      map['walkthrough_minutes'] = Variable<int>(walkthroughMinutes);
+    }
+    if (!nullToAbsent || danceMinutes != null) {
+      map['dance_minutes'] = Variable<int>(danceMinutes);
     }
     if (!nullToAbsent || performedAt != null) {
       map['performed_at'] = Variable<DateTime>(performedAt);
@@ -4466,9 +4495,12 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       guestCaller: guestCaller == null && nullToAbsent
           ? const Value.absent()
           : Value(guestCaller),
-      plannedMinutes: plannedMinutes == null && nullToAbsent
+      walkthroughMinutes: walkthroughMinutes == null && nullToAbsent
           ? const Value.absent()
-          : Value(plannedMinutes),
+          : Value(walkthroughMinutes),
+      danceMinutes: danceMinutes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(danceMinutes),
       performedAt: performedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(performedAt),
@@ -4489,7 +4521,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       isPurgedDance: serializer.fromJson<bool?>(json['isPurgedDance']),
       isAlt: serializer.fromJson<bool>(json['isAlt']),
       guestCaller: serializer.fromJson<String?>(json['guestCaller']),
-      plannedMinutes: serializer.fromJson<int?>(json['plannedMinutes']),
+      walkthroughMinutes: serializer.fromJson<int?>(json['walkthroughMinutes']),
+      danceMinutes: serializer.fromJson<int?>(json['danceMinutes']),
       performedAt: serializer.fromJson<DateTime?>(json['performedAt']),
     );
   }
@@ -4505,7 +4538,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       'isPurgedDance': serializer.toJson<bool?>(isPurgedDance),
       'isAlt': serializer.toJson<bool>(isAlt),
       'guestCaller': serializer.toJson<String?>(guestCaller),
-      'plannedMinutes': serializer.toJson<int?>(plannedMinutes),
+      'walkthroughMinutes': serializer.toJson<int?>(walkthroughMinutes),
+      'danceMinutes': serializer.toJson<int?>(danceMinutes),
       'performedAt': serializer.toJson<DateTime?>(performedAt),
     };
   }
@@ -4519,7 +4553,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     Value<bool?> isPurgedDance = const Value.absent(),
     bool? isAlt,
     Value<String?> guestCaller = const Value.absent(),
-    Value<int?> plannedMinutes = const Value.absent(),
+    Value<int?> walkthroughMinutes = const Value.absent(),
+    Value<int?> danceMinutes = const Value.absent(),
     Value<DateTime?> performedAt = const Value.absent(),
   }) => ProgramSlotRow(
     id: id ?? this.id,
@@ -4532,9 +4567,10 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
         : this.isPurgedDance,
     isAlt: isAlt ?? this.isAlt,
     guestCaller: guestCaller.present ? guestCaller.value : this.guestCaller,
-    plannedMinutes: plannedMinutes.present
-        ? plannedMinutes.value
-        : this.plannedMinutes,
+    walkthroughMinutes: walkthroughMinutes.present
+        ? walkthroughMinutes.value
+        : this.walkthroughMinutes,
+    danceMinutes: danceMinutes.present ? danceMinutes.value : this.danceMinutes,
     performedAt: performedAt.present ? performedAt.value : this.performedAt,
   );
   ProgramSlotRow copyWithCompanion(ProgramSlotsCompanion data) {
@@ -4551,9 +4587,12 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
       guestCaller: data.guestCaller.present
           ? data.guestCaller.value
           : this.guestCaller,
-      plannedMinutes: data.plannedMinutes.present
-          ? data.plannedMinutes.value
-          : this.plannedMinutes,
+      walkthroughMinutes: data.walkthroughMinutes.present
+          ? data.walkthroughMinutes.value
+          : this.walkthroughMinutes,
+      danceMinutes: data.danceMinutes.present
+          ? data.danceMinutes.value
+          : this.danceMinutes,
       performedAt: data.performedAt.present
           ? data.performedAt.value
           : this.performedAt,
@@ -4571,7 +4610,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           ..write('isPurgedDance: $isPurgedDance, ')
           ..write('isAlt: $isAlt, ')
           ..write('guestCaller: $guestCaller, ')
-          ..write('plannedMinutes: $plannedMinutes, ')
+          ..write('walkthroughMinutes: $walkthroughMinutes, ')
+          ..write('danceMinutes: $danceMinutes, ')
           ..write('performedAt: $performedAt')
           ..write(')'))
         .toString();
@@ -4587,7 +4627,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
     isPurgedDance,
     isAlt,
     guestCaller,
-    plannedMinutes,
+    walkthroughMinutes,
+    danceMinutes,
     performedAt,
   );
   @override
@@ -4602,7 +4643,8 @@ class ProgramSlotRow extends DataClass implements Insertable<ProgramSlotRow> {
           other.isPurgedDance == this.isPurgedDance &&
           other.isAlt == this.isAlt &&
           other.guestCaller == this.guestCaller &&
-          other.plannedMinutes == this.plannedMinutes &&
+          other.walkthroughMinutes == this.walkthroughMinutes &&
+          other.danceMinutes == this.danceMinutes &&
           other.performedAt == this.performedAt);
 }
 
@@ -4615,7 +4657,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
   final Value<bool?> isPurgedDance;
   final Value<bool> isAlt;
   final Value<String?> guestCaller;
-  final Value<int?> plannedMinutes;
+  final Value<int?> walkthroughMinutes;
+  final Value<int?> danceMinutes;
   final Value<DateTime?> performedAt;
   final Value<int> rowid;
   const ProgramSlotsCompanion({
@@ -4627,7 +4670,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.isPurgedDance = const Value.absent(),
     this.isAlt = const Value.absent(),
     this.guestCaller = const Value.absent(),
-    this.plannedMinutes = const Value.absent(),
+    this.walkthroughMinutes = const Value.absent(),
+    this.danceMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4640,7 +4684,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     this.isPurgedDance = const Value.absent(),
     this.isAlt = const Value.absent(),
     this.guestCaller = const Value.absent(),
-    this.plannedMinutes = const Value.absent(),
+    this.walkthroughMinutes = const Value.absent(),
+    this.danceMinutes = const Value.absent(),
     this.performedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -4655,7 +4700,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Expression<bool>? isPurgedDance,
     Expression<bool>? isAlt,
     Expression<String>? guestCaller,
-    Expression<int>? plannedMinutes,
+    Expression<int>? walkthroughMinutes,
+    Expression<int>? danceMinutes,
     Expression<DateTime>? performedAt,
     Expression<int>? rowid,
   }) {
@@ -4668,7 +4714,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       if (isPurgedDance != null) 'is_purged_dance': isPurgedDance,
       if (isAlt != null) 'is_alt': isAlt,
       if (guestCaller != null) 'guest_caller': guestCaller,
-      if (plannedMinutes != null) 'planned_minutes': plannedMinutes,
+      if (walkthroughMinutes != null) 'walkthrough_minutes': walkthroughMinutes,
+      if (danceMinutes != null) 'dance_minutes': danceMinutes,
       if (performedAt != null) 'performed_at': performedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4683,7 +4730,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     Value<bool?>? isPurgedDance,
     Value<bool>? isAlt,
     Value<String?>? guestCaller,
-    Value<int?>? plannedMinutes,
+    Value<int?>? walkthroughMinutes,
+    Value<int?>? danceMinutes,
     Value<DateTime?>? performedAt,
     Value<int>? rowid,
   }) {
@@ -4696,7 +4744,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
       isPurgedDance: isPurgedDance ?? this.isPurgedDance,
       isAlt: isAlt ?? this.isAlt,
       guestCaller: guestCaller ?? this.guestCaller,
-      plannedMinutes: plannedMinutes ?? this.plannedMinutes,
+      walkthroughMinutes: walkthroughMinutes ?? this.walkthroughMinutes,
+      danceMinutes: danceMinutes ?? this.danceMinutes,
       performedAt: performedAt ?? this.performedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -4729,8 +4778,11 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
     if (guestCaller.present) {
       map['guest_caller'] = Variable<String>(guestCaller.value);
     }
-    if (plannedMinutes.present) {
-      map['planned_minutes'] = Variable<int>(plannedMinutes.value);
+    if (walkthroughMinutes.present) {
+      map['walkthrough_minutes'] = Variable<int>(walkthroughMinutes.value);
+    }
+    if (danceMinutes.present) {
+      map['dance_minutes'] = Variable<int>(danceMinutes.value);
     }
     if (performedAt.present) {
       map['performed_at'] = Variable<DateTime>(performedAt.value);
@@ -4752,7 +4804,8 @@ class ProgramSlotsCompanion extends UpdateCompanion<ProgramSlotRow> {
           ..write('isPurgedDance: $isPurgedDance, ')
           ..write('isAlt: $isAlt, ')
           ..write('guestCaller: $guestCaller, ')
-          ..write('plannedMinutes: $plannedMinutes, ')
+          ..write('walkthroughMinutes: $walkthroughMinutes, ')
+          ..write('danceMinutes: $danceMinutes, ')
           ..write('performedAt: $performedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -17501,7 +17554,8 @@ typedef $$ProgramSlotsTableCreateCompanionBuilder =
       Value<bool?> isPurgedDance,
       Value<bool> isAlt,
       Value<String?> guestCaller,
-      Value<int?> plannedMinutes,
+      Value<int?> walkthroughMinutes,
+      Value<int?> danceMinutes,
       Value<DateTime?> performedAt,
       Value<int> rowid,
     });
@@ -17515,7 +17569,8 @@ typedef $$ProgramSlotsTableUpdateCompanionBuilder =
       Value<bool?> isPurgedDance,
       Value<bool> isAlt,
       Value<String?> guestCaller,
-      Value<int?> plannedMinutes,
+      Value<int?> walkthroughMinutes,
+      Value<int?> danceMinutes,
       Value<DateTime?> performedAt,
       Value<int> rowid,
     });
@@ -17603,8 +17658,13 @@ class $$ProgramSlotsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<int> get plannedMinutes => $composableBuilder(
-    column: $table.plannedMinutes,
+  ColumnFilters<int> get walkthroughMinutes => $composableBuilder(
+    column: $table.walkthroughMinutes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get danceMinutes => $composableBuilder(
+    column: $table.danceMinutes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17699,8 +17759,13 @@ class $$ProgramSlotsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get plannedMinutes => $composableBuilder(
-    column: $table.plannedMinutes,
+  ColumnOrderings<int> get walkthroughMinutes => $composableBuilder(
+    column: $table.walkthroughMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get danceMinutes => $composableBuilder(
+    column: $table.danceMinutes,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -17787,8 +17852,13 @@ class $$ProgramSlotsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get plannedMinutes => $composableBuilder(
-    column: $table.plannedMinutes,
+  GeneratedColumn<int> get walkthroughMinutes => $composableBuilder(
+    column: $table.walkthroughMinutes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get danceMinutes => $composableBuilder(
+    column: $table.danceMinutes,
     builder: (column) => column,
   );
 
@@ -17882,7 +17952,8 @@ class $$ProgramSlotsTableTableManager
                 Value<bool?> isPurgedDance = const Value.absent(),
                 Value<bool> isAlt = const Value.absent(),
                 Value<String?> guestCaller = const Value.absent(),
-                Value<int?> plannedMinutes = const Value.absent(),
+                Value<int?> walkthroughMinutes = const Value.absent(),
+                Value<int?> danceMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion(
@@ -17894,7 +17965,8 @@ class $$ProgramSlotsTableTableManager
                 isPurgedDance: isPurgedDance,
                 isAlt: isAlt,
                 guestCaller: guestCaller,
-                plannedMinutes: plannedMinutes,
+                walkthroughMinutes: walkthroughMinutes,
+                danceMinutes: danceMinutes,
                 performedAt: performedAt,
                 rowid: rowid,
               ),
@@ -17908,7 +17980,8 @@ class $$ProgramSlotsTableTableManager
                 Value<bool?> isPurgedDance = const Value.absent(),
                 Value<bool> isAlt = const Value.absent(),
                 Value<String?> guestCaller = const Value.absent(),
-                Value<int?> plannedMinutes = const Value.absent(),
+                Value<int?> walkthroughMinutes = const Value.absent(),
+                Value<int?> danceMinutes = const Value.absent(),
                 Value<DateTime?> performedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProgramSlotsCompanion.insert(
@@ -17920,7 +17993,8 @@ class $$ProgramSlotsTableTableManager
                 isPurgedDance: isPurgedDance,
                 isAlt: isAlt,
                 guestCaller: guestCaller,
-                plannedMinutes: plannedMinutes,
+                walkthroughMinutes: walkthroughMinutes,
+                danceMinutes: danceMinutes,
                 performedAt: performedAt,
                 rowid: rowid,
               ),

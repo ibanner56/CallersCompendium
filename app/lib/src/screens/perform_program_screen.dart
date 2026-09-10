@@ -1071,7 +1071,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// The running program clock, per-slot elapsed, and (when present) the
-  /// planned slot length with a subtle over-run cue.
+  /// split planned slot timing with walkthrough-transition and over-run cues.
   ///
   /// Only this line rebuilds on each 1s tick: a [ValueListenableBuilder] listens
   /// to [_elapsed] so the clock/elapsed text updates without rebuilding the
@@ -1084,20 +1084,31 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// would spam AT, so the value is read at focus time instead of on every tick.
   Widget _buildTimingLine(ProgramSlot slot, TextTheme textTheme) {
     final l10n = AppLocalizations.of(context);
-    final planned = slot.plannedMinutes;
+    final walkthroughMinutes = slot.walkthroughMinutes;
+    final danceMinutes = slot.danceMinutes;
+    final plannedTotalMinutes = slot.plannedTotalMinutes;
     final style = textTheme.bodyMedium;
 
     return ValueListenableBuilder<int>(
       valueListenable: _elapsed,
       builder: (context, elapsed, _) {
         final slotElapsed = _slotElapsedFrom(elapsed);
-        final isOver = planned != null && slotElapsed > planned * 60;
+        final walkthroughComplete =
+            walkthroughMinutes != null &&
+            walkthroughMinutes > 0 &&
+            slotElapsed > walkthroughMinutes * 60;
+        final isOver =
+            danceMinutes != null &&
+            slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60;
 
         final label = l10n.performTimingSemantic(
           _formatDuration(elapsed),
           _formatDuration(slotElapsed),
-          planned != null ? 'yes' : 'no',
-          planned ?? 0,
+          plannedTotalMinutes != null ? 'yes' : 'no',
+          plannedTotalMinutes ?? 0,
+          walkthroughMinutes ?? 0,
+          danceMinutes ?? 0,
+          walkthroughComplete ? 'yes' : 'no',
           isOver ? 'yes' : 'no',
           _paused ? 'yes' : 'no',
         );
@@ -1127,13 +1138,26 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     key: const ValueKey('perform-slot-elapsed'),
                     style: style,
                   ),
-                  if (planned != null) ...[
+                  if (plannedTotalMinutes != null) ...[
                     Text('  ·  ', style: style),
                     Text(
-                      l10n.performPlannedMin(planned),
+                      l10n.performPlannedSplit(
+                        plannedTotalMinutes,
+                        walkthroughMinutes ?? 0,
+                        danceMinutes ?? 0,
+                      ),
                       key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (walkthroughComplete) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.directions_run, size: 16),
+                      Text(
+                        l10n.performWalkthroughCompleteSuffix,
+                        key: const ValueKey('perform-walkthrough-complete'),
+                        style: style,
+                      ),
+                    ],
                     if (isOver) ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.timelapse, size: 16),

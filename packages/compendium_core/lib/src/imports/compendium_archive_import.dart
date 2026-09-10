@@ -144,7 +144,8 @@ ArchiveProgramsResult buildArchivePrograms(
           isPurgedDance: slot.isPurgedDance,
           isAlt: slot.isAlt,
           guestCaller: slot.guestCaller,
-          plannedMinutes: slot.plannedMinutes,
+          walkthroughMinutes: slot.walkthroughMinutes,
+          danceMinutes: slot.danceMinutes,
           performedAt: slot.performedAt,
         ),
       );

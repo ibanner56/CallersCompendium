@@ -126,7 +126,7 @@ Future<void> _seed(CompendiumRepositories repos) async {
           id: 'sl1',
           position: 0,
           danceId: 'd1',
-          plannedMinutes: 12,
+          danceMinutes: 12,
           performedAt: DateTime.utc(2026, 5, 1, 20),
         ),
         ProgramSlot(id: 'sl2', position: 1, text: 'break'),

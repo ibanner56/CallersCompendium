@@ -251,7 +251,8 @@ void main() {
             position: 0,
             danceId: 'd1',
             guestCaller: 'Bob',
-            plannedMinutes: 12,
+            walkthroughMinutes: 3,
+            danceMinutes: 9,
           ),
         ],
         createdAt: DateTime.utc(2026, 1, 1),
@@ -264,7 +265,8 @@ void main() {
       expect(loaded.caller, 'Alice');
       expect(loaded.dancerLevel, 'intermediate');
       expect(loaded.slots.single.guestCaller, 'Bob');
-      expect(loaded.slots.single.plannedMinutes, 12);
+      expect(loaded.slots.single.walkthroughMinutes, 3);
+      expect(loaded.slots.single.danceMinutes, 9);
     });
 
     test('round-trips the hideAlternates flag', () async {

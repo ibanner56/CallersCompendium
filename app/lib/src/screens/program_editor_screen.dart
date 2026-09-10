@@ -1249,9 +1249,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     guestCaller: local.guestCaller == atReadStart.guestCaller
         ? live.guestCaller
         : local.guestCaller,
-    plannedMinutes: local.plannedMinutes == atReadStart.plannedMinutes
-        ? live.plannedMinutes
-        : local.plannedMinutes,
+    walkthroughMinutes:
+        local.walkthroughMinutes == atReadStart.walkthroughMinutes
+        ? live.walkthroughMinutes
+        : local.walkthroughMinutes,
+    danceMinutes: local.danceMinutes == atReadStart.danceMinutes
+        ? live.danceMinutes
+        : local.danceMinutes,
     performedAt: local.performedAt == atReadStart.performedAt
         ? live.performedAt
         : local.performedAt,
@@ -1894,7 +1898,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     final current = _slots[currentIndex];
     // Rebuild rather than `copyWith`: `copyWith` cannot clear `text` (only
-    // guestCaller/plannedMinutes/performedAt have clear flags — see
+    // guestCaller/timing/performedAt have clear flags — see
     // ProgramSlot.copyWith), and the note is always cleared on conversion.
     final updated = ProgramSlot(
       id: current.id,
@@ -1902,7 +1906,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       danceId: newId,
       isAlt: current.isAlt,
       guestCaller: current.guestCaller,
-      plannedMinutes: current.plannedMinutes,
+      walkthroughMinutes: current.walkthroughMinutes,
+      danceMinutes: current.danceMinutes,
       performedAt: current.performedAt,
     );
     _updateSlot(currentIndex, updated);

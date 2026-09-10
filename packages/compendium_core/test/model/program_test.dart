@@ -191,26 +191,34 @@ void main() {
       expect(p.dancerLevel, 'intermediate');
     });
 
-    test('ProgramSlot carries guestCaller and plannedMinutes', () {
+    test('ProgramSlot carries guestCaller and split planned minutes', () {
       final s = ProgramSlot(
         id: 's1',
         position: 0,
         danceId: 'd1',
         guestCaller: 'Bob',
-        plannedMinutes: 12,
+        walkthroughMinutes: 3,
+        danceMinutes: 9,
       );
       expect(s.guestCaller, 'Bob');
-      expect(s.plannedMinutes, 12);
+      expect(s.walkthroughMinutes, 3);
+      expect(s.danceMinutes, 9);
+      expect(s.plannedTotalMinutes, 12);
     });
 
-    test('plannedMinutes >= 0 is enforced; 0 is allowed', () {
+    test('split planned minutes are non-negative and allow zero', () {
       expect(
         () => ProgramSlot(
           id: 's1',
           position: 0,
           danceId: 'd1',
-          plannedMinutes: -1,
+          walkthroughMinutes: -1,
         ),
+        throwsArgumentError,
+      );
+      expect(
+        () =>
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1', danceMinutes: -1),
         throwsArgumentError,
       );
       expect(
@@ -218,8 +226,8 @@ void main() {
           id: 's1',
           position: 0,
           danceId: 'd1',
-          plannedMinutes: 0,
-        ).plannedMinutes,
+          danceMinutes: 0,
+        ).danceMinutes,
         0,
       );
     });
@@ -251,28 +259,29 @@ void main() {
     });
 
     test(
-      'ProgramSlot.copyWith clears guestCaller/plannedMinutes via flags',
+      'ProgramSlot.copyWith clears guestCaller and split timing via flags',
       () {
         final s = ProgramSlot(
           id: 's1',
           position: 0,
           danceId: 'd1',
           guestCaller: 'Bob',
-          plannedMinutes: 10,
+          walkthroughMinutes: 3,
+          danceMinutes: 10,
         );
         final cleared = s.copyWith(
           clearGuestCaller: true,
-          clearPlannedMinutes: true,
+          clearWalkthroughMinutes: true,
+          clearDanceMinutes: true,
         );
         expect(cleared.guestCaller, isNull);
-        expect(cleared.plannedMinutes, isNull);
+        expect(cleared.walkthroughMinutes, isNull);
+        expect(cleared.danceMinutes, isNull);
         expect(
-          s
-              .copyWith(plannedMinutes: 20, clearPlannedMinutes: true)
-              .plannedMinutes,
+          s.copyWith(danceMinutes: 20, clearDanceMinutes: true).danceMinutes,
           isNull,
         );
-        expect(s.copyWith(plannedMinutes: 20).plannedMinutes, 20);
+        expect(s.copyWith(walkthroughMinutes: 20).walkthroughMinutes, 20);
       },
     );
 
@@ -303,7 +312,8 @@ void main() {
             position: 0,
             danceId: 'd1',
             guestCaller: 'Bob',
-            plannedMinutes: 12,
+            walkthroughMinutes: 3,
+            danceMinutes: 9,
             performedAt: now,
           ),
         ],
@@ -322,7 +332,8 @@ void main() {
       // clone of the same event, so it keeps the same venue).
       expect(copy.venueId, 'grange-hall');
       expect(copy.slots.single.guestCaller, 'Bob');
-      expect(copy.slots.single.plannedMinutes, 12);
+      expect(copy.slots.single.walkthroughMinutes, 3);
+      expect(copy.slots.single.danceMinutes, 9);
       // performedAt still resets per existing behavior.
       expect(copy.slots.single.performedAt, isNull);
     });

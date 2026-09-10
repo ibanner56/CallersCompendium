@@ -3778,9 +3778,17 @@
   "@programsGuestCallerLabel": {
     "description": "Text field label for an optional guest caller on a program slot."
   },
-  "programsPlannedMinutesLabel": "Planned minutes (optional)",
-  "@programsPlannedMinutesLabel": {
-    "description": "Text field label for the optional planned minutes on a program slot."
+  "programsPlannedTimingHeader": "Planned timing",
+  "@programsPlannedTimingHeader": {
+    "description": "Heading above optional walkthrough and dance timing fields on a program slot."
+  },
+  "programsWalkthroughMinutesLabel": "Walkthrough minutes (optional)",
+  "@programsWalkthroughMinutesLabel": {
+    "description": "Text field label for the optional planned walkthrough duration on a program slot."
+  },
+  "programsDanceMinutesLabel": "Dance minutes (optional)",
+  "@programsDanceMinutesLabel": {
+    "description": "Text field label for the optional planned dance duration on a program slot."
   },
   "programsAlternateDanceTitle": "Alternate dance",
   "@programsAlternateDanceTitle": {
@@ -4280,9 +4288,9 @@
   "@performPauseTimers": {
     "description": "Tooltip for the button that pauses the running performance timers."
   },
-  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
+  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
   "@performTimingSemantic": {
-    "description": "Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.",
+    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.",
     "placeholders": {
       "programTime": {
         "type": "String",
@@ -4299,6 +4307,18 @@
       "planned": {
         "type": "int",
         "example": "8"
+      },
+      "walkthrough": {
+        "type": "int",
+        "example": "3"
+      },
+      "dance": {
+        "type": "int",
+        "example": "5"
+      },
+      "walkthroughComplete": {
+        "type": "String",
+        "example": "no"
       },
       "over": {
         "type": "String",
@@ -4324,15 +4344,27 @@
       }
     }
   },
-  "performPlannedMin": "planned {planned} min",
-  "@performPlannedMin": {
-    "description": "Visible short label for a slot's planned length in minutes on the perform-mode timing line.",
+  "performPlannedSplit": "planned {planned} min ({walkthrough}:{dance})",
+  "@performPlannedSplit": {
+    "description": "Visible short label for a slot's combined planned duration and its walkthrough:dance split in minutes on the perform-mode timing line.",
     "placeholders": {
       "planned": {
         "type": "int",
         "example": "8"
+      },
+      "walkthrough": {
+        "type": "int",
+        "example": "3"
+      },
+      "dance": {
+        "type": "int",
+        "example": "5"
       }
     }
+  },
+  "performWalkthroughCompleteSuffix": " walkthrough complete",
+  "@performWalkthroughCompleteSuffix": {
+    "description": "Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed."
   },
   "performOverSuffix": " over",
   "@performOverSuffix": {

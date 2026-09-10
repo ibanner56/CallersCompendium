@@ -2753,7 +2753,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsGuestCallerLabel => 'ゲストコーラー（任意）';
 
   @override
-  String get programsPlannedMinutesLabel => '予定時間（分、任意）';
+  String get programsPlannedTimingHeader => '予定時間';
+
+  @override
+  String get programsWalkthroughMinutesLabel => 'ウォークスルー時間（任意）';
+
+  @override
+  String get programsDanceMinutesLabel => 'ダンス時間（任意）';
 
   @override
   String get programsAlternateDanceTitle => '代替ダンス';
@@ -3115,6 +3121,9 @@ class AppLocalizationsJa extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3124,15 +3133,19 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$planned分',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': '、予定 $_temp0',
+      'yes': '、予定 $_temp0: ウォークスルー $walkthrough分、ダンス $dance分',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {'yes': '、予定超過', 'other': ''});
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': '、ウォークスルー完了',
+      'other': '',
+    });
+    String _temp3 = intl.Intl.selectLogic(over, {'yes': '、予定超過', 'other': ''});
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': '、一時停止中',
       'other': '',
     });
-    return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp2$_temp3';
+    return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
@@ -3145,9 +3158,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return '予定 $planned分';
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return '予定 $planned分（$walkthrough:$dance）';
   }
+
+  @override
+  String get performWalkthroughCompleteSuffix => ' ウォークスルー完了';
 
   @override
   String get performOverSuffix => ' 超過';

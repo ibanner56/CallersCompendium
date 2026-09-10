@@ -4722,11 +4722,23 @@ abstract class AppLocalizations {
   /// **'Guest caller (optional)'**
   String get programsGuestCallerLabel;
 
-  /// Text field label for the optional planned minutes on a program slot.
+  /// Heading above optional walkthrough and dance timing fields on a program slot.
   ///
   /// In en, this message translates to:
-  /// **'Planned minutes (optional)'**
-  String get programsPlannedMinutesLabel;
+  /// **'Planned timing'**
+  String get programsPlannedTimingHeader;
+
+  /// Text field label for the optional planned walkthrough duration on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough minutes (optional)'**
+  String get programsWalkthroughMinutesLabel;
+
+  /// Text field label for the optional planned dance duration on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance minutes (optional)'**
+  String get programsDanceMinutesLabel;
 
   /// Checkbox label marking a program slot as an alternate dance.
   ///
@@ -5201,15 +5213,18 @@ abstract class AppLocalizations {
   /// **'Pause timers'**
   String get performPauseTimers;
 
-  /// Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.
+  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.
   ///
   /// In en, this message translates to:
-  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
+  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
   String performTimingSemantic(
     String programTime,
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   );
@@ -5220,11 +5235,17 @@ abstract class AppLocalizations {
   /// **'Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}'**
   String performIndividualTimingSemantic(String elapsedTime, String paused);
 
-  /// Visible short label for a slot's planned length in minutes on the perform-mode timing line.
+  /// Visible short label for a slot's combined planned duration and its walkthrough:dance split in minutes on the perform-mode timing line.
   ///
   /// In en, this message translates to:
-  /// **'planned {planned} min'**
-  String performPlannedMin(int planned);
+  /// **'planned {planned} min ({walkthrough}:{dance})'**
+  String performPlannedSplit(int planned, int walkthrough, int dance);
+
+  /// Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed.
+  ///
+  /// In en, this message translates to:
+  /// **' walkthrough complete'**
+  String get performWalkthroughCompleteSuffix;
 
   /// Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length.
   ///

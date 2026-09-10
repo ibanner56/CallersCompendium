@@ -137,6 +137,14 @@ PR that reintroduces a per-version artefact below the floor.
 
 ## Schema version history
 
+### v35 — split program-slot planned timing (issue #1233)
+
+Replaces nullable `program_slots.planned_minutes` with nullable
+`walkthrough_minutes` and `dance_minutes`. The forward-only migration copies
+every legacy value, including explicit zero, to `dance_minutes`; existing
+walkthrough values are NULL. Program-slot timing is structured metadata and
+does not feed derived dance indexes, so no derived rebuild is required.
+
 `CompendiumDatabase.schemaVersion` (in
 [`database.dart`](../../packages/compendium_core/lib/src/storage/database.dart))
 is the on-disk schema version, and this is its per-version log. It lives here

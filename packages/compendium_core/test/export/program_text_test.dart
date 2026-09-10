@@ -188,7 +188,7 @@ void main() {
               position: 0,
               danceId: 'd1',
               guestCaller: 'Jo',
-              plannedMinutes: 8,
+              danceMinutes: 8,
             ),
           ],
         ),

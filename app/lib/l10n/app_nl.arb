@@ -3072,9 +3072,17 @@
   "@programsGuestCallerLabel": {
     "x-sourceSha256": "bb1352c7592c7e9f333947a42cb55d894aae335243adf89ae95ae5760368808c"
   },
-  "programsPlannedMinutesLabel": "Geplande minuten (optioneel)",
-  "@programsPlannedMinutesLabel": {
-    "x-sourceSha256": "f52ea130efcc1b43f4283da49152a9968f6a82dd2b41400c654f66fb41e76b37"
+  "programsPlannedTimingHeader": "Geplande timing",
+  "@programsPlannedTimingHeader": {
+    "x-sourceSha256": "1e21c2ffe319604f48953c1603513696c216b743b7ddc0abe0fe77fc731f7be7"
+  },
+  "programsWalkthroughMinutesLabel": "Doorloopminuten (optioneel)",
+  "@programsWalkthroughMinutesLabel": {
+    "x-sourceSha256": "088e5fa8e08049c83a3d2d6537b9bbaf8b3cc7e547b49e01f3ad8628267a0966"
+  },
+  "programsDanceMinutesLabel": "Dansminuten (optioneel)",
+  "@programsDanceMinutesLabel": {
+    "x-sourceSha256": "c22bf272e4f4a651177cf33447fc6bab66f663633e508ec2cd05812e32a44d68"
   },
   "programsAlternateDanceTitle": "Alternatieve dans",
   "@programsAlternateDanceTitle": {
@@ -3384,17 +3392,21 @@
   "@performPauseTimers": {
     "x-sourceSha256": "18b85c0574b83bcd592f1959021cfd910c460a5bfccd2c80a7280d81fb4fe196"
   },
-  "performTimingSemantic": "Programmatijd {programTime}, slottijd {slotTime}{hasPlanned, select, yes{, gepland {planned, plural, =1{1 minuut} other{{planned} minuten}}} other{}}{over, select, yes{, over gepland} other{}}{paused, select, yes{, gepauzeerd} other{}}",
+  "performTimingSemantic": "Programmatijd {programTime}, slottijd {slotTime}{hasPlanned, select, yes{, gepland {planned, plural, =1{1 minuut} other{{planned} minuten}}: {walkthrough} minuten doorloop en {dance} minuten dans} other{}}{walkthroughComplete, select, yes{, doorloop voltooid} other{}}{over, select, yes{, over de geplande tijd} other{}}{paused, select, yes{, gepauzeerd} other{}}",
   "@performTimingSemantic": {
-    "x-sourceSha256": "0d6aab8b25e52107bcf76e2f7ec28d89c963e59cec81b6762b9d60378d5b5040"
+    "x-sourceSha256": "b481989b8c0ed66ecd58941fca432d33516d0823d5f434b055030c5479c96682"
   },
   "performIndividualTimingSemantic": "Verstreken tijd {elapsedTime}{paused, select, yes{, gepauzeerd} other{}}",
   "@performIndividualTimingSemantic": {
     "x-sourceSha256": "c6ce3b32275707f6ac8ea7b7435ae7b506f755786c7605751fecd1018539e918"
   },
-  "performPlannedMin": "gepland {planned} min",
-  "@performPlannedMin": {
-    "x-sourceSha256": "9ddfab541b67b5f2d1ab7a435666526de971c20c99489d3f6f36ae4bd6c8608a"
+  "performPlannedSplit": "gepland {planned} min ({walkthrough}:{dance})",
+  "@performPlannedSplit": {
+    "x-sourceSha256": "f00ce488a307637ede1d33c0e91658a79b9b0b960eb86ac8aa541367cd79684b"
+  },
+  "performWalkthroughCompleteSuffix": " doorloop voltooid",
+  "@performWalkthroughCompleteSuffix": {
+    "x-sourceSha256": "b4ada2c57806b7acea6ad77cc840e595146492dcc117fa7c78faceabd3098317"
   },
   "performOverSuffix": " over",
   "@performOverSuffix": {
