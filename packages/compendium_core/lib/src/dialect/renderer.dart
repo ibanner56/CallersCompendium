@@ -737,18 +737,34 @@ class FigureRenderer {
       figure.params,
       dialect,
     );
+    final hasDialectMoveSubstitution = dialect.moves.containsKey(def.id);
     final isTakeOnly =
         def.id == 'give_and_take' && figure.params['give'] == false;
-    final sourceName = isTakeOnly ? 'take' : renderedName;
+    final sourceName = isTakeOnly && !hasDialectMoveSubstitution
+        ? 'take'
+        : renderedName;
     if (sourceName.isEmpty || !rendered.contains(sourceName)) {
       return _gerundiveRenderedFallback(figure.move, rendered);
     }
     return rendered.replaceFirst(
       sourceName,
-      isTakeOnly
+      isTakeOnly && !hasDialectMoveSubstitution
           ? 'taking'
+          : hasDialectMoveSubstitution
+          ? _gerundiveDialectMoveName(renderedName)
           : _gerundiveMoveName(figure.move, def.id, renderedName),
     );
+  }
+
+  String _gerundiveDialectMoveName(String renderedName) {
+    final words = renderedName.split(' ');
+    if (words.isEmpty) return renderedName;
+    final first = words.removeAt(0);
+    final stem = first.endsWith('e') && !first.endsWith('ee')
+        ? first.substring(0, first.length - 1)
+        : first;
+    words.insert(0, '${stem}ing');
+    return words.join(' ');
   }
 
   String _gerundiveMoveName(

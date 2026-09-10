@@ -1248,6 +1248,24 @@ void main() {
         );
       });
 
+      test('modifier gerunds preserve dialect move substitutions', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+        );
+        final dialect = Dialect(
+          name: 'Custom',
+          moves: const {'roll_away': 'turn away'},
+        );
+
+        final rendered = renderer.renderSummary(figure, dialect);
+        expect(rendered, contains('turning away'));
+        expect(rendered, isNot(contains('rolling away')));
+      });
+
       test('nested meanwhile modifier child honors its wording override', () {
         final nested = Figure.meanwhile(
           figures: [
