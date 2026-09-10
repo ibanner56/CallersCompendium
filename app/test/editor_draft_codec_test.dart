@@ -224,6 +224,27 @@ void main() {
       expect(stated.assumedSubject, isFalse);
     });
 
+    test('decoding a draft normalizes legacy figure identifiers', () {
+      final snapshot = _minimalSnapshot(
+        figureDrafts: const [
+          FigureDraftSnapshot(
+            id: 'f-legacy',
+            move: 'circle',
+            params: {'turn': 'right', 'places': 3},
+            note: '',
+            progression: false,
+            schemaVersion: figureSchemaVersion,
+          ),
+        ],
+      );
+
+      final decoded = decodeDraft(encodeDraft(snapshot));
+      final figure = decoded.figureDrafts.single;
+      expect(figure.move, 'circle');
+      expect(figure.params['direction'], 'right');
+      expect(figure.params, isNot(contains('turn')));
+    });
+
     test('figure draft customOrigin round-trips (#419)', () {
       final snapshot = _minimalSnapshot();
       final withDrafts = EditorSnapshot(

@@ -93,6 +93,15 @@ void main() {
       );
     });
 
+    test('see_saw legacy turn becomes travel while retaining shoulder pin', () {
+      final normalized = tax.normalizeFigureV35(
+        Figure(move: 'see_saw', params: {'turn': 1.5}),
+      );
+      expect(normalized.params['travel'], 1.5);
+      expect(normalized.params, isNot(contains('turn')));
+      expect(tax.effectiveParams(normalized)['shoulder'], 'left');
+    });
+
     test('unknown move preserves an authored beats and passes params through '
         '(#358)', () {
       // invalid-fixture: move is deliberately outside the taxonomy — alias pins take effect but figure params still win

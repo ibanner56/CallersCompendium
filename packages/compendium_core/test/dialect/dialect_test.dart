@@ -296,8 +296,25 @@ void main() {
         },
       });
 
-      expect(d.moveWordings['circle'], '{move} around {turn} {places}');
+      expect(d.moveWordings['circle'], '{move} around {direction} {places}');
       expect(d.moveWordingBranches.containsKey('circle'), isFalse);
+    });
+
+    test('fromJson migrates legacy promenade wording placeholders', () {
+      final d = Dialect.fromJson({
+        'name': 'Legacy',
+        'moveWordingBranches': {
+          'promenade': {
+            'ordinary': '{who} {move} {turn} {direction} {destination}',
+            'singleFile': '{prefix} {move} {turn} {direction} {destination}',
+          },
+        },
+      });
+
+      expect(d.moveWordingBranches['promenade'], {
+        'ordinary': '{who} {move} {direction} {where} {destination}',
+        'singleFile': '{prefix} {move} {direction} {where} {destination}',
+      });
     });
 
     test('fromJson normalizes a circle branch over a full wording map', () {
@@ -314,7 +331,7 @@ void main() {
       });
 
       expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
-      expect(d.moveWordings['circle'], '{move} around {turn} {places}');
+      expect(d.moveWordings['circle'], '{move} around {direction} {places}');
     });
 
     test('fromJson combines legacy and branch entry limits', () {

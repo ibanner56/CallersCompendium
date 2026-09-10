@@ -214,7 +214,7 @@ class Taxonomy {
     'do_si_do': {'turn': 'travel'},
     'gypsy': {'turn': 'travel'},
     'shoulder_round': {'turn': 'travel'},
-    'see_saw': {'turn': 'shoulder'},
+    'see_saw': {'turn': 'travel'},
     'pass_through': {'dir': 'where'},
     'pass_the_ocean': {'dir': 'where'},
     'right_left_through': {'dir': 'where'},

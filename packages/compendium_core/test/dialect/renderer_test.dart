@@ -3162,7 +3162,7 @@ void main() {
           Figure(move: 'promenade', params: {'singleFile': true}),
           dialect,
         ),
-        'CUSTOM single file promenade across across',
+        'CUSTOM single file promenade across',
       );
     });
 
