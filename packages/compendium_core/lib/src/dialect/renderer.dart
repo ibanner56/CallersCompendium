@@ -385,6 +385,14 @@ class FigureRenderer {
       );
       return rendered.join(forCanonical ? ' $meanwhileMove ' : ' while ');
     }
+    if (!forCanonical) {
+      final override = _renderWordingOverride(
+        figure,
+        dialect,
+        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+      );
+      if (override != null) return override;
+    }
     if (figure.isModifier) {
       final children = figure.subFigures;
       if (children.isEmpty) return modifierMove;
@@ -426,14 +434,6 @@ class FigureRenderer {
           ? '${renderedModifiers.first} and ${renderedModifiers.last}'
           : '${renderedModifiers.take(renderedModifiers.length - 1).join(', ')}, and ${renderedModifiers.last}';
       return '$core, $suffix';
-    }
-    if (!forCanonical) {
-      final override = _renderWordingOverride(
-        figure,
-        dialect,
-        canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-      );
-      if (override != null) return override;
     }
 
     final def = taxonomy.resolve(figure.move);
@@ -661,6 +661,12 @@ class FigureRenderer {
         forCanonical: true,
       );
     }
+    final override = _renderWordingOverride(
+      figure,
+      dialect,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+    if (override != null) return override;
     if (figure.isMeanwhile) {
       final children = figure.subFigures;
       if (children.isEmpty) return meanwhileMove;
@@ -728,6 +734,9 @@ class FigureRenderer {
 
   String _gerundiveMoveName(String moveId, String displayName) {
     const irregular = <String, String>{
+      'arch_and_dive': 'arching and diving',
+      'balance_the_ring': 'balancing the ring',
+      'box_the_gnat': 'boxing the gnat',
       'slice': 'taking',
       'do_si_do': 'doing-si-do',
       'fall_back': 'falling back',

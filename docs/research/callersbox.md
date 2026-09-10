@@ -958,12 +958,13 @@ All coverage percentages recorded in this document and in issues #295, #712,
 those containers were counted as structured.
 
 The committed harness (`ParseQuality.ofFigures`, `structured_draft.dart`) was
-corrected in #835 (closes #769) to use the recursive
-definition: `f.isCustom || (f.isMeanwhile && f.subFigures.any((s) => s.isCustom))`.
-One level of recursion is sufficient and provably terminating — meanwhile
-containers are flat by construction (the codec flattens nested containers on
-decode). Future measurements using `ParseQuality.ofFigures` use this definition;
-any measurement that does not should say so.
+corrected in #835 (closes #769) to use a recursive definition: a top-level
+figure counts as custom when it is custom itself or any descendant of either
+structural container kind is custom. This walks the alternating container
+nesting now accepted by the model rather than assuming meanwhile is the only
+container or that containers are flat. Future measurements using
+`ParseQuality.ofFigures` use this definition; any measurement that does not
+should say so.
 
 The restated figures are taken from Isaac's measurement in the #769 issue body,
 at `5af19a1b` on the local TCB mirror described in this document:

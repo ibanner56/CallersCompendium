@@ -1217,6 +1217,66 @@ void main() {
         );
         expect(renderer.renderSummary(figure, d), contains('bend into a ring'));
       });
+
+      test('modifier wording overrides replace every display render', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+          wordingOverride: 'ROLE1S call together',
+        );
+
+        expect(renderer.render(figure, larks), 'LARKS call together');
+        expect(renderer.renderVerbose(figure, larks), 'LARKS call together');
+        expect(renderer.renderSummary(figure, larks), 'LARKS call together');
+        expect(
+          renderer.renderCanonical(figure),
+          'partners swing modifier neighbors roll away partners',
+        );
+      });
+
+      test('nested meanwhile modifier child honors its wording override', () {
+        final nested = Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+          wordingOverride: 'ROLE2S call this together',
+        );
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            nested,
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, larks),
+          'partner swing, ROBINS call this together',
+        );
+      });
+
+      test('modifier gerundives use verb-aware multiword forms', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'box_the_gnat'),
+            Figure(move: 'balance_the_ring'),
+            Figure(move: 'arch_and_dive'),
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, Dialect.canonical),
+          'partner swing, partner boxing the gnat, balancing the ring, and '
+          'ones arching and diving',
+        );
+      });
     });
 
     group('hey length', () {

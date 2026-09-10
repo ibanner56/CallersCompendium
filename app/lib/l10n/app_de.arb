@@ -5612,6 +5612,14 @@
   "@danceEditorModifierChildSemantic": {
     "x-sourceSha256": "e6e69c89629a50eefb521524515708a5d7b62d71c565372b086bac4d3811a524"
   },
+  "danceEditorRemoveModifierCore": "Kernfigur entfernen",
+  "@danceEditorRemoveModifierCore": {
+    "x-sourceSha256": "52c053f2494266fc5563c8ab384c8b966a36fe150a4ee5ca712e9bfa589743ea"
+  },
+  "danceEditorRemoveModifierChild": "Modifierfigur entfernen",
+  "@danceEditorRemoveModifierChild": {
+    "x-sourceSha256": "40e4cd57b4f043e19b125bf547d62b0df9c36a635212d752b0194a739defb192"
+  },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Gleichzeitig ({count} Seiten)}}",
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"

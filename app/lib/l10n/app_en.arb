@@ -7312,6 +7312,14 @@
       }
     }
   },
+  "danceEditorRemoveModifierCore": "Remove core figure",
+  "@danceEditorRemoveModifierCore": {
+    "description": "Removal tooltip for the core figure in a modifier group."
+  },
+  "danceEditorRemoveModifierChild": "Remove modifier figure",
+  "@danceEditorRemoveModifierChild": {
+    "description": "Removal tooltip for a non-core figure in a modifier group."
+  },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Meanwhile ({count} sides)}}",
   "@danceEditorMeanwhileGroupLabel": {
     "description": "Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).",

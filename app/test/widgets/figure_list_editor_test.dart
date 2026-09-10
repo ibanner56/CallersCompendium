@@ -1176,6 +1176,72 @@ void main() {
     },
   );
 
+  testWidgets('nested container children have parent reorder controls', (
+    tester,
+  ) async {
+    FigureDraft nested(String move) => FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: move),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 8;
+
+    final core = nested('swing');
+    final modifier = FigureDraft(modifierFigures: [core, nested('orbit')])
+      ..params['beats'] = 16;
+    final drafts = <FigureDraft>[modifier];
+
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+
+    final moveDown = find.byKey(const ValueKey('figure-0-nested-0-move-down'));
+    expect(moveDown, findsOneWidget);
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('figure-0-nested-0-remove')),
+          )
+          .tooltip,
+      'Remove core figure',
+    );
+
+    await tester.tap(moveDown);
+    await tester.pumpAndSettle();
+
+    expect(modifier.modifierFigures!.first, isNot(same(core)));
+    expect(modifier.modifierFigures!.first.meanwhileSides!.first.move, 'orbit');
+  });
+
+  testWidgets('modifier child editors expose role-specific removal text', (
+    tester,
+  ) async {
+    final modifier = FigureDraft(
+      modifierFigures: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 16;
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('figure-0-side-0-remove')),
+          )
+          .tooltip,
+      'Remove core figure',
+    );
+    expect(
+      tester
+          .widget<IconButton>(
+            find.byKey(const ValueKey('figure-0-side-1-remove')),
+          )
+          .tooltip,
+      'Remove modifier figure',
+    );
+  });
+
   testWidgets('progression toggle flips the draft flag', (tester) async {
     final drafts = <FigureDraft>[FigureDraft()];
     await _pump(tester, drafts);

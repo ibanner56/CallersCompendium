@@ -5349,6 +5349,12 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorRemoveModifierCore => 'コア・フィギュアを削除';
+
+  @override
+  String get danceEditorRemoveModifierChild => 'モディファイア・フィギュアを削除';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

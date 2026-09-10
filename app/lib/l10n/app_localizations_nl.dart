@@ -5589,6 +5589,12 @@ class AppLocalizationsNl extends AppLocalizations {
   }
 
   @override
+  String get danceEditorRemoveModifierCore => 'Kernfiguur verwijderen';
+
+  @override
+  String get danceEditorRemoveModifierChild => 'Modifierfiguur verwijderen';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

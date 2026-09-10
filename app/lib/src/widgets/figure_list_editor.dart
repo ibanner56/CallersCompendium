@@ -45,7 +45,7 @@ class FigureListEditor extends StatefulWidget {
     required this.onChanged,
     required this.onAdd,
     required this.onDelete,
-    required this.onReorder,
+    this.onReorder,
     this.onDuplicate,
     this.dialect,
     this.mixer = false,
@@ -118,7 +118,9 @@ class FigureListEditor extends StatefulWidget {
   /// final item = list.removeAt(oldIndex);
   /// list.insert(newIndex, item); // newIndex already adjusted
   /// ```
-  final void Function(int oldIndex, int newIndex) onReorder;
+  /// `null` disables the inner reorderable list, which is used for nested
+  /// container editors whose parent owns the ordering controls.
+  final void Function(int oldIndex, int newIndex)? onReorder;
 
   /// When true (issue #419, opt-in "Free-text entry"), the Add flow opens a
   /// single free-text field instead of appending a blank structured draft: the
@@ -343,6 +345,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _paste(int beforeIndex) {
     final cutId = _cutDraftId;
     if (cutId == null) return;
+    final onReorder = widget.onReorder;
+    if (onReorder == null) return;
     final cutIndex = widget.drafts.indexWhere((d) => d.id == cutId);
     if (cutIndex == -1) {
       setState(() => _cutDraftId = null);
@@ -352,7 +356,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // After removing the cut item, the insertion point shifts down by one if
     // beforeIndex is after the cut item.
     final finalPos = beforeIndex > cutIndex ? beforeIndex - 1 : beforeIndex;
-    widget.onReorder(cutIndex, finalPos);
+    onReorder(cutIndex, finalPos);
     _announce(_l10n.danceEditorFigurePastedAnnouncement(finalPos + 1));
   }
 
@@ -362,8 +366,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// keyboard users can chain Alt+Arrow / menu moves.
   void _reorder(int oldIndex, int newIndex, {bool refocus = false}) {
     if (oldIndex < 0 || oldIndex >= widget.drafts.length) return;
+    final onReorder = widget.onReorder;
+    if (onReorder == null) return;
     final movedId = widget.drafts[oldIndex].id;
-    widget.onReorder(oldIndex, newIndex);
+    onReorder(oldIndex, newIndex);
     _announce(
       _l10n.danceEditorFigureMovedAnnouncement(
         newIndex + 1,
@@ -720,7 +726,9 @@ class _FigureListEditorState extends State<FigureListEditor> {
         onMoveDown: i == drafts.length - 1
             ? null
             : () => _reorder(i, i + 1, refocus: true),
-        onCut: isCutCard ? null : () => _startCut(draft.id),
+        onCut: widget.onReorder == null || isCutCard
+            ? null
+            : () => _startCut(draft.id),
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
         showWordingOverride: widget.showWordingOverride,
@@ -805,7 +813,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         //    (a paste button inserted into a ReorderableListView would shift
         //    every drag-handle index beyond it — reviewer comment #4).
         // -------------------------------------------------------------------
-        if (_cutDraftId == null)
+        if (_cutDraftId == null && widget.onReorder != null)
           ReorderableListView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -816,7 +824,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 buildCard(i, draggable: true),
             ],
           )
-        else
+        else if (_cutDraftId != null)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -840,6 +848,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
                     onPaste: () => _paste(i + 1),
                   ),
               ],
+            ],
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < drafts.length; i++)
+                buildCard(i, draggable: false),
             ],
           ),
         const SizedBox(height: 8),
@@ -2046,23 +2062,91 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                     i + 1,
                                     sides.length,
                                   ),
-                            child: FigureListEditor(
-                              key: ValueKey('nested-container-${sides[i].id}'),
-                              drafts: [sides[i]],
-                              taxonomy: widget.taxonomy,
-                              phraseStructure: PhraseStructure.standard,
-                              dialect: widget.dialect,
-                              mixer: widget.mixer,
-                              moveParamDefaults: widget.moveParamDefaults,
-                              showWordingOverride: widget.showWordingOverride,
-                              onChanged: widget.onChanged,
-                              onAdd: () {},
-                              onDelete: (_) => _removeSide(i),
-                              onReorder: (_, _) {},
-                              allowAdding: false,
-                              allowDuplicating: false,
-                              showPhraseStructure: false,
-                              keyPrefix: '$keyPrefix-nested-$i',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        isModifier && i == 0
+                                            ? l10n.danceEditorModifierCoreLabel
+                                            : isModifier
+                                            ? l10n.danceEditorModifierChildLabel
+                                            : l10n.danceEditorMeanwhileSideLabel(
+                                                i + 1,
+                                              ),
+                                        style: theme.textTheme.labelLarge,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey(
+                                        '$keyPrefix-nested-$i-move-up',
+                                      ),
+                                      tooltip: l10n.danceEditorMoveUp,
+                                      icon: const Icon(
+                                        Icons.arrow_upward,
+                                        size: 18,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: i == 0
+                                          ? null
+                                          : () => _reorderSide(i, i - 1),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey(
+                                        '$keyPrefix-nested-$i-move-down',
+                                      ),
+                                      tooltip: l10n.danceEditorMoveDown,
+                                      icon: const Icon(
+                                        Icons.arrow_downward,
+                                        size: 18,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: i == sides.length - 1
+                                          ? null
+                                          : () => _reorderSide(i, i + 1),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey(
+                                        '$keyPrefix-nested-$i-remove',
+                                      ),
+                                      tooltip: isModifier
+                                          ? i == 0
+                                                ? l10n.danceEditorRemoveModifierCore
+                                                : l10n.danceEditorRemoveModifierChild
+                                          : l10n.danceEditorRemoveMeanwhileSide,
+                                      icon: Icon(
+                                        Icons.remove_circle_outline,
+                                        size: 18,
+                                        color: theme.colorScheme.error,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: () => _removeSide(i),
+                                    ),
+                                  ],
+                                ),
+                                FigureListEditor(
+                                  key: ValueKey(
+                                    'nested-container-${sides[i].id}',
+                                  ),
+                                  drafts: [sides[i]],
+                                  taxonomy: widget.taxonomy,
+                                  phraseStructure: PhraseStructure.standard,
+                                  dialect: widget.dialect,
+                                  mixer: widget.mixer,
+                                  moveParamDefaults: widget.moveParamDefaults,
+                                  showWordingOverride:
+                                      widget.showWordingOverride,
+                                  onChanged: widget.onChanged,
+                                  onAdd: () {},
+                                  onDelete: (_) => _removeSide(i),
+                                  allowAdding: false,
+                                  allowDuplicating: false,
+                                  showPhraseStructure: false,
+                                  keyPrefix: '$keyPrefix-nested-$i',
+                                ),
+                              ],
                             ),
                           )
                         : _MeanwhileSideEditor(
@@ -2846,7 +2930,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-remove'),
-                  tooltip: l10n.danceEditorRemoveMeanwhileSide,
+                  tooltip: switch (widget.modifierRole) {
+                    _ModifierRole.core => l10n.danceEditorRemoveModifierCore,
+                    _ModifierRole.modifier =>
+                      l10n.danceEditorRemoveModifierChild,
+                    null => l10n.danceEditorRemoveMeanwhileSide,
+                  },
                   icon: Icon(
                     Icons.remove_circle_outline,
                     size: 18,

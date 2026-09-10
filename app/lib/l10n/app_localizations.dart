@@ -8573,6 +8573,18 @@ abstract class AppLocalizations {
   /// **'Modifier figure {number} of {total}.'**
   String danceEditorModifierChildSemantic(int number, int total);
 
+  /// Removal tooltip for the core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove core figure'**
+  String get danceEditorRemoveModifierCore;
+
+  /// Removal tooltip for a non-core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove modifier figure'**
+  String get danceEditorRemoveModifierChild;
+
   /// Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
   ///
   /// In en, this message translates to:

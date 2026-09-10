@@ -5630,6 +5630,13 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String get danceEditorRemoveModifierCore => 'Supprimer la figure principale';
+
+  @override
+  String get danceEditorRemoveModifierChild =>
+      'Supprimer la figure modificateur';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

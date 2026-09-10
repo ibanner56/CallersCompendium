@@ -5544,6 +5544,12 @@ class AppLocalizationsDa extends AppLocalizations {
   }
 
   @override
+  String get danceEditorRemoveModifierCore => 'Fjern kernefigur';
+
+  @override
+  String get danceEditorRemoveModifierChild => 'Fjern modifierfigur';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

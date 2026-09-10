@@ -1589,6 +1589,11 @@ fails a PR that moves the constant without adding the matching entry.
   Existing assumed mad robins with no explicit `who` are normalized, including
   nested `meanwhile` sides, and canonical/FTS rows are rebuilt once under
   `taxonomyV34CanonicalRebuildDoneKey`. Explicit subjects are preserved.
+- v35 (#1198): makes canonical rendering of `meanwhile` and `modifier`
+  containers searchable and stable, using their structural move tokens between
+  ordered children. Existing canonical/FTS rows are rebuilt once under
+  `modifierContainerCanonicalRebuildDoneKey`; stored figure JSON and the SQLite
+  schema remain unchanged.
 
 ## Open questions (to resolve during implementation, with user input)
 
