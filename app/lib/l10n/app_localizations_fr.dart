@@ -2981,7 +2981,12 @@ class AppLocalizationsFr extends AppLocalizations {
       '2': '2e',
       '3': '3e',
       '4': '4e',
-      'other': 'section $section',
+      '5': '5e',
+      '6': '6e',
+      '7': '7e',
+      '8': '8e',
+      '9': '9e',
+      'other': '$section',
     });
     return '$_temp0';
   }

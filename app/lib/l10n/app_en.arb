@@ -3878,7 +3878,7 @@
       }
     }
   },
-  "programsMatrixSectionShort": "{section, select, none{} 1{1st} 2{2nd} 3{3rd} 4{4th} other{section {section}}}",
+  "programsMatrixSectionShort": "{section, select, none{} 1{1st} 2{2nd} 3{3rd} 4{4th} 5{5th} 6{6th} 7{7th} 8{8th} 9{9th} other{{section}}}",
   "@programsMatrixSectionShort": {
     "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). The value is preformatted for the locale.",
     "placeholders": {

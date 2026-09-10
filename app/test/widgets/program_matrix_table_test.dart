@@ -840,16 +840,19 @@ void main() {
           dance('d2', 'B', [move('balance')]),
           dance('d3', 'C', [move('balance')]),
           dance('d4', 'D', [move('balance')]),
+          dance('d5', 'E', [move('balance')]),
         ],
-        sections: const [1, 2, 3, 4],
+        sections: const [1, 2, 3, 4, 5],
       );
 
       expect(find.text('3rd'), findsOneWidget);
       expect(find.text('4th'), findsOneWidget);
+      expect(find.text('5th'), findsOneWidget);
       expect(find.byIcon(Icons.looks_3_outlined), findsOneWidget);
       expect(find.byIcon(Icons.looks_4_outlined), findsOneWidget);
       expect(find.bySemanticsLabel('Dance: C, section 3rd'), findsOneWidget);
       expect(find.bySemanticsLabel('Dance: D, section 4th'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: E, section 5th'), findsOneWidget);
     });
 
     testWidgets('no badge when the program has no sections', (tester) async {
@@ -883,7 +886,7 @@ void main() {
                   dance('d1', 'A', [swing(), move('balance')]),
                   dance('d2', 'B', [swing(), move('balance')]),
                 ],
-                sections: const [3, 4],
+                sections: const [8, 9],
               ),
               taxonomy: contraTaxonomy,
               dialect: Dialect.canonical,
@@ -898,7 +901,7 @@ void main() {
       // formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "A (section 3rd), formation: Improper, partner swing: "
+          "A (section 8th), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "introduced here, dance's first figure",
         ),
@@ -906,7 +909,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "B (section 4th), formation: Improper, partner swing: "
+          "B (section 9th), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),

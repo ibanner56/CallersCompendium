@@ -2923,7 +2923,12 @@ class AppLocalizationsEn extends AppLocalizations {
       '2': '2nd',
       '3': '3rd',
       '4': '4th',
-      'other': 'section $section',
+      '5': '5th',
+      '6': '6th',
+      '7': '7th',
+      '8': '8th',
+      '9': '9th',
+      'other': '$section',
     });
     return '$_temp0';
   }
