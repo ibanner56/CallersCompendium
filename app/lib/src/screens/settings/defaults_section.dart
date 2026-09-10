@@ -1623,6 +1623,28 @@ class _StartingProgramTemplateEditor extends StatefulWidget {
 class _StartingProgramTemplateEditorState
     extends State<_StartingProgramTemplateEditor> {
   final _textController = TextEditingController();
+  late List<Object> _entryKeys;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryKeys = List<Object>.generate(widget.entries.length, (_) => Object());
+  }
+
+  @override
+  void didUpdateWidget(covariant _StartingProgramTemplateEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_entryKeys.length < widget.entries.length) {
+      _entryKeys.addAll(
+        List<Object>.generate(
+          widget.entries.length - _entryKeys.length,
+          (_) => Object(),
+        ),
+      );
+    } else if (_entryKeys.length > widget.entries.length) {
+      _entryKeys = _entryKeys.sublist(0, widget.entries.length);
+    }
+  }
 
   @override
   void dispose() {
@@ -1654,7 +1676,9 @@ class _StartingProgramTemplateEditorState
               builder: (context) {
                 final entry = widget.entries[index];
                 return ListTile(
-                  key: ValueKey(entry),
+                  key: ValueKey(
+                    'starting-program-note-${identityHashCode(_entryKeys[index])}',
+                  ),
                   dense: true,
                   title: Text(
                     entry.danceId == null
@@ -1667,7 +1691,7 @@ class _StartingProgramTemplateEditorState
                   subtitle: entry.danceId == null
                       ? null
                       : TextFormField(
-                          key: ValueKey('starting-program-note-$entry'),
+                          key: ValueKey(_entryKeys[index]),
                           initialValue: entry.text ?? '',
                           decoration: InputDecoration(
                             labelText:
@@ -1684,19 +1708,34 @@ class _StartingProgramTemplateEditorState
                         icon: const Icon(Icons.arrow_upward),
                         onPressed: index == 0
                             ? null
-                            : () => widget.onReorder(index, index - 1),
+                            : () {
+                                setState(() {
+                                  final key = _entryKeys.removeAt(index);
+                                  _entryKeys.insert(index - 1, key);
+                                });
+                                widget.onReorder(index, index - 1);
+                              },
                       ),
                       IconButton(
                         tooltip: l10n.settingsDefaultsStartingProgramMoveDown,
                         icon: const Icon(Icons.arrow_downward),
                         onPressed: index == widget.entries.length - 1
                             ? null
-                            : () => widget.onReorder(index, index + 1),
+                            : () {
+                                setState(() {
+                                  final key = _entryKeys.removeAt(index);
+                                  _entryKeys.insert(index + 1, key);
+                                });
+                                widget.onReorder(index, index + 1);
+                              },
                       ),
                       IconButton(
                         tooltip: l10n.commonDelete,
                         icon: const Icon(Icons.delete_outline),
-                        onPressed: () => widget.onRemove(index),
+                        onPressed: () {
+                          setState(() => _entryKeys.removeAt(index));
+                          widget.onRemove(index);
+                        },
                       ),
                     ],
                   ),
