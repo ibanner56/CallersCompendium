@@ -63,6 +63,7 @@ void main() {
       'last_backup_at',
       taxonomyV33CanonicalRebuildDoneKey,
       taxonomyV34CanonicalRebuildDoneKey,
+      taxonomyV35FigureNormalizationDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
     });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
@@ -75,6 +76,10 @@ void main() {
     );
     expect(
       isBackupEligibleSettingKey(taxonomyV34CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV35FigureNormalizationDoneKey),
       isFalse,
     );
     expect(

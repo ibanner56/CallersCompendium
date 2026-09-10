@@ -182,9 +182,10 @@ class Taxonomy {
     final children = figure.isMeanwhile
         ? figure.subFigures.map(normalizeFigureV35).toList(growable: false)
         : null;
-    final move = switch (figure.move) {
+    final legacyMove = figure.move;
+    final move = switch (legacyMove) {
       'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
-      _ => figure.move,
+      _ => legacyMove,
     };
     final renames = _v35ParamRenames[move];
     final params = <String, Object?>{};
@@ -193,6 +194,11 @@ class Taxonomy {
       // The v35 name wins if both representations are present.
       if (params.containsKey(key) && entry.key != key) continue;
       params[key] = entry.value;
+    }
+    if (legacyMove == 'pull_by_dancers') {
+      params.putIfAbsent('who', () => 'neighbors');
+    } else if (legacyMove == 'pull_by_direction') {
+      params.putIfAbsent('where', () => 'along');
     }
     if (children != null) params['figures'] = children;
     if (move == figure.move && _sameParams(params, figure.params)) {
@@ -207,6 +213,8 @@ class Taxonomy {
     'two_hand_turn': {'turn': 'travel'},
     'do_si_do': {'turn': 'travel'},
     'gypsy': {'turn': 'travel'},
+    'shoulder_round': {'turn': 'travel'},
+    'see_saw': {'turn': 'shoulder'},
     'pass_through': {'dir': 'where'},
     'pass_the_ocean': {'dir': 'where'},
     'right_left_through': {'dir': 'where'},

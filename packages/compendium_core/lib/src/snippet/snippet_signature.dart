@@ -17,6 +17,7 @@ String migrateFigureSnippetSignature(String signature) {
   final open = signature.indexOf('(');
   final move = open < 0 ? signature : signature.substring(0, open);
   final body = open < 0 ? null : signature.substring(open);
+  final legacyMove = move;
   final migratedMove = switch (move) {
     'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
     _ => move,
@@ -24,9 +25,12 @@ String migrateFigureSnippetSignature(String signature) {
   if (body == null) return migratedMove;
   final renames = <String, String>{
     'turn': switch (migratedMove) {
-      'circle' || 'facing_star' => 'direction',
-      'promenade' || 'orbit' => 'direction',
+      'circle' ||
+      'facing_star' ||
+      'promenade' ||
+      'orbit' ||
       'poussette' => 'direction',
+      'zig_zag' => 'slide',
       _ => 'travel',
     },
     'dir': 'where',
@@ -39,7 +43,17 @@ String migrateFigureSnippetSignature(String signature) {
     RegExp(r'([a-zA-Z_][a-zA-Z0-9_]*)='),
     (match) => '${renames[match.group(1)] ?? match.group(1)}=',
   );
-  return '$migratedMove$migratedBody';
+  final missing = switch (legacyMove) {
+    'pull_by_dancers' => 'where=unspecified',
+    'pull_by_direction' => 'who=unspecified',
+    _ => null,
+  };
+  if (missing == null || migratedBody.contains(missing.split('=').first)) {
+    return '$migratedMove$migratedBody';
+  }
+  final separator = migratedBody == '()' ? '' : ',';
+  return '$migratedMove(${migratedBody.substring(1, migratedBody.length - 1)}'
+      '$separator$missing)';
 }
 
 /// Derives the **normalized figure signature** used as the global

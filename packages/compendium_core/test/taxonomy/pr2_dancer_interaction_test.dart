@@ -125,11 +125,10 @@ void main() {
   group('param domains', () {
     test('gate rejects an out-of-domain face', () {
       expect(
-        tax
-            // invalid-fixture: value is deliberately out of domain — gate rejects an out-of-domain face
-            .validateFigure(
-              Figure(move: 'gate', params: {'endFacing': 'sideways'}),
-            )
+        tax.validateFigure(
+          // invalid-fixture: value is deliberately out of domain — gate rejects an out-of-domain face
+          Figure(move: 'gate', params: {'endFacing': 'sideways'}),
+        )
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
       );

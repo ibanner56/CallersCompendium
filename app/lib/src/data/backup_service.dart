@@ -21,6 +21,8 @@ const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 const String kTaxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
+const String kTaxonomyV35FigureNormalizationDoneKey =
+    '__taxonomy_v35_figure_normalization_done__';
 
 /// App-side declaration for the storage-owned one-shot repair marker. The
 /// duplicate literal keeps the settings classification ratchet aware of this
@@ -43,6 +45,7 @@ const String kCallersBoxRollAwayRoleRepairDoneKey =
 ///   [kWindowFrameKey], [kLastBackupAtKey], [kBackupReminderCadenceKey],
 ///   [kTaxonomyV33CanonicalRebuildDoneKey],
 ///   [kTaxonomyV34CanonicalRebuildDoneKey],
+///   [kTaxonomyV35FigureNormalizationDoneKey],
 ///   [kCallersBoxRollAwayRoleRepairDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
@@ -59,6 +62,7 @@ const Set<String> kBackupSettingsDenylist = {
   kBackupReminderCadenceKey,
   kTaxonomyV33CanonicalRebuildDoneKey,
   kTaxonomyV34CanonicalRebuildDoneKey,
+  kTaxonomyV35FigureNormalizationDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,
