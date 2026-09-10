@@ -481,6 +481,34 @@ void main() {
         },
       );
 
+      test(
+        'keeps sibling upgrades when a nested structural reparse exceeds depth',
+        () {
+          final nested = Figure.modifier(
+            figures: [
+              importGap('Neighbor swing', beats: 8),
+              importGap('Balance || swing', beats: 8),
+            ],
+            beats: 8,
+          );
+          final container = Figure.meanwhile(
+            figures: [nested, importGap('Circle left 3/4', beats: 8)],
+            beats: 16,
+          );
+
+          final result = reparseImportGapFigures([container]);
+
+          expect(result.upgradedCount, 2);
+          final rebuilt = result.figures.single;
+          final rebuiltNested = rebuilt.subFigures.first;
+          expect(rebuilt.isMeanwhile, isTrue);
+          expect(rebuiltNested.isModifier, isTrue);
+          expect(rebuiltNested.subFigures.first.move, 'swing');
+          expect(rebuiltNested.subFigures.last.isCustom, isTrue);
+          expect(rebuilt.subFigures.last.move, 'circle');
+        },
+      );
+
       // A custom side whose stored text re-parses to a meanwhile is declined
       // (left as-is). Same-kind nesting violates the container invariant;
       // flattening would corrupt section beat totals. The structural-child

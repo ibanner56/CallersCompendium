@@ -67,7 +67,7 @@ FigureReparseOutcome reparseImportGapFigures(
   for (var i = 0; i < figures.length; i++) {
     final figure = figures[i];
     final result = figure.isContainer
-        ? _tryUpgradeContainer(figure, taxonomy)
+        ? _tryUpgradeContainer(figure, taxonomy, containerDepth: 1)
         : _tryUpgradeLeaf(figure, taxonomy);
     final replacement = result?.figure;
     if (replacement == null) continue;
@@ -99,8 +99,9 @@ FigureReparseOutcome reparseImportGapFigures(
 /// Returns `null` when [figure] is not a container, or when no child upgrades.
 ({Figure figure, int count})? _tryUpgradeContainer(
   Figure figure,
-  Taxonomy? taxonomy,
-) {
+  Taxonomy? taxonomy, {
+  required int containerDepth,
+}) {
   if (!figure.isContainer) return null;
   final children = figure.subFigures;
   List<Figure>? newChildren;
@@ -108,12 +109,21 @@ FigureReparseOutcome reparseImportGapFigures(
   for (var i = 0; i < children.length; i++) {
     final child = children[i];
     final result = child.isContainer
-        ? _tryUpgradeContainer(child, taxonomy)
-        : _tryUpgradeLeaf(child, taxonomy);
+        ? _tryUpgradeContainer(
+            child,
+            taxonomy,
+            containerDepth: containerDepth + 1,
+          )
+        : _tryUpgradeLeaf(
+            child,
+            taxonomy,
+            allowContainerReplacement: containerDepth < kMaxContainerDepth,
+          );
     final replacement = result?.figure;
     if (replacement == null ||
         (replacement.isContainer &&
-            !_isLegalContainerChild(figure, replacement))) {
+            (containerDepth >= kMaxContainerDepth ||
+                !_isLegalContainerChild(figure, replacement)))) {
       continue;
     }
     newChildren ??= List<Figure>.of(children);
@@ -144,10 +154,15 @@ bool _isLegalContainerChild(Figure parent, Figure child) {
 
 ({Figure figure, int count})? _tryUpgradeLeaf(
   Figure figure,
-  Taxonomy? taxonomy,
-) {
+  Taxonomy? taxonomy, {
+  bool allowContainerReplacement = true,
+}) {
   final replacement = _tryUpgrade(figure, taxonomy);
-  return replacement == null ? null : (figure: replacement, count: 1);
+  if (replacement == null ||
+      (!allowContainerReplacement && replacement.isContainer)) {
+    return null;
+  }
+  return (figure: replacement, count: 1);
 }
 
 /// Returns a structured replacement for [figure] if it is an import-gap custom
