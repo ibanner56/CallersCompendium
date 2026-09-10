@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
@@ -280,6 +282,30 @@ void main() {
         modifierRestored.every((figure) => figure.move == 'stand_still'),
         isTrue,
       );
+    });
+
+    test('the meanwhile encoder drops every structural figure', () {
+      final encoded = encodeMeanwhileSideFigures([
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 8,
+        ),
+        Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 8,
+        ),
+        Figure(move: 'swing'),
+      ]);
+
+      expect(jsonDecode(encoded), [
+        {'schemaVersion': 1, 'move': 'swing'},
+      ]);
     });
 
     test('normalizes legacy identifiers in ordinary side defaults', () {

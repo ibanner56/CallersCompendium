@@ -509,6 +509,10 @@ class _DefaultsSectionState extends State<DefaultsSection> {
 
   Future<void> _persistModifierDefaults() async {
     _defaultModifierUserSet = true;
+    if (_defaultModifierDrafts.isNotEmpty &&
+        _defaultModifierDrafts.first.toFigure() == null) {
+      return;
+    }
     final figures = [
       for (final draft in _defaultModifierDrafts) ?draft.toFigure(),
     ];
@@ -761,7 +765,7 @@ class _DefaultsSectionState extends State<DefaultsSection> {
       },
       onMeanwhileSideAddFreeText: (figures) {
         final ordinaryFigures = figures
-            .where((figure) => !figure.isMeanwhile)
+            .where((figure) => !figure.isContainer)
             .toList();
         if (ordinaryFigures.isEmpty) return 0;
         final remaining =

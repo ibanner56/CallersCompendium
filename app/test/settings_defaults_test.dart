@@ -1312,6 +1312,32 @@ void main() {
         hasLength(1),
       );
     });
+
+    testWidgets(
+      'Modifier defaults preserve an empty template when its core is blank',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultModifierFiguresKey, '[]');
+
+        await _pumpDefaults(tester, repos);
+        await tester.binding.setSurfaceSize(const Size(1200, 3000));
+        await tester.pumpAndSettle();
+        await _scrollTo(tester, const ValueKey('modifier-default-add'));
+
+        await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-1-move-input')),
+          'roll away',
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(await repos.settings.get(kDefaultModifierFiguresKey), '[]');
+      },
+    );
   });
 
   testWidgets(

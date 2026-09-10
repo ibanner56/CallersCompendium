@@ -170,7 +170,8 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Deserialises a draft JSON value (as returned by [SettingsRepository.get])
 /// back into an [EditorSnapshot].
 ///
-/// Accepts **v1 and v2** drafts (forward-compatible read):
+/// Accepts drafts with schema versions **v1 through v13** (forward-compatible
+/// read):
 /// - v1 has URL-kind links only (no `targetDanceId`). Since v1 couldn't create
 ///   relatedDance links, missing `targetDanceId` fields decode as `null` —
 ///   a v1 draft loads intact as a valid draft with only URL-kind links.
