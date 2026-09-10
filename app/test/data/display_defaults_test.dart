@@ -294,6 +294,23 @@ void main() {
     });
   });
 
+  group('modifier defaults (#1198)', () {
+    test('normalize legacy identifiers in ordinary modifier defaults', () {
+      final restored = modifierFiguresFromStored(
+        encodeFigures([
+          // invalid-fixture: these exercise persisted v34 identifiers.
+          Figure(move: 'circle', params: const {'turn': 'left'}),
+          Figure(move: 'pull_by_dancers', params: const {'dir': 'across'}),
+        ]),
+      );
+
+      expect(restored[0].params['direction'], 'left');
+      expect(restored[0].params, isNot(contains('turn')));
+      expect(restored[1].move, 'pull_by');
+      expect(restored[1].params['where'], 'across');
+    });
+  });
+
   group('move param overrides (DD.3)', () {
     test('key uses its stable stored string', () {
       expect(kDefaultMoveParamOverridesKey, 'default_move_param_overrides');
