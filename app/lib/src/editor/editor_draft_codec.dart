@@ -520,8 +520,11 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
 }
 
 Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
-  final params = Map<String, Object?>.of(draft.params)..remove('figures');
   final children = draft.meanwhileSides ?? draft.modifierFigures;
+  final params = Map<String, Object?>.of(draft.params);
+  if (children != null) {
+    params.remove('figures');
+  }
   return {
     'id': draft.id,
     'move': draft.move,

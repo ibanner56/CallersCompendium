@@ -2141,6 +2141,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                   onChanged: widget.onChanged,
                                   onAdd: () {},
                                   onDelete: (_) => _removeSide(i),
+                                  onCollapseMeanwhileGroup:
+                                      (groupDraft, remainingSide) =>
+                                          _collapseNestedContainer(
+                                            sides,
+                                            i,
+                                            groupDraft,
+                                            remainingSide,
+                                          ),
                                   onUngroupContainer:
                                       _canUngroupNestedContainer(sides, i)
                                       ? (nested) => _ungroupNestedContainer(
@@ -2311,6 +2319,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     sides
       ..removeAt(index)
       ..insertAll(index, children);
+    widget.onChanged();
+  }
+
+  void _collapseNestedContainer(
+    List<FigureDraft> sides,
+    int index,
+    FigureDraft groupDraft,
+    FigureDraft remainingSide,
+  ) {
+    if (index < 0 ||
+        index >= sides.length ||
+        !identical(sides[index], groupDraft)) {
+      return;
+    }
+    sides[index] = remainingSide;
     widget.onChanged();
   }
 
