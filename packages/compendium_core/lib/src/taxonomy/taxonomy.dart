@@ -141,6 +141,7 @@ class Taxonomy {
       effective.putIfAbsent('beats', () => _unknownMoveBeatsFallback);
       return effective;
     }
+
     final alias = aliases[figure.move];
     final effective = {
       for (final entry in def.params.entries)
@@ -157,7 +158,81 @@ class Taxonomy {
       final derived = paramBeats.byValue[effective[paramBeats.param]];
       if (derived != null) effective['beats'] = derived;
     }
+    // Renderers and dialects from older releases still read these keys while
+    // decoding figures that have not reached the write boundary yet.
+    for (final entry
+        in _v35ParamRenames[def.id]?.entries ??
+            const <MapEntry<String, String>>[]) {
+      effective.putIfAbsent(entry.key, () => effective[entry.value]);
+    }
     return effective;
+  }
+
+  /// Converts v34 move ids and parameter keys to the v35 representation.
+  ///
+  /// This is intentionally recursive: `meanwhile` stores child figures in
+  /// `params['figures']`, and imports/restores use the same write path as
+  /// ordinary edits.
+  Figure normalizeFigureV35(Figure figure) {
+    final children = figure.isMeanwhile
+        ? figure.subFigures.map(normalizeFigureV35).toList(growable: false)
+        : null;
+    final move = switch (figure.move) {
+      'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
+      _ => figure.move,
+    };
+    final renames = _v35ParamRenames[move];
+    final params = <String, Object?>{};
+    for (final entry in figure.params.entries) {
+      final key = renames?[entry.key] ?? entry.key;
+      // The v35 name wins if both representations are present.
+      if (params.containsKey(key) && entry.key != key) continue;
+      params[key] = entry.value;
+    }
+    if (children != null) params['figures'] = children;
+    if (move == figure.move && _sameParams(params, figure.params)) {
+      return figure;
+    }
+    return figure.copyWith(move: move, params: params);
+  }
+
+  static const _v35ParamRenames = <String, Map<String, String>>{
+    'circle': {'turn': 'direction'},
+    'allemande': {'turn': 'travel'},
+    'two_hand_turn': {'turn': 'travel'},
+    'do_si_do': {'turn': 'travel'},
+    'gypsy': {'turn': 'travel'},
+    'pass_through': {'dir': 'where'},
+    'pass_the_ocean': {'dir': 'where'},
+    'right_left_through': {'dir': 'where'},
+    'chain': {'dir': 'where'},
+    'pull_by': {'dir': 'where'},
+    'promenade': {'dir': 'where', 'turn': 'direction'},
+    'poussette': {'turn': 'direction', 'half': 'fraction'},
+    'orbit': {'turn': 'direction', 'amount': 'travel'},
+    'mad_robin': {'turn': 'travel'},
+    'star_promenade': {'turn': 'travel'},
+    'gate': {'turn': 'travel', 'face': 'endFacing'},
+    'form_short_waves': {'dir': 'axis'},
+    'figure_8': {'half': 'fraction', 'dir': 'where'},
+    'cross_trails': {'dir': 'where'},
+    'facing_star': {'turn': 'direction'},
+    'hey': {'dir': 'where'},
+    'form_long_waves': {'hand': 'whomHand'},
+    'zig_zag': {'turn': 'slide'},
+  };
+
+  static bool _sameParams(
+    Map<String, Object?> left,
+    Map<String, Object?> right,
+  ) {
+    if (left.length != right.length) return false;
+    for (final entry in left.entries) {
+      if (!right.containsKey(entry.key) || right[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Returns the move id [figure] should carry given its effective params.
@@ -197,8 +272,9 @@ class Taxonomy {
   /// Errors: unknown move, unknown param name, out-of-domain param value.
   /// Warnings: atypical beat count (per the move's `goodBeats`).
   List<ValidationIssue> validateFigure(Figure figure) {
+    final normalized = normalizeFigureV35(figure);
     final issues = <ValidationIssue>[];
-    final def = resolve(figure.move);
+    final def = resolve(normalized.move);
     if (def == null) {
       return [
         ValidationIssue(
@@ -210,7 +286,7 @@ class Taxonomy {
         ),
       ];
     }
-    for (final entry in figure.params.entries) {
+    for (final entry in normalized.params.entries) {
       final spec = def.params[entry.key];
       if (spec == null) {
         issues.add(
@@ -233,7 +309,7 @@ class Taxonomy {
       }
     }
     final goodBeats = def.goodBeats;
-    final beats = figure.params['beats'];
+    final beats = normalized.params['beats'];
     if (goodBeats != null &&
         goodBeats.isNotEmpty &&
         beats is int &&

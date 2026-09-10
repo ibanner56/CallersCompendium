@@ -1016,7 +1016,7 @@ _Match? _shoulderRound(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'shoulder_round',
-    {'who': who2 ?? 'neighbors', 'shoulder': ?side2, 'turn': ?turn},
+    {'who': who2 ?? 'neighbors', 'shoulder': ?side2, 'travel': ?turn},
     null,
     who2 == null,
   );
@@ -1032,7 +1032,7 @@ _Match? _allemande(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'allemande',
-    {'who': who2 ?? 'neighbors', 'hand': ?hand, 'turn': ?turn},
+    {'who': who2 ?? 'neighbors', 'hand': ?hand, 'travel': ?turn},
     null,
     who2 == null,
   );
@@ -1047,7 +1047,7 @@ _Match? _twoHandTurn(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'two_hand_turn',
-    {'who': who2 ?? 'partners', 'turn': ?turn},
+    {'who': who2 ?? 'partners', 'travel': ?turn},
     null,
     who2 == null,
   );
@@ -1069,7 +1069,7 @@ _Match? _doSiDo(List<String> w) {
   final moveId = seeSaw ? 'see_saw' : 'do_si_do';
   return _Match(
     moveId,
-    {'who': who2 ?? 'neighbors', 'turn': ?turn},
+    {'who': who2 ?? 'neighbors', 'travel': ?turn},
     null,
     who2 == null,
   );
@@ -1174,7 +1174,7 @@ _Match? _gate(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'gate',
-    {'pair': who2 ?? 'neighbors', 'direction': direction, 'turn': turn},
+    {'pair': who2 ?? 'neighbors', 'direction': direction, 'travel': turn},
     null,
     who2 == null,
   );
@@ -1206,7 +1206,7 @@ _Match? _circle(List<String> w) {
   final places = _takePlaces(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('circle', {'turn': ?turn, 'places': ?places});
+  return _Match('circle', {'direction': ?turn, 'places': ?places});
 }
 
 /// Tier A: TCB writes "Facing star clockwise 3/4" / "Facing star clockwise 1"
@@ -1246,7 +1246,7 @@ _Match? _facingStar(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match('facing_star', {
     'who': 'everyone',
-    'turn': spin,
+    'direction': spin,
     'places': places,
   });
 }
@@ -1352,7 +1352,7 @@ _Match? _chain(List<String> w) {
   // site (#976 §6.1) so search/canonical stay consistent regardless of which
   // site wrote the figure.
   final hand = who2 == null ? null : (statedHand ?? chainHandForWho(who2));
-  return _Match('chain', {'who': ?who2, 'hand': ?hand, 'dir': ?dir}, note);
+  return _Match('chain', {'who': ?who2, 'hand': ?hand, 'where': ?dir}, note);
 }
 
 // The Caller's Box's standalone courtesy turn (taxonomy v23). Grammar:
@@ -1517,7 +1517,7 @@ _Match? _rightLeftThrough(List<String> w) {
   // right_left_through has no same-role slot, so the same-role variant is
   // preserved as a note (the move + dir still structure faithfully).
   return _Match('right_left_through', {
-    'dir': ?dir,
+    'where': ?dir,
   }, sameRole ? 'same-role' : null);
 }
 
@@ -1531,7 +1531,7 @@ _Match? _passThrough(List<String> w) {
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('pass_through', {'dir': ?dir});
+  return _Match('pass_through', {'where': ?dir});
 }
 
 /// Tier B (#733): TCB writes "Walk forward to N2" / "… to shadow" / "… to N1"
@@ -1606,7 +1606,7 @@ _Match? _passTheOcean(List<String> w) {
     dir = 'across';
   }
   _dropFiller(w);
-  return w.isEmpty ? _Match('pass_the_ocean', {'dir': ?dir}) : null;
+  return w.isEmpty ? _Match('pass_the_ocean', {'where': ?dir}) : null;
 }
 
 // "form a wave" / "form short waves" / "form a short wave" / "form (a) wave of
@@ -1646,7 +1646,7 @@ _Match? _formShortWaves(List<String> w) {
   }
   _dropFiller(w);
   return w.isEmpty
-      ? _Match('form_short_waves', {'dir': ?dir, 'sides': ?sides})
+      ? _Match('form_short_waves', {'axis': ?dir, 'sides': ?sides})
       : null;
 }
 
@@ -1665,7 +1665,7 @@ _Match? _promenade(List<String> w) {
   final turn = _takeSpinDirection(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('promenade', {'who': ?who2, 'dir': ?dir, 'turn': ?turn});
+  return _Match('promenade', {'who': ?who2, 'where': ?dir, 'direction': ?turn});
 }
 
 /// Tier B: TCB writes "Shift left/right" *and* "Slide left/right" for a slide
@@ -1800,7 +1800,11 @@ _Match? _poussette(List<String> w) {
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('poussette', {'who': ?who2, 'turn': ?spin, 'half': ?frac});
+  return _Match('poussette', {
+    'who': ?who2,
+    'direction': ?spin,
+    'fraction': ?frac,
+  });
 }
 
 /// Issue #295: standalone `orbit` — TCB writes "Men orbit clockwise 1/2" /
@@ -1825,7 +1829,7 @@ _Match? _orbit(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'orbit',
-    {'who': who2 ?? 'ones', 'turn': spin, 'amount': amount},
+    {'who': who2 ?? 'ones', 'direction': spin, 'travel': amount},
     null,
     who2 == null,
   );
@@ -1866,7 +1870,7 @@ _Match? _madRobin(List<String> w) {
     {
       'who': ParamVocab.unspecified,
       'direction': direction,
-      'turn': ?turn,
+      'travel': ?turn,
       'whom': whom,
     },
     null,
@@ -1952,7 +1956,7 @@ _Match? _starPromenade(List<String> w) {
   final turn = _takeRotation(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('star_promenade', {'who': ?who2, 'turn': ?turn});
+  return _Match('star_promenade', {'who': ?who2, 'travel': ?turn});
 }
 
 /// Tier A: TCB writes "Square through 3" / "Square through 4" (dance id 322
@@ -1976,33 +1980,27 @@ _Match? _squareThrough(List<String> w) {
 }
 
 /// Tier A: TCB writes "Men pull by left" / "Partner pull by left" (dance ids
-/// 481, 467). A named dancer set maps to `pull_by_dancers` (with hand); a form
-/// with only a spatial direction (or bare) maps to `pull_by_direction`. TCB's
-/// attested pull-bys all name a dancer, so the direction branch is defensive.
+/// 481, 467). A named dancer set and/or spatial direction maps to the unified
+/// `pull_by` move; absent axes remain the taxonomy sentinel.
 _Match? _pullBy(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['pull', 'by'])) return null;
   final who2 = who ?? _takeDancer(w);
   final hand = _takeSide(w);
+  String? where;
+  if (_consumePhrase(w, ['across'])) {
+    where = 'across';
+  } else if (_consumePhrase(w, ['along'])) {
+    where = 'along';
+  }
   if (who2 != null) {
-    // Dancer form → pull_by_dancers, which has NO direction slot. Do NOT
-    // consume across/along here: leaving it as leftover makes a
-    // "<dancer> pull by <hand> across" line fall to custom rather than
-    // silently dropping the direction (which pull_by_dancers can't carry).
     _dropFiller(w);
     if (w.isNotEmpty) return null;
-    return _Match('pull_by_dancers', {'who': who2, 'hand': ?hand});
-  }
-  // Direction-only (or bare) form → pull_by_direction.
-  String? dir;
-  if (_consumePhrase(w, ['across'])) {
-    dir = 'across';
-  } else if (_consumePhrase(w, ['along'])) {
-    dir = 'along';
+    return _Match('pull_by', {'who': who2, 'where': ?where, 'hand': ?hand});
   }
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('pull_by_direction', {'dir': ?dir, 'hand': ?hand});
+  return _Match('pull_by', {'where': ?where, 'hand': ?hand});
 }
 
 /// Tier B: TCB writes "Neighbor roll away" / "Partner roll away (W roll R, M
@@ -2056,7 +2054,7 @@ _Match? _crossTrails(List<String> w) {
   final second = _takeDancer(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
-  return _Match('cross_trails', {'who': ?who2, 'dir': ?dir, 'who2': ?second});
+  return _Match('cross_trails', {'who': ?who2, 'where': ?dir, 'who2': ?second});
 }
 
 /// Tier B: TCB writes "Ones figure eight 1/2 up" / "Twos figure eight down".
@@ -2095,7 +2093,7 @@ _Match? _figure8(List<String> w) {
   if (w.isNotEmpty) return null;
   return _Match(
     'figure_8',
-    {'who': ?who2, 'half': ?half, 'dir': ?dir},
+    {'who': ?who2, 'fraction': ?half, 'where': ?dir},
     null,
     who2 == null,
   );
