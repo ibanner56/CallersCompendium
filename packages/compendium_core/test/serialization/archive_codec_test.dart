@@ -80,7 +80,7 @@ CompendiumArchive _sampleArchive() {
       Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
       Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.5},
         note: 'smoothly',
         progression: true,
       ),
@@ -297,7 +297,7 @@ void main() {
       expect(d1.progression, Progression.double);
       expect(d1.phraseStructure.raw, '6*8*2');
       expect(d1.figures, hasLength(2));
-      expect(d1.figures[1].params['turn'], 1.5);
+      expect(d1.figures[1].params['travel'], 1.5);
       expect(d1.figures[1].progression, isTrue);
 
       // The customOrigin discriminator survives the archive/.ccshare path.
@@ -1426,7 +1426,7 @@ void main() {
               },
               {
                 'move': 'circle',
-                'params': {'turn': 'left'},
+                'params': {'direction': 'left'},
                 'walkthroughOverride':
                     'y' * (kMaxWalkthroughSnippetLength + 50),
                 'wordingOverride': 'z' * (kMaxWalkthroughSnippetLength + 50),

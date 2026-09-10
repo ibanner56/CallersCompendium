@@ -36,8 +36,6 @@ void main() {
       'who': 'partners',
       'travel': 1.0,
       'beats': 8,
-      // `effectiveParams` retains the v34 spelling for older renderers.
-      'turn': 1.0,
     });
     expect(
       renderer.renderCanonical(Figure(move: 'two_hand_turn')),

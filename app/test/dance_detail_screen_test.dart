@@ -687,7 +687,7 @@ void main() {
         figures: [
           Figure(
             move: 'allemande',
-            params: {'hand': 'left', 'turn': 1.5, 'beats': 8},
+            params: {'hand': 'left', 'travel': 1.5, 'beats': 8},
           ),
         ],
       ),

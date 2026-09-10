@@ -447,7 +447,7 @@ void main() {
         figures: [
           Figure(
             move: 'allemande',
-            params: {'who': 'role2s', 'turn': 1.0},
+            params: {'who': 'role2s', 'travel': 1.0},
             note: 'role2s scoop them up',
           ),
         ],
@@ -491,7 +491,7 @@ void main() {
         figures: [
           Figure(
             move: 'allemande',
-            params: {'who': 'role2s', 'turn': 1.0},
+            params: {'who': 'role2s', 'travel': 1.0},
             note: '_role2s_ scoop them up',
           ),
         ],

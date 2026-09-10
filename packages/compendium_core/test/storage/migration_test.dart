@@ -492,6 +492,7 @@ void main() {
   });
 
   group('taxonomy v35 figure normalization', () {
+    // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
     test('rewrites legacy keys and nested meanwhile figures', () async {
       final db = CompendiumDatabase(NativeDatabase.memory());
       final repos = CompendiumRepositories(db, contraTaxonomy);
@@ -542,6 +543,53 @@ void main() {
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            ],
+          )
+          .getSingle();
+      expect(marker.read<String>('value_json'), 'true');
+    });
+
+    // invalid-fixture: this exercises a v35 database that predates the taxonomy migration marker
+    test('runs when the taxonomy marker is absent', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final legacyFigures = [
+        Figure(
+          move: 'pull_by_dancers',
+          params: const {'who': 'partners', 'hand': 'left'},
+        ),
+        Figure(move: 'circle', params: const {'turn': 'left'}),
+      ];
+      await repos.dances.create(
+        Dance(
+          id: 'v35-absent-marker',
+          title: 'v35 absent marker',
+          figures: legacyFigures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customUpdate(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(legacyFigures)),
+          Variable<String>('v35-absent-marker'),
+        ],
+        updates: {db.dances},
+      );
+
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('v35-absent-marker'))!;
+      expect(dance.figures.first.move, 'pull_by');
+      expect(dance.figures[1].params, {'direction': 'left'});
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
             variables: [
               Variable.withString(taxonomyV35FigureNormalizationDoneKey),
             ],
@@ -2346,6 +2394,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     await repos.settings.set(key, 'done');
   }
   await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+  await repos.settings.set(taxonomyV35FigureNormalizationDoneKey, true);
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

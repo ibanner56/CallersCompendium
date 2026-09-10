@@ -225,6 +225,7 @@ class FigureRenderer {
     final def = taxonomy.resolve(figure.move);
     if (def == null) return base;
     final params = taxonomy.effectiveParams(figure);
+    final normalizedMove = Taxonomy.normalizeV35MoveId(figure.move);
     var out = base;
     // Balance flag → a "balance &" (visual) / "balance and" (verbose) prefix,
     // positioned per ContraDB's per-move word order (see [_balancePlacement]).
@@ -238,11 +239,11 @@ class FigureRenderer {
         (figure.move == 'box_circulate' &&
             !figure.params.containsKey('balance'));
     if (showBalance) {
-      final placement = figure.move == 'pull_by'
+      final placement = normalizedMove == 'pull_by'
           ? (_isUnspecified(params['who'])
                 ? _BalancePlacement.leading
                 : _BalancePlacement.afterWho)
-          : _balancePlacement[figure.move];
+          : _balancePlacement[normalizedMove];
       if (placement != null) {
         final connective = _renderPrefix('balance', verbose);
         if (placement == _BalancePlacement.leading) {
@@ -2238,7 +2239,7 @@ class FigureRenderer {
     // hand TCB states ("Balance long wave (NR, women face in)" = neighbors by
     // the right) and the trailing balance clause (#296). `who` keeps ContraDB's
     // meaning — the pair that faces IN — so no stored figure's meaning changes;
-    // the hand clause is emitted ONLY when both `whom` and `hand` are stated
+    // the hand clause is emitted ONLY when both `whom` and `whomHand` are stated
     // (they default to the `unspecified` sentinel, which renders as nothing),
     // so a ContraDB import renders as it did at v20. Consulted only when
     // `!forCanonical`, so `renderCanonical` stays byte-stable (dedupe/FTS).
@@ -2249,7 +2250,7 @@ class FigureRenderer {
       final swhom = _isUnspecified(params['whom'])
           ? ''
           : r._displaySubject(params['whom'], dialect);
-      final hand = _displayChoice(params['hand']);
+      final hand = _displayChoice(params['whomHand']);
       final holdClause = (swhom.isEmpty || hand.isEmpty)
           ? ''
           : '$swhom by the $hand';

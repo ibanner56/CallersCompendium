@@ -36,8 +36,7 @@ void main() {
       // Setting every structured param to a non-default must NOT perturb the
       // canonical text (otherwise dedupe/FTS for these moves would shift — the
       // thing PR4 Part A explicitly must not do).
-      const params = {
-        'dir': 'rightDiagonal',
+      const commonParams = {
         'balance': true,
         'center': 'role1s',
         'centerHand': 'left',
@@ -46,13 +45,19 @@ void main() {
       };
       expect(
         renderer.renderCanonical(
-          testFigure(move: 'form_short_waves', params: params),
+          testFigure(
+            move: 'form_short_waves',
+            params: {...commonParams, 'axis': 'rightDiagonal'},
+          ),
         ),
         'form short waves',
       );
       expect(
         renderer.renderCanonical(
-          testFigure(move: 'pass_the_ocean', params: params),
+          testFigure(
+            move: 'pass_the_ocean',
+            params: {...commonParams, 'where': 'rightDiagonal'},
+          ),
         ),
         'pass the ocean',
       );
@@ -141,21 +146,24 @@ void main() {
       );
     });
 
-    test('non-default dir surfaces the diagonal word + indefinite article', () {
-      expect(
-        renderer.render(
-          Figure(move: 'pass_the_ocean', params: {'dir': 'rightDiagonal'}),
-          d,
-        ),
-        'pass through to a right diagonal ocean wave - role2s catch left '
-        'hands in the center, neighbor take right hands on the sides',
-      );
-    });
+    test(
+      'non-default where surfaces the diagonal word + indefinite article',
+      () {
+        expect(
+          renderer.render(
+            Figure(move: 'pass_the_ocean', params: {'where': 'rightDiagonal'}),
+            d,
+          ),
+          'pass through to a right diagonal ocean wave - role2s catch left '
+          'hands in the center, neighbor take right hands on the sides',
+        );
+      },
+    );
 
-    test('the "across" dir default is silent (no diagonal word)', () {
+    test('the "across" where default is silent (no diagonal word)', () {
       expect(
         renderer.render(
-          Figure(move: 'pass_the_ocean', params: {'dir': 'across'}),
+          Figure(move: 'pass_the_ocean', params: {'where': 'across'}),
           d,
         ),
         renderer.render(Figure(move: 'pass_the_ocean'), d),
@@ -190,7 +198,7 @@ void main() {
           Figure(
             move: 'pass_the_ocean',
             params: const {
-              'dir': 'rightDiagonal',
+              'where': 'rightDiagonal',
               'balance': true,
               'center': 'role1s',
               'centerHand': 'left',

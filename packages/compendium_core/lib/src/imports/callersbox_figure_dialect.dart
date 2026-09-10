@@ -3008,8 +3008,8 @@ List<String>? _boundedPassListCellsIn(String lower, int open, int close) {
 const String _grandRightAndLeftNote = 'grand right and left';
 
 /// Decomposes TCB's `Grand right and left (<pass list>)` shorthand into one
-/// [Figure] per stated pass — a `pull_by_dancers` carrying that pass's dancer
-/// (`who`) and stated `hand` — or returns `null` to leave the line alone
+/// [Figure] per stated pass — a canonical `pull_by` carrying that pass's
+/// dancer (`who`) and stated `hand` — or returns `null` to leave the line alone
 /// (→ the caller's ordinary whole-line/custom reading).
 ///
 /// **Why a sequence and not a move (#295).** ContraDB transcribes the SAME
@@ -3017,8 +3017,8 @@ const String _grandRightAndLeftNote = 'grand right and left';
 /// figure at all. *334* by Diane Silver is the decisive side-by-side: TCB
 /// #10042 A2 writes `(4) Grand right and left (N3R;N2L)` where ContraDB #3403
 /// A2 writes `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull by
-/// left`. So the shorthand is lowered onto the `pull_by_dancers` move the
-/// taxonomy already has — no new taxonomy move, no version bump.
+/// left`. So the shorthand is lowered onto the canonical `pull_by` move from
+/// taxonomy v35; legacy aliases are normalized at persisted-data boundaries.
 ///
 /// **Strictness (conservative / prefer-custom).** Runs on the SCRUBBED text
 /// before the front-end's annotation strip, like the hey decoder, because the

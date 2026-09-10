@@ -163,13 +163,6 @@ class Taxonomy {
       final derived = paramBeats.byValue[effective[paramBeats.param]];
       if (derived != null) effective['beats'] = derived;
     }
-    // Renderers and dialects from older releases still read these keys while
-    // decoding figures that have not reached the write boundary yet.
-    for (final entry
-        in _v35ParamRenames[def.id]?.entries ??
-            const <MapEntry<String, String>>[]) {
-      effective.putIfAbsent(entry.key, () => effective[entry.value]);
-    }
     return effective;
   }
 
@@ -316,14 +309,17 @@ class Taxonomy {
     return value == pair.pinnedValue ? pair.inversePairId : figure.move;
   }
 
-  /// Validates a figure against this taxonomy.
+  /// Validates the supplied figure as-is against this taxonomy.
   ///
   /// Errors: unknown move, unknown param name, out-of-domain param value.
   /// Warnings: atypical beat count (per the move's `goodBeats`).
+  ///
+  /// Compatibility normalization belongs at an explicit persisted-data or
+  /// read-boundary consumer, not here: callers validating fixtures or newly
+  /// decoded input must be able to detect obsolete v34 vocabulary.
   List<ValidationIssue> validateFigure(Figure figure) {
-    final normalized = normalizeFigureV35(figure);
     final issues = <ValidationIssue>[];
-    final def = resolve(normalized.move);
+    final def = resolve(figure.move);
     if (def == null) {
       return [
         ValidationIssue(
@@ -335,7 +331,7 @@ class Taxonomy {
         ),
       ];
     }
-    for (final entry in normalized.params.entries) {
+    for (final entry in figure.params.entries) {
       final spec = def.params[entry.key];
       if (spec == null) {
         issues.add(
@@ -358,7 +354,7 @@ class Taxonomy {
       }
     }
     final goodBeats = def.goodBeats;
-    final beats = normalized.params['beats'];
+    final beats = figure.params['beats'];
     if (goodBeats != null &&
         goodBeats.isNotEmpty &&
         beats is int &&

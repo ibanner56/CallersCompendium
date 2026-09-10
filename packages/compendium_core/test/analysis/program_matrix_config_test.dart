@@ -25,7 +25,7 @@ void main() {
   Figure aliasSwing(String move) => testFigure(move: move, params: const {});
   Figure doSiDo() => testFigure(move: 'do_si_do', params: const {});
   Figure circleLeft() =>
-      testFigure(move: 'circle', params: const {'turn': 'left'});
+      testFigure(move: 'circle', params: const {'direction': 'left'});
   Figure hey([String? length]) =>
       testFigure(move: 'hey', params: {'length': ?length});
 
@@ -197,9 +197,9 @@ void main() {
       const compound = CompoundColumn(
         id: compoundId,
         steps: [
-          StepMatcher(move: 'circle', params: {'turn': 'left'}),
+          StepMatcher(move: 'circle', params: {'direction': 'left'}),
           StepMatcher(move: 'swing', params: {'who': 'partners'}),
-          StepMatcher(move: 'circle', params: {'turn': 'left'}),
+          StepMatcher(move: 'circle', params: {'direction': 'left'}),
         ],
       );
 
@@ -530,7 +530,7 @@ void main() {
             id: 'compound:1',
             steps: [
               StepMatcher(move: 'swing', params: {'who': 'partners'}),
-              StepMatcher(move: 'circle', params: {'turn': 'left'}),
+              StepMatcher(move: 'circle', params: {'direction': 'left'}),
             ],
           ),
         ],

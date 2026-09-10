@@ -1115,6 +1115,17 @@ void main() {
       });
     });
 
+    // invalid-fixture: these figures deliberately use pre-v35 move identifiers
+    test('legacy pull-by aliases use canonical balance placement', () {
+      for (final move in ['pull_by_dancers', 'pull_by_direction']) {
+        final summary = renderer.renderSummary(
+          Figure(move: move, params: {'balance': true}),
+          d,
+        );
+        expect(summary, startsWith('balance &'), reason: move);
+      }
+    });
+
     group('down/up-the-hall ender', () {
       test('default turn-couple ender is surfaced', () {
         expect(

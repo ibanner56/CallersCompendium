@@ -72,7 +72,7 @@ void main() {
       final p = tax.effectiveParams(Figure(move: 'allemande'));
       expect(p['who'], 'neighbors');
       expect(p['hand'], 'right');
-      expect(p['turn'], 1.0);
+      expect(p['travel'], 1.0);
       expect(p['beats'], 8);
     });
 
@@ -93,6 +93,7 @@ void main() {
       );
     });
 
+    // invalid-fixture: this exercises a pre-v35 persisted parameter name
     test('see_saw legacy turn becomes travel while retaining shoulder pin', () {
       final normalized = tax.normalizeFigureV35(
         Figure(move: 'see_saw', params: {'turn': 1.5}),
@@ -161,6 +162,14 @@ void main() {
       );
     });
 
+    // invalid-fixture: this deliberately uses a v34 parameter key to ensure validation is strict
+    test('does not normalize legacy vocabulary while validating', () {
+      final issues = tax.validateFigure(
+        Figure(move: 'circle', params: {'turn': 'left'}),
+      );
+      expect(issues.any((i) => i.code == 'unknown_param'), isTrue);
+    });
+
     test('unknown move is a single error', () {
       // invalid-fixture: move is deliberately outside the taxonomy — unknown move is a single error
       final issues = tax.validateFigure(Figure(move: 'floop'));
@@ -189,7 +198,7 @@ void main() {
       expect(
         tax
             // invalid-fixture: value is deliberately out of domain — out-of-domain param value is an error
-            .validateFigure(Figure(move: 'allemande', params: {'turn': 0.3}))
+            .validateFigure(Figure(move: 'allemande', params: {'travel': 0.3}))
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
         reason: '0.3 is not a quarter-turn step',

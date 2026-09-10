@@ -206,6 +206,7 @@ void main() {
       expect(restored[1].params['beats'], 12);
     });
 
+    // invalid-fixture: this exercises persisted v34 parameter names
     test('normalizes legacy identifiers recursively', () {
       final stored = encodeFigures([
         Figure(move: 'circle', params: const {'turn': 'right', 'places': 3}),
@@ -274,6 +275,7 @@ void main() {
     test('normalizes legacy identifiers in ordinary side defaults', () {
       final restored = meanwhileSideFiguresFromStored(
         encodeFigures([
+          // invalid-fixture: this exercises a persisted v34 parameter name
           Figure(move: 'circle', params: const {'turn': 'left'}),
         ]),
       );

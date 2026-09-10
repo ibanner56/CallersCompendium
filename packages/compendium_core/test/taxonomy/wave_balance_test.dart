@@ -57,16 +57,19 @@ void main() {
   });
 
   group('taxonomy v21 form_long_waves params', () {
-    test('gains whom / hand / balance, all defaulting to "states nothing"', () {
-      final def = tax.resolve('form_long_waves')!;
-      expect(def.params['whom']!.defaultValue, ParamVocab.unspecified);
-      expect(def.params['whomHand']!.defaultValue, ParamVocab.unspecified);
-      expect(def.params['balance']!.defaultValue, isFalse);
-      // `who` keeps its ContraDB meaning (the pair that faces IN).
-      expect(def.params['who']!.defaultValue, 'role1s');
-    });
+    test(
+      'gains whom / whomHand / balance, all defaulting to "states nothing"',
+      () {
+        final def = tax.resolve('form_long_waves')!;
+        expect(def.params['whom']!.defaultValue, ParamVocab.unspecified);
+        expect(def.params['whomHand']!.defaultValue, ParamVocab.unspecified);
+        expect(def.params['balance']!.defaultValue, isFalse);
+        // `who` keeps its ContraDB meaning (the pair that faces IN).
+        expect(def.params['who']!.defaultValue, 'role1s');
+      },
+    );
 
-    // Issue #739. `hand` wore `ParamKind.choice` from v21 until #726/#736
+    // Issue #739. `whomHand` wore `ParamKind.choice` from v21 until #726/#736
     // (editor + validator) and #746 (search facet) taught all three consumers
     // of the kind + `choices` contract to read `spec.choices ?? <fixed
     // vocabulary>`; the workaround existed ONLY to smuggle the sentinel past
@@ -75,7 +78,7 @@ void main() {
     // stops being admitted somewhere: a spec the editor or the facet offers
     // `unspecified` for, but whose validator then rejects it, would fail
     // `validateFigure` the moment a user picks "not stated".
-    test('hand is a handedness that still admits the sentinel (#739)', () {
+    test('whomHand is a handedness that still admits the sentinel (#739)', () {
       final spec = tax.resolve('form_long_waves')!.params['whomHand']!;
       expect(spec.kind, ParamKind.handedness);
       // Domain-content pin, so every token is spelled out — including the
@@ -245,7 +248,7 @@ void main() {
             params: const {
               'who': 'role2s',
               'whom': 'neighbors',
-              'hand': 'right',
+              'whomHand': 'right',
             },
           ),
           d,

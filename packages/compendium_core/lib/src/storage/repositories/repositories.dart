@@ -1290,17 +1290,18 @@ class CompendiumRepositories {
     required bool alreadyRebuilt,
     DerivedRebuildProgressCallback? onProgress,
   }) async {
-    final pending = await db
+    final marker = await db
         .customSelect(
-          'SELECT 1 FROM settings WHERE key = ? AND value_json != ? '
+          'SELECT value_json FROM settings WHERE key = ? '
           'AND deleted_at IS NULL',
           variables: [
             Variable.withString(taxonomyV35FigureNormalizationDoneKey),
-            Variable.withString('true'),
           ],
         )
         .get();
-    if (pending.isEmpty) return alreadyRebuilt;
+    final pending =
+        marker.isEmpty || marker.first.read<String>('value_json') != 'true';
+    if (!pending) return alreadyRebuilt;
 
     var rewroteAny = false;
     String? afterId;

@@ -38,7 +38,7 @@ void main() {
   final renderer = FigureRenderer(contraTaxonomy);
   // A three-quarter allemande renders the glyph ¾ by default and 0.75 when the
   // decimals toggle is on.
-  final figure = Figure(move: 'allemande', params: {'turn': 0.75});
+  final figure = Figure(move: 'allemande', params: {'travel': 0.75});
   final fraction = renderer.renderSummary(figure, Dialect.larksRobins);
   final decimal = renderer.renderSummary(
     figure,

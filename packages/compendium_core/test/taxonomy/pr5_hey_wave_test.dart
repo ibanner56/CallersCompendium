@@ -49,7 +49,7 @@ void main() {
     });
 
     test(
-      'hey renders pass1 + shoulder; ricochet/length/dir stay structured',
+      'hey renders pass1 + shoulder; ricochet/length/where stay structured',
       () {
         expect(
           renderer.renderCanonical(
@@ -60,7 +60,7 @@ void main() {
                 'shoulder': 'left',
                 'length': 'full',
                 'rico1': true,
-                'dir': 'along',
+                'where': 'along',
               },
             ),
           ),

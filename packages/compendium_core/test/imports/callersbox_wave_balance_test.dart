@@ -112,7 +112,7 @@ void main() {
         expect(figures[1].move, 'form_long_waves');
         expect(figures[1].params['balance'], isTrue);
         expect(figures[1].params['whom'], 'neighbors');
-        expect(figures[1].params['hand'], 'left');
+        expect(figures[1].params['whomHand'], 'left');
         // `who` is the facing-IN role, matching ContraDB's own subject.
         expect(figures[1].params['who'], 'role2s');
         expect(figures[1].params['beats'], 4);
@@ -130,7 +130,7 @@ void main() {
       expect(figures[1].params['sides'], 'nextNeighbors');
       expect(figures[3].move, 'form_long_waves');
       expect(figures[3].params['whom'], 'shadows');
-      expect(figures[3].params['hand'], 'right');
+      expect(figures[3].params['whomHand'], 'right');
       expect(figures[3].params['who'], 'role1s');
     });
 

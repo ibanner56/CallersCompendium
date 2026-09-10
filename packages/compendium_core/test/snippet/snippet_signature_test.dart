@@ -33,7 +33,7 @@ void main() {
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.0},
       );
       expect(
         figureSnippetSignature(defaulted, tax),
@@ -44,11 +44,11 @@ void main() {
     test('distinguishes allemande left ½ from right 1½', () {
       final left = Figure(
         move: 'allemande',
-        params: {'hand': 'left', 'turn': 0.5},
+        params: {'hand': 'left', 'travel': 0.5},
       );
       final right = Figure(
         move: 'allemande',
-        params: {'hand': 'right', 'turn': 1.5},
+        params: {'hand': 'right', 'travel': 1.5},
       );
       expect(
         figureSnippetSignature(left, tax),
@@ -73,7 +73,7 @@ void main() {
 
     test('normalizes integral turns without a trailing .0', () {
       final sig = figureSnippetSignature(
-        Figure(move: 'allemande', params: {'turn': 1.0}),
+        Figure(move: 'allemande', params: {'travel': 1.0}),
         tax,
       );
       expect(sig, contains('travel=1'));
@@ -83,11 +83,11 @@ void main() {
     test('is deterministic regardless of param insertion order', () {
       final a = Figure(
         move: 'allemande',
-        params: {'turn': 1.5, 'hand': 'left', 'who': 'partners'},
+        params: {'travel': 1.5, 'hand': 'left', 'who': 'partners'},
       );
       final b = Figure(
         move: 'allemande',
-        params: {'who': 'partners', 'hand': 'left', 'turn': 1.5},
+        params: {'who': 'partners', 'hand': 'left', 'travel': 1.5},
       );
       expect(figureSnippetSignature(a, tax), figureSnippetSignature(b, tax));
     });
@@ -118,7 +118,7 @@ void main() {
     test('renders a readable label round-tripping from a real figure', () {
       final figure = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.5},
       );
       final sig = figureSnippetSignature(figure, tax)!;
       final label = describeFigureSignature(sig, tax, renderer, dialect);
