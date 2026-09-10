@@ -2305,11 +2305,11 @@ void main() {
         kDefaultDanceFiguresTemplateKey,
         encodeFigures([]),
       );
-      // Configure a per-move default: circle turns right (default is left).
+      // Configure a per-move default: circle goes right (default is left).
       await repos.settings.set(
         kDefaultMoveParamOverridesKey,
         encodeMoveParamOverrides({
-          'circle': {'turn': 'right'},
+          'circle': {'direction': 'right'},
         }),
       );
       await _pumpEditor(tester, repos);
@@ -2330,7 +2330,7 @@ void main() {
       final figure = (await repos.dances.listAll()).single.figures.single;
       expect(figure.move, 'circle');
       // Overridden param takes the configured value...
-      expect(figure.params['turn'], 'right');
+      expect(figure.params['direction'], 'right');
       // ...while non-overridden params keep the taxonomy defaults.
       expect(figure.params['places'], 4);
       expect(figure.params['beats'], 8);

@@ -405,7 +405,9 @@ List<Figure> defaultNewDanceFigureTemplate() => [
 List<Figure> danceFiguresTemplateFromStored(Object? stored) {
   if (stored is String) {
     try {
-      return decodeFigures(stored);
+      return decodeFigures(
+        stored,
+      ).map(contraTaxonomy.normalizeFigureV35).toList(growable: false);
     } catch (_) {
       // diagnostics: silent — empty/malformed JSON falls back to the default template
     }
@@ -437,7 +439,9 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
       final figures = decodeFigures(stored);
       if (figures.length <= kMaxMeanwhileSides &&
           figures.every((figure) => !figure.isMeanwhile)) {
-        return figures;
+        return figures
+            .map(contraTaxonomy.normalizeFigureV35)
+            .toList(growable: false);
       }
     } catch (_) {
       // diagnostics: silent — malformed side defaults use the safe fallback
@@ -467,8 +471,9 @@ const String kDefaultMoveParamOverridesKey = 'default_move_param_overrides';
 /// behavior for users who never touch the setting. Parses defensively: only
 /// top-level entries whose value is itself a JSON object are kept, and any
 /// empty inner map is dropped (an empty inner map means the move has no
-/// overrides, i.e. it is absent). Returned inner maps are mutable so callers
-/// can edit them in place.
+/// overrides, i.e. it is absent). Legacy v34 move and parameter identifiers
+/// are normalized through the active taxonomy. Returned inner maps are mutable
+/// so callers can edit them in place.
 Map<String, Map<String, Object?>> moveParamOverridesFromStored(Object? stored) {
   final result = <String, Map<String, Object?>>{};
   if (stored is! String || stored.isEmpty) return result;
@@ -486,7 +491,13 @@ Map<String, Map<String, Object?>> moveParamOverridesFromStored(Object? stored) {
     value.forEach((paramKey, paramValue) {
       if (paramKey is String) inner[paramKey] = paramValue;
     });
-    if (inner.isNotEmpty) result[moveId] = inner;
+    if (inner.isEmpty) return;
+    final normalized = contraTaxonomy.normalizeFigureV35(
+      Figure(move: moveId, params: inner),
+    );
+    result
+        .putIfAbsent(normalized.move, () => <String, Object?>{})
+        .addAll(normalized.params);
   });
   return result;
 }

@@ -1589,6 +1589,13 @@ fails a PR that moves the constant without adding the matching entry.
   Existing assumed mad robins with no explicit `who` are normalized, including
   nested `meanwhile` sides, and canonical/FTS rows are rebuilt once under
   `taxonomyV34CanonicalRebuildDoneKey`. Explicit subjects are preserved.
+- v35 (#1104): aligns parameter names with their semantic roles (`travel`,
+  `direction`, `where`, `axis`, `fraction`, `whomHand`, and `endFacing`),
+  unifies the `pull_by` taxonomy, makes source-absence sentinels explicit,
+  retains `circle` as a hall ender, and updates canonical/display rendering.
+  Existing figures require a recursive persisted-data migration and a complete
+  derived-index rebuild; legacy keys remain readable through deterministic
+  normalization.
 
 ## Open questions (to resolve during implementation, with user input)
 

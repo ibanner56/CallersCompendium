@@ -83,7 +83,7 @@ void main() {
       expect(figures[0].params['beats'], 16);
 
       expect(figures[1].move, 'circle');
-      expect(figures[1].params['turn'], 'left');
+      expect(figures[1].params['direction'], 'left');
       expect(figures[1].params['places'], 3);
       expect(figures[1].params['beats'], 8);
 

@@ -544,7 +544,7 @@ void main() {
       // a recognised move → structured (the label/beats live on the figure).
       expect(draft.dance.figures, hasLength(1));
       expect(draft.dance.figures.single.move, 'circle');
-      expect(draft.dance.figures.single.params['turn'], 'left');
+      expect(draft.dance.figures.single.params['direction'], 'left');
     });
 
     test('parse throws only when the payload is not a dance page', () {
@@ -646,9 +646,9 @@ void main() {
 
       expect(f[0].move, 'allemande');
       expect(f[0].params['hand'], 'left');
-      expect(f[0].params['turn'], 1.0);
+      expect(f[0].params['travel'], 1.0);
       expect(f[5].move, 'allemande');
-      expect(f[5].params['turn'], 1.5);
+      expect(f[5].params['travel'], 1.5);
       expect(f[5].note, "- don't let go");
       // Ocean-wave split: wave (formation, 0 beats) then a standalone balance.
       expect(f[6].move, 'form_short_waves');

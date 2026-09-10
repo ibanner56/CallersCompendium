@@ -70,7 +70,7 @@ void main() {
     test('figure_8 renders the full variant', () {
       expect(
         renderer.renderCanonical(
-          Figure(move: 'figure_8', params: {'half': 'full'}),
+          Figure(move: 'figure_8', params: {'fraction': 'full'}),
         ),
         'ones full figure 8',
       );
@@ -188,10 +188,10 @@ void main() {
       );
     });
 
-    test('poussette turn accepts a spin direction', () {
+    test('poussette direction accepts a spin direction', () {
       expect(
         tax.validateFigure(
-          Figure(move: 'poussette', params: {'turn': 'counterclockwise'}),
+          Figure(move: 'poussette', params: {'direction': 'counterclockwise'}),
         ),
         isEmpty,
       );

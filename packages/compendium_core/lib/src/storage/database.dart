@@ -251,6 +251,11 @@ const String taxonomyV33CanonicalRebuildDoneKey =
 const String taxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
 
+/// Settings key marking that persisted figures have been normalized to the
+/// taxonomy v35 parameter names and move ids.
+const String taxonomyV35FigureNormalizationDoneKey =
+    '__taxonomy_v35_figure_normalization_done__';
+
 /// Settings key for the one-time repair of legacy CallersBox `roll_away`
 /// figures whose per-role annotation was stored only as a note (#1192).
 ///
@@ -315,9 +320,13 @@ const int kMinSupportedSchemaVersion = 20;
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
 ///
-/// - v35 (issue #1233): replaces `program_slots.planned_minutes` with
-///   nullable `walkthrough_minutes` and `dance_minutes`, copying every
-///   existing value to dance minutes.
+/// - v35 (issues #1104 and #1233): normalizes persisted figure parameter keys
+///   and consolidates the two legacy pull-by move ids; replaces
+///   `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+///   `dance_minutes`, copying every existing value to dance minutes. The
+///   taxonomy source JSON is rewritten recursively, including nested
+///   `meanwhile` figures; derived figure/search rows are rebuilt after the
+///   rewrite.
 ///
 /// - v34 (issue #1200): adds the Device Sync timestamp triple to the
 ///   difficulty-level vocabulary, converting level deletion into a tombstone.
@@ -880,6 +889,14 @@ class CompendiumDatabase extends _$CompendiumDatabase {
               ),
             },
           ),
+        );
+        // Issue #1104: taxonomy v35 renamed persisted parameter keys and
+        // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
+        // renderer are unavailable from MigrationStrategy, so record a
+        // durable post-open sweep for CompendiumRepositories.ensureMigrated.
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [taxonomyV35FigureNormalizationDoneKey, 'false'],
         );
       }
     },

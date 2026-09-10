@@ -351,7 +351,7 @@ FigureMatch? _doSiDo(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('do_si_do', params: params, note: s.note());
 }
@@ -361,8 +361,9 @@ FigureMatch? _doSiDo(String text) {
 /// around" — is modeled as `meanwhile[allemande, orbit]` (the fused
 /// `allemande_orbit` move was RETIRED at taxonomy v19). The source states BOTH
 /// the orbit direction AND the orbiting pair, so the container is built with
-/// full fidelity (no derivation): `allemande{who, hand, turn: inner}` +
-/// `orbit{who: who2, turn: direction, amount: outer}`, both sides beats-absent
+/// full fidelity (no derivation): `allemande{who, hand, travel: inner}` +
+/// `orbit{who: who2, direction: direction, travel: outer}`, both sides
+/// beats-absent
 /// so the shared line total rides on the container's `beats` (keeping
 /// [deriveSections]' cumulative total byte-identical to the pre-split fused
 /// line). Returns null — declining to a plain allemande / custom — unless the
@@ -406,11 +407,11 @@ Figure? _allemandeOrbitMeanwhile(
     // The direction word is always rendered; if absent this isn't an orbit.
     return null;
   }
-  final orbitParams = <String, Object?>{'who': who2, 'turn': direction};
+  final orbitParams = <String, Object?>{'who': who2, 'direction': direction};
   final outer = _rotation(s.peek());
   if (outer != null) {
     s.take();
-    orbitParams['amount'] = outer;
+    orbitParams['travel'] = outer;
   }
   s.eat('around');
   // Leftover after the template is trailing prose. If it still carries a
@@ -424,7 +425,7 @@ Figure? _allemandeOrbitMeanwhile(
     figures: [
       Figure(
         move: 'allemande',
-        params: {'who': who, 'hand': hand, 'turn': inner},
+        params: {'who': who, 'hand': hand, 'travel': inner},
       ),
       Figure(move: 'orbit', params: orbitParams),
     ],
@@ -447,7 +448,7 @@ FigureMatch? _allemande(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('allemande', params: params, note: s.note());
 }
@@ -458,10 +459,10 @@ FigureMatch? _allemande(String text) {
 /// circulation around the ring as `promenade single file around the
 /// circle|ring {n} places` (real render: Travels with Rick and Kim #455) —
 /// a single-file CIRCLE, not the `promenade` move (this taxonomy has no
-/// separate `circle_left` id; `turn` already spans left/right). The owner
+/// separate `circle_left` id; `direction` already spans left/right). The owner
 /// flagged this as the more fragile of the two #634 mappings, so it is
 /// recognized ONLY as this exact, fully-anchored phrase — no partial match,
-/// no fallback — and always defaults `turn` to `left` (the phrasing never
+/// no fallback — and always defaults `direction` to `left` (the phrasing never
 /// states a direction).
 FigureMatch? _circle(String text) {
   final s = _Scan(text);
@@ -470,7 +471,7 @@ FigureMatch? _circle(String text) {
     final ringNoun = s.peek();
     if (ringNoun == 'circle' || ringNoun == 'ring') {
       s.take();
-      final params = <String, Object?>{'turn': 'left', 'singleFile': true};
+      final params = <String, Object?>{'direction': 'left', 'singleFile': true};
       _eatPlaces(s, params);
       return FigureMatch('circle', params: params, note: s.note());
     }
@@ -481,7 +482,7 @@ FigureMatch? _circle(String text) {
   final turn = _leftRight(s.peek());
   if (turn == null) return null;
   s.take();
-  final params = <String, Object?>{'turn': turn};
+  final params = <String, Object?>{'direction': turn};
   _eatPlaces(s, params);
   return FigureMatch('circle', params: params, note: s.note());
 }
@@ -515,7 +516,7 @@ FigureMatch? _slideAlongSet(String text) {
 /// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>`,
 /// `[<left|right>-hand]`, `chain`. The leading diagonal qualifier renders only
 /// for non-default values (real render: The Judge — `left diagonal ladles
-/// chain to shadow`) and maps to the `dir` param; the ubiquitous form is a
+/// chain to shadow`) and maps to the `where` param; the ubiquitous form is a
 /// bare `ladles chain`. The hand slot (v28, #976) sits between the subject
 /// and `chain`, matching ContraDB's `chainWords` order (`words(sdiag, swho,
 /// thand, smove)`, `figure.js:266-278`) — hyphenated (`left-hand`) because
@@ -561,7 +562,7 @@ FigureMatch? _chain(String text) {
     'who': who,
     'hand': statedHand ?? chainHandForWho(who),
   };
-  if (dir != null) params['dir'] = dir;
+  if (dir != null) params['where'] = dir;
   return FigureMatch('chain', params: params, note: s.note());
 }
 
@@ -594,7 +595,7 @@ FigureMatch? _passTheOcean(String text) {
   return FigureMatch(
     'pass_the_ocean',
     params: {
-      'dir': 'across',
+      'where': 'across',
       if (balance) 'balance': true,
       'center': center,
       'centerHand': centerHand,
@@ -636,7 +637,7 @@ FigureMatch? _formAShortWave(String text) {
   return FigureMatch(
     'form_short_waves',
     params: {
-      'dir': 'across',
+      'axis': 'across',
       'center': center,
       'centerHand': centerHand,
       'sides': sides,
@@ -886,7 +887,7 @@ FigureMatch? _rightLeftThrough(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
   if (!s.eatPhrase('right left through')) return null;
   return FigureMatch('right_left_through', params: params, note: s.note());
@@ -948,7 +949,7 @@ String? _starGrip(_Scan s) {
 /// to new neightbors`.
 ///
 /// Issue #749: a bare `along`/`across` direction token immediately after
-/// `promenade` IS consumed in the single-file branch, so `dir` is captured
+/// `promenade` IS consumed in the single-file branch, so `where` is captured
 /// from the source text; the rest of the tail was left as the note.
 ///
 /// Issue #921 (taxonomy v29): the destination tail is now structured. After
@@ -973,11 +974,11 @@ FigureMatch? _promenade(String text) {
   if (singleFile) {
     params['singleFile'] = true;
     // Consume a bare direction token (`along` or `across`) immediately after
-    // `promenade` so `dir` is captured from the source text.
+    // `promenade` so `where` is captured from the source text.
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
-      params['dir'] = dir;
+      params['where'] = dir;
     }
     // Consume the destination tail (issue #921):
     //   optional "major set" descriptor (e.g. "along major set to …")
@@ -994,10 +995,10 @@ FigureMatch? _promenade(String text) {
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
-      params['dir'] = dir;
+      params['where'] = dir;
     }
     final turn = _promenadeTurn(s);
-    if (turn != null) params['turn'] = turn;
+    if (turn != null) params['direction'] = turn;
   }
   return FigureMatch('promenade', params: params, note: s.note());
 }
@@ -1128,7 +1129,7 @@ FigureMatch? _gyre(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('shoulder_round', params: params, note: s.note());
 }
@@ -1211,7 +1212,7 @@ FigureMatch? _madRobin(String text) {
   if (rot != null) {
     s.take();
     if (s.eat('around')) {
-      params['turn'] = rot;
+      params['travel'] = rot;
     } else {
       s.reset(save);
     }
@@ -1313,8 +1314,8 @@ FigureMatch? _tradeBy(String text) {
 /// positional rather than a direction (`by the left`, `past partners`,
 /// `to next neighbors`, `to form an ocean wave with shadows`; real renders:
 /// Barack Me Obamadeus, In Cahoots, Ad Vielle, The Young Adult Rose). The
-/// recognised template is just `pass through` plus an optional shoulder/dir; any
-/// remaining qualifier survives verbatim as the note (`dir` then defaults to the
+/// recognised template is just `pass through` plus an optional shoulder/where; any
+/// remaining qualifier survives verbatim as the note (`where` then defaults to the
 /// taxonomy `along`).
 FigureMatch? _passThrough(String text) {
   final s = _Scan(text);
@@ -1325,7 +1326,7 @@ FigureMatch? _passThrough(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
   return FigureMatch('pass_through', params: params, note: s.note());
 }
@@ -1341,7 +1342,7 @@ FigureMatch? _pullByDancers(String text) {
   if (hand == null) return null;
   s.take();
   return FigureMatch(
-    'pull_by_dancers',
+    'pull_by',
     params: {'who': who, if (balance) 'balance': true, 'hand': hand},
     note: s.note(),
   );
@@ -1359,9 +1360,9 @@ FigureMatch? _pullByDirection(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
-  return FigureMatch('pull_by_direction', params: params, note: s.note());
+  return FigureMatch('pull_by', params: params, note: s.note());
 }
 
 /// gateWords: `<who> gate <whom> to face <direction>`.
@@ -1369,8 +1370,8 @@ FigureMatch? _pullByDirection(String text) {
 /// `who` is the side that extends a hand and BACKS UP; `whom` walks forward
 /// (libfigure `figure.js:844`). The trailing direction is the gate's ENDING
 /// FACING (`figure.js:841` emits the literal words "to face"), stored on the
-/// merged move's `face` param as of taxonomy v22 — the rotation sense and turn
-/// amount ContraDB does not model stay `unspecified`.
+/// merged move's `endFacing` param as of taxonomy v35 — the rotation sense and
+/// turn amount ContraDB does not model stay `unspecified`.
 FigureMatch? _gate(String text) {
   final s = _Scan(text);
   final who = _subject(s);
@@ -1381,7 +1382,7 @@ FigureMatch? _gate(String text) {
   if (!s.eatPhrase('to face')) return null;
   final face = _gateFace(s);
   final params = <String, Object?>{'who': who, 'whom': whom};
-  if (face != null) params['face'] = face;
+  if (face != null) params['endFacing'] = face;
   return FigureMatch('gate', params: params, note: s.note());
 }
 
@@ -1439,7 +1440,7 @@ FigureMatch? _zigZag(String text) {
   s.take();
   if (!s.eat('zag')) return null;
   if (_leftRight(s.peek()) != null) s.take(); // the (derived) return direction
-  final params = <String, Object?>{'turn': turn};
+  final params = <String, Object?>{'slide': turn};
   if (who != null) params['who'] = who;
   return FigureMatch('zig_zag', params: params, note: s.note());
 }
@@ -1587,7 +1588,7 @@ FigureMatch? _facingStar(String text) {
   if (!s.eatPhrase('facing star')) return null;
   final params = <String, Object?>{};
   final turn = _spinDir(s);
-  if (turn != null) params['turn'] = turn;
+  if (turn != null) params['direction'] = turn;
   final n = int.tryParse(s.peek() ?? '');
   if (n != null) {
     final save = s.pos;
@@ -1620,7 +1621,7 @@ FigureMatch? _poussette(String text) {
     half = 'full';
   }
   if (!s.eat('poussette')) return null;
-  final params = <String, Object?>{'half': ?half};
+  final params = <String, Object?>{'fraction': ?half};
   if (s.eat('-')) {
     final who = _subject(s);
     if (who != null && s.eat('pull')) {
@@ -1631,7 +1632,7 @@ FigureMatch? _poussette(String text) {
         final d = _leftRight(s.peek());
         if (d != null) {
           s.take();
-          params['turn'] = d == 'right' ? 'clockwise' : 'counterclockwise';
+          params['direction'] = d == 'right' ? 'clockwise' : 'counterclockwise';
         }
       }
     }
@@ -1653,7 +1654,7 @@ FigureMatch? _crossTrails(String text) {
       if (dir != null) {
         s.take();
         s.eatPhrase('the set');
-        params['dir'] = dir;
+        params['where'] = dir;
       }
       final sh = _shoulderPhrase(s);
       if (sh != null) params['shoulder'] = sh;
@@ -1711,11 +1712,11 @@ FigureMatch? _figure8(String text) {
     half = 'full';
   }
   if (!s.eatPhrase('figure 8')) return null;
-  final params = <String, Object?>{'who': who, 'half': ?half};
+  final params = <String, Object?>{'who': who, 'fraction': ?half};
   final d = s.peek();
   if (d == 'above' || d == 'below' || d == 'across') {
     s.take();
-    params['dir'] = d;
+    params['where'] = d;
   }
   return FigureMatch('figure_8', params: params, note: s.note());
 }

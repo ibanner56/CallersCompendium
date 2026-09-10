@@ -77,7 +77,7 @@ void main() {
       'Partner swing': (move: 'swing', params: {'who': 'partners'}),
       'Circle left 3/4': (
         move: 'circle',
-        params: {'turn': 'left', 'places': 3},
+        params: {'direction': 'left', 'places': 3},
       ),
       'Star left 1': (move: 'star', params: {'hand': 'left', 'places': 4}),
       // ContraDB "The Rendezvous".
@@ -88,7 +88,7 @@ void main() {
       'long lines forward & back': (move: 'long_lines', params: {}),
       'circle left 4 places': (
         move: 'circle',
-        params: {'turn': 'left', 'places': 4},
+        params: {'direction': 'left', 'places': 4},
       ),
       // CC text "Simplicity Swing".
       'Partner balance and swing': (
@@ -137,7 +137,7 @@ void main() {
       'See saw neighbor': (move: 'see_saw', params: {'who': 'neighbors'}),
       'Do si do neighbor once': (
         move: 'do_si_do',
-        params: {'who': 'neighbors', 'turn': 1.0},
+        params: {'who': 'neighbors', 'travel': 1.0},
       ),
       'Gents allemande left': (
         move: 'allemande',
@@ -201,15 +201,15 @@ void main() {
       // stripped by normalization.
       'Facing star clockwise 3/4 (MR, WL, free hand to partner)': (
         move: 'facing_star',
-        params: {'who': 'everyone', 'turn': 'clockwise', 'places': 3},
+        params: {'who': 'everyone', 'direction': 'clockwise', 'places': 3},
       ),
       'Facing star clockwise 3/4 [with N2] (ML, WR, free hand to partner)': (
         move: 'facing_star',
-        params: {'who': 'everyone', 'turn': 'clockwise', 'places': 3},
+        params: {'who': 'everyone', 'direction': 'clockwise', 'places': 3},
       ),
       'Facing star clockwise 1 [with N3] (ML, WR, free hand to partner)': (
         move: 'facing_star',
-        params: {'who': 'everyone', 'turn': 'clockwise', 'places': 4},
+        params: {'who': 'everyone', 'direction': 'clockwise', 'places': 4},
       ),
       // Issue #290 — "pass the ocean" (pass-through-to-a-wave) is distinct from
       // the generic "pass through". A bare line states no balance/hands, so only
@@ -218,7 +218,7 @@ void main() {
       'Pass ocean': (move: 'pass_the_ocean', params: {}),
       'Pass the ocean across': (
         move: 'pass_the_ocean',
-        params: {'dir': 'across'},
+        params: {'where': 'across'},
       ),
       // Issue #290 — the default short-wave case renders "form a wave" and
       // accepts the common short-wave phrasings.
@@ -234,14 +234,14 @@ void main() {
       // never states one, so `face` stays unspecified.
       'Neighbor mirror gate 1 (ones forward)': (
         move: 'gate',
-        params: {'pair': 'neighbors', 'direction': 'mirror', 'turn': 1.0},
+        params: {'pair': 'neighbors', 'direction': 'mirror', 'travel': 1.0},
       ),
       'Partner gate counterclockwise 3/4': (
         move: 'gate',
         params: {
           'pair': 'partners',
           'direction': 'counterclockwise',
-          'turn': 0.75,
+          'travel': 0.75,
         },
       ),
       'N2 neighbor gate counterclockwise 1/2': (
@@ -249,7 +249,7 @@ void main() {
         params: {
           'pair': 'nextNeighbors',
           'direction': 'counterclockwise',
-          'turn': 0.5,
+          'travel': 0.5,
         },
       ),
       'N3 neighbor gate counterclockwise 1/2': (
@@ -257,13 +257,13 @@ void main() {
         params: {
           'pair': 'thirdNeighbors',
           'direction': 'counterclockwise',
-          'turn': 0.5,
+          'travel': 0.5,
         },
       ),
       // Clockwise gates are attested (rarer); the recognizer handles them too.
       'Partner gate clockwise 1/2': (
         move: 'gate',
-        params: {'pair': 'partners', 'direction': 'clockwise', 'turn': 0.5},
+        params: {'pair': 'partners', 'direction': 'clockwise', 'travel': 0.5},
       ),
     };
 
@@ -579,10 +579,6 @@ void main() {
       //     star" and carries no direction/amount, so it stays custom.
       'form facing star',
       'Women walk forward, form facing star',
-      // A dancer-named pull-by with a trailing direction: pull_by_dancers has
-      // no direction slot, so rather than silently drop "across" the line must
-      // fall to custom (the direction is only valid on the direction-only form).
-      'Men pull by left across',
       // Partial long-lines descriptors are not the canonical "forward and
       // back", so they degrade to custom rather than a half-described figure.
       'long lines back',
@@ -872,11 +868,11 @@ void main() {
       //    "Men allemande left 1 & 1/2"). `&`→"and", bridged to 1.5.
       'Men allemande left 1 & 1/2': (
         move: 'allemande',
-        params: {'who': 'role1s', 'hand': 'left', 'turn': 1.5},
+        params: {'who': 'role1s', 'hand': 'left', 'travel': 1.5},
       ),
       'Allemande right 1 and 1/4': (
         move: 'allemande',
-        params: {'hand': 'right', 'turn': 1.25},
+        params: {'hand': 'right', 'travel': 1.25},
       ),
       // 2. Parenthetical annotations stripped for recognition (TCB appends
       //    "(NR)"/"(PR)" to pass through exclusively).
@@ -897,22 +893,26 @@ void main() {
       // 6. "balance ring" without "the" (TCB).
       'Balance ring': (move: 'balance_the_ring', params: {}),
       // 7. Promenade direction (recognizer previously never consumed it).
-      'Promenade across': (move: 'promenade', params: {'dir': 'across'}),
+      'Promenade across': (move: 'promenade', params: {'where': 'across'}),
       'Partners promenade clockwise': (
         move: 'promenade',
-        params: {'who': 'partners', 'turn': 'clockwise'},
+        params: {'who': 'partners', 'direction': 'clockwise'},
       ),
       'Partners promenade counter clockwise': (
         move: 'promenade',
-        params: {'who': 'partners', 'turn': 'counterclockwise'},
+        params: {'who': 'partners', 'direction': 'counterclockwise'},
       ),
       'Partners promenade across clockwise': (
         move: 'promenade',
-        params: {'who': 'partners', 'dir': 'across', 'turn': 'clockwise'},
+        params: {
+          'who': 'partners',
+          'where': 'across',
+          'direction': 'clockwise',
+        },
       ),
       'Neighbor promenade counterclockwise around the major set': (
         move: 'promenade',
-        params: {'who': 'neighbors', 'turn': 'counterclockwise'},
+        params: {'who': 'neighbors', 'direction': 'counterclockwise'},
       ),
       // 8. right-left-through "with X" (TCB writes this exclusively).
       'Right and left through with partner': (
@@ -938,7 +938,11 @@ void main() {
       //     "Rough Ride").
       'Partner poussette clockwise 1/2': (
         move: 'poussette',
-        params: {'who': 'partners', 'turn': 'clockwise', 'half': 'half'},
+        params: {
+          'who': 'partners',
+          'direction': 'clockwise',
+          'fraction': 'half',
+        },
       ),
       // 15. california_twirl (TCB "Partner California twirl" — id 11
       //     "Hocus Pocus").
@@ -950,23 +954,23 @@ void main() {
       //     "Mad Gypsy"). Must beat the bare _star/_promenade recognizers.
       'Partner star promenade 1/2': (
         move: 'star_promenade',
-        params: {'who': 'partners', 'turn': 0.5},
+        params: {'who': 'partners', 'travel': 0.5},
       ),
       // 17. square_through (TCB "Square through 3" — id 322 "Whim's Gym").
       'Square through 3': (move: 'square_through', params: {'places': 3}),
       'Square through 4': (move: 'square_through', params: {'places': 4}),
-      // 18. pull_by dancer form → pull_by_dancers (TCB "Men pull by left"
+      // 18. pull_by dancer form → pull_by (TCB "Men pull by left"
       //     id 481 "Hard Cider Boys"; "Partner pull by left" id 467).
       'Men pull by left': (
-        move: 'pull_by_dancers',
+        move: 'pull_by',
         params: {'who': 'role1s', 'hand': 'left'},
       ),
       'Partner pull by left': (
-        move: 'pull_by_dancers',
+        move: 'pull_by',
         params: {'who': 'partners', 'hand': 'left'},
       ),
       'Neighbor pull by right': (
-        move: 'pull_by_dancers',
+        move: 'pull_by',
         params: {'who': 'neighbors', 'hand': 'right'},
       ),
       // 19. slide → slide_along_set (TCB "Slide left/right (past N)" — the
@@ -1121,15 +1125,22 @@ void main() {
       expect(_text(f), 'hey for four (from the top)');
     });
 
-    // Tier A: a direction-only pull-by (no named dancer) → pull_by_direction.
+    // Tier A: a direction-only pull-by (no named dancer) → pull_by.
     // No such form was found in the scanned TCB sample — every attested TCB
-    // pull-by names a dancer (→ pull_by_dancers) — so this synthetic line just
+    // pull-by names a dancer (→ pull_by) — so this synthetic line just
     // guards the defensive direction branch of the _pullBy recognizer.
-    test('"Pull by across" (no dancer) → pull_by_direction', () {
+    test('"Pull by across" (no dancer) → pull_by', () {
       final f = _parseLine('Pull by across');
       expect(f!.isCustom, isFalse);
-      expect(f.move, 'pull_by_direction');
-      expect(f.params['dir'], 'across');
+      expect(f.move, 'pull_by');
+      expect(f.params['where'], 'across');
+    });
+
+    test('"Men pull by left across" → unified pull_by', () {
+      final f = _parseLine('Men pull by left across');
+      expect(f!.isCustom, isFalse);
+      expect(f.move, 'pull_by');
+      expect(f.params, {'who': 'role1s', 'hand': 'left', 'where': 'across'});
     });
 
     // give_and_take's giver domain is role1s/role2s. A give-and-take with no
@@ -1487,12 +1498,12 @@ void main() {
       // The un-abbreviated "and" spelling structures identically.
       'Circle left 1 and 1/4': (
         move: 'circle',
-        params: {'turn': 'left', 'places': 5},
+        params: {'direction': 'left', 'places': 5},
       ),
       // 1 & 1/2 = 6 places.
       'Circle left 1 & 1/2': (
         move: 'circle',
-        params: {'turn': 'left', 'places': 6},
+        params: {'direction': 'left', 'places': 6},
       ),
       // 1 & 3/4 = 7 places.
       'Star right 1 & 3/4': (
@@ -1502,7 +1513,7 @@ void main() {
       // 2 & 1/2 = 10 places — the top of the representable range.
       'Circle left 2 & 1/2': (
         move: 'circle',
-        params: {'turn': 'left', 'places': 10},
+        params: {'direction': 'left', 'places': 10},
       ),
     };
 
@@ -1555,7 +1566,7 @@ void main() {
       final f = _parseLine('Neighbor allemande left 1 & 1/2');
       expect(f!.isCustom, isFalse);
       expect(f.move, 'allemande');
-      expect(f.params['turn'], 1.5);
+      expect(f.params['travel'], 1.5);
       expect(f.params.containsKey('places'), isFalse);
     });
   });

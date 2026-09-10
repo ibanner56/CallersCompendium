@@ -42,8 +42,8 @@ void main() {
           'whom',
           'pair',
           'direction',
-          'turn',
-          'face',
+          'travel',
+          'endFacing',
         ]) {
           expect(
             def.params[name]?.defaultValue,
@@ -84,14 +84,17 @@ void main() {
       );
       expect(
         renderer.render(
-          Figure(move: 'gate', params: {'whom': 'neighbors', 'face': 'up'}),
+          Figure(
+            move: 'gate',
+            params: {'whom': 'neighbors', 'endFacing': 'up'},
+          ),
           Dialect.canonical,
         ),
         'gate, neighbor forward to face up the hall',
       );
     });
 
-    test('defaults validate (incl. the rotation sentinel on `turn`)', () {
+    test('defaults validate (incl. the rotation sentinel on `travel`)', () {
       final figure = Figure(move: 'gate');
       final issues = tax.validateFigure(
         testFigure(move: 'gate', params: tax.effectiveParams(figure)),
@@ -102,8 +105,8 @@ void main() {
       );
     });
 
-    test('`turn` accepts real rotations AND the sentinel, nothing else', () {
-      final spec = tax.resolve('gate')!.params['turn']!;
+    test('`travel` accepts real rotations AND the sentinel, nothing else', () {
+      final spec = tax.resolve('gate')!.params['travel']!;
       expect(spec.validate(0.5), isTrue);
       expect(spec.validate(1.25), isTrue);
       expect(spec.validate(ParamVocab.unspecified), isTrue);
@@ -114,7 +117,7 @@ void main() {
       expect(
         tax
             .resolve('mad_robin')!
-            .params['turn']!
+            .params['travel']!
             .validate(ParamVocab.unspecified),
         isFalse,
       );
@@ -136,11 +139,16 @@ void main() {
     // libfigure `figure.js:844`: "'ones gate twos' means: ones, extend a hand to
     // twos - twos walk forward, ones back up, orbiting around the joined hands".
     // libfigure `figure.js:841` renders the facing after the literal words "to
-    // face", over `{up: "up the set", …}` (`param.js:711`) — so `face` is the
+    // face", over `{up: "up the set", …}` (`param.js:711`) — so `endFacing` is the
     // ENDING facing, not a direction of travel.
     Figure contraDbGate({String face = 'up'}) => testFigure(
       move: 'gate',
-      params: {'who': 'ones', 'whom': 'neighbors', 'face': face, 'beats': 8},
+      params: {
+        'who': 'ones',
+        'whom': 'neighbors',
+        'endFacing': face,
+        'beats': 8,
+      },
     );
 
     test('renders ContraDB word order with the stored ending facing', () {
@@ -164,7 +172,7 @@ void main() {
     test('a ContraDB gate asserts NO rotation sense or amount', () {
       final params = tax.effectiveParams(contraDbGate());
       expect(params['direction'], ParamVocab.unspecified);
-      expect(params['turn'], ParamVocab.unspecified);
+      expect(params['travel'], ParamVocab.unspecified);
       expect(params['pair'], ParamVocab.unspecified);
     });
   });
@@ -184,7 +192,7 @@ void main() {
       expect(f.params['pair'], 'neighbors');
       expect(f.params.containsKey('who'), isFalse);
       expect(f.params['direction'], 'mirror');
-      expect(f.params['turn'], 1.0);
+      expect(f.params['travel'], 1.0);
       expect(f.params['beats'], 8); // authored, not fixed
       // v22: "(ones forward)" is STRUCTURED onto `whom` — which means exactly
       // "the side that walks forward" (libfigure figure.js:844), so this is
@@ -200,7 +208,7 @@ void main() {
       expect(f.move, 'gate');
       expect(f.params['pair'], 'partners');
       expect(f.params['direction'], 'counterclockwise');
-      expect(f.params['turn'], 0.75);
+      expect(f.params['travel'], 0.75);
       expect(f.params['beats'], 6);
       // No annotation on this line → no note, and never an invented one.
       expect(f.note, isNull);
@@ -211,7 +219,7 @@ void main() {
       expect(n2.move, 'gate');
       expect(n2.params['pair'], 'nextNeighbors');
       expect(n2.params['direction'], 'counterclockwise');
-      expect(n2.params['turn'], 0.5);
+      expect(n2.params['travel'], 0.5);
       expect(n2.params['beats'], 4);
 
       final n3 = parse('N3 neighbor gate counterclockwise 1/2', 4).f;
@@ -221,8 +229,8 @@ void main() {
 
     test('a TCB gate never fabricates an ending facing', () {
       final f = parse('Partner gate counterclockwise 1/2', 4).f;
-      expect(f.params.containsKey('face'), isFalse);
-      expect(tax.effectiveParams(f)['face'], ParamVocab.unspecified);
+      expect(f.params.containsKey('endFacing'), isFalse);
+      expect(tax.effectiveParams(f)['endFacing'], ParamVocab.unspecified);
     });
 
     test('a "<dancers> forward" annotation structures onto whom', () {
@@ -428,13 +436,13 @@ void main() {
   });
 
   group('renderer — display word order + STORED facing clause', () {
-    Figure gate(String pair, String dir, num turn, {int beats = 8}) =>
+    Figure gate(String pair, String dir, num travel, {int beats = 8}) =>
         testFigure(
           move: 'gate',
           params: {
             'pair': pair,
             'direction': dir,
-            'turn': turn,
+            'travel': travel,
             'beats': beats,
           },
         );
@@ -482,8 +490,8 @@ void main() {
         params: {
           'pair': 'nextNeighbors',
           'direction': 'counterclockwise',
-          'turn': 0.5,
-          'face': 'up',
+          'travel': 0.5,
+          'endFacing': 'up',
           'beats': 4,
         },
       );
@@ -502,7 +510,7 @@ void main() {
         params: {
           'pair': 'neighbors',
           'direction': 'mirror',
-          'turn': 1.0,
+          'travel': 1.0,
           'whom': 'ones',
           'beats': 8,
         },
@@ -573,7 +581,7 @@ void main() {
       // invalid-fixture: value is deliberately out of domain — an unexpected direction surfaces rather than vanishing
       final f = Figure(
         move: 'gate',
-        params: {'pair': 'neighbors', 'direction': 'sideways', 'turn': 0.5},
+        params: {'pair': 'neighbors', 'direction': 'sideways', 'travel': 0.5},
       );
       expect(renderer.render(f, Dialect.canonical), contains('sideways'));
     });
@@ -585,8 +593,8 @@ void main() {
         params: {
           'pair': 'neighbors',
           'direction': 'mirror',
-          'turn': 1.0,
-          'face': 'sideways',
+          'travel': 1.0,
+          'endFacing': 'sideways',
         },
       );
       // Allow-listed like `swing.endFacing`: a facing is a closed cardinal
@@ -598,14 +606,14 @@ void main() {
   });
 
   group('JSON round-trip — the facing is STORED, not derived', () {
-    test('encode→decode preserves move/params/beats including `face`', () {
+    test('encode→decode preserves move/params/beats including `endFacing`', () {
       final figures = <Figure>[
         Figure(
           move: 'gate',
           params: {
             'pair': 'neighbors',
             'direction': 'mirror',
-            'turn': 1.0,
+            'travel': 1.0,
             'beats': 8,
           },
           note: 'ones forward',
@@ -615,7 +623,7 @@ void main() {
           params: {
             'who': 'ones',
             'whom': 'neighbors',
-            'face': 'up',
+            'endFacing': 'up',
             'beats': 8,
           },
         ),
@@ -627,7 +635,7 @@ void main() {
       // merge; it can no longer drift or be re-derived from a wrong assumption.
       final json = figureToJson(figures[1]);
       final params = json['params'] as Map<String, Object?>;
-      expect(params['face'], 'up');
+      expect(params['endFacing'], 'up');
 
       final r = FigureRenderer(contraTaxonomy);
       for (var i = 0; i < figures.length; i++) {

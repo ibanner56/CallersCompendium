@@ -1264,23 +1264,23 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       final partial = value == 'lessThanHalf' || value == 'betweenHalfAndFull';
       if (!partial) draft.params.remove('meetTarget');
     }
-    // v30 (#989): a promenade's `turn` (rotation sense) is meaningless once
-    // `dir` points `in`/`out`/`up`/`down` — there is no "across" plane left to
+    // v30 (#989): a promenade's `direction` (rotation sense) is meaningless
+    // once `where` points `in`/`out`/`up`/`down` — there is no "across" plane left to
     // rotate through, and the field is hidden alongside `destination` for the
     // same reason (see `_buildParams`). Reset it to the `unspecified` sentinel
     // so a stale rotation doesn't silently persist, hidden, behind the field.
     //
     // Unlike `hey.meetTarget` above, this WRITES the sentinel rather than
-    // removing the key: `turn`'s spec default is the CONCRETE
+    // removing the key: `direction`'s spec default is the CONCRETE
     // `'counterclockwise'` (v30 owner decision — the taxonomy's first
-    // concrete-default-plus-sentinel param), so `draft.params.remove('turn')`
+    // concrete-default-plus-sentinel param), so `draft.params.remove('direction')`
     // would fall through `effectiveParams` to that concrete default and
     // render it — the opposite of "not stated" this reset is meant to
     // achieve. Only an explicit sentinel write gets there.
-    if (draft.move == 'promenade' && key == 'dir') {
+    if (draft.move == 'promenade' && key == 'where') {
       const rotationless = {'in', 'out', 'up', 'down'};
       if (rotationless.contains(value)) {
-        draft.params['turn'] = ParamVocab.unspecified;
+        draft.params['direction'] = ParamVocab.unspecified;
       }
     }
     // #976: a `who` edit on a chain rewrites its role-implied hand, mirroring
@@ -2119,21 +2119,21 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             .toList(growable: false);
       }
     }
-    // v30 (#989): a promenade's `dir` gates two other params' relevance:
-    // - `turn` (rotation sense) is meaningless once `dir` leaves the
+    // v30 (#989): a promenade's `where` gates two other params' relevance:
+    // - `direction` (rotation sense) is meaningless once `where` leaves the
     //   across/along plane (`in`/`out`/`up`/`down`) — hidden here, and reset
-    //   to the sentinel by `_applyNonBeatsParamChange` the moment `dir`
+    //   to the sentinel by `_applyNonBeatsParamChange` the moment `where`
     //   changes to one of those, so the field can never go stale-but-hidden.
-    // - `destination` renders nowhere once `dir == 'across'` (the renderer's
-    //   `dir != 'across'` gate, matching Ask 2) — hidden here too, so the
+    // - `destination` renders nowhere once `where == 'across'` (the renderer's
+    //   `where != 'across'` gate, matching Ask 2) — hidden here too, so the
     //   editor never offers a field the renderer will silently ignore (the
-    //   defect issue #989/F5 named). Unlike `turn`, its value is left alone
+    // defect issue #989/F5 named). Unlike `direction`, its value is left alone
     //   rather than cleared: `across` is the taxonomy default, so a figure
     //   loaded with a stored destination and no stated `dir` must not lose
     //   that data on the mere act of opening the editor — only stop
     //   rendering it, exactly as Q3 specified.
     if (def.id == 'promenade') {
-      final dir = draft.params['dir'] ?? def.params['dir']?.defaultValue;
+      final dir = draft.params['where'] ?? def.params['where']?.defaultValue;
       const rotationless = {'in', 'out', 'up', 'down'};
       final hideTurn = rotationless.contains(dir);
       final hideDestination = dir == 'across';
@@ -2141,7 +2141,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         entries = entries
             .where(
               (e) =>
-                  !((hideTurn && e.key == 'turn') ||
+                  !((hideTurn && e.key == 'direction') ||
                       (hideDestination && e.key == 'destination')),
             )
             .toList(growable: false);

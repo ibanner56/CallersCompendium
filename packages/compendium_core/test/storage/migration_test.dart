@@ -35,6 +35,8 @@ import 'package:compendium_core/src/storage/database.dart'
         VenueProvenanceCompanion,
         VenuesCompanion,
         taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
+        shareableTextNormalisationScopeKey,
         kSectionRuleVersion;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
@@ -488,6 +490,114 @@ void main() {
         expect(dance.figures[2].assumedSubject, isTrue);
       },
     );
+  });
+
+  group('taxonomy v35 figure normalization', () {
+    // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
+    test('rewrites legacy keys and nested meanwhile figures', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final legacyFigures = [
+        Figure(
+          move: 'pull_by_dancers',
+          params: const {'who': 'partners', 'hand': 'left'},
+        ),
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'circle', params: const {'turn': 'left', 'beats': 8}),
+            Figure(move: 'swing'),
+          ],
+          beats: 8,
+        ),
+      ];
+      await repos.dances.create(
+        Dance(
+          id: 'v35-normalization',
+          title: 'v35 normalization',
+          figures: legacyFigures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customUpdate(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(legacyFigures)),
+          Variable<String>('v35-normalization'),
+        ],
+        updates: {db.dances},
+      );
+      await repos.settings.set(taxonomyV35FigureNormalizationDoneKey, 'false');
+
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('v35-normalization'))!;
+      expect(dance.figures[0].move, 'pull_by');
+      expect(dance.figures[0].params, {'who': 'partners', 'hand': 'left'});
+      final circle = dance.figures[1].subFigures.firstWhere(
+        (figure) => figure.move == 'circle',
+      );
+      expect(circle.params['direction'], 'left');
+      expect(circle.params.containsKey('turn'), isFalse);
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            ],
+          )
+          .getSingle();
+      expect(marker.read<String>('value_json'), 'true');
+    });
+
+    // invalid-fixture: this exercises a v35 database that predates the taxonomy migration marker
+    test('runs when the taxonomy marker is absent', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final legacyFigures = [
+        Figure(
+          move: 'pull_by_dancers',
+          params: const {'who': 'partners', 'hand': 'left'},
+        ),
+        Figure(move: 'circle', params: const {'turn': 'left'}),
+      ];
+      await repos.dances.create(
+        Dance(
+          id: 'v35-absent-marker',
+          title: 'v35 absent marker',
+          figures: legacyFigures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customUpdate(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(legacyFigures)),
+          Variable<String>('v35-absent-marker'),
+        ],
+        updates: {db.dances},
+      );
+
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('v35-absent-marker'))!;
+      expect(dance.figures.first.move, 'pull_by');
+      expect(dance.figures[1].params, {'direction': 'left'});
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ? AND deleted_at IS NULL',
+            variables: [
+              Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            ],
+          )
+          .getSingle();
+      expect(marker.read<String>('value_json'), 'true');
+    });
   });
 
   group('purge-corruption repair (#429/#466)', () {
@@ -1247,47 +1357,70 @@ void main() {
       }
     });
 
-    test(
-      'every live row shares ONE T0, across tables as well as rows',
-      () async {
-        // The normative rule is "a single constant T0, identical for every live
-        // row" — not "a plausible timestamp per row". The fixture's two live
-        // dances were written years apart (2020 and 2026), so a back-fill that
-        // copied each row's own `updated_at` would produce two different values
-        // here and fail. That is the mutation this test exists to catch.
-        final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
-        addTearDown(db.close);
+    test('every live row shares ONE T0, across tables as well as rows', () async {
+      // The normative rule is "a single constant T0, identical for every live
+      // row" — not "a plausible timestamp per row". The fixture's two live
+      // dances were written years apart (2020 and 2026), so a back-fill that
+      // copied each row's own `updated_at` would produce two different values
+      // here and fail. That is the mutation this test exists to catch.
+      final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
+      addTearDown(db.close);
 
-        final rows = await db
-            .customSelect(
-              'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
-              'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
-              'UNION SELECT existence_at FROM tags '
-              'UNION SELECT existence_at FROM choreographers '
-              'UNION SELECT existence_at FROM published_sources '
-              'UNION SELECT existence_at FROM custom_field_defs '
-              'UNION SELECT existence_at FROM venues '
-              "UNION SELECT existence_at FROM settings "
-              "WHERE key != '$derivedRebuildRequiredKey'",
-            )
-            .get();
-        // UNION dedupes, so one row means one distinct value.
-        expect(
-          rows,
-          hasLength(1),
-          reason:
-              'every live row across all eight tables must carry the same T0; '
-              'got ${[for (final r in rows) r.data.values.first]}',
-        );
-        final t0 = rows.single.data.values.first as int?;
-        expect(t0, isNotNull, reason: 'T0 must not be left NULL');
-        expect(
-          t0,
-          greaterThanOrEqualTo(beforeMigration),
-          reason: 'T0 is sampled when the migration runs, not baked in',
-        );
-      },
-    );
+      // Internal migration markers intentionally have no existence_at. Exclude
+      // only those known non-syncable keys so a live setting whose back-fill is
+      // accidentally omitted still contributes NULL and fails this guard.
+      const internalSettingKeys = [
+        derivedRebuildRequiredKey,
+        purgeCorruptionRepairDoneKey,
+        sectionRuleVersionKey,
+        inversePairNormalisationDoneKey,
+        starPromenadeHandRemovalDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        chainHandBackfillDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
+        taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
+        callersBoxRollAwayRoleRepairDoneKey,
+        shareableTextNormalisationScopeKey,
+      ];
+      final placeholders = List.filled(
+        internalSettingKeys.length,
+        '?',
+      ).join(', ');
+      final rows = await db
+          .customSelect(
+            'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
+            'UNION SELECT existence_at FROM programs WHERE deleted_at IS NULL '
+            'UNION SELECT existence_at FROM tags '
+            'UNION SELECT existence_at FROM choreographers '
+            'UNION SELECT existence_at FROM published_sources '
+            'UNION SELECT existence_at FROM custom_field_defs '
+            'UNION SELECT existence_at FROM venues '
+            "UNION SELECT existence_at FROM settings "
+            'WHERE deleted_at IS NULL AND key NOT IN ($placeholders)',
+            variables: [
+              for (final key in internalSettingKeys) Variable.withString(key),
+            ],
+          )
+          .get();
+      // UNION dedupes, so one row means one distinct value.
+      expect(
+        rows,
+        hasLength(1),
+        reason:
+            'every live row across all eight tables must carry the same T0; '
+            'got ${[for (final r in rows) r.data.values.first]}',
+      );
+      final t0 = rows.single.data.values.first as int?;
+      expect(t0, isNotNull, reason: 'T0 must not be left NULL');
+      expect(
+        t0,
+        greaterThanOrEqualTo(beforeMigration),
+        reason: 'T0 is sampled when the migration runs, not baked in',
+      );
+    });
 
     test('an already-tombstoned row keeps its own deleted_at, not T0', () async {
       // The one case where a pre-existing column carries the right meaning.
@@ -2286,6 +2419,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     await repos.settings.set(key, 'done');
   }
   await repos.settings.set(sectionRuleVersionKey, kSectionRuleVersion);
+  await repos.settings.set(taxonomyV35FigureNormalizationDoneKey, true);
 }
 
 /// A [CompendiumRepositories] whose derived-index rebuild throws on its first

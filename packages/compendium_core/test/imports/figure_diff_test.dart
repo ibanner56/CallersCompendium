@@ -24,7 +24,7 @@ void main() {
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.0},
       );
       expect(
         figureCanonicalKey(defaulted, tax),

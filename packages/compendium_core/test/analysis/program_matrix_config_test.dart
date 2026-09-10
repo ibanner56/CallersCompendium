@@ -25,7 +25,7 @@ void main() {
   Figure aliasSwing(String move) => testFigure(move: move, params: const {});
   Figure doSiDo() => testFigure(move: 'do_si_do', params: const {});
   Figure circleLeft() =>
-      testFigure(move: 'circle', params: const {'turn': 'left'});
+      testFigure(move: 'circle', params: const {'direction': 'left'});
   Figure hey([String? length]) =>
       testFigure(move: 'hey', params: {'length': ?length});
 
@@ -197,9 +197,9 @@ void main() {
       const compound = CompoundColumn(
         id: compoundId,
         steps: [
-          StepMatcher(move: 'circle', params: {'turn': 'left'}),
+          StepMatcher(move: 'circle', params: {'direction': 'left'}),
           StepMatcher(move: 'swing', params: {'who': 'partners'}),
-          StepMatcher(move: 'circle', params: {'turn': 'left'}),
+          StepMatcher(move: 'circle', params: {'direction': 'left'}),
         ],
       );
 
@@ -530,13 +530,94 @@ void main() {
             id: 'compound:1',
             steps: [
               StepMatcher(move: 'swing', params: {'who': 'partners'}),
-              StepMatcher(move: 'circle', params: {'turn': 'left'}),
+              StepMatcher(move: 'circle', params: {'direction': 'left'}),
             ],
           ),
         ],
       );
       final decoded = MatrixColumnConfig.decode(config.toJson());
       expect(decoded, config);
+    });
+
+    test('migrates v1 pull-by ids and matching data to v2', () {
+      final decoded = MatrixColumnConfig.decode({
+        'schemaVersion': 1,
+        'order': ['pull_by_direction', 'pull_by', 'pull_by_dancers'],
+        'hidden': ['pull_by_dancers', 'pull_by'],
+        'renames': {
+          'pull_by_direction': 'legacy direction',
+          'pull_by_dancers': 'legacy dancers',
+          'pull_by': 'canonical',
+        },
+        'parameterized': [
+          {
+            'id': 'param:dancers',
+            'baseMove': 'pull_by_dancers',
+            'params': {'dir': 'along'},
+          },
+          {
+            'id': 'param:direction',
+            'baseMove': 'pull_by_direction',
+            'params': {'who': 'neighbors'},
+          },
+        ],
+        'compound': [
+          {
+            'id': 'compound:pull',
+            'steps': [
+              {
+                'move': 'pull_by_direction',
+                'params': {'dir': 'along'},
+              },
+              {'move': 'pull_by_dancers', 'params': <String, Object?>{}},
+            ],
+          },
+        ],
+      });
+
+      expect(decoded.schemaVersion, matrixColumnConfigSchemaVersion);
+      expect(decoded.order, ['pull_by']);
+      expect(decoded.hidden, {'pull_by'});
+      expect(decoded.renames, {'pull_by': 'canonical'});
+      expect(decoded.parameterized, [
+        const ParameterizedColumn(
+          id: 'param:dancers',
+          baseMove: 'pull_by',
+          params: {'where': 'along'},
+        ),
+        const ParameterizedColumn(
+          id: 'param:direction',
+          baseMove: 'pull_by',
+          params: {'who': 'neighbors'},
+        ),
+      ]);
+      expect(decoded.compound.single.steps, [
+        const StepMatcher(move: 'pull_by', params: {'where': 'along'}),
+        const StepMatcher(move: 'pull_by', params: {}),
+      ]);
+    });
+
+    test('decoded legacy pull-by config still routes canonical figures', () {
+      final config = MatrixColumnConfig.decode({
+        'schemaVersion': 1,
+        'parameterized': [
+          {'id': 'param:dancers', 'baseMove': 'pull_by_dancers'},
+        ],
+      });
+      final matrix = buildProgramMatrix([
+        dance('pull', 'Pull', [
+          testFigure(move: 'pull_by', params: {'who': 'neighbors'}),
+        ]),
+        dance('pull-partners', 'Pull partners', [
+          testFigure(move: 'pull_by', params: {'who': 'partners'}),
+        ]),
+      ], config: config);
+
+      expect(ids(matrix), ['swing:partner', 'swing:neighbor', 'param:dancers']);
+      expect(matrix.rows.map((row) => row.presentMoveIds.toSet()).toList(), [
+        {'param:dancers'},
+        {'param:dancers'},
+      ]);
     });
 
     test('null decodes to empty', () {

@@ -582,7 +582,7 @@ void main() {
             name: 'Wording',
             moveWordings: const {
               'hey':
-                  '{who} {article} {dir} {length} {shoulder} {until} {ricochets}',
+                  '{who} {article} {where} {length} {shoulder} {until} {ricochets}',
             },
           ),
         ),

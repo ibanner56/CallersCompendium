@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 /// already has, so neither adds a `MoveDef` and `contraTaxonomyVersion` is
 /// unchanged.
 ///
-/// * `Grand right and left (<pass list>)` → one `pull_by_dancers` per stated
+/// * `Grand right and left (<pass list>)` → one `pull_by` per stated
 ///   pass. Decisive evidence: *334* by Diane Silver, transcribed in BOTH
 ///   sources — TCB #10042 A2 `(4) Grand right and left (N3R;N2L)` is ContraDB
 ///   #3403 A2 `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull by
@@ -49,7 +49,7 @@ String _text(Figure f) => f.params['text'] as String;
 void main() {
   // --- Part A: grand right and left ------------------------------------------
 
-  group('grand right and left decomposes into pull_by_dancers (#295)', () {
+  group('grand right and left decomposes into pull_by (#295)', () {
     test('adds NO taxonomy move (the shorthands lower onto existing ones)', () {
       // This change itself bumped nothing; the version has moved on since (v21
       // is the unrelated wave-formation work, #295), so assert the invariant
@@ -57,7 +57,7 @@ void main() {
       expect(contraTaxonomy.moves.containsKey('grand_right_and_left'), isFalse);
       expect(contraTaxonomy.moves.containsKey('flutterwheel'), isFalse);
       // The moves both shorthands lower onto DO exist.
-      expect(contraTaxonomy.moves.containsKey('pull_by_dancers'), isTrue);
+      expect(contraTaxonomy.moves.containsKey('pull_by'), isTrue);
       expect(contraTaxonomy.moves.containsKey('allemande'), isTrue);
       expect(contraTaxonomy.moves.containsKey('star_promenade'), isTrue);
     });
@@ -67,10 +67,7 @@ void main() {
       // ContraDB: `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull
       // by left`. Same dancers, same hands, same 2-beat shares, same 4 total.
       final figures = _line('Grand right and left (N3R;N2L)', beats: 4);
-      expect(figures.map((f) => f.move), [
-        'pull_by_dancers',
-        'pull_by_dancers',
-      ]);
+      expect(figures.map((f) => f.move), ['pull_by', 'pull_by']);
       expect(figures[0].params['who'], 'thirdNeighbors');
       expect(figures[0].params['hand'], 'right');
       expect(figures[0].beats, 2);
@@ -159,7 +156,7 @@ void main() {
         }
         expect(figures.length, expected.length);
         for (var i = 0; i < expected.length; i++) {
-          expect(figures[i].move, 'pull_by_dancers');
+          expect(figures[i].move, 'pull_by');
           expect(figures[i].params['who'], expected[i][0]);
           expect(figures[i].params['hand'], expected[i][1]);
         }
@@ -813,7 +810,7 @@ void main() {
 
     test('both grand-right-and-lefts decompose to 2 pull-bys each', () {
       final pullBys = draft.dance.figures
-          .where((f) => f.move == 'pull_by_dancers')
+          .where((f) => f.move == 'pull_by')
           .toList();
       expect(pullBys.length, 4);
       expect(pullBys.map((f) => f.params['who']), [
@@ -851,7 +848,7 @@ void main() {
       expect(byLabel['B2'], 16);
       // The first grand-right-and-left pass starts mid-A1, at beat 4.
       final firstPullBy = sections.firstWhere(
-        (s) => s.figure.move == 'pull_by_dancers',
+        (s) => s.figure.move == 'pull_by',
       );
       expect(firstPullBy.startBeat, 4);
       expect(firstPullBy.label, 'A1');

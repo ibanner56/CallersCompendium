@@ -38,7 +38,7 @@
           "schemaVersion": 1,
           "move": "circle",
           "params": {
-            "turn": "left",
+            "direction": "left",
             "places": 3,
             "beats": 8
           }
@@ -48,7 +48,7 @@
           "move": "do_si_do",
           "params": {
             "who": "partners",
-            "turn": 1.0,
+            "travel": 1.0,
             "beats": 8
           }
         },

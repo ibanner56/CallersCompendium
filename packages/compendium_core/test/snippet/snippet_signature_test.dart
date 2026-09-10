@@ -6,12 +6,34 @@ void main() {
   final tax = contraTaxonomy;
 
   group('figureSnippetSignature', () {
+    test('migrates legacy pull-by dimensions and zig-zag slide keys', () {
+      expect(
+        migrateFigureSnippetSignature('pull_by_dancers(who=neighbors)'),
+        'pull_by(where=unspecified,who=neighbors)',
+      );
+      expect(
+        migrateFigureSnippetSignature('pull_by_direction(where=along)'),
+        'pull_by(where=along,who=unspecified)',
+      );
+      expect(
+        migrateFigureSnippetSignature('zig_zag(turn=right)'),
+        'zig_zag(slide=right)',
+      );
+    });
+
+    test('rebuilds migrated parameters in sorted order', () {
+      expect(
+        migrateFigureSnippetSignature('circle(places=3,turn=right)'),
+        'circle(direction=right,places=3)',
+      );
+    });
+
     test('folds taxonomy defaults so explicit == defaulted', () {
-      // allemande defaults: who=neighbors, hand=right, turn=1.0.
+      // allemande defaults: who=neighbors, hand=right, travel=1.0.
       final defaulted = Figure(move: 'allemande');
       final explicit = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.0},
       );
       expect(
         figureSnippetSignature(defaulted, tax),
@@ -22,11 +44,11 @@ void main() {
     test('distinguishes allemande left ½ from right 1½', () {
       final left = Figure(
         move: 'allemande',
-        params: {'hand': 'left', 'turn': 0.5},
+        params: {'hand': 'left', 'travel': 0.5},
       );
       final right = Figure(
         move: 'allemande',
-        params: {'hand': 'right', 'turn': 1.5},
+        params: {'hand': 'right', 'travel': 1.5},
       );
       expect(
         figureSnippetSignature(left, tax),
@@ -51,21 +73,21 @@ void main() {
 
     test('normalizes integral turns without a trailing .0', () {
       final sig = figureSnippetSignature(
-        Figure(move: 'allemande', params: {'turn': 1.0}),
+        Figure(move: 'allemande', params: {'travel': 1.0}),
         tax,
       );
-      expect(sig, contains('turn=1'));
-      expect(sig, isNot(contains('turn=1.0')));
+      expect(sig, contains('travel=1'));
+      expect(sig, isNot(contains('travel=1.0')));
     });
 
     test('is deterministic regardless of param insertion order', () {
       final a = Figure(
         move: 'allemande',
-        params: {'turn': 1.5, 'hand': 'left', 'who': 'partners'},
+        params: {'travel': 1.5, 'hand': 'left', 'who': 'partners'},
       );
       final b = Figure(
         move: 'allemande',
-        params: {'who': 'partners', 'hand': 'left', 'turn': 1.5},
+        params: {'who': 'partners', 'hand': 'left', 'travel': 1.5},
       );
       expect(figureSnippetSignature(a, tax), figureSnippetSignature(b, tax));
     });
@@ -96,7 +118,7 @@ void main() {
     test('renders a readable label round-tripping from a real figure', () {
       final figure = Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.5},
       );
       final sig = figureSnippetSignature(figure, tax)!;
       final label = describeFigureSignature(sig, tax, renderer, dialect);

@@ -108,10 +108,10 @@ void main() {
       'an explicit default keys and renders identically to an absent one',
       () {
         final renderer = FigureRenderer(tax);
-        final bare = Figure(move: 'pass_through', params: {'dir': 'along'});
+        final bare = Figure(move: 'pass_through', params: {'where': 'along'});
         final explicit = Figure(
           move: 'pass_through',
-          params: {'dir': 'along', 'shoulder': 'right'},
+          params: {'where': 'along', 'shoulder': 'right'},
         );
         expect(
           figureCanonicalKey(explicit, tax),
@@ -129,10 +129,10 @@ void main() {
     // correct — the stored choreography contradicted its source — but it must
     // not be claimed as "consequence-free".
     test('an explicit INVERSE value DOES change the canonical key', () {
-      final bare = Figure(move: 'pass_through', params: {'dir': 'along'});
+      final bare = Figure(move: 'pass_through', params: {'where': 'along'});
       final inverse = Figure(
         move: 'pass_through',
-        params: {'dir': 'along', 'shoulder': 'left'},
+        params: {'where': 'along', 'shoulder': 'left'},
       );
       expect(
         figureCanonicalKey(inverse, tax),
