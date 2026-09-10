@@ -1188,7 +1188,10 @@ void main() {
         final figure = Figure.modifier(
           figures: [
             Figure(move: 'swing'),
-            Figure(move: customMove, params: {'text': 'Gypsy with the gents'}),
+            testFigure(
+              move: customMove,
+              params: {'text': 'Gypsy with the gents'},
+            ),
           ],
           beats: 16,
         );
