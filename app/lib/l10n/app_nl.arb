@@ -5568,6 +5568,22 @@
   "@danceEditorGroupWithNextAsModifier": {
     "x-sourceSha256": "dc0b3085a82f4025e2497ae817772e58592dedf8fa206a04f8a6fd01cd2c9177"
   },
+  "danceEditorConvertToMeanwhile": "Omzetten naar meanwhile",
+  "@danceEditorConvertToMeanwhile": {
+    "x-sourceSha256": "c9efabb132e41899d095163d93026cd838ce238a4a4cbafa6f6a3ab1efbd6f1e"
+  },
+  "danceEditorConvertToModifier": "Omzetten naar modifier",
+  "@danceEditorConvertToModifier": {
+    "x-sourceSha256": "d472575eb0ce29ca55b563b8be186114c56e7cada317484cb17d604f9ce51ccc"
+  },
+  "danceEditorUngroupMeanwhile": "Meanwhile-groepering opheffen",
+  "@danceEditorUngroupMeanwhile": {
+    "x-sourceSha256": "5efde75b4147394c5e486cc900c3b195ce11afcdc5c52dc69eb76796dbff6502"
+  },
+  "danceEditorUngroupModifier": "Modifier-groepering opheffen",
+  "@danceEditorUngroupModifier": {
+    "x-sourceSha256": "bfe76e0aa465b4517d011bd395490f9e997539c3ee67f58b12839d7746d4c152"
+  },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figuren)}}",
   "@danceEditorModifierGroupLabel": {
     "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
@@ -5579,6 +5595,22 @@
   "danceEditorAddModifierChild": "Modifier toevoegen",
   "@danceEditorAddModifierChild": {
     "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
+  },
+  "danceEditorModifierCoreLabel": "Kern",
+  "@danceEditorModifierCoreLabel": {
+    "x-sourceSha256": "70ea1983c983deacc1b61805aea3d43648afd932f346fb2e5d9b15facd4035c2"
+  },
+  "danceEditorModifierChildLabel": "Modifier",
+  "@danceEditorModifierChildLabel": {
+    "x-sourceSha256": "42e37604b638b62790fde6210fe9af90567961220206ec36e2739e075c85a7ae"
+  },
+  "danceEditorModifierCoreSemantic": "Kernfiguur in modifiergroep.",
+  "@danceEditorModifierCoreSemantic": {
+    "x-sourceSha256": "53f5ef9b783ec30dd69e4eb51333f0688e737627334e311081e83e2236d90bb5"
+  },
+  "danceEditorModifierChildSemantic": "Modifierfiguur {number} van {total}.",
+  "@danceEditorModifierChildSemantic": {
+    "x-sourceSha256": "e6e69c89629a50eefb521524515708a5d7b62d71c565372b086bac4d3811a524"
   },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Gelijktijdig ({count} kanten)}}",
   "@danceEditorMeanwhileGroupLabel": {

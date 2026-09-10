@@ -441,11 +441,12 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**68 settings keys**: 54 shareable, 7 device-local, 5 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**69 settings keys**: 54 shareable, 7 device-local, 6 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
 | `__callersbox_roll_away_role_repair_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
+| `__modifier_container_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__shareable_text_normalisation_scope__` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `__taxonomy_v33_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |
 | `__taxonomy_v34_canonical_rebuild_done__` | `dpv:NonPersonalData` | — | device-scoped | Belongs to this installation, not the user. Applying it on another device would be wrong rather than merely useless. |

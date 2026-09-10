@@ -5573,16 +5573,16 @@ class AppLocalizationsFr extends AppLocalizations {
       'Grouper avec la suivante comme modificateur';
 
   @override
-  String get danceEditorConvertToMeanwhile => 'Convert to meanwhile';
+  String get danceEditorConvertToMeanwhile => 'Convertir en meanwhile';
 
   @override
-  String get danceEditorConvertToModifier => 'Convert to modifier';
+  String get danceEditorConvertToModifier => 'Convertir en modificateur';
 
   @override
-  String get danceEditorUngroupMeanwhile => 'Ungroup meanwhile';
+  String get danceEditorUngroupMeanwhile => 'Dissocier le meanwhile';
 
   @override
-  String get danceEditorUngroupModifier => 'Ungroup modifier';
+  String get danceEditorUngroupModifier => 'Dissocier le modificateur';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -5615,18 +5615,18 @@ class AppLocalizationsFr extends AppLocalizations {
   String get danceEditorAddModifierChild => 'Ajouter un modificateur';
 
   @override
-  String get danceEditorModifierCoreLabel => 'Core';
+  String get danceEditorModifierCoreLabel => 'Noyau';
 
   @override
-  String get danceEditorModifierChildLabel => 'Modifier';
+  String get danceEditorModifierChildLabel => 'Modificateur';
 
   @override
   String get danceEditorModifierCoreSemantic =>
-      'Core figure in modifier group.';
+      'Figure noyau du groupe modificateur.';
 
   @override
   String danceEditorModifierChildSemantic(int number, int total) {
-    return 'Modifier figure $number of $total.';
+    return 'Figure modificateur $number sur $total.';
   }
 
   @override

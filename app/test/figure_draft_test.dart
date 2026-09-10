@@ -179,7 +179,7 @@ void main() {
       final draft = FigureDraft(
         meanwhileSides: [
           FigureDraft(move: 'swing'),
-          FigureDraft(),
+          FigureDraft(params: {'beats': 8}),
         ],
       );
       draft.params['beats'] = 8;

@@ -5533,16 +5533,16 @@ class AppLocalizationsNl extends AppLocalizations {
       'Met volgende groeperen als modifier';
 
   @override
-  String get danceEditorConvertToMeanwhile => 'Convert to meanwhile';
+  String get danceEditorConvertToMeanwhile => 'Omzetten naar meanwhile';
 
   @override
-  String get danceEditorConvertToModifier => 'Convert to modifier';
+  String get danceEditorConvertToModifier => 'Omzetten naar modifier';
 
   @override
-  String get danceEditorUngroupMeanwhile => 'Ungroup meanwhile';
+  String get danceEditorUngroupMeanwhile => 'Meanwhile-groepering opheffen';
 
   @override
-  String get danceEditorUngroupModifier => 'Ungroup modifier';
+  String get danceEditorUngroupModifier => 'Modifier-groepering opheffen';
 
   @override
   String danceEditorModifierGroupLabel(num count) {
@@ -5575,18 +5575,17 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddModifierChild => 'Modifier toevoegen';
 
   @override
-  String get danceEditorModifierCoreLabel => 'Core';
+  String get danceEditorModifierCoreLabel => 'Kern';
 
   @override
   String get danceEditorModifierChildLabel => 'Modifier';
 
   @override
-  String get danceEditorModifierCoreSemantic =>
-      'Core figure in modifier group.';
+  String get danceEditorModifierCoreSemantic => 'Kernfiguur in modifiergroep.';
 
   @override
   String danceEditorModifierChildSemantic(int number, int total) {
-    return 'Modifier figure $number of $total.';
+    return 'Modifierfiguur $number van $total.';
   }
 
   @override
