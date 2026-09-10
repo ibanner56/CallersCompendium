@@ -1329,7 +1329,7 @@ void main() {
               'UNION SELECT existence_at FROM custom_field_defs '
               'UNION SELECT existence_at FROM venues '
               "UNION SELECT existence_at FROM settings "
-              "WHERE key != '$derivedRebuildRequiredKey'",
+              "WHERE key = 'migration_setting'",
             )
             .get();
         // UNION dedupes, so one row means one distinct value.
