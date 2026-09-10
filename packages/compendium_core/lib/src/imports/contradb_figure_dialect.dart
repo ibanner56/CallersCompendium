@@ -361,8 +361,9 @@ FigureMatch? _doSiDo(String text) {
 /// around" — is modeled as `meanwhile[allemande, orbit]` (the fused
 /// `allemande_orbit` move was RETIRED at taxonomy v19). The source states BOTH
 /// the orbit direction AND the orbiting pair, so the container is built with
-/// full fidelity (no derivation): `allemande{who, hand, turn: inner}` +
-/// `orbit{who: who2, turn: direction, amount: outer}`, both sides beats-absent
+/// full fidelity (no derivation): `allemande{who, hand, travel: inner}` +
+/// `orbit{who: who2, direction: direction, travel: outer}`, both sides
+/// beats-absent
 /// so the shared line total rides on the container's `beats` (keeping
 /// [deriveSections]' cumulative total byte-identical to the pre-split fused
 /// line). Returns null — declining to a plain allemande / custom — unless the
@@ -458,10 +459,10 @@ FigureMatch? _allemande(String text) {
 /// circulation around the ring as `promenade single file around the
 /// circle|ring {n} places` (real render: Travels with Rick and Kim #455) —
 /// a single-file CIRCLE, not the `promenade` move (this taxonomy has no
-/// separate `circle_left` id; `turn` already spans left/right). The owner
+/// separate `circle_left` id; `direction` already spans left/right). The owner
 /// flagged this as the more fragile of the two #634 mappings, so it is
 /// recognized ONLY as this exact, fully-anchored phrase — no partial match,
-/// no fallback — and always defaults `turn` to `left` (the phrasing never
+/// no fallback — and always defaults `direction` to `left` (the phrasing never
 /// states a direction).
 FigureMatch? _circle(String text) {
   final s = _Scan(text);
@@ -515,7 +516,7 @@ FigureMatch? _slideAlongSet(String text) {
 /// chainWords: `[<left|right> diagonal]`, `<role1s|role2s>`,
 /// `[<left|right>-hand]`, `chain`. The leading diagonal qualifier renders only
 /// for non-default values (real render: The Judge — `left diagonal ladles
-/// chain to shadow`) and maps to the `dir` param; the ubiquitous form is a
+/// chain to shadow`) and maps to the `where` param; the ubiquitous form is a
 /// bare `ladles chain`. The hand slot (v28, #976) sits between the subject
 /// and `chain`, matching ContraDB's `chainWords` order (`words(sdiag, swho,
 /// thand, smove)`, `figure.js:266-278`) — hyphenated (`left-hand`) because
@@ -948,7 +949,7 @@ String? _starGrip(_Scan s) {
 /// to new neightbors`.
 ///
 /// Issue #749: a bare `along`/`across` direction token immediately after
-/// `promenade` IS consumed in the single-file branch, so `dir` is captured
+/// `promenade` IS consumed in the single-file branch, so `where` is captured
 /// from the source text; the rest of the tail was left as the note.
 ///
 /// Issue #921 (taxonomy v29): the destination tail is now structured. After
@@ -973,7 +974,7 @@ FigureMatch? _promenade(String text) {
   if (singleFile) {
     params['singleFile'] = true;
     // Consume a bare direction token (`along` or `across`) immediately after
-    // `promenade` so `dir` is captured from the source text.
+    // `promenade` so `where` is captured from the source text.
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
@@ -1313,8 +1314,8 @@ FigureMatch? _tradeBy(String text) {
 /// positional rather than a direction (`by the left`, `past partners`,
 /// `to next neighbors`, `to form an ocean wave with shadows`; real renders:
 /// Barack Me Obamadeus, In Cahoots, Ad Vielle, The Young Adult Rose). The
-/// recognised template is just `pass through` plus an optional shoulder/dir; any
-/// remaining qualifier survives verbatim as the note (`dir` then defaults to the
+/// recognised template is just `pass through` plus an optional shoulder/where; any
+/// remaining qualifier survives verbatim as the note (`where` then defaults to the
 /// taxonomy `along`).
 FigureMatch? _passThrough(String text) {
   final s = _Scan(text);
@@ -1369,8 +1370,8 @@ FigureMatch? _pullByDirection(String text) {
 /// `who` is the side that extends a hand and BACKS UP; `whom` walks forward
 /// (libfigure `figure.js:844`). The trailing direction is the gate's ENDING
 /// FACING (`figure.js:841` emits the literal words "to face"), stored on the
-/// merged move's `face` param as of taxonomy v22 — the rotation sense and turn
-/// amount ContraDB does not model stay `unspecified`.
+/// merged move's `endFacing` param as of taxonomy v35 — the rotation sense and
+/// turn amount ContraDB does not model stay `unspecified`.
 FigureMatch? _gate(String text) {
   final s = _Scan(text);
   final who = _subject(s);

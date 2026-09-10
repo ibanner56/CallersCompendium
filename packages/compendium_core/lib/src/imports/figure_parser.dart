@@ -703,7 +703,7 @@ int _phraseIndex(List<String> w, List<String> phrase) {
 
 /// Consumes a LEADING "on [the] left/right diagonal" clause (TCB writes it as a
 /// prefix, e.g. "On left diagonal, ladies chain to neighbor"; the comma is
-/// stripped by `_normalize`) and returns the canonical `dir` value
+/// stripped by `_normalize`) and returns the canonical `where` value
 /// `leftDiagonal`/`rightDiagonal`, or null when absent. Only fires at the FRONT
 /// so the "left" in "on left diagonal" is never confused with a later figure
 /// token (e.g. the "left" of "right and left through").
@@ -1154,7 +1154,7 @@ String? _takeGateDirection(List<String> w) {
 // a claim about which side moves.
 //
 // The ending facing is NOT parsed and NOT derived: TCB never states one for a
-// gate, so `face` stays `unspecified` for the user to fill in. (Before v22 it
+// gate, so `endFacing` stays `unspecified` for the user to fill in. (Before v22 it
 // was derived from a nominal `in` start orientation and was wrong after any
 // orientation-changing figure — see gate_facing.dart.)
 //
@@ -1202,7 +1202,7 @@ _Match? _starThrough(List<String> w) {
 
 _Match? _circle(List<String> w) {
   if (!_consumePhrase(w, ['circle'])) return null;
-  final turn = _takeSide(w); // circle `turn` is left/right
+  final turn = _takeSide(w); // circle `direction` is left/right
   final places = _takePlaces(w);
   _dropFiller(w);
   if (w.isNotEmpty) return null;
@@ -1216,7 +1216,7 @@ _Match? _circle(List<String> w) {
 /// the rotation direction (clockwise / counterclockwise) AND the turn-amount
 /// ("3/4" -> 3 places, "1"/full -> 4 places) are load-bearing choreography (they
 /// determine who you end up facing) and MUST be stated in-line; if either is
-/// missing the line stays CUSTOM (never default `turn`/`places`). The ornamental
+/// missing the line stays CUSTOM (never default `direction`/`places`). The ornamental
 /// hand-hold annotation ("(MR, WL, free hand to partner)") and the "[with N2]"
 /// bracket are stripped by `_normalize`. "Women walk forward; form facing star"
 /// / "form facing star" do not LEAD with "facing star" and carry no direction or
@@ -1268,7 +1268,7 @@ _Match? _star(List<String> w) {
 }
 
 _Match? _chain(List<String> w) {
-  // Optional leading "on left/right diagonal" → the diagonal `dir`.
+  // Optional leading "on left/right diagonal" → the diagonal `where`.
   final diag = _takeDiagonal(w);
   // TCB writes "Ladies chain to neighbor/partner" exclusively. Preserve the
   // "to <dancer>" target as a Figure NOTE rather than folding it into `who`
@@ -1559,7 +1559,7 @@ _Match? _passThrough(List<String> w) {
 /// - The line must LEAD with "walk forward to". A stated subject ("Women walk
 ///   forward to N2") is DECLINED: `pass_through` has no `who` slot, so
 ///   structuring it would silently drop the role.
-/// - `dir` and `shoulder` are NEVER written. `pass_through` declares
+/// - `where` and `shoulder` are NEVER written. `pass_through` declares
 ///   `along`/`right` as its own taxonomy defaults; writing either here would
 ///   assert a direction and a shoulder the source did not state.
 /// - The destination must resolve to exactly one dancer set. A non-dancer
@@ -1654,7 +1654,7 @@ _Match? _promenade(List<String> w) {
   final who = _takeDancer(w);
   if (!_consumePhrase(w, ['promenade'])) return null;
   final who2 = who ?? _takeDancer(w);
-  // Consume an optional trailing direction (promenade's `dir` param). Prior to
+  // Consume an optional trailing direction (promenade's `where` param). Prior to
   // this it was never consumed, so any directed promenade fell to custom.
   String? dir;
   if (_consumePhrase(w, ['across'])) {
@@ -1779,8 +1779,8 @@ _Match? _turnAsCouples(List<String> w) {
 }
 
 /// Tier A: TCB writes "Partner poussette clockwise 1/2" (dance id 488 "Rough
-/// Ride"). The spin word maps to `turn` (spinDirection) and the fraction to
-/// `half`. Anything else left over (e.g. "draw", or a non-half fraction like
+/// Ride"). The spin word maps to `direction` (spinDirection) and the fraction to
+/// `fraction`. Anything else left over (e.g. "draw", or a non-half fraction like
 /// "9/16") forces the custom fallback.
 _Match? _poussette(List<String> w) {
   final who = _takeDancer(w);
@@ -1809,8 +1809,8 @@ _Match? _poussette(List<String> w) {
 
 /// Issue #295: standalone `orbit` — TCB writes "Men orbit clockwise 1/2" /
 /// "Women orbit counterclockwise 1/2". Conservative whole-line recognition:
-/// the rotation direction (`turn`, reusing `ParamKind.spinDirection`) and the
-/// turn amount (`amount`) must BOTH be stated; a bare "orbit", a missing
+/// the rotation direction (`direction`, reusing `ParamKind.spinDirection`) and the
+/// travel amount (`travel`) must BOTH be stated; a bare "orbit", a missing
 /// direction or amount, or any leftover token yields null so the line degrades
 /// to a faithful custom figure. An optional trailing "around" (the ContraDB
 /// combined-side phrasing "… orbit clockwise ½ around") is consumed as filler
@@ -1852,7 +1852,7 @@ _Match? _orbit(List<String> w) {
 /// `unspecified` rather than defaulting to a fabricated subject.
 ///
 /// A rotation amount is optional (TCB states one on 2/24 lines) and maps to the
-/// existing `turn` — ContraDB's `circling`/`once_around` angle. A missing
+/// existing `travel` — ContraDB's `circling`/`once_around` angle. A missing
 /// direction, a missing "around `<target>`", or ANY leftover token yields null so
 /// the line degrades to a faithful custom figure.
 _Match? _madRobin(List<String> w) {
@@ -1932,7 +1932,7 @@ _Match? _weaveTheLine(List<String> w) {
 
 /// Tier A: TCB writes "Partner star promenade 1/2" (dance id 30 "Mad Gypsy").
 /// The optional dancer set maps to `who` — the dancer you PICK UP on the side
-/// (taxonomy v26, #843) — and a rotation amount to `turn`.
+/// (taxonomy v26, #843) — and a rotation amount to `travel`.
 ///
 /// **A stated hand is consumed and DISCARDED here, on purpose.** `star_promenade`
 /// declared a `hand` until v26, and prose like "Neighbor star promenade right
@@ -2035,7 +2035,7 @@ _Match? _rollAway(List<String> w) {
 /// Tier B: TCB writes "Cross trail through (PR;NL)" — the pass-list annotation
 /// is dropped by `_normalize`, leaving the bare figure. An optional leading
 /// dancer maps to `who`, a following dancer to `who2`, and across/along to
-/// `dir`; all else falls to the taxonomy defaults. "cross trail" (no "through")
+/// `where`; all else falls to the taxonomy defaults. "cross trail" (no "through")
 /// and the plural "cross trails" are accepted too.
 _Match? _crossTrails(List<String> w) {
   final who = _takeDancer(w);
