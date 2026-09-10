@@ -591,6 +591,43 @@ class AppLocalizationsDa extends AppLocalizations {
       'Udfyldes i nye programmer; kan redigeres per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogram';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danse og noter, der føjes til manuelt oprettede programmer.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Tilføj pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notetekst';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-note (valgfri)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Flyt op';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Utilgængelig dans ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override

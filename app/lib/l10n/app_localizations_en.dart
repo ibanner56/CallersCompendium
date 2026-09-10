@@ -587,6 +587,43 @@ class AppLocalizationsEn extends AppLocalizations {
       'Prefilled into new programs; editable per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Starting program';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Dance and note entries added to manually created programs.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Add a dance';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dance';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Add break';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Note text';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller note (optional)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Move up';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Move down';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Unavailable dance ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Default band';
 
   @override

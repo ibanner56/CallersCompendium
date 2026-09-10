@@ -602,6 +602,43 @@ class AppLocalizationsFr extends AppLocalizations {
       'Prérempli dans les nouveaux programmes ; modifiable par programme.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Programme de départ';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danses et notes ajoutées aux programmes créés manuellement.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Ajouter une danse';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Danse';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Ajouter une pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Texte de la note';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Note du caller (facultatif)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Monter';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Descendre';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Danse indisponible ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Orchestre par défaut';
 
   @override

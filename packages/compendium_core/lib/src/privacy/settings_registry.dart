@@ -159,6 +159,15 @@ final Map<String, DataClassification> settingsClassifications = {
         'themselves. Personal data, shareable for the same reason as '
         'programs.caller.',
   ),
+  'default_starting_program': const DataClassification(
+    term: DpvTerm.nonPersonal,
+    subject: DataSubject.appUser,
+    egress: EgressClass.shareable,
+    note:
+        'User-authored semantic slot template for manually created programs. '
+        'It contains selected dance references and caller notes, so it travels '
+        'with the user preference in local backups.',
+  ),
   'auto_size_perform_cards': _preference,
   'show_individual_perform_timer': _preference,
   'show_program_slot_caller_notes': _preference,

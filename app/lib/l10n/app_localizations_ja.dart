@@ -576,6 +576,42 @@ class AppLocalizationsJa extends AppLocalizations {
       '新しいプログラムに事前入力されます。プログラムごとに編集可能です。';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => '開始プログラム';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      '手動で作成したプログラムに追加するダンスとメモ。';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'ダンスを追加';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'ダンス';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'メモ';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => '休憩を追加';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'メモのテキスト';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel => 'caller のメモ（任意）';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => '上へ移動';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => '下へ移動';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return '利用できないダンス（$id）';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'デフォルトバンド';
 
   @override

@@ -596,6 +596,43 @@ class AppLocalizationsDe extends AppLocalizations {
       'In neuen Programmen vorausgefüllt; pro Programm bearbeitbar.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogramm';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Tänze und Notizen, die zu manuell erstellten Programmen hinzugefügt werden.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tanz hinzufügen';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Tanz';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Notiz';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Pause hinzufügen';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notiztext';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-Notiz (optional)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Nach oben';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Nach unten';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Nicht verfügbarer Tanz ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
 
   @override

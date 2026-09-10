@@ -63,6 +63,11 @@ Future<void> _pumpDefaultsWithShorthands(
 
   await tester.tap(find.byKey(const ValueKey('settings-nav-defaults')));
   await tester.pumpAndSettle();
+  await tester.ensureVisible(
+    find.byKey(const ValueKey('defaults-authoring-group')),
+  );
+  await tester.tap(find.byKey(const ValueKey('defaults-authoring-group')));
+  await tester.pumpAndSettle();
 }
 
 void main() {

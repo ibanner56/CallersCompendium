@@ -589,6 +589,43 @@ class AppLocalizationsNl extends AppLocalizations {
       'Vooraf ingevuld in nieuwe programma\'s; aanpasbaar per programma.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogramma';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Dansen en notities die aan handmatig gemaakte programma\'s worden toegevoegd.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Een dans toevoegen';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Notitie';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Pauze toevoegen';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Tekst van notitie';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Notitie van caller (optioneel)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Omhoog';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Niet-beschikbare dans ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standaard band';
 
   @override
