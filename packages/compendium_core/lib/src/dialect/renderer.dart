@@ -397,6 +397,7 @@ class FigureRenderer {
               verbose: verbose,
               decimals: decimals,
               forCanonical: forCanonical,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
             ),
           );
       if (forCanonical) {
@@ -634,6 +635,7 @@ class FigureRenderer {
     required bool verbose,
     required bool decimals,
     required bool forCanonical,
+    required bool canonicalizeDiscouragedTerms,
   }) {
     if (forCanonical) {
       return _render(
@@ -653,9 +655,16 @@ class FigureRenderer {
           dialect,
           verbose: verbose,
           decimals: decimals,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
         ),
         for (final child in children.skip(1))
-          _render(child, dialect, verbose: verbose, decimals: decimals),
+          _renderSummary(
+            child,
+            dialect,
+            verbose: verbose,
+            decimals: decimals,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
       ];
       return rendered.join(' while ');
     }
@@ -664,6 +673,7 @@ class FigureRenderer {
       dialect,
       verbose: verbose,
       decimals: decimals,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     );
   }
 
@@ -672,12 +682,14 @@ class FigureRenderer {
     Dialect dialect, {
     required bool verbose,
     required bool decimals,
+    bool canonicalizeDiscouragedTerms = false,
   }) {
-    final rendered = _render(
+    final rendered = _renderSummary(
       figure,
       dialect,
       verbose: verbose,
       decimals: decimals,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
     );
     if (figure.isCustom || figure.isContainer) return rendered;
     final def = taxonomy.resolve(figure.move);

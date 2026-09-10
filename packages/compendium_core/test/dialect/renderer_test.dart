@@ -1168,6 +1168,37 @@ void main() {
       });
     });
 
+    group('modifier children', () {
+      test('summary includes secondary choreography on a modifier child', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'down_the_hall', params: {'ender': 'circle'}),
+          ],
+          beats: 16,
+        );
+        expect(renderer.renderSummary(figure, d), contains('bend into a ring'));
+        expect(
+          renderer.renderSummary(figure, d, verbose: true),
+          contains('bend into a ring'),
+        );
+      });
+
+      test('canonical discouraged terms reach a modifier child', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: customMove, params: {'text': 'Gypsy with the gents'}),
+          ],
+          beats: 16,
+        );
+        expect(
+          renderer.renderSummaryWithCanonicalDiscouragedTerms(figure, larks),
+          contains('Shoulder round with the larks'),
+        );
+      });
+    });
+
     group('hey length', () {
       // PR3 moved the hey length into the display base line (see the PR3 group
       // + `_displayBaseRenderers['hey']`); `_summarySuffix` no longer appends a
