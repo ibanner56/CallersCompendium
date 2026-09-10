@@ -1114,6 +1114,272 @@ void main() {
     expect(saved!.slots[1].isAlt, isTrue);
   });
 
+  testWidgets('promoting a middle alternate swaps with its nearest primary', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(
+            id: 'primary',
+            position: 0,
+            text: 'Primary',
+            guestCaller: 'Original guest',
+            plannedMinutes: 8,
+            performedAt: DateTime.utc(2026, 1, 1, 19),
+          ),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 2,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 3,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'next', position: 4, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Alternate 2',
+      'Alternate 1',
+      'Primary',
+      'Alternate 3',
+      'Next',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((slot) => slot.text).toList(), [
+      'Alternate 2',
+      'Alternate 1',
+      'Primary',
+      'Alternate 3',
+      'Next',
+    ]);
+    expect(saved.slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(saved.slots[2].guestCaller, 'Original guest');
+    expect(saved.slots[2].plannedMinutes, 8);
+    expect(saved.slots[2].performedAt, DateTime.utc(2026, 1, 1, 19));
+    expect(saved.slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
+  });
+
+  testWidgets('promotion selects the nearest preceding primary', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'primary-1', position: 0, text: 'Primary 1'),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'primary-2', position: 2, text: 'Primary 2'),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 3,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 4,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-3-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Primary 1',
+      'Alternate 1',
+      'Alternate 2',
+      'Primary 2',
+      'Alternate 3',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  testWidgets('dialog promotion preserves all edited slot fields', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'primary-1', position: 0, text: 'Primary 1'),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'primary-2', position: 2, text: 'Primary 2'),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 3,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 4,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-3-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Promoted note',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-guest')),
+      'Guest caller',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-minutes')),
+      '12',
+    );
+    await tester.tap(find.byKey(const ValueKey('slot-edit-alt')));
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Primary 1',
+      'Alternate 1',
+      'Promoted note',
+      'Primary 2',
+      'Alternate 3',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      false,
+      true,
+      true,
+    ]);
+    expect(slots[2].guestCaller, 'Guest caller');
+    expect(slots[2].plannedMinutes, 12);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots[2].text, 'Promoted note');
+    expect(saved.slots[2].guestCaller, 'Guest caller');
+    expect(saved.slots[2].plannedMinutes, 12);
+    expect(saved.slots[2].isAlt, isFalse);
+    expect(saved.slots[3].text, 'Primary 2');
+    expect(saved.slots[3].isAlt, isTrue);
+  });
+
+  testWidgets('promoting an orphaned alternate clears its flag in place', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'orphan', position: 0, text: 'Orphan', isAlt: true),
+          ProgramSlot(id: 'next', position: 1, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), ['Orphan', 'Next']);
+    expect(slots.map((slot) => slot.isAlt).toList(), [false, false]);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((slot) => slot.text).toList(), ['Orphan', 'Next']);
+    expect(saved.slots.map((slot) => slot.isAlt).toList(), [false, false]);
+  });
+
   testWidgets('a leading alternate surfaces an orphaned_alt warning', (
     tester,
   ) async {
