@@ -2,7 +2,8 @@ import 'package:compendium_app/src/data/backup_service.dart'
     show
         isBackupEligibleSettingKey,
         kBackupSettingsDenylist,
-        kBackupSettingsDenylistPrefixes;
+        kBackupSettingsDenylistPrefixes,
+        kModifierContainerCanonicalRebuildDoneKey;
 import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -63,6 +64,7 @@ void main() {
       'last_backup_at',
       taxonomyV33CanonicalRebuildDoneKey,
       taxonomyV34CanonicalRebuildDoneKey,
+      kModifierContainerCanonicalRebuildDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
     });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
