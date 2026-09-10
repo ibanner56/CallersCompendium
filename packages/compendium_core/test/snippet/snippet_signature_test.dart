@@ -13,7 +13,7 @@ void main() {
       );
       expect(
         migrateFigureSnippetSignature('pull_by_direction(where=along)'),
-        'pull_by(who=unspecified,where=along)',
+        'pull_by(where=along,who=unspecified)',
       );
       expect(
         migrateFigureSnippetSignature('zig_zag(turn=right)'),
