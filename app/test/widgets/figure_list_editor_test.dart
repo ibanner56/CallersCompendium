@@ -1255,6 +1255,8 @@ void main() {
 
     await _pump(tester, [modifier]);
     await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const ValueKey('figure-0-nested-0-0-side-1-remove')),
     );
