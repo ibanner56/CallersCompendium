@@ -1316,6 +1316,10 @@ void main() {
       expect(find.byKey(const ValueKey('perform-over')), findsNothing);
       await tester.pump(const Duration(seconds: 1));
       expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
     },
   );
 

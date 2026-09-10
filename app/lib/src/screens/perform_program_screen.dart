@@ -1111,13 +1111,14 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       valueListenable: _elapsed,
       builder: (context, elapsed, _) {
         final slotElapsed = _slotElapsedFrom(elapsed);
-        final walkthroughComplete =
-            walkthroughMinutes != null &&
-            walkthroughMinutes > 0 &&
-            slotElapsed > walkthroughMinutes * 60;
         final isOver =
             danceMinutes != null &&
             slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60;
+        final walkthroughComplete =
+            !isOver &&
+            walkthroughMinutes != null &&
+            walkthroughMinutes > 0 &&
+            slotElapsed > walkthroughMinutes * 60;
 
         final label = l10n.performTimingSemantic(
           _formatDuration(elapsed),
