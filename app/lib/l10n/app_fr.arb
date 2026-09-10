@@ -3124,6 +3124,18 @@
   "@programsMatrixHalfShort": {
     "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
   },
+  "programsMatrixSectionShort": "{section}",
+  "@programsMatrixSectionShort": {
+    "x-sourceSha256": "b19b8e17c6ca93928f274e040da45870e35c5571cef6e3bab4bbe50af2d86175"
+  },
+  "programsMatrixSectionRowHeaderSemantic": "{alt, select, yes{{section, select, none{Danse alternative : {title}} other{Danse alternative : {title}, section {section}}}} other{{section, select, none{Danse : {title}} other{Danse : {title}, section {section}}}}}",
+  "@programsMatrixSectionRowHeaderSemantic": {
+    "x-sourceSha256": "85d25c17112ac3090732ae1be3b076322896f4da663272cdb80c69bb49adfbab"
+  },
+  "programsMatrixSectionChipQualifiedTitle": "{alt, select, yes{{section, select, none{{title} (danse alternative)} other{{title} (danse alternative, section {section})}}} other{{section, select, none{{title}} other{{title} (section {section})}}}}",
+  "@programsMatrixSectionChipQualifiedTitle": {
+    "x-sourceSha256": "ccc26260eeb603c593983dbbe29dab032ecb9456082415ed7be93c36c850279e"
+  },
   "programsMatrixFormationColumnHeader": "Formation",
   "@programsMatrixFormationColumnHeader": {
     "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"

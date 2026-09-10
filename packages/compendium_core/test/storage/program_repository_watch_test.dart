@@ -126,7 +126,7 @@ void main() {
 
     test('half-calling stats ride the same stream', () async {
       // A break slot is what makes the halves derivable, so the stats have
-      // something to attribute (see [Program.halvesForSlots]).
+      // something to attribute (see [Program.sectionsForSlots]).
       await programs.create(
         program(
           id: 'p1',

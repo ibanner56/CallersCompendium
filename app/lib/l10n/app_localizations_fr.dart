@@ -2974,6 +2974,53 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String section) {
+    return '$section';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': 'Danse alternative : $title',
+      'other': 'Danse alternative : $title, section $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'Danse : $title',
+      'other': 'Danse : $title, section $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title (danse alternative)',
+      'other': '$title (danse alternative, section $section)',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title (section $section)',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'Formation';
 
   @override

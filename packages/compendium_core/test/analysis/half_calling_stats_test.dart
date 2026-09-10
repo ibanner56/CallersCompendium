@@ -115,7 +115,7 @@ void main() {
       expect(stats.secondHalfCount, 1);
     });
 
-    test('multiple breaks — first break defines the halves', () {
+    test('multiple breaks project sections 2+ into second-half history', () {
       final slots = [
         danceSlot('d1', position: 0),
         breakSlot(position: 1),
@@ -124,9 +124,9 @@ void main() {
         danceSlot('d1', position: 4),
       ];
       final stats = computeHalfCallingStats(danceId: 'd1', programs: [slots]);
-      // Before first break: 1st half (1). After first break: 2nd half — but the
-      // second break slot classifies as null, so only the dance slots at
-      // positions 2 and 4 count as second half.
+      // Numbered sections are [1, null, 2, null, 3], while history retains its
+      // first/second-only shape: section 1 counts as first and sections 2+ as
+      // second.
       expect(stats.firstHalfCount, 1);
       expect(stats.secondHalfCount, 2);
     });

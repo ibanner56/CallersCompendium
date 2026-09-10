@@ -44,7 +44,7 @@ void main() {
     Set<int>? altRowIndices,
     bool showAlternates = true,
     Dialect? dialect,
-    List<ProgramHalf?>? halves,
+    List<int?>? sections,
     Set<String> hiddenColumns = const {},
     ValueChanged<String>? onHideColumn,
   }) async {
@@ -57,7 +57,7 @@ void main() {
 
         home: Scaffold(
           body: ProgramMatrixTable(
-            matrix: buildProgramMatrix(dances, halves: halves),
+            matrix: buildProgramMatrix(dances, sections: sections),
             taxonomy: contraTaxonomy,
             dialect: dialect ?? Dialect.canonical,
             omittedFreeTextCount: omittedFreeTextCount,
@@ -495,7 +495,7 @@ void main() {
       Set<int>? altRowIndices,
       bool showAlternates = true,
       Dialect? dialect,
-      List<ProgramHalf?>? halves,
+      List<int?>? sections,
       Set<String> hiddenColumns = const {},
     }) async {
       // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
@@ -509,7 +509,7 @@ void main() {
 
           home: Scaffold(
             body: ProgramMatrixTable(
-              matrix: buildProgramMatrix(dances, halves: halves),
+              matrix: buildProgramMatrix(dances, sections: sections),
               taxonomy: contraTaxonomy,
               dialect: dialect ?? Dialect.canonical,
               omittedFreeTextCount: omittedFreeTextCount,
@@ -808,8 +808,8 @@ void main() {
     });
   });
 
-  group('half badge', () {
-    testWidgets('wide grid renders 1st/2nd badges with icon + text', (
+  group('section badge', () {
+    testWidgets('wide grid renders numbered badges with icon + text', (
       tester,
     ) async {
       await pump(
@@ -818,7 +818,7 @@ void main() {
           dance('d1', 'A', [move('balance')]),
           dance('d2', 'B', [move('balance')]),
         ],
-        halves: const [ProgramHalf.first, ProgramHalf.second],
+        sections: const [1, 2],
       );
 
       // Icon + text (never colour alone), per WCAG 1.4.1.
@@ -827,12 +827,32 @@ void main() {
       expect(find.byIcon(Icons.looks_one_outlined), findsOneWidget);
       expect(find.byIcon(Icons.looks_two_outlined), findsOneWidget);
 
-      // Screen-reader phrasing folds the half into the row header label.
-      expect(find.bySemanticsLabel('Dance: A, first half'), findsOneWidget);
-      expect(find.bySemanticsLabel('Dance: B, second half'), findsOneWidget);
+      // Screen-reader phrasing folds the section into the row header label.
+      expect(find.bySemanticsLabel('Dance: A, section 1st'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: B, section 2nd'), findsOneWidget);
     });
 
-    testWidgets('no badge when the program has no halves', (tester) async {
+    testWidgets('wide grid renders sections beyond second', (tester) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [move('balance')]),
+          dance('d2', 'B', [move('balance')]),
+          dance('d3', 'C', [move('balance')]),
+          dance('d4', 'D', [move('balance')]),
+        ],
+        sections: const [1, 2, 3, 4],
+      );
+
+      expect(find.text('3rd'), findsOneWidget);
+      expect(find.text('4th'), findsOneWidget);
+      expect(find.byIcon(Icons.looks_3_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.looks_4_outlined), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: C, section 3rd'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: D, section 4th'), findsOneWidget);
+    });
+
+    testWidgets('no badge when the program has no sections', (tester) async {
       await pump(
         tester,
         dances: [
@@ -846,7 +866,7 @@ void main() {
       expect(find.bySemanticsLabel('Dance: A'), findsOneWidget);
     });
 
-    testWidgets('compact view carries the half into chip semantics', (
+    testWidgets('compact view carries the section into chip semantics', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(360, 720));
@@ -863,7 +883,7 @@ void main() {
                   dance('d1', 'A', [swing(), move('balance')]),
                   dance('d2', 'B', [swing(), move('balance')]),
                 ],
-                halves: const [ProgramHalf.first, ProgramHalf.second],
+                sections: const [3, 4],
               ),
               taxonomy: contraTaxonomy,
               dialect: Dialect.canonical,
@@ -878,7 +898,7 @@ void main() {
       // formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "A (first half), formation: Improper, partner swing: "
+          "A (section 3rd), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "introduced here, dance's first figure",
         ),
@@ -886,7 +906,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "B (second half), formation: Improper, partner swing: "
+          "B (section 4th), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),

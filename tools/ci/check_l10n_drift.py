@@ -21,8 +21,12 @@ def run(root: Path = REPO_ROOT) -> int:
     if generated.returncode:
         return generated.returncode
 
+    generated_paths = [
+        "lib/l10n/app_localizations.dart",
+        *sorted(str(path.relative_to(app)) for path in app.glob("lib/l10n/app_localizations_*.dart")),
+    ]
     status = subprocess.run(
-        ["git", "status", "--porcelain", "--", "lib/l10n"],
+        ["git", "status", "--porcelain", "--", *generated_paths],
         cwd=app,
         check=False,
         capture_output=True,

@@ -1,0 +1,9 @@
+{
+  "id": "1235-numbered-program-sections",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Program matrix rows now show numbered sections such as 1st, 2nd, and 3rd when breaks divide an evening into multiple sections."
+    ]
+  }
+}

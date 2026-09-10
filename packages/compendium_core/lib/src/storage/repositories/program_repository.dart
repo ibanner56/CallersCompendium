@@ -1018,7 +1018,7 @@ class ProgramRepository {
   /// [danceId] (issue #378), aggregated across every non-deleted program that
   /// includes it. A sibling of [callingHistoryForDance] — that method is left
   /// untouched — computed via the pure, Flutter-free [computeHalfCallingStats],
-  /// which reuses the derived-half helper [Program.halvesForSlots].
+  /// which reuses the derived-section helper [Program.sectionsForSlots].
   ///
   /// Bounded read: it loads full slot lists ONLY for the programs that actually
   /// contain the dance (found via one parameterized `dance_id = ?` query), not
