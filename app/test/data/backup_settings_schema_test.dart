@@ -17,7 +17,11 @@ import 'package:compendium_app/src/data/walkthrough_snippet_library_controller.d
 import 'package:compendium_app/src/data/shorthand_mappings_controller.dart'
     show kShorthandMappingsKey;
 import 'package:compendium_app/src/screens/settings_screen.dart'
-    show kAppThemeKey, kSortIgnoreArticlesKey, kPerformTextScaleKey;
+    show
+        kAppThemeKey,
+        kSortIgnoreArticlesKey,
+        kPerformTextScaleKey,
+        kShowProgramSlotCallerNotesKey;
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -54,6 +58,25 @@ void main() {
       },
     );
 
+    test('program caller-note visibility setting accepts only bools', () {
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, true),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, false),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, 'true'),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kShowProgramSlotCallerNotesKey, null),
+        isFalse,
+      );
+    });
+    
     test('bool keys accept only bools', () {
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, true), isTrue);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, false), isTrue);

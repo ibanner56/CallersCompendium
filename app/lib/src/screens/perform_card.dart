@@ -81,6 +81,7 @@ class PerformCard extends StatelessWidget {
     required this.renderer,
     required this.dialect,
     required this.textScale,
+    this.callerNote,
     this.autoSize = false,
     this.authorNames = const [],
     this.difficultyLevel,
@@ -91,6 +92,10 @@ class PerformCard extends StatelessWidget {
   final FigureRenderer renderer;
   final Dialect dialect;
   final double textScale;
+
+  /// Optional caller note belonging to a program slot. Single-dance Perform
+  /// leaves this null, so dance calling notes remain a separate field.
+  final String? callerNote;
 
   /// When `true`, ignore [textScale] and auto-scale so the full card fits the
   /// viewport without scrolling (ROADMAP G.1). When `false`, use [textScale]
@@ -124,6 +129,7 @@ class PerformCard extends StatelessWidget {
           children: [
             _Header(
               dance: dance,
+              callerNote: callerNote,
               authorNames: authorNames,
               renderer: renderer,
               dialect: dialect,
@@ -170,7 +176,12 @@ class PerformCard extends StatelessWidget {
       return _FitToHeight(
         minScale: kPerformMinAutoScale,
         maxScale: kPerformMaxAutoScale,
-        resetToken: Object.hash(dance.id, dialect, canonicalDiscouragedTerms),
+        resetToken: Object.hash(
+          dance.id,
+          callerNote,
+          dialect,
+          canonicalDiscouragedTerms,
+        ),
         builder: _body,
         scaleCache: fitScaleCache,
       );
@@ -823,6 +834,7 @@ List<Widget> buildPerformAppBarActions({
 class _Header extends StatelessWidget {
   const _Header({
     required this.dance,
+    this.callerNote,
     required this.authorNames,
     this.difficultyLevel,
     required this.renderer,
@@ -832,6 +844,7 @@ class _Header extends StatelessWidget {
   });
 
   final Dance dance;
+  final String? callerNote;
   final List<String> authorNames;
   final FigureRenderer renderer;
   final Dialect dialect;
@@ -851,6 +864,16 @@ class _Header extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (callerNote != null && callerNote!.trim().isNotEmpty) ...[
+          Text(
+            '${l10n.performSlotCallerNote}: ${canonicalizeDiscouragedTerms ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(callerNote!.trim(), dialect) : callerNote!.trim()}',
+            key: const ValueKey('perform-slot-caller-note'),
+            style: theme.textTheme.headlineSmall?.merge(
+              AppTypography.performBody,
+            ),
+          ),
+          SizedBox(height: AppSpacing.xs * chromeScale),
+        ],
         Text(
           dance.title,
           key: const ValueKey('perform-title'),

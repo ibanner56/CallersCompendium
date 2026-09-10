@@ -683,12 +683,54 @@ void main() {
       expect(f.move, 'down_the_hall');
       expect(f.params['moving'], 'all');
       expect(f.params['facing'], 'forward');
+      expect(f.params['ender'], 'none');
     });
 
     test('up the hall', () {
       final f = _parse('up the hall forward');
       expect(f.move, 'up_the_hall');
       expect(f.params['moving'], 'all');
+      expect(f.params['ender'], 'none');
+    });
+
+    test('issue examples consume same-line hall enders', () {
+      final down = _parse('down the hall and turn alone');
+      expect(down.params['ender'], 'turnAlone');
+      expect(down.note, isNull);
+
+      final up = _parse('up the hall and bend into a ring');
+      expect(up.params['ender'], 'circle');
+      expect(up.note, isNull);
+    });
+
+    test('all supported ContraDB hall enders are structured', () {
+      const cases = <String, String>{
+        'turn as a couple': 'turnCouple',
+        'turn alone': 'turnAlone',
+        'bend into a ring': 'circle',
+        'form a cozy line': 'cozy',
+        'bend into a cloverleaf': 'cloverleaf',
+        'thread the needle': 'threadNeedle',
+        'right hand high, left hand low': 'rightHandHigh',
+        'slide doors': 'slidingDoors',
+      };
+      for (final entry in cases.entries) {
+        final f = _parse('down the hall and ${entry.key}');
+        expect(f.params['ender'], entry.value, reason: entry.key);
+        expect(f.note, isNull, reason: entry.key);
+      }
+    });
+
+    test('hall ender leaves a real trailing note intact', () {
+      final f = _parse('down the hall and turn alone - do not let go');
+      expect(f.params['ender'], 'turnAlone');
+      expect(f.note, '- do not let go');
+    });
+
+    test('bend the line remains a ContraDB note', () {
+      final f = _parse('down the hall and bend the line');
+      expect(f.params['ender'], 'none');
+      expect(f.note, 'and bend the line');
     });
 
     test('figure 8', () {

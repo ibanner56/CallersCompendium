@@ -1016,6 +1016,14 @@ class AppLocalizationsJa extends AppLocalizations {
       '1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'プログラムのPerformでコーラーのメモを表示';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'プログラムのPerformで、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
 
   @override
@@ -2834,6 +2842,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'すべての列を表示';
 
   @override
+  String get programsMatrixHideAlternatesSemantic => '代替行を非表示';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic => '代替行を表示';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -3181,6 +3195,9 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' 超過';
+
+  @override
+  String get performSlotCallerNote => 'コーラーメモ';
 
   @override
   String get performCallingNotes => 'コーリングノート';

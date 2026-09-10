@@ -1055,6 +1055,14 @@ class AppLocalizationsDa extends AppLocalizations {
       'Vis den forløbne tid, mens du udfører en enkelt dans. Timeren starter, når den vises, og kan sættes på pause.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Vis callernoter i program-Perform';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Vis ikke-tomme callernoter pr. slot over dansens titel i program-Perform.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Kaldshistorik';
 
   @override
@@ -2929,6 +2937,12 @@ class AppLocalizationsDa extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Vis alle kolonner';
 
   @override
+  String get programsMatrixHideAlternatesSemantic => 'Skjul alternative rækker';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic => 'Vis alternative rækker';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -3283,6 +3297,9 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Caller-note';
 
   @override
   String get performCallingNotes => 'Kaldsnotes';

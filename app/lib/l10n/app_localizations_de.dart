@@ -1074,6 +1074,14 @@ class AppLocalizationsDe extends AppLocalizations {
       'Verstrichene Zeit beim Ausführen eines einzelnen Tanzes anzeigen. Der Timer startet, sobald er angezeigt wird, und kann pausiert werden.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Caller-Notizen in der Programm-Perform-Ansicht anzeigen';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Nicht leere Caller-Notizen pro Slot über dem Tanztitel in der Programm-Perform-Ansicht anzeigen.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling-Verlauf';
 
   @override
@@ -2964,6 +2972,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Alle Spalten anzeigen';
 
   @override
+  String get programsMatrixHideAlternatesSemantic =>
+      'Alternative Zeilen ausblenden';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic =>
+      'Alternative Zeilen anzeigen';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -3321,6 +3337,9 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' über';
+
+  @override
+  String get performSlotCallerNote => 'Caller-Notiz';
 
   @override
   String get performCallingNotes => 'Calling-Notizen';

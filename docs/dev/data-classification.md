@@ -500,6 +500,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `set_list_color_coding` | `dpv:NonPersonalData` | app user | shareable |  |
 | `shorthand_mappings` | `dpv:NonPersonalData` | app user | shareable |  |
 | `show_individual_perform_timer` | `dpv:NonPersonalData` | app user | shareable |  |
+| `show_program_slot_caller_notes` | `dpv:NonPersonalData` | app user | shareable |  |
 | `soft_delete_retention_days` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sort_ignore_articles` | `dpv:NonPersonalData` | app user | shareable |  |
 | `sync_device_id` | `dpv:NonPersonalData` | — | **protocol-identifier** | Opaque per-installation routing identifier. It must travel in protocol metadata but must never be adopted from another device or restored from a backup. |

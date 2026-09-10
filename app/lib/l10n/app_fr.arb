@@ -1184,6 +1184,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
   },
+  "settingsShowProgramSlotCallerNotesTitle": "Afficher les notes du caller dans le Perform d’un programme",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Afficher les notes de caller non vides de chaque créneau au-dessus du titre de la danse dans le Perform d’un programme.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "x-sourceSha256": "3643d4c4bffc8af03f4f7feb2363c0cf70bacf9663bb4c84a84f2eed5fb51b1c"
+  },
   "settingsGeneralCallingHistoryHeader": "Historique d’appel",
   "@settingsGeneralCallingHistoryHeader": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
@@ -3152,6 +3160,14 @@
   "@programsMatrixShowAllColumnsSemantic": {
     "x-sourceSha256": "87e6b9fe0c51b9ad481c1e47b40fbc5a13ea3464c5131908b81cb2b21cd33822"
   },
+  "programsMatrixHideAlternatesSemantic": "Masquer les lignes alternatives",
+  "@programsMatrixHideAlternatesSemantic": {
+    "x-sourceSha256": "fbfd4e69c3c8804028dc65c1b8c84a0a73c4591684d5a365a1ad1ebe724f8e4c"
+  },
+  "programsMatrixShowAlternatesSemantic": "Afficher les lignes alternatives",
+  "@programsMatrixShowAlternatesSemantic": {
+    "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Danse alternative : {title}, première partie} second{Danse alternative : {title}, deuxième partie} other{Danse alternative : {title}}}} other{{half, select, first{Danse : {title}, première partie} second{Danse : {title}, deuxième partie} other{Danse : {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
@@ -3435,6 +3451,10 @@
   "performOverSuffix": " dépassé",
   "@performOverSuffix": {
     "x-sourceSha256": "1dd5a67f8afc17b092e937172d1903e40bb1ca68cd7444f946650ecac8dfcaac"
+  },
+  "performSlotCallerNote": "Note du caller",
+  "@performSlotCallerNote": {
+    "x-sourceSha256": "d2b28bddb944b16a222d1bdb75c290a08ba8dec28530924ad9ef12b09af101ea"
   },
   "performCallingNotes": "Notes d’appel",
   "@performCallingNotes": {
