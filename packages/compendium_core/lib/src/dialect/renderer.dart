@@ -2195,7 +2195,7 @@ class FigureRenderer {
         {
           'who': sfirst,
           'article': article,
-          'dir': sdir2,
+          'where': sdir2,
           'length': lengthWord,
           'move': move,
           'shoulder': _displayScalar(sh),
@@ -2208,7 +2208,7 @@ class FigureRenderer {
           'until': untilClause,
           'ricochets': ricoStrings.join(', '),
         },
-        '{who} start {article} {dir} {length} {move}'
+        '{who} start {article} {where} {length} {move}'
         '[ - {shoulder_clause}]'
         '[ - {until}]'
         '[ - {ricochets}]',

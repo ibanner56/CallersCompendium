@@ -317,6 +317,37 @@ void main() {
       });
     });
 
+    test('fromJson canonicalizes legacy pull-by keys deterministically', () {
+      final d = Dialect.fromJson({
+        'name': 'Legacy',
+        'moves': {
+          'pull_by_direction': 'direction',
+          'pull_by_dancers': 'dancers',
+          'pull_by': 'canonical',
+        },
+        'moveWordings': {
+          'hey': '{who} {dir} {move}',
+          'pull_by_direction': '{move} direction',
+          'pull_by_dancers': '{move} dancers',
+          'pull_by': '{move} canonical',
+        },
+      });
+
+      expect(d.moves, {'pull_by': 'canonical'});
+      expect(d.moveWordings, {
+        'hey': '{who} {where} {move}',
+        'pull_by': '{move} canonical',
+      });
+
+      final aliasesOnly = Dialect.fromJson({
+        'moves': {
+          'pull_by_direction': 'direction',
+          'pull_by_dancers': 'dancers',
+        },
+      });
+      expect(aliasesOnly.moves, {'pull_by': 'dancers'});
+    });
+
     test('fromJson normalizes a circle branch over a full wording map', () {
       final wordings = <String, Object?>{
         'circle': 'old circle wording',
