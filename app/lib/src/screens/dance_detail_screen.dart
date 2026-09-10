@@ -16,6 +16,7 @@ import '../data/formation_colors_scope.dart';
 import '../data/repositories_scope.dart';
 import '../data/require_performed_for_history_scope.dart';
 import '../data/track_history_for_all_callers_scope.dart';
+import '../data/venue_call_count_scope.dart';
 import '../diagnostics/error_log.dart';
 import '../export/dance_pdf.dart';
 import '../export/dance_share_bundle.dart';
@@ -211,6 +212,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
   /// (issue #583). Tracked so [didChangeDependencies] can reload the calling
   /// history when the setting is toggled while this screen is open.
   bool _trackHistoryForAllCallers = false;
+  int _venueCallCount = kVenueCallCountDefault;
 
   /// When `false` the figure table renders in the user's active dialect;
   /// when `true` it renders canonical role/move tokens.  The toggle is hidden
@@ -250,6 +252,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
     // reloads this whole screen to re-run one query (issue #768).
     _requirePerformedForHistory = RequirePerformedForHistoryScope.of(context);
     _trackHistoryForAllCallers = TrackHistoryForAllCallersScope.of(context);
+    _venueCallCount = VenueCallCountScope.of(context);
     if (!_started) {
       _started = true;
       _repos = RepositoriesScope.of(context);
@@ -1399,6 +1402,7 @@ class _DanceDetailScreenState extends State<DanceDetailScreen> {
             danceId: widget.danceId!,
             performedOnly: _requirePerformedForHistory,
             trackAllCallers: _trackHistoryForAllCallers,
+            venueCallCount: _venueCallCount,
             onOpenProgram: _openProgram,
           ),
       ],

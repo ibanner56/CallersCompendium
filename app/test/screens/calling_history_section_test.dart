@@ -44,6 +44,7 @@ void main() {
     WidgetTester tester,
     CompendiumRepositories repos, {
     bool performedOnly = false,
+    int venueCallCount = 3,
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -58,6 +59,7 @@ void main() {
               danceId: 'd1',
               performedOnly: performedOnly,
               trackAllCallers: true,
+              venueCallCount: venueCallCount,
               onOpenProgram: (_) {},
             ),
           ),
@@ -257,6 +259,91 @@ void main() {
       expect(freeText.venueLabel, 'Town Hall');
     },
   );
+
+  testWidgets('summarizes repeated venues in count and label order', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('d1', 'Petronella'));
+    await repos.venues.upsert(
+      Venue(id: 'zulu', name: 'Zulu Hall', city: 'Nelson'),
+    );
+    await repos.venues.upsert(
+      Venue(id: 'alpha', name: 'Alpha Hall', city: 'Nelson'),
+    );
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'One',
+        venueId: 'zulu',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd1'),
+        ],
+      ),
+    );
+    await repos.programs.create(
+      program(
+        id: 'p2',
+        title: 'Two',
+        venueId: 'alpha',
+        slots: [ProgramSlot(id: 's3', position: 0, danceId: 'd1')],
+      ),
+    );
+    await repos.programs.create(
+      program(
+        id: 'p3',
+        title: 'Three',
+        venue: '  town   hall ',
+        slots: [
+          ProgramSlot(id: 's4', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's5', position: 1, danceId: 'd1'),
+        ],
+      ),
+    );
+
+    await pumpSection(tester, repos);
+
+    final summary = find.byKey(
+      const ValueKey('venue-call-count-summary-content'),
+    );
+    expect(summary, findsOneWidget);
+    final text = tester.widget<Column>(
+      find.descendant(of: summary, matching: find.byType(Column)),
+    );
+    expect(
+      text.children.whereType<Text>().map((child) => child.data),
+      containsAllInOrder([
+        'Called 2 times at town hall',
+        'Called 2 times at Zulu Hall, Nelson',
+      ]),
+    );
+    expect(find.text('Called 1 time at Alpha Hall'), findsNothing);
+  });
+
+  testWidgets('setting zero hides only the venue summary', (tester) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(dance('d1', 'Petronella'));
+    await repos.programs.create(
+      program(
+        id: 'p1',
+        title: 'Repeated venue',
+        venue: 'Town Hall',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd1'),
+        ],
+      ),
+    );
+
+    await pumpSection(tester, repos, venueCallCount: 0);
+
+    expect(
+      find.byKey(const ValueKey('venue-call-count-summary')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('calling-history-s1')), findsOneWidget);
+  });
 
   testWidgets(
     'does not read the venue catalogue for a history that links no venue',

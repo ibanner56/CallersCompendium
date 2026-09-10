@@ -4,7 +4,10 @@ import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
     show kCanonicalFigureTextKey;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
-    show kProgramMatrixColumnsKey, kShowIndividualPerformTimerKey;
+    show
+        kProgramMatrixColumnsKey,
+        kShowIndividualPerformTimerKey,
+        kVenueCallCountKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
@@ -136,6 +139,15 @@ void main() {
         validateBackupSettingValue(kSoftDeleteRetentionKey, '30'),
         isFalse,
       );
+    });
+
+    test('venue call count accepts only bounded ints', () {
+      expect(validateBackupSettingValue(kVenueCallCountKey, 0), isTrue);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 10), isTrue);
+      expect(validateBackupSettingValue(kVenueCallCountKey, -1), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 11), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 1.5), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, '3'), isFalse);
     });
 
     test('map-blob keys accept only maps', () {

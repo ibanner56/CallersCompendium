@@ -999,6 +999,25 @@ class AppLocalizationsJa extends AppLocalizations {
       'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラム、およびコーラーが記録されていないプログラム（自分のプログラムとして扱われます）が含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
 
   @override
+  String get settingsProgramVenueCallCountTitle => 'コーリング履歴に繰り返し登場する会場';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'ダンスを2回以上コールした主な会場を表示します。0にするとこの概要を非表示にします。';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count会場',
+      one: '1会場',
+      zero: '表示しない',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
 
   @override
@@ -2123,6 +2142,17 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get danceCallingHistoryError => 'コール履歴を読み込めませんでした。';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$venueで$count回コール',
+      one: '$venueで1回コール',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => '正式な用語で表示';

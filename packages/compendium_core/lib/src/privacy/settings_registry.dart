@@ -175,6 +175,7 @@ final Map<String, DataClassification> settingsClassifications = {
   ),
   'require_performed_for_history': _preference,
   'track_history_for_all_callers': _preference,
+  'venue_call_count': _preference,
 
   // -- Installation state ---------------------------------------------------
   'window_frame': _installState,

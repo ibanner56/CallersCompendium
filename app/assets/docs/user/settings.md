@@ -172,6 +172,9 @@ details are handled when you export.
   or leave the default caller blank — to track every program that contains the
   dance. Matching ignores surrounding spaces and letter case, and applies on top
   of the *Require "mark performed"* setting (both must pass).
+- **Repeated venues in calling history** (3) — shows the top venues where a
+  dance was called more than once. Set this to 0 to hide the summary, or choose
+  up to 10 venues.
 
 ## Appearance
 
