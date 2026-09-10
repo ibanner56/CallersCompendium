@@ -3283,11 +3283,11 @@ void main() {
 
     test('hey wording accepts either shoulder slot', () {
       const withShoulder =
-          '{who} {article} {dir} {length} {move} {shoulder} {until} {ricochets}';
+          '{who} {article} {where} {length} {move} {shoulder} {until} {ricochets}';
       const withShoulderClause =
-          '{who} {article} {dir} {length} {move} {shoulder_clause} {until} {ricochets}';
+          '{who} {article} {where} {length} {move} {shoulder_clause} {until} {ricochets}';
       const withoutEither =
-          '{who} {article} {dir} {length} {move} {until} {ricochets}';
+          '{who} {article} {where} {length} {move} {until} {ricochets}';
 
       expect(renderer.moveWordingSlots('hey'), contains('shoulder'));
       expect(
@@ -3315,6 +3315,20 @@ void main() {
       expect(
         renderer.moveWordingSlotLabels('hey', missingBoth),
         contains('{shoulder}/{shoulder_clause}'),
+      );
+    });
+
+    test('legacy hey wording uses the canonical where slot after decoding', () {
+      final dialect = Dialect.fromJson({
+        'moveWordings': {'hey': '{move} {dir}'},
+      });
+
+      expect(
+        renderer.render(
+          Figure(move: 'hey', params: const {'where': 'along'}),
+          dialect,
+        ),
+        contains('along'),
       );
     });
 

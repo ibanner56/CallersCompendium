@@ -183,14 +183,10 @@ class Taxonomy {
         ? figure.subFigures.map(normalizeFigureV35).toList(growable: false)
         : null;
     final legacyMove = figure.move;
-    final move = switch (legacyMove) {
-      'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
-      _ => legacyMove,
-    };
-    final renames = _v35ParamRenames[move];
+    final move = normalizeV35MoveId(legacyMove);
     final params = <String, Object?>{};
     for (final entry in figure.params.entries) {
-      final key = renames?[entry.key] ?? entry.key;
+      final key = normalizeV35ParamKey(move, entry.key);
       // The v35 name wins if both representations are present.
       if (params.containsKey(key) && entry.key != key) continue;
       params[key] = entry.value;
@@ -206,6 +202,16 @@ class Taxonomy {
     }
     return figure.copyWith(move: move, params: params);
   }
+
+  /// Returns the v35 move ID for a persisted v34 move ID.
+  static String normalizeV35MoveId(String move) => switch (move) {
+    'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
+    _ => move,
+  };
+
+  /// Returns the v35 parameter key for a persisted v34 key on [move].
+  static String normalizeV35ParamKey(String move, String key) =>
+      _v35ParamRenames[normalizeV35MoveId(move)]?[key] ?? key;
 
   static const _v35ParamRenames = <String, Map<String, String>>{
     'circle': {'turn': 'direction'},

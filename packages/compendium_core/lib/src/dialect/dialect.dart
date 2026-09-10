@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+import '../taxonomy/taxonomy.dart';
 import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
 
@@ -69,47 +70,57 @@ const ListEquality<Object?> _listEq = ListEquality<Object?>();
 const DeepCollectionEquality _deepEq = DeepCollectionEquality();
 const int _kDialectSchemaVersion = 2;
 
+String _migrateDialectMoveId(String moveId) =>
+    Taxonomy.normalizeV35MoveId(moveId);
+
+List<String> _dialectMoveMigrationOrder(Iterable<String> moveIds) {
+  final ordered = moveIds.toList()
+    ..sort((a, b) {
+      final aCanonical = _migrateDialectMoveId(a) == a;
+      final bCanonical = _migrateDialectMoveId(b) == b;
+      if (aCanonical != bCanonical) return aCanonical ? -1 : 1;
+      return a.compareTo(b);
+    });
+  return ordered;
+}
+
+// Canonical IDs win collisions; when only legacy aliases are present, their
+// lexical order makes the selected value stable across map insertion orders.
+Map<String, String> _migrateDialectMoveMap(Map<String, String> source) {
+  final result = <String, String>{};
+  for (final moveId in _dialectMoveMigrationOrder(source.keys)) {
+    result.putIfAbsent(_migrateDialectMoveId(moveId), () => source[moveId]!);
+  }
+  return result;
+}
+
+Map<String, Map<String, String>> _migrateDialectBranchMap(
+  Map<String, Map<String, String>> source,
+) {
+  final result = <String, Map<String, String>>{};
+  for (final moveId in _dialectMoveMigrationOrder(source.keys)) {
+    final target = result.putIfAbsent(
+      _migrateDialectMoveId(moveId),
+      () => <String, String>{},
+    );
+    for (final entry in source[moveId]!.entries) {
+      target.putIfAbsent(entry.key, () => entry.value);
+    }
+  }
+  return result;
+}
+
 String _migrateV34WordingTemplate(String moveId, String template) {
-  final renames = <String, String>{
-    'circle': 'direction',
-    'allemande': 'travel',
-    'two_hand_turn': 'travel',
-    'do_si_do': 'travel',
-    'gypsy': 'travel',
-    'shoulder_round': 'travel',
-    'see_saw': 'travel',
-    'pass_through': 'where',
-    'pass_the_ocean': 'where',
-    'right_left_through': 'where',
-    'chain': 'where',
-    'pull_by': 'where',
-    'promenade': 'direction',
-    'poussette': 'direction',
-    'orbit': 'direction',
-    'mad_robin': 'travel',
-    'star_promenade': 'travel',
-    'gate': 'travel',
-    'form_short_waves': 'axis',
-    'figure_8': 'fraction',
-    'cross_trails': 'where',
-    'facing_star': 'direction',
-    'hey': 'where',
-    'form_long_waves': 'whomHand',
-    'zig_zag': 'slide',
-  };
-  final moveRenames = <String, String>{
-    'turn': renames[moveId] ?? 'travel',
-    'dir': 'where',
-    'half': 'fraction',
-    'amount': 'travel',
-    'face': 'endFacing',
-    'hand': moveId == 'form_long_waves' ? 'whomHand' : 'hand',
-  };
-  if (moveId == 'promenade') moveRenames['direction'] = 'where';
-  return template.replaceAllMapped(
-    RegExp(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}'),
-    (match) => '{${moveRenames[match.group(1)] ?? match.group(1)}}',
-  );
+  final canonicalMoveId = _migrateDialectMoveId(moveId);
+  return template.replaceAllMapped(RegExp(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}'), (
+    match,
+  ) {
+    final key = match.group(1)!;
+    final migratedKey = canonicalMoveId == 'promenade' && key == 'direction'
+        ? 'where'
+        : Taxonomy.normalizeV35ParamKey(canonicalMoveId, key);
+    return '{$migratedKey}';
+  });
 }
 
 /// A user-level presentation mapping applied at render time. Storage is
@@ -391,13 +402,22 @@ class Dialect {
       }
     }
     final rawName = json['name'];
+    final migratedMoves = migrateLegacyTemplates
+        ? _migrateDialectMoveMap(moves)
+        : moves;
+    final migratedWordings = migrateLegacyTemplates
+        ? _migrateDialectMoveMap(moveWordings)
+        : moveWordings;
+    final migratedBranches = migrateLegacyTemplates
+        ? _migrateDialectBranchMap(moveWordingBranches)
+        : moveWordingBranches;
     return Dialect(
       name: rawName is String ? rawName : customName,
       roles: roles,
-      moves: moves,
+      moves: migratedMoves,
       dancers: dancers,
-      moveWordings: moveWordings,
-      moveWordingBranches: moveWordingBranches,
+      moveWordings: migratedWordings,
+      moveWordingBranches: migratedBranches,
       discouragedTerms: discouraged,
     );
   }
