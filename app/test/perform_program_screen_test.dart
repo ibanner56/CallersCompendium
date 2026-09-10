@@ -1342,6 +1342,12 @@ void main() {
           ]),
         );
 
+        await tester.pump(const Duration(seconds: 1));
+        expect(
+          find.byKey(const ValueKey('perform-walkthrough-complete')),
+          findsNothing,
+          reason: 'walkthroughMinutes=$walkthroughMinutes',
+        );
         await tester.pump(const Duration(seconds: 61));
         expect(
           find.byKey(const ValueKey('perform-walkthrough-complete')),
