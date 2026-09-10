@@ -737,32 +737,64 @@ class FigureRenderer {
       figure.params,
       dialect,
     );
-    if (renderedName.isEmpty || !rendered.contains(renderedName)) {
+    final isTakeOnly =
+        def.id == 'give_and_take' && figure.params['give'] == false;
+    final sourceName = isTakeOnly ? 'take' : renderedName;
+    if (sourceName.isEmpty || !rendered.contains(sourceName)) {
       return rendered;
     }
     return rendered.replaceFirst(
-      renderedName,
-      _gerundiveMoveName(def.id, renderedName),
+      sourceName,
+      isTakeOnly ? 'taking' : _gerundiveMoveName(def.id, renderedName),
     );
   }
 
   String _gerundiveMoveName(String moveId, String displayName) {
-    const irregular = <String, String>{
+    // Display names are not necessarily verb phrases: several taxonomy moves
+    // are named after a figure, formation, or destination. Keep those forms
+    // explicit instead of attaching `-ing` to an arbitrary final token.
+    const explicitGerundives = <String, String>{
       'arch_and_dive': 'arching and diving',
       'balance_the_ring': 'balancing the ring',
       'box_the_gnat': 'boxing the gnat',
-      'slice': 'taking',
+      'box_circulate': 'circulating the box',
+      'butterfly_whirl': 'doing a butterfly whirl',
+      'california_twirl': 'doing a California twirl',
+      'contra_corners': 'doing contra corners',
+      'cross_trails': 'crossing trails',
+      'dolphin_hey': 'doing a dolphin hey',
+      'down_the_hall': 'going down the hall',
       'do_si_do': 'doing-si-do',
       'fall_back': 'falling back',
+      'facing_star': 'doing a facing star',
+      'figure_8': 'doing a figure 8',
+      'form_a_long_wave': 'forming a long wave',
+      'form_long_waves': 'forming long waves',
+      'form_short_waves': 'forming short waves',
+      'give_and_take': 'giving and taking',
       'lead_up_the_center': 'leading up the center',
+      'long_lines': 'forming long lines',
+      'mad_robin': 'doing a mad robin',
       'pass_through': 'passing through',
+      'pass_the_ocean': 'passing the ocean',
       'pass_by': 'passing by',
+      'petronella': 'doing a petronella',
+      'revolving_door': 'doing a revolving door',
       'roll_away': 'rolling away',
+      'right_left_through': 'passing right left through',
+      'rory_o_more': "doing a Rory O'More",
       'set': 'setting',
       'slide': 'sliding',
+      'slide_along_set': 'sliding along the set',
+      'slice': 'taking',
+      'square_through': 'squaring through',
+      'star_promenade': 'doing a star promenade',
+      'star_through': 'starring through',
+      'stand_still': 'standing still',
       'turn_single': 'turning single',
+      'up_the_hall': 'going up the hall',
     };
-    final explicit = irregular[moveId];
+    final explicit = explicitGerundives[moveId];
     if (explicit != null) return explicit;
     final words = displayName.split(' ');
     if (words.isEmpty) return displayName;

@@ -90,16 +90,29 @@ caller matches that default caller (trim + case-insensitive; issue #583).
   orbits" figure is now modeled as exactly such a `meanwhile[allemande,
   orbit]` container (with `orbit` promoted to a first-class move), so the
   simultaneity is recorded structurally rather than as one synthesized move.
-  Structural caps: **flat only** (a `meanwhile` may not
-  contain a `meanwhile`) and at most `kMaxMeanwhileSides` (**6**) sides. Rides
+  Structural caps: at most `kMaxMeanwhileSides` (**6**) children; a container
+  may contain only one legal opposite-kind container level. Same-kind and
+  deeper nesting is rejected. Rides
   `figures_json` **additively** (like `customOrigin` / `assumedSubject` /
   `walkthroughOverride`) — **no `figureSchemaVersion` bump**. Because it is one
   flat list element, `deriveSections` counts its shared beats exactly **once**,
   and the search indexer **flattens** it so each concurrent side stays
   individually matchable (`filterByMove` + FTS). Untrusted on the import path:
   the archive/.ccshare sanitizer recurses into every nested side (scrubbing
-  free text) and enforces the depth + side-count caps defensively (clamp/flatten,
-  never throw).
+  free text) and enforces the alternating-container depth + child-count caps
+  defensively (drop invalid nesting, never throw).
+- `modifier` container (#1198): `{move: "modifier", params: {beats: n,
+  figures: [<core>, <modifier>, …]}}` — an ordered **composition** figure. The
+  first child is the core action and each later child is a modifier rendered
+  gerundively; the container's shared `beats` is authoritative for section
+  math. Its children use the same recursive codec and remain structurally
+  distinct from the concurrent sides of `meanwhile`.
+- Containers accept 2–6 children and may alternate exactly once:
+  `meanwhile → modifier` or `modifier → meanwhile`. Same-kind nesting and
+  deeper container nesting are rejected by the model and dropped by tolerant
+  decoders; ordinary leaf figures may appear at either level. This bounded
+  rule applies consistently to persistence, archive sanitization, editing, and
+  derived indexing.
 - **Display convention** (#594): every human-facing render
   (`FigureRenderer.render`/`renderVerbose`/`renderSummary` — the dance detail
   table, Perform, plain-text export, and PDF export all use these) joins a

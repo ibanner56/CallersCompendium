@@ -1967,12 +1967,12 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
 
   // --- Structural container editor (#590/#593/#1198) ------------------------
 
-  /// Expanded editor for a **meanwhile group** draft: one shared Beats field
-  /// (the container's single count — never per-side) followed by each
-  /// concurrent side's own editor row, an add-side control (capped at
-  /// [kMaxMeanwhileSides]), and per-side move/remove controls. Structurally
-  /// enforces flat-only: [_MeanwhileSideEditor] offers no "group" affordance
-  /// of its own, so a side can never itself become a meanwhile group.
+  /// Expanded editor for a structural container draft: one shared Beats field
+  /// (the container's single count — never per-child) followed by each
+  /// ordered child editor, an add-child control (capped at
+  /// [kMaxMeanwhileSides]), and per-child move/remove controls. Ordinary
+  /// children use [_MeanwhileSideEditor]; a legal opposite-kind nested
+  /// container is delegated to a nested [FigureListEditor].
   Widget _buildContainerEditor(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
@@ -2689,14 +2689,13 @@ void wrapSelectionWith(TextEditingController controller, String delimiter) {
 
 enum _ModifierRole { core, modifier }
 
-/// Editor for ONE concurrent side of a meanwhile group: an ordinary
-/// move-picker + param editors + note, reusing the same widgets
-/// [_FigureDraftCard] uses for a top-level figure, but with its own key
-/// namespace (so a group's sides never collide with the outer row's keys)
-/// and NO "group"/beats affordances of its own — a side is always flat (#590
-/// flat-only invariant) and its own `beats` param is display-only (the
-/// group's single shared beats field is authoritative), so both are omitted
-/// here at the UI boundary rather than relying on the model to reject them.
+/// Editor for ONE ordinary child of a structural container: a move-picker +
+/// param editors + note, reusing the same widgets [_FigureDraftCard] uses for
+/// a top-level figure, but with its own key namespace (so a container's
+/// children never collide with the outer row's keys). It has NO "group"/beats
+/// affordances of its own — nested containers are rendered by a nested
+/// [FigureListEditor], and an ordinary child's `beats` is display-only because
+/// the parent container's shared beats field is authoritative.
 class _MeanwhileSideEditor extends StatefulWidget {
   const _MeanwhileSideEditor({
     super.key,

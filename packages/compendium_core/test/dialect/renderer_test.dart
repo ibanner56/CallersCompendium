@@ -1288,6 +1288,40 @@ void main() {
           'ones arching and diving',
         );
       });
+
+      test('modifier gerundives preserve noun phrases and destinations', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'down_the_hall'),
+            Figure(move: 'right_left_through'),
+            Figure(move: 'long_lines'),
+            Figure(move: 'figure_8'),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('going down the hall'));
+        expect(rendered, contains('passing right left through'));
+        expect(rendered, contains('forming long lines'));
+        expect(rendered, contains('doing a figure 8'));
+      });
+
+      test('modifier gerundive inflects take-only give and take', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'give_and_take', params: {'give': false}),
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, Dialect.canonical),
+          contains('taking'),
+        );
+      });
     });
 
     group('hey length', () {
