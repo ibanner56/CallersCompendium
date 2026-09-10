@@ -1009,6 +1009,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Show caller notes in program Perform';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Show non-empty per-slot caller notes above the dance title in program Perform.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling history';
 
   @override
@@ -3242,6 +3250,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Caller note';
 
   @override
   String get performCallingNotes => 'Calling notes';
