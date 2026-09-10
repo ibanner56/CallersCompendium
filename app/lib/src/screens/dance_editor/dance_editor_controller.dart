@@ -1253,6 +1253,54 @@ class DanceEditorController extends ChangeNotifier {
     _notify();
   }
 
+  void convertContainerToMeanwhile(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || !draft.isModifierGroup) return;
+    final children = draft.modifierFigures;
+    if (children == null || children.any((child) => child.isContainerDraft)) {
+      return;
+    }
+    draft
+      ..meanwhileSides = children
+      ..modifierFigures = null;
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void convertContainerToModifier(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || !draft.isMeanwhileGroup) return;
+    final children = draft.meanwhileSides;
+    if (children == null || children.any((child) => child.isContainerDraft)) {
+      return;
+    }
+    draft
+      ..modifierFigures = children
+      ..meanwhileSides = null;
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void ungroupContainer(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || !draft.isContainerDraft) return;
+    final children = List<FigureDraft>.of(
+      draft.meanwhileSides ?? draft.modifierFigures ?? const <FigureDraft>[],
+    );
+    if (children.length < 2) return;
+    figureDrafts
+      ..removeAt(index)
+      ..insertAll(index, children);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
   /// Collapses a meanwhile group down to a single plain figure (#590/#593):
   /// called when a group's side count drops to 1 (the last remove-side
   /// action). Replaces [groupDraft]'s slot in the top-level list with

@@ -234,19 +234,20 @@ class FigureDraft {
     if (children != null) {
       // Never silently drop a side that the user has started authoring
       // (#679 review): only a genuinely untouched placeholder side (no move,
-      // no note/params/walkthrough override) is skipped — mirroring how an
-      // untouched top-level draft isn't persisted either. A side with no
-      // move but SOME content is preserved via a best-effort custom figure
-      // instead, so an in-progress group can never lose a side out from
-      // under the user on autosave/undo.
-      final readyChildren = [
-        for (final child in children)
-          if (child.toFigure(canonicalizeNote: canonicalizeNote)
-              case final fig?)
-            fig
-          else if (child._hasUnsavedContent)
-            child._bestEffortFigure(canonicalizeNote),
-      ];
+      // no note/params/walkthrough override) is skipped. An incomplete nested
+      // container cannot be represented as a custom leaf without losing its
+      // structure, so it keeps the parent draft editor-only until complete.
+      final readyChildren = <Figure>[];
+      for (final child in children) {
+        final figure = child.toFigure(canonicalizeNote: canonicalizeNote);
+        if (figure != null) {
+          readyChildren.add(figure);
+        } else if (child.isContainerDraft) {
+          return null;
+        } else if (child._hasUnsavedContent) {
+          readyChildren.add(child._bestEffortFigure(canonicalizeNote));
+        }
+      }
       if (readyChildren.length < 2) return null;
       // Defensive clamp mirroring the codec's untrusted-input behavior: the
       // UI never lets the side count exceed the cap, but this keeps toFigure()

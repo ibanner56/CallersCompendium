@@ -373,13 +373,21 @@ class FigureRenderer {
     if (figure.isModifier) {
       final children = figure.subFigures;
       if (children.isEmpty) return modifierMove;
-      final core = _render(
-        children.first,
-        dialect,
-        verbose: verbose,
-        decimals: decimals,
-        forCanonical: forCanonical,
-      );
+      final core = forCanonical
+          ? _render(
+              children.first,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              forCanonical: true,
+            )
+          : _renderSummary(
+              children.first,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            );
       final modifiers = children
           .skip(1)
           .map(
@@ -399,7 +407,7 @@ class FigureRenderer {
       final suffix = renderedModifiers.length == 1
           ? renderedModifiers.single
           : renderedModifiers.length == 2
-          ? '${renderedModifiers.first}, and ${renderedModifiers.last}'
+          ? '${renderedModifiers.first} and ${renderedModifiers.last}'
           : '${renderedModifiers.take(renderedModifiers.length - 1).join(', ')}, and ${renderedModifiers.last}';
       return '$core, $suffix';
     }

@@ -289,6 +289,9 @@ class DanceEditorForm extends StatelessWidget {
                   onGroupWithNextAsModifier:
                       controller.groupFigureWithNextAsModifier,
                   onCollapseMeanwhileGroup: controller.collapseMeanwhileGroup,
+                  onConvertToMeanwhile: controller.convertContainerToMeanwhile,
+                  onConvertToModifier: controller.convertContainerToModifier,
+                  onUngroupContainer: controller.ungroupContainer,
                   snippetLibraryDefaultFor: snippetLib == null
                       ? null
                       : (draft) {

@@ -8507,6 +8507,30 @@ abstract class AppLocalizations {
   /// **'Group with next as modifier'**
   String get danceEditorGroupWithNextAsModifier;
 
+  /// Menu item label for converting a flat modifier group into a meanwhile group.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to meanwhile'**
+  String get danceEditorConvertToMeanwhile;
+
+  /// Menu item label for converting a flat meanwhile group into a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to modifier'**
+  String get danceEditorConvertToModifier;
+
+  /// Menu item label for replacing a meanwhile group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup meanwhile'**
+  String get danceEditorUngroupMeanwhile;
+
+  /// Menu item label for replacing a modifier group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup modifier'**
+  String get danceEditorUngroupModifier;
+
   /// Visible heading for a modifier group's expanded editor.
   ///
   /// In en, this message translates to:
@@ -8524,6 +8548,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add modifier'**
   String get danceEditorAddModifierChild;
+
+  /// Visible label for the first figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Core'**
+  String get danceEditorModifierCoreLabel;
+
+  /// Visible label for a non-core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Modifier'**
+  String get danceEditorModifierChildLabel;
+
+  /// Accessibility label for the first figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Core figure in modifier group.'**
+  String get danceEditorModifierCoreSemantic;
+
+  /// Accessibility label for a non-core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Modifier figure {number} of {total}.'**
+  String danceEditorModifierChildSemantic(int number, int total);
 
   /// Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
   ///

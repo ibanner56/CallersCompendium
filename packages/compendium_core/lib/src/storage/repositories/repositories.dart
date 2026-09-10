@@ -621,6 +621,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _emitModifierContainerCanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       rebuiltThisCall = await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -1276,6 +1280,27 @@ class CompendiumRepositories {
       );
     }
     await _writeSweepMarker(taxonomyV34CanonicalRebuildDoneKey, '"done"');
+    return true;
+  }
+
+  Future<bool> _emitModifierContainerCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(modifierContainerCanonicalRebuildDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(modifierContainerCanonicalRebuildDoneKey, '"done"');
     return true;
   }
 

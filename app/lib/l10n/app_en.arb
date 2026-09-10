@@ -7258,6 +7258,22 @@
   "@danceEditorGroupWithNextAsModifier": {
     "description": "Menu item label that groups this figure row with the one immediately after it into an ordered modifier group."
   },
+  "danceEditorConvertToMeanwhile": "Convert to meanwhile",
+  "@danceEditorConvertToMeanwhile": {
+    "description": "Menu item label for converting a flat modifier group into a meanwhile group."
+  },
+  "danceEditorConvertToModifier": "Convert to modifier",
+  "@danceEditorConvertToModifier": {
+    "description": "Menu item label for converting a flat meanwhile group into a modifier group."
+  },
+  "danceEditorUngroupMeanwhile": "Ungroup meanwhile",
+  "@danceEditorUngroupMeanwhile": {
+    "description": "Menu item label for replacing a meanwhile group with its child figures."
+  },
+  "danceEditorUngroupModifier": "Ungroup modifier",
+  "@danceEditorUngroupModifier": {
+    "description": "Menu item label for replacing a modifier group with its child figures."
+  },
   "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
   "@danceEditorModifierGroupLabel": {
     "description": "Visible heading for a modifier group's expanded editor."
@@ -7269,6 +7285,32 @@
   "danceEditorAddModifierChild": "Add modifier",
   "@danceEditorAddModifierChild": {
     "description": "Button label for adding another figure to a modifier group."
+  },
+  "danceEditorModifierCoreLabel": "Core",
+  "@danceEditorModifierCoreLabel": {
+    "description": "Visible label for the first figure in a modifier group."
+  },
+  "danceEditorModifierChildLabel": "Modifier",
+  "@danceEditorModifierChildLabel": {
+    "description": "Visible label for a non-core figure in a modifier group."
+  },
+  "danceEditorModifierCoreSemantic": "Core figure in modifier group.",
+  "@danceEditorModifierCoreSemantic": {
+    "description": "Accessibility label for the first figure in a modifier group."
+  },
+  "danceEditorModifierChildSemantic": "Modifier figure {number} of {total}.",
+  "@danceEditorModifierChildSemantic": {
+    "description": "Accessibility label for a non-core figure in a modifier group.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
   },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Meanwhile ({count} sides)}}",
   "@danceEditorMeanwhileGroupLabel": {

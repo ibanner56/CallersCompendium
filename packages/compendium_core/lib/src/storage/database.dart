@@ -251,6 +251,12 @@ const String taxonomyV33CanonicalRebuildDoneKey =
 const String taxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed by the modifier
+/// container structural tokens. Existing figures gain searchable canonical
+/// container text without changing their source JSON.
+const String modifierContainerCanonicalRebuildDoneKey =
+    '__modifier_container_canonical_rebuild_done__';
+
 /// Settings key for the one-time repair of legacy CallersBox `roll_away`
 /// figures whose per-role annotation was stored only as a note (#1192).
 ///
