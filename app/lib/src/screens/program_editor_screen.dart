@@ -2760,13 +2760,13 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
 
     // Rows = dance slots in program order (flat). Free-text-only slots are
     // omitted; a slot referencing a soft-deleted dance renders a tombstone
-    // row so the gap is still visible in the matrix. Per-row halves are
+    // row so the gap is still visible in the matrix. Per-row sections are
     // derived from the full ordered slot list (including the break and any
-    // free-text slots) so the "1st"/"2nd" badge reflects the break position.
+    // free-text slots) so the ordinal badge reflects every break position.
     final now = DateTime.now();
-    final halvesForSlots = Program.halvesForSlots(_slots);
+    final sectionsForSlots = Program.sectionsForSlots(_slots);
     final rows = <Dance>[];
-    final rowHalves = <ProgramHalf?>[];
+    final rowSections = <int?>[];
     final altDanceIds = <String>{};
     final altRowIndices = <int>{};
     var omittedFreeText = 0;
@@ -2786,7 +2786,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             updatedAt: now,
           );
       rows.add(dance);
-      rowHalves.add(halvesForSlots[i]);
+      rowSections.add(sectionsForSlots[i]);
       if (slot.isAlt) {
         altDanceIds.add(danceId);
         altRowIndices.add(rows.length - 1);
@@ -2796,7 +2796,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final matrix = buildProgramMatrix(
       rows,
       taxonomy: data.taxonomy,
-      halves: rowHalves,
+      sections: rowSections,
       collisionMode: _matrixExactBeatCollision
           ? MatrixCollisionMode.exactBeats
           : MatrixCollisionMode.phrase,

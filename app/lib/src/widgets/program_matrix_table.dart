@@ -332,7 +332,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                           _RowHeader(
                             title: matrix.rows[r].title,
                             isAlt: _isAlternateRow(r),
-                            half: matrix.rows[r].half,
+                            section: matrix.rows[r].section,
                           ),
                           _FormationCell(
                             danceTitle: matrix.rows[r].title,
@@ -659,25 +659,26 @@ class _HideableColumnHeaderState extends State<_HideableColumnHeader> {
 }
 
 class _RowHeader extends StatelessWidget {
-  const _RowHeader({required this.title, required this.isAlt, this.half});
+  const _RowHeader({required this.title, required this.isAlt, this.section});
 
   final String title;
   final bool isAlt;
-  final ProgramHalf? half;
+  final int? section;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final halfSelect = half == null
+    final sectionValue = section;
+    final sectionLabel = sectionValue == null
         ? 'none'
-        : (half == ProgramHalf.first ? 'first' : 'second');
+        : _localizedSectionLabel(l10n, sectionValue);
     return Semantics(
       header: true,
-      label: l10n.programsMatrixRowHeaderSemantic(
+      label: l10n.programsMatrixSectionRowHeaderSemantic(
         title,
         isAlt ? 'yes' : 'no',
-        halfSelect,
+        sectionLabel,
       ),
       excludeSemantics: true,
       child: Container(
@@ -698,8 +699,8 @@ class _RowHeader extends StatelessWidget {
               Text(l10n.programsAltOrdinal, style: theme.textTheme.labelSmall),
               const SizedBox(width: 6),
             ],
-            if (half != null) ...[
-              _HalfBadge(half: half!),
+            if (section != null) ...[
+              _SectionBadge(section: section!),
               const SizedBox(width: 6),
             ],
             Expanded(
@@ -767,13 +768,13 @@ class _FormationCell extends StatelessWidget {
   }
 }
 
-/// A "1st"/"2nd" program-half badge. Conveys the half with **icon + text**,
+/// A numbered program-section badge. Conveys the section with **icon + text**,
 /// never colour alone (WCAG 1.4.1); the surrounding [_RowHeader]/[_DanceChip]
 /// owns the screen-reader phrasing, so this badge excludes its own semantics.
-class _HalfBadge extends StatelessWidget {
-  const _HalfBadge({required this.half});
+class _SectionBadge extends StatelessWidget {
+  const _SectionBadge({required this.section});
 
-  final ProgramHalf half;
+  final int section;
 
   @override
   Widget build(BuildContext context) {
@@ -790,17 +791,13 @@ class _HalfBadge extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              half == ProgramHalf.first
-                  ? Icons.looks_one_outlined
-                  : Icons.looks_two_outlined,
+              _sectionIcon(section),
               size: 13,
               color: theme.colorScheme.onTertiaryContainer,
             ),
             const SizedBox(width: 2),
             Text(
-              l10n.programsMatrixHalfShort(
-                half == ProgramHalf.first ? 'first' : 'second',
-              ),
+              _localizedSectionLabel(l10n, section),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onTertiaryContainer,
               ),
@@ -811,6 +808,19 @@ class _HalfBadge extends StatelessWidget {
     );
   }
 }
+
+String _localizedSectionLabel(AppLocalizations l10n, int section) =>
+    l10n.programsMatrixSectionShort('s$section', '$section');
+
+IconData _sectionIcon(int section) => switch (section) {
+  1 => Icons.looks_one_outlined,
+  2 => Icons.looks_two_outlined,
+  3 => Icons.looks_3_outlined,
+  4 => Icons.looks_4_outlined,
+  5 => Icons.looks_5_outlined,
+  6 => Icons.looks_6_outlined,
+  _ => Icons.tag_outlined,
+};
 
 class _Cell extends StatelessWidget {
   const _Cell({
@@ -981,7 +991,7 @@ class _CompactMatrix extends StatelessWidget {
               isAlt: altRowIndices != null
                   ? altRowIndices!.contains(r)
                   : altDanceIds.contains(matrix.rows[r].danceId),
-              half: matrix.rows[r].half,
+              section: matrix.rows[r].section,
               formation: matrix.rows[r].formation,
               phraseLabels: _phraseLabelsForCell(matrix, r, c),
             ),
@@ -1141,8 +1151,8 @@ class _DanceUse {
     required this.collision,
     required this.isAlt,
     required this.formation,
+    this.section,
     this.phraseLabels = const [],
-    this.half,
   });
 
   final String title;
@@ -1150,11 +1160,11 @@ class _DanceUse {
   final bool programDebut;
   final bool collision;
   final bool isAlt;
-  final ProgramHalf? half;
+  final int? section;
 
   /// The dance's formation (#663), mirrored from the wide grid's pinned
   /// formation column since the compact view has no per-row slot to pin one
-  /// to — it rides on [_DanceChip] instead, like ALT/half already do.
+  /// to — it rides on [_DanceChip] instead, like ALT/section already do.
   final Formation formation;
   final List<String> phraseLabels;
 }
@@ -1258,7 +1268,7 @@ class _MoveCard extends StatelessWidget {
                   showPhrases: showPhrases,
                   phraseLabels: d.phraseLabels,
                   isAlt: d.isAlt,
-                  half: d.half,
+                  section: d.section,
                   formation: d.formation,
                   formationLabel:
                       formationLabelBuilder?.call(d.formation) ??
@@ -1285,7 +1295,7 @@ class _DanceChip extends StatelessWidget {
     required this.isAlt,
     required this.formation,
     required this.formationLabel,
-    this.half,
+    this.section,
   });
 
   final String danceTitle;
@@ -1297,7 +1307,7 @@ class _DanceChip extends StatelessWidget {
   final bool showPhrases;
   final List<String> phraseLabels;
   final bool isAlt;
-  final ProgramHalf? half;
+  final int? section;
   final Formation formation;
   final String formationLabel;
 
@@ -1305,16 +1315,17 @@ class _DanceChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    // Preserve the grid's ALT and half distinctions, which otherwise live only
+    // Preserve the grid's ALT and section distinctions, which otherwise live only
     // in the wide row header, so they aren't lost on phones. The qualifier
     // phrasing is modelled as one ICU message (no fragment concatenation).
-    final halfSelect = half == null
+    final sectionValue = section;
+    final sectionLabel = sectionValue == null
         ? 'none'
-        : (half == ProgramHalf.first ? 'first' : 'second');
-    final who = l10n.programsMatrixChipQualifiedTitle(
+        : _localizedSectionLabel(l10n, sectionValue);
+    final who = l10n.programsMatrixSectionChipQualifiedTitle(
       danceTitle,
       isAlt ? 'yes' : 'no',
-      halfSelect,
+      sectionLabel,
     );
     // Formation (#663) is announced as a standalone composed fragment rather
     // than folding into `programsMatrixChipQualifiedTitle`, so that message
@@ -1405,9 +1416,9 @@ class _DanceChip extends StatelessWidget {
                 ),
               ),
             ],
-            if (half != null) ...[
+            if (section != null) ...[
               const SizedBox(width: 4),
-              _HalfBadge(half: half!),
+              _SectionBadge(section: section!),
             ],
           ],
         ),
