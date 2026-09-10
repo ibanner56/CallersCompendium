@@ -26,6 +26,11 @@ const String kRequirePerformedForHistoryKey = 'require_performed_for_history';
 /// [kRequirePerformedForHistoryKey], never a replacement.
 const String kTrackHistoryForAllCallersKey = 'track_history_for_all_callers';
 
+/// Key used to persist the maximum number of repeated venues shown under a
+/// dance's calling history. Values range from 0 (summary hidden) through 10;
+/// absent or invalid values use the default of 3.
+const String kVenueCallCountKey = 'venue_call_count';
+
 /// Key used to persist and load the "auto-size Perform cards" preference
 /// (ROADMAP G.1). Defaults to `true` (on) when unset.
 const String kAutoSizePerformKey = 'auto_size_perform_cards';
@@ -33,6 +38,10 @@ const String kAutoSizePerformKey = 'auto_size_perform_cards';
 /// Key used to persist the default-on "show an elapsed timer for an individual
 /// dance in Perform" preference. Stored as a bool; absent/unset means on.
 const String kShowIndividualPerformTimerKey = 'show_individual_perform_timer';
+
+/// Key used to persist the default-on "show per-slot caller notes in program
+/// Perform" preference.
+const String kShowProgramSlotCallerNotesKey = 'show_program_slot_caller_notes';
 
 /// Key used to persist the opt-in "auto-commit program-editor changes"
 /// preference. Defaults to `false`, preserving explicit-save behavior until

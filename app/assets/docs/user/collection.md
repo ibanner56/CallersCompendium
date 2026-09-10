@@ -188,8 +188,9 @@ The detail view brings together:
   to tweak for this dance.
 - **Links** — to the source, a video, and related dances.
 - **Calling history** — which of your [programs](./programs.md) include this
-  dance. (A [Settings](./settings.md) toggle decides whether this counts
-  only slots you marked performed or any program that contains the dance.)
+  dance. (Settings decide whether this counts only slots you marked performed
+  or any program that contains the dance, and how many venues called more than
+  once appear in the repeated-venue summary.)
 - **Custom fields** you have filled in.
 - **Published-source citation** — the book and page a dance came from, when you
   have recorded it.

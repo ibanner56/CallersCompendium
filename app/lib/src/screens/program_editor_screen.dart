@@ -440,6 +440,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// flag [_hideAlternates].
   bool _showMatrixAlternates = true;
 
+  /// Whether the on-screen matrix replaces comparable presence glyphs with
+  /// phrase labels. This is transient and deliberately never exported.
+  bool _showMatrixPhrases = false;
+
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
   /// before an explicit Save no longer silently loses it.
@@ -787,6 +791,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         }
       }
       if (!mounted) return;
+      List<ProgramSlot> newProgramSlots = const [];
       if (program != null) {
         _applyProgramToEditor(program);
         // Resolve the linked venue (if any) up front so the simple-mode
@@ -799,22 +804,19 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
         // Only seeds a still-blank field, never overrides; a settings read
         // failure falls back silently to a blank field.
         await _prefillNewProgramDefaults();
+        newProgramSlots = await _loadStartingProgramSlots(data);
       }
       // Guard again: the venue lookup / defaults prefill above are async, so the
       // widget may have been disposed while they were in-flight.
       if (!mounted) return;
       setState(() {
         _setCollectionData(_latestData ?? data);
-        if (program != null) {
-          _applyProgramToEditor(program);
-        } else {
-          _existing = null;
-          _eventDate = null;
-          _venueId = null;
-          _status = ProgramStatus.draft;
-          _hideAlternates = false;
-          _slots = const [];
-        }
+        _existing = program;
+        _eventDate = program?.eventDate;
+        _venueId = program?.venueId;
+        _status = program?.status ?? ProgramStatus.draft;
+        _hideAlternates = program?.hideAlternates ?? false;
+        _slots = program?.slots.toList() ?? newProgramSlots;
         _difficultyLevels = difficultyLevels;
         _loaded = true;
       });
@@ -867,6 +869,45 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
       _bandController,
       kDefaultProgramBandKey,
     );
+  }
+
+  /// Loads the configured semantic template for a manually-created program.
+  ///
+  /// Stale dance references can remain in a restored preference after a dance
+  /// was purged. They are omitted while valid entries retain their order and
+  /// fresh database identity is generated for every slot.
+  Future<List<ProgramSlot>> _loadStartingProgramSlots(
+    CollectionData data,
+  ) async {
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultStartingProgramKey);
+    } catch (error, stackTrace) {
+      logCaughtError(
+        error,
+        stackTrace,
+        source: 'program_editor_screen.starting_program_template',
+      );
+      return const [];
+    }
+    final template = startingProgramTemplateFromStored(stored);
+    final availableDances = _latestData?.dancesById ?? data.dancesById;
+    final slots = <ProgramSlot>[];
+    for (final entry in template) {
+      if (entry.danceId != null &&
+          !availableDances.containsKey(entry.danceId)) {
+        continue;
+      }
+      slots.add(
+        ProgramSlot(
+          id: uuidV4(),
+          position: slots.length,
+          danceId: entry.danceId,
+          text: entry.text,
+        ),
+      );
+    }
+    return slots;
   }
 
   Future<void> _prefillControllerFromDefault(
@@ -2763,6 +2804,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 },
               ),
               IconButton(
+                key: const ValueKey('program-matrix-toggle-phrases'),
+                icon: const Icon(Icons.text_fields),
+                tooltip: _showMatrixPhrases
+                    ? l10n.programsMatrixHidePhrasesSemantic
+                    : l10n.programsMatrixShowPhrasesSemantic,
+                onPressed: () {
+                  setState(() => _showMatrixPhrases = !_showMatrixPhrases);
+                },
+              ),
+              IconButton(
                 key: const ValueKey('program-matrix-reset-hidden-columns'),
                 icon: const Icon(Icons.visibility),
                 tooltip: l10n.programsMatrixShowAllColumnsSemantic,
@@ -2799,6 +2850,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             altDanceIds: altDanceIds,
             altRowIndices: altRowIndices,
             showAlternates: _showMatrixAlternates,
+            showPhrases: _showMatrixPhrases,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
             formationLabelBuilder: (formation) => formationDisplayLabel(

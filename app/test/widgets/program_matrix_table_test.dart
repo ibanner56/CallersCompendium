@@ -43,12 +43,14 @@ void main() {
     Set<String> altDanceIds = const {},
     Set<int>? altRowIndices,
     bool showAlternates = true,
+    bool showPhrases = false,
     Dialect? dialect,
     List<int?>? sections,
     Set<String> hiddenColumns = const {},
     ValueChanged<String>? onHideColumn,
+    double width = 1400,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(1400, 900));
+    await tester.binding.setSurfaceSize(Size(width, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
@@ -64,6 +66,7 @@ void main() {
             altDanceIds: altDanceIds,
             altRowIndices: altRowIndices,
             showAlternates: showAlternates,
+            showPhrases: showPhrases,
             hiddenColumns: hiddenColumns,
             onHideColumn: onHideColumn,
           ),
@@ -152,6 +155,47 @@ void main() {
     );
     // B's partner swing is a plain repeat → check, "present".
     expect(find.bySemanticsLabel('B, partner swing: present'), findsOneWidget);
+  });
+
+  testWidgets('phrase mode shows ordered labels and preserves cell semantics', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'A', [move('balance'), move('balance')]),
+      ],
+      showPhrases: true,
+    );
+
+    expect(find.text('A1, A2'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'A, balance: present, introduced here, dance\'s first figure, '
+        'phrase(s): A1, A2',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('phrase mode uses labels in compact dance chips', (tester) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'A', [move('balance'), move('balance')]),
+      ],
+      showPhrases: true,
+      width: 360,
+    );
+
+    expect(find.text('A1, A2'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'A, formation: Improper, balance: present, introduced here, '
+        'dance\'s first figure, phrase(s): A1, A2',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('debut star and dance-first flag land on the correct columns', (

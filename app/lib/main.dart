@@ -59,6 +59,7 @@ import 'src/data/decimal_turns_scope.dart';
 import 'src/data/canonical_discouraged_terms_scope.dart';
 import 'src/data/display_defaults.dart' show kCanonicalDiscouragedTermsKey;
 import 'src/data/venue_entity_mode_scope.dart';
+import 'src/data/venue_call_count_scope.dart';
 import 'src/data/walkthrough_snippet_library_controller.dart';
 import 'src/data/walkthrough_snippet_library_scope.dart';
 import 'src/data/window_service.dart';
@@ -84,6 +85,7 @@ import 'src/screens/settings_screen.dart'
         kRequirePerformedForHistoryKey,
         kSortIgnoreArticlesKey,
         kTrackHistoryForAllCallersKey,
+        kVenueCallCountKey,
         kVenueEntityModeKey;
 import 'src/theme/app_theme.dart';
 import 'src/app_metadata.dart';
@@ -353,6 +355,9 @@ class _CompendiumAppState extends State<CompendiumApp> {
   final ValueNotifier<bool> _trackHistoryForAllCallersNotifier = ValueNotifier(
     false,
   );
+  final ValueNotifier<int> _venueCallCountNotifier = ValueNotifier(
+    kVenueCallCountDefault,
+  );
   final ValueNotifier<bool> _sortIgnoreArticlesNotifier = ValueNotifier(true);
   // Tri-state (issue #447): null = unset → follow the OS-level Reduce Motion
   // preference (MediaQuery.disableAnimations); true/false = explicit in-app
@@ -521,6 +526,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _requirePerformedForHistoryNotifier.value = false;
     _collectionTileFieldsNotifier.value = CollectionTileField.all;
     _trackHistoryForAllCallersNotifier.value = false;
+    _venueCallCountNotifier.value = kVenueCallCountDefault;
     _sortIgnoreArticlesNotifier.value = true;
     _reduceMotionNotifier.value = null;
     _verboseFigureRenderingNotifier.value = false;
@@ -1062,6 +1068,10 @@ class _CompendiumAppState extends State<CompendiumApp> {
     if (trackAllCallers is bool) {
       _trackHistoryForAllCallersNotifier.value = trackAllCallers;
     }
+    final venueCallCount = await _appData.repositories.settings.get(
+      kVenueCallCountKey,
+    );
+    _venueCallCountNotifier.value = venueCallCountFromStored(venueCallCount);
     // Load the "ignore leading articles when sorting" setting, defaulting to
     // on (true) when unset.
     final sortIgnoreArticles = await _appData.repositories.settings.get(
@@ -1286,6 +1296,7 @@ class _CompendiumAppState extends State<CompendiumApp> {
     _requirePerformedForHistoryNotifier.dispose();
     _collectionTileFieldsNotifier.dispose();
     _trackHistoryForAllCallersNotifier.dispose();
+    _venueCallCountNotifier.dispose();
     _sortIgnoreArticlesNotifier.dispose();
     _reduceMotionNotifier.dispose();
     _verboseFigureRenderingNotifier.dispose();
@@ -1647,59 +1658,62 @@ class _CompendiumAppState extends State<CompendiumApp> {
                                 notifier: _collectionTileFieldsNotifier,
                                 child: TrackHistoryForAllCallersScope(
                                   notifier: _trackHistoryForAllCallersNotifier,
-                                  child: SortIgnoreArticlesScope(
-                                    notifier: _sortIgnoreArticlesNotifier,
-                                    child: ReduceMotionScope(
-                                      notifier: _reduceMotionNotifier,
-                                      child: VerboseFigureRenderingScope(
-                                        notifier:
-                                            _verboseFigureRenderingNotifier,
-                                        child: CanonicalDiscouragedTermsScope(
+                                  child: VenueCallCountScope(
+                                    notifier: _venueCallCountNotifier,
+                                    child: SortIgnoreArticlesScope(
+                                      notifier: _sortIgnoreArticlesNotifier,
+                                      child: ReduceMotionScope(
+                                        notifier: _reduceMotionNotifier,
+                                        child: VerboseFigureRenderingScope(
                                           notifier:
-                                              _canonicalDiscouragedTermsNotifier,
-                                          child: DecimalTurnsScope(
-                                            notifier: _decimalTurnsNotifier,
-                                            child: AggressiveBeatsUpdateScope(
-                                              notifier:
-                                                  _aggressiveBeatsUpdateNotifier,
-                                              child: ConfirmBeforeDeleteScope(
+                                              _verboseFigureRenderingNotifier,
+                                          child: CanonicalDiscouragedTermsScope(
+                                            notifier:
+                                                _canonicalDiscouragedTermsNotifier,
+                                            child: DecimalTurnsScope(
+                                              notifier: _decimalTurnsNotifier,
+                                              child: AggressiveBeatsUpdateScope(
                                                 notifier:
-                                                    _confirmBeforeDeleteNotifier,
-                                                child: ColourDanceThemeScope(
+                                                    _aggressiveBeatsUpdateNotifier,
+                                                child: ConfirmBeforeDeleteScope(
                                                   notifier:
-                                                      _colourDanceThemeNotifier,
-                                                  child: SetListColorCodingScope(
+                                                      _confirmBeforeDeleteNotifier,
+                                                  child: ColourDanceThemeScope(
                                                     notifier:
-                                                        _setListColorCodingNotifier,
-                                                    child: MatrixCollisionModeScope(
+                                                        _colourDanceThemeNotifier,
+                                                    child: SetListColorCodingScope(
                                                       notifier:
-                                                          _matrixExactBeatCollisionNotifier,
-                                                      child: ProgramMatrixColumnConfigScope(
+                                                          _setListColorCodingNotifier,
+                                                      child: MatrixCollisionModeScope(
                                                         notifier:
-                                                            _programMatrixColumnsNotifier,
-                                                        child: DateFormatScope(
+                                                            _matrixExactBeatCollisionNotifier,
+                                                        child: ProgramMatrixColumnConfigScope(
                                                           notifier:
-                                                              _dateFormatNotifier,
-                                                          child: FirstDayOfWeekScope(
+                                                              _programMatrixColumnsNotifier,
+                                                          child: DateFormatScope(
                                                             notifier:
-                                                                _firstDayOfWeekNotifier,
-                                                            child: LocaleScope(
+                                                                _dateFormatNotifier,
+                                                            child: FirstDayOfWeekScope(
                                                               notifier:
-                                                                  _localeNotifier,
-                                                              child: BackupControllerScope(
-                                                                onRestored:
-                                                                    reloadFromSettings,
-                                                                child: CollectionFilterScope(
-                                                                  controller:
-                                                                      _collectionFilterController,
-                                                                  child: VenueEntityModeScope(
-                                                                    notifier:
-                                                                        _venueEntityModeNotifier,
-                                                                    child: ProgramAutoCommitScope(
+                                                                  _firstDayOfWeekNotifier,
+                                                              child: LocaleScope(
+                                                                notifier:
+                                                                    _localeNotifier,
+                                                                child: BackupControllerScope(
+                                                                  onRestored:
+                                                                      reloadFromSettings,
+                                                                  child: CollectionFilterScope(
+                                                                    controller:
+                                                                        _collectionFilterController,
+                                                                    child: VenueEntityModeScope(
                                                                       notifier:
-                                                                          _autoCommitProgramChangesNotifier,
-                                                                      child:
-                                                                          child!,
+                                                                          _venueEntityModeNotifier,
+                                                                      child: ProgramAutoCommitScope(
+                                                                        notifier:
+                                                                            _autoCommitProgramChangesNotifier,
+                                                                        child:
+                                                                            child!,
+                                                                      ),
                                                                     ),
                                                                   ),
                                                                 ),

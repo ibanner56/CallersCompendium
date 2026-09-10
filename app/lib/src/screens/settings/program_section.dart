@@ -11,6 +11,7 @@ import '../../data/program_auto_commit_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
+import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
@@ -40,9 +41,15 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _showIndividualPerformTimer;
   bool _showIndividualPerformTimerRequested = false;
   bool _showIndividualPerformTimerUserSet = false;
+  bool? _showProgramSlotCallerNotes;
+  bool _showProgramSlotCallerNotesRequested = false;
+  bool _showProgramSlotCallerNotesUserSet = false;
   bool? _autoCommitProgramChanges;
   bool _autoCommitRequested = false;
   bool _autoCommitUserSet = false;
+  int? _venueCallCount;
+  bool _venueCallCountRequested = false;
+  bool _venueCallCountUserSet = false;
 
   /// Lazily loads the persisted auto-size preference the first time this section
   /// is built (avoids reading settings in `initState`). A late read must not
@@ -102,6 +109,34 @@ class _ProgramSectionState extends State<ProgramSection> {
     await repos.settings.set(kShowIndividualPerformTimerKey, value);
   }
 
+  void _ensureProgramSlotCallerNotesLoaded(BuildContext context) {
+    if (_showProgramSlotCallerNotesRequested) return;
+    _showProgramSlotCallerNotesRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kShowProgramSlotCallerNotesKey)
+        .then((value) {
+          if (!mounted || _showProgramSlotCallerNotesUserSet) return;
+          setState(
+            () => _showProgramSlotCallerNotes = value is bool ? value : true,
+          );
+        })
+        .catchError((_) {
+          // diagnostics: silent — use the default-on setting behavior.
+          if (!mounted || _showProgramSlotCallerNotesUserSet) return;
+          setState(() => _showProgramSlotCallerNotes = true);
+        });
+  }
+
+  Future<void> _onProgramSlotCallerNotesChanged(bool value) async {
+    setState(() {
+      _showProgramSlotCallerNotesUserSet = true;
+      _showProgramSlotCallerNotes = value;
+    });
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kShowProgramSlotCallerNotesKey, value);
+  }
+
   void _ensureAutoCommitLoaded(BuildContext context) {
     if (_autoCommitRequested) return;
     _autoCommitRequested = true;
@@ -130,8 +165,36 @@ class _ProgramSectionState extends State<ProgramSection> {
     if (scoped != null) {
       ProgramAutoCommitScope.notifierOf(context).value = value;
     }
+
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kAutoCommitProgramChangesKey, value);
+  }
+
+  void _ensureVenueCallCountLoaded(BuildContext context) {
+    if (_venueCallCountRequested) return;
+    _venueCallCountRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kVenueCallCountKey)
+        .then((value) {
+          if (!mounted || _venueCallCountUserSet) return;
+          setState(() => _venueCallCount = venueCallCountFromStored(value));
+        })
+        .catchError((_) {
+          // diagnostics: silent — invalid or unavailable preference uses default.
+          if (!mounted || _venueCallCountUserSet) return;
+          setState(() => _venueCallCount = kVenueCallCountDefault);
+        });
+  }
+
+  Future<void> _onVenueCallCountChanged(int value) async {
+    setState(() {
+      _venueCallCountUserSet = true;
+      _venueCallCount = value;
+    });
+    VenueCallCountScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kVenueCallCountKey, value);
   }
 
   /// Opens the venue manager (browse/create/edit/delete reusable venues).
@@ -189,6 +252,8 @@ class _ProgramSectionState extends State<ProgramSection> {
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
+    _ensureVenueCallCountLoaded(context);
+    _ensureProgramSlotCallerNotesLoaded(context);
     final scopedAutoCommit = ProgramAutoCommitScope.maybeOf(context);
     if (scopedAutoCommit == null) _ensureAutoCommitLoaded(context);
     return _ProgramView(
@@ -202,6 +267,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onAutoSizeChanged: _onAutoSizeChanged,
       showIndividualPerformTimer: _showIndividualPerformTimer ?? true,
       onShowIndividualPerformTimerChanged: _onIndividualTimerChanged,
+      showProgramSlotCallerNotes: _showProgramSlotCallerNotes ?? true,
+      onShowProgramSlotCallerNotesChanged: _onProgramSlotCallerNotesChanged,
       autoCommitProgramChanges:
           scopedAutoCommit ?? _autoCommitProgramChanges ?? false,
       onAutoCommitChanged: _onAutoCommitChanged,
@@ -209,6 +276,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
+      venueCallCount: _venueCallCount ?? kVenueCallCountDefault,
+      onVenueCallCountChanged: _onVenueCallCountChanged,
     );
   }
 }
@@ -228,12 +297,16 @@ class _ProgramView extends StatelessWidget {
     required this.onAutoSizeChanged,
     required this.showIndividualPerformTimer,
     required this.onShowIndividualPerformTimerChanged,
+    required this.showProgramSlotCallerNotes,
+    required this.onShowProgramSlotCallerNotesChanged,
     required this.autoCommitProgramChanges,
     required this.onAutoCommitChanged,
     required this.requirePerformedForHistory,
     required this.onRequirePerformedForHistoryChanged,
     required this.trackHistoryForAllCallers,
     required this.onTrackHistoryForAllCallersChanged,
+    required this.venueCallCount,
+    required this.onVenueCallCountChanged,
   });
 
   final bool venueEntityMode;
@@ -254,6 +327,8 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onAutoSizeChanged;
   final bool showIndividualPerformTimer;
   final ValueChanged<bool> onShowIndividualPerformTimerChanged;
+  final bool showProgramSlotCallerNotes;
+  final ValueChanged<bool> onShowProgramSlotCallerNotesChanged;
   final bool autoCommitProgramChanges;
   final ValueChanged<bool> onAutoCommitChanged;
 
@@ -261,6 +336,8 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
   final bool trackHistoryForAllCallers;
   final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
+  final int venueCallCount;
+  final ValueChanged<int> onVenueCallCountChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -325,6 +402,13 @@ class _ProgramView extends StatelessWidget {
           value: showIndividualPerformTimer,
           onChanged: onShowIndividualPerformTimerChanged,
         ),
+        SwitchListTile(
+          key: const ValueKey('settings-show-program-slot-caller-notes'),
+          title: Text(l10n.settingsShowProgramSlotCallerNotesTitle),
+          subtitle: Text(l10n.settingsShowProgramSlotCallerNotesSubtitle),
+          value: showProgramSlotCallerNotes,
+          onChanged: onShowProgramSlotCallerNotesChanged,
+        ),
         SectionHeader(title: l10n.settingsGeneralCallingHistoryHeader),
         SwitchListTile(
           key: const ValueKey('general-require-performed-for-history'),
@@ -343,6 +427,25 @@ class _ProgramView extends StatelessWidget {
           title: Text(l10n.settingsGeneralTrackHistoryForAllCallersTitle),
           subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
+        ),
+        ListTile(
+          key: const ValueKey('general-venue-call-count'),
+          title: Text(l10n.settingsProgramVenueCallCountTitle),
+          subtitle: Text(l10n.settingsProgramVenueCallCountSubtitle),
+          isThreeLine: true,
+          trailing: DropdownButton<int>(
+            value: venueCallCount,
+            onChanged: (value) {
+              if (value != null) onVenueCallCountChanged(value);
+            },
+            items: [
+              for (var count = 0; count <= kVenueCallCountMax; count++)
+                DropdownMenuItem(
+                  value: count,
+                  child: Text(l10n.settingsProgramVenueCallCountOption(count)),
+                ),
+            ],
+          ),
         ),
       ],
     );

@@ -1,0 +1,9 @@
+{
+  "id": "1242-soft-deleted-related-dances",
+  "user_visible": true,
+  "app": {
+    "fixed": [
+      "Related-dance links to temporarily deleted dances are hidden until the target is restored, instead of appearing as missing dances."
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "1238-repeated-venue-calling-history",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "Calling history can show the venues where a dance was called repeatedly, with a configurable number of results."
+    ]
+  },
+  "core": {
+    "added": [
+      "Expose derived per-venue calling-history counts alongside the existing dance history stream."
+    ]
+  }
+}
