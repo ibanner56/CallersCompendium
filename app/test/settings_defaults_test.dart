@@ -22,6 +22,23 @@ import 'package:compendium_app/src/search/program_sort.dart';
 import 'support/test_repositories.dart';
 import 'support/l10n_harness.dart';
 
+final _now = DateTime.utc(2026, 1, 1);
+
+Dance _dance({required String id, required String title}) => Dance(
+  id: id,
+  title: title,
+  authorIds: const [],
+  tagIds: const [],
+  form: DanceForm.contra,
+  formation: const Formation(FormationShape.dupleImproper),
+  status: DanceStatus.active,
+  figures: const [],
+  customFields: const [],
+  hook: '',
+  createdAt: _now,
+  updatedAt: _now,
+);
+
 /// Pumps the settings screen on a wide surface backed by [repos] and opens the
 /// Defaults section.
 Future<void> _pumpDefaults(
@@ -186,6 +203,35 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'starting program notes keep their dance when edited and reordered',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(_dance(id: 'd1', title: 'First dance'));
+      await repos.dances.create(_dance(id: 'd2', title: 'Second dance'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(danceId: 'd1'),
+          const StartingProgramTemplateEntry(danceId: 'd2'),
+        ]),
+      );
+
+      await _pumpDefaults(tester, repos);
+      final noteField = find.byType(TextFormField).first;
+      await tester.enterText(noteField, 'Guest caller');
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Move down').first);
+      await tester.pumpAndSettle();
+
+      final stored = startingProgramTemplateFromStored(
+        await repos.settings.get(kDefaultStartingProgramKey),
+      );
+      expect(stored.map((entry) => entry.danceId), ['d2', 'd1']);
+      expect(stored.last.text, 'Guest caller');
+    },
+  );
 
   testWidgets('Defaults appears as a settings section', (tester) async {
     final repos = openTestRepositories();
