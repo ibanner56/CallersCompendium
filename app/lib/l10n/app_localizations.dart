@@ -4803,7 +4803,7 @@ abstract class AppLocalizations {
   /// Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). The value is preformatted for the locale.
   ///
   /// In en, this message translates to:
-  /// **'{section}'**
+  /// **'{section, select, none{} 1{1st} 2{2nd} 3{3rd} 4{4th} other{section {section}}}'**
   String programsMatrixSectionShort(String section);
 
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and its numbered program section.

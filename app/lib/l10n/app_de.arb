@@ -3124,7 +3124,7 @@
   "@programsMatrixHalfShort": {
     "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
   },
-  "programsMatrixSectionShort": "{section}",
+  "programsMatrixSectionShort": "{section, select, none{} 1{1.} 2{2.} 3{3.} 4{4.} other{Abschnitt {section}}}",
   "@programsMatrixSectionShort": {
     "x-sourceSha256": "b19b8e17c6ca93928f274e040da45870e35c5571cef6e3bab4bbe50af2d86175"
   },

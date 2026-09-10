@@ -2917,7 +2917,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String programsMatrixSectionShort(String section) {
-    return '$section';
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '',
+      '1': '1st',
+      '2': '2nd',
+      '3': '3rd',
+      '4': '4th',
+      'other': 'section $section',
+    });
+    return '$_temp0';
   }
 
   @override

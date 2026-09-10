@@ -657,7 +657,10 @@ class _RowHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final sectionLabel = _sectionOrdinal(section);
+    final sectionKey = _sectionOrdinal(section);
+    final sectionLabel = section == null
+        ? sectionKey
+        : l10n.programsMatrixSectionShort(sectionKey);
     return Semantics(
       header: true,
       label: l10n.programsMatrixSectionRowHeaderSemantic(
@@ -796,16 +799,7 @@ class _SectionBadge extends StatelessWidget {
 
 String _sectionOrdinal(int? section) {
   if (section == null) return 'none';
-  final suffix = switch (section % 100) {
-    11 || 12 || 13 => 'th',
-    _ => switch (section % 10) {
-      1 => 'st',
-      2 => 'nd',
-      3 => 'rd',
-      _ => 'th',
-    },
-  };
-  return '$section$suffix';
+  return '$section';
 }
 
 IconData _sectionIcon(int section) => switch (section) {
@@ -1275,7 +1269,10 @@ class _DanceChip extends StatelessWidget {
     // Preserve the grid's ALT and section distinctions, which otherwise live only
     // in the wide row header, so they aren't lost on phones. The qualifier
     // phrasing is modelled as one ICU message (no fragment concatenation).
-    final sectionLabel = _sectionOrdinal(section);
+    final sectionKey = _sectionOrdinal(section);
+    final sectionLabel = section == null
+        ? sectionKey
+        : l10n.programsMatrixSectionShort(sectionKey);
     final who = l10n.programsMatrixSectionChipQualifiedTitle(
       danceTitle,
       isAlt ? 'yes' : 'no',
