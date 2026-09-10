@@ -2186,6 +2186,66 @@ void main() {
       },
     );
   });
+
+  group('v34 -> v35 upgrade (issue #1233 split program-slot timing)', () {
+    test(
+      'copies null, zero, and positive legacy planned minutes to dance',
+      () async {
+        final raw = sqlite3.sqlite3.openInMemory();
+        final historical = GeneratedHelper().databaseForVersion(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+          34,
+        );
+        await historical.customSelect('SELECT 1').get();
+        await historical.customStatement(
+          "INSERT INTO programs "
+          "(id, title, notes, status, hide_alternates, created_at, updated_at) "
+          "VALUES ('legacy-program', 'Legacy', '', 'draft', 0, 0, 0)",
+        );
+        for (final row in const [
+          "('null', 'legacy-program', 0, 'Null', 0, NULL)",
+          "('zero', 'legacy-program', 1, 'Zero', 0, 0)",
+          "('positive', 'legacy-program', 2, 'Positive', 0, 8)",
+        ]) {
+          await historical.customStatement(
+            'INSERT INTO program_slots '
+            '(id, program_id, position, text, is_alt, planned_minutes) '
+            'VALUES $row',
+          );
+        }
+        await historical.close();
+
+        final db = CompendiumDatabase(
+          NativeDatabase.opened(raw, closeUnderlyingOnClose: false),
+        );
+        addTearDown(() async {
+          await db.close();
+          raw.close();
+        });
+        await db.customSelect('SELECT 1').get();
+
+        final columns = await db
+            .customSelect("PRAGMA table_info('program_slots')")
+            .get();
+        final names = {for (final row in columns) row.read<String>('name')};
+        expect(names, containsAll(['walkthrough_minutes', 'dance_minutes']));
+        expect(names, isNot(contains('planned_minutes')));
+
+        final values = await db
+            .customSelect(
+              'SELECT id, walkthrough_minutes, dance_minutes FROM program_slots '
+              'ORDER BY position',
+            )
+            .get();
+        expect(values[0].read<int?>('walkthrough_minutes'), isNull);
+        expect(values[0].read<int?>('dance_minutes'), isNull);
+        expect(values[1].read<int?>('walkthrough_minutes'), isNull);
+        expect(values[1].read<int?>('dance_minutes'), 0);
+        expect(values[2].read<int?>('walkthrough_minutes'), isNull);
+        expect(values[2].read<int?>('dance_minutes'), 8);
+      },
+    );
+  });
 }
 
 Dance _rollAwayDance({

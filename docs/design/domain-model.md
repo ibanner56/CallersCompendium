@@ -164,15 +164,17 @@ entry mode only (free-text field vs. picker); it never rewrites either column.
 | eventDate?, venue?, venueId?, notes | danceId? (nullable → free-text slot: break, waltz, announcement) |
 | band?, caller?, dancerLevel? | text? (used when danceId null, or per-slot caller note) |
 | status: draft/final/performed | isAlt: bool (alternate dance, decided at event time) |
-| createdAt/updatedAt/deletedAt | guestCaller?, plannedMinutes? (structured, not folded into `text`) |
+| createdAt/updatedAt/deletedAt | guestCaller?, walkthroughMinutes?, danceMinutes? (structured, not folded into `text`) |
 | | performedAt? (set when actually called → feeds dance calling history) |
 
 `band`, `caller` (primary/host caller), and `dancerLevel` are the CC-parity
 event-metadata fields (schema v3). `dancerLevel` is nullable free-text for now;
 a first-class dance-level enum is separate (ROADMAP 4b.1) and a different
 concept. Per-slot, `guestCaller` names a caller other than the host and
-`plannedMinutes` is the planned length (CC `SetItem.Time`), kept structured
-rather than buried in the free-text `text` note (`plannedMinutes >= 0`).
+`walkthroughMinutes` and `danceMinutes` are optional planned lengths, kept
+structured rather than buried in the free-text `text` note (each is `>= 0`).
+Callers' Companion's legacy `SetItem.Time` total maps to `danceMinutes`; the
+combined planned length is the sum of non-null values.
 
 `venueId` (schema v14) optionally links a program to a reusable [Venue](#venue)
 alongside the free-text `venue` label; the two persist independently (see Venue
@@ -222,8 +224,8 @@ URLs. (Every settings key is classified in
 - ProgramSlot requires at least one of `danceId` or `text` to be non-null;
   both may be set simultaneously (`text` is a per-slot caller note when a
   dance is attached, or the full slot content for free-text slots like breaks).
-- `ProgramSlot.plannedMinutes`, when present, is `>= 0` (structural, enforced
-  at construction).
+- `ProgramSlot.walkthroughMinutes` and `ProgramSlot.danceMinutes`, when
+  present, are each `>= 0` (structural, enforced at construction).
 - **ALT association** (intended invariant, *warning* not error): an `isAlt`
   slot alternates for the nearest preceding non-alt slot in position order;
   `Program.grouped` renders that structure (alts under their primary, per

@@ -927,8 +927,8 @@ class _ProgramSummaryPaneState extends State<ProgramSummaryPane> {
     final extras = <String>[
       if (slot.guestCaller != null && slot.guestCaller!.trim().isNotEmpty)
         l10n.programsSummaryGuest(slot.guestCaller!.trim()),
-      if (slot.plannedMinutes != null)
-        l10n.programsPlannedMinutes(slot.plannedMinutes!),
+      if (slot.plannedTotalMinutes != null)
+        l10n.programsPlannedMinutes(slot.plannedTotalMinutes!),
     ];
 
     final altBadge = slot.isAlt

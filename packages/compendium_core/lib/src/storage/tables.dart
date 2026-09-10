@@ -290,7 +290,8 @@ class ProgramSlots extends Table {
   BoolColumn get isPurgedDance => boolean().nullable()();
   BoolColumn get isAlt => boolean().withDefault(const Constant(false))();
   TextColumn get guestCaller => text().nullable()();
-  IntColumn get plannedMinutes => integer().nullable()();
+  IntColumn get walkthroughMinutes => integer().nullable()();
+  IntColumn get danceMinutes => integer().nullable()();
   DateTimeColumn get performedAt => dateTime().nullable()();
 
   @override

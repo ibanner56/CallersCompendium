@@ -146,12 +146,15 @@ A program is made of three kinds of slots:
   with an icon and text (never color alone), so it is always clear which dance is
   the backup.
 
-Each slot can also carry a **note**, a **guest caller**, and a **planned length**
-in minutes — useful both for pacing the evening and for the timing display in
-[Perform mode](./perform.md#keep-time-through-the-evening). A dance slot's
+Each slot can also carry a **note**, a **guest caller**, and optional
+**walkthrough** and **dance** lengths in minutes — useful both for pacing the
+evening and for the timing display in [Perform mode](./perform.md#keep-time-through-the-evening).
+The two lengths are shown separately while their combined total is used for
+the final overrun cue. A dance slot's
 **…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
 button for swapping the dance in place — keeping the note, guest caller,
-planned length, and mark-performed status exactly as they were — instead of
+walkthrough and dance lengths, and mark-performed status exactly as they were —
+instead of
 adding the new dance, dragging it into position, and deleting the old one.
 Dance slots also have **View details** for an inspection-only preview; it cannot
 change the program or the dance.

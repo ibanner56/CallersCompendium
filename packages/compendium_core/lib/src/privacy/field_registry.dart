@@ -345,7 +345,8 @@ final Map<String, DataClassification> fieldClassifications = {
   'program_slots.is_purged_dance': _choreography,
   'program_slots.is_alt': _choreography,
   'program_slots.guest_caller': _performerCredit,
-  'program_slots.planned_minutes': _choreography,
+  'program_slots.walkthrough_minutes': _choreography,
+  'program_slots.dance_minutes': _choreography,
   'program_slots.performed_at': _choreography,
 
   // ----------------------------------------------------- published_sources --

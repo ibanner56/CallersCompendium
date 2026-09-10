@@ -110,7 +110,7 @@ CcProgramsResult buildCcPrograms(
           text: text,
           isAlt: item.isAlt,
           guestCaller: _cleanLine(item.guestCaller),
-          plannedMinutes: item.minutes,
+          danceMinutes: item.minutes,
         ),
       );
     }

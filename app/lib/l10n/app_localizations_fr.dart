@@ -2961,7 +2961,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsGuestCallerLabel => 'Caller invité (optionnel)';
 
   @override
-  String get programsPlannedMinutesLabel => 'Minutes prévues (optionnel)';
+  String get programsPlannedTimingHeader => 'Durées prévues';
+
+  @override
+  String get programsWalkthroughMinutesLabel =>
+      'Minutes de déroulé (facultatif)';
+
+  @override
+  String get programsDanceMinutesLabel => 'Minutes de danse (facultatif)';
 
   @override
   String get programsAlternateDanceTitle => 'Danse alternative';
@@ -3410,6 +3417,9 @@ class AppLocalizationsFr extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3420,18 +3430,23 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 minute',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': ', prévu $_temp0',
+      'yes':
+          ', prévu $_temp0 : $walkthrough minutes de déroulé et $dance minutes de danse',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {
-      'yes': ', dépassement',
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': ', déroulé terminé',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp3 = intl.Intl.selectLogic(over, {
+      'yes': ', dépassement du temps prévu',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': ', en pause',
       'other': '',
     });
-    return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp2$_temp3';
+    return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
@@ -3444,9 +3459,12 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return 'prévu $planned min';
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return 'prévu $planned min ($walkthrough:$dance)';
   }
+
+  @override
+  String get performWalkthroughCompleteSuffix => ' déroulé terminé';
 
   @override
   String get performOverSuffix => ' dépassé';
