@@ -860,7 +860,7 @@ class _Header extends StatelessWidget {
       children: [
         if (callerNote != null && callerNote!.trim().isNotEmpty) ...[
           Text(
-            '${l10n.performSlotCallerNote}: ${callerNote!.trim()}',
+            '${l10n.performSlotCallerNote}: ${canonicalizeDiscouragedTerms ? renderer.renderFreeTextWithCanonicalDiscouragedTerms(callerNote!.trim(), dialect) : callerNote!.trim()}',
             key: const ValueKey('perform-slot-caller-note'),
             style: theme.textTheme.headlineSmall?.merge(
               AppTypography.performBody,

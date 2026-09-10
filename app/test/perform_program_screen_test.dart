@@ -256,6 +256,29 @@ void main() {
     );
   });
 
+  testWidgets('program Perform canonicalizes caller notes by default', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Gypsy with the gents',
+        ),
+      ]),
+      data: data,
+    );
+
+    expect(
+      find.text('Caller note: Shoulder round with the larks'),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('program Perform hides per-slot caller notes when disabled', (
     tester,
   ) async {
