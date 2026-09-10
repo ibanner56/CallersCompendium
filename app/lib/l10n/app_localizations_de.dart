@@ -2943,6 +2943,13 @@ class AppLocalizationsDe extends AppLocalizations {
       'Alternative Zeilen anzeigen';
 
   @override
+  String get programsMatrixShowPhrasesSemantic =>
+      'Phrasenbezeichnungen anzeigen';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Präsenzsymbole anzeigen';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2984,13 +2991,15 @@ class AppLocalizationsDe extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': ', wiederholt sich in derselben Phrase wie ein Nachbartanz',
-      'beats': ', teilt Takte mit einem Nachbartanz',
+      'phrase':
+          ', wiederholt sich in derselben Phrase wie ein angrenzender Tanz',
+      'beats': ', teilt Taktschläge mit einem angrenzenden Tanz',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -3005,7 +3014,11 @@ class AppLocalizationsDe extends AppLocalizations {
       'no': 'nicht vorhanden',
       'other': 'vorhanden$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', Phrase(n): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override

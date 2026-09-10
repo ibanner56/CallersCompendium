@@ -3295,6 +3295,7 @@ void main() {
       expect(find.text('Primary'), findsOneWidget);
       expect(find.text('Alternate'), findsOneWidget);
       expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
+      expect(find.byTooltip('Show phrase labels'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('program-matrix-toggle-alternates')),
@@ -3304,15 +3305,23 @@ void main() {
       expect(find.text('Alternate'), findsNothing);
       expect(find.byTooltip('Show alternate rows'), findsOneWidget);
 
+      await tester.tap(
+        find.byKey(const ValueKey('program-matrix-toggle-phrases')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
+
       await tester.tap(find.byKey(const ValueKey('program-build-tab')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
       await tester.pumpAndSettle();
       expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
 
       await tester.binding.setSurfaceSize(const Size(360, 720));
       await tester.pumpAndSettle();
       expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
 
       expect((await repos.programs.getById('p1'))!.hideAlternates, isFalse);
     },
@@ -3377,6 +3386,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Alternate'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey('program-matrix-toggle-phrases')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
 
     navigatorKey.currentState!.pop();
     await tester.pumpAndSettle();
@@ -3384,6 +3398,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
     await tester.pumpAndSettle();
     expect(find.text('Alternate'), findsOneWidget);
+    expect(find.byTooltip('Show phrase labels'), findsOneWidget);
   });
 
   testWidgets('Matrix tab exposes an enabled export/print PDF control', (
