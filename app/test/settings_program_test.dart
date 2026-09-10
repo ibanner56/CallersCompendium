@@ -13,8 +13,6 @@ import 'package:compendium_app/src/data/require_performed_for_history_scope.dart
 import 'package:compendium_app/src/data/track_history_for_all_callers_scope.dart';
 import 'package:compendium_app/src/data/venue_entity_mode_scope.dart';
 import 'package:compendium_app/src/screens/settings_screen.dart';
-import 'package:compendium_app/src/screens/settings/settings_keys.dart'
-    show kShowProgramSlotCallerNotesKey;
 import 'package:compendium_app/src/screens/settings/matrix_column_editor_screen.dart';
 
 import 'support/test_repositories.dart';
