@@ -1232,6 +1232,40 @@ void main() {
     expect(modifier.modifierFigures!.first.meanwhileSides!.first.move, 'orbit');
   });
 
+  testWidgets('nested collapse keeps the surviving child schema version', (
+    tester,
+  ) async {
+    final surviving = FigureDraft(
+      move: 'swing',
+      schemaVersion: 99,
+      params: {'beats': 8},
+    );
+    final nested = FigureDraft(
+      meanwhileSides: [
+        surviving,
+        FigureDraft(move: 'roll_away', params: {'beats': 8}),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        FigureDraft(move: 'orbit', params: {'beats': 8}),
+      ],
+    )..params['beats'] = 16;
+
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+    await tester.tap(
+      find.byKey(const ValueKey('figure-0-nested-0-0-side-1-remove')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(modifier.modifierFigures, hasLength(2));
+    expect(modifier.modifierFigures!.first, same(surviving));
+    expect(modifier.modifierFigures!.first.schemaVersion, 99);
+    expect(modifier.modifierFigures!.first.isContainerDraft, isFalse);
+  });
+
   testWidgets('nested container menu can ungroup within the parent cap', (
     tester,
   ) async {

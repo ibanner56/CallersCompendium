@@ -178,6 +178,28 @@ void main() {
       expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
     });
 
+    test('preserves figures params on non-structural drafts', () {
+      const snapshot = FigureDraftSnapshot(
+        id: 'future',
+        move: 'future_move',
+        params: {
+          'figures': ['opaque-child'],
+          'futureFlag': true,
+        },
+        note: '',
+        progression: false,
+        schemaVersion: figureSchemaVersion,
+      );
+
+      final encoded = encodeDraft(_minimalSnapshot(figureDrafts: [snapshot]));
+      final raw = jsonDecode(encoded) as Map<String, Object?>;
+      final figure = (raw['figureDrafts'] as List).single as Map;
+      final params = figure['params'] as Map;
+
+      expect(params['figures'], ['opaque-child']);
+      expect(params['futureFlag'], isTrue);
+    });
+
     test('encodes and decodes reverse progression improper formation', () {
       final reverse = _minimalSnapshot(
         formationShape: FormationShape.reverseProgressionImproper,
