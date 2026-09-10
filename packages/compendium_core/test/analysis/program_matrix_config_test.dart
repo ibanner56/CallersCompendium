@@ -583,17 +583,17 @@ void main() {
         const ParameterizedColumn(
           id: 'param:dancers',
           baseMove: 'pull_by',
-          params: {'where': 'along', 'who': 'neighbors'},
+          params: {'where': 'along'},
         ),
         const ParameterizedColumn(
           id: 'param:direction',
           baseMove: 'pull_by',
-          params: {'where': 'along', 'who': 'neighbors'},
+          params: {'who': 'neighbors'},
         ),
       ]);
       expect(decoded.compound.single.steps, [
         const StepMatcher(move: 'pull_by', params: {'where': 'along'}),
-        const StepMatcher(move: 'pull_by', params: {'who': 'neighbors'}),
+        const StepMatcher(move: 'pull_by', params: {}),
       ]);
     });
 
@@ -608,9 +608,16 @@ void main() {
         dance('pull', 'Pull', [
           testFigure(move: 'pull_by', params: {'who': 'neighbors'}),
         ]),
+        dance('pull-partners', 'Pull partners', [
+          testFigure(move: 'pull_by', params: {'who': 'partners'}),
+        ]),
       ], config: config);
 
       expect(ids(matrix), ['swing:partner', 'swing:neighbor', 'param:dancers']);
+      expect(matrix.rows.map((row) => row.presentMoveIds.toSet()).toList(), [
+        {'param:dancers'},
+        {'param:dancers'},
+      ]);
     });
 
     test('null decodes to empty', () {

@@ -497,7 +497,10 @@ ParameterizedColumn _normalizeV35ParameterizedColumn(
   return ParameterizedColumn(
     id: column.id,
     baseMove: _normalizeV35MoveId(column.baseMove),
-    params: Taxonomy.normalizeV35Params(column.baseMove, column.params),
+    params: Taxonomy.normalizeV35ConstraintParams(
+      column.baseMove,
+      column.params,
+    ),
   );
 }
 
@@ -508,7 +511,7 @@ CompoundColumn _normalizeV35CompoundColumn(CompoundColumn column) {
       for (final step in column.steps)
         StepMatcher(
           move: _normalizeV35MoveId(step.move),
-          params: Taxonomy.normalizeV35Params(step.move, step.params),
+          params: Taxonomy.normalizeV35ConstraintParams(step.move, step.params),
         ),
     ],
   );

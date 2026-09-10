@@ -210,6 +210,28 @@ class Taxonomy {
     Map<String, Object?> params,
   ) {
     final normalizedMove = normalizeV35MoveId(move);
+    final normalized = _normalizeV35ParamKeys(normalizedMove, params);
+    if (move == 'pull_by_dancers') {
+      normalized.putIfAbsent('who', () => 'neighbors');
+    } else if (move == 'pull_by_direction') {
+      normalized.putIfAbsent('where', () => 'along');
+    }
+    return normalized;
+  }
+
+  /// Returns v35 parameter keys for matcher constraints from [move].
+  ///
+  /// Unlike [normalizeV35Params], this does not synthesize defaults for legacy
+  /// pull-by aliases. Empty matcher maps must remain wildcards during migration.
+  static Map<String, Object?> normalizeV35ConstraintParams(
+    String move,
+    Map<String, Object?> params,
+  ) => _normalizeV35ParamKeys(normalizeV35MoveId(move), params);
+
+  static Map<String, Object?> _normalizeV35ParamKeys(
+    String normalizedMove,
+    Map<String, Object?> params,
+  ) {
     final entries = params.entries.toList()
       ..sort((a, b) {
         final aKey = normalizeV35ParamKey(normalizedMove, a.key);
@@ -223,11 +245,6 @@ class Taxonomy {
     for (final entry in entries) {
       final key = normalizeV35ParamKey(normalizedMove, entry.key);
       normalized.putIfAbsent(key, () => entry.value);
-    }
-    if (move == 'pull_by_dancers') {
-      normalized.putIfAbsent('who', () => 'neighbors');
-    } else if (move == 'pull_by_direction') {
-      normalized.putIfAbsent('where', () => 'along');
     }
     return normalized;
   }
