@@ -19,7 +19,7 @@ import 'preview_hold_listener.dart';
 ///
 /// All mutations flow through callbacks so the parent builder owns the slot
 /// list and its dirty/undo state. Positions are the parent's responsibility to
-/// renumber contiguously after each [onReorder].
+/// renumber contiguously after each [onReorder] or [onPromoteAlternate].
 class ProgramSlotListEditor extends StatefulWidget {
   const ProgramSlotListEditor({
     super.key,
@@ -29,6 +29,7 @@ class ProgramSlotListEditor extends StatefulWidget {
     required this.mixerFor,
     required this.onReorder,
     required this.onSlotChanged,
+    required this.onPromoteAlternate,
     required this.onRemove,
     required this.onCreateDance,
     this.reservedPerformedAt,
@@ -64,6 +65,11 @@ class ProgramSlotListEditor extends StatefulWidget {
 
   /// Replace the slot at [index] with [updated] (same id).
   final void Function(int index, ProgramSlot updated) onSlotChanged;
+
+  /// Atomically promote an alternate at [index] using the fully edited
+  /// [updated] slot. The parent swaps it with the nearest preceding primary,
+  /// preserving the promoted slot's edits and its own dirty/undo state.
+  final void Function(int index, ProgramSlot updated) onPromoteAlternate;
 
   /// A performed timestamp reserved by an active bulk Undo action. A manual
   /// re-mark must not reuse it while the inverse can still run.
@@ -385,7 +391,11 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
   void _toggleAlt(int i) {
     final slot = widget.slots[i];
     final l10n = AppLocalizations.of(context);
-    widget.onSlotChanged(i, slot.copyWith(isAlt: !slot.isAlt));
+    if (slot.isAlt) {
+      widget.onPromoteAlternate(i, slot.copyWith(isAlt: false));
+    } else {
+      widget.onSlotChanged(i, slot.copyWith(isAlt: true));
+    }
     SemanticsService.sendAnnouncement(
       View.of(context),
       slot.isAlt ? l10n.programsMarkedPrimary : l10n.programsMarkedAlternate,
@@ -458,7 +468,13 @@ class _ProgramSlotListEditorState extends State<ProgramSlotListEditor> {
         onPickReplacementDance: widget.onPickReplacementDance,
       ),
     );
-    if (result != null && mounted) widget.onSlotChanged(index, result);
+    if (result != null && mounted) {
+      if (slot.isAlt && !result.isAlt) {
+        widget.onPromoteAlternate(index, result);
+      } else {
+        widget.onSlotChanged(index, result);
+      }
+    }
   }
 }
 

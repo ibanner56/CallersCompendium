@@ -46,6 +46,7 @@ Future<void> _pump(WidgetTester tester, {bool? colorCoding}) async {
     mixerFor: (_) => false,
     onReorder: (_, _) {},
     onSlotChanged: (_, _) {},
+    onPromoteAlternate: (_, _) {},
     onRemove: (_) {},
     onCreateDance: (_) {},
   );
@@ -82,6 +83,7 @@ Future<void> _pumpWithMixer(WidgetTester tester, {bool? colorCoding}) async {
     mixerFor: _mixerFor,
     onReorder: (_, _) {},
     onSlotChanged: (_, _) {},
+    onPromoteAlternate: (_, _) {},
     onRemove: (_) {},
     onCreateDance: (_) {},
   );
