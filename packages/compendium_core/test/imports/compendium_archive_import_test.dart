@@ -75,7 +75,7 @@ CompendiumArchive _bundle() {
         danceId: 'orig-d2',
         isAlt: true,
         guestCaller: 'Bob',
-        plannedMinutes: 8,
+        danceMinutes: 8,
       ),
       // References a dance that is not carried by the bundle.
       ProgramSlot(id: 'orig-sl4', position: 3, danceId: 'orig-missing'),
@@ -429,7 +429,7 @@ void main() {
       expect(program.slots[2].danceId, byTitle['Petronella']);
       expect(program.slots[2].isAlt, isTrue);
       expect(program.slots[2].guestCaller, 'Bob');
-      expect(program.slots[2].plannedMinutes, 8);
+      expect(program.slots[2].danceMinutes, 8);
     },
   );
 

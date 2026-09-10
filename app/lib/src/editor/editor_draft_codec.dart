@@ -428,7 +428,7 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
   final id = _str(m, 'id');
   if (id.isEmpty) throw const FormatException('figureDraft.id is required');
 
-  final move = m['move'] as String?;
+  final rawMove = m['move'] as String?;
   final params = m['params'];
   final parsedParams = <String, Object?>{};
   if (params is Map) {
@@ -485,10 +485,15 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
     throw FormatException('figureDraft.sv must be an int: $sv');
   }
 
+  final normalized = rawMove == null
+      ? null
+      : contraTaxonomy.normalizeFigureV35(
+          Figure(move: rawMove, params: parsedParams),
+        );
   return FigureDraftSnapshot(
     id: id,
-    move: move,
-    params: Map.unmodifiable(parsedParams),
+    move: normalized?.move,
+    params: Map.unmodifiable(normalized?.params ?? parsedParams),
     note: note,
     progression: progression,
     schemaVersion: sv,

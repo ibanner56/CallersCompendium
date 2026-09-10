@@ -80,7 +80,7 @@ CompendiumArchive _sampleArchive() {
       Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
       Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.5},
         note: 'smoothly',
         progression: true,
       ),
@@ -181,7 +181,8 @@ CompendiumArchive _sampleArchive() {
         id: 'sl1',
         position: 0,
         danceId: 'd1',
-        plannedMinutes: 12,
+        walkthroughMinutes: 3,
+        danceMinutes: 9,
         performedAt: DateTime.utc(2026, 5, 1, 20),
       ),
       ProgramSlot(
@@ -296,7 +297,7 @@ void main() {
       expect(d1.progression, Progression.double);
       expect(d1.phraseStructure.raw, '6*8*2');
       expect(d1.figures, hasLength(2));
-      expect(d1.figures[1].params['turn'], 1.5);
+      expect(d1.figures[1].params['travel'], 1.5);
       expect(d1.figures[1].progression, isTrue);
 
       // The customOrigin discriminator survives the archive/.ccshare path.
@@ -340,7 +341,8 @@ void main() {
       final p1 = result.archive.programs.firstWhere((p) => p.id == 'p1');
       expect(p1.hideAlternates, isTrue);
       expect(p1.slots, hasLength(3));
-      expect(p1.slots[0].plannedMinutes, 12);
+      expect(p1.slots[0].walkthroughMinutes, 3);
+      expect(p1.slots[0].danceMinutes, 9);
       expect(p1.slots[1].isAlt, isTrue);
       expect(p1.slots[1].guestCaller, 'Bob');
 
@@ -351,6 +353,23 @@ void main() {
       expect(pProv.externalId, 'usr-9921');
       expect(pProv.importedAt, DateTime.utc(2025, 4, 1, 8, 0, 0));
       expect(pProv.sourceVersion, '2.3');
+    });
+
+    test('decodes legacy plannedMinutes as danceMinutes', () {
+      final decoded =
+          jsonDecode(encodeArchive(_sampleArchive())) as Map<String, Object?>;
+      final program =
+          (decoded['programs']! as List).first as Map<String, Object?>;
+      final slot = (program['slots']! as List).first as Map<String, Object?>;
+      slot['plannedMinutes'] = 8;
+      slot.remove('walkthroughMinutes');
+      slot.remove('danceMinutes');
+
+      final result = decodeArchive(jsonEncode(decoded));
+
+      final restored = result.archive.programs.first.slots.first;
+      expect(restored.walkthroughMinutes, isNull);
+      expect(restored.danceMinutes, 8);
     });
 
     test('round-trips ordered difficulty-level entities', () {
@@ -1407,7 +1426,7 @@ void main() {
               },
               {
                 'move': 'circle',
-                'params': {'turn': 'left'},
+                'params': {'direction': 'left'},
                 'walkthroughOverride':
                     'y' * (kMaxWalkthroughSnippetLength + 50),
                 'wordingOverride': 'z' * (kMaxWalkthroughSnippetLength + 50),

@@ -17,7 +17,8 @@ import 'package:compendium_app/src/screens/settings_screen.dart'
         kAutoSizePerformKey,
         kPerformCanonicalViewKey,
         kPerformStageModeKey,
-        kPerformTextScaleKey;
+        kPerformTextScaleKey,
+        kShowProgramSlotCallerNotesKey;
 import 'package:compendium_app/src/search/collection_data.dart';
 import 'package:compendium_app/src/theme/color_schemes.dart';
 
@@ -52,7 +53,8 @@ ProgramSlot _slot({
   String? danceId,
   String? text,
   bool isAlt = false,
-  int? plannedMinutes,
+  int? walkthroughMinutes,
+  int? danceMinutes,
   bool? isPurgedDance = false,
 }) => ProgramSlot(
   id: id,
@@ -61,7 +63,8 @@ ProgramSlot _slot({
   text: text,
   isPurgedDance: isPurgedDance,
   isAlt: isAlt,
-  plannedMinutes: plannedMinutes,
+  walkthroughMinutes: walkthroughMinutes,
+  danceMinutes: danceMinutes,
 );
 
 Program _program(List<ProgramSlot> slots, {String title = 'Spring Dance'}) =>
@@ -90,7 +93,9 @@ Future<void> _pumpProgram(
   int initialGroup = 0,
   Dialect? activeDialect,
   bool autoSize = false,
+  bool showProgramSlotCallerNotes = true,
   Size surfaceSize = const Size(1400, 2400),
+  bool settle = true,
   DialectLibraryController? dialectLibrary,
   Map<String, Dance> danceOverrides = const {},
   Map<String, String> authorNameOverrides = const {},
@@ -101,6 +106,10 @@ Future<void> _pumpProgram(
   addTearDown(notifier.dispose);
   final repos = openTestRepositories();
   await repos.settings.set(kAutoSizePerformKey, autoSize);
+  await repos.settings.set(
+    kShowProgramSlotCallerNotesKey,
+    showProgramSlotCallerNotes,
+  );
   Widget withLibrary(Widget child) => dialectLibrary == null
       ? child
       : DialectLibraryScope(controller: dialectLibrary, child: child);
@@ -124,7 +133,7 @@ Future<void> _pumpProgram(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 /// Reads the current text of a keyed [Text] widget (e.g. the running clock or
@@ -222,6 +231,116 @@ void main() {
     expect(find.text('First Dance'), findsOneWidget);
   });
 
+  testWidgets('program Perform shows per-slot caller notes above the title', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Call this one gently',
+        ),
+      ]),
+      data: data,
+    );
+
+    expect(find.text('Caller note: Call this one gently'), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const ValueKey('perform-slot-caller-note')))
+          .dy,
+      lessThan(
+        tester.getTopLeft(find.byKey(const ValueKey('perform-title'))).dy,
+      ),
+    );
+  });
+
+  testWidgets('program Perform canonicalizes caller notes by default', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(
+          id: 's1',
+          position: 0,
+          danceId: 'd1',
+          text: 'Gypsy with the gents',
+        ),
+      ]),
+      data: data,
+    );
+
+    expect(
+      find.text('Caller note: Shoulder round with the larks'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('program Perform hides per-slot caller notes when disabled', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      showProgramSlotCallerNotes: false,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', text: 'Hidden note'),
+      ]),
+      data: data,
+    );
+
+    expect(find.textContaining('Hidden note'), findsNothing);
+    expect(
+      find.byKey(const ValueKey('perform-slot-caller-note')),
+      findsNothing,
+    );
+  });
+
+  testWidgets(
+    'program Perform does not flash caller notes while loading a disabled setting',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+      await _pumpProgram(
+        tester,
+        showProgramSlotCallerNotes: false,
+        settle: false,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1', text: 'Hidden note'),
+        ]),
+        data: data,
+      );
+
+      expect(find.textContaining('Hidden note'), findsNothing);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Hidden note'), findsNothing);
+    },
+  );
+
+  testWidgets('program Perform omits whitespace-only caller notes', (
+    tester,
+  ) async {
+    final data = await _dataWith([_dance(id: 'd1', title: 'Noted Dance')]);
+    await _pumpProgram(
+      tester,
+      program: _program([
+        _slot(id: 's1', position: 0, danceId: 'd1', text: '   \n\t'),
+      ]),
+      data: data,
+    );
+
+    expect(
+      find.byKey(const ValueKey('perform-slot-caller-note')),
+      findsNothing,
+    );
+    expect(find.textContaining('Caller note:'), findsNothing);
+  });
+
   group('AppBar responsive overflow (issue #433)', () {
     // The full Perform toolbar is ~10 controls; on phones narrower than ~430px
     // it used to RenderFlex-overflow, clipping the stage-mode toggle. Secondary
@@ -256,7 +375,7 @@ void main() {
           // content the FittedBox scale-down is there to protect at 360–430px.
           // Without it the readout is short and the scale-down path (and thus
           // this regression guard) would never be exercised (issue #433).
-          _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 45),
+          _slot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 45),
           _slot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
         ]),
         surfaceSize: size,
@@ -1125,47 +1244,142 @@ void main() {
     expect(_seconds(_textOf(tester, 'perform-clock')), clockBefore);
   });
 
-  testWidgets('planned minutes render when present and are absent when null', (
-    tester,
-  ) async {
-    final data = await _dataWith([
-      _dance(id: 'd1', title: 'Timed Dance'),
-      _dance(id: 'd2', title: 'Untimed Dance'),
-    ]);
-    await _pumpProgram(
-      tester,
-      data: data,
-      program: _program([
-        _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 8),
-        _slot(id: 's2', position: 1, danceId: 'd2'),
-      ]),
-    );
+  testWidgets(
+    'split planned minutes render when present and are absent when null',
+    (tester) async {
+      final data = await _dataWith([
+        _dance(id: 'd1', title: 'Timed Dance'),
+        _dance(id: 'd2', title: 'Untimed Dance'),
+      ]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 3,
+            danceMinutes: 5,
+          ),
+          _slot(id: 's2', position: 1, danceId: 'd2'),
+        ]),
+      );
 
-    expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
-    expect(find.text('planned 8 min'), findsOneWidget);
+      expect(find.byKey(const ValueKey('perform-planned')), findsOneWidget);
+      expect(find.text('planned 8 min (3:5)'), findsOneWidget);
 
-    await tester.tap(find.byKey(const ValueKey('perform-next')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('perform-planned')), findsNothing);
-  });
+      await tester.tap(find.byKey(const ValueKey('perform-next')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('perform-planned')), findsNothing);
+    },
+  );
 
-  testWidgets('an over-run cue appears once elapsed passes planned', (
-    tester,
-  ) async {
-    final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
-    await _pumpProgram(
-      tester,
-      data: data,
-      program: _program([
-        _slot(id: 's1', position: 0, danceId: 'd1', plannedMinutes: 1),
-      ]),
-    );
+  testWidgets(
+    'walkthrough and final over-run cues use their split thresholds',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 1,
+            danceMinutes: 1,
+          ),
+        ]),
+      );
 
-    expect(find.byKey(const ValueKey('perform-over')), findsNothing);
-    // Push past the 1-minute plan.
-    await tester.pump(const Duration(seconds: 61));
-    expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
-  });
+      expect(find.byKey(const ValueKey('perform-over')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 60));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('perform-over')), findsNothing);
+      // The walkthrough cue appears after its threshold, but the dance's final
+      // over-run cue waits for the combined walkthrough + dance duration.
+      await tester.pump(const Duration(seconds: 1));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('perform-over')), findsNothing);
+      await tester.pump(const Duration(seconds: 59));
+      expect(find.byKey(const ValueKey('perform-over')), findsNothing);
+      await tester.pump(const Duration(seconds: 1));
+      expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets(
+    'walkthrough cue stays absent when walkthrough minutes are unset',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(id: 's1', position: 0, danceId: 'd1', danceMinutes: 1),
+        ]),
+      );
+
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 61));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'walkthrough cue stays absent when walkthrough minutes are zero',
+    (tester) async {
+      final data = await _dataWith([_dance(id: 'd1', title: 'Timed Dance')]);
+      await _pumpProgram(
+        tester,
+        data: data,
+        program: _program([
+          _slot(
+            id: 's1',
+            position: 0,
+            danceId: 'd1',
+            walkthroughMinutes: 0,
+            danceMinutes: 1,
+          ),
+        ]),
+      );
+
+      await tester.pump(const Duration(seconds: 2));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 61));
+      expect(
+        find.byKey(const ValueKey('perform-walkthrough-complete')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('perform-over')), findsOneWidget);
+    },
+  );
 
   testWidgets('pause stops the timers and resume continues them', (
     tester,
@@ -1290,6 +1504,47 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byKey(const ValueKey('perform-text')), findsOneWidget);
     });
+
+    testWidgets(
+      'recomputes the fit for the same dance with a different caller note',
+      (tester) async {
+        final data = await _dataWith([_dance(id: 'd1', title: 'Short')]);
+        const longNote =
+            'Call the transition slowly, then repeat the ending phrase twice '
+            'before moving on to the next figure. Keep the timing steady and '
+            'give the dancers room to breathe before starting the final '
+            'sequence.';
+        await _pumpProgram(
+          tester,
+          data: data,
+          autoSize: true,
+          surfaceSize: const Size(500, 450),
+          program: _program([
+            _slot(id: 's1', position: 0, danceId: 'd1', text: 'Brief note'),
+            _slot(id: 's2', position: 1, danceId: 'd1', text: longNote),
+          ]),
+        );
+
+        final shortTitleHeight = tester
+            .getSize(find.byKey(const ValueKey('perform-title')))
+            .height;
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.text('Caller note: $longNote'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        expect(
+          tester.getSize(find.byKey(const ValueKey('perform-title'))).height,
+          lessThan(shortTitleHeight),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('perform-prev')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('perform-next')));
+        await tester.pumpAndSettle();
+        expect(find.text('Caller note: $longNote'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
+    );
 
     testWidgets(
       'revisiting a fitted slot keeps its scale (no auto-size grow-in flash)',

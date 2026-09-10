@@ -586,6 +586,42 @@ class AppLocalizationsJa extends AppLocalizations {
       '新しいプログラムに事前入力されます。プログラムごとに編集可能です。';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => '開始プログラム';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      '手動で作成したプログラムに追加するダンスとメモ。';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'ダンスを追加';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'ダンス';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'メモ';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => '休憩を追加';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'メモのテキスト';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel => 'caller のメモ（任意）';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => '上へ移動';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => '下へ移動';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return '利用できないダンス（$id）';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'デフォルトバンド';
 
   @override
@@ -990,6 +1026,14 @@ class AppLocalizationsJa extends AppLocalizations {
       '1曲だけをPerformしている間の経過時間を表示します。タイマーが表示されると開始し、一時停止できます。';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'プログラムのPerformでコーラーのメモを表示';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'プログラムのPerformで、空でないスロットごとのコーラーメモをダンス名の上に表示します。';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'コーリング履歴';
 
   @override
@@ -1007,6 +1051,25 @@ class AppLocalizationsJa extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'オフで既定のコーラーが設定されている場合、コーリング履歴と回数にはそのコーラーが担当したプログラム、およびコーラーが記録されていないプログラム（自分のプログラムとして扱われます）が含まれます。オンの場合、または既定のコーラーが設定されていない場合は、そのダンスを含むすべてのプログラムが記録されます。';
+
+  @override
+  String get settingsProgramVenueCallCountTitle => 'コーリング履歴に繰り返し登場する会場';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'ダンスを2回以上コールした主な会場を表示します。0にするとこの概要を非表示にします。';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count会場',
+      one: '1会場',
+      zero: '表示しない',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'アクセシビリティ';
@@ -2135,6 +2198,17 @@ class AppLocalizationsJa extends AppLocalizations {
   String get danceCallingHistoryError => 'コール履歴を読み込めませんでした。';
 
   @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$venueで$count回コール',
+      one: '$venueで1回コール',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get danceShowCanonicalTerms => '正式な用語で表示';
 
   @override
@@ -2763,7 +2837,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsGuestCallerLabel => 'ゲストコーラー（任意）';
 
   @override
-  String get programsPlannedMinutesLabel => '予定時間（分、任意）';
+  String get programsPlannedTimingHeader => '予定時間';
+
+  @override
+  String get programsWalkthroughMinutesLabel => 'ウォークスルー時間（任意）';
+
+  @override
+  String get programsDanceMinutesLabel => 'ダンス時間（任意）';
 
   @override
   String get programsAlternateDanceTitle => '代替ダンス';
@@ -2814,6 +2894,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixShowAlternatesSemantic => '代替行を表示';
 
   @override
+  String get programsMatrixShowPhrasesSemantic => 'フレーズラベルを表示';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => '存在グリフを表示';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2843,6 +2929,65 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
+    String _temp0 = intl.Intl.selectLogic(sectionKey, {
+      's1': '1',
+      's2': '2',
+      's3': '3',
+      's4': '4',
+      's5': '5',
+      's6': '6',
+      's7': '7',
+      's8': '8',
+      's9': '9',
+      'other': '$sectionNumber',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '代替ダンス: $title',
+      'other': '代替ダンス: $title、セクション $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'ダンス: $title',
+      'other': 'ダンス: $title、セクション $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title（代替ダンス）',
+      'other': '$title（代替ダンス、セクション $section）',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title（セクション $section）',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'フォーメーション';
 
   @override
@@ -2855,13 +3000,14 @@ class AppLocalizationsJa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': '、隣接するダンスと同じフレーズで繰り返される',
-      'beats': '、隣接するダンスと拍が重なる',
+      'phrase': '、隣接するダンスと同じフレーズで繰り返し',
+      'beats': '、隣接するダンスと拍を共有',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2873,10 +3019,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'other': '',
     });
     String _temp3 = intl.Intl.selectLogic(present, {
-      'no': '未使用',
-      'other': '使用中$_temp0$_temp1$_temp2',
+      'no': 'なし',
+      'other': 'あり$_temp0$_temp1$_temp2',
     });
-    return '$dance、$move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': '、フレーズ：$phrases',
+    });
+    return '$dance、$move：$_temp3$_temp4';
   }
 
   @override
@@ -3125,6 +3275,9 @@ class AppLocalizationsJa extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3134,15 +3287,19 @@ class AppLocalizationsJa extends AppLocalizations {
       other: '$planned分',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': '、予定 $_temp0',
+      'yes': '、予定 $_temp0: ウォークスルー $walkthrough分、ダンス $dance分',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {'yes': '、予定超過', 'other': ''});
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': '、ウォークスルー完了',
+      'other': '',
+    });
+    String _temp3 = intl.Intl.selectLogic(over, {'yes': '、予定超過', 'other': ''});
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': '、一時停止中',
       'other': '',
     });
-    return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp2$_temp3';
+    return 'プログラム経過時間 $programTime、スロット経過時間 $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
@@ -3155,12 +3312,18 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return '予定 $planned分';
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return '予定 $planned分（$walkthrough:$dance）';
   }
 
   @override
+  String get performWalkthroughCompleteSuffix => ' ウォークスルー完了';
+
+  @override
   String get performOverSuffix => ' 超過';
+
+  @override
+  String get performSlotCallerNote => 'コーラーメモ';
 
   @override
   String get performCallingNotes => 'コーリングノート';

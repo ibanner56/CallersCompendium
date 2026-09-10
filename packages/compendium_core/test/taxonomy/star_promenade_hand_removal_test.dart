@@ -93,7 +93,7 @@ void main() {
     // Mutation caught: re-declaring the param, in any form.
     test('the MoveDef declares no hand param', () {
       final def = tax.resolve('star_promenade')!;
-      expect(def.params.keys, ['who', 'turn', 'beats']);
+      expect(def.params.keys, ['who', 'travel', 'beats']);
       expect(def.params.containsKey('hand'), isFalse);
     });
 
@@ -102,7 +102,7 @@ void main() {
     // re-adding both.
     test('the render template carries no {hand} token', () {
       final def = tax.resolve('star_promenade')!;
-      expect(def.renderTemplate, '{who} {move} {turn}');
+      expect(def.renderTemplate, '{who} {move} {travel}');
       expect(def.renderTemplate.contains('{hand}'), isFalse);
     });
 
@@ -111,7 +111,7 @@ void main() {
       final params = tax.effectiveParams(Figure(move: 'star_promenade'));
       expect(params.containsKey('hand'), isFalse);
       expect(params['who'], 'role1s');
-      expect(params['turn'], 0.5);
+      expect(params['travel'], 0.5);
     });
 
     // Mutation caught: leaving `hand` in the template or the params, either of
@@ -254,7 +254,7 @@ void main() {
       expect(f.isCustom, isFalse);
       expect(f.params['who'], 'neighbors');
       expect(f.params.containsKey('hand'), isFalse);
-      expect(f.params['turn'], 0.5);
+      expect(f.params['travel'], 0.5);
     });
 
     // The pre-recognizer must not steal lines from the plain `promenade`
@@ -388,7 +388,7 @@ void main() {
       await seed([
         Figure(
           move: 'star_promenade',
-          params: {'who': 'neighbors', 'turn': 0.5, 'beats': 4},
+          params: {'who': 'neighbors', 'travel': 0.5, 'beats': 4},
         ),
         Figure.meanwhile(
           figures: [
@@ -407,7 +407,7 @@ void main() {
       expect(dance.figures[0].params.containsKey('hand'), isFalse);
       // Everything else about the figure survives.
       expect(dance.figures[0].params['who'], 'neighbors');
-      expect(dance.figures[0].params['turn'], 0.5);
+      expect(dance.figures[0].params['travel'], 0.5);
 
       final side = dance.figures[1].subFigures.first;
       expect(side.move, 'star_promenade');
@@ -423,7 +423,7 @@ void main() {
       await seed([
         Figure(
           move: 'allemande',
-          params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.0},
+          params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.0},
         ),
         Figure(move: 'star_promenade', params: {'who': 'partners'}),
       ]);
@@ -482,7 +482,7 @@ void main() {
         await seed([
           Figure(
             move: 'star_promenade',
-            params: {'who': 'neighbors', 'turn': 0.5, 'beats': 4},
+            params: {'who': 'neighbors', 'travel': 0.5, 'beats': 4},
           ),
         ]);
 

@@ -300,6 +300,54 @@ void main() {
       expect(d.moveWordingBranches.containsKey('circle'), isFalse);
     });
 
+    test('fromJson migrates legacy promenade wording placeholders', () {
+      final d = Dialect.fromJson({
+        'name': 'Legacy',
+        'moveWordingBranches': {
+          'promenade': {
+            'ordinary': '{who} {move} {turn} {direction} {destination}',
+            'singleFile': '{prefix} {move} {turn} {direction} {destination}',
+          },
+        },
+      });
+
+      expect(d.moveWordingBranches['promenade'], {
+        'ordinary': '{who} {move} {direction} {where} {destination}',
+        'singleFile': '{prefix} {move} {direction} {where} {destination}',
+      });
+    });
+
+    test('fromJson canonicalizes legacy pull-by keys deterministically', () {
+      final d = Dialect.fromJson({
+        'name': 'Legacy',
+        'moves': {
+          'pull_by_direction': 'direction',
+          'pull_by_dancers': 'dancers',
+          'pull_by': 'canonical',
+        },
+        'moveWordings': {
+          'hey': '{who} {dir} {move}',
+          'pull_by_direction': '{move} direction',
+          'pull_by_dancers': '{move} dancers',
+          'pull_by': '{move} canonical',
+        },
+      });
+
+      expect(d.moves, {'pull_by': 'canonical'});
+      expect(d.moveWordings, {
+        'hey': '{who} {where} {move}',
+        'pull_by': '{move} canonical',
+      });
+
+      final aliasesOnly = Dialect.fromJson({
+        'moves': {
+          'pull_by_direction': 'direction',
+          'pull_by_dancers': 'dancers',
+        },
+      });
+      expect(aliasesOnly.moves, {'pull_by': 'dancers'});
+    });
+
     test('fromJson normalizes a circle branch over a full wording map', () {
       final wordings = <String, Object?>{
         'circle': 'old circle wording',
@@ -316,6 +364,35 @@ void main() {
       expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
       expect(d.moveWordings['circle'], '{move} around {turn} {places}');
     });
+
+    test(
+      'fromJson preserves legacy specialized display slots while migrating params',
+      () {
+        final d = Dialect.fromJson({
+          'moveWordings': {
+            'circle': '{move} {turn}',
+            'figure_8': '{who} {half} {move} {direction}',
+            'gate': '{head} {turn} {facing}',
+            'poussette': '{half} {move} {turn}',
+            'facing_star': '{move} {turn}',
+            'zig_zag': 'zig {turn} zag',
+            'promenade': '{move} {turn} {direction}',
+            'hey': '{who} {dir} {move}',
+          },
+        });
+
+        expect(d.moveWordings, {
+          'circle': '{move} {turn}',
+          'figure_8': '{who} {half} {move} {direction}',
+          'gate': '{head} {turn} {facing}',
+          'poussette': '{half} {move} {turn}',
+          'facing_star': '{move} {turn}',
+          'zig_zag': 'zig {turn} zag',
+          'promenade': '{move} {direction} {where}',
+          'hey': '{who} {where} {move}',
+        });
+      },
+    );
 
     test('fromJson combines legacy and branch entry limits', () {
       final legacy = <String, Object?>{};

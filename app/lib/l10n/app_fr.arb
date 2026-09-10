@@ -668,6 +668,50 @@
   "@settingsDefaultsPrefilledHelper": {
     "x-sourceSha256": "c02385b75a59383fbbb2ad8fe7fcd9f72bfa6101f4f628b8c1860a081a678fef"
   },
+  "settingsDefaultsStartingProgramTitle": "Programme de départ",
+  "@settingsDefaultsStartingProgramTitle": {
+    "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
+  },
+  "settingsDefaultsStartingProgramSubtitle": "Danses et notes ajoutées aux programmes créés manuellement.",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "x-sourceSha256": "5263ff112c8931c2a4483aad83d69af9478ace82f9f0606180306ef902ddddd3"
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "Ajouter une danse",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
+  },
+  "settingsDefaultsStartingProgramAddDance": "Danse",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "settingsDefaultsStartingProgramAddText": "Note",
+  "@settingsDefaultsStartingProgramAddText": {
+    "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
+  },
+  "settingsDefaultsStartingProgramAddBreak": "Ajouter une pause",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "x-sourceSha256": "7d6ad44637b1bd724b5c7defdab64e78e25805878c2326c5ba4a81e1b48bb50c"
+  },
+  "settingsDefaultsStartingProgramTextLabel": "Texte de la note",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "x-sourceSha256": "369e75791f2d58551e3a06b30954568b580ba9c5871e07481d9b9c8a61abacfb"
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "Note du caller (facultatif)",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
+  },
+  "settingsDefaultsStartingProgramMoveUp": "Monter",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "x-sourceSha256": "c66feb5eb8f217c76bfb0f1b41e3ee73ab41cb9959fae8284911bd3ad3816086"
+  },
+  "settingsDefaultsStartingProgramMoveDown": "Descendre",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
+  },
+  "settingsDefaultsStartingProgramUnavailableDance": "Danse indisponible ({id})",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
+  },
   "settingsDefaultsBandLabel": "Orchestre par défaut",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"
@@ -1152,6 +1196,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "x-sourceSha256": "c3f8f61c6df18fe8d4ce2b3aa7fd6b904e66b2f7874e047dee26af2c2ed7f46f"
   },
+  "settingsShowProgramSlotCallerNotesTitle": "Afficher les notes du caller dans le Perform d’un programme",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "x-sourceSha256": "b4907be54d3c1a8b08fb8a4f29d9209dac0d2a4bd0d4ae4b6f70de7ca34c577f"
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Afficher les notes de caller non vides de chaque créneau au-dessus du titre de la danse dans le Perform d’un programme.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "x-sourceSha256": "3643d4c4bffc8af03f4f7feb2363c0cf70bacf9663bb4c84a84f2eed5fb51b1c"
+  },
   "settingsGeneralCallingHistoryHeader": "Historique d’appel",
   "@settingsGeneralCallingHistoryHeader": {
     "x-sourceSha256": "c031a28388c659300d676a3d5637c3824e7e7ef28ae0c47cbf75e35b1eb700f1"
@@ -1171,6 +1223,18 @@
   "settingsGeneralTrackHistoryForAllCallersSubtitle": "Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "x-sourceSha256": "b07a802d076006a8e3c62ad016048de051cc378c847bff0a8bf97bba3dcf0b02"
+  },
+  "settingsProgramVenueCallCountTitle": "Lieux répétés dans l’historique des appels",
+  "@settingsProgramVenueCallCountTitle": {
+    "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
+  },
+  "settingsProgramVenueCallCountSubtitle": "Afficher les principaux lieux où une danse a été appelée plusieurs fois. Régler sur 0 pour masquer ce résumé.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Ne pas afficher} =1{1 lieu} other{{count} lieux}}",
+  "@settingsProgramVenueCallCountOption": {
+    "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
   },
   "settingsGeneralAccessibilityHeader": "Accessibilité",
   "@settingsGeneralAccessibilityHeader": {
@@ -2424,6 +2488,10 @@
   "@danceCallingHistoryError": {
     "x-sourceSha256": "5b904ba8025bb80c5193a39f3c7f73cde1abae09c07a25f743e7206318a76e08"
   },
+  "danceVenueCallCount": "{count, plural, =1{Appelée 1 fois à {venue}} other{Appelée {count} fois à {venue}}}",
+  "@danceVenueCallCount": {
+    "x-sourceSha256": "0046b9ca011ff24c3e6640bd63f208089cd477cee692ff4cceccdcf06ca835e1"
+  },
   "danceShowCanonicalTerms": "Afficher les termes canoniques",
   "@danceShowCanonicalTerms": {
     "x-sourceSha256": "6a744d6afa3942ba490b599806189e37f4a72c812aaf9f456ff9cb6dec3548b0"
@@ -3084,9 +3152,17 @@
   "@programsGuestCallerLabel": {
     "x-sourceSha256": "bb1352c7592c7e9f333947a42cb55d894aae335243adf89ae95ae5760368808c"
   },
-  "programsPlannedMinutesLabel": "Minutes prévues (optionnel)",
-  "@programsPlannedMinutesLabel": {
-    "x-sourceSha256": "f52ea130efcc1b43f4283da49152a9968f6a82dd2b41400c654f66fb41e76b37"
+  "programsPlannedTimingHeader": "Durées prévues",
+  "@programsPlannedTimingHeader": {
+    "x-sourceSha256": "1e21c2ffe319604f48953c1603513696c216b743b7ddc0abe0fe77fc731f7be7"
+  },
+  "programsWalkthroughMinutesLabel": "Minutes de déroulé (facultatif)",
+  "@programsWalkthroughMinutesLabel": {
+    "x-sourceSha256": "088e5fa8e08049c83a3d2d6537b9bbaf8b3cc7e547b49e01f3ad8628267a0966"
+  },
+  "programsDanceMinutesLabel": "Minutes de danse (facultatif)",
+  "@programsDanceMinutesLabel": {
+    "x-sourceSha256": "c22bf272e4f4a651177cf33447fc6bab66f663633e508ec2cd05812e32a44d68"
   },
   "programsAlternateDanceTitle": "Danse alternative",
   "@programsAlternateDanceTitle": {
@@ -3128,6 +3204,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
+  "programsMatrixShowPhrasesSemantic": "Afficher les libellés de phrase",
+  "@programsMatrixShowPhrasesSemantic": {
+    "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
+  },
+  "programsMatrixHidePhrasesSemantic": "Afficher les glyphes de présence",
+  "@programsMatrixHidePhrasesSemantic": {
+    "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Danse alternative : {title}, première partie} second{Danse alternative : {title}, deuxième partie} other{Danse alternative : {title}}}} other{{half, select, first{Danse : {title}, première partie} second{Danse : {title}, deuxième partie} other{Danse : {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
@@ -3135,6 +3219,18 @@
   "programsMatrixHalfShort": "{half, select, first{1ère} other{2ème}}",
   "@programsMatrixHalfShort": {
     "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
+  },
+  "programsMatrixSectionShort": "{sectionKey, select, s1{1er} s2{2e} s3{3e} s4{4e} s5{5e} s6{6e} s7{7e} s8{8e} s9{9e} other{{sectionNumber}}}",
+  "@programsMatrixSectionShort": {
+    "x-sourceSha256": "68a28048786bc047b332d33dedbfe0848b16beb883e24f7cad66b9ebec4a1ecb"
+  },
+  "programsMatrixSectionRowHeaderSemantic": "{alt, select, yes{{section, select, none{Danse alternative : {title}} other{Danse alternative : {title}, section {section}}}} other{{section, select, none{Danse : {title}} other{Danse : {title}, section {section}}}}}",
+  "@programsMatrixSectionRowHeaderSemantic": {
+    "x-sourceSha256": "85d25c17112ac3090732ae1be3b076322896f4da663272cdb80c69bb49adfbab"
+  },
+  "programsMatrixSectionChipQualifiedTitle": "{alt, select, yes{{section, select, none{{title} (danse alternative)} other{{title} (danse alternative, section {section})}}} other{{section, select, none{{title}} other{{title} (section {section})}}}}",
+  "@programsMatrixSectionChipQualifiedTitle": {
+    "x-sourceSha256": "ccc26260eeb603c593983dbbe29dab032ecb9456082415ed7be93c36c850279e"
   },
   "programsMatrixFormationColumnHeader": "Formation",
   "@programsMatrixFormationColumnHeader": {
@@ -3144,9 +3240,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, phrase{, se répète dans la même phrase qu'une danse voisine} beats{, partage des temps avec une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move} : {present, select, no{absent} other{présent{collision, select, phrase{, se répète dans la même phrase qu'une danse voisine} beats{, partage des temps avec une danse voisine} other{}}{debut, select, yes{, introduit ici} other{}}{first, select, yes{, première figure de la danse} other{}}}}{phrases, select, none{} other{, phrase(s) : {phrases}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
+    "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (danse alternative, première partie)} second{{title} (danse alternative, deuxième partie)} other{{title} (danse alternative)}}} other{{half, select, first{{title} (première partie)} second{{title} (deuxième partie)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
@@ -3396,21 +3492,29 @@
   "@performPauseTimers": {
     "x-sourceSha256": "18b85c0574b83bcd592f1959021cfd910c460a5bfccd2c80a7280d81fb4fe196"
   },
-  "performTimingSemantic": "Temps du programme {programTime}, temps du créneau {slotTime}{hasPlanned, select, yes{, prévu {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, dépassement} other{}}{paused, select, yes{, en pause} other{}}",
+  "performTimingSemantic": "Temps du programme {programTime}, temps du créneau {slotTime}{hasPlanned, select, yes{, prévu {planned, plural, =1{1 minute} other{{planned} minutes}} : {walkthrough} minutes de déroulé et {dance} minutes de danse} other{}}{walkthroughComplete, select, yes{, déroulé terminé} other{}}{over, select, yes{, dépassement du temps prévu} other{}}{paused, select, yes{, en pause} other{}}",
   "@performTimingSemantic": {
-    "x-sourceSha256": "0d6aab8b25e52107bcf76e2f7ec28d89c963e59cec81b6762b9d60378d5b5040"
+    "x-sourceSha256": "b481989b8c0ed66ecd58941fca432d33516d0823d5f434b055030c5479c96682"
   },
   "performIndividualTimingSemantic": "Temps écoulé {elapsedTime}{paused, select, yes{, en pause} other{}}",
   "@performIndividualTimingSemantic": {
     "x-sourceSha256": "c6ce3b32275707f6ac8ea7b7435ae7b506f755786c7605751fecd1018539e918"
   },
-  "performPlannedMin": "prévu {planned} min",
-  "@performPlannedMin": {
-    "x-sourceSha256": "9ddfab541b67b5f2d1ab7a435666526de971c20c99489d3f6f36ae4bd6c8608a"
+  "performPlannedSplit": "prévu {planned} min ({walkthrough}:{dance})",
+  "@performPlannedSplit": {
+    "x-sourceSha256": "f00ce488a307637ede1d33c0e91658a79b9b0b960eb86ac8aa541367cd79684b"
+  },
+  "performWalkthroughCompleteSuffix": " déroulé terminé",
+  "@performWalkthroughCompleteSuffix": {
+    "x-sourceSha256": "b4ada2c57806b7acea6ad77cc840e595146492dcc117fa7c78faceabd3098317"
   },
   "performOverSuffix": " dépassé",
   "@performOverSuffix": {
     "x-sourceSha256": "1dd5a67f8afc17b092e937172d1903e40bb1ca68cd7444f946650ecac8dfcaac"
+  },
+  "performSlotCallerNote": "Note du caller",
+  "@performSlotCallerNote": {
+    "x-sourceSha256": "d2b28bddb944b16a222d1bdb75c290a08ba8dec28530924ad9ef12b09af101ea"
   },
   "performCallingNotes": "Notes d’appel",
   "@performCallingNotes": {

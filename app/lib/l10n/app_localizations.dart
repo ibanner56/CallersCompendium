@@ -1112,6 +1112,72 @@ abstract class AppLocalizations {
   /// **'Prefilled into new programs; editable per program.'**
   String get settingsDefaultsPrefilledHelper;
 
+  /// Title for the reusable program template in Program defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting program'**
+  String get settingsDefaultsStartingProgramTitle;
+
+  /// Explanation of the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance and note entries added to manually created programs.'**
+  String get settingsDefaultsStartingProgramSubtitle;
+
+  /// Title for the dance picker used by the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance'**
+  String get settingsDefaultsStartingProgramPickerTitle;
+
+  /// Button to add a dance to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get settingsDefaultsStartingProgramAddDance;
+
+  /// Button to add a text note to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get settingsDefaultsStartingProgramAddText;
+
+  /// Tooltip for adding a break to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add break'**
+  String get settingsDefaultsStartingProgramAddBreak;
+
+  /// Input label for a new text note in the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Note text'**
+  String get settingsDefaultsStartingProgramTextLabel;
+
+  /// Input label for an optional note attached to a dance entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller note (optional)'**
+  String get settingsDefaultsStartingProgramNoteLabel;
+
+  /// Tooltip for moving a starting-program entry up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get settingsDefaultsStartingProgramMoveUp;
+
+  /// Tooltip for moving a starting-program entry down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get settingsDefaultsStartingProgramMoveDown;
+
+  /// Fallback label for a starting-program dance reference no longer in the collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable dance ({id})'**
+  String settingsDefaultsStartingProgramUnavailableDance(String id);
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:
@@ -1838,6 +1904,18 @@ abstract class AppLocalizations {
   /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
   String get settingsShowIndividualPerformTimerSubtitle;
 
+  /// Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Show caller notes in program Perform'**
+  String get settingsShowProgramSlotCallerNotesTitle;
+
+  /// Subtitle explaining the program Perform caller-note display toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show non-empty per-slot caller notes above the dance title in program Perform.'**
+  String get settingsShowProgramSlotCallerNotesSubtitle;
+
   /// General settings section header for calling-history preferences.
   ///
   /// In en, this message translates to:
@@ -1867,6 +1945,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.'**
   String get settingsGeneralTrackHistoryForAllCallersSubtitle;
+
+  /// Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeated venues in calling history'**
+  String get settingsProgramVenueCallCountTitle;
+
+  /// Subtitle explaining the repeated-venue calling-history setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.'**
+  String get settingsProgramVenueCallCountSubtitle;
+
+  /// Dropdown option for the number of repeated venues shown in calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
+  String settingsProgramVenueCallCountOption(num count);
 
   /// General settings section header for accessibility preferences.
   ///
@@ -3710,7 +3806,7 @@ abstract class AppLocalizations {
   /// **'Links'**
   String get danceSectionLinks;
 
-  /// Placeholder for a related-dance link whose target has been deleted.
+  /// Placeholder for a related-dance link whose target row is absent; soft-deleted targets are hidden instead.
   ///
   /// In en, this message translates to:
   /// **'(missing dance)'**
@@ -3745,6 +3841,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not load the calling history.'**
   String get danceCallingHistoryError;
+
+  /// Repeated-venue calling-history summary item.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Called 1 time at {venue}} other{Called {count} times at {venue}}}'**
+  String danceVenueCallCount(int count, String venue);
 
   /// Accessible label for the toggle that shows canonical (undialected) figure terms.
   ///
@@ -4740,11 +4842,23 @@ abstract class AppLocalizations {
   /// **'Guest caller (optional)'**
   String get programsGuestCallerLabel;
 
-  /// Text field label for the optional planned minutes on a program slot.
+  /// Heading above optional walkthrough and dance timing fields on a program slot.
   ///
   /// In en, this message translates to:
-  /// **'Planned minutes (optional)'**
-  String get programsPlannedMinutesLabel;
+  /// **'Planned timing'**
+  String get programsPlannedTimingHeader;
+
+  /// Text field label for the optional planned walkthrough duration on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Walkthrough minutes (optional)'**
+  String get programsWalkthroughMinutesLabel;
+
+  /// Text field label for the optional planned dance duration on a program slot.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance minutes (optional)'**
+  String get programsDanceMinutesLabel;
 
   /// Checkbox label marking a program slot as an alternate dance.
   ///
@@ -4806,6 +4920,18 @@ abstract class AppLocalizations {
   /// **'Show alternate rows'**
   String get programsMatrixShowAlternatesSemantic;
 
+  /// Accessible label/tooltip for the matrix control that replaces comparable cell glyphs with phrase labels in the transient on-screen view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show phrase labels'**
+  String get programsMatrixShowPhrasesSemantic;
+
+  /// Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show presence glyphs'**
+  String get programsMatrixHidePhrasesSemantic;
+
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
   ///
   /// In en, this message translates to:
@@ -4817,6 +4943,32 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{half, select, first{1st} other{2nd}}'**
   String programsMatrixHalfShort(String half);
+
+  /// Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.
+  ///
+  /// In en, this message translates to:
+  /// **'{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}'**
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber);
+
+  /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and its numbered program section.
+  ///
+  /// In en, this message translates to:
+  /// **'{alt, select, yes{{section, select, none{Alternate dance: {title}} other{Alternate dance: {title}, section {section}}}} other{{section, select, none{Dance: {title}} other{Dance: {title}, section {section}}}}}'**
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  );
+
+  /// Compact matrix dance-chip label with alternate-dance and numbered-section qualifiers.
+  ///
+  /// In en, this message translates to:
+  /// **'{alt, select, yes{{section, select, none{{title} (alternate dance)} other{{title} (alternate dance, section {section})}}} other{{section, select, none{{title}} other{{title} (section {section})}}}}'**
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  );
 
   /// Header label for the matrix's pinned formation column (#663), naming what the column shows.
   ///
@@ -4833,11 +4985,12 @@ abstract class AppLocalizations {
   /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.
   ///
   /// In en, this message translates to:
-  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
+  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}{phrases, select, none{} other{, phrase(s): {phrases}}}'**
   String programsMatrixCellSemantic(
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
@@ -5219,15 +5372,18 @@ abstract class AppLocalizations {
   /// **'Pause timers'**
   String get performPauseTimers;
 
-  /// Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.
+  /// Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.
   ///
   /// In en, this message translates to:
-  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
+  /// **'Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}'**
   String performTimingSemantic(
     String programTime,
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   );
@@ -5238,17 +5394,29 @@ abstract class AppLocalizations {
   /// **'Elapsed time {elapsedTime}{paused, select, yes{, paused} other{}}'**
   String performIndividualTimingSemantic(String elapsedTime, String paused);
 
-  /// Visible short label for a slot's planned length in minutes on the perform-mode timing line.
+  /// Visible short label for a slot's combined planned duration and its walkthrough:dance split in minutes on the perform-mode timing line.
   ///
   /// In en, this message translates to:
-  /// **'planned {planned} min'**
-  String performPlannedMin(int planned);
+  /// **'planned {planned} min ({walkthrough}:{dance})'**
+  String performPlannedSplit(int planned, int walkthrough, int dance);
+
+  /// Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed.
+  ///
+  /// In en, this message translates to:
+  /// **' walkthrough complete'**
+  String get performWalkthroughCompleteSuffix;
 
   /// Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length.
   ///
   /// In en, this message translates to:
   /// **' over'**
   String get performOverSuffix;
+
+  /// Label shown before a per-slot caller note above a dance title in program Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller note'**
+  String get performSlotCallerNote;
 
   /// Section title above a dance's calling notes on the perform-mode card.
   ///

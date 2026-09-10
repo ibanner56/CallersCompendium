@@ -37,7 +37,7 @@ void main() {
   ) async {
     final figure = Figure(
       move: 'allemande',
-      params: {'who': 'role2s', 'turn': 1.0},
+      params: {'who': 'role2s', 'travel': 1.0},
       note: 'role2s scoop them up',
     );
 
@@ -51,7 +51,7 @@ void main() {
       'canonical dialect', (tester) async {
     final figure = Figure(
       move: 'allemande',
-      params: {'who': 'role2s', 'turn': 1.0},
+      params: {'who': 'role2s', 'travel': 1.0},
       note: 'role2s scoop them up',
     );
 
@@ -65,7 +65,7 @@ void main() {
   ) async {
     final figure = Figure(
       move: 'allemande',
-      params: {'who': 'role2s', 'turn': 1.0},
+      params: {'who': 'role2s', 'travel': 1.0},
       note: 'watch your spacing here',
     );
 

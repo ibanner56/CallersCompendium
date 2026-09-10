@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+import '../taxonomy/taxonomy.dart';
 import '../util/text_sanitizer.dart';
 import '../validation/validation.dart';
 
@@ -67,6 +68,76 @@ class RoleTerm {
 const MapEquality<Object?, Object?> _mapEq = MapEquality<Object?, Object?>();
 const ListEquality<Object?> _listEq = ListEquality<Object?>();
 const DeepCollectionEquality _deepEq = DeepCollectionEquality();
+const int _kDialectSchemaVersion = 2;
+
+String _migrateDialectMoveId(String moveId) =>
+    Taxonomy.normalizeV35MoveId(moveId);
+
+List<String> _dialectMoveMigrationOrder(Iterable<String> moveIds) {
+  final ordered = moveIds.toList()
+    ..sort((a, b) {
+      final aCanonical = _migrateDialectMoveId(a) == a;
+      final bCanonical = _migrateDialectMoveId(b) == b;
+      if (aCanonical != bCanonical) return aCanonical ? -1 : 1;
+      return a.compareTo(b);
+    });
+  return ordered;
+}
+
+// Canonical IDs win collisions; when only legacy aliases are present, their
+// lexical order makes the selected value stable across map insertion orders.
+Map<String, String> _migrateDialectMoveMap(Map<String, String> source) {
+  final result = <String, String>{};
+  for (final moveId in _dialectMoveMigrationOrder(source.keys)) {
+    result.putIfAbsent(_migrateDialectMoveId(moveId), () => source[moveId]!);
+  }
+  return result;
+}
+
+Map<String, Map<String, String>> _migrateDialectBranchMap(
+  Map<String, Map<String, String>> source,
+) {
+  final result = <String, Map<String, String>>{};
+  for (final moveId in _dialectMoveMigrationOrder(source.keys)) {
+    final target = result.putIfAbsent(
+      _migrateDialectMoveId(moveId),
+      () => <String, String>{},
+    );
+    for (final entry in source[moveId]!.entries) {
+      target.putIfAbsent(entry.key, () => entry.value);
+    }
+  }
+  return result;
+}
+
+// These placeholders belong to legacy display-renderer contracts rather than
+// taxonomy params. Their names remain stable because the specialized renderer
+// still computes their display-specific values (for example, poussette's
+// derived "back then left/right" turn).
+const Map<String, Set<String>> _v34SpecializedDisplaySlots = {
+  'circle': {'turn'},
+  'figure_8': {'half'},
+  'facing_star': {'turn'},
+  'gate': {'turn'},
+  'poussette': {'half', 'turn'},
+  'zig_zag': {'turn'},
+};
+
+String _migrateV34WordingTemplate(String moveId, String template) {
+  final canonicalMoveId = _migrateDialectMoveId(moveId);
+  return template.replaceAllMapped(RegExp(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}'), (
+    match,
+  ) {
+    final key = match.group(1)!;
+    final migratedKey =
+        _v34SpecializedDisplaySlots[canonicalMoveId]?.contains(key) == true
+        ? key
+        : canonicalMoveId == 'promenade' && key == 'direction'
+        ? 'where'
+        : Taxonomy.normalizeV35ParamKey(canonicalMoveId, key);
+    return '{$migratedKey}';
+  });
+}
 
 /// A user-level presentation mapping applied at render time. Storage is
 /// always canonical; dialects are named, switchable, and purely local.
@@ -223,6 +294,7 @@ class Dialect {
   /// dancer substitutions + move wording templates + discouraged terms) so a
   /// fully-custom dialect can be persisted, not just a preset name.
   Map<String, Object?> toJson() => {
+    'v': _kDialectSchemaVersion,
     'name': name,
     'roles': {for (final e in roles.entries) e.key: e.value.toJson()},
     'moves': Map<String, String>.from(moves),
@@ -238,6 +310,9 @@ class Dialect {
   /// Reconstructs a [Dialect] from [toJson] output. Missing sections default to
   /// empty; malformed entries are skipped rather than throwing.
   static Dialect fromJson(Map<String, Object?> json) {
+    final schemaVersion = json['v'];
+    final migrateLegacyTemplates =
+        schemaVersion is! int || schemaVersion < _kDialectSchemaVersion;
     final roles = <String, RoleTerm>{};
     final rolesJson = json['roles'];
     if (rolesJson is Map) {
@@ -276,10 +351,13 @@ class Dialect {
         if (value is! String) continue;
         final sanitized = sanitizeImportedText(value, allowLineBreaks: false);
         if (sanitized.trim().isEmpty) continue;
-        moveWordings[entry.key
-            .toString()] = sanitized.length <= kMaxMoveWordingLength
-            ? sanitized
-            : sanitized.substring(0, kMaxMoveWordingLength);
+        final moveId = entry.key.toString();
+        final migrated = migrateLegacyTemplates
+            ? _migrateV34WordingTemplate(moveId, sanitized)
+            : sanitized;
+        moveWordings[moveId] = migrated.length <= kMaxMoveWordingLength
+            ? migrated
+            : migrated.substring(0, kMaxMoveWordingLength);
         wordingCount++;
       }
     }
@@ -294,9 +372,12 @@ class Dialect {
         final hadCircleWording = moveWordings.containsKey('circle');
         if (sanitized.trim().isNotEmpty &&
             (hadCircleWording || wordingCount < kMaxMoveWordingEntries)) {
-          moveWordings['circle'] = sanitized.length <= kMaxMoveWordingLength
-              ? sanitized
-              : sanitized.substring(0, kMaxMoveWordingLength);
+          final migrated = migrateLegacyTemplates
+              ? _migrateV34WordingTemplate('circle', sanitized)
+              : sanitized;
+          moveWordings['circle'] = migrated.length <= kMaxMoveWordingLength
+              ? migrated
+              : migrated.substring(0, kMaxMoveWordingLength);
           if (!hadCircleWording) wordingCount++;
         }
       }
@@ -318,9 +399,12 @@ class Dialect {
             allowLineBreaks: false,
           );
           if (sanitized.trim().isEmpty) continue;
-          branches[branchId] = sanitized.length <= kMaxMoveWordingLength
-              ? sanitized
-              : sanitized.substring(0, kMaxMoveWordingLength);
+          final migrated = migrateLegacyTemplates
+              ? _migrateV34WordingTemplate(moveId, sanitized)
+              : sanitized;
+          branches[branchId] = migrated.length <= kMaxMoveWordingLength
+              ? migrated
+              : migrated.substring(0, kMaxMoveWordingLength);
           wordingCount++;
         }
         if (branches.isNotEmpty) moveWordingBranches[moveId] = branches;
@@ -334,13 +418,22 @@ class Dialect {
       }
     }
     final rawName = json['name'];
+    final migratedMoves = migrateLegacyTemplates
+        ? _migrateDialectMoveMap(moves)
+        : moves;
+    final migratedWordings = migrateLegacyTemplates
+        ? _migrateDialectMoveMap(moveWordings)
+        : moveWordings;
+    final migratedBranches = migrateLegacyTemplates
+        ? _migrateDialectBranchMap(moveWordingBranches)
+        : moveWordingBranches;
     return Dialect(
       name: rawName is String ? rawName : customName,
       roles: roles,
-      moves: moves,
+      moves: migratedMoves,
       dancers: dancers,
-      moveWordings: moveWordings,
-      moveWordingBranches: moveWordingBranches,
+      moveWordings: migratedWordings,
+      moveWordingBranches: migratedBranches,
       discouragedTerms: discouraged,
     );
   }

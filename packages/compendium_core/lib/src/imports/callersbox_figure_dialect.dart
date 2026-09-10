@@ -22,7 +22,7 @@ import 'figure_text_scrub.dart';
 /// - the grand-right-and-left pass-list decoder
 ///   ([grandRightAndLeftFromPassList]), which reads the SAME people-code
 ///   notation and lowers TCB's compound shorthand onto a sequence of
-///   `pull_by_dancers` figures; and
+///   canonical `pull_by` figures; and
 /// - the `()`/`[]` recognition-only annotation stripper (TCB appends `(NR)` /
 ///   `(W1-M2-W2-M1)` param/shoulder notes).
 ///
@@ -81,7 +81,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
     _promenadeAnnotation,
     _rightLeftThroughAnnotation,
     // Single-file circle recognition (taxonomy v27, issue #840): "Single file
-    // promenade clockwise/counterclockwise" maps to `circle` with `turn:
+    // promenade clockwise/counterclockwise" maps to `circle` with `direction:
     // left/right` and `singleFile: true`. Listed before `_decodeSideRunAnnotation`
     // so the general `;`-run consume sees a structured result rather than raw
     // text when this fires. Listed after `_promenadeAnnotation` — the anchor
@@ -155,7 +155,7 @@ final FigureFrontEnd tcbFigureFrontEnd = FigureFrontEnd(
 ///   actually stated is dropped or invented.
 /// - **`Grand right and left (<pass list>)` decomposes (#295).** A line with NO
 ///   top-level separator is offered to [grandRightAndLeftFromPassList], which
-///   lowers TCB's compound shorthand into one `pull_by_dancers` figure per
+///   lowers TCB's compound shorthand into one canonical `pull_by` figure per
 ///   stated pass. It is attempted only on that no-separator fall-through, so a
 ///   line like `Grand right and left (N1R;N2L); face across` keeps its
 ///   whole-custom reading rather than silently dropping the trailing clause.
@@ -740,7 +740,7 @@ const String _walkForwardPassThroughMove = 'form_short_waves';
 ///   1b).** Walking forward into a wave of four with the dancer you
 ///   are NOT currently facing is a pass through; the wave clause already
 ///   structures on its own today, so the pair emits two figures. A bare
-///   `pass_through()` is emitted and `dir`/`shoulder` are deliberately NOT
+///   `pass_through()` is emitted and `where`/`shoulder` are deliberately NOT
 ///   written — both are the move's own taxonomy defaults, and writing them
 ///   would assert a direction and a shoulder the source never stated.
 ///
@@ -1420,11 +1420,11 @@ final RegExp _promenadeAnchor = RegExp(
 /// rotation direction: `Single file promenade clockwise` (= circle left) and
 /// `Single file promenade counterclockwise` (= circle right).
 ///
-/// **Mapping to taxonomy.** These map to `circle` with `turn: 'left'` /
-/// `turn: 'right'` and `singleFile: true`. The choice of `circle` (not
+/// **Mapping to taxonomy.** These map to `circle` with `direction: 'left'` /
+/// `direction: 'right'` and `singleFile: true`. The choice of `circle` (not
 /// `promenade`) is consistent with the taxonomy's own reasoning for the flag
 /// (`contra_taxonomy.dart`: a single-file circulation around the ring is a
-/// single-file CIRCLE; `turn` already covers left/right).
+/// single-file CIRCLE; `direction` already covers left/right).
 ///
 /// **Clockwise = left** (counter-intuitive, but correct for contra): a circle
 /// left travels clockwise when viewed from above. This mapping is documented
@@ -1509,7 +1509,7 @@ FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
     return null;
   }
 
-  final params = <String, Object?>{'turn': turn, 'singleFile': true};
+  final params = <String, Object?>{'direction': turn, 'singleFile': true};
 
   // Optionally consume a places count. The regex is ordered so that slash
   // fractions (3/4) and glyph fractions (¾) match as units before the
@@ -2076,7 +2076,7 @@ bool _isSquareRoleSetDescriptor(String body) =>
 /// consume paths already exist ([_hey], [grandRightAndLeftFromPassList],
 /// [_squareThroughPassList], and the adapter's balance-a-wave decoder), each
 /// tied to one move because each LOWERS the run onto a bespoke structure — a
-/// hey's ricochet slots, one `pull_by_dancers` per pass. This one does not
+/// hey's ricochet slots, one canonical `pull_by` per pass. This one does not
 /// lower anything: it reads the same notation and fills whatever slots the
 /// move it landed on happens to declare. Writing eleven more pre-recognizers
 /// for the eleven remaining move keys would duplicate one cell walk eleven
@@ -2827,7 +2827,7 @@ FigureMatch? _hey(String scrubbed) {
       .where((w) => w.isNotEmpty)
       .toList();
 
-  // A leading "on [the] left/right diagonal" sets the hey's `dir` (the taxonomy
+  // A leading "on [the] left/right diagonal" sets the hey's `where` (the taxonomy
   // direction domain carries leftDiagonal/rightDiagonal). Consumed up front so
   // its tokens don't trip the strict remainder check below.
   String? dir;
@@ -2871,7 +2871,7 @@ FigureMatch? _hey(String scrubbed) {
     return null;
   }
 
-  final params = <String, Object?>{'length': length, 'dir': ?dir};
+  final params = <String, Object?>{'length': length, 'where': ?dir};
   final maxRicoSlot = _heyMaxRicoSlot(length);
   String? shoulderBase; // the shoulder implied at ODD positions.
   String? pass1;
@@ -3008,8 +3008,8 @@ List<String>? _boundedPassListCellsIn(String lower, int open, int close) {
 const String _grandRightAndLeftNote = 'grand right and left';
 
 /// Decomposes TCB's `Grand right and left (<pass list>)` shorthand into one
-/// [Figure] per stated pass — a `pull_by_dancers` carrying that pass's dancer
-/// (`who`) and stated `hand` — or returns `null` to leave the line alone
+/// [Figure] per stated pass — a canonical `pull_by` carrying that pass's
+/// dancer (`who`) and stated `hand` — or returns `null` to leave the line alone
 /// (→ the caller's ordinary whole-line/custom reading).
 ///
 /// **Why a sequence and not a move (#295).** ContraDB transcribes the SAME
@@ -3017,8 +3017,8 @@ const String _grandRightAndLeftNote = 'grand right and left';
 /// figure at all. *334* by Diane Silver is the decisive side-by-side: TCB
 /// #10042 A2 writes `(4) Grand right and left (N3R;N2L)` where ContraDB #3403
 /// A2 writes `[2] 3rd neighbors pull by right` + `[2] 2nd neighbors pull by
-/// left`. So the shorthand is lowered onto the `pull_by_dancers` move the
-/// taxonomy already has — no new taxonomy move, no version bump.
+/// left`. So the shorthand is lowered onto the canonical `pull_by` move from
+/// taxonomy v35; legacy aliases are normalized at persisted-data boundaries.
 ///
 /// **Strictness (conservative / prefer-custom).** Runs on the SCRUBBED text
 /// before the front-end's annotation strip, like the hey decoder, because the
@@ -3070,7 +3070,7 @@ List<Figure>? grandRightAndLeftFromPassList(
     final figures = <Figure>[];
     for (var i = 0; i < passes.length; i++) {
       final figure = Figure(
-        move: 'pull_by_dancers',
+        move: 'pull_by',
         params: {
           'who': passes[i].who,
           'hand': passes[i].hand,

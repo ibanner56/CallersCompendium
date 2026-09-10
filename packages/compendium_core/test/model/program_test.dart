@@ -191,26 +191,34 @@ void main() {
       expect(p.dancerLevel, 'intermediate');
     });
 
-    test('ProgramSlot carries guestCaller and plannedMinutes', () {
+    test('ProgramSlot carries guestCaller and split planned minutes', () {
       final s = ProgramSlot(
         id: 's1',
         position: 0,
         danceId: 'd1',
         guestCaller: 'Bob',
-        plannedMinutes: 12,
+        walkthroughMinutes: 3,
+        danceMinutes: 9,
       );
       expect(s.guestCaller, 'Bob');
-      expect(s.plannedMinutes, 12);
+      expect(s.walkthroughMinutes, 3);
+      expect(s.danceMinutes, 9);
+      expect(s.plannedTotalMinutes, 12);
     });
 
-    test('plannedMinutes >= 0 is enforced; 0 is allowed', () {
+    test('split planned minutes are non-negative and allow zero', () {
       expect(
         () => ProgramSlot(
           id: 's1',
           position: 0,
           danceId: 'd1',
-          plannedMinutes: -1,
+          walkthroughMinutes: -1,
         ),
+        throwsArgumentError,
+      );
+      expect(
+        () =>
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1', danceMinutes: -1),
         throwsArgumentError,
       );
       expect(
@@ -218,8 +226,8 @@ void main() {
           id: 's1',
           position: 0,
           danceId: 'd1',
-          plannedMinutes: 0,
-        ).plannedMinutes,
+          danceMinutes: 0,
+        ).danceMinutes,
         0,
       );
     });
@@ -251,28 +259,29 @@ void main() {
     });
 
     test(
-      'ProgramSlot.copyWith clears guestCaller/plannedMinutes via flags',
+      'ProgramSlot.copyWith clears guestCaller and split timing via flags',
       () {
         final s = ProgramSlot(
           id: 's1',
           position: 0,
           danceId: 'd1',
           guestCaller: 'Bob',
-          plannedMinutes: 10,
+          walkthroughMinutes: 3,
+          danceMinutes: 10,
         );
         final cleared = s.copyWith(
           clearGuestCaller: true,
-          clearPlannedMinutes: true,
+          clearWalkthroughMinutes: true,
+          clearDanceMinutes: true,
         );
         expect(cleared.guestCaller, isNull);
-        expect(cleared.plannedMinutes, isNull);
+        expect(cleared.walkthroughMinutes, isNull);
+        expect(cleared.danceMinutes, isNull);
         expect(
-          s
-              .copyWith(plannedMinutes: 20, clearPlannedMinutes: true)
-              .plannedMinutes,
+          s.copyWith(danceMinutes: 20, clearDanceMinutes: true).danceMinutes,
           isNull,
         );
-        expect(s.copyWith(plannedMinutes: 20).plannedMinutes, 20);
+        expect(s.copyWith(walkthroughMinutes: 20).walkthroughMinutes, 20);
       },
     );
 
@@ -303,7 +312,8 @@ void main() {
             position: 0,
             danceId: 'd1',
             guestCaller: 'Bob',
-            plannedMinutes: 12,
+            walkthroughMinutes: 3,
+            danceMinutes: 9,
             performedAt: now,
           ),
         ],
@@ -322,7 +332,8 @@ void main() {
       // clone of the same event, so it keeps the same venue).
       expect(copy.venueId, 'grange-hall');
       expect(copy.slots.single.guestCaller, 'Bob');
-      expect(copy.slots.single.plannedMinutes, 12);
+      expect(copy.slots.single.walkthroughMinutes, 3);
+      expect(copy.slots.single.danceMinutes, 9);
       // performedAt still resets per existing behavior.
       expect(copy.slots.single.performedAt, isNull);
     });
@@ -414,7 +425,7 @@ void main() {
     });
   });
 
-  group('break recognition & derived half', () {
+  group('break recognition & derived section', () {
     Program program(List<ProgramSlot> slots) => Program(
       id: 'p1',
       title: 'T',
@@ -460,16 +471,16 @@ void main() {
       });
     });
 
-    test('no break: no halves, no first-break index', () {
+    test('no break: no sections, no first-break index', () {
       final p = program([dance('a', 0), dance('b', 1), free('n', 2, 'Waltz')]);
       expect(p.hasBreak, isFalse);
       expect(p.firstBreakSlotIndex, isNull);
-      expect(p.halfAtIndex(0), isNull);
-      expect(p.halfAtIndex(1), isNull);
-      expect(p.halfAtIndex(2), isNull);
+      expect(p.sectionAtIndex(0), isNull);
+      expect(p.sectionAtIndex(1), isNull);
+      expect(p.sectionAtIndex(2), isNull);
     });
 
-    test('break in the middle splits first/second, break slot is neither', () {
+    test('break in the middle splits sections, break slot is neither', () {
       final p = program([
         dance('a', 0),
         dance('b', 1),
@@ -479,30 +490,30 @@ void main() {
       ]);
       expect(p.hasBreak, isTrue);
       expect(p.firstBreakSlotIndex, 2);
-      expect(p.halfAtIndex(0), ProgramHalf.first);
-      expect(p.halfAtIndex(1), ProgramHalf.first);
-      expect(p.halfAtIndex(2), isNull);
-      expect(p.halfAtIndex(3), ProgramHalf.second);
-      expect(p.halfAtIndex(4), ProgramHalf.second);
+      expect(p.sectionAtIndex(0), 1);
+      expect(p.sectionAtIndex(1), 1);
+      expect(p.sectionAtIndex(2), isNull);
+      expect(p.sectionAtIndex(3), 2);
+      expect(p.sectionAtIndex(4), 2);
     });
 
-    test('break first: everything after is second half', () {
+    test('break first: everything after is second section', () {
       final p = program([breakSlot('brk', 0), dance('a', 1), dance('b', 2)]);
       expect(p.firstBreakSlotIndex, 0);
-      expect(p.halfAtIndex(0), isNull);
-      expect(p.halfAtIndex(1), ProgramHalf.second);
-      expect(p.halfAtIndex(2), ProgramHalf.second);
+      expect(p.sectionAtIndex(0), isNull);
+      expect(p.sectionAtIndex(1), 2);
+      expect(p.sectionAtIndex(2), 2);
     });
 
-    test('break last: everything before is first half', () {
+    test('break last: everything before is first section', () {
       final p = program([dance('a', 0), dance('b', 1), breakSlot('brk', 2)]);
       expect(p.firstBreakSlotIndex, 2);
-      expect(p.halfAtIndex(0), ProgramHalf.first);
-      expect(p.halfAtIndex(1), ProgramHalf.first);
-      expect(p.halfAtIndex(2), isNull);
+      expect(p.sectionAtIndex(0), 1);
+      expect(p.sectionAtIndex(1), 1);
+      expect(p.sectionAtIndex(2), isNull);
     });
 
-    test('multiple breaks: the FIRST break defines the halves', () {
+    test('multiple breaks derive numbered sections', () {
       final p = program([
         dance('a', 0),
         breakSlot('brk1', 1),
@@ -511,44 +522,37 @@ void main() {
         dance('c', 4),
       ]);
       expect(p.firstBreakSlotIndex, 1);
-      expect(p.halfAtIndex(0), ProgramHalf.first);
-      expect(p.halfAtIndex(1), isNull);
-      // Everything after the first break — including the second break slot and
-      // slots beyond it — is the second half (except the break slot itself).
-      expect(p.halfAtIndex(2), ProgramHalf.second);
-      expect(p.halfAtIndex(3), isNull);
-      expect(p.halfAtIndex(4), ProgramHalf.second);
+      expect(p.sectionAtIndex(0), 1);
+      expect(p.sectionAtIndex(1), isNull);
+      expect(p.sectionAtIndex(2), 2);
+      expect(p.sectionAtIndex(3), isNull);
+      expect(p.sectionAtIndex(4), 3);
     });
 
-    test('halfAtIndex is null for out-of-range indices', () {
+    test('sectionAtIndex is null for out-of-range indices', () {
       final p = program([dance('a', 0), breakSlot('brk', 1), dance('b', 2)]);
-      expect(p.halfAtIndex(-1), isNull);
-      expect(p.halfAtIndex(3), isNull);
+      expect(p.sectionAtIndex(-1), isNull);
+      expect(p.sectionAtIndex(3), isNull);
     });
 
-    group('Program.halvesForSlots', () {
-      test('aligns to the slot list and matches halfAtIndex', () {
+    group('Program.sectionsForSlots', () {
+      test('aligns to the slot list and matches sectionAtIndex', () {
         final slots = [
           dance('a', 0),
           dance('b', 1),
           breakSlot('brk', 2),
           dance('c', 3),
         ];
-        expect(Program.halvesForSlots(slots), [
-          ProgramHalf.first,
-          ProgramHalf.first,
-          null,
-          ProgramHalf.second,
-        ]);
+        expect(Program.sectionsForSlots(slots), [1, 1, null, 2]);
       });
 
       test('all null when there is no break', () {
         final slots = [dance('a', 0), dance('b', 1)];
-        expect(Program.halvesForSlots(slots), [null, null]);
+        expect(Program.sectionsForSlots(slots), [null, null]);
       });
 
-      test('empty slot list yields empty halves', () {
-        expect(Program.halvesForSlots(const []), isEmpty);
+      test('empty slot list yields empty sections', () {
+        expect(Program.sectionsForSlots(const []), isEmpty);
       });
     });
   });

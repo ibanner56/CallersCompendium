@@ -31,4 +31,26 @@ void main() {
     expect(decoded.slots[0].isPurgedDance, isTrue);
     expect(decoded.slots[1].isPurgedDance, isNull);
   });
+
+  test('legacy plannedMinutes draft value becomes danceMinutes', () {
+    final decoded = decodeProgramDraft({
+      'v': 1,
+      'title': 'Legacy',
+      'notes': '',
+      'status': 'draft',
+      'hideAlternates': false,
+      'slots': [
+        {
+          'id': 's1',
+          'position': 0,
+          'danceId': 'd1',
+          'isAlt': false,
+          'plannedMinutes': 8,
+        },
+      ],
+    });
+
+    expect(decoded.slots.single.walkthroughMinutes, isNull);
+    expect(decoded.slots.single.danceMinutes, 8);
+  });
 }

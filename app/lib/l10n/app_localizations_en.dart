@@ -598,6 +598,43 @@ class AppLocalizationsEn extends AppLocalizations {
       'Prefilled into new programs; editable per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Starting program';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Dance and note entries added to manually created programs.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Add a dance';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dance';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Add break';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Note text';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller note (optional)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Move up';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Move down';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Unavailable dance ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Default band';
 
   @override
@@ -1020,6 +1057,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Show caller notes in program Perform';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Show non-empty per-slot caller notes above the dance title in program Perform.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Calling history';
 
   @override
@@ -1037,6 +1082,26 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Repeated venues in calling history';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count venues',
+      one: '1 venue',
+      zero: 'Don\'t show',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
@@ -2200,6 +2265,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get danceCallingHistoryError => 'Could not load the calling history.';
 
   @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Called $count times at $venue',
+      one: 'Called 1 time at $venue',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get danceShowCanonicalTerms => 'Show canonical terms';
 
   @override
@@ -2841,7 +2917,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsGuestCallerLabel => 'Guest caller (optional)';
 
   @override
-  String get programsPlannedMinutesLabel => 'Planned minutes (optional)';
+  String get programsPlannedTimingHeader => 'Planned timing';
+
+  @override
+  String get programsWalkthroughMinutesLabel =>
+      'Walkthrough minutes (optional)';
+
+  @override
+  String get programsDanceMinutesLabel => 'Dance minutes (optional)';
 
   @override
   String get programsAlternateDanceTitle => 'Alternate dance';
@@ -2895,6 +2978,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get programsMatrixShowAlternatesSemantic => 'Show alternate rows';
 
   @override
+  String get programsMatrixShowPhrasesSemantic => 'Show phrase labels';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Show presence glyphs';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2927,6 +3016,65 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
+    String _temp0 = intl.Intl.selectLogic(sectionKey, {
+      's1': '1st',
+      's2': '2nd',
+      's3': '3rd',
+      's4': '4th',
+      's5': '5th',
+      's6': '6th',
+      's7': '7th',
+      's8': '8th',
+      's9': '9th',
+      'other': '$sectionNumber',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': 'Alternate dance: $title',
+      'other': 'Alternate dance: $title, section $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'Dance: $title',
+      'other': 'Dance: $title, section $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title (alternate dance)',
+      'other': '$title (alternate dance, section $section)',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title (section $section)',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'Formation';
 
   @override
@@ -2939,6 +3087,7 @@ class AppLocalizationsEn extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
@@ -2960,7 +3109,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'no': 'not present',
       'other': 'present$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', phrase(s): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override
@@ -3213,6 +3366,9 @@ class AppLocalizationsEn extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3223,18 +3379,22 @@ class AppLocalizationsEn extends AppLocalizations {
       one: '1 minute',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': ', planned $_temp0',
+      'yes': ', planned $_temp0: $walkthrough walkthrough and $dance dance',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': ', walkthrough complete',
+      'other': '',
+    });
+    String _temp3 = intl.Intl.selectLogic(over, {
       'yes': ', over planned',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': ', paused',
       'other': '',
     });
-    return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3';
+    return 'Program time $programTime, slot time $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
@@ -3247,12 +3407,18 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return 'planned $planned min';
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return 'planned $planned min ($walkthrough:$dance)';
   }
 
   @override
+  String get performWalkthroughCompleteSuffix => ' walkthrough complete';
+
+  @override
   String get performOverSuffix => ' over';
+
+  @override
+  String get performSlotCallerNote => 'Caller note';
 
   @override
   String get performCallingNotes => 'Calling notes';

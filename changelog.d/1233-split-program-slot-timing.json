@@ -1,0 +1,17 @@
+{
+  "id": "1233-split-program-slot-timing",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can now plan walkthrough and dance minutes separately for each program slot, with Perform showing each timing phase."
+    ],
+    "data_migrations": [
+      "Existing program-slot planned times are retained as dance minutes."
+    ]
+  },
+  "core": {
+    "changed": [
+      "Split ProgramSlot planned timing into nullable walkthrough and dance minutes with archive, import, sync, and database migration compatibility."
+    ]
+  }
+}

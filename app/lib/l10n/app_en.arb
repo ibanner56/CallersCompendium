@@ -790,6 +790,55 @@
   "@settingsDefaultsPrefilledHelper": {
     "description": "Helper text under the default caller and band fields."
   },
+  "settingsDefaultsStartingProgramTitle": "Starting program",
+  "@settingsDefaultsStartingProgramTitle": {
+    "description": "Title for the reusable program template in Program defaults."
+  },
+  "settingsDefaultsStartingProgramSubtitle": "Dance and note entries added to manually created programs.",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "description": "Explanation of the starting program template."
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "Add a dance",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "description": "Title for the dance picker used by the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddDance": "Dance",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "description": "Button to add a dance to the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddText": "Note",
+  "@settingsDefaultsStartingProgramAddText": {
+    "description": "Button to add a text note to the starting program template."
+  },
+  "settingsDefaultsStartingProgramAddBreak": "Add break",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "description": "Tooltip for adding a break to the starting program template."
+  },
+  "settingsDefaultsStartingProgramTextLabel": "Note text",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "description": "Input label for a new text note in the starting program template."
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "Caller note (optional)",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "description": "Input label for an optional note attached to a dance entry."
+  },
+  "settingsDefaultsStartingProgramMoveUp": "Move up",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "description": "Tooltip for moving a starting-program entry up."
+  },
+  "settingsDefaultsStartingProgramMoveDown": "Move down",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "description": "Tooltip for moving a starting-program entry down."
+  },
+  "settingsDefaultsStartingProgramUnavailableDance": "Unavailable dance ({id})",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "description": "Fallback label for a starting-program dance reference no longer in the collection.",
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
   "settingsDefaultsBandLabel": "Default band",
   "@settingsDefaultsBandLabel": {
     "description": "Text-field label for the default band prefilled into new programs."
@@ -1297,6 +1346,14 @@
   "@settingsShowIndividualPerformTimerSubtitle": {
     "description": "Subtitle explaining the default-on individual Perform elapsed-timer toggle."
   },
+  "settingsShowProgramSlotCallerNotesTitle": "Show caller notes in program Perform",
+  "@settingsShowProgramSlotCallerNotesTitle": {
+    "description": "Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform."
+  },
+  "settingsShowProgramSlotCallerNotesSubtitle": "Show non-empty per-slot caller notes above the dance title in program Perform.",
+  "@settingsShowProgramSlotCallerNotesSubtitle": {
+    "description": "Subtitle explaining the program Perform caller-note display toggle."
+  },
   "settingsGeneralCallingHistoryHeader": "Calling history",
   "@settingsGeneralCallingHistoryHeader": {
     "description": "General settings section header for calling-history preferences."
@@ -1316,6 +1373,18 @@
   "settingsGeneralTrackHistoryForAllCallersSubtitle": "When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "description": "Subtitle explaining the track-calling-history-for-all-callers toggle."
+  },
+  "settingsProgramVenueCallCountTitle": "Repeated venues in calling history",
+  "@settingsProgramVenueCallCountTitle": {
+    "description": "Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary."
+  },
+  "settingsProgramVenueCallCountSubtitle": "Show the top venues where a dance was called more than once. Set to 0 to hide this summary.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "description": "Subtitle explaining the repeated-venue calling-history setting."
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Don't show} =1{1 venue} other{{count} venues}}",
+  "@settingsProgramVenueCallCountOption": {
+    "description": "Dropdown option for the number of repeated venues shown in calling history."
   },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {
@@ -2819,7 +2888,7 @@
   },
   "danceMissingRelated": "(missing dance)",
   "@danceMissingRelated": {
-    "description": "Placeholder for a related-dance link whose target has been deleted."
+    "description": "Placeholder for a related-dance link whose target row is absent; soft-deleted targets are hidden instead."
   },
   "danceSectionPublishedSources": "Published sources",
   "@danceSectionPublishedSources": {
@@ -2840,6 +2909,20 @@
   "danceCallingHistoryError": "Could not load the calling history.",
   "@danceCallingHistoryError": {
     "description": "Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called."
+  },
+  "danceVenueCallCount": "{count, plural, =1{Called 1 time at {venue}} other{Called {count} times at {venue}}}",
+  "@danceVenueCallCount": {
+    "description": "Repeated-venue calling-history summary item.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "venue": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
   },
   "danceShowCanonicalTerms": "Show canonical terms",
   "@danceShowCanonicalTerms": {
@@ -3790,9 +3873,17 @@
   "@programsGuestCallerLabel": {
     "description": "Text field label for an optional guest caller on a program slot."
   },
-  "programsPlannedMinutesLabel": "Planned minutes (optional)",
-  "@programsPlannedMinutesLabel": {
-    "description": "Text field label for the optional planned minutes on a program slot."
+  "programsPlannedTimingHeader": "Planned timing",
+  "@programsPlannedTimingHeader": {
+    "description": "Heading above optional walkthrough and dance timing fields on a program slot."
+  },
+  "programsWalkthroughMinutesLabel": "Walkthrough minutes (optional)",
+  "@programsWalkthroughMinutesLabel": {
+    "description": "Text field label for the optional planned walkthrough duration on a program slot."
+  },
+  "programsDanceMinutesLabel": "Dance minutes (optional)",
+  "@programsDanceMinutesLabel": {
+    "description": "Text field label for the optional planned dance duration on a program slot."
   },
   "programsAlternateDanceTitle": "Alternate dance",
   "@programsAlternateDanceTitle": {
@@ -3862,6 +3953,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "description": "Accessible label/tooltip for the matrix control that restores alternate dance rows in the transient on-screen view."
   },
+  "programsMatrixShowPhrasesSemantic": "Show phrase labels",
+  "@programsMatrixShowPhrasesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that replaces comparable cell glyphs with phrase labels in the transient on-screen view."
+  },
+  "programsMatrixHidePhrasesSemantic": "Show presence glyphs",
+  "@programsMatrixHidePhrasesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view."
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",
@@ -3890,6 +3989,56 @@
       }
     }
   },
+  "programsMatrixSectionShort": "{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}",
+  "@programsMatrixSectionShort": {
+    "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.",
+    "placeholders": {
+      "sectionKey": {
+        "type": "String",
+        "example": "s3"
+      },
+      "sectionNumber": {
+        "type": "String",
+        "example": "10"
+      }
+    }
+  },
+  "programsMatrixSectionRowHeaderSemantic": "{alt, select, yes{{section, select, none{Alternate dance: {title}} other{Alternate dance: {title}, section {section}}}} other{{section, select, none{Dance: {title}} other{Dance: {title}, section {section}}}}}",
+  "@programsMatrixSectionRowHeaderSemantic": {
+    "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and its numbered program section.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      },
+      "alt": {
+        "type": "String",
+        "example": "yes"
+      },
+      "section": {
+        "type": "String",
+        "example": "3rd"
+      }
+    }
+  },
+  "programsMatrixSectionChipQualifiedTitle": "{alt, select, yes{{section, select, none{{title} (alternate dance)} other{{title} (alternate dance, section {section})}}} other{{section, select, none{{title}} other{{title} (section {section})}}}}",
+  "@programsMatrixSectionChipQualifiedTitle": {
+    "description": "Compact matrix dance-chip label with alternate-dance and numbered-section qualifiers.",
+    "placeholders": {
+      "title": {
+        "type": "String",
+        "example": "Chorus Jig"
+      },
+      "alt": {
+        "type": "String",
+        "example": "no"
+      },
+      "section": {
+        "type": "String",
+        "example": "3rd"
+      }
+    }
+  },
   "programsMatrixFormationColumnHeader": "Formation",
   "@programsMatrixFormationColumnHeader": {
     "description": "Header label for the matrix's pinned formation column (#663), naming what the column shows."
@@ -3908,7 +4057,7 @@
       }
     }
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}{phrases, select, none{} other{, phrase(s): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.",
     "placeholders": {
@@ -3923,6 +4072,10 @@
       "present": {
         "type": "String",
         "example": "yes"
+      },
+      "phrases": {
+        "type": "String",
+        "example": "A1, B1"
       },
       "collision": {
         "type": "String",
@@ -4292,9 +4445,9 @@
   "@performPauseTimers": {
     "description": "Tooltip for the button that pauses the running performance timers."
   },
-  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
+  "performTimingSemantic": "Program time {programTime}, slot time {slotTime}{hasPlanned, select, yes{, planned {planned, plural, =1{1 minute} other{{planned} minutes}}: {walkthrough} walkthrough and {dance} dance} other{}}{walkthroughComplete, select, yes{, walkthrough complete} other{}}{over, select, yes{, over planned} other{}}{paused, select, yes{, paused} other{}}",
   "@performTimingSemantic": {
-    "description": "Screen-reader label for the perform-mode timing line: elapsed program time, elapsed slot time, and optional planned length, over-plan cue, and paused state.",
+    "description": "Screen-reader label for the perform-mode timing line: elapsed program and slot times, optional split timing, walkthrough-transition and over-plan cues, and paused state.",
     "placeholders": {
       "programTime": {
         "type": "String",
@@ -4311,6 +4464,18 @@
       "planned": {
         "type": "int",
         "example": "8"
+      },
+      "walkthrough": {
+        "type": "int",
+        "example": "3"
+      },
+      "dance": {
+        "type": "int",
+        "example": "5"
+      },
+      "walkthroughComplete": {
+        "type": "String",
+        "example": "no"
       },
       "over": {
         "type": "String",
@@ -4336,19 +4501,35 @@
       }
     }
   },
-  "performPlannedMin": "planned {planned} min",
-  "@performPlannedMin": {
-    "description": "Visible short label for a slot's planned length in minutes on the perform-mode timing line.",
+  "performPlannedSplit": "planned {planned} min ({walkthrough}:{dance})",
+  "@performPlannedSplit": {
+    "description": "Visible short label for a slot's combined planned duration and its walkthrough:dance split in minutes on the perform-mode timing line.",
     "placeholders": {
       "planned": {
         "type": "int",
         "example": "8"
+      },
+      "walkthrough": {
+        "type": "int",
+        "example": "3"
+      },
+      "dance": {
+        "type": "int",
+        "example": "5"
       }
     }
+  },
+  "performWalkthroughCompleteSuffix": " walkthrough complete",
+  "@performWalkthroughCompleteSuffix": {
+    "description": "Visible suffix, with a leading space, shown after the split planned-duration label once a positive walkthrough duration has elapsed."
   },
   "performOverSuffix": " over",
   "@performOverSuffix": {
     "description": "Visible suffix (with a leading space) shown after the planned-minutes label when the current slot has run over its planned length."
+  },
+  "performSlotCallerNote": "Caller note",
+  "@performSlotCallerNote": {
+    "description": "Label shown before a per-slot caller note above a dance title in program Perform."
   },
   "performCallingNotes": "Calling notes",
   "@performCallingNotes": {

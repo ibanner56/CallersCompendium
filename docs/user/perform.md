@@ -77,6 +77,12 @@ active dialect, and is remembered too. It appears only when you are using a
 dialect other than the shared wording. See
 [Dialect](./dialects.md#peek-at-the-canonical-wording).
 
+When performing a program, a non-empty caller note attached to the current slot
+appears above the dance title. This is on by default and can be turned off in
+**Settings › Program › Performance** with **Show caller notes in program
+Perform**. The note is display-only: it does not change the dance's calling
+notes, search, or exports.
+
 **Tap tempo** opens the metronome sheet, and **Show walkthrough** — which appears
 when the dance has a walkthrough written — overlays it on the card.
 
@@ -112,8 +118,10 @@ For a program, the status area additionally shows:
 
 - a **running program clock** for the whole evening;
 - a **per-slot elapsed timer** that resets each time you move to a new slot;
-- a slot's planned length shown as **"planned N min,"** with a gentle cue when you
-  run past it; and
+- a slot's planned length shown as **"planned N min (W:D),"** where `W` is the
+  walkthrough minutes and `D` is the dance minutes;
+- when walkthrough minutes are set, a gentle cue after the walkthrough portion;
+  the final overrun cue waits until the combined walkthrough and dance duration;
 - a **pause/resume** control for interruptions.
 
 Timing is display-only — it helps you keep an eye on the clock but never changes

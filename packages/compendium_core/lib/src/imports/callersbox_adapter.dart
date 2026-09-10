@@ -903,9 +903,9 @@ class CallersBoxAdapter implements SourceAdapter {
     final beats = _sumBeats(balance, move);
     final note = combineFigureNotes(move.note, balance.note);
     // v25 (#870): thread the balance line's `hand` into the merged figure when
-    // the balance states one, the move accepts a `hand` param, and the move did
-    // not already state one. A balance with `(RH)` folded into `box_the_gnat`
-    // sets `hand: right`; with `(LH)` it sets `hand: left`. The
+    // the balance states one, the move accepts a handedness param, and the move
+    // did not already state one. A balance with `(RH)` folded into
+    // `box_the_gnat` sets `hand: right`; with `(LH)` it sets `hand: left`. The
     // convergence-point normalisation (DanceRepository._normaliseMoveIds) then
     // re-routes the move id if the hand contradicts the alias pin.
     final balanceHand = balance.params['hand'];
@@ -920,22 +920,23 @@ class CallersBoxAdapter implements SourceAdapter {
 
     if (move.params['balance'] == true) return null;
     // v25 (#870): thread the balance's hand only when the resolved merge
-    // target actually declares a `hand` param. Querying the taxonomy (one
-    // source of truth) rather than maintaining a hardcoded move list that
-    // would drift every time a move gains or loses a hand slot.
+    // target actually declares the appropriate handedness param. Querying the
+    // taxonomy (one source of truth) rather than maintaining a hardcoded move
+    // list that would drift every time a move gains or loses a hand slot.
     final mergeTargetDef = contraTaxonomy.resolve(move.move);
+    final handParam = move.move == 'form_long_waves' ? 'whomHand' : 'hand';
     final targetAcceptsHand =
-        mergeTargetDef != null && mergeTargetDef.params.containsKey('hand');
+        mergeTargetDef != null && mergeTargetDef.params.containsKey(handParam);
     return move.copyWith(
       params: {
         ...move.params,
         'balance': true,
         'beats': ?beats,
-        if (!move.params.containsKey('hand') &&
+        if (!move.params.containsKey(handParam) &&
             balanceHand != null &&
             balanceHand != 'unspecified' &&
             targetAcceptsHand)
-          'hand': balanceHand,
+          handParam: balanceHand,
       },
       note: note,
     );
@@ -1086,7 +1087,7 @@ class CallersBoxAdapter implements SourceAdapter {
   ///
   /// `form_short_waves` and `pass_the_ocean` share one param schema
   /// (`center`/`centerHand`/`sides`), so a short-wave decode transfers to
-  /// either. A long-wave decode (`whom`/`hand`/`who`) transfers only to
+  /// either. A long-wave decode (`whom`/`whomHand`/`who`) transfers only to
   /// `form_long_waves`; `form_a_long_wave`'s `who` means something different
   /// (which pair dances IN to the centre), so nothing is transferred there.
   static Map<String, Object?> _compatibleFormParams(
@@ -1094,7 +1095,7 @@ class CallersBoxAdapter implements SourceAdapter {
     Figure decoded,
   ) {
     const shortWaveKeys = {'center', 'centerHand', 'sides'};
-    const longWaveKeys = {'who', 'whom', 'hand'};
+    const longWaveKeys = {'who', 'whom', 'whomHand'};
     final Set<String> keys;
     if (decoded.move == 'form_short_waves' &&
         (waveMove == 'form_short_waves' || waveMove == 'pass_the_ocean')) {
@@ -1297,7 +1298,7 @@ class CallersBoxAdapter implements SourceAdapter {
       if (whom == null || facing == null) return null;
       return _asFormFigure(f, 'form_long_waves', {
         'whom': whom.who,
-        'hand': whom.hand,
+        'whomHand': whom.hand,
         'who': facing.group(1)!,
       }, note: squareNote);
     }

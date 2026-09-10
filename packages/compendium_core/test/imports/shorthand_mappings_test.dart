@@ -180,6 +180,26 @@ void main() {
     });
   });
 
+  // invalid-fixture: this deliberately decodes a v34 figure to verify the persisted shorthand compatibility boundary
+  test('normalizes legacy figures before returning them', () {
+    final decoded = ShorthandMappings.decode(
+      jsonEncode([
+        {
+          'token': 'legacy',
+          'figures': [
+            figureToJson(Figure(move: 'circle', params: {'turn': 'left'})),
+          ],
+        },
+      ]),
+      taxonomy: contraTaxonomy,
+    );
+
+    expect(decoded.mappings, hasLength(1));
+    expect(decoded.mappings.single.figures.single.params, {
+      'direction': 'left',
+    });
+  });
+
   group('ShorthandMappings.decode — defensive guards (OWASP), never throws', () {
     test('null / non-List / wrong-typed input yields empty', () {
       expect(

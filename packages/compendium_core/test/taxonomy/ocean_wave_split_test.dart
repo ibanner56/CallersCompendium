@@ -18,8 +18,8 @@ void main() {
 
   // The sourced param set both new moves inherit from form_an_ocean_wave,
   // minus `passThru` (intrinsic to pass_the_ocean, absent from the short wave).
-  const inheritedParams = [
-    'dir',
+  // Taxonomy v35 gives their direction slots distinct canonical names.
+  const sharedInheritedParams = [
     'balance',
     'center',
     'centerHand',
@@ -41,9 +41,13 @@ void main() {
 
       test('$id inherits form_an_ocean_wave params minus passThru', () {
         final params = tax.resolve(id)!.params;
+        final expectedParams = {
+          ...sharedInheritedParams,
+          id == 'form_short_waves' ? 'axis' : 'where',
+        };
         expect(
           params.keys.toSet(),
-          inheritedParams.toSet(),
+          expectedParams,
           reason: '$id should carry exactly the inherited param set',
         );
         expect(
@@ -56,7 +60,9 @@ void main() {
       test('$id keeps the intended split-move defaults', () {
         final shortWave = tax.resolve('form_short_waves')!.params;
         final passTheOcean = tax.resolve('pass_the_ocean')!.params;
-        for (final key in inheritedParams.where((key) => key != 'centerHand')) {
+        for (final key in sharedInheritedParams.where(
+          (key) => key != 'centerHand',
+        )) {
           expect(
             shortWave[key]!.defaultValue,
             passTheOcean[key]!.defaultValue,

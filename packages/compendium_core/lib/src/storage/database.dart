@@ -257,6 +257,11 @@ const String taxonomyV34CanonicalRebuildDoneKey =
 const String modifierContainerCanonicalRebuildDoneKey =
     '__modifier_container_canonical_rebuild_done__';
 
+/// Settings key marking that persisted figures have been normalized to the
+/// taxonomy v35 parameter names and move ids.
+const String taxonomyV35FigureNormalizationDoneKey =
+    '__taxonomy_v35_figure_normalization_done__';
+
 /// Settings key for the one-time repair of legacy CallersBox `roll_away`
 /// figures whose per-role annotation was stored only as a note (#1192).
 ///
@@ -290,7 +295,7 @@ Future<void> recordNormalisationSkip(
 /// schemaVersion] getter) so the app-layer migration preflight can compare a
 /// file's persisted `user_version` against the running schema *without* opening
 /// the database. Keep this and the migration `onUpgrade` steps in lockstep.
-const int kCompendiumSchemaVersion = 34;
+const int kCompendiumSchemaVersion = 35;
 
 /// The oldest on-disk schema version this build can still upgrade.
 ///
@@ -320,6 +325,14 @@ const int kMinSupportedSchemaVersion = 20;
 /// PR**; `tools/ci/check_version_history.py` fails the build otherwise. It is
 /// kept there because it is a ledger of decisions already shipped, and it grew
 /// on every bump; what constrains this declaration stays below.
+///
+/// - v35 (issues #1104 and #1233): normalizes persisted figure parameter keys
+///   and consolidates the two legacy pull-by move ids; replaces
+///   `program_slots.planned_minutes` with nullable `walkthrough_minutes` and
+///   `dance_minutes`, copying every existing value to dance minutes. The
+///   taxonomy source JSON is rewritten recursively, including nested
+///   `meanwhile` figures; derived figure/search rows are rebuilt after the
+///   rewrite.
 ///
 /// - v34 (issue #1200): adds the Device Sync timestamp triple to the
 ///   difficulty-level vocabulary, converting level deletion into a tombstone.
@@ -868,6 +881,29 @@ class CompendiumDatabase extends _$CompendiumDatabase {
         if (!hasPurgeMarker) {
           await m.addColumn(programSlots, programSlots.isPurgedDance);
         }
+      }
+      if (from < 35) {
+        await m.alterTable(
+          TableMigration(
+            programSlots,
+            columnTransformer: {
+              programSlots.walkthroughMinutes: const CustomExpression<int>(
+                'NULL',
+              ),
+              programSlots.danceMinutes: const CustomExpression<int>(
+                'planned_minutes',
+              ),
+            },
+          ),
+        );
+        // Issue #1104: taxonomy v35 renamed persisted parameter keys and
+        // consolidated pull_by_dancers/pull_by_direction. The taxonomy and
+        // renderer are unavailable from MigrationStrategy, so record a
+        // durable post-open sweep for CompendiumRepositories.ensureMigrated.
+        await customStatement(
+          'INSERT OR REPLACE INTO settings (key, value_json) VALUES (?, ?)',
+          [taxonomyV35FigureNormalizationDoneKey, 'false'],
+        );
       }
     },
     beforeOpen: (details) async {

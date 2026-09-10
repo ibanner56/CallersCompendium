@@ -69,8 +69,9 @@ void main() {
       // transitive related-dance link groups; neither changed the taxonomy.
       // Schema 32 adds Device Sync local persistence and likewise does not
       // change the taxonomy. Schema 33 adds a program-slot purge-caption
-      // marker and schema 34 adds difficulty vocabulary; neither changes it.
-      expect(kCompendiumSchemaVersion, 34);
+      // marker, schema 34 adds difficulty vocabulary, and schema 35 splits
+      // planned slot timing; none of them changes it.
+      expect(kCompendiumSchemaVersion, 35);
     });
 
     test('registers with the maintainer-ruled param set', () {

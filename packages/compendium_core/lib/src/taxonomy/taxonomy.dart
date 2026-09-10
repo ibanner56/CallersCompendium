@@ -129,7 +129,12 @@ class Taxonomy {
   /// move is known (issue #358). Use [validateFigure] to detect the
   /// `unknown_move` condition; this method deliberately never fails.
   Map<String, Object?> effectiveParams(Figure figure) {
-    final def = resolve(figure.move);
+    // Keep reads tolerant of v34 figures that have not crossed a persistence
+    // boundary yet.  The normalizer is lossless and gives every consumer the
+    // v35 vocabulary without requiring each renderer/editor to duplicate the
+    // compatibility table.
+    final normalized = normalizeFigureV35(figure);
+    final def = resolve(normalized.move);
     if (def == null) {
       // Unknown move: return a best-effort copy of the figure's own params
       // (never mutate [figure.params]). Preserve an authored `beats`; only
@@ -137,27 +142,156 @@ class Taxonomy {
       // duration/phrase math doesn't read 0 beats for a move we can't
       // recognize. We can't know the real per-move count, so a generic
       // default is the correct non-destructive choice.
-      final effective = Map<String, Object?>.of(figure.params);
+      final effective = Map<String, Object?>.of(normalized.params);
       effective.putIfAbsent('beats', () => _unknownMoveBeatsFallback);
       return effective;
     }
-    final alias = aliases[figure.move];
+
+    final alias = aliases[normalized.move];
     final effective = {
       for (final entry in def.params.entries)
-        entry.key: figure.params.containsKey(entry.key)
-            ? figure.params[entry.key]
+        entry.key: normalized.params.containsKey(entry.key)
+            ? normalized.params[entry.key]
             : (alias?.pinnedParams.containsKey(entry.key) ?? false)
             ? alias!.pinnedParams[entry.key]
             : entry.value.defaultValue,
     };
     final paramBeats = def.paramBeats;
     if (paramBeats != null &&
-        !figure.params.containsKey('beats') &&
+        !normalized.params.containsKey('beats') &&
         !(alias?.pinnedParams.containsKey('beats') ?? false)) {
       final derived = paramBeats.byValue[effective[paramBeats.param]];
       if (derived != null) effective['beats'] = derived;
     }
     return effective;
+  }
+
+  /// Converts v34 move ids and parameter keys to the v35 representation.
+  ///
+  /// This is intentionally recursive: structural containers store child
+  /// figures in `params['figures']`, and imports/restores use the same write
+  /// path as ordinary edits.
+  Figure normalizeFigureV35(Figure figure) {
+    List<Figure>? children;
+    if (figure.isContainer) {
+      final originalChildren = figure.subFigures;
+      for (var i = 0; i < originalChildren.length; i++) {
+        final child = originalChildren[i];
+        final normalizedChild = normalizeFigureV35(child);
+        if (!identical(normalizedChild, child) && children == null) {
+          children = originalChildren.sublist(0, i);
+        }
+        children?.add(normalizedChild);
+      }
+    }
+    final legacyMove = figure.move;
+    final move = normalizeV35MoveId(legacyMove);
+    final params = normalizeV35Params(legacyMove, figure.params);
+    if (children != null) {
+      params['figures'] = List<Figure>.unmodifiable(children);
+    }
+    if (move == figure.move && _sameParams(params, figure.params)) {
+      return figure;
+    }
+    return figure.copyWith(move: move, params: params);
+  }
+
+  /// Returns the v35 move ID for a persisted v34 move ID.
+  static String normalizeV35MoveId(String move) => switch (move) {
+    'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
+    _ => move,
+  };
+
+  /// Returns v35 parameter data for [move], including the values pinned by
+  /// legacy pull-by aliases. Canonical keys win collisions regardless of the
+  /// persisted map insertion order so every decoder reaches the same result.
+  static Map<String, Object?> normalizeV35Params(
+    String move,
+    Map<String, Object?> params,
+  ) {
+    final normalizedMove = normalizeV35MoveId(move);
+    final normalized = _normalizeV35ParamKeys(normalizedMove, params);
+    if (move == 'pull_by_dancers') {
+      normalized.putIfAbsent('who', () => 'neighbors');
+    } else if (move == 'pull_by_direction') {
+      normalized.putIfAbsent('where', () => 'along');
+    }
+    return normalized;
+  }
+
+  /// Returns v35 parameter keys for matcher constraints from [move].
+  ///
+  /// Unlike [normalizeV35Params], this does not synthesize defaults for legacy
+  /// pull-by aliases. Empty matcher maps must remain wildcards during migration.
+  static Map<String, Object?> normalizeV35ConstraintParams(
+    String move,
+    Map<String, Object?> params,
+  ) => _normalizeV35ParamKeys(normalizeV35MoveId(move), params);
+
+  static Map<String, Object?> _normalizeV35ParamKeys(
+    String normalizedMove,
+    Map<String, Object?> params,
+  ) {
+    final entries = params.entries.toList()
+      ..sort((a, b) {
+        final aKey = normalizeV35ParamKey(normalizedMove, a.key);
+        final bKey = normalizeV35ParamKey(normalizedMove, b.key);
+        final aCanonical = a.key == aKey;
+        final bCanonical = b.key == bKey;
+        if (aCanonical != bCanonical) return aCanonical ? -1 : 1;
+        return a.key.compareTo(b.key);
+      });
+    final normalized = <String, Object?>{};
+    for (final entry in entries) {
+      final key = normalizeV35ParamKey(normalizedMove, entry.key);
+      normalized.putIfAbsent(key, () => entry.value);
+    }
+    return normalized;
+  }
+
+  /// Returns the v35 parameter key for a persisted v34 key on [move].
+  static String normalizeV35ParamKey(String move, String key) =>
+      _v35ParamRenames[normalizeV35MoveId(move)]?[key] ?? key;
+
+  static const _v35ParamRenames = <String, Map<String, String>>{
+    'circle': {'turn': 'direction'},
+    'allemande': {'turn': 'travel'},
+    'two_hand_turn': {'turn': 'travel'},
+    'do_si_do': {'turn': 'travel'},
+    'gypsy': {'turn': 'travel'},
+    'shoulder_round': {'turn': 'travel'},
+    'see_saw': {'turn': 'travel'},
+    'pass_through': {'dir': 'where'},
+    'pass_the_ocean': {'dir': 'where'},
+    'right_left_through': {'dir': 'where'},
+    'chain': {'dir': 'where'},
+    'pull_by': {'dir': 'where'},
+    'promenade': {'dir': 'where', 'turn': 'direction'},
+    'poussette': {'turn': 'direction', 'half': 'fraction'},
+    'orbit': {'turn': 'direction', 'amount': 'travel'},
+    'mad_robin': {'turn': 'travel'},
+    'star_promenade': {'turn': 'travel'},
+    'gate': {'turn': 'travel', 'face': 'endFacing'},
+    'form_short_waves': {'dir': 'axis'},
+    'figure_8': {'half': 'fraction', 'dir': 'where'},
+    'cross_trails': {'dir': 'where'},
+    'facing_star': {'turn': 'direction'},
+    'hey': {'dir': 'where'},
+    'form_long_waves': {'hand': 'whomHand'},
+    'zig_zag': {'turn': 'slide'},
+  };
+
+  static bool _sameParams(
+    Map<String, Object?> left,
+    Map<String, Object?> right,
+  ) {
+    if (left.length != right.length) return false;
+    for (final entry in left.entries) {
+      if (!right.containsKey(entry.key) || right[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /// Returns the move id [figure] should carry given its effective params.
@@ -192,10 +326,14 @@ class Taxonomy {
     return value == pair.pinnedValue ? pair.inversePairId : figure.move;
   }
 
-  /// Validates a figure against this taxonomy.
+  /// Validates the supplied figure as-is against this taxonomy.
   ///
   /// Errors: unknown move, unknown param name, out-of-domain param value.
   /// Warnings: atypical beat count (per the move's `goodBeats`).
+  ///
+  /// Compatibility normalization belongs at an explicit persisted-data or
+  /// read-boundary consumer, not here: callers validating fixtures or newly
+  /// decoded input must be able to detect obsolete v34 vocabulary.
   List<ValidationIssue> validateFigure(Figure figure) {
     final issues = <ValidationIssue>[];
     final def = resolve(figure.move);

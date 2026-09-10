@@ -783,17 +783,17 @@ void main() {
     });
   });
 
-  group('promenade turn/destination visibility & reset (#989, v30)', () {
-    testWidgets('turn is hidden and reset to unspecified once dir leaves the '
-        'across/along plane; destination is hidden (but not cleared) at the '
-        'across default', (tester) async {
+  group('promenade direction/destination visibility & reset (#989, v30)', () {
+    testWidgets('direction resets outside the across/along plane', (
+      tester,
+    ) async {
       final drafts = <FigureDraft>[
         FigureDraft.fromFigure(
           Figure(
             move: 'promenade',
             params: const {
-              'dir': 'along',
-              'turn': 'clockwise',
+              'where': 'along',
+              'direction': 'clockwise',
               'destination': 'nextNeighbors',
               'beats': 8,
             },
@@ -805,39 +805,41 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('figure-0-more-options')));
       await tester.pumpAndSettle();
 
-      // dir=='along': turn is visible (a rotation is meaningful travelling
-      // along the set) and destination is visible (dir != 'across').
-      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      // where=='along': direction is visible (a rotation is meaningful
+      // travelling along the set) and destination is visible
+      // (where != 'across').
+      expect(find.byKey(const ValueKey('figure-0-direction')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('figure-0-destination')),
         findsOneWidget,
       );
 
-      // Switching dir to 'in' (rotationless): turn disappears AND is reset
-      // to the sentinel — not merely removed, since `turn`'s spec default
-      // is the concrete 'counterclockwise' and removal would fall back to
-      // it. destination stays visible: the render gate is `dir != 'across'`
+      // Switching where to 'in' (rotationless): direction disappears AND is
+      // reset to the sentinel — not merely removed, since `direction`'s
+      // spec default is the concrete 'counterclockwise' and removal would
+      // fall back to it. destination stays visible: the render gate is
+      // `where != 'across'`
       // (Q3), and 'in' satisfies that just as much as 'along' did — only
       // `across` (the default) hides it.
-      await _selectDropdownOption(tester, 'figure-0-dir', 'in');
-      expect(find.byKey(const ValueKey('figure-0-turn')), findsNothing);
+      await _selectDropdownOption(tester, 'figure-0-where', 'in');
+      expect(find.byKey(const ValueKey('figure-0-direction')), findsNothing);
       expect(
         find.byKey(const ValueKey('figure-0-destination')),
         findsOneWidget,
       );
-      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['direction'], ParamVocab.unspecified);
       expect(drafts.single.params['destination'], 'nextNeighbors');
 
       // Switching to 'across' (the default): destination disappears (its
       // render gate no longer holds) but its stored value survives
       // untouched — Q3's "keeps the param, loses the clause" ruling, not a
-      // migration. turn reappears (rotation is meaningful again at
+      // migration. direction reappears (rotation is meaningful again at
       // across) and stays at the sentinel it was reset to, never
       // fabricated back to the concrete default.
-      await _selectDropdownOption(tester, 'figure-0-dir', 'across');
-      expect(find.byKey(const ValueKey('figure-0-turn')), findsOneWidget);
+      await _selectDropdownOption(tester, 'figure-0-where', 'across');
+      expect(find.byKey(const ValueKey('figure-0-direction')), findsOneWidget);
       expect(find.byKey(const ValueKey('figure-0-destination')), findsNothing);
-      expect(drafts.single.params['turn'], ParamVocab.unspecified);
+      expect(drafts.single.params['direction'], ParamVocab.unspecified);
       expect(drafts.single.params['destination'], 'nextNeighbors');
     });
   });
@@ -851,14 +853,14 @@ void main() {
         tester,
         drafts,
         moveParamDefaults: {
-          'circle': {'turn': 'right'},
+          'circle': {'direction': 'right'},
         },
       );
       await _selectMove(tester, 0, 'circle', 'circle');
 
       expect(drafts.single.move, 'circle');
       // Overridden param takes the configured value...
-      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.params['direction'], 'right');
       // ...while non-overridden params keep their taxonomy defaults.
       expect(drafts.single.params['places'], 4);
       expect(drafts.single.params['beats'], 8);
@@ -877,11 +879,11 @@ void main() {
       );
       await _selectMove(tester, 0, 'circle', 'circle');
 
-      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params['places'], 4);
     });
 
-    testWidgets('stale override key not in the move schema is ignored', (
+    testWidgets('stale v34 override key not in the move schema is ignored', (
       tester,
     ) async {
       final drafts = <FigureDraft>[FigureDraft()];
@@ -894,7 +896,7 @@ void main() {
       );
       await _selectMove(tester, 0, 'circle', 'circle');
 
-      expect(drafts.single.params['turn'], 'right');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params.containsKey('not_a_param'), isFalse);
     });
 
@@ -905,7 +907,7 @@ void main() {
       await _pump(tester, drafts);
       await _selectMove(tester, 0, 'circle', 'circle');
 
-      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.params['places'], 4);
     });
   });
@@ -931,7 +933,7 @@ void main() {
         params: {
           'who': 'neighbors',
           'shoulder': 'right',
-          'turn': 1.0,
+          'travel': 1.0,
           'beats': 8,
         },
       ),
@@ -1023,7 +1025,7 @@ void main() {
             params: {
               'who': 'neighbors',
               'shoulder': 'right',
-              'turn': 1.0,
+              'travel': 1.0,
               'beats': 8,
             },
           ),
@@ -1326,14 +1328,19 @@ void main() {
     final drafts = <FigureDraft>[
       FigureDraft(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0, 'beats': 8},
+        params: {
+          'who': 'neighbors',
+          'hand': 'right',
+          'travel': 1.0,
+          'beats': 8,
+        },
       ),
     ];
     await _pump(tester, drafts);
     await _openFigure(tester, 0);
 
     expect(find.byKey(const ValueKey('figure-0-hand')), findsOneWidget);
-    expect(find.byKey(const ValueKey('figure-0-turn-value')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-travel-value')), findsOneWidget);
     // toFigure preserves the seeded values.
     final figure = drafts.single.toFigure()!;
     expect(figure.move, 'allemande');
@@ -2614,12 +2621,17 @@ void main() {
   testWidgets('more than 3 params hide extras behind "More options"', (
     tester,
   ) async {
-    // allemande has 4 params (who, hand, turn, beats): first 3 inline, the
+    // allemande has 4 params (who, hand, travel, beats): first 3 inline, the
     // 4th (beats) behind the disclosure.
     final drafts = <FigureDraft>[
       FigureDraft(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.0, 'beats': 8},
+        params: {
+          'who': 'neighbors',
+          'hand': 'right',
+          'travel': 1.0,
+          'beats': 8,
+        },
       ),
     ];
     await _pump(tester, drafts);
@@ -2629,7 +2641,7 @@ void main() {
 
     expect(find.byKey(const ValueKey('figure-0-who')), findsOneWidget);
     expect(find.byKey(const ValueKey('figure-0-hand')), findsOneWidget);
-    expect(find.byKey(const ValueKey('figure-0-turn-value')), findsOneWidget);
+    expect(find.byKey(const ValueKey('figure-0-travel-value')), findsOneWidget);
     // 4th param hidden until the disclosure is expanded.
     expect(find.byKey(const ValueKey('figure-0-beats')), findsNothing);
     expect(find.byKey(const ValueKey('figure-0-more-options')), findsOneWidget);
@@ -2642,13 +2654,13 @@ void main() {
   testWidgets('3 or fewer params render inline with no disclosure', (
     tester,
   ) async {
-    // star_promenade has 3 params (who, turn, beats) — all inline, no
+    // star_promenade has 3 params (who, travel, beats) — all inline, no
     // disclosure. (chain gained a 4th param, `hand`, in #976, so it no
     // longer demonstrates the ≤3 case this test is about.)
     final drafts = <FigureDraft>[
       FigureDraft(
         move: 'star_promenade',
-        params: {'who': 'role1s', 'turn': 0.5, 'beats': 4},
+        params: {'who': 'role1s', 'travel': 0.5, 'beats': 4},
       ),
     ];
     await _pump(tester, drafts);
@@ -2878,20 +2890,20 @@ void main() {
       },
     );
 
-    testWidgets('no-snap branch: a circle turn change leaves beats untouched', (
+    testWidgets('no-snap: a circle direction change leaves beats untouched', (
       tester,
     ) async {
       final drafts = <FigureDraft>[FigureDraft()];
       await _pump(tester, drafts);
       await _selectMove(tester, 0, 'circle', 'circle');
-      expect(drafts.single.params['turn'], 'left');
+      expect(drafts.single.params['direction'], 'left');
       expect(drafts.single.beats, 8);
       expect(drafts.single.beatsTouched, isFalse);
 
       // Circle has no paramBeats: the default stays 8 regardless of the
       // direction, so beats must not be re-snapped.
-      await _selectDropdownOption(tester, 'figure-0-turn', 'right');
-      expect(drafts.single.params['turn'], 'right');
+      await _selectDropdownOption(tester, 'figure-0-direction', 'right');
+      expect(drafts.single.params['direction'], 'right');
       expect(drafts.single.beats, 8);
       expect(drafts.single.beatsTouched, isFalse);
     });
@@ -2928,7 +2940,7 @@ void main() {
         // and reads back as 0 until it's seeded.
         final drafts = <FigureDraft>[
           FigureDraft.fromFigure(
-            Figure(move: 'circle', params: const {'turn': 'left'}),
+            Figure(move: 'circle', params: const {'direction': 'left'}),
           ),
         ];
         expect(drafts.single.beatsTouched, isFalse);
@@ -2937,11 +2949,11 @@ void main() {
         await _pump(tester, drafts);
         await _openFigure(tester, 0);
 
-        // Changing turn doesn't move circle's (paramBeats-free) default, but a
+        // Changing direction doesn't move circle's (paramBeats-free) default, but a
         // missing count is still seeded to the canonical 8 rather than left at
         // 0.
-        await _selectDropdownOption(tester, 'figure-0-turn', 'right');
-        expect(drafts.single.params['turn'], 'right');
+        await _selectDropdownOption(tester, 'figure-0-direction', 'right');
+        expect(drafts.single.params['direction'], 'right');
         expect(drafts.single.beats, 8);
         expect(drafts.single.beatsTouched, isFalse);
       },
@@ -2992,13 +3004,13 @@ void main() {
       expect(drafts.single.beats, 12);
       expect(drafts.single.beatsTouched, isTrue);
 
-      // Circle's turn direction carries no paramBeats, so the canonical
+      // Circle's direction carries no paramBeats, so the canonical
       // default doesn't move (still 8). Aggressive mode only overrides a
       // manual override when the param change actually shifts the derived
       // default — matching the "a param that affects timing" UI copy — so
       // the manual 12 survives this change untouched.
-      await _selectDropdownOption(tester, 'figure-0-turn', 'right');
-      expect(drafts.single.params['turn'], 'right');
+      await _selectDropdownOption(tester, 'figure-0-direction', 'right');
+      expect(drafts.single.params['direction'], 'right');
       expect(drafts.single.beats, 12);
     });
 

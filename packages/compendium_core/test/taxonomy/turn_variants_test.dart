@@ -30,11 +30,11 @@ void main() {
 
   test('two hand turn mirrors allemande without hand', () {
     final def = tax.resolve('two_hand_turn')!;
-    expect(def.params.keys, containsAll(['who', 'turn', 'beats']));
+    expect(def.params.keys, containsAll(['who', 'travel', 'beats']));
     expect(def.params.containsKey('hand'), isFalse);
     expect(tax.effectiveParams(Figure(move: 'two_hand_turn')), {
       'who': 'partners',
-      'turn': 1.0,
+      'travel': 1.0,
       'beats': 8,
     });
     expect(
@@ -58,7 +58,7 @@ void main() {
 
     final twoHandTurn = parseFigureLine('Partner two hand turn 1/2');
     expect(twoHandTurn?.move, 'two_hand_turn');
-    expect(twoHandTurn?.params, {'who': 'partners', 'turn': 0.5});
+    expect(twoHandTurn?.params, {'who': 'partners', 'travel': 0.5});
   });
 
   test('turn as couples does not claim trailing choreography', () {

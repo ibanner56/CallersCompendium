@@ -1589,11 +1589,17 @@ fails a PR that moves the constant without adding the matching entry.
   Existing assumed mad robins with no explicit `who` are normalized, including
   nested `meanwhile` sides, and canonical/FTS rows are rebuilt once under
   `taxonomyV34CanonicalRebuildDoneKey`. Explicit subjects are preserved.
-- v35 (#1198): makes canonical rendering of `meanwhile` and `modifier`
-  containers searchable and stable, using their structural move tokens between
-  ordered children. Existing canonical/FTS rows are rebuilt once under
-  `modifierContainerCanonicalRebuildDoneKey`; stored figure JSON and the SQLite
-  schema remain unchanged.
+- v35 (#1104, #1198): aligns parameter names with their semantic roles (`travel`,
+  `direction`, `where`, `axis`, `fraction`, `whomHand`, and `endFacing`),
+  unifies the `pull_by` taxonomy, makes source-absence sentinels explicit,
+  retains `circle` as a hall ender, updates canonical/display rendering, and
+  makes canonical rendering of `meanwhile` and `modifier` containers searchable
+  and stable using their structural move tokens between ordered children.
+  Existing figures require a recursive persisted-data migration and a complete
+  derived-index rebuild; legacy keys remain readable through deterministic
+  normalization. The container projection is also guarded by the
+  `modifierContainerCanonicalRebuildDoneKey` one-shot sweep; stored figure JSON
+  and the SQLite schema remain unchanged.
 
 ## Open questions (to resolve during implementation, with user input)
 

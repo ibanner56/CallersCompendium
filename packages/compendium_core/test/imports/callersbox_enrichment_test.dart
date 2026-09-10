@@ -121,23 +121,23 @@ void main() {
   });
 
   group('figure eight', () {
-    test('"Ones figure eight 1/2 up" → who=ones, half, dir=above', () {
+    test('"Ones figure eight 1/2 up" → who=ones, fraction, where=above', () {
       final f = _parse('Ones figure eight 1/2 up');
       expect(f!.move, 'figure_8');
       expect(f.params['who'], 'ones');
-      expect(f.params['half'], 'half');
-      expect(f.params['dir'], 'above');
+      expect(f.params['fraction'], 'half');
+      expect(f.params['where'], 'above');
     });
 
-    test('"Twos figure eight down" → dir=below, default fraction', () {
+    test('"Twos figure eight down" → where=below, default fraction', () {
       final f = _parse('Twos figure eight down');
       expect(f!.move, 'figure_8');
       expect(f.params['who'], 'twos');
-      expect(f.params['dir'], 'below');
+      expect(f.params['where'], 'below');
     });
 
-    test('"Ones figure 8 1 up" (full) → half=full', () {
-      expect(_parse('Ones figure 8 1 up')!.params['half'], 'full');
+    test('"Ones figure 8 1 up" (full) → fraction=full', () {
+      expect(_parse('Ones figure 8 1 up')!.params['fraction'], 'full');
     });
   });
 
@@ -299,32 +299,32 @@ void main() {
     });
   });
 
-  group('diagonal figures → dir', () {
+  group('diagonal figures → where', () {
     test('"On left diagonal, right and left through with partner"', () {
       final f = _parse('On left diagonal, right and left through with partner');
       expect(f!.move, 'right_left_through');
-      expect(f.params['dir'], 'leftDiagonal');
+      expect(f.params['where'], 'leftDiagonal');
     });
 
     test('"On right diagonal, ladies chain to neighbor N2"', () {
       final f = _parse('On right diagonal, ladies chain to neighbor N2');
       expect(f!.move, 'chain');
       expect(f.params['who'], 'role2s');
-      expect(f.params['dir'], 'rightDiagonal');
+      expect(f.params['where'], 'rightDiagonal');
       expect(f.note, contains('n2'));
     });
 
     test('diagonal hey: "On left diagonal, hey 1/2 (WR;PL)"', () {
       final f = _parse('On left diagonal, hey 1/2 (WR;PL)');
       expect(f!.move, 'hey');
-      expect(f.params['dir'], 'leftDiagonal');
+      expect(f.params['where'], 'leftDiagonal');
       expect(f.params['pass1'], 'role2s');
     });
 
-    test('non-diagonal chain keeps default dir (no diagonal)', () {
+    test('non-diagonal chain keeps default where (no diagonal)', () {
       final f = _parse('Ladies chain to partner');
       expect(f!.move, 'chain');
-      expect(f.params.containsKey('dir'), isFalse);
+      expect(f.params.containsKey('where'), isFalse);
     });
   });
 

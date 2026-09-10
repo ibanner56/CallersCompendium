@@ -411,7 +411,8 @@ String _slotLine(
 
   final meta = <String>[
     if (_has(slot.guestCaller)) '${labels.guest}: ${slot.guestCaller!.trim()}',
-    if (slot.plannedMinutes != null) labels.minutes(slot.plannedMinutes!),
+    if (slot.plannedTotalMinutes != null)
+      labels.minutes(slot.plannedTotalMinutes!),
   ];
   if (meta.isNotEmpty) buffer.write(' (${meta.join('; ')})');
 

@@ -415,8 +415,8 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('alias enumeration', () {
-    test('exactly three aliases in the contra taxonomy', () {
-      expect(tax.aliases.length, 3);
+    test('exactly five aliases in the contra taxonomy', () {
+      expect(tax.aliases.length, 5);
     });
 
     test('exactly two handedness inverse pairs', () {

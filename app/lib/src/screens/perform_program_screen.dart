@@ -20,7 +20,8 @@ import 'perform_adjust_sheet.dart';
 import 'perform_card.dart';
 import 'perform_wakelock.dart';
 import 'perform_walkthrough_overlay.dart';
-import 'settings_screen.dart' show kAutoSizePerformKey;
+import 'settings_screen.dart'
+    show kAutoSizePerformKey, kShowProgramSlotCallerNotesKey;
 
 /// Full-screen, large-print performance view for a whole [Program]
 /// (`docs/design/ux.md` §5; ROADMAP 5.2 — program navigation).
@@ -220,6 +221,10 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   bool _stageModeUserSet = false;
   bool _canonicalUserSet = false;
 
+  /// Whether per-slot caller notes are shown above dance titles in program
+  /// Perform. Defaults on and is persisted as a Program setting.
+  bool? _showProgramSlotCallerNotes;
+
   /// Ephemeral, in-view timing state (`docs/ROADMAP.md` §5.2). Timing is a
   /// display-only aid for the caller during an event: never persisted and never
   /// written back to the program (that is 5.3 territory).
@@ -319,6 +324,19 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         })
         .catchError((_) {
           // diagnostics: silent — a11y prefs load/parse failed; keeps defaults.
+        });
+    settings
+        .get(kShowProgramSlotCallerNotesKey)
+        .then((v) {
+          if (!mounted) return;
+          final enabled = v is bool ? v : true;
+          setState(() => _showProgramSlotCallerNotes = enabled);
+        })
+        .catchError((_) {
+          if (mounted) {
+            // diagnostics: silent — caller-note pref read failed; default on.
+            setState(() => _showProgramSlotCallerNotes = true);
+          }
         });
   }
 
@@ -1071,7 +1089,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   }
 
   /// The running program clock, per-slot elapsed, and (when present) the
-  /// planned slot length with a subtle over-run cue.
+  /// split planned slot timing with walkthrough-transition and over-run cues.
   ///
   /// Only this line rebuilds on each 1s tick: a [ValueListenableBuilder] listens
   /// to [_elapsed] so the clock/elapsed text updates without rebuilding the
@@ -1084,20 +1102,32 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
   /// would spam AT, so the value is read at focus time instead of on every tick.
   Widget _buildTimingLine(ProgramSlot slot, TextTheme textTheme) {
     final l10n = AppLocalizations.of(context);
-    final planned = slot.plannedMinutes;
+    final walkthroughMinutes = slot.walkthroughMinutes;
+    final danceMinutes = slot.danceMinutes;
+    final plannedTotalMinutes = slot.plannedTotalMinutes;
     final style = textTheme.bodyMedium;
 
     return ValueListenableBuilder<int>(
       valueListenable: _elapsed,
       builder: (context, elapsed, _) {
         final slotElapsed = _slotElapsedFrom(elapsed);
-        final isOver = planned != null && slotElapsed > planned * 60;
+        final isOver =
+            danceMinutes != null &&
+            slotElapsed > ((walkthroughMinutes ?? 0) + danceMinutes) * 60;
+        final walkthroughComplete =
+            !isOver &&
+            walkthroughMinutes != null &&
+            walkthroughMinutes > 0 &&
+            slotElapsed > walkthroughMinutes * 60;
 
         final label = l10n.performTimingSemantic(
           _formatDuration(elapsed),
           _formatDuration(slotElapsed),
-          planned != null ? 'yes' : 'no',
-          planned ?? 0,
+          plannedTotalMinutes != null ? 'yes' : 'no',
+          plannedTotalMinutes ?? 0,
+          walkthroughMinutes ?? 0,
+          danceMinutes ?? 0,
+          walkthroughComplete ? 'yes' : 'no',
           isOver ? 'yes' : 'no',
           _paused ? 'yes' : 'no',
         );
@@ -1127,13 +1157,26 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
                     key: const ValueKey('perform-slot-elapsed'),
                     style: style,
                   ),
-                  if (planned != null) ...[
+                  if (plannedTotalMinutes != null) ...[
                     Text('  ·  ', style: style),
                     Text(
-                      l10n.performPlannedMin(planned),
+                      l10n.performPlannedSplit(
+                        plannedTotalMinutes,
+                        walkthroughMinutes ?? 0,
+                        danceMinutes ?? 0,
+                      ),
                       key: const ValueKey('perform-planned'),
                       style: style,
                     ),
+                    if (walkthroughComplete) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Icons.directions_run, size: 16),
+                      Text(
+                        l10n.performWalkthroughCompleteSuffix,
+                        key: const ValueKey('perform-walkthrough-complete'),
+                        style: style,
+                      ),
+                    ],
                     if (isOver) ...[
                       const SizedBox(width: 4),
                       const Icon(Icons.timelapse, size: 16),
@@ -1159,6 +1202,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
       if (dance != null) {
         return PerformCard(
           dance: dance,
+          callerNote: _showProgramSlotCallerNotes == true ? slot.text : null,
           renderer: widget.renderer,
           dialect: dialect,
           textScale: _textScale,

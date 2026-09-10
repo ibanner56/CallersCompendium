@@ -139,6 +139,105 @@ const String kDefaultProgramCallerKey = 'default_program_caller';
 /// empty ⇒ no prefill (the field opens blank).
 const String kDefaultProgramBandKey = 'default_program_band';
 
+/// Key used to persist the semantic slot template for manually created
+/// programs. Generated slot ids and positions are intentionally omitted.
+const String kDefaultStartingProgramKey = 'default_starting_program';
+
+/// A semantic program-slot entry used by [kDefaultStartingProgramKey].
+///
+/// A dance entry may also carry [text] as its per-slot note. Text-only entries
+/// represent notes, waltzes, or the structural break token.
+class StartingProgramTemplateEntry {
+  const StartingProgramTemplateEntry({this.danceId, this.text});
+
+  final String? danceId;
+  final String? text;
+}
+
+const int _startingProgramTemplateVersion = 1;
+const int _maxStartingProgramTemplateEntries = 100;
+const int _maxStartingProgramTemplateTextLength = 500;
+
+/// Encodes the semantic starting-program template as a versioned JSON string.
+String encodeStartingProgramTemplate(
+  List<StartingProgramTemplateEntry> entries,
+) {
+  final slots = <Map<String, Object?>>[];
+  for (final entry in entries) {
+    if (slots.length == _maxStartingProgramTemplateEntries) break;
+    final danceId = entry.danceId?.trim();
+    final rawText = entry.text;
+    final text = rawText == null || rawText.trim().isEmpty
+        ? null
+        : rawText.length > _maxStartingProgramTemplateTextLength
+        ? rawText.substring(0, _maxStartingProgramTemplateTextLength)
+        : rawText;
+    if ((danceId == null || danceId.isEmpty) && text == null) continue;
+    final slot = <String, Object?>{};
+    if (danceId?.isNotEmpty ?? false) slot['danceId'] = danceId;
+    if (text != null) slot['text'] = text;
+    slots.add(slot);
+  }
+  return jsonEncode({
+    'version': _startingProgramTemplateVersion,
+    'slots': slots,
+  });
+}
+
+/// Decodes a starting-program template, returning `null` for any invalid
+/// payload. The caller can then fall back to the empty template.
+List<StartingProgramTemplateEntry>? tryDecodeStartingProgramTemplate(
+  Object? stored,
+) {
+  if (stored is! String) return null;
+  try {
+    final decoded = jsonDecode(stored);
+    if (decoded is! Map ||
+        decoded['version'] != _startingProgramTemplateVersion) {
+      return null;
+    }
+    final rawSlots = decoded['slots'];
+    if (rawSlots is! List ||
+        rawSlots.length > _maxStartingProgramTemplateEntries) {
+      return null;
+    }
+    final entries = <StartingProgramTemplateEntry>[];
+    for (final raw in rawSlots) {
+      if (raw is! Map) return null;
+      final allowed = raw.keys.every(
+        (key) => key == 'danceId' || key == 'text',
+      );
+      if (!allowed) return null;
+      final danceId = raw['danceId'];
+      final text = raw['text'];
+      if (danceId != null && danceId is! String) return null;
+      if (text != null && text is! String) return null;
+      if (danceId == null && text == null) return null;
+      if (danceId is String && danceId.trim().isEmpty) return null;
+      if (text is String &&
+          (text.trim().isEmpty ||
+              text.length > _maxStartingProgramTemplateTextLength)) {
+        return null;
+      }
+      entries.add(
+        StartingProgramTemplateEntry(
+          danceId: danceId as String?,
+          text: text as String?,
+        ),
+      );
+    }
+    return entries;
+  } catch (_) {
+    // diagnostics: silent — malformed settings data returns null.
+    return null;
+  }
+}
+
+/// Resolves an arbitrary settings value to a safe starting-program template.
+List<StartingProgramTemplateEntry> startingProgramTemplateFromStored(
+  Object? stored,
+) => tryDecodeStartingProgramTemplate(stored) ?? const [];
+
 /// Key used to persist the default dance-detail rendering (ROADMAP G.6b).
 /// Stored as the [DanceDetailRendering] enum's stable `.name`. Absent/invalid ⇒
 /// [DanceDetailRendering.activeDialect] (the historical default).
@@ -310,7 +409,9 @@ List<Figure> defaultNewDanceFigureTemplate() => [
 List<Figure> danceFiguresTemplateFromStored(Object? stored) {
   if (stored is String) {
     try {
-      return decodeFigures(stored);
+      return decodeFigures(
+        stored,
+      ).map(contraTaxonomy.normalizeFigureV35).toList(growable: false);
     } catch (_) {
       // diagnostics: silent — empty/malformed JSON falls back to the default template
     }
@@ -347,7 +448,9 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
       final figures = decodeFigures(stored);
       if (figures.length <= kMaxMeanwhileSides &&
           figures.every((figure) => !figure.isContainer)) {
-        return figures;
+        return figures
+            .map(contraTaxonomy.normalizeFigureV35)
+            .toList(growable: false);
       }
     } catch (_) {
       // diagnostics: silent — malformed side defaults use the safe fallback
@@ -388,7 +491,9 @@ List<Figure> modifierFiguresFromStored(Object? stored) {
       final figures = decodeFigures(stored);
       if (figures.length <= kMaxModifierFigures &&
           figures.every((figure) => !figure.isContainer)) {
-        return figures;
+        return figures
+            .map(contraTaxonomy.normalizeFigureV35)
+            .toList(growable: false);
       }
       // diagnostics: silent — malformed modifier defaults use the safe fallback
     } catch (_) {}
@@ -417,8 +522,9 @@ const String kDefaultMoveParamOverridesKey = 'default_move_param_overrides';
 /// behavior for users who never touch the setting. Parses defensively: only
 /// top-level entries whose value is itself a JSON object are kept, and any
 /// empty inner map is dropped (an empty inner map means the move has no
-/// overrides, i.e. it is absent). Returned inner maps are mutable so callers
-/// can edit them in place.
+/// overrides, i.e. it is absent). Legacy v34 move and parameter identifiers
+/// are normalized through the active taxonomy. Returned inner maps are mutable
+/// so callers can edit them in place.
 Map<String, Map<String, Object?>> moveParamOverridesFromStored(Object? stored) {
   final result = <String, Map<String, Object?>>{};
   if (stored is! String || stored.isEmpty) return result;
@@ -436,7 +542,13 @@ Map<String, Map<String, Object?>> moveParamOverridesFromStored(Object? stored) {
     value.forEach((paramKey, paramValue) {
       if (paramKey is String) inner[paramKey] = paramValue;
     });
-    if (inner.isNotEmpty) result[moveId] = inner;
+    if (inner.isEmpty) return;
+    final normalized = contraTaxonomy.normalizeFigureV35(
+      Figure(move: moveId, params: inner),
+    );
+    result
+        .putIfAbsent(normalized.move, () => <String, Object?>{})
+        .addAll(normalized.params);
   });
   return result;
 }

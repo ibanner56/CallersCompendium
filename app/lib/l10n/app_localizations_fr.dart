@@ -614,6 +614,43 @@ class AppLocalizationsFr extends AppLocalizations {
       'Prérempli dans les nouveaux programmes ; modifiable par programme.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Programme de départ';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danses et notes ajoutées aux programmes créés manuellement.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Ajouter une danse';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Danse';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Ajouter une pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Texte de la note';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Note du caller (facultatif)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Monter';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Descendre';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Danse indisponible ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Orchestre par défaut';
 
   @override
@@ -1057,6 +1094,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher le temps écoulé pendant l\'exécution d\'une danse seule. Le minuteur démarre lorsqu\'il s\'affiche et peut être mis en pause.';
 
   @override
+  String get settingsShowProgramSlotCallerNotesTitle =>
+      'Afficher les notes du caller dans le Perform d’un programme';
+
+  @override
+  String get settingsShowProgramSlotCallerNotesSubtitle =>
+      'Afficher les notes de caller non vides de chaque créneau au-dessus du titre de la danse dans le Perform d’un programme.';
+
+  @override
   String get settingsGeneralCallingHistoryHeader => 'Historique d’appel';
 
   @override
@@ -1074,6 +1119,26 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Lieux répétés dans l’historique des appels';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Afficher les principaux lieux où une danse a été appelée plusieurs fois. Régler sur 0 pour masquer ce résumé.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lieux',
+      one: '1 lieu',
+      zero: 'Ne pas afficher',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibilité';
@@ -2249,6 +2314,17 @@ class AppLocalizationsFr extends AppLocalizations {
       'Impossible de charger l\'historique des soirées.';
 
   @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Appelée $count fois à $venue',
+      one: 'Appelée 1 fois à $venue',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get danceShowCanonicalTerms => 'Afficher les termes canoniques';
 
   @override
@@ -2897,7 +2973,14 @@ class AppLocalizationsFr extends AppLocalizations {
   String get programsGuestCallerLabel => 'Caller invité (optionnel)';
 
   @override
-  String get programsPlannedMinutesLabel => 'Minutes prévues (optionnel)';
+  String get programsPlannedTimingHeader => 'Durées prévues';
+
+  @override
+  String get programsWalkthroughMinutesLabel =>
+      'Minutes de déroulé (facultatif)';
+
+  @override
+  String get programsDanceMinutesLabel => 'Minutes de danse (facultatif)';
 
   @override
   String get programsAlternateDanceTitle => 'Danse alternative';
@@ -2954,6 +3037,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher les lignes alternatives';
 
   @override
+  String get programsMatrixShowPhrasesSemantic =>
+      'Afficher les libellés de phrase';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic =>
+      'Afficher les glyphes de présence';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2986,6 +3077,65 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
+    String _temp0 = intl.Intl.selectLogic(sectionKey, {
+      's1': '1er',
+      's2': '2e',
+      's3': '3e',
+      's4': '4e',
+      's5': '5e',
+      's6': '6e',
+      's7': '7e',
+      's8': '8e',
+      's9': '9e',
+      'other': '$sectionNumber',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': 'Danse alternative : $title',
+      'other': 'Danse alternative : $title, section $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'Danse : $title',
+      'other': 'Danse : $title, section $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title (danse alternative)',
+      'other': '$title (danse alternative, section $section)',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title (section $section)',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'Formation';
 
   @override
@@ -2998,6 +3148,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
@@ -3019,7 +3170,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'no': 'absent',
       'other': 'présent$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move : $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', phrase(s) : $phrases',
+    });
+    return '$dance, $move : $_temp3$_temp4';
   }
 
   @override
@@ -3274,6 +3429,9 @@ class AppLocalizationsFr extends AppLocalizations {
     String slotTime,
     String hasPlanned,
     int planned,
+    int walkthrough,
+    int dance,
+    String walkthroughComplete,
     String over,
     String paused,
   ) {
@@ -3284,18 +3442,23 @@ class AppLocalizationsFr extends AppLocalizations {
       one: '1 minute',
     );
     String _temp1 = intl.Intl.selectLogic(hasPlanned, {
-      'yes': ', prévu $_temp0',
+      'yes':
+          ', prévu $_temp0 : $walkthrough minutes de déroulé et $dance minutes de danse',
       'other': '',
     });
-    String _temp2 = intl.Intl.selectLogic(over, {
-      'yes': ', dépassement',
+    String _temp2 = intl.Intl.selectLogic(walkthroughComplete, {
+      'yes': ', déroulé terminé',
       'other': '',
     });
-    String _temp3 = intl.Intl.selectLogic(paused, {
+    String _temp3 = intl.Intl.selectLogic(over, {
+      'yes': ', dépassement du temps prévu',
+      'other': '',
+    });
+    String _temp4 = intl.Intl.selectLogic(paused, {
       'yes': ', en pause',
       'other': '',
     });
-    return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp2$_temp3';
+    return 'Temps du programme $programTime, temps du créneau $slotTime$_temp1$_temp2$_temp3$_temp4';
   }
 
   @override
@@ -3308,12 +3471,18 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String performPlannedMin(int planned) {
-    return 'prévu $planned min';
+  String performPlannedSplit(int planned, int walkthrough, int dance) {
+    return 'prévu $planned min ($walkthrough:$dance)';
   }
 
   @override
+  String get performWalkthroughCompleteSuffix => ' déroulé terminé';
+
+  @override
   String get performOverSuffix => ' dépassé';
+
+  @override
+  String get performSlotCallerNote => 'Note du caller';
 
   @override
   String get performCallingNotes => 'Notes d’appel';

@@ -3,20 +3,14 @@ import 'package:test/test.dart';
 import 'package:compendium_core/testing.dart';
 
 /// Roadmap 2.4a — PR2 "dancer-interaction" moves: gate, give_and_take,
-/// pull_by_dancers, pull_by_direction, cross_trails, plus the roll_away `whom`
+/// pull_by, cross_trails, plus the roll_away `whom`
 /// extension. All reuse the existing ParamKind set (no new vocabulary).
 void main() {
   final tax = contraTaxonomy;
   final renderer = FigureRenderer(tax);
   final larks = Dialect.larksRobins;
 
-  const newMoves = [
-    'gate',
-    'give_and_take',
-    'pull_by_dancers',
-    'pull_by_direction',
-    'cross_trails',
-  ];
+  const newMoves = ['gate', 'give_and_take', 'pull_by', 'cross_trails'];
 
   group('registration & defaults', () {
     for (final id in [...newMoves, 'roll_away']) {
@@ -40,8 +34,14 @@ void main() {
       // gate asserts nothing — each source fills only what it states.
       'gate': Figure(move: 'gate'),
       'role1s give & take partners': Figure(move: 'give_and_take'),
-      'neighbors pull by right': Figure(move: 'pull_by_dancers'),
-      'pull by along right': Figure(move: 'pull_by_direction'),
+      'neighbors pull by right': Figure(
+        move: 'pull_by',
+        params: {'who': 'neighbors'},
+      ),
+      'pull by along right': Figure(
+        move: 'pull_by',
+        params: {'where': 'along'},
+      ),
       'partners cross trails across neighbors': Figure(move: 'cross_trails'),
       // roll_away now renders its added whom target.
       'neighbors roll away partners': Figure(move: 'roll_away'),
@@ -57,7 +57,7 @@ void main() {
         renderer.renderCanonical(
           Figure(
             move: 'gate',
-            params: {'who': 'ones', 'whom': 'neighbors', 'face': 'down'},
+            params: {'who': 'ones', 'whom': 'neighbors', 'endFacing': 'down'},
           ),
         ),
         'ones gate neighbors down',
@@ -105,12 +105,10 @@ void main() {
       );
     });
 
-    test('pull_by_dancers accepts 2 and 4 without warning', () {
+    test('pull_by accepts 2 and 4 without warning', () {
       for (final b in [2, 4]) {
         expect(
-          tax.validateFigure(
-            testFigure(move: 'pull_by_dancers', params: {'beats': b}),
-          ),
+          tax.validateFigure(testFigure(move: 'pull_by', params: {'beats': b})),
           isEmpty,
           reason: '$b beats should be typical',
         );
@@ -122,8 +120,10 @@ void main() {
     test('gate rejects an out-of-domain face', () {
       expect(
         tax
-            // invalid-fixture: value is deliberately out of domain — gate rejects an out-of-domain face
-            .validateFigure(Figure(move: 'gate', params: {'face': 'sideways'}))
+            .validateFigure(
+              // invalid-fixture: value is deliberately out of domain — gate rejects an out-of-domain face
+              Figure(move: 'gate', params: {'endFacing': 'sideways'}),
+            )
             .any((i) => i.code == 'invalid_param_value'),
         isTrue,
       );

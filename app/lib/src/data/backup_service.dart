@@ -21,6 +21,8 @@ const String kTaxonomyV33CanonicalRebuildDoneKey =
     '__taxonomy_v33_canonical_rebuild_done__';
 const String kTaxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
+const String kTaxonomyV35FigureNormalizationDoneKey =
+    '__taxonomy_v35_figure_normalization_done__';
 
 /// App-side declaration for the one-shot modifier-container canonical/FTS
 /// rebuild marker. The storage-owned constant remains the migration source of
@@ -50,6 +52,7 @@ const String kCallersBoxRollAwayRoleRepairDoneKey =
 ///   [kTaxonomyV33CanonicalRebuildDoneKey],
 ///   [kTaxonomyV34CanonicalRebuildDoneKey],
 ///   [kModifierContainerCanonicalRebuildDoneKey],
+///   [kTaxonomyV35FigureNormalizationDoneKey],
 ///   [kCallersBoxRollAwayRoleRepairDoneKey].
 /// - **sync security state** — credentials and per-installation routing state
 ///   must never be copied through a backup, even though their transport-specific
@@ -67,6 +70,7 @@ const Set<String> kBackupSettingsDenylist = {
   kTaxonomyV33CanonicalRebuildDoneKey,
   kTaxonomyV34CanonicalRebuildDoneKey,
   kModifierContainerCanonicalRebuildDoneKey,
+  kTaxonomyV35FigureNormalizationDoneKey,
   kCallersBoxRollAwayRoleRepairDoneKey,
   kSyncIdKey,
   kSyncDeviceIdKey,

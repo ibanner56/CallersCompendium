@@ -10,7 +10,7 @@ void main() {
       Figure(move: 'swing', params: {'who': 'partners', 'beats': 16}),
       Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'right', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'right', 'travel': 1.5},
         progression: true,
       ),
       Figure(move: 'balance_the_ring', params: {'beats': 4}, note: 'gently'),
@@ -26,7 +26,7 @@ void main() {
       ),
       Figure(
         move: 'allemande',
-        params: {'who': 'neighbors', 'hand': 'left', 'turn': 1.5},
+        params: {'who': 'neighbors', 'hand': 'left', 'travel': 1.5},
         assumedSubject: true,
       ),
       Figure(

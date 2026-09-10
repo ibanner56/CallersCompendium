@@ -206,6 +206,27 @@ void main() {
       expect(restored[1].params['beats'], 12);
     });
 
+    // invalid-fixture: this exercises persisted v34 parameter names
+    test('normalizes legacy identifiers recursively', () {
+      final stored = encodeFigures([
+        Figure(move: 'circle', params: const {'turn': 'right', 'places': 3}),
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'promenade', params: const {'dir': 'along'}),
+            Figure(move: 'stand_still', params: const {'beats': 8}),
+          ],
+          beats: 8,
+        ),
+      ]);
+
+      final restored = danceFiguresTemplateFromStored(stored);
+      expect(restored[0].params['direction'], 'right');
+      expect(restored[0].params, isNot(contains('turn')));
+      final promenade = restored[1].subFigures.first;
+      expect(promenade.params['where'], 'along');
+      expect(promenade.params, isNot(contains('dir')));
+    });
+
     test('decodes "[]" to an intentional empty template', () {
       expect(danceFiguresTemplateFromStored('[]'), isEmpty);
     });
@@ -260,6 +281,17 @@ void main() {
         isTrue,
       );
     });
+
+    test('normalizes legacy identifiers in ordinary side defaults', () {
+      final restored = meanwhileSideFiguresFromStored(
+        encodeFigures([
+          // invalid-fixture: this exercises a persisted v34 parameter name
+          Figure(move: 'circle', params: const {'turn': 'left'}),
+        ]),
+      );
+      expect(restored.single.params['direction'], 'left');
+      expect(restored.single.params, isNot(contains('turn')));
+    });
   });
 
   group('move param overrides (DD.3)', () {
@@ -269,7 +301,7 @@ void main() {
 
     test('encode/decode round-trips a realistic diff map', () {
       final map = <String, Map<String, Object?>>{
-        'circle': {'turn': 'right', 'places': 3},
+        'circle': {'direction': 'right', 'places': 3},
         'hey': {'length': 'half'},
         'swing': {'beats': 16},
       };
@@ -287,10 +319,10 @@ void main() {
 
     test('drops top-level entries whose value is not a JSON object', () {
       final restored = moveParamOverridesFromStored(
-        '{"circle":{"turn":"right"},"bad":5,"also_bad":[1]}',
+        '{"circle":{"direction":"right"},"bad":5,"also_bad":[1]}',
       );
       expect(restored.keys, ['circle']);
-      expect(restored['circle'], {'turn': 'right'});
+      expect(restored['circle'], {'direction': 'right'});
     });
 
     test('treats an empty inner map as absent (drops it on decode)', () {
@@ -312,11 +344,25 @@ void main() {
 
     test('returns mutable maps callers can edit in place', () {
       final restored = moveParamOverridesFromStored(
-        '{"circle":{"turn":"right"}}',
+        '{"circle":{"direction":"right"}}',
       );
       restored['circle']!['places'] = 3;
       restored['swing'] = {'beats': 16};
-      expect(restored['circle'], {'turn': 'right', 'places': 3});
+      expect(restored['circle'], {'direction': 'right', 'places': 3});
+    });
+
+    test('normalizes v34 move parameter identifiers', () {
+      final restored = moveParamOverridesFromStored(
+        '{"circle":{"turn":"right"},'
+        '"allemande":{"turn":1.5},'
+        '"promenade":{"dir":"along","turn":"clockwise"}}',
+      );
+
+      expect(restored, {
+        'circle': {'direction': 'right'},
+        'allemande': {'travel': 1.5},
+        'promenade': {'where': 'along', 'direction': 'clockwise'},
+      });
     });
   });
 

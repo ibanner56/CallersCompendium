@@ -78,7 +78,10 @@ class SyncRecordBlob {
         ? null
         : _parseTimestamp(value['deletedAt'], 'deletedAt');
     final existenceAt = _parseTimestamp(value['existenceAt'], 'existenceAt');
-    final body = _requiredObject(value['body'], 'body');
+    final body = _decodeCompatibleBody(
+      kind,
+      _requiredObject(value['body'], 'body'),
+    );
 
     return SyncRecordBlob(
       v: version,
@@ -89,6 +92,36 @@ class SyncRecordBlob {
       existenceAt: existenceAt,
       body: body,
     );
+  }
+
+  /// Adapts records queued by builds that emitted the pre-#1233 total duration.
+  ///
+  /// Validation runs after this step, so a queued `plannedMinutes` value remains
+  /// admitted even though new outbound records use the two classified fields.
+  static Map<String, Object?> _decodeCompatibleBody(
+    SyncRecordKind kind,
+    Map<String, Object?> body,
+  ) {
+    if (kind != SyncRecordKind.program || body['slots'] is! List) return body;
+    return {
+      ...body,
+      'slots': [
+        for (final slot in body['slots']! as List)
+          if (slot is Map)
+            () {
+              final timing = Map<String, Object?>.from(
+                slot.cast<String, Object?>(),
+              );
+              final legacy = timing.remove('plannedMinutes');
+              if (!timing.containsKey('danceMinutes') && legacy != null) {
+                timing['danceMinutes'] = legacy;
+              }
+              return timing;
+            }()
+          else
+            slot,
+      ],
+    };
   }
 }
 

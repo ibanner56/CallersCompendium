@@ -249,10 +249,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {hand} {turn}',
+      renderTemplate: '{who} {move} {hand} {travel}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -260,10 +260,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'two hand turn',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {turn}',
+      renderTemplate: '{who} {move} {travel}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -272,10 +272,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {turn}',
+      renderTemplate: '{who} {move} {travel}',
       searchKeywords: ['do si do', 'do-si-do'],
       goodBeats: [8],
     ),
@@ -320,11 +320,11 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       // %S lets a dialect inject the shoulder side ("right shoulder round").
-      renderTemplate: '{who} {move} {turn}',
+      renderTemplate: '{who} {move} {travel}',
       searchKeywords: ['gypsy', 'gyre'],
       goodBeats: [8],
     ),
@@ -356,21 +356,21 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'pass_through',
       displayName: 'pass through',
       params: {
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'along'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'along'),
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
       },
-      renderTemplate: '{move} {dir}',
+      renderTemplate: '{move} {where}',
       goodBeats: [2],
     ),
     const MoveDef(
       id: 'right_left_through',
       displayName: 'right left through',
       params: {
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{move} {dir}',
+      renderTemplate: '{move} {where}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -402,7 +402,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: ParamVocab.unspecified,
           choices: _handOrUnspecified,
         ),
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
       // Hand precedes move, matching ContraDB's `chainWords`
@@ -411,7 +411,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // which would read "ladies chain left across". `dir`'s position is
       // unchanged; ContraDB puts the diagonal first, but matching that would
       // reword all displayed diagonal chains for an unrelated reason.
-      renderTemplate: '{who} {hand} {move} {dir}',
+      renderTemplate: '{who} {hand} {move} {where}',
       goodBeats: [8],
     ),
     // v23: The Caller's Box's standalone courtesy turn. ContraDB models this
@@ -564,7 +564,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'promenade',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Issue #634: a true "single file promenade" travels the whole major
         // set (no per-couple dancer relationship), vs. the ordinary partnered
         // promenade. A canonical render token since taxonomy v27 (issue #749):
@@ -616,7 +616,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // always stated by an import; `promenade.turn` reaches the sentinel
         // only through the automatic `dir`-driven reset. See the
         // Clear-button gating in `figure_param_editors.dart`.
-        'turn': ParamSpec(
+        'direction': ParamSpec(
           ParamKind.spinDirection,
           defaultValue: 'counterclockwise',
           choices: _spinOrUnspecified,
@@ -632,7 +632,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // render paths therefore build the full line in
       // `_displayBaseRenderers['promenade']` / the `forCanonical` block in
       // `renderer.dart`, not via this template's placeholder expansion.
-      renderTemplate: '{who} {move} {dir}',
+      renderTemplate: '{who} {move} {where}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -768,7 +768,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         // ContraDB `once_around`/`circling`: how far you travel around
         // (1.0 == 360°, ContraDB's default). TCB writes "1 & 1/2" / "1/2".
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 1.0),
         // v20 (#295): TCB glossary — "a CLOCKWISE mad robin begins with the
         // left-hand person going in front"; stated on 24/24 sampled lines.
         'direction': ParamSpec(
@@ -787,7 +787,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
       },
-      renderTemplate: '{who} {move} {turn} {direction} {whom}',
+      renderTemplate: '{who} {move} {travel} {direction} {whom}',
       goodBeats: [6, 8],
     ),
     const MoveDef(
@@ -820,10 +820,10 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'star promenade',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role1s'),
-        'turn': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
-      renderTemplate: '{who} {move} {turn}',
+      renderTemplate: '{who} {move} {travel}',
       goodBeats: [4],
     ),
     // Issue #295: `orbit` is a first-class move. The fused `allemande_orbit`
@@ -840,11 +840,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'orbit',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        'turn': ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
-        'amount': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
+        'direction': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'clockwise',
+        ),
+        'travel': ParamSpec(ParamKind.rotation, defaultValue: 0.5),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {turn} {amount}',
+      renderTemplate: '{who} {move} {direction} {travel}',
       goodBeats: [8],
     ),
     // --- Roadmap 2.4a: dancer-interaction moves (PR2) ---
@@ -931,7 +934,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // `unspecified` sentinel (see ParamSpec.validate): ContraDB's gate has
         // no amount param at all, so any numeric default would fabricate one
         // for every ContraDB import.
-        'turn': ParamSpec(
+        'travel': ParamSpec(
           ParamKind.rotation,
           defaultValue: ParamVocab.unspecified,
           choices: [ParamVocab.unspecified],
@@ -943,7 +946,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // derivation always claimed `out`. A start-relative rule cannot yield
         // an absolute cardinal without simulating the preceding choreography,
         // so the derivation is withdrawn and the value is stored instead.
-        'face': ParamSpec(
+        'endFacing': ParamSpec(
           ParamKind.choice,
           defaultValue: ParamVocab.unspecified,
           choices: _gateFacingOrUnspecified,
@@ -963,7 +966,8 @@ final Taxonomy contraTaxonomy = Taxonomy(
       // rewords `mirror` ahead of the move name and expands `face` into
       // ContraDB's "to face …" clause (see renderer.dart
       // `_displayBaseRenderers`); canonical stays template-driven.
-      renderTemplate: '{who} {pair} {move} {whom} {direction} {turn} {face}',
+      renderTemplate:
+          '{who} {pair} {move} {whom} {direction} {travel} {endFacing}',
       searchKeywords: ['rotation gate', 'mirror gate'],
       // ContraDB pins 8. TCB's 24,107-dance corpus attests 8x122, 4x33, 6x15,
       // 2x13 and 3x3 across its 186 gate lines.
@@ -1006,29 +1010,25 @@ final Taxonomy contraTaxonomy = Taxonomy(
       goodBeats: [2, 4, 8],
     ),
     const MoveDef(
-      id: 'pull_by_dancers',
+      id: 'pull_by',
       displayName: 'pull by',
       params: {
-        'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
+        'who': ParamSpec(
+          ParamKind.dancerSet,
+          defaultValue: ParamVocab.unspecified,
+          choices: _dancerOrUnspecified,
+        ),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
+        'where': ParamSpec(
+          ParamKind.direction,
+          defaultValue: ParamVocab.unspecified,
+          choices: [...ParamVocab.directions, ParamVocab.unspecified],
+        ),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
       },
-      renderTemplate: '{who} {move} {hand}',
-      searchKeywords: ['pull by dancers'],
-      goodBeats: [2, 4],
-    ),
-    const MoveDef(
-      id: 'pull_by_direction',
-      displayName: 'pull by',
-      params: {
-        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'along'),
-        'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'beats': ParamSpec(ParamKind.beats, defaultValue: 2),
-      },
-      renderTemplate: '{move} {dir} {hand}',
-      searchKeywords: ['pull by direction'],
+      renderTemplate: '{who} {move} {where} {hand}',
+      searchKeywords: ['pull by dancers', 'pull by direction'],
       goodBeats: [2, 4],
     ),
     const MoveDef(
@@ -1036,14 +1036,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'cross trails',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Available for %S dialect injection (cf. pass_through/shoulder_round);
         // intentionally not a render token.
         'shoulder': ParamSpec(ParamKind.shoulder, defaultValue: 'right'),
         'who2': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
-      renderTemplate: '{who} {move} {dir} {who2}',
+      renderTemplate: '{who} {move} {where} {who2}',
       searchKeywords: ['cross trail'],
       goodBeats: [4],
     ),
@@ -1114,7 +1114,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'zig zag',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'partners'),
-        'turn': ParamSpec(
+        'slide': ParamSpec(
           ParamKind.choice,
           defaultValue: 'left',
           choices: ['left', 'right'],
@@ -1127,7 +1127,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
       },
-      renderTemplate: '{who} {move} {turn}',
+      renderTemplate: '{who} {move} {slide}',
       goodBeats: [6],
     ),
     const MoveDef(
@@ -1193,7 +1193,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
         // Default "none": structured, not a render token.
-        'dir': ParamSpec(
+        'where': ParamSpec(
           ParamKind.choice,
           defaultValue: 'none',
           choices: ['none', 'above', 'below', 'across'],
@@ -1204,15 +1204,18 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: 'onesRole2',
           choices: ['onesRole1', 'onesRole2', 'twosRole1', 'twosRole2'],
         ),
-        'half': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {half} {move}',
+      renderTemplate: '{who} {fraction} {move}',
       // ContraDB figure8GoodBeats: `beats === half_or_full * 16` (an exact
       // equality, and figure8Change auto-sets it on a fraction flip): half
       // (0.5) -> 8, full (1.0) -> 16.
       goodBeats: [8, 16],
-      paramBeats: ParamBeats(param: 'half', byValue: {'half': 8, 'full': 16}),
+      paramBeats: ParamBeats(
+        param: 'fraction',
+        byValue: {'half': 8, 'full': 16},
+      ),
     ),
     const MoveDef(
       id: 'poussette',
@@ -1220,11 +1223,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
         'whom': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
-        'half': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
-        'turn': ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
+        'fraction': ParamSpec(ParamKind.fraction, defaultValue: 'half'),
+        'direction': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'clockwise',
+        ),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 6),
       },
-      renderTemplate: '{who} {move} {whom} {half} {turn}',
+      renderTemplate: '{who} {move} {whom} {fraction} {direction}',
       // ContraDB poussetteGoodBeats is a RANGE, `6 <= beats/(2*half_or_full) <=
       // 8` (half -> 6-8, full -> 12-16), and — unlike figure_8/hey — poussette
       // has NO `change` function, so ContraDB never auto-recomputes its beats
@@ -1277,7 +1283,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       id: 'circle',
       displayName: 'circle',
       params: {
-        'turn': ParamSpec(
+        'direction': ParamSpec(
           ParamKind.choice,
           defaultValue: 'left',
           choices: ['left', 'right'],
@@ -1309,7 +1315,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         'singleFile': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{move} {turn} {places}',
+      renderTemplate: '{move} {direction} {places}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -1341,11 +1347,14 @@ final Taxonomy contraTaxonomy = Taxonomy(
       displayName: 'facing star',
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'ones'),
-        'turn': ParamSpec(ParamKind.spinDirection, defaultValue: 'clockwise'),
+        'direction': ParamSpec(
+          ParamKind.spinDirection,
+          defaultValue: 'clockwise',
+        ),
         'places': ParamSpec(ParamKind.places, defaultValue: 3),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 8),
       },
-      renderTemplate: '{who} {move} {turn} {places}',
+      renderTemplate: '{who} {move} {direction} {places}',
       goodBeats: [8],
     ),
     const MoveDef(
@@ -1422,7 +1431,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: ParamVocab.unspecified,
           choices: _heyPass2Choices,
         ),
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         // Four ricochet flags: (1st/2nd meeting) x (center/ends dancers).
         // Structured; kept for fidelity per the approved reduced model.
         'rico1': ParamSpec(ParamKind.flag, defaultValue: false),
@@ -1497,7 +1506,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
           defaultValue: ParamVocab.unspecified,
           choices: _pairOrUnspecified,
         ),
-        'hand': ParamSpec(
+        'whomHand': ParamSpec(
           ParamKind.handedness,
           defaultValue: ParamVocab.unspecified,
           choices: _handOrUnspecified,
@@ -1554,7 +1563,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         // ContraDB set_direction_acrossish (across/rightDiagonal/leftDiagonal);
         // all in our direction vocabulary.
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'axis': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
@@ -1579,7 +1588,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         // Same sourced param set as form_an_ocean_wave minus `passThru`, which
         // is intrinsic to this figure (dancers pass through to the wave).
-        'dir': ParamSpec(ParamKind.direction, defaultValue: 'across'),
+        'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
         'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
@@ -1605,6 +1614,18 @@ final Taxonomy contraTaxonomy = Taxonomy(
     ),
   ],
   aliases: [
+    const MoveAlias(
+      id: 'pull_by_dancers',
+      displayName: 'pull by',
+      targetMove: 'pull_by',
+      pinnedParams: {'who': 'neighbors'},
+    ),
+    const MoveAlias(
+      id: 'pull_by_direction',
+      displayName: 'pull by',
+      targetMove: 'pull_by',
+      pinnedParams: {'where': 'along'},
+    ),
     const MoveAlias(
       id: 'see_saw',
       displayName: 'seesaw',

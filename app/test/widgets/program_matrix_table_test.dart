@@ -43,12 +43,14 @@ void main() {
     Set<String> altDanceIds = const {},
     Set<int>? altRowIndices,
     bool showAlternates = true,
+    bool showPhrases = false,
     Dialect? dialect,
-    List<ProgramHalf?>? halves,
+    List<int?>? sections,
     Set<String> hiddenColumns = const {},
     ValueChanged<String>? onHideColumn,
+    double width = 1400,
   }) async {
-    await tester.binding.setSurfaceSize(const Size(1400, 900));
+    await tester.binding.setSurfaceSize(Size(width, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
       MaterialApp(
@@ -57,13 +59,14 @@ void main() {
 
         home: Scaffold(
           body: ProgramMatrixTable(
-            matrix: buildProgramMatrix(dances, halves: halves),
+            matrix: buildProgramMatrix(dances, sections: sections),
             taxonomy: contraTaxonomy,
             dialect: dialect ?? Dialect.canonical,
             omittedFreeTextCount: omittedFreeTextCount,
             altDanceIds: altDanceIds,
             altRowIndices: altRowIndices,
             showAlternates: showAlternates,
+            showPhrases: showPhrases,
             hiddenColumns: hiddenColumns,
             onHideColumn: onHideColumn,
           ),
@@ -152,6 +155,47 @@ void main() {
     );
     // B's partner swing is a plain repeat → check, "present".
     expect(find.bySemanticsLabel('B, partner swing: present'), findsOneWidget);
+  });
+
+  testWidgets('phrase mode shows ordered labels and preserves cell semantics', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'A', [move('balance'), move('balance')]),
+      ],
+      showPhrases: true,
+    );
+
+    expect(find.text('A1, A2'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'A, balance: present, introduced here, dance\'s first figure, '
+        'phrase(s): A1, A2',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('phrase mode uses labels in compact dance chips', (tester) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'A', [move('balance'), move('balance')]),
+      ],
+      showPhrases: true,
+      width: 360,
+    );
+
+    expect(find.text('A1, A2'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(
+        'A, formation: Improper, balance: present, introduced here, '
+        'dance\'s first figure, phrase(s): A1, A2',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('debut star and dance-first flag land on the correct columns', (
@@ -495,7 +539,7 @@ void main() {
       Set<int>? altRowIndices,
       bool showAlternates = true,
       Dialect? dialect,
-      List<ProgramHalf?>? halves,
+      List<int?>? sections,
       Set<String> hiddenColumns = const {},
     }) async {
       // A 360dp phone: below ProgramMatrixTable.compactBreakpoint (600), so the
@@ -509,7 +553,7 @@ void main() {
 
           home: Scaffold(
             body: ProgramMatrixTable(
-              matrix: buildProgramMatrix(dances, halves: halves),
+              matrix: buildProgramMatrix(dances, sections: sections),
               taxonomy: contraTaxonomy,
               dialect: dialect ?? Dialect.canonical,
               omittedFreeTextCount: omittedFreeTextCount,
@@ -808,8 +852,8 @@ void main() {
     });
   });
 
-  group('half badge', () {
-    testWidgets('wide grid renders 1st/2nd badges with icon + text', (
+  group('section badge', () {
+    testWidgets('wide grid renders numbered badges with icon + text', (
       tester,
     ) async {
       await pump(
@@ -818,7 +862,7 @@ void main() {
           dance('d1', 'A', [move('balance')]),
           dance('d2', 'B', [move('balance')]),
         ],
-        halves: const [ProgramHalf.first, ProgramHalf.second],
+        sections: const [1, 2],
       );
 
       // Icon + text (never colour alone), per WCAG 1.4.1.
@@ -827,12 +871,38 @@ void main() {
       expect(find.byIcon(Icons.looks_one_outlined), findsOneWidget);
       expect(find.byIcon(Icons.looks_two_outlined), findsOneWidget);
 
-      // Screen-reader phrasing folds the half into the row header label.
-      expect(find.bySemanticsLabel('Dance: A, first half'), findsOneWidget);
-      expect(find.bySemanticsLabel('Dance: B, second half'), findsOneWidget);
+      // Screen-reader phrasing folds the section into the row header label.
+      expect(find.bySemanticsLabel('Dance: A, section 1st'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: B, section 2nd'), findsOneWidget);
     });
 
-    testWidgets('no badge when the program has no halves', (tester) async {
+    testWidgets('wide grid renders sections beyond second', (tester) async {
+      await pump(
+        tester,
+        dances: [
+          dance('d1', 'A', [move('balance')]),
+          dance('d2', 'B', [move('balance')]),
+          dance('d3', 'C', [move('balance')]),
+          dance('d4', 'D', [move('balance')]),
+          dance('d5', 'E', [move('balance')]),
+          dance('d6', 'F', [move('balance')]),
+        ],
+        sections: const [1, 2, 3, 4, 5, 10],
+      );
+
+      expect(find.text('3rd'), findsOneWidget);
+      expect(find.text('4th'), findsOneWidget);
+      expect(find.text('5th'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
+      expect(find.byIcon(Icons.looks_3_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.looks_4_outlined), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: C, section 3rd'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: D, section 4th'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: E, section 5th'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: F, section 10'), findsOneWidget);
+    });
+
+    testWidgets('no badge when the program has no sections', (tester) async {
       await pump(
         tester,
         dances: [
@@ -846,7 +916,7 @@ void main() {
       expect(find.bySemanticsLabel('Dance: A'), findsOneWidget);
     });
 
-    testWidgets('compact view carries the half into chip semantics', (
+    testWidgets('compact view carries the section into chip semantics', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(360, 720));
@@ -863,7 +933,7 @@ void main() {
                   dance('d1', 'A', [swing(), move('balance')]),
                   dance('d2', 'B', [swing(), move('balance')]),
                 ],
-                halves: const [ProgramHalf.first, ProgramHalf.second],
+                sections: const [8, 9],
               ),
               taxonomy: contraTaxonomy,
               dialect: Dialect.canonical,
@@ -878,7 +948,7 @@ void main() {
       // formerly phrase mode, #582).
       expect(
         find.bySemanticsLabel(
-          "A (first half), formation: Improper, partner swing: "
+          "A (section 8th), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "introduced here, dance's first figure",
         ),
@@ -886,7 +956,7 @@ void main() {
       );
       expect(
         find.bySemanticsLabel(
-          "B (second half), formation: Improper, partner swing: "
+          "B (section 9th), formation: Improper, partner swing: "
           "present, shares beats with an adjacent dance, "
           "dance's first figure",
         ),

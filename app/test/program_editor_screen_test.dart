@@ -439,14 +439,12 @@ void main() {
 
   testWidgets('create requires a title', (tester) async {
     final repos = openTestRepositories();
-    String? savedId;
-    await _pump(tester, repos, onSaved: (id) => savedId = id);
+    await _pump(tester, repos);
 
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
 
     expect(find.text('A title is required.'), findsOneWidget);
-    expect(savedId, isNull);
     expect(await repos.programs.listAll(), isEmpty);
   });
 
@@ -676,9 +674,9 @@ void main() {
 
   testWidgets('adds a dance slot from the inline picker', (tester) async {
     final repos = openTestRepositories();
+    String? savedId;
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
-    String? savedId;
     await _pumpBuilder(
       tester,
       repos,
@@ -1116,6 +1114,272 @@ void main() {
     expect(saved!.slots[1].isAlt, isTrue);
   });
 
+  testWidgets('promoting a middle alternate swaps with its nearest primary', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(
+            id: 'primary',
+            position: 0,
+            text: 'Primary',
+            guestCaller: 'Original guest',
+            danceMinutes: 8,
+            performedAt: DateTime.utc(2026, 1, 1, 19),
+          ),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 2,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 3,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'next', position: 4, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-2-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Alternate 2',
+      'Alternate 1',
+      'Primary',
+      'Alternate 3',
+      'Next',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((slot) => slot.text).toList(), [
+      'Alternate 2',
+      'Alternate 1',
+      'Primary',
+      'Alternate 3',
+      'Next',
+    ]);
+    expect(saved.slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      true,
+      true,
+      false,
+    ]);
+    expect(saved.slots[2].guestCaller, 'Original guest');
+    expect(saved.slots[2].danceMinutes, 8);
+    expect(saved.slots[2].performedAt, DateTime.utc(2026, 1, 1, 19));
+    expect(saved.slots.map((slot) => slot.position).toList(), [0, 1, 2, 3, 4]);
+  });
+
+  testWidgets('promotion selects the nearest preceding primary', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'primary-1', position: 0, text: 'Primary 1'),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'primary-2', position: 2, text: 'Primary 2'),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 3,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 4,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-3-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Primary 1',
+      'Alternate 1',
+      'Alternate 2',
+      'Primary 2',
+      'Alternate 3',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      false,
+      true,
+      true,
+    ]);
+  });
+
+  testWidgets('dialog promotion preserves all edited slot fields', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'primary-1', position: 0, text: 'Primary 1'),
+          ProgramSlot(
+            id: 'alternate-1',
+            position: 1,
+            text: 'Alternate 1',
+            isAlt: true,
+          ),
+          ProgramSlot(id: 'primary-2', position: 2, text: 'Primary 2'),
+          ProgramSlot(
+            id: 'alternate-2',
+            position: 3,
+            text: 'Alternate 2',
+            isAlt: true,
+          ),
+          ProgramSlot(
+            id: 'alternate-3',
+            position: 4,
+            text: 'Alternate 3',
+            isAlt: true,
+          ),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-3-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit slot'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-note')),
+      'Promoted note',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-guest')),
+      'Guest caller',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-dance-minutes')),
+      '12',
+    );
+    await tester.tap(find.byKey(const ValueKey('slot-edit-alt')));
+    await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), [
+      'Primary 1',
+      'Alternate 1',
+      'Promoted note',
+      'Primary 2',
+      'Alternate 3',
+    ]);
+    expect(slots.map((slot) => slot.isAlt).toList(), [
+      false,
+      true,
+      false,
+      true,
+      true,
+    ]);
+    expect(slots[2].guestCaller, 'Guest caller');
+    expect(slots[2].danceMinutes, 12);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots[2].text, 'Promoted note');
+    expect(saved.slots[2].guestCaller, 'Guest caller');
+    expect(saved.slots[2].danceMinutes, 12);
+    expect(saved.slots[2].isAlt, isFalse);
+    expect(saved.slots[3].text, 'Primary 2');
+    expect(saved.slots[3].isAlt, isTrue);
+  });
+
+  testWidgets('promoting an orphaned alternate clears its flag in place', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 'orphan', position: 0, text: 'Orphan', isAlt: true),
+          ProgramSlot(id: 'next', position: 1, text: 'Next'),
+        ],
+      ),
+    );
+    await _pumpBuilder(tester, repos, programId: 'p1');
+
+    await tester.tap(find.byKey(const ValueKey('slot-0-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Make primary'));
+    await tester.pumpAndSettle();
+
+    final slots = tester
+        .widget<ProgramSlotListEditor>(find.byType(ProgramSlotListEditor))
+        .slots;
+    expect(slots.map((slot) => slot.text).toList(), ['Orphan', 'Next']);
+    expect(slots.map((slot) => slot.isAlt).toList(), [false, false]);
+
+    await tester.tap(find.byKey(const ValueKey('save-program')));
+    await tester.pumpAndSettle();
+    final saved = await repos.programs.getById('p1');
+    expect(saved!.slots.map((slot) => slot.text).toList(), ['Orphan', 'Next']);
+    expect(saved.slots.map((slot) => slot.isAlt).toList(), [false, false]);
+  });
+
   testWidgets('a leading alternate surfaces an orphaned_alt warning', (
     tester,
   ) async {
@@ -1186,7 +1450,11 @@ void main() {
       'Guest Caller',
     );
     await tester.enterText(
-      find.byKey(const ValueKey('slot-edit-minutes')),
+      find.byKey(const ValueKey('slot-edit-walkthrough-minutes')),
+      '3',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('slot-edit-dance-minutes')),
       '12',
     );
     await tester.tap(find.byKey(const ValueKey('slot-edit-save')));
@@ -1197,7 +1465,8 @@ void main() {
 
     final saved = await repos.programs.getById('p1');
     expect(saved!.slots.single.guestCaller, 'Guest Caller');
-    expect(saved.slots.single.plannedMinutes, 12);
+    expect(saved.slots.single.walkthroughMinutes, 3);
+    expect(saved.slots.single.danceMinutes, 12);
   });
 
   // M1 (issue #964): the replacement must rebuild the slot preserving
@@ -1222,7 +1491,8 @@ void main() {
               position: 0,
               danceId: 'd1',
               guestCaller: 'Guest Caller',
-              plannedMinutes: 12,
+              walkthroughMinutes: 3,
+              danceMinutes: 9,
               isAlt: true,
               performedAt: performedAt,
             ),
@@ -1278,7 +1548,8 @@ void main() {
       final slot = saved!.slots.single;
       expect(slot.danceId, 'd2');
       expect(slot.guestCaller, 'Guest Caller');
-      expect(slot.plannedMinutes, 12);
+      expect(slot.walkthroughMinutes, 3);
+      expect(slot.danceMinutes, 9);
       expect(slot.isAlt, isTrue);
       expect(slot.performedAt, performedAt);
     },
@@ -1313,7 +1584,7 @@ void main() {
         'Guest Caller',
       );
       await tester.enterText(
-        find.byKey(const ValueKey('slot-edit-minutes')),
+        find.byKey(const ValueKey('slot-edit-dance-minutes')),
         '12',
       );
 
@@ -1340,7 +1611,7 @@ void main() {
       final slot = saved!.slots.single;
       expect(slot.danceId, 'd2');
       expect(slot.guestCaller, 'Guest Caller');
-      expect(slot.plannedMinutes, 12);
+      expect(slot.danceMinutes, 12);
     },
   );
 
@@ -3295,6 +3566,7 @@ void main() {
       expect(find.text('Primary'), findsOneWidget);
       expect(find.text('Alternate'), findsOneWidget);
       expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
+      expect(find.byTooltip('Show phrase labels'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('program-matrix-toggle-alternates')),
@@ -3304,15 +3576,23 @@ void main() {
       expect(find.text('Alternate'), findsNothing);
       expect(find.byTooltip('Show alternate rows'), findsOneWidget);
 
+      await tester.tap(
+        find.byKey(const ValueKey('program-matrix-toggle-phrases')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
+
       await tester.tap(find.byKey(const ValueKey('program-build-tab')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
       await tester.pumpAndSettle();
       expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
 
       await tester.binding.setSurfaceSize(const Size(360, 720));
       await tester.pumpAndSettle();
       expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
 
       expect((await repos.programs.getById('p1'))!.hideAlternates, isFalse);
     },
@@ -3377,6 +3657,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Alternate'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey('program-matrix-toggle-phrases')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Show presence glyphs'), findsOneWidget);
 
     navigatorKey.currentState!.pop();
     await tester.pumpAndSettle();
@@ -3384,6 +3669,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
     await tester.pumpAndSettle();
     expect(find.text('Alternate'), findsOneWidget);
+    expect(find.byTooltip('Show phrase labels'), findsOneWidget);
   });
 
   testWidgets('Matrix tab exposes an enabled export/print PDF control', (
@@ -3692,6 +3978,47 @@ void main() {
       isEmpty,
     );
   });
+
+  testWidgets(
+    'starting program template seeds valid entries with fresh slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      String? savedId;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(
+            danceId: 'd1',
+            text: 'Guest caller',
+          ),
+          const StartingProgramTemplateEntry(danceId: 'missing'),
+          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+        ]),
+      );
+
+      await _pump(tester, repos, onSaved: (id) => savedId = id);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Template test',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect(savedId, isNotNull);
+      final saved = await repos.programs.getById(savedId!);
+      expect(saved, isNotNull);
+      expect(saved!.slots, hasLength(2));
+      expect(saved.slots.map((slot) => slot.position), [0, 1]);
+      expect(saved.slots.map((slot) => slot.id).toSet(), hasLength(2));
+      expect(saved.slots.first.danceId, 'd1');
+      expect(saved.slots.first.text, 'Guest caller');
+      expect(saved.slots.last.text, Program.breakSlotText);
+    },
+  );
 
   // Pins the two feedback channels #796 must not disturb. The picker's new
   // row-level confirmation exists because the modal *sheet* covers the

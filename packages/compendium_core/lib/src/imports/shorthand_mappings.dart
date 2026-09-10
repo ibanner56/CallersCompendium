@@ -225,8 +225,9 @@ class ShorthandMappings {
     } catch (_) {
       return null;
     }
-    final issues = taxonomy.validateFigure(figure);
+    final normalized = taxonomy.normalizeFigureV35(figure);
+    final issues = taxonomy.validateFigure(normalized);
     final hasError = issues.any((i) => i.severity == ValidationSeverity.error);
-    return hasError ? null : figure;
+    return hasError ? null : normalized;
   }
 }

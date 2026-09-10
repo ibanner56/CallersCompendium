@@ -146,12 +146,15 @@ A program is made of three kinds of slots:
   with an icon and text (never color alone), so it is always clear which dance is
   the backup.
 
-Each slot can also carry a **note**, a **guest caller**, and a **planned length**
-in minutes — useful both for pacing the evening and for the timing display in
-[Perform mode](./perform.md#keep-time-through-the-evening). A dance slot's
+Each slot can also carry a **note**, a **guest caller**, and optional
+**walkthrough** and **dance** lengths in minutes — useful both for pacing the
+evening and for the timing display in [Perform mode](./perform.md#keep-time-through-the-evening).
+The two lengths are shown separately while their combined total is used for
+the final overrun cue. A dance slot's
 **…** menu also offers **Edit slot**, whose dialog includes a **Replace…**
 button for swapping the dance in place — keeping the note, guest caller,
-planned length, and mark-performed status exactly as they were — instead of
+walkthrough and dance lengths, and mark-performed status exactly as they were —
+instead of
 adding the new dance, dragging it into position, and deleting the old one.
 Dance slots also have **View details** for an inspection-only preview; it cannot
 change the program or the dance.
@@ -160,6 +163,13 @@ To reorder slots, use the **drag handle** or the **move up / move down** buttons
 Both do the same job, so you are never forced to drag.
 
 ### Event details
+
+When you choose **New** from the Programs list, the editor starts with the
+configured **Starting program** template from Settings. It creates fresh slots
+and keeps the template's order and notes; missing dances are omitted. The
+template does not affect imported programs, duplicated programs, an existing
+program being edited, or the direct “create a new program with this dance”
+action.
 
 A program carries the details of its event:
 
@@ -182,6 +192,12 @@ Defaults** and new programs will prefill them — see
 
 The **Matrix** tab turns your program into a grid worked out from the
 choreography, so you can see the shape of the evening at a glance.
+
+Break slots divide the grid into numbered sections. Dances before the first
+break are in the **1st** section, dances between breaks are in the **2nd**,
+**3rd**, and later sections, and break slots themselves are unnumbered. These
+labels describe the matrix only; calling-history summaries continue to group
+the 2nd and later sections together as the second half.
 
 *The program matrix with moves as columns, dances as rows, pinned headers, and
 markers that explain how figures are introduced and reused.*
@@ -216,6 +232,12 @@ Here is how to read it:
   (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
   the matrix used to behave — turn off **Flag exact beat overlap only** in
   **Settings ▸ Program**.
+- **Show phrase labels** with the text-fields icon above the matrix. This
+  replaces comparable move markers with every phrase where that move starts,
+  in order (A1, A2, B1, B2…). Custom and compound columns keep their markers.
+  It is a screen-only view, stays active while you switch between Matrix and
+  Build or resize the window, resets when you close the program editor, and
+  does not change the PDF.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is

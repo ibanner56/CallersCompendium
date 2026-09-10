@@ -865,7 +865,9 @@ List<ProgramSlot> _programSlotsFromJson(Object? raw) {
           isPurgedDance: isPurgedDance,
           isAlt: _boolOr(m, 'isAlt', false),
           guestCaller: _strOrNull(m, 'guestCaller'),
-          plannedMinutes: _intOrNull(m, 'plannedMinutes'),
+          walkthroughMinutes: _intOrNull(m, 'walkthroughMinutes'),
+          danceMinutes:
+              _intOrNull(m, 'danceMinutes') ?? _intOrNull(m, 'plannedMinutes'),
           performedAt: _dtOrNull(m, 'performedAt'),
         );
       }(),

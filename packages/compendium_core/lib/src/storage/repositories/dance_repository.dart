@@ -169,9 +169,31 @@ class DanceRepository {
       if (!identical(result, figure) && normalised == null) {
         normalised = figures.sublist(0, i);
       }
+
       normalised?.add(result);
     }
     return normalised != null ? dance.copyWith(figures: normalised) : dance;
+  }
+
+  /// Normalizes legacy v34 figure ids and parameter keys recursively.
+  List<Figure> normaliseTaxonomyV35FiguresPublic(List<Figure> figures) {
+    List<Figure>? normalised;
+    for (var i = 0; i < figures.length; i++) {
+      final figure = figures[i];
+      final result = _taxonomy.normalizeFigureV35(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised ?? figures;
+  }
+
+  Dance normaliseTaxonomyV35Public(Dance dance) {
+    final figures = normaliseTaxonomyV35FiguresPublic(dance.figures);
+    return identical(figures, dance.figures)
+        ? dance
+        : dance.copyWith(figures: figures);
   }
 
   Figure _normaliseTaxonomyV34Figure(Figure figure) {
@@ -446,10 +468,10 @@ class DanceRepository {
     );
     // v25 (#870): normalise move ids for inverse-pair aliases before
     // persisting. This is the single convergence point for all figure writers.
-    // v34 (#1193): normalize legacy assumed mad robins here as well as in the
-    // one-time sweep, so restores and later imports cannot reintroduce them.
+    // v34-v35: normalize legacy figures here as well as in one-time sweeps, so
+    // restores and later imports cannot reintroduce old taxonomy keys.
     final normalisedDance = normaliseTaxonomyV34Public(
-      _normaliseMoveIds(dance),
+      _normaliseTaxonomyV35Dance(_normaliseMoveIds(dance)),
     );
     final difficultyLevelId = normalisedDance.difficultyLevelId;
     if (difficultyLevelId != null) {
@@ -660,6 +682,19 @@ class DanceRepository {
 
     await _rebuildDerived(normalisedDance);
   });
+
+  Dance _normaliseTaxonomyV35Dance(Dance dance) {
+    List<Figure>? normalised;
+    for (var i = 0; i < dance.figures.length; i++) {
+      final figure = dance.figures[i];
+      final result = _taxonomy.normalizeFigureV35(figure);
+      if (!identical(result, figure) && normalised == null) {
+        normalised = dance.figures.sublist(0, i);
+      }
+      normalised?.add(result);
+    }
+    return normalised == null ? dance : dance.copyWith(figures: normalised);
+  }
 
   /// Rewrites the derived `dance_figures`/`dance_fts`/`dance_substring_fts` rows
   /// for a single dance:

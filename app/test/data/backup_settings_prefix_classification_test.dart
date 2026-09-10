@@ -65,6 +65,7 @@ void main() {
       taxonomyV33CanonicalRebuildDoneKey,
       taxonomyV34CanonicalRebuildDoneKey,
       kModifierContainerCanonicalRebuildDoneKey,
+      taxonomyV35FigureNormalizationDoneKey,
       callersBoxRollAwayRoleRepairDoneKey,
     });
     expect(kBackupSettingsDenylist, containsAll(exactDeviceScopedKeys));
@@ -77,6 +78,10 @@ void main() {
     );
     expect(
       isBackupEligibleSettingKey(taxonomyV34CanonicalRebuildDoneKey),
+      isFalse,
+    );
+    expect(
+      isBackupEligibleSettingKey(taxonomyV35FigureNormalizationDoneKey),
       isFalse,
     );
     expect(
