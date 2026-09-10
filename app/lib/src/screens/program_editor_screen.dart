@@ -440,6 +440,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// flag [_hideAlternates].
   bool _showMatrixAlternates = true;
 
+  /// Whether the on-screen matrix replaces comparable presence glyphs with
+  /// phrase labels. This is transient and deliberately never exported.
+  bool _showMatrixPhrases = false;
+
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
   /// before an explicit Save no longer silently loses it.
@@ -2763,6 +2767,16 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
                 },
               ),
               IconButton(
+                key: const ValueKey('program-matrix-toggle-phrases'),
+                icon: const Icon(Icons.text_fields),
+                tooltip: _showMatrixPhrases
+                    ? l10n.programsMatrixHidePhrasesSemantic
+                    : l10n.programsMatrixShowPhrasesSemantic,
+                onPressed: () {
+                  setState(() => _showMatrixPhrases = !_showMatrixPhrases);
+                },
+              ),
+              IconButton(
                 key: const ValueKey('program-matrix-reset-hidden-columns'),
                 icon: const Icon(Icons.visibility),
                 tooltip: l10n.programsMatrixShowAllColumnsSemantic,
@@ -2799,6 +2813,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             altDanceIds: altDanceIds,
             altRowIndices: altRowIndices,
             showAlternates: _showMatrixAlternates,
+            showPhrases: _showMatrixPhrases,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
             formationLabelBuilder: (formation) => formationDisplayLabel(

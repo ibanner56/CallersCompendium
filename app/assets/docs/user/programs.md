@@ -216,6 +216,12 @@ Here is how to read it:
   (A1, A2, B1, B2…) — even when the beats themselves don't overlap, which is how
   the matrix used to behave — turn off **Flag exact beat overlap only** in
   **Settings ▸ Program**.
+- **Show phrase labels** with the text-fields icon above the matrix. This
+  replaces comparable move markers with every phrase where that move starts,
+  in order (A1, A2, B1, B2…). Custom and compound columns keep their markers.
+  It is a screen-only view, stays active while you switch between Matrix and
+  Build or resize the window, resets when you close the program editor, and
+  does not change the PDF.
 - **Headers stay pinned** as you scroll, so you never lose track of which row or
   column you are looking at.
 - **Hide a column you do not need** using the eye icon in its header. The icon is

@@ -2950,6 +2950,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher les lignes alternatives';
 
   @override
+  String get programsMatrixShowPhrasesSemantic =>
+      'Afficher les libellés de phrase';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic =>
+      'Afficher les glyphes de présence';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2994,6 +3002,7 @@ class AppLocalizationsFr extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
@@ -3015,7 +3024,11 @@ class AppLocalizationsFr extends AppLocalizations {
       'no': 'absent',
       'other': 'présent$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move : $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', phrase(s) : $phrases',
+    });
+    return '$dance, $move : $_temp3$_temp4';
   }
 
   @override

@@ -2928,6 +2928,12 @@ class AppLocalizationsNl extends AppLocalizations {
       'Alternatieve rijen weergeven';
 
   @override
+  String get programsMatrixShowPhrasesSemantic => 'Fraselabels tonen';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => 'Aanwezigheidsglyphs tonen';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2969,6 +2975,7 @@ class AppLocalizationsNl extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
@@ -2990,7 +2997,11 @@ class AppLocalizationsNl extends AppLocalizations {
       'no': 'niet aanwezig',
       'other': 'aanwezig$_temp0$_temp1$_temp2',
     });
-    return '$dance, $move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': ', frase(n): $phrases',
+    });
+    return '$dance, $move: $_temp3$_temp4';
   }
 
   @override

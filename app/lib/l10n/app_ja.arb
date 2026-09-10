@@ -3124,6 +3124,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
+  "programsMatrixShowPhrasesSemantic": "フレーズラベルを表示",
+  "@programsMatrixShowPhrasesSemantic": {
+    "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
+  },
+  "programsMatrixHidePhrasesSemantic": "存在グリフを表示",
+  "@programsMatrixHidePhrasesSemantic": {
+    "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{代替ダンス: {title}、前半} second{代替ダンス: {title}、後半} other{代替ダンス: {title}}}} other{{half, select, first{ダンス: {title}、前半} second{ダンス: {title}、後半} other{ダンス: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
@@ -3140,9 +3148,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}、{move}: {present, select, no{未使用} other{使用中{collision, select, phrase{、隣接するダンスと同じフレーズで繰り返される} beats{、隣接するダンスと拍が重なる} other{}}{debut, select, yes{、ここで初登場} other{}}{first, select, yes{、ダンスの最初のフィギュア} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}、{move}：{present, select, no{なし} other{あり{collision, select, phrase{、隣接するダンスと同じフレーズで繰り返し} beats{、隣接するダンスと拍を共有} other{}}{debut, select, yes{、ここで初登場} other{}}{first, select, yes{、ダンスの最初のフィギュア} other{}}}}{phrases, select, none{} other{、フレーズ：{phrases}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
+    "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title}（代替ダンス、前半）} second{{title}（代替ダンス、後半）} other{{title}（代替ダンス）}}} other{{half, select, first{{title}（前半）} second{{title}（後半）} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {

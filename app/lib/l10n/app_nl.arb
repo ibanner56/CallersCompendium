@@ -3124,6 +3124,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
+  "programsMatrixShowPhrasesSemantic": "Fraselabels tonen",
+  "@programsMatrixShowPhrasesSemantic": {
+    "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
+  },
+  "programsMatrixHidePhrasesSemantic": "Aanwezigheidsglyphs tonen",
+  "@programsMatrixHidePhrasesSemantic": {
+    "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternatieve dans: {title}, eerste helft} second{Alternatieve dans: {title}, tweede helft} other{Alternatieve dans: {title}}}} other{{half, select, first{Dans: {title}, eerste helft} second{Dans: {title}, tweede helft} other{Dans: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
@@ -3140,9 +3148,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{niet aanwezig} other{aanwezig{collision, select, phrase{, herhaalt in dezelfde frase als een aangrenzende dans} beats{, deelt beats met een aangrenzende dans} other{}}{debut, select, yes{, hier geïntroduceerd} other{}}{first, select, yes{, eerste figuur van de dans} other{}}}}{phrases, select, none{} other{, frase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
+    "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (alternatieve dans, eerste helft)} second{{title} (alternatieve dans, tweede helft)} other{{title} (alternatieve dans)}}} other{{half, select, first{{title} (eerste helft)} second{{title} (tweede helft)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {
