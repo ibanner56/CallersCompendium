@@ -43,12 +43,12 @@ const int kMaxFigureDiffLines = 200;
 /// via [Taxonomy.effectiveParams] (so a stated value and a defaulted value
 /// collapse identically), MINUS `beats` ')'`. [Figure.progression] is a
 /// top-level [Figure] field (not a taxonomy param), so it never enters the
-/// key by construction — no special-case removal needed. A `meanwhile`
-/// (#590) container folds all of its concurrent sides' keys into one
-/// composite key, in side order (the container is always a single flat-list
-/// element — see [Figure.isMeanwhile] — so this yields exactly one key per
-/// list position, matching [diffFigures]' one-key-per-figure sequence
-/// model). A custom/free-text figure ([Figure.isCustom]) has no taxonomy
+/// key by construction — no special-case removal needed. A structural
+/// container (`meanwhile` or `modifier`, including one legal opposite-kind
+/// nested level) folds its ordered child keys into one composite key. The
+/// container remains a single flat-list element, so this yields exactly one
+/// key per list position, matching [diffFigures]' one-key-per-figure sequence
+/// model. A custom/free-text figure ([Figure.isCustom]) has no taxonomy
 /// identity, so it keys on its own line text (`params['text']`), trimmed and
 /// with internal whitespace collapsed — there is no structure to hide
 /// dialect noise behind, so the text itself (once trivial formatting noise is

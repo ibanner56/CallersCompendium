@@ -266,6 +266,18 @@ void main() {
       expect(draft.toFigure(), isNull);
     });
 
+    test('does not promote a later modifier past a blank core', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(),
+          FigureDraft(move: 'roll_away'),
+          FigureDraft(move: 'swing'),
+        ],
+      )..params['beats'] = 8;
+
+      expect(draft.toFigure(), isNull);
+    });
+
     test('preserves alternating nested containers', () {
       final draft = FigureDraft(
         modifierFigures: [

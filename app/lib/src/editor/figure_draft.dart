@@ -238,10 +238,15 @@ class FigureDraft {
       // container cannot be represented as a custom leaf without losing its
       // structure, so it keeps the parent draft editor-only until complete.
       final readyChildren = <Figure>[];
-      for (final child in children) {
+      for (var index = 0; index < children.length; index++) {
+        final child = children[index];
         final figure = child.toFigure(canonicalizeNote: canonicalizeNote);
         if (figure != null) {
           readyChildren.add(figure);
+        } else if (modifierFigures != null && index == 0) {
+          // The first modifier child is the core; skipping it would promote a
+          // later child into the core slot when the draft is saved.
+          return null;
         } else if (child.isContainerDraft) {
           return null;
         } else if (child._hasUnsavedContent) {

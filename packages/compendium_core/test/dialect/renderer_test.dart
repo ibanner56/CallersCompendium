@@ -1358,6 +1358,21 @@ void main() {
         expect(rendered, contains('starring'));
         expect(rendered, contains('zigging'));
         expect(rendered, contains('zagging'));
+
+        final nounFigure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'hey'),
+            Figure(move: 'poussette'),
+          ],
+          beats: 16,
+        );
+        final nounRendered = renderer.renderSummary(
+          nounFigure,
+          Dialect.canonical,
+        );
+        expect(nounRendered, contains('doing a hey'));
+        expect(nounRendered, contains('doing a poussette'));
       });
     });
 
