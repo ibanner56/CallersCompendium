@@ -885,18 +885,21 @@ void main() {
           dance('d3', 'C', [move('balance')]),
           dance('d4', 'D', [move('balance')]),
           dance('d5', 'E', [move('balance')]),
+          dance('d6', 'F', [move('balance')]),
         ],
-        sections: const [1, 2, 3, 4, 5],
+        sections: const [1, 2, 3, 4, 5, 10],
       );
 
       expect(find.text('3rd'), findsOneWidget);
       expect(find.text('4th'), findsOneWidget);
       expect(find.text('5th'), findsOneWidget);
+      expect(find.text('10'), findsOneWidget);
       expect(find.byIcon(Icons.looks_3_outlined), findsOneWidget);
       expect(find.byIcon(Icons.looks_4_outlined), findsOneWidget);
       expect(find.bySemanticsLabel('Dance: C, section 3rd'), findsOneWidget);
       expect(find.bySemanticsLabel('Dance: D, section 4th'), findsOneWidget);
       expect(find.bySemanticsLabel('Dance: E, section 5th'), findsOneWidget);
+      expect(find.bySemanticsLabel('Dance: F, section 10'), findsOneWidget);
     });
 
     testWidgets('no badge when the program has no sections', (tester) async {

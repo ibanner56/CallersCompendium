@@ -3969,13 +3969,17 @@
       }
     }
   },
-  "programsMatrixSectionShort": "{section, select, none{} 1{1st} 2{2nd} 3{3rd} 4{4th} 5{5th} 6{6th} 7{7th} 8{8th} 9{9th} other{{section}}}",
+  "programsMatrixSectionShort": "{sectionKey, select, s1{1st} s2{2nd} s3{3rd} s4{4th} s5{5th} s6{6th} s7{7th} s8{8th} s9{9th} other{{sectionNumber}}}",
   "@programsMatrixSectionShort": {
-    "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). The value is preformatted for the locale.",
+    "description": "Short localized ordinal label for a numbered program section (for example, 1st, 2nd, or 3rd). sectionKey selects listed ordinals; sectionNumber is the raw number used above the listed ordinals.",
     "placeholders": {
-      "section": {
+      "sectionKey": {
         "type": "String",
-        "example": "3rd"
+        "example": "s3"
+      },
+      "sectionNumber": {
+        "type": "String",
+        "example": "10"
       }
     }
   },

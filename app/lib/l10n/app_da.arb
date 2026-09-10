@@ -3200,9 +3200,9 @@
   "@programsMatrixHalfShort": {
     "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
   },
-  "programsMatrixSectionShort": "{section, select, none{} 1{1.} 2{2.} 3{3.} 4{4.} 5{5.} 6{6.} 7{7.} 8{8.} 9{9.} other{{section}}}",
+  "programsMatrixSectionShort": "{sectionKey, select, s1{1.} s2{2.} s3{3.} s4{4.} s5{5.} s6{6.} s7{7.} s8{8.} s9{9.} other{{sectionNumber}}}",
   "@programsMatrixSectionShort": {
-    "x-sourceSha256": "b19b8e17c6ca93928f274e040da45870e35c5571cef6e3bab4bbe50af2d86175"
+    "x-sourceSha256": "68a28048786bc047b332d33dedbfe0848b16beb883e24f7cad66b9ebec4a1ecb"
   },
   "programsMatrixSectionRowHeaderSemantic": "{alt, select, yes{{section, select, none{Alternativ dans: {title}} other{Alternativ dans: {title}, sektion {section}}}} other{{section, select, none{Dans: {title}} other{Dans: {title}, sektion {section}}}}}",
   "@programsMatrixSectionRowHeaderSemantic": {

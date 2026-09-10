@@ -669,10 +669,10 @@ class _RowHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final sectionKey = _sectionOrdinal(section);
-    final sectionLabel = section == null
-        ? sectionKey
-        : l10n.programsMatrixSectionShort(sectionKey);
+    final sectionValue = section;
+    final sectionLabel = sectionValue == null
+        ? 'none'
+        : _localizedSectionLabel(l10n, sectionValue);
     return Semantics(
       header: true,
       label: l10n.programsMatrixSectionRowHeaderSemantic(
@@ -797,7 +797,7 @@ class _SectionBadge extends StatelessWidget {
             ),
             const SizedBox(width: 2),
             Text(
-              l10n.programsMatrixSectionShort(_sectionOrdinal(section)),
+              _localizedSectionLabel(l10n, section),
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onTertiaryContainer,
               ),
@@ -809,10 +809,8 @@ class _SectionBadge extends StatelessWidget {
   }
 }
 
-String _sectionOrdinal(int? section) {
-  if (section == null) return 'none';
-  return '$section';
-}
+String _localizedSectionLabel(AppLocalizations l10n, int section) =>
+    l10n.programsMatrixSectionShort('s$section', '$section');
 
 IconData _sectionIcon(int section) => switch (section) {
   1 => Icons.looks_one_outlined,
@@ -1320,10 +1318,10 @@ class _DanceChip extends StatelessWidget {
     // Preserve the grid's ALT and section distinctions, which otherwise live only
     // in the wide row header, so they aren't lost on phones. The qualifier
     // phrasing is modelled as one ICU message (no fragment concatenation).
-    final sectionKey = _sectionOrdinal(section);
-    final sectionLabel = section == null
-        ? sectionKey
-        : l10n.programsMatrixSectionShort(sectionKey);
+    final sectionValue = section;
+    final sectionLabel = sectionValue == null
+        ? 'none'
+        : _localizedSectionLabel(l10n, sectionValue);
     final who = l10n.programsMatrixSectionChipQualifiedTitle(
       danceTitle,
       isAlt ? 'yes' : 'no',
