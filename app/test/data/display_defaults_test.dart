@@ -206,6 +206,26 @@ void main() {
       expect(restored[1].params['beats'], 12);
     });
 
+    test('normalizes legacy identifiers recursively', () {
+      final stored = encodeFigures([
+        Figure(move: 'circle', params: const {'turn': 'right', 'places': 3}),
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'promenade', params: const {'dir': 'along'}),
+            Figure(move: 'stand_still', params: const {'beats': 8}),
+          ],
+          beats: 8,
+        ),
+      ]);
+
+      final restored = danceFiguresTemplateFromStored(stored);
+      expect(restored[0].params['direction'], 'right');
+      expect(restored[0].params, isNot(contains('turn')));
+      final promenade = restored[1].subFigures.first;
+      expect(promenade.params['where'], 'along');
+      expect(promenade.params, isNot(contains('dir')));
+    });
+
     test('decodes "[]" to an intentional empty template', () {
       expect(danceFiguresTemplateFromStored('[]'), isEmpty);
     });
@@ -249,6 +269,16 @@ void main() {
       final restored = meanwhileSideFiguresFromStored(encodeFigures([nested]));
       expect(restored, hasLength(2));
       expect(restored.every((figure) => figure.move == 'stand_still'), isTrue);
+    });
+
+    test('normalizes legacy identifiers in ordinary side defaults', () {
+      final restored = meanwhileSideFiguresFromStored(
+        encodeFigures([
+          Figure(move: 'circle', params: const {'turn': 'left'}),
+        ]),
+      );
+      expect(restored.single.params['direction'], 'left');
+      expect(restored.single.params, isNot(contains('turn')));
     });
   });
 

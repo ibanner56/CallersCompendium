@@ -405,7 +405,9 @@ List<Figure> defaultNewDanceFigureTemplate() => [
 List<Figure> danceFiguresTemplateFromStored(Object? stored) {
   if (stored is String) {
     try {
-      return decodeFigures(stored);
+      return decodeFigures(
+        stored,
+      ).map(contraTaxonomy.normalizeFigureV35).toList(growable: false);
     } catch (_) {
       // diagnostics: silent — empty/malformed JSON falls back to the default template
     }
@@ -437,7 +439,9 @@ List<Figure> meanwhileSideFiguresFromStored(Object? stored) {
       final figures = decodeFigures(stored);
       if (figures.length <= kMaxMeanwhileSides &&
           figures.every((figure) => !figure.isMeanwhile)) {
-        return figures;
+        return figures
+            .map(contraTaxonomy.normalizeFigureV35)
+            .toList(growable: false);
       }
     } catch (_) {
       // diagnostics: silent — malformed side defaults use the safe fallback

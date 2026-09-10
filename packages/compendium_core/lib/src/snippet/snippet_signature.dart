@@ -16,13 +16,11 @@ const int kFigureSnippetSignatureVersion = 2;
 String migrateFigureSnippetSignature(String signature) {
   final open = signature.indexOf('(');
   final move = open < 0 ? signature : signature.substring(0, open);
-  final body = open < 0 ? null : signature.substring(open);
   final legacyMove = move;
   final migratedMove = switch (move) {
     'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
     _ => move,
   };
-  if (body == null) return migratedMove;
   final renames = <String, String>{
     'turn': switch (migratedMove) {
       'circle' ||
@@ -39,21 +37,37 @@ String migrateFigureSnippetSignature(String signature) {
     'face': 'endFacing',
     'hand': migratedMove == 'form_long_waves' ? 'whomHand' : 'hand',
   };
-  final migratedBody = body.replaceAllMapped(
-    RegExp(r'([a-zA-Z_][a-zA-Z0-9_]*)='),
-    (match) => '${renames[match.group(1)] ?? match.group(1)}=',
-  );
+  if (open < 0) return migratedMove;
+
+  final close = signature.lastIndexOf(')');
+  if (close < open) return migratedMove;
+  final body = signature.substring(open + 1, close);
+  final params = <String, String>{};
+  if (body.isNotEmpty) {
+    for (final part in body.split(',')) {
+      final separator = part.indexOf('=');
+      if (separator <= 0) continue;
+      final key = part.substring(0, separator).trim();
+      final value = part.substring(separator + 1).trim();
+      if (key.isEmpty) continue;
+      params[renames[key] ?? key] = value;
+    }
+  }
   final missing = switch (legacyMove) {
     'pull_by_dancers' => 'where=unspecified',
     'pull_by_direction' => 'who=unspecified',
     _ => null,
   };
-  if (missing == null || migratedBody.contains(missing.split('=').first)) {
-    return '$migratedMove$migratedBody';
+  if (missing != null) {
+    final separator = missing.indexOf('=');
+    params.putIfAbsent(
+      missing.substring(0, separator),
+      () => missing.substring(separator + 1),
+    );
   }
-  final separator = migratedBody == '()' ? '' : ',';
-  return '$migratedMove(${migratedBody.substring(1, migratedBody.length - 1)}'
-      '$separator$missing)';
+  final migratedBody = params.entries.toList()
+    ..sort((a, b) => a.key.compareTo(b.key));
+  return '$migratedMove(${migratedBody.map((e) => '${e.key}=${e.value}').join(',')})';
 }
 
 /// Derives the **normalized figure signature** used as the global

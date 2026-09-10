@@ -2504,10 +2504,10 @@ class FigureRenderer {
         return _displayTemplate({
           'prefix': 'single file',
           'move': move,
-          'turn': turn,
-          'direction': dir,
+          'direction': turn,
+          'where': dir,
           'destination': dest,
-        }, '{prefix} {move} {turn} {direction} {destination}');
+        }, '{prefix} {move} {direction} {where} {destination}');
       }
       final swho = r._subjectWho(params, dialect);
       // v30 (#989): `turn` shown iff it is non-default, a destination is
@@ -2526,10 +2526,10 @@ class FigureRenderer {
       return _displayTemplate({
         'who': swho,
         'move': move,
-        'turn': turn,
-        'direction': dir,
+        'direction': turn,
+        'where': dir,
         'destination': dest,
-      }, '{who} {move} {turn} {direction} {destination}');
+      }, '{who} {move} {direction} {where} {destination}');
     },
     // `circle.singleFile` (taxonomy v18 #634, reworded v27 #840): a single-
     // file circulation around the ring (ContraDB source: "promenade single file

@@ -9,7 +9,7 @@ void main() {
     test('migrates legacy pull-by dimensions and zig-zag slide keys', () {
       expect(
         migrateFigureSnippetSignature('pull_by_dancers(who=neighbors)'),
-        'pull_by(who=neighbors,where=unspecified)',
+        'pull_by(where=unspecified,who=neighbors)',
       );
       expect(
         migrateFigureSnippetSignature('pull_by_direction(where=along)'),
@@ -18,6 +18,13 @@ void main() {
       expect(
         migrateFigureSnippetSignature('zig_zag(turn=right)'),
         'zig_zag(slide=right)',
+      );
+    });
+
+    test('rebuilds migrated parameters in sorted order', () {
+      expect(
+        migrateFigureSnippetSignature('circle(places=3,turn=right)'),
+        'circle(direction=right,places=3)',
       );
     });
 
