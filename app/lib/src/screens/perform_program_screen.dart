@@ -332,7 +332,7 @@ class _PerformProgramScreenState extends State<PerformProgramScreen>
         })
         .catchError((_) {
           if (mounted) {
-            // diagnostics: caller-note pref read failed; default on.
+            // diagnostics: silent — caller-note pref read failed; default on.
             setState(() => _showProgramSlotCallerNotes = true);
           }
         });
