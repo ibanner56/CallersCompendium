@@ -1073,6 +1073,26 @@ class AppLocalizationsEn extends AppLocalizations {
       'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.';
 
   @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Repeated venues in calling history';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count venues',
+      one: '1 venue',
+      zero: 'Don\'t show',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get settingsGeneralAccessibilityHeader => 'Accessibility';
 
   @override
@@ -2232,6 +2252,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get danceCallingHistoryError => 'Could not load the calling history.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Called $count times at $venue',
+      one: 'Called 1 time at $venue',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Show canonical terms';

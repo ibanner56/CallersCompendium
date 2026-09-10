@@ -1928,6 +1928,24 @@ abstract class AppLocalizations {
   /// **'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.'**
   String get settingsGeneralTrackHistoryForAllCallersSubtitle;
 
+  /// Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeated venues in calling history'**
+  String get settingsProgramVenueCallCountTitle;
+
+  /// Subtitle explaining the repeated-venue calling-history setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.'**
+  String get settingsProgramVenueCallCountSubtitle;
+
+  /// Dropdown option for the number of repeated venues shown in calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
+  String settingsProgramVenueCallCountOption(num count);
+
   /// General settings section header for accessibility preferences.
   ///
   /// In en, this message translates to:
@@ -3805,6 +3823,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not load the calling history.'**
   String get danceCallingHistoryError;
+
+  /// Repeated-venue calling-history summary item.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Called 1 time at {venue}} other{Called {count} times at {venue}}}'**
+  String danceVenueCallCount(int count, String venue);
 
   /// Accessible label for the toggle that shows canonical (undialected) figure terms.
   ///

@@ -1212,6 +1212,18 @@
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "x-sourceSha256": "b07a802d076006a8e3c62ad016048de051cc378c847bff0a8bf97bba3dcf0b02"
   },
+  "settingsProgramVenueCallCountTitle": "Gentagne spillesteder i dansehistorikken",
+  "@settingsProgramVenueCallCountTitle": {
+    "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
+  },
+  "settingsProgramVenueCallCountSubtitle": "Vis de øverste spillesteder, hvor en dans blev kaldt mere end én gang. Sæt til 0 for at skjule denne oversigt.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Vis ikke} =1{1 spillested} other{{count} spillesteder}}",
+  "@settingsProgramVenueCallCountOption": {
+    "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
+  },
   "settingsGeneralAccessibilityHeader": "Tilgængelighed",
   "@settingsGeneralAccessibilityHeader": {
     "x-sourceSha256": "d3368cbffe23c98da887d279a1b5c74b7618ba5c0488cbed30cf304f8f9398a1"
@@ -2463,6 +2475,10 @@
   "danceCallingHistoryError": "Kunne ikke indlæse kaldehistorikken.",
   "@danceCallingHistoryError": {
     "x-sourceSha256": "5b904ba8025bb80c5193a39f3c7f73cde1abae09c07a25f743e7206318a76e08"
+  },
+  "danceVenueCallCount": "{count, plural, =1{Kaldt 1 gang på {venue}} other{Kaldt {count} gange på {venue}}}",
+  "@danceVenueCallCount": {
+    "x-sourceSha256": "0046b9ca011ff24c3e6640bd63f208089cd477cee692ff4cceccdcf06ca835e1"
   },
   "danceShowCanonicalTerms": "Vis kanoniske termer",
   "@danceShowCanonicalTerms": {

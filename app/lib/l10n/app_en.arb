@@ -1362,6 +1362,18 @@
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "description": "Subtitle explaining the track-calling-history-for-all-callers toggle."
   },
+  "settingsProgramVenueCallCountTitle": "Repeated venues in calling history",
+  "@settingsProgramVenueCallCountTitle": {
+    "description": "Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary."
+  },
+  "settingsProgramVenueCallCountSubtitle": "Show the top venues where a dance was called more than once. Set to 0 to hide this summary.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "description": "Subtitle explaining the repeated-venue calling-history setting."
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Don't show} =1{1 venue} other{{count} venues}}",
+  "@settingsProgramVenueCallCountOption": {
+    "description": "Dropdown option for the number of repeated venues shown in calling history."
+  },
   "settingsGeneralAccessibilityHeader": "Accessibility",
   "@settingsGeneralAccessibilityHeader": {
     "description": "General settings section header for accessibility preferences."
@@ -2885,6 +2897,20 @@
   "danceCallingHistoryError": "Could not load the calling history.",
   "@danceCallingHistoryError": {
     "description": "Shown in the calling-history section when its query fails, instead of the empty state — which would otherwise claim the dance has never been called."
+  },
+  "danceVenueCallCount": "{count, plural, =1{Called 1 time at {venue}} other{Called {count} times at {venue}}}",
+  "@danceVenueCallCount": {
+    "description": "Repeated-venue calling-history summary item.",
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "example": "3"
+      },
+      "venue": {
+        "type": "String",
+        "example": "Grange Hall"
+      }
+    }
   },
   "danceShowCanonicalTerms": "Show canonical terms",
   "@danceShowCanonicalTerms": {
