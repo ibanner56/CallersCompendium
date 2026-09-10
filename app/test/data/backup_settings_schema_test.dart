@@ -76,7 +76,7 @@ void main() {
         isFalse,
       );
     });
-    
+
     test('bool keys accept only bools', () {
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, true), isTrue);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, false), isTrue);
