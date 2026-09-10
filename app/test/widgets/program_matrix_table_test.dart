@@ -41,6 +41,8 @@ void main() {
     required List<Dance> dances,
     int omittedFreeTextCount = 0,
     Set<String> altDanceIds = const {},
+    Set<int>? altRowIndices,
+    bool showAlternates = true,
     Dialect? dialect,
     List<ProgramHalf?>? halves,
     Set<String> hiddenColumns = const {},
@@ -60,6 +62,8 @@ void main() {
             dialect: dialect ?? Dialect.canonical,
             omittedFreeTextCount: omittedFreeTextCount,
             altDanceIds: altDanceIds,
+            altRowIndices: altRowIndices,
+            showAlternates: showAlternates,
             hiddenColumns: hiddenColumns,
             onHideColumn: onHideColumn,
           ),
@@ -246,6 +250,47 @@ void main() {
     );
     expect(find.text('ALT'), findsOneWidget);
     expect(find.bySemanticsLabel('Alternate dance: Alt Dance'), findsOneWidget);
+  });
+
+  testWidgets('hiding alternates filters only alternate wide rows', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [
+        dance('d1', 'Primary', [swing()]),
+        dance('d2', 'Alternate', [move('balance')]),
+      ],
+      altRowIndices: {1},
+      showAlternates: false,
+    );
+
+    expect(find.text('Primary'), findsOneWidget);
+    expect(find.text('Alternate'), findsNothing);
+    expect(
+      find.bySemanticsLabel(
+        RegExp(r'^Programming matrix: 1 dances by 3 moves'),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('alternate filtering uses row indexes, not dance ids', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      dances: [
+        dance('same', 'Primary', [swing()]),
+        dance('same', 'Alternate', [swing()]),
+      ],
+      altDanceIds: {'same'},
+      altRowIndices: {1},
+      showAlternates: false,
+    );
+
+    expect(find.text('Primary'), findsOneWidget);
+    expect(find.text('Alternate'), findsNothing);
   });
 
   testWidgets('column labels honour the active dialect', (tester) async {
@@ -447,6 +492,8 @@ void main() {
       required List<Dance> dances,
       int omittedFreeTextCount = 0,
       Set<String> altDanceIds = const {},
+      Set<int>? altRowIndices,
+      bool showAlternates = true,
       Dialect? dialect,
       List<ProgramHalf?>? halves,
       Set<String> hiddenColumns = const {},
@@ -467,6 +514,8 @@ void main() {
               dialect: dialect ?? Dialect.canonical,
               omittedFreeTextCount: omittedFreeTextCount,
               altDanceIds: altDanceIds,
+              altRowIndices: altRowIndices,
+              showAlternates: showAlternates,
               hiddenColumns: hiddenColumns,
             ),
           ),
@@ -646,6 +695,46 @@ void main() {
       );
       expect(find.byIcon(Icons.alt_route), findsWidgets);
     });
+
+    testWidgets('hiding alternates updates compact move totals', (
+      tester,
+    ) async {
+      await pumpNarrow(
+        tester,
+        dances: [
+          dance('d1', 'Primary', [swing()]),
+          dance('d2', 'Alternate', [swing()]),
+        ],
+        altRowIndices: {1},
+        showAlternates: false,
+      );
+
+      expect(find.text('Alternate'), findsNothing);
+      expect(
+        find.bySemanticsLabel('Move: partner swing, used in 1 of 1 dances'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'hiding alternates excludes alternate-only moves from compact semantics',
+      (tester) async {
+        await pumpNarrow(
+          tester,
+          dances: [
+            dance('d1', 'Primary', [swing()]),
+            dance('d2', 'Alternate', [move('balance')]),
+          ],
+          altRowIndices: {1},
+          showAlternates: false,
+        );
+
+        expect(
+          find.bySemanticsLabel('Programming matrix: 1 dances by 1 move'),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets('shows the formation badge only for non-default formations', (
       tester,

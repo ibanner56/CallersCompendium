@@ -2927,6 +2927,14 @@ class AppLocalizationsDe extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'Alle Spalten anzeigen';
 
   @override
+  String get programsMatrixHideAlternatesSemantic =>
+      'Alternative Zeilen ausblenden';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic =>
+      'Alternative Zeilen anzeigen';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,

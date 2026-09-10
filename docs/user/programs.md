@@ -226,6 +226,12 @@ Here is how to read it:
   beside the PDF button — it is available only while something is hidden. The
   pinned **Formation** column cannot be hidden, since it is part of each dance's
   identity rather than a move.
+- **Hide alternate rows temporarily** with the alternate-route icon above the
+  matrix. This view-only filter resets when you close the program editor, stays
+  active while you switch tabs or resize the window, and does not change the
+  saved program or any PDF/set-list export. It is separate from the persisted
+  **Hide alternates** option in the program's details, which controls set-list
+  output.
 - **Reorder, rename, or remove columns for good** in
   **Settings ▸ Program ▸ Matrix columns**. Unlike the per-session eye icon above,
   changes there are saved and apply to **every** program, on screen and in the

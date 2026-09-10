@@ -32,6 +32,8 @@ class ProgramMatrixTable extends StatefulWidget {
     this.config = MatrixColumnConfig.empty,
     this.omittedFreeTextCount = 0,
     this.altDanceIds = const {},
+    this.altRowIndices,
+    this.showAlternates = true,
     this.hiddenColumns = const {},
     this.onHideColumn,
   });
@@ -56,7 +58,17 @@ class ProgramMatrixTable extends StatefulWidget {
   final int omittedFreeTextCount;
 
   /// Dance ids whose row is an alternate slot (badged "ALT").
+  ///
+  /// Kept for existing read-only callers. Hosts that build rows from program
+  /// slots should provide [altRowIndices], because a dance can occur in both a
+  /// primary and an alternate slot.
   final Set<String> altDanceIds;
+
+  /// Matrix row indexes whose source program slots are alternates.
+  final Set<int>? altRowIndices;
+
+  /// Whether alternate rows are included in this render-only view.
+  final bool showAlternates;
 
   /// Column **ids** ([MatrixColumn.moveId] of [matrix]'s move columns — the
   /// pinned formation column is never hideable) that the caller has hidden
@@ -162,6 +174,10 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
           config: widget.config,
         ),
     ];
+    final visibleRows = [
+      for (var r = 0; r < matrix.rows.length; r++)
+        if (widget.showAlternates || !_isAlternateRow(r)) r,
+    ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -174,17 +190,19 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
         // caller has hidden (#669): a hidden column isn't part of what's on
         // screen, so it shouldn't be part of the announced count either.
         final moveCount = compact
-            ? _presentColumnCount(matrix, widget.hiddenColumns)
+            ? _presentColumnCount(matrix, visibleRows, widget.hiddenColumns)
             : _visibleColumnCount(matrix, widget.hiddenColumns);
         final content = compact
             ? _CompactMatrix(
                 matrix: matrix,
                 labels: labels,
                 altDanceIds: widget.altDanceIds,
+                altRowIndices: widget.altRowIndices,
+                visibleRows: visibleRows,
                 hiddenColumns: widget.hiddenColumns,
                 formationLabelBuilder: widget.formationLabelBuilder,
               )
-            : _wideTable(labels);
+            : _wideTable(labels, visibleRows);
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -194,7 +212,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
               child: Semantics(
                 container: true,
                 label: l10n.programsMatrixSemanticLabel(
-                  matrix.rows.length,
+                  visibleRows.length,
                   moveCount,
                 ),
                 child: content,
@@ -218,11 +236,18 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
     );
   }
 
+  bool _isAlternateRow(int rowIndex) {
+    final explicitIndexes = widget.altRowIndices;
+    return explicitIndexes != null
+        ? explicitIndexes.contains(rowIndex)
+        : widget.altDanceIds.contains(widget.matrix.rows[rowIndex].danceId);
+  }
+
   /// The full four-quadrant scrolling grid (corner / pinned column headers /
   /// pinned row headers / two-axis scrolling body) used at tablet and desktop
   /// widths. Below [ProgramMatrixTable.compactBreakpoint] it is replaced by
   /// [_CompactMatrix].
-  Widget _wideTable(List<String> labels) {
+  Widget _wideTable(List<String> labels, List<int> visibleRows) {
     final matrix = widget.matrix;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,14 +320,12 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 physics: const NeverScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    for (var r = 0; r < matrix.rows.length; r++)
+                    for (final r in visibleRows)
                       Row(
                         children: [
                           _RowHeader(
                             title: matrix.rows[r].title,
-                            isAlt: widget.altDanceIds.contains(
-                              matrix.rows[r].danceId,
-                            ),
+                            isAlt: _isAlternateRow(r),
                             half: matrix.rows[r].half,
                           ),
                           _FormationCell(
@@ -336,7 +359,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                         scrollDirection: Axis.horizontal,
                         child: Column(
                           children: [
-                            for (var r = 0; r < matrix.rows.length; r++)
+                            for (final r in visibleRows)
                               Row(
                                 children: [
                                   for (
@@ -874,6 +897,8 @@ class _CompactMatrix extends StatelessWidget {
     required this.matrix,
     required this.labels,
     required this.altDanceIds,
+    required this.visibleRows,
+    this.altRowIndices,
     this.formationLabelBuilder,
     this.hiddenColumns = const {},
   });
@@ -881,6 +906,8 @@ class _CompactMatrix extends StatelessWidget {
   final ProgramMatrix matrix;
   final List<String> labels;
   final Set<String> altDanceIds;
+  final Set<int>? altRowIndices;
+  final List<int> visibleRows;
   final String Function(Formation formation)? formationLabelBuilder;
 
   /// Columns hidden by the caller (#669) — see
@@ -894,7 +921,7 @@ class _CompactMatrix extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
-    final total = matrix.rows.length;
+    final total = visibleRows.length;
 
     // Group present moves into those shared across dances (the core insight)
     // and those used just once. Columns with zero present dances (e.g. the
@@ -905,7 +932,7 @@ class _CompactMatrix extends StatelessWidget {
     for (var c = 0; c < matrix.columns.length; c++) {
       if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
       final dances = <_DanceUse>[];
-      for (var r = 0; r < matrix.rows.length; r++) {
+      for (final r in visibleRows) {
         if (matrix.isPresent(r, c)) {
           dances.add(
             _DanceUse(
@@ -913,7 +940,9 @@ class _CompactMatrix extends StatelessWidget {
               first: matrix.isFirst(r, c),
               programDebut: matrix.isProgramDebut(r, c),
               collision: matrix.isCollision(r, c),
-              isAlt: altDanceIds.contains(matrix.rows[r].danceId),
+              isAlt: altRowIndices != null
+                  ? altRowIndices!.contains(r)
+                  : altDanceIds.contains(matrix.rows[r].danceId),
               half: matrix.rows[r].half,
               formation: matrix.rows[r].formation,
             ),
@@ -1015,11 +1044,15 @@ class _CompactMatrix extends StatelessWidget {
 /// compact view actually renders (it drops columns no dance uses). Also
 /// excludes any [hiddenColumns] (#669), so the announced count matches what's
 /// actually rendered.
-int _presentColumnCount(ProgramMatrix matrix, Set<String> hiddenColumns) {
+int _presentColumnCount(
+  ProgramMatrix matrix,
+  List<int> visibleRows,
+  Set<String> hiddenColumns,
+) {
   var count = 0;
   for (var c = 0; c < matrix.columns.length; c++) {
     if (hiddenColumns.contains(matrix.columns[c].moveId)) continue;
-    for (var r = 0; r < matrix.rows.length; r++) {
+    for (final r in visibleRows) {
       if (matrix.isPresent(r, c)) {
         count++;
         break;
