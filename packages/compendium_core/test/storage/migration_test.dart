@@ -36,6 +36,7 @@ import 'package:compendium_core/src/storage/database.dart'
         VenuesCompanion,
         taxonomyV34CanonicalRebuildDoneKey,
         taxonomyV35FigureNormalizationDoneKey,
+        shareableTextNormalisationScopeKey,
         kSectionRuleVersion;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
@@ -1365,8 +1366,29 @@ void main() {
       final db = CompendiumDatabase(NativeDatabase(File(dbPath)));
       addTearDown(db.close);
 
-      // Internal migration markers intentionally have no existence_at. Include
-      // every live, syncable setting rather than naming one fixture key.
+      // Internal migration markers intentionally have no existence_at. Exclude
+      // only those known non-syncable keys so a live setting whose back-fill is
+      // accidentally omitted still contributes NULL and fails this guard.
+      const internalSettingKeys = [
+        derivedRebuildRequiredKey,
+        purgeCorruptionRepairDoneKey,
+        sectionRuleVersionKey,
+        inversePairNormalisationDoneKey,
+        starPromenadeHandRemovalDoneKey,
+        gripSingleFileCanonicalInclusionDoneKey,
+        chainHandBackfillDoneKey,
+        promenadeTurnCircleWordingCanonicalRebuildDoneKey,
+        compactDosidoSeesawCanonicalRebuildDoneKey,
+        taxonomyV33CanonicalRebuildDoneKey,
+        taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
+        callersBoxRollAwayRoleRepairDoneKey,
+        shareableTextNormalisationScopeKey,
+      ];
+      final placeholders = List.filled(
+        internalSettingKeys.length,
+        '?',
+      ).join(', ');
       final rows = await db
           .customSelect(
             'SELECT existence_at FROM dances WHERE deleted_at IS NULL '
@@ -1377,7 +1399,10 @@ void main() {
             'UNION SELECT existence_at FROM custom_field_defs '
             'UNION SELECT existence_at FROM venues '
             "UNION SELECT existence_at FROM settings "
-            'WHERE deleted_at IS NULL AND existence_at IS NOT NULL',
+            'WHERE deleted_at IS NULL AND key NOT IN ($placeholders)',
+            variables: [
+              for (final key in internalSettingKeys) Variable.withString(key),
+            ],
           )
           .get();
       // UNION dedupes, so one row means one distinct value.
