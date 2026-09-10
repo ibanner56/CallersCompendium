@@ -27,6 +27,7 @@ import 'package:compendium_core/src/storage/database.dart'
         compactDosidoSeesawCanonicalRebuildDoneKey,
         gripSingleFileCanonicalInclusionDoneKey,
         inversePairNormalisationDoneKey,
+        modifierContainerCanonicalRebuildDoneKey,
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         purgeCorruptionRepairDoneKey,
         sectionRuleVersionKey,
@@ -196,6 +197,7 @@ void main() {
           gripSingleFileCanonicalInclusionDoneKey,
           promenadeTurnCircleWordingCanonicalRebuildDoneKey,
           compactDosidoSeesawCanonicalRebuildDoneKey,
+          modifierContainerCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -2228,6 +2230,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     compactDosidoSeesawCanonicalRebuildDoneKey,
     taxonomyV33CanonicalRebuildDoneKey,
     taxonomyV34CanonicalRebuildDoneKey,
+    modifierContainerCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

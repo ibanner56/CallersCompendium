@@ -20,6 +20,8 @@
 // and the idempotent repair simply re-ran. The `deleted_at IS NULL` filters on
 // those raw reads are what keep it harmless now.
 import 'package:compendium_core/compendium_core.dart';
+import 'package:compendium_core/src/storage/database.dart'
+    show modifierContainerCanonicalRebuildDoneKey;
 import 'package:drift/drift.dart' show Variable;
 import 'package:test/test.dart';
 
@@ -41,6 +43,9 @@ void main() {
     await SettingsRepository(
       db,
     ).set(taxonomyV34CanonicalRebuildDoneKey, 'done');
+    await SettingsRepository(
+      db,
+    ).set(modifierContainerCanonicalRebuildDoneKey, 'done');
   });
   tearDown(() => db.close());
 
