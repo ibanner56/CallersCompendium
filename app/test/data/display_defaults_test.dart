@@ -300,6 +300,7 @@ void main() {
         encodeFigures([
           // invalid-fixture: these exercise persisted v34 identifiers.
           Figure(move: 'circle', params: const {'turn': 'left'}),
+          // invalid-fixture: this exercises a persisted v34 move identifier.
           Figure(move: 'pull_by_dancers', params: const {'dir': 'across'}),
         ]),
       );
