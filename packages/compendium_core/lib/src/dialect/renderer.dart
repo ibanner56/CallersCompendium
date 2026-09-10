@@ -424,7 +424,7 @@ class FigureRenderer {
             : _displayTemplate(wordingSlots, wording!);
         final line = _assembleDisplayTemplate((
           slots: displayTemplate.slots,
-          template: wording!,
+          template: wording,
         ));
         final displayLine = def.id == 'circle' && params['singleFile'] == true
             ? (line.trimLeft().startsWith('single file ')
@@ -722,8 +722,8 @@ class FigureRenderer {
       'neither': {'subject', 'move', 'balance'},
     },
     'promenade': {
-      'ordinary': {'who', 'move', 'turn', 'direction', 'destination'},
-      'singleFile': {'prefix', 'move', 'turn', 'direction', 'destination'},
+      'ordinary': {'who', 'move', 'direction', 'where', 'destination'},
+      'singleFile': {'prefix', 'move', 'direction', 'where', 'destination'},
     },
   };
 

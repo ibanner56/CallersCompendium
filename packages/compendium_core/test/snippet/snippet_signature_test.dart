@@ -6,6 +6,21 @@ void main() {
   final tax = contraTaxonomy;
 
   group('figureSnippetSignature', () {
+    test('migrates legacy pull-by dimensions and zig-zag slide keys', () {
+      expect(
+        migrateFigureSnippetSignature('pull_by_dancers(who=neighbors)'),
+        'pull_by(who=neighbors,where=unspecified)',
+      );
+      expect(
+        migrateFigureSnippetSignature('pull_by_direction(where=along)'),
+        'pull_by(who=unspecified,where=along)',
+      );
+      expect(
+        migrateFigureSnippetSignature('zig_zag(turn=right)'),
+        'zig_zag(slide=right)',
+      );
+    });
+
     test('folds taxonomy defaults so explicit == defaulted', () {
       // allemande defaults: who=neighbors, hand=right, travel=1.0.
       final defaulted = Figure(move: 'allemande');

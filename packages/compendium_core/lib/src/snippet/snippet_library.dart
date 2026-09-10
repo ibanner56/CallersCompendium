@@ -13,6 +13,7 @@ import '../util/text_sanitizer.dart';
 /// [kMaxSnippetLibraryEntries] entries (in sorted-key order, deterministically)
 /// and drops the rest rather than throwing.
 const int kMaxSnippetLibraryEntries = 2000;
+const int kMaxSnippetConflictValues = 32;
 
 const MapEquality<String, String> _mapEq = MapEquality<String, String>();
 
@@ -32,16 +33,7 @@ class WalkthroughSnippetLibrary {
     Map<String, String> snippets, {
     Map<String, List<String>> conflicts = const {},
   }) : _snippets = Map.unmodifiable(_normalize(snippets)),
-       _conflicts = Map.unmodifiable({
-         for (final entry in conflicts.entries)
-           entry.key: List<String>.unmodifiable(
-             _normalize(
-               entry.value.asMap().map(
-                 (index, value) => MapEntry('$index', value),
-               ),
-             ).values,
-           ),
-       });
+       _conflicts = Map.unmodifiable(_normalizeConflicts(conflicts));
 
   /// An empty library (no snippets).
   static final WalkthroughSnippetLibrary empty = WalkthroughSnippetLibrary(
@@ -165,6 +157,27 @@ class WalkthroughSnippetLibrary {
       final cleaned = _clamp(sanitizeImportedText(entry.value));
       if (cleaned.trim().isEmpty) continue;
       out[entry.key] = cleaned;
+    }
+    return out;
+  }
+
+  static Map<String, List<String>> _normalizeConflicts(
+    Map<String, List<String>> input,
+  ) {
+    final keys = input.keys.toList()..sort();
+    final out = <String, List<String>>{};
+    for (final key in keys.take(kMaxSnippetLibraryEntries)) {
+      final values =
+          input[key]!
+              .map(sanitizeImportedText)
+              .map(_clamp)
+              .where((value) => value.trim().isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
+      if (values.isNotEmpty) {
+        out[key] = List.unmodifiable(values.take(kMaxSnippetConflictValues));
+      }
     }
     return out;
   }

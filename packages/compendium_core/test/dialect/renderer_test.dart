@@ -3122,8 +3122,9 @@ void main() {
             'neither': '{subject} {move} {balance}',
           },
           'promenade': {
-            'ordinary': '{who} {move} {direction} {where} {destination}',
-            'singleFile': '{prefix} {move} {direction} {where} {destination}',
+            'ordinary': 'CUSTOM {who} {move} {direction} {where} {destination}',
+            'singleFile':
+                'CUSTOM {prefix} {move} {direction} {where} {destination}',
           },
         },
       );
@@ -3161,7 +3162,7 @@ void main() {
           Figure(move: 'promenade', params: {'singleFile': true}),
           dialect,
         ),
-        'single file promenade across',
+        'CUSTOM single file promenade across across',
       );
     });
 

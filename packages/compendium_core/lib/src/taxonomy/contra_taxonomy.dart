@@ -308,7 +308,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
       params: {
         'who': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'hand': ParamSpec(ParamKind.handedness, defaultValue: 'right'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: true),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'beats': ParamSpec(ParamKind.beats, defaultValue: 4),
       },
       renderTemplate: '{who} {move}',
@@ -1589,7 +1589,7 @@ final Taxonomy contraTaxonomy = Taxonomy(
         // Same sourced param set as form_an_ocean_wave minus `passThru`, which
         // is intrinsic to this figure (dancers pass through to the wave).
         'where': ParamSpec(ParamKind.direction, defaultValue: 'across'),
-        'balance': ParamSpec(ParamKind.flag, defaultValue: true),
+        'balance': ParamSpec(ParamKind.flag, defaultValue: false),
         'center': ParamSpec(ParamKind.dancerSet, defaultValue: 'role2s'),
         'centerHand': ParamSpec(ParamKind.handedness, defaultValue: 'left'),
         'sides': ParamSpec(ParamKind.dancerSet, defaultValue: 'neighbors'),
