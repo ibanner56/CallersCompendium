@@ -27,6 +27,8 @@
 /// `backup_settings_schema.dart`): malformed input is rejected, never coerced.
 library;
 
+import '../taxonomy/taxonomy.dart';
+
 /// Namespace prefix for a parameterized custom column id.
 const String parameterizedColumnIdPrefix = 'param:';
 
@@ -35,8 +37,10 @@ const String compoundColumnIdPrefix = 'compound:';
 
 /// The current [MatrixColumnConfig] JSON schema version. Bumped only on a
 /// breaking shape change; [MatrixColumnConfig.decode] tolerates older/newer
-/// minor differences (unknown fields ignored, dangling ids kept inert).
-const int matrixColumnConfigSchemaVersion = 1;
+/// minor differences (unknown fields ignored, dangling ids kept inert). Version
+/// 2 canonicalizes v34 pull-by ids and parameter keys.
+const int matrixColumnConfigSchemaVersion = 2;
+const int _legacyMatrixColumnConfigSchemaVersion = 1;
 
 /// Thrown by [MatrixColumnConfig.decode] when its input is structurally
 /// malformed (wrong container kind, wrong value types, a mis-namespaced or
@@ -310,7 +314,7 @@ class MatrixColumnConfig {
 
     final rawVersion = raw['schemaVersion'];
     final version = switch (rawVersion) {
-      null => matrixColumnConfigSchemaVersion,
+      null => _legacyMatrixColumnConfigSchemaVersion,
       final int v => v,
       _ => throw const MatrixColumnConfigFormatException(
         'schemaVersion must be an integer',
@@ -345,13 +349,21 @@ class MatrixColumnConfig {
       }
     }
 
+    final migrateV34 = version < matrixColumnConfigSchemaVersion;
     return MatrixColumnConfig(
-      schemaVersion: version,
-      order: order,
-      hidden: hidden,
-      renames: renames,
-      parameterized: parameterized,
-      compound: compound,
+      schemaVersion: migrateV34 ? matrixColumnConfigSchemaVersion : version,
+      order: migrateV34 ? _normalizeV35MoveIds(order) : order,
+      hidden: migrateV34 ? _normalizeV35MoveIds(hidden).toSet() : hidden,
+      renames: migrateV34 ? _normalizeV35MoveMap(renames) : renames,
+      parameterized: migrateV34
+          ? [
+              for (final column in parameterized)
+                _normalizeV35ParameterizedColumn(column),
+            ]
+          : parameterized,
+      compound: migrateV34
+          ? [for (final column in compound) _normalizeV35CompoundColumn(column)]
+          : compound,
     );
   }
 
@@ -432,6 +444,74 @@ List<String> _stringList(Object? raw, String field) {
           e,
         ),
   ];
+}
+
+String _normalizeV35MoveId(String moveId) =>
+    Taxonomy.normalizeV35MoveId(moveId);
+
+List<String> _normalizeV35MoveIds(Iterable<String> source) {
+  final selectedSource = <String, String>{};
+  for (final moveId in source) {
+    final normalized = _normalizeV35MoveId(moveId);
+    final selected = selectedSource[normalized];
+    if (selected == null ||
+        (moveId == normalized && selected != normalized) ||
+        (moveId != normalized &&
+            selected != normalized &&
+            moveId.compareTo(selected) < 0)) {
+      selectedSource[normalized] = moveId;
+    }
+  }
+
+  final result = <String>[];
+  final emitted = <String>{};
+  for (final moveId in source) {
+    final normalized = _normalizeV35MoveId(moveId);
+    if (selectedSource[normalized] == moveId && emitted.add(normalized)) {
+      result.add(normalized);
+    }
+  }
+  return result;
+}
+
+Map<String, String> _normalizeV35MoveMap(Map<String, String> source) {
+  final entries = source.entries.toList()
+    ..sort((a, b) {
+      final aMove = _normalizeV35MoveId(a.key);
+      final bMove = _normalizeV35MoveId(b.key);
+      final aCanonical = a.key == aMove;
+      final bCanonical = b.key == bMove;
+      if (aCanonical != bCanonical) return aCanonical ? -1 : 1;
+      return a.key.compareTo(b.key);
+    });
+  final result = <String, String>{};
+  for (final entry in entries) {
+    result.putIfAbsent(_normalizeV35MoveId(entry.key), () => entry.value);
+  }
+  return result;
+}
+
+ParameterizedColumn _normalizeV35ParameterizedColumn(
+  ParameterizedColumn column,
+) {
+  return ParameterizedColumn(
+    id: column.id,
+    baseMove: _normalizeV35MoveId(column.baseMove),
+    params: Taxonomy.normalizeV35Params(column.baseMove, column.params),
+  );
+}
+
+CompoundColumn _normalizeV35CompoundColumn(CompoundColumn column) {
+  return CompoundColumn(
+    id: column.id,
+    steps: [
+      for (final step in column.steps)
+        StepMatcher(
+          move: _normalizeV35MoveId(step.move),
+          params: Taxonomy.normalizeV35Params(step.move, step.params),
+        ),
+    ],
+  );
 }
 
 Map<String, String> _stringStringMap(Object? raw) {

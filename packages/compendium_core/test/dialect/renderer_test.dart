@@ -3112,6 +3112,17 @@ void main() {
       );
     });
 
+    test('specialized display slots override generic parameter slots', () {
+      final dialect = Dialect.larksRobins.copyWith(
+        moveWordings: const {'promenade': '{who} {move} {direction} {where}'},
+      );
+
+      expect(
+        renderer.render(Figure(move: 'promenade'), dialect),
+        'partner promenade',
+      );
+    });
+
     test('branch templates preserve every conditional wording shape', () {
       final dialect = Dialect.larksRobins.copyWith(
         moveWordingBranches: const {

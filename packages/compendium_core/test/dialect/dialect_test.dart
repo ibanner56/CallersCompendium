@@ -296,7 +296,7 @@ void main() {
         },
       });
 
-      expect(d.moveWordings['circle'], '{move} around {direction} {places}');
+      expect(d.moveWordings['circle'], '{move} around {turn} {places}');
       expect(d.moveWordingBranches.containsKey('circle'), isFalse);
     });
 
@@ -362,8 +362,37 @@ void main() {
       });
 
       expect(d.moveWordings, hasLength(kMaxMoveWordingEntries));
-      expect(d.moveWordings['circle'], '{move} around {direction} {places}');
+      expect(d.moveWordings['circle'], '{move} around {turn} {places}');
     });
+
+    test(
+      'fromJson preserves legacy specialized display slots while migrating params',
+      () {
+        final d = Dialect.fromJson({
+          'moveWordings': {
+            'circle': '{move} {turn}',
+            'figure_8': '{who} {half} {move} {direction}',
+            'gate': '{head} {turn} {facing}',
+            'poussette': '{half} {move} {turn}',
+            'facing_star': '{move} {turn}',
+            'zig_zag': 'zig {turn} zag',
+            'promenade': '{move} {turn} {direction}',
+            'hey': '{who} {dir} {move}',
+          },
+        });
+
+        expect(d.moveWordings, {
+          'circle': '{move} {turn}',
+          'figure_8': '{who} {half} {move} {direction}',
+          'gate': '{head} {turn} {facing}',
+          'poussette': '{half} {move} {turn}',
+          'facing_star': '{move} {turn}',
+          'zig_zag': 'zig {turn} zag',
+          'promenade': '{move} {direction} {where}',
+          'hey': '{who} {where} {move}',
+        });
+      },
+    );
 
     test('fromJson combines legacy and branch entry limits', () {
       final legacy = <String, Object?>{};

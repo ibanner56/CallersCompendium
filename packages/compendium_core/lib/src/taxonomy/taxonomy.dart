@@ -184,18 +184,7 @@ class Taxonomy {
         : null;
     final legacyMove = figure.move;
     final move = normalizeV35MoveId(legacyMove);
-    final params = <String, Object?>{};
-    for (final entry in figure.params.entries) {
-      final key = normalizeV35ParamKey(move, entry.key);
-      // The v35 name wins if both representations are present.
-      if (params.containsKey(key) && entry.key != key) continue;
-      params[key] = entry.value;
-    }
-    if (legacyMove == 'pull_by_dancers') {
-      params.putIfAbsent('who', () => 'neighbors');
-    } else if (legacyMove == 'pull_by_direction') {
-      params.putIfAbsent('where', () => 'along');
-    }
+    final params = normalizeV35Params(legacyMove, figure.params);
     if (children != null) params['figures'] = children;
     if (move == figure.move && _sameParams(params, figure.params)) {
       return figure;
@@ -208,6 +197,36 @@ class Taxonomy {
     'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
     _ => move,
   };
+
+  /// Returns v35 parameter data for [move], including the values pinned by
+  /// legacy pull-by aliases. Canonical keys win collisions regardless of the
+  /// persisted map insertion order so every decoder reaches the same result.
+  static Map<String, Object?> normalizeV35Params(
+    String move,
+    Map<String, Object?> params,
+  ) {
+    final normalizedMove = normalizeV35MoveId(move);
+    final entries = params.entries.toList()
+      ..sort((a, b) {
+        final aKey = normalizeV35ParamKey(normalizedMove, a.key);
+        final bKey = normalizeV35ParamKey(normalizedMove, b.key);
+        final aCanonical = a.key == aKey;
+        final bCanonical = b.key == bKey;
+        if (aCanonical != bCanonical) return aCanonical ? -1 : 1;
+        return a.key.compareTo(b.key);
+      });
+    final normalized = <String, Object?>{};
+    for (final entry in entries) {
+      final key = normalizeV35ParamKey(normalizedMove, entry.key);
+      normalized.putIfAbsent(key, () => entry.value);
+    }
+    if (move == 'pull_by_dancers') {
+      normalized.putIfAbsent('who', () => 'neighbors');
+    } else if (move == 'pull_by_direction') {
+      normalized.putIfAbsent('where', () => 'along');
+    }
+    return normalized;
+  }
 
   /// Returns the v35 parameter key for a persisted v34 key on [move].
   static String normalizeV35ParamKey(String move, String key) =>

@@ -110,13 +110,29 @@ Map<String, Map<String, String>> _migrateDialectBranchMap(
   return result;
 }
 
+// These placeholders belong to legacy display-renderer contracts rather than
+// taxonomy params. Their names remain stable because the specialized renderer
+// still computes their display-specific values (for example, poussette's
+// derived "back then left/right" turn).
+const Map<String, Set<String>> _v34SpecializedDisplaySlots = {
+  'circle': {'turn'},
+  'figure_8': {'half'},
+  'facing_star': {'turn'},
+  'gate': {'turn'},
+  'poussette': {'half', 'turn'},
+  'zig_zag': {'turn'},
+};
+
 String _migrateV34WordingTemplate(String moveId, String template) {
   final canonicalMoveId = _migrateDialectMoveId(moveId);
   return template.replaceAllMapped(RegExp(r'\{([a-zA-Z_][a-zA-Z0-9_]*)\}'), (
     match,
   ) {
     final key = match.group(1)!;
-    final migratedKey = canonicalMoveId == 'promenade' && key == 'direction'
+    final migratedKey =
+        _v34SpecializedDisplaySlots[canonicalMoveId]?.contains(key) == true
+        ? key
+        : canonicalMoveId == 'promenade' && key == 'direction'
         ? 'where'
         : Taxonomy.normalizeV35ParamKey(canonicalMoveId, key);
     return '{$migratedKey}';

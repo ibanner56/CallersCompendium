@@ -411,6 +411,7 @@ class FigureRenderer {
         );
         final displayTemplate = displayBase != null
             ? _displayTemplate({
+                ...wordingSlots,
                 ...displayBase(
                   this,
                   def,
@@ -419,7 +420,6 @@ class FigureRenderer {
                   verbose,
                   decimals,
                 ).slots,
-                ...wordingSlots,
               }, wording!)
             : _displayTemplate(wordingSlots, wording!);
         final line = _assembleDisplayTemplate((
