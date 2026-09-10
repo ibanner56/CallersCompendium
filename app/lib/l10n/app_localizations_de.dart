@@ -3053,6 +3053,65 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
+  String programsMatrixSectionShort(String sectionKey, String sectionNumber) {
+    String _temp0 = intl.Intl.selectLogic(sectionKey, {
+      's1': '1.',
+      's2': '2.',
+      's3': '3.',
+      's4': '4.',
+      's5': '5.',
+      's6': '6.',
+      's7': '7.',
+      's8': '8.',
+      's9': '9.',
+      'other': '$sectionNumber',
+    });
+    return '$_temp0';
+  }
+
+  @override
+  String programsMatrixSectionRowHeaderSemantic(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': 'Alternativer Tanz: $title',
+      'other': 'Alternativer Tanz: $title, Abschnitt $section',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': 'Tanz: $title',
+      'other': 'Tanz: $title, Abschnitt $section',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
+  String programsMatrixSectionChipQualifiedTitle(
+    String title,
+    String alt,
+    String section,
+  ) {
+    String _temp0 = intl.Intl.selectLogic(section, {
+      'none': '$title (alternativer Tanz)',
+      'other': '$title (alternativer Tanz, Abschnitt $section)',
+    });
+    String _temp1 = intl.Intl.selectLogic(section, {
+      'none': '$title',
+      'other': '$title (Abschnitt $section)',
+    });
+    String _temp2 = intl.Intl.selectLogic(alt, {
+      'yes': '$_temp0',
+      'other': '$_temp1',
+    });
+    return '$_temp2';
+  }
+
+  @override
   String get programsMatrixFormationColumnHeader => 'Formation';
 
   @override

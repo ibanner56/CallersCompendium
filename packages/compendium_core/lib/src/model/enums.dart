@@ -20,12 +20,11 @@ typedef DanceLevel = DifficultyLevel;
 /// Lifecycle status of a program (set list).
 enum ProgramStatus { draft, finalized, performed }
 
-/// Which half of a program a slot falls in, DERIVED from the first break slot
-/// (see [Program.halfAtIndex]): everything before the first break is the
-/// [first] half, everything after is the [second]. There is no persisted
-/// half/section marker — the half is computed from the ordered slot list, so
-/// this carries no migration concern. A program with no break has no derived
-/// halves at all (every slot classifies as `null`).
+/// The legacy first/second projection used by calling-history statistics.
+///
+/// Matrix/editor consumers use numbered sections derived from every break.
+/// Section 1 projects to [first], sections 2 and later project to [second];
+/// break and break-less slots project to `null`.
 enum ProgramHalf { first, second }
 
 /// What a [DanceLink] points at.

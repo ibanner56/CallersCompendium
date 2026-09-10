@@ -92,7 +92,7 @@ class ProgramSlot {
   final DateTime? performedAt;
 
   /// Whether this slot is a **break** — the divider the program's first/second
-  /// half is derived from ([Program.halfAtIndex]).
+  /// section is derived from ([Program.sectionAtIndex]).
   ///
   /// A break is modelled as a free-text slot (no [danceId]) whose [text],
   /// trimmed and lowercased, equals the canonical [Program.breakSlotText]
@@ -276,45 +276,53 @@ class Program {
   bool get isDeleted => deletedAt != null;
 
   /// Canonical text of a **break** slot. The one-tap "insert break" affordance
-  /// writes exactly this so half-derivation ([halfAtIndex]) keys off it without
+  /// writes exactly this so section derivation ([sectionAtIndex]) keys off it without
   /// the caller hand-typing "break"; [ProgramSlot.isBreak] recognises it
   /// case-insensitively (so a hand-typed "break" still counts).
   static const String breakSlotText = 'Break';
 
   /// Index into [slots] of the first [ProgramSlot.isBreak] slot, or `null` when
   /// the program has no break. Because [slots] is always position-ordered, this
-  /// is the divider the first/second half is derived from.
+  /// is the first divider from which numbered sections are derived.
   int? get firstBreakSlotIndex {
     final index = slots.indexWhere((s) => s.isBreak);
     return index < 0 ? null : index;
   }
 
   /// Whether the program contains a break slot (and therefore has derived
-  /// halves).
+  /// sections).
   bool get hasBreak => firstBreakSlotIndex != null;
 
-  /// The derived [ProgramHalf] for the slot at [index] in [slots]: everything
-  /// before the first break is [ProgramHalf.first], everything after is
-  /// [ProgramHalf.second]. Returns `null` when there is no break (no halves are
-  /// defined), for any break slot itself (a break is a divider, in neither
-  /// half), and for any out-of-range [index].
-  ProgramHalf? halfAtIndex(int index) {
+  /// The derived numbered section for the slot at [index] in [slots].
+  ///
+  /// Sections are numbered from 1 and increment after every break. Returns
+  /// `null` when there is no break (no sections are defined), for any break
+  /// slot itself, and for any out-of-range [index].
+  int? sectionAtIndex(int index) {
     if (index < 0 || index >= slots.length) return null;
-    final breakIndex = firstBreakSlotIndex;
-    if (breakIndex == null || slots[index].isBreak) return null;
-    return index < breakIndex ? ProgramHalf.first : ProgramHalf.second;
+    if (firstBreakSlotIndex == null || slots[index].isBreak) return null;
+    var section = 1;
+    for (var i = 0; i < index; i++) {
+      if (slots[i].isBreak) section++;
+    }
+    return section;
   }
 
-  /// Derived [ProgramHalf] for each slot in a **position-ordered** [slots]
+  /// Derived numbered section for each slot in a **position-ordered** [slots]
   /// list, as a parallel list (same length/order). Lets callers classify a
   /// working slot list — e.g. the program editor's in-progress edits — without
-  /// constructing a [Program]. Uses the same rules as [halfAtIndex]: `null`
-  /// when there is no break, and `null` for any break slot itself.
-  static List<ProgramHalf?> halvesForSlots(List<ProgramSlot> slots) {
-    final breakIndex = slots.indexWhere((s) => s.isBreak);
-    return List<ProgramHalf?>.generate(slots.length, (i) {
-      if (breakIndex < 0 || slots[i].isBreak) return null;
-      return i < breakIndex ? ProgramHalf.first : ProgramHalf.second;
+  /// constructing a [Program]. Uses the same rules as [sectionAtIndex].
+  static List<int?> sectionsForSlots(List<ProgramSlot> slots) {
+    if (!slots.any((slot) => slot.isBreak)) {
+      return List<int?>.filled(slots.length, null, growable: false);
+    }
+    var section = 1;
+    return List<int?>.generate(slots.length, (i) {
+      if (slots[i].isBreak) {
+        section++;
+        return null;
+      }
+      return section;
     }, growable: false);
   }
 

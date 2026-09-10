@@ -3208,6 +3208,18 @@
   "@programsMatrixHalfShort": {
     "x-sourceSha256": "1f792188e97d7a185052805c4a6815fbdbf3121dd93044ed7e2d6c6244d0e503"
   },
+  "programsMatrixSectionShort": "{sectionKey, select, s1{1e} s2{2e} s3{3e} s4{4e} s5{5e} s6{6e} s7{7e} s8{8e} s9{9e} other{{sectionNumber}}}",
+  "@programsMatrixSectionShort": {
+    "x-sourceSha256": "68a28048786bc047b332d33dedbfe0848b16beb883e24f7cad66b9ebec4a1ecb"
+  },
+  "programsMatrixSectionRowHeaderSemantic": "{alt, select, yes{{section, select, none{Alternatieve dans: {title}} other{Alternatieve dans: {title}, sectie {section}}}} other{{section, select, none{Dans: {title}} other{Dans: {title}, sectie {section}}}}}",
+  "@programsMatrixSectionRowHeaderSemantic": {
+    "x-sourceSha256": "85d25c17112ac3090732ae1be3b076322896f4da663272cdb80c69bb49adfbab"
+  },
+  "programsMatrixSectionChipQualifiedTitle": "{alt, select, yes{{section, select, none{{title} (alternatieve dans)} other{{title} (alternatieve dans, sectie {section})}}} other{{section, select, none{{title}} other{{title} (sectie {section})}}}}",
+  "@programsMatrixSectionChipQualifiedTitle": {
+    "x-sourceSha256": "ccc26260eeb603c593983dbbe29dab032ecb9456082415ed7be93c36c850279e"
+  },
   "programsMatrixFormationColumnHeader": "Formatie",
   "@programsMatrixFormationColumnHeader": {
     "x-sourceSha256": "49a63d72be2fc0e6aa6de315ca626d27816fe9d584a01484daa694221f1ef7e1"
