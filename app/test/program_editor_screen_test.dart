@@ -3295,10 +3295,7 @@ void main() {
       expect(find.text('Primary'), findsOneWidget);
       expect(find.text('Alternate'), findsOneWidget);
       expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
-      expect(
-        find.byTooltip('Show phrase labels'),
-        findsOneWidget,
-      );
+      expect(find.byTooltip('Show phrase labels'), findsOneWidget);
 
       await tester.tap(
         find.byKey(const ValueKey('program-matrix-toggle-alternates')),
