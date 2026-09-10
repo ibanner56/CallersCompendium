@@ -4788,6 +4788,18 @@ abstract class AppLocalizations {
   /// **'Show alternate rows'**
   String get programsMatrixShowAlternatesSemantic;
 
+  /// Accessible label/tooltip for the matrix control that replaces comparable cell glyphs with phrase labels in the transient on-screen view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show phrase labels'**
+  String get programsMatrixShowPhrasesSemantic;
+
+  /// Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show presence glyphs'**
+  String get programsMatrixHidePhrasesSemantic;
+
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
   ///
   /// In en, this message translates to:
@@ -4815,11 +4827,12 @@ abstract class AppLocalizations {
   /// Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.
   ///
   /// In en, this message translates to:
-  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}'**
+  /// **'{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance\'s first figure} other{}}}}{phrases, select, none{} other{, phrase(s): {phrases}}}'**
   String programsMatrixCellSemantic(
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,

@@ -35,6 +35,7 @@ class ProgramMatrixTable extends StatefulWidget {
     this.altRowIndices,
     this.showAlternates = true,
     this.hiddenColumns = const {},
+    this.showPhrases = false,
     this.onHideColumn,
   });
 
@@ -79,6 +80,10 @@ class ProgramMatrixTable extends StatefulWidget {
   /// screen owns this set and is the only thing that changes it (via
   /// [onHideColumn] and its own reset control).
   final Set<String> hiddenColumns;
+
+  /// Whether comparable cells show phrase labels instead of presence glyphs.
+  /// Custom and compound columns retain their glyphs.
+  final bool showPhrases;
 
   /// Called with a column's **id** ([MatrixColumn.moveId]) when its hide glyph
   /// is activated. Null (the default) disables the hide affordance's button —
@@ -200,6 +205,7 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                 altRowIndices: widget.altRowIndices,
                 visibleRows: visibleRows,
                 hiddenColumns: widget.hiddenColumns,
+                showPhrases: widget.showPhrases,
                 formationLabelBuilder: widget.formationLabelBuilder,
               )
             : _wideTable(labels, visibleRows);
@@ -381,6 +387,12 @@ class _ProgramMatrixTableState extends State<ProgramMatrixTable> {
                                         ),
                                         collision: matrix.isCollision(r, c),
                                         collisionMode: matrix.collisionMode,
+                                        phraseLabels: _phraseLabelsForCell(
+                                          matrix,
+                                          r,
+                                          c,
+                                        ),
+                                        showPhrases: widget.showPhrases,
                                       ),
                                 ],
                               ),
@@ -809,6 +821,8 @@ class _Cell extends StatelessWidget {
     required this.programDebut,
     required this.collision,
     required this.collisionMode,
+    required this.phraseLabels,
+    required this.showPhrases,
   });
 
   final String danceTitle;
@@ -818,6 +832,8 @@ class _Cell extends StatelessWidget {
   final bool programDebut;
   final bool collision;
   final MatrixCollisionMode collisionMode;
+  final List<String> phraseLabels;
+  final bool showPhrases;
 
   @override
   Widget build(BuildContext context) {
@@ -844,12 +860,15 @@ class _Cell extends StatelessWidget {
     } else if (present) {
       mark = Icon(Icons.check, size: 18, color: theme.colorScheme.onSurface);
     }
+    final phraseText = phraseLabels.join(', ');
+    final phraseMode = showPhrases && phraseLabels.isNotEmpty;
 
     return Semantics(
       label: l10n.programsMatrixCellSemantic(
         danceTitle,
         moveLabel,
         present ? 'yes' : 'no',
+        phraseMode ? phraseText : 'none',
         _collisionSemanticsArg(collision, collisionMode),
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
@@ -872,7 +891,13 @@ class _Cell extends StatelessWidget {
             bottom: BorderSide(color: theme.dividerColor, width: 0.5),
           ),
         ),
-        child: mark,
+        child: phraseMode
+            ? Text(
+                phraseText,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelSmall,
+              )
+            : mark,
       ),
     );
   }
@@ -892,6 +917,17 @@ String _collisionSemanticsArg(bool collision, MatrixCollisionMode mode) {
   return mode == MatrixCollisionMode.exactBeats ? 'beats' : 'phrase';
 }
 
+List<String> _phraseLabelsForCell(ProgramMatrix matrix, int row, int column) {
+  final kind = matrix.columns[column].kind;
+  if (kind == MatrixColumnKind.custom || kind == MatrixColumnKind.compound) {
+    return const [];
+  }
+  final labels =
+      matrix.rows[row].phraseLabelsByMove[matrix.columns[column].moveId];
+  if (labels == null || labels.isEmpty) return const [];
+  return labels.toList()..sort();
+}
+
 class _CompactMatrix extends StatelessWidget {
   const _CompactMatrix({
     required this.matrix,
@@ -901,6 +937,7 @@ class _CompactMatrix extends StatelessWidget {
     this.altRowIndices,
     this.formationLabelBuilder,
     this.hiddenColumns = const {},
+    required this.showPhrases,
   });
 
   final ProgramMatrix matrix;
@@ -916,6 +953,7 @@ class _CompactMatrix extends StatelessWidget {
   /// hover/tap), but it still respects a hidden set supplied from the wide
   /// view/host so a column stays hidden consistently across breakpoints.
   final Set<String> hiddenColumns;
+  final bool showPhrases;
 
   @override
   Widget build(BuildContext context) {
@@ -945,6 +983,7 @@ class _CompactMatrix extends StatelessWidget {
                   : altDanceIds.contains(matrix.rows[r].danceId),
               half: matrix.rows[r].half,
               formation: matrix.rows[r].formation,
+              phraseLabels: _phraseLabelsForCell(matrix, r, c),
             ),
           );
         }
@@ -997,6 +1036,7 @@ class _CompactMatrix extends StatelessWidget {
               summary: m,
               total: total,
               collisionMode: matrix.collisionMode,
+              showPhrases: showPhrases,
               formationLabelBuilder: formationLabelBuilder,
             ),
           );
@@ -1023,6 +1063,7 @@ class _CompactMatrix extends StatelessWidget {
               summary: m,
               total: total,
               collisionMode: matrix.collisionMode,
+              showPhrases: showPhrases,
               formationLabelBuilder: formationLabelBuilder,
             ),
           );
@@ -1100,6 +1141,7 @@ class _DanceUse {
     required this.collision,
     required this.isAlt,
     required this.formation,
+    this.phraseLabels = const [],
     this.half,
   });
 
@@ -1114,6 +1156,7 @@ class _DanceUse {
   /// formation column since the compact view has no per-row slot to pin one
   /// to — it rides on [_DanceChip] instead, like ALT/half already do.
   final Formation formation;
+  final List<String> phraseLabels;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -1150,12 +1193,14 @@ class _MoveCard extends StatelessWidget {
     required this.summary,
     required this.total,
     required this.collisionMode,
+    required this.showPhrases,
     this.formationLabelBuilder,
   });
 
   final _MoveSummary summary;
   final int total;
   final MatrixCollisionMode collisionMode;
+  final bool showPhrases;
   final String Function(Formation formation)? formationLabelBuilder;
 
   @override
@@ -1210,6 +1255,8 @@ class _MoveCard extends StatelessWidget {
                   programDebut: d.programDebut,
                   collision: d.collision,
                   collisionMode: collisionMode,
+                  showPhrases: showPhrases,
+                  phraseLabels: d.phraseLabels,
                   isAlt: d.isAlt,
                   half: d.half,
                   formation: d.formation,
@@ -1233,6 +1280,8 @@ class _DanceChip extends StatelessWidget {
     required this.programDebut,
     required this.collision,
     required this.collisionMode,
+    required this.showPhrases,
+    required this.phraseLabels,
     required this.isAlt,
     required this.formation,
     required this.formationLabel,
@@ -1245,6 +1294,8 @@ class _DanceChip extends StatelessWidget {
   final bool programDebut;
   final bool collision;
   final MatrixCollisionMode collisionMode;
+  final bool showPhrases;
+  final List<String> phraseLabels;
   final bool isAlt;
   final ProgramHalf? half;
   final Formation formation;
@@ -1272,6 +1323,8 @@ class _DanceChip extends StatelessWidget {
       who,
       formationLabel,
     );
+    final phraseText = phraseLabels.join(', ');
+    final phraseMode = showPhrases && phraseLabels.isNotEmpty;
     final IconData markIcon;
     final Color markColor;
     if (collision) {
@@ -1295,6 +1348,7 @@ class _DanceChip extends StatelessWidget {
         whoWithFormation,
         moveLabel,
         'yes',
+        phraseMode ? phraseText : 'none',
         _collisionSemanticsArg(collision, collisionMode),
         programDebut ? 'yes' : 'no',
         first ? 'yes' : 'no',
@@ -1325,6 +1379,10 @@ class _DanceChip extends StatelessWidget {
               ),
             ],
             const SizedBox(width: 4),
+            if (phraseMode) ...[
+              Text(phraseText, style: theme.textTheme.labelSmall),
+              const SizedBox(width: 4),
+            ],
             Text(danceTitle, style: theme.textTheme.labelMedium),
             // The formation badge is shown only when it's NOT the common
             // duple-improper default — surfacing exactly the atypical

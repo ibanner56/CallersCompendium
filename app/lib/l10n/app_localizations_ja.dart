@@ -2804,6 +2804,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixShowAlternatesSemantic => '代替行を表示';
 
   @override
+  String get programsMatrixShowPhrasesSemantic => 'フレーズラベルを表示';
+
+  @override
+  String get programsMatrixHidePhrasesSemantic => '存在グリフを表示';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,
@@ -2845,13 +2851,14 @@ class AppLocalizationsJa extends AppLocalizations {
     String dance,
     String move,
     String present,
+    String phrases,
     String collision,
     String debut,
     String first,
   ) {
     String _temp0 = intl.Intl.selectLogic(collision, {
-      'phrase': '、隣接するダンスと同じフレーズで繰り返される',
-      'beats': '、隣接するダンスと拍が重なる',
+      'phrase': '、隣接するダンスと同じフレーズで繰り返し',
+      'beats': '、隣接するダンスと拍を共有',
       'other': '',
     });
     String _temp1 = intl.Intl.selectLogic(debut, {
@@ -2863,10 +2870,14 @@ class AppLocalizationsJa extends AppLocalizations {
       'other': '',
     });
     String _temp3 = intl.Intl.selectLogic(present, {
-      'no': '未使用',
-      'other': '使用中$_temp0$_temp1$_temp2',
+      'no': 'なし',
+      'other': 'あり$_temp0$_temp1$_temp2',
     });
-    return '$dance、$move: $_temp3';
+    String _temp4 = intl.Intl.selectLogic(phrases, {
+      'none': '',
+      'other': '、フレーズ：$phrases',
+    });
+    return '$dance、$move：$_temp3$_temp4';
   }
 
   @override

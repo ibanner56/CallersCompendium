@@ -3116,6 +3116,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
   },
+  "programsMatrixShowPhrasesSemantic": "Phrasenbezeichnungen anzeigen",
+  "@programsMatrixShowPhrasesSemantic": {
+    "x-sourceSha256": "21886796c5a446e0d2919ce0b29f924257659dbca5ce331f9cf9e7821e0ad784"
+  },
+  "programsMatrixHidePhrasesSemantic": "Prasenzsymbole anzeigen",
+  "@programsMatrixHidePhrasesSemantic": {
+    "x-sourceSha256": "dff330e2dd809cc55cb0196897e737da19254425109a4cf84064e31f6f7d2373"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternativer Tanz: {title}, erste Hälfte} second{Alternativer Tanz: {title}, zweite Hälfte} other{Alternativer Tanz: {title}}}} other{{half, select, first{Tanz: {title}, erste Hälfte} second{Tanz: {title}, zweite Hälfte} other{Tanz: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"
@@ -3132,9 +3140,9 @@
   "@programsMatrixFormationSemantic": {
     "x-sourceSha256": "3a3521ba348685d92642d35cb5148b4a48ad0ff7c15c4f3a1af88de6e895e2a2"
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein Nachbartanz} beats{, teilt Takte mit einem Nachbartanz} other{}}{debut, select, yes{, hier eingeführt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{nicht vorhanden} other{vorhanden{collision, select, phrase{, wiederholt sich in derselben Phrase wie ein angrenzender Tanz} beats{, teilt Taktschlage mit einem angrenzenden Tanz} other{}}{debut, select, yes{, hier eingefuhrt} other{}}{first, select, yes{, erste Figur des Tanzes} other{}}}}{phrases, select, none{} other{, Phrase(n): {phrases}}}",
   "@programsMatrixCellSemantic": {
-    "x-sourceSha256": "1f5b065b58ffef684670949c662ec681d2533f3887cf067de3b6235cb5892d00"
+    "x-sourceSha256": "37e128f48a2b4849bf86f14831698b7ecce8014421f0819ff4c774f258a7f8ac"
   },
   "programsMatrixChipQualifiedTitle": "{alt, select, yes{{half, select, first{{title} (Alternativer Tanz, erste Hälfte)} second{{title} (Alternativer Tanz, zweite Hälfte)} other{{title} (Alternativer Tanz)}}} other{{half, select, first{{title} (erste Hälfte)} second{{title} (zweite Hälfte)} other{{title}}}}}",
   "@programsMatrixChipQualifiedTitle": {

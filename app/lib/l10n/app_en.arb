@@ -3850,6 +3850,14 @@
   "@programsMatrixShowAlternatesSemantic": {
     "description": "Accessible label/tooltip for the matrix control that restores alternate dance rows in the transient on-screen view."
   },
+  "programsMatrixShowPhrasesSemantic": "Show phrase labels",
+  "@programsMatrixShowPhrasesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that replaces comparable cell glyphs with phrase labels in the transient on-screen view."
+  },
+  "programsMatrixHidePhrasesSemantic": "Show presence glyphs",
+  "@programsMatrixHidePhrasesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that restores comparable cell presence glyphs in the transient on-screen view."
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",
@@ -3896,7 +3904,7 @@
       }
     }
   },
-  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}",
+  "programsMatrixCellSemantic": "{dance}, {move}: {present, select, no{not present} other{present{collision, select, phrase{, repeats in the same phrase as an adjacent dance} beats{, shares beats with an adjacent dance} other{}}{debut, select, yes{, introduced here} other{}}{first, select, yes{, dance's first figure} other{}}}}{phrases, select, none{} other{, phrase(s): {phrases}}}",
   "@programsMatrixCellSemantic": {
     "description": "Screen-reader label for a matrix cell: whether a dance uses a move, and whether that use collides with a strictly-adjacent dance, is the move's program debut, and/or the dance's opening figure. The collision placeholder is 'phrase' (starts in the same named phrase, issue #582's original rule), 'beats' (its beat span actually overlaps, issue #962's default), or 'other' (no collision) depending on the matrix's active collision-detection mode.",
     "placeholders": {
@@ -3911,6 +3919,10 @@
       "present": {
         "type": "String",
         "example": "yes"
+      },
+      "phrases": {
+        "type": "String",
+        "example": "A1, B1"
       },
       "collision": {
         "type": "String",
