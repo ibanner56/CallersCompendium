@@ -818,6 +818,7 @@ class FigureRenderer {
       'turn_alone': 'turning alone',
       'turn_as_couples': 'turning as couples',
       'up_the_hall': 'going up the hall',
+      'pull_by': 'pulling by',
       // Aliases must retain their authored wording rather than inheriting the
       // resolved target's gerund (for example, see_saw -> do_si_do).
       'meltdown_swing': 'doing a meltdown swing',

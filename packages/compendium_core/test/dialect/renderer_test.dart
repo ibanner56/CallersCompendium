@@ -1414,6 +1414,21 @@ void main() {
         expect(nounRendered, contains('doing a hey'));
         expect(nounRendered, contains('doing a poussette'));
       });
+
+      test('modifier gerundives use the canonical pull-by phrasal verb', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'pull_by'),
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, Dialect.canonical),
+          contains('pulling by'),
+        );
+      });
     });
 
     group('hey length', () {
