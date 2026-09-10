@@ -198,10 +198,11 @@ class DanceDetailData {
     final tagsById = {for (final t in tags) t.id: t};
     final defsById = {for (final d in fieldDefs) d.id: d};
 
-    // Resolve titles for relatedDance links in parallel. Deduplicate via a
-    // set, then materialize to a list so the id↔result association is an
+    // Resolve live titles for relatedDance links in parallel. Deduplicate via
+    // a set, then materialize to a list so the id↔result association is an
     // explicit, O(1) positional index (rather than relying on set iteration
-    // order and O(n) elementAt).
+    // order and O(n) elementAt). Deleted or absent targets are classified
+    // separately below without hydrating their child collections.
     final relatedDanceTitles = <String, String>{};
     final tombstonedRelatedDanceIds = <String>{};
     final targetIds = dance.links
@@ -213,13 +214,22 @@ class DanceDetailData {
         .toList();
     if (targetIds.isNotEmpty) {
       final fetched = await Future.wait(
-        targetIds.map((id) => repos.dances.getById(id, includeDeleted: true)),
+        targetIds.map((id) => repos.dances.getById(id)),
       );
+      final unresolvedIds = <String>[];
       for (final (i, related) in fetched.indexed) {
-        if (related?.isDeleted == true) {
-          tombstonedRelatedDanceIds.add(targetIds[i]);
-        } else if (related != null) {
+        if (related != null) {
           relatedDanceTitles[targetIds[i]] = related.title;
+        } else {
+          unresolvedIds.add(targetIds[i]);
+        }
+      }
+      final deletedStates = await Future.wait(
+        unresolvedIds.map(repos.dances.isDeletedById),
+      );
+      for (final (i, isDeleted) in deletedStates.indexed) {
+        if (isDeleted == true) {
+          tombstonedRelatedDanceIds.add(unresolvedIds[i]);
         }
       }
     }
