@@ -1262,6 +1262,7 @@ void main() {
     // while the target is tombstoned.
     expect(find.byKey(const ValueKey('link-row-l1')), findsNothing);
     expect(find.text('(missing dance)'), findsNothing);
+    expect(find.text('Links'), findsNothing);
 
     await repos.dances.restore(
       'gone-target',
@@ -1271,6 +1272,27 @@ void main() {
 
     expect(find.byKey(const ValueKey('link-row-l1')), findsOneWidget);
     expect(find.text('Was Here'), findsOneWidget);
+  });
+
+  testWidgets('relatedDance link to an absent target remains a missing link', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(_dance(id: 'd1'));
+    // Preserve a legacy/corrupt dangling row so the display projection's
+    // missing-vs-tombstoned distinction is exercised directly.
+    await repos.db.customStatement('PRAGMA foreign_keys = OFF');
+    await repos.db.customStatement(
+      "INSERT INTO dance_links "
+      "(id, dance_id, kind, target_dance_id, transitive) "
+      "VALUES ('l1', 'd1', 'relatedDance', 'absent-target', 0)",
+    );
+    await repos.db.customStatement('PRAGMA foreign_keys = ON');
+
+    await _pumpDetail(tester, repos, 'd1');
+
+    expect(find.byKey(const ValueKey('link-row-l1')), findsOneWidget);
+    expect(find.text('(missing dance)'), findsOneWidget);
   });
 
   testWidgets('relatedDance link is tappable when target exists', (

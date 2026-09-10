@@ -783,9 +783,8 @@ void main() {
         ),
       );
       // Mounted WITH both scopes — production-like, and the point of the test.
-      // `_delete` soft-deletes and pops `true` without bumping either channel
-      // (the list screen reloads from the popped result instead), so the
-      // subscription cannot rescue this one the way it does an edit.
+      // The target's soft-delete updates the dances table observed by
+      // DanceDetailData.watch, so the owner detail rehydrates and hides it.
       await pump(tester, repos, const DanceDetailScreen(danceId: 'd1'));
 
       // Fixture check: the link resolves to a real dance before deletion.
