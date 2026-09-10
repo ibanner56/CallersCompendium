@@ -1,0 +1,14 @@
+{
+  "id": "1234-program-slot-caller-notes",
+  "user_visible": true,
+  "app": {
+    "added": [
+      "You can show per-slot caller notes above dance titles while performing a program; the new Program > Performance setting is on by default."
+    ]
+  },
+  "core": {
+    "added": [
+      "Classify the program Perform caller-note display preference as a shareable user setting."
+    ]
+  }
+}

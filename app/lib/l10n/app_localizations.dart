@@ -1820,6 +1820,18 @@ abstract class AppLocalizations {
   /// **'Show elapsed time while performing a single dance. The timer starts when it appears and can be paused.'**
   String get settingsShowIndividualPerformTimerSubtitle;
 
+  /// Title of the default-on Program settings toggle that shows non-empty per-slot caller notes above dance titles in program Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Show caller notes in program Perform'**
+  String get settingsShowProgramSlotCallerNotesTitle;
+
+  /// Subtitle explaining the program Perform caller-note display toggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show non-empty per-slot caller notes above the dance title in program Perform.'**
+  String get settingsShowProgramSlotCallerNotesSubtitle;
+
   /// General settings section header for calling-history preferences.
   ///
   /// In en, this message translates to:
@@ -5231,6 +5243,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **' over'**
   String get performOverSuffix;
+
+  /// Label shown before a per-slot caller note above a dance title in program Perform.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller note'**
+  String get performSlotCallerNote;
 
   /// Section title above a dance's calling notes on the perform-mode card.
   ///
