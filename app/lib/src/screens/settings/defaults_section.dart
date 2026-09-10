@@ -1742,27 +1742,32 @@ class _StartingProgramTemplateEditorState
                 );
               },
             ),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
-              TextButton.icon(
+              OutlinedButton.icon(
+                key: const ValueKey('starting-program-add-dance'),
                 onPressed: widget.onAddDance,
-                icon: const Icon(Icons.library_add),
-                label: Text(l10n.settingsDefaultsStartingProgramAddDance),
+                icon: const Icon(Icons.library_music_outlined),
+                label: Text(l10n.programsAddDanceButton),
               ),
-              TextButton.icon(
+              OutlinedButton.icon(
+                key: const ValueKey('starting-program-add-text'),
                 onPressed: () {
                   final text = _textController.text.trim();
                   if (text.isEmpty) return;
                   widget.onAddText(text);
                   _textController.clear();
                 },
-                icon: const Icon(Icons.notes),
-                label: Text(l10n.settingsDefaultsStartingProgramAddText),
+                icon: const Icon(Icons.notes_outlined),
+                label: Text(l10n.programsAddNoteBreakButton),
               ),
-              IconButton(
-                tooltip: l10n.settingsDefaultsStartingProgramAddBreak,
-                icon: const Icon(Icons.pause),
+              OutlinedButton.icon(
+                key: const ValueKey('starting-program-insert-break'),
                 onPressed: widget.onAddBreak,
+                icon: const Icon(Icons.free_breakfast_outlined),
+                label: Text(l10n.programsInsertBreakButton),
               ),
             ],
           ),
