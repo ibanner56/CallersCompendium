@@ -2946,6 +2946,14 @@ class AppLocalizationsFr extends AppLocalizations {
       'Afficher toutes les colonnes';
 
   @override
+  String get programsMatrixHideAlternatesSemantic =>
+      'Masquer les lignes alternatives';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic =>
+      'Afficher les lignes alternatives';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,

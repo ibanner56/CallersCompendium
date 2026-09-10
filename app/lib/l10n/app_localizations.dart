@@ -4794,6 +4794,18 @@ abstract class AppLocalizations {
   /// **'Show all columns'**
   String get programsMatrixShowAllColumnsSemantic;
 
+  /// Accessible label/tooltip for the matrix control that hides alternate dance rows from the transient on-screen view.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide alternate rows'**
+  String get programsMatrixHideAlternatesSemantic;
+
+  /// Accessible label/tooltip for the matrix control that restores alternate dance rows in the transient on-screen view.
+  ///
+  /// In en, this message translates to:
+  /// **'Show alternate rows'**
+  String get programsMatrixShowAlternatesSemantic;
+
   /// Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.
   ///
   /// In en, this message translates to:

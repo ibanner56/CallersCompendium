@@ -2808,6 +2808,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get programsMatrixShowAllColumnsSemantic => 'すべての列を表示';
 
   @override
+  String get programsMatrixHideAlternatesSemantic => '代替行を非表示';
+
+  @override
+  String get programsMatrixShowAlternatesSemantic => '代替行を表示';
+
+  @override
   String programsMatrixRowHeaderSemantic(
     String title,
     String alt,

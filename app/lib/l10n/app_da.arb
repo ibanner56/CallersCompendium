@@ -3120,6 +3120,14 @@
   "@programsMatrixShowAllColumnsSemantic": {
     "x-sourceSha256": "87e6b9fe0c51b9ad481c1e47b40fbc5a13ea3464c5131908b81cb2b21cd33822"
   },
+  "programsMatrixHideAlternatesSemantic": "Skjul alternative rækker",
+  "@programsMatrixHideAlternatesSemantic": {
+    "x-sourceSha256": "fbfd4e69c3c8804028dc65c1b8c84a0a73c4591684d5a365a1ad1ebe724f8e4c"
+  },
+  "programsMatrixShowAlternatesSemantic": "Vis alternative rækker",
+  "@programsMatrixShowAlternatesSemantic": {
+    "x-sourceSha256": "2b8fce2380a0558c90efb4c1656e9e8d018d39fd89ed48471c5d0d1726a97656"
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternativ dans: {title}, første halvdel} second{Alternativ dans: {title}, anden halvdel} other{Alternativ dans: {title}}}} other{{half, select, first{Dans: {title}, første halvdel} second{Dans: {title}, anden halvdel} other{Dans: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "x-sourceSha256": "1814b7ab4c9a33455160418f04c015f1d7e1368c467f15c39e2306bc6652f94b"

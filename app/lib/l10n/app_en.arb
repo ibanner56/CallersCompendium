@@ -3854,6 +3854,14 @@
   "@programsMatrixShowAllColumnsSemantic": {
     "description": "Accessible label/tooltip for the control (next to the matrix PDF-export button) that restores every column hidden via the per-column hide glyph (#669)."
   },
+  "programsMatrixHideAlternatesSemantic": "Hide alternate rows",
+  "@programsMatrixHideAlternatesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that hides alternate dance rows from the transient on-screen view."
+  },
+  "programsMatrixShowAlternatesSemantic": "Show alternate rows",
+  "@programsMatrixShowAlternatesSemantic": {
+    "description": "Accessible label/tooltip for the matrix control that restores alternate dance rows in the transient on-screen view."
+  },
   "programsMatrixRowHeaderSemantic": "{alt, select, yes{{half, select, first{Alternate dance: {title}, first half} second{Alternate dance: {title}, second half} other{Alternate dance: {title}}}} other{{half, select, first{Dance: {title}, first half} second{Dance: {title}, second half} other{Dance: {title}}}}}",
   "@programsMatrixRowHeaderSemantic": {
     "description": "Screen-reader label for a matrix row header identifying a dance, whether it is an alternate, and which program half it belongs to.",

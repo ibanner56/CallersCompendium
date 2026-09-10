@@ -435,6 +435,11 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
   /// column regardless of what's hidden on screen.
   final Set<String> _hiddenMatrixColumns = {};
 
+  /// Whether alternate rows are included in the on-screen matrix. This is a
+  /// transient view preference, independent of the persisted set-list output
+  /// flag [_hideAlternates].
+  bool _showMatrixAlternates = true;
+
   /// Debounced autosave timer for the in-progress draft (issue #436). Persists
   /// the working set list to [SettingsRepository] so an OS background/kill
   /// before an explicit Save no longer silently loses it.
@@ -2702,6 +2707,7 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
     final rows = <Dance>[];
     final rowHalves = <ProgramHalf?>[];
     final altDanceIds = <String>{};
+    final altRowIndices = <int>{};
     var omittedFreeText = 0;
     for (var i = 0; i < _slots.length; i++) {
       final slot = _slots[i];
@@ -2720,7 +2726,10 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           );
       rows.add(dance);
       rowHalves.add(halvesForSlots[i]);
-      if (slot.isAlt) altDanceIds.add(danceId);
+      if (slot.isAlt) {
+        altDanceIds.add(danceId);
+        altRowIndices.add(rows.length - 1);
+      }
     }
 
     final matrix = buildProgramMatrix(
@@ -2741,6 +2750,18 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
+              IconButton(
+                key: const ValueKey('program-matrix-toggle-alternates'),
+                icon: const Icon(Icons.alt_route),
+                tooltip: _showMatrixAlternates
+                    ? l10n.programsMatrixHideAlternatesSemantic
+                    : l10n.programsMatrixShowAlternatesSemantic,
+                onPressed: () {
+                  setState(
+                    () => _showMatrixAlternates = !_showMatrixAlternates,
+                  );
+                },
+              ),
               IconButton(
                 key: const ValueKey('program-matrix-reset-hidden-columns'),
                 icon: const Icon(Icons.visibility),
@@ -2776,6 +2797,8 @@ class _ProgramEditorScreenState extends State<ProgramEditorScreen>
             config: _matrixColumnConfig,
             omittedFreeTextCount: omittedFreeText,
             altDanceIds: altDanceIds,
+            altRowIndices: altRowIndices,
+            showAlternates: _showMatrixAlternates,
             hiddenColumns: _hiddenMatrixColumns,
             onHideColumn: (id) => setState(() => _hiddenMatrixColumns.add(id)),
             formationLabelBuilder: (formation) => formationDisplayLabel(

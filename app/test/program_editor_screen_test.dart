@@ -3260,6 +3260,132 @@ void main() {
     expect(find.byKey(const ValueKey('save-program')), findsNothing);
   });
 
+  testWidgets(
+    'Matrix alternate toggle is transient across tabs and responsive layouts',
+    (tester) async {
+      final repos = openTestRepositories();
+      await repos.dances.create(
+        _dance(
+          id: 'd1',
+          title: 'Primary',
+          figures: [Figure(move: 'swing')],
+        ),
+      );
+      await repos.dances.create(
+        _dance(
+          id: 'd2',
+          title: 'Alternate',
+          figures: [Figure(move: 'balance')],
+        ),
+      );
+      await repos.programs.create(
+        _program(
+          id: 'p1',
+          title: 'Night',
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+          ],
+        ),
+      );
+      await _pumpBuilder(tester, repos, programId: 'p1');
+
+      await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+      await tester.pumpAndSettle();
+      expect(find.text('Primary'), findsOneWidget);
+      expect(find.text('Alternate'), findsOneWidget);
+      expect(find.byTooltip('Hide alternate rows'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('program-matrix-toggle-alternates')),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Primary'), findsOneWidget);
+      expect(find.text('Alternate'), findsNothing);
+      expect(find.byTooltip('Show alternate rows'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('program-build-tab')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+      await tester.pumpAndSettle();
+      expect(find.text('Alternate'), findsNothing);
+
+      await tester.binding.setSurfaceSize(const Size(360, 720));
+      await tester.pumpAndSettle();
+      expect(find.text('Alternate'), findsNothing);
+
+      expect((await repos.programs.getById('p1'))!.hideAlternates, isFalse);
+    },
+  );
+
+  testWidgets('Matrix alternate toggle resets when the editor route closes', (
+    tester,
+  ) async {
+    final repos = openTestRepositories();
+    await repos.dances.create(
+      _dance(
+        id: 'd1',
+        title: 'Primary',
+        figures: [Figure(move: 'swing')],
+      ),
+    );
+    await repos.dances.create(
+      _dance(
+        id: 'd2',
+        title: 'Alternate',
+        figures: [Figure(move: 'balance')],
+      ),
+    );
+    await repos.programs.create(
+      _program(
+        id: 'p1',
+        title: 'Night',
+        slots: [
+          ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+          ProgramSlot(id: 's2', position: 1, danceId: 'd2', isAlt: true),
+        ],
+      ),
+    );
+
+    final navigatorKey = GlobalKey<NavigatorState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorKey: navigatorKey,
+        localizationsDelegates: testLocalizationsDelegates,
+        supportedLocales: testSupportedLocales,
+        builder: (context, child) =>
+            RepositoriesScope(repositories: repos, child: child!),
+        home: const SizedBox(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    Future<void> openEditor() async {
+      navigatorKey.currentState!.push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => const ProgramEditorScreen(programId: 'p1'),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await openEditor();
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('program-matrix-toggle-alternates')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Alternate'), findsNothing);
+
+    navigatorKey.currentState!.pop();
+    await tester.pumpAndSettle();
+    await openEditor();
+    await tester.tap(find.byKey(const ValueKey('program-matrix-tab')));
+    await tester.pumpAndSettle();
+    expect(find.text('Alternate'), findsOneWidget);
+  });
+
   testWidgets('Matrix tab exposes an enabled export/print PDF control', (
     tester,
   ) async {
