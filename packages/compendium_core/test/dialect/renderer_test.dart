@@ -1197,6 +1197,23 @@ void main() {
           contains('Shoulder round with the larks'),
         );
       });
+
+      test('a meanwhile modifier core retains nested summary details', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'down_the_hall', params: {'ender': 'circle'}),
+                Figure(move: 'swing'),
+              ],
+              beats: 16,
+            ),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+        );
+        expect(renderer.renderSummary(figure, d), contains('bend into a ring'));
+      });
     });
 
     group('hey length', () {

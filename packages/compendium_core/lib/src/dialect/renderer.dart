@@ -203,6 +203,21 @@ class FigureRenderer {
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           );
     if (override != null) return override;
+    if (figure.isMeanwhile) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return meanwhileMove;
+      return children
+          .map(
+            (child) => _renderSummary(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+          )
+          .join(' while ');
+    }
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {

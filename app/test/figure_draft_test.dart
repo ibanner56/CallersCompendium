@@ -281,6 +281,21 @@ void main() {
       expect(draft.toFigure()!.subFigures.first.isMeanwhile, isTrue);
     });
 
+    test('does not flatten an incomplete nested container', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing'),
+              FigureDraft(),
+            ],
+          ),
+          FigureDraft(move: 'roll'),
+        ],
+      )..params['beats'] = 8;
+      expect(draft.toFigure(), isNull);
+    });
+
     test('preserves unknown container parameters on open/save', () {
       final draft = FigureDraft(
         params: {'beats': 8, 'future': 'keep-me'},
