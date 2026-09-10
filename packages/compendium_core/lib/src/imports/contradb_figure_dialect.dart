@@ -351,7 +351,7 @@ FigureMatch? _doSiDo(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('do_si_do', params: params, note: s.note());
 }
@@ -406,11 +406,11 @@ Figure? _allemandeOrbitMeanwhile(
     // The direction word is always rendered; if absent this isn't an orbit.
     return null;
   }
-  final orbitParams = <String, Object?>{'who': who2, 'turn': direction};
+  final orbitParams = <String, Object?>{'who': who2, 'direction': direction};
   final outer = _rotation(s.peek());
   if (outer != null) {
     s.take();
-    orbitParams['amount'] = outer;
+    orbitParams['travel'] = outer;
   }
   s.eat('around');
   // Leftover after the template is trailing prose. If it still carries a
@@ -424,7 +424,7 @@ Figure? _allemandeOrbitMeanwhile(
     figures: [
       Figure(
         move: 'allemande',
-        params: {'who': who, 'hand': hand, 'turn': inner},
+        params: {'who': who, 'hand': hand, 'travel': inner},
       ),
       Figure(move: 'orbit', params: orbitParams),
     ],
@@ -447,7 +447,7 @@ FigureMatch? _allemande(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('allemande', params: params, note: s.note());
 }
@@ -470,7 +470,7 @@ FigureMatch? _circle(String text) {
     final ringNoun = s.peek();
     if (ringNoun == 'circle' || ringNoun == 'ring') {
       s.take();
-      final params = <String, Object?>{'turn': 'left', 'singleFile': true};
+      final params = <String, Object?>{'direction': 'left', 'singleFile': true};
       _eatPlaces(s, params);
       return FigureMatch('circle', params: params, note: s.note());
     }
@@ -481,7 +481,7 @@ FigureMatch? _circle(String text) {
   final turn = _leftRight(s.peek());
   if (turn == null) return null;
   s.take();
-  final params = <String, Object?>{'turn': turn};
+  final params = <String, Object?>{'direction': turn};
   _eatPlaces(s, params);
   return FigureMatch('circle', params: params, note: s.note());
 }
@@ -561,7 +561,7 @@ FigureMatch? _chain(String text) {
     'who': who,
     'hand': statedHand ?? chainHandForWho(who),
   };
-  if (dir != null) params['dir'] = dir;
+  if (dir != null) params['where'] = dir;
   return FigureMatch('chain', params: params, note: s.note());
 }
 
@@ -594,7 +594,7 @@ FigureMatch? _passTheOcean(String text) {
   return FigureMatch(
     'pass_the_ocean',
     params: {
-      'dir': 'across',
+      'where': 'across',
       if (balance) 'balance': true,
       'center': center,
       'centerHand': centerHand,
@@ -636,7 +636,7 @@ FigureMatch? _formAShortWave(String text) {
   return FigureMatch(
     'form_short_waves',
     params: {
-      'dir': 'across',
+      'axis': 'across',
       'center': center,
       'centerHand': centerHand,
       'sides': sides,
@@ -886,7 +886,7 @@ FigureMatch? _rightLeftThrough(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
   if (!s.eatPhrase('right left through')) return null;
   return FigureMatch('right_left_through', params: params, note: s.note());
@@ -977,7 +977,7 @@ FigureMatch? _promenade(String text) {
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
-      params['dir'] = dir;
+      params['where'] = dir;
     }
     // Consume the destination tail (issue #921):
     //   optional "major set" descriptor (e.g. "along major set to …")
@@ -994,10 +994,10 @@ FigureMatch? _promenade(String text) {
     final dir = _direction(s.peek());
     if (dir != null) {
       s.take();
-      params['dir'] = dir;
+      params['where'] = dir;
     }
     final turn = _promenadeTurn(s);
-    if (turn != null) params['turn'] = turn;
+    if (turn != null) params['direction'] = turn;
   }
   return FigureMatch('promenade', params: params, note: s.note());
 }
@@ -1128,7 +1128,7 @@ FigureMatch? _gyre(String text) {
   final rot = _rotation(s.peek());
   if (rot != null) {
     s.take();
-    params['turn'] = rot;
+    params['travel'] = rot;
   }
   return FigureMatch('shoulder_round', params: params, note: s.note());
 }
@@ -1211,7 +1211,7 @@ FigureMatch? _madRobin(String text) {
   if (rot != null) {
     s.take();
     if (s.eat('around')) {
-      params['turn'] = rot;
+      params['travel'] = rot;
     } else {
       s.reset(save);
     }
@@ -1325,7 +1325,7 @@ FigureMatch? _passThrough(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
   return FigureMatch('pass_through', params: params, note: s.note());
 }
@@ -1341,7 +1341,7 @@ FigureMatch? _pullByDancers(String text) {
   if (hand == null) return null;
   s.take();
   return FigureMatch(
-    'pull_by_dancers',
+    'pull_by',
     params: {'who': who, if (balance) 'balance': true, 'hand': hand},
     note: s.note(),
   );
@@ -1359,9 +1359,9 @@ FigureMatch? _pullByDirection(String text) {
   final dir = _direction(s.peek());
   if (dir != null) {
     s.take();
-    params['dir'] = dir;
+    params['where'] = dir;
   }
-  return FigureMatch('pull_by_direction', params: params, note: s.note());
+  return FigureMatch('pull_by', params: params, note: s.note());
 }
 
 /// gateWords: `<who> gate <whom> to face <direction>`.
@@ -1381,7 +1381,7 @@ FigureMatch? _gate(String text) {
   if (!s.eatPhrase('to face')) return null;
   final face = _gateFace(s);
   final params = <String, Object?>{'who': who, 'whom': whom};
-  if (face != null) params['face'] = face;
+  if (face != null) params['endFacing'] = face;
   return FigureMatch('gate', params: params, note: s.note());
 }
 
@@ -1439,7 +1439,7 @@ FigureMatch? _zigZag(String text) {
   s.take();
   if (!s.eat('zag')) return null;
   if (_leftRight(s.peek()) != null) s.take(); // the (derived) return direction
-  final params = <String, Object?>{'turn': turn};
+  final params = <String, Object?>{'slide': turn};
   if (who != null) params['who'] = who;
   return FigureMatch('zig_zag', params: params, note: s.note());
 }
@@ -1587,7 +1587,7 @@ FigureMatch? _facingStar(String text) {
   if (!s.eatPhrase('facing star')) return null;
   final params = <String, Object?>{};
   final turn = _spinDir(s);
-  if (turn != null) params['turn'] = turn;
+  if (turn != null) params['direction'] = turn;
   final n = int.tryParse(s.peek() ?? '');
   if (n != null) {
     final save = s.pos;
@@ -1620,7 +1620,7 @@ FigureMatch? _poussette(String text) {
     half = 'full';
   }
   if (!s.eat('poussette')) return null;
-  final params = <String, Object?>{'half': ?half};
+  final params = <String, Object?>{'fraction': ?half};
   if (s.eat('-')) {
     final who = _subject(s);
     if (who != null && s.eat('pull')) {
@@ -1631,7 +1631,7 @@ FigureMatch? _poussette(String text) {
         final d = _leftRight(s.peek());
         if (d != null) {
           s.take();
-          params['turn'] = d == 'right' ? 'clockwise' : 'counterclockwise';
+          params['direction'] = d == 'right' ? 'clockwise' : 'counterclockwise';
         }
       }
     }
@@ -1653,7 +1653,7 @@ FigureMatch? _crossTrails(String text) {
       if (dir != null) {
         s.take();
         s.eatPhrase('the set');
-        params['dir'] = dir;
+        params['where'] = dir;
       }
       final sh = _shoulderPhrase(s);
       if (sh != null) params['shoulder'] = sh;
@@ -1711,11 +1711,11 @@ FigureMatch? _figure8(String text) {
     half = 'full';
   }
   if (!s.eatPhrase('figure 8')) return null;
-  final params = <String, Object?>{'who': who, 'half': ?half};
+  final params = <String, Object?>{'who': who, 'fraction': ?half};
   final d = s.peek();
   if (d == 'above' || d == 'below' || d == 'across') {
     s.take();
-    params['dir'] = d;
+    params['where'] = d;
   }
   return FigureMatch('figure_8', params: params, note: s.note());
 }

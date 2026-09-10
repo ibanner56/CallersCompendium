@@ -1273,14 +1273,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     // Unlike `hey.meetTarget` above, this WRITES the sentinel rather than
     // removing the key: `turn`'s spec default is the CONCRETE
     // `'counterclockwise'` (v30 owner decision — the taxonomy's first
-    // concrete-default-plus-sentinel param), so `draft.params.remove('turn')`
+    // concrete-default-plus-sentinel param), so `draft.params.remove('direction')`
     // would fall through `effectiveParams` to that concrete default and
     // render it — the opposite of "not stated" this reset is meant to
     // achieve. Only an explicit sentinel write gets there.
-    if (draft.move == 'promenade' && key == 'dir') {
+    if (draft.move == 'promenade' && key == 'where') {
       const rotationless = {'in', 'out', 'up', 'down'};
       if (rotationless.contains(value)) {
-        draft.params['turn'] = ParamVocab.unspecified;
+        draft.params['direction'] = ParamVocab.unspecified;
       }
     }
     // #976: a `who` edit on a chain rewrites its role-implied hand, mirroring
@@ -2133,7 +2133,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     //   that data on the mere act of opening the editor — only stop
     //   rendering it, exactly as Q3 specified.
     if (def.id == 'promenade') {
-      final dir = draft.params['dir'] ?? def.params['dir']?.defaultValue;
+      final dir = draft.params['where'] ?? def.params['where']?.defaultValue;
       const rotationless = {'in', 'out', 'up', 'down'};
       final hideTurn = rotationless.contains(dir);
       final hideDestination = dir == 'across';
@@ -2141,7 +2141,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         entries = entries
             .where(
               (e) =>
-                  !((hideTurn && e.key == 'turn') ||
+                  !((hideTurn && e.key == 'direction') ||
                       (hideDestination && e.key == 'destination')),
             )
             .toList(growable: false);

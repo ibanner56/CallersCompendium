@@ -1165,7 +1165,7 @@ void main() {
         expect(figures, hasLength(1));
         expect(figures.single.move, 'promenade');
         expect(figures.single.params['who'], 'neighbors');
-        expect(figures.single.params['turn'], 'clockwise');
+        expect(figures.single.params['direction'], 'clockwise');
         expect(figures.single.note, contains('around the major set'));
       });
 

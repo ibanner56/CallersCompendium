@@ -621,6 +621,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _normaliseTaxonomyV35FiguresIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       rebuiltThisCall = await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -1277,6 +1281,64 @@ class CompendiumRepositories {
     }
     await _writeSweepMarker(taxonomyV34CanonicalRebuildDoneKey, '"done"');
     return true;
+  }
+
+  /// Rewrites legacy v34 figure ids and parameter keys, including nested
+  /// `meanwhile` children, then rebuilds the derived figure/search indexes.
+  Future<bool> _normaliseTaxonomyV35FiguresIfNeeded({
+    required bool alreadyRebuilt,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final pending = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND value_json != ? '
+          'AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            Variable.withString('true'),
+          ],
+        )
+        .get();
+    if (pending.isEmpty) return alreadyRebuilt;
+
+    final rewrites = <(String, String)>[];
+    for (final dance in await dances.listAll(includeDeleted: true)) {
+      final normalized = dances.normaliseTaxonomyV35Public(dance);
+      if (!identical(normalized, dance)) {
+        rewrites.add((dance.id, encodeFigures(normalized.figures)));
+      }
+    }
+
+    final rebuildOwed = !alreadyRebuilt || rewrites.isNotEmpty;
+    await db.transaction(() async {
+      for (final (danceId, figuresJson) in rewrites) {
+        // normalization-structure-exempt: maintenance writes encoded figures
+        // produced by the canonical taxonomy normalizer.
+        await db.customUpdate(
+          // sync-invariant-exclusion: maintenance-backfill is idempotent; not a sync record edit.
+          'UPDATE ${db.dances.actualTableName} SET figures_json = ? '
+          'WHERE id = ?',
+          variables: [Variable<String>(figuresJson), Variable<String>(danceId)],
+          updates: {db.dances},
+          updateKind: UpdateKind.update,
+        );
+      }
+      if (rebuildOwed) {
+        await _writeSweepMarker(derivedRebuildRequiredKey, '"true"');
+      }
+    });
+
+    if (rebuildOwed) {
+      await runDerivedRebuild(onProgress: onProgress);
+      await db.customUpdate(
+        'DELETE FROM ${db.settings.actualTableName} WHERE key = ?',
+        variables: [Variable<String>(derivedRebuildRequiredKey)],
+        updates: {db.settings},
+        updateKind: UpdateKind.delete,
+      );
+    }
+    await _writeSweepMarker(taxonomyV35FigureNormalizationDoneKey, 'true');
+    return alreadyRebuilt || rebuildOwed;
   }
 
   /// One-time backfill of `chain.hand` from the role-implied side (#976,

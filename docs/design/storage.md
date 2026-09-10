@@ -470,6 +470,10 @@ can still fire.
   discarded. The foreign key and repository write guard reject dangling IDs;
   repository deletion is transactional and refuses a level used by any dance,
   including a tombstoned dance that could be restored later.
+- v35 (issue #1104): rewrites persisted figure parameter keys and consolidates
+  the legacy `pull_by_dancers`/`pull_by_direction` move IDs to the v35 taxonomy
+  representation. The migration recursively normalizes nested `meanwhile`
+  figures and rebuilds the derived figure and search indexes.
 
 ## The delete model
 

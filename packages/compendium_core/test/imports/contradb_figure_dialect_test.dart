@@ -120,7 +120,7 @@ void main() {
     test('circle left 3 places', () {
       final f = _parse('circle left 3 places');
       expect(f.move, 'circle');
-      expect(f.params['turn'], 'left');
+      expect(f.params['direction'], 'left');
       expect(f.params['places'], 3);
       expect(f.params.containsKey('singleFile'), isFalse);
     });
@@ -136,7 +136,7 @@ void main() {
         final f = _parse('promenade single file around the circle 3 places');
         expect(f.isCustom, isFalse);
         expect(f.move, 'circle');
-        expect(f.params['turn'], 'left');
+        expect(f.params['direction'], 'left');
         expect(f.params['places'], 3);
         expect(f.params['singleFile'], isTrue);
         expect(f.note, isNull);
@@ -146,7 +146,7 @@ void main() {
     test('promenade single file around the ring (synonym, no places)', () {
       final f = _parse('promenade single file around the ring');
       expect(f.move, 'circle');
-      expect(f.params['turn'], 'left');
+      expect(f.params['direction'], 'left');
       expect(f.params['singleFile'], isTrue);
       expect(f.params.containsKey('places'), isFalse);
     });
@@ -184,7 +184,7 @@ void main() {
     test('do si do with rotation', () {
       final f = _parse('neighbors do si do 1½');
       expect(f.move, 'do_si_do');
-      expect(f.params['turn'], 1.5);
+      expect(f.params['travel'], 1.5);
     });
 
     test('compact seesaw resolves to the alias', () {
@@ -200,7 +200,7 @@ void main() {
         expect(f.move, 'allemande');
         expect(f.params['who'], 'role1s');
         expect(f.params['hand'], 'left');
-        expect(f.params['turn'], 1.0);
+        expect(f.params['travel'], 1.0);
       });
 
       test('next neighbors allemande right ¾', () {
@@ -208,7 +208,7 @@ void main() {
         expect(f.move, 'allemande');
         expect(f.params['who'], 'nextNeighbors');
         expect(f.params['hand'], 'right');
-        expect(f.params['turn'], 0.75);
+        expect(f.params['travel'], 0.75);
       });
     });
   });
@@ -250,7 +250,7 @@ void main() {
       final f = _parse('partners promenade across');
       expect(f.move, 'promenade');
       expect(f.params['who'], 'partners');
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
       expect(f.params.containsKey('singleFile'), isFalse);
     });
 
@@ -265,29 +265,29 @@ void main() {
       // counterclockwise is the maintainer's cross-vocabulary mapping.
       test('on the left maps to clockwise (default across silenced)', () {
         final f = _parse('partners promenade on the left');
-        expect(f.params.containsKey('dir'), isFalse);
-        expect(f.params['turn'], 'clockwise');
+        expect(f.params.containsKey('where'), isFalse);
+        expect(f.params['direction'], 'clockwise');
         expect(f.note, isNull);
       });
 
       test('along on the left maps to clockwise', () {
         final f = _parse('partners promenade along on the left');
-        expect(f.params['dir'], 'along');
-        expect(f.params['turn'], 'clockwise');
+        expect(f.params['where'], 'along');
+        expect(f.params['direction'], 'clockwise');
         expect(f.note, isNull);
       });
 
       test('along on the right maps to counterclockwise', () {
         final f = _parse('partners promenade along on the right');
-        expect(f.params['dir'], 'along');
-        expect(f.params['turn'], 'counterclockwise');
+        expect(f.params['where'], 'along');
+        expect(f.params['direction'], 'counterclockwise');
         expect(f.note, isNull);
       });
 
       test('bare promenade leaves turn unset (renders the default)', () {
         final f = _parse('partners promenade');
         expect(f.move, 'promenade');
-        expect(f.params.containsKey('turn'), isFalse);
+        expect(f.params.containsKey('direction'), isFalse);
         expect(f.note, isNull);
       });
     });
@@ -309,7 +309,7 @@ void main() {
         expect(f.params['who'], 'everyone');
         expect(f.params['singleFile'], isTrue);
         // `along` is captured as `dir` (v27 Part A change).
-        expect(f.params['dir'], 'along');
+        expect(f.params['where'], 'along');
         // Destination tail now structured (v29 #921).
         expect(f.params['destination'], 'nextNeighbors');
         expect(f.note, isNull);
@@ -321,7 +321,7 @@ void main() {
       () {
         final f = _parse('single file promenade along to new neighbors');
         expect(f.params['singleFile'], isTrue);
-        expect(f.params['dir'], 'along');
+        expect(f.params['where'], 'along');
         expect(f.params['destination'], 'nextNeighbors');
         expect(f.note, isNull);
       },
@@ -373,14 +373,14 @@ void main() {
       expect(f.isCustom, isFalse);
       expect(f.move, 'promenade');
       expect(f.params['singleFile'], isTrue);
-      expect(f.params.containsKey('dir'), isFalse);
+      expect(f.params.containsKey('where'), isFalse);
       expect(f.note, isNull);
     });
 
     test('single file promenade across — dir:across captured', () {
       final f = _parse('single file promenade across');
       expect(f.params['singleFile'], isTrue);
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
     });
 
     test('box the gnat', () {
@@ -410,14 +410,14 @@ void main() {
       expect(f.isCustom, isFalse);
       expect(f.move, 'shoulder_round');
       expect(f.params['who'], 'neighbors');
-      expect(f.params['turn'], 1.0);
+      expect(f.params['travel'], 1.0);
     });
 
     test('gyre left shoulders', () {
       final f = _parse('neighbors gyre left shoulders 1½');
       expect(f.move, 'shoulder_round');
       expect(f.params['shoulder'], 'left');
-      expect(f.params['turn'], 1.5);
+      expect(f.params['travel'], 1.5);
     });
 
     test('arch & dive', () {
@@ -491,21 +491,21 @@ void main() {
     test('pass through across', () {
       final f = _parse('pass through across');
       expect(f.move, 'pass_through');
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
     });
 
     test('pull by dancers', () {
       final f = _parse('neighbors pull by right');
-      expect(f.move, 'pull_by_dancers');
+      expect(f.move, 'pull_by');
       expect(f.params['who'], 'neighbors');
       expect(f.params['hand'], 'right');
     });
 
     test('pull by direction', () {
       final f = _parse('pull by right along');
-      expect(f.move, 'pull_by_direction');
+      expect(f.move, 'pull_by');
       expect(f.params['hand'], 'right');
-      expect(f.params['dir'], 'along');
+      expect(f.params['where'], 'along');
     });
 
     test('gate', () {
@@ -513,7 +513,7 @@ void main() {
       expect(f.move, 'gate');
       expect(f.params['who'], 'ones');
       expect(f.params['whom'], 'neighbors');
-      expect(f.params['face'], 'up');
+      expect(f.params['endFacing'], 'up');
     });
 
     test('contra corners', () {
@@ -558,16 +558,16 @@ void main() {
       expect(sides.map((s) => s.move), ['allemande', 'orbit']);
       expect(sides[0].params['who'], 'role1s');
       expect(sides[0].params['hand'], 'left');
-      expect(sides[0].params['turn'], 1.5);
+      expect(sides[0].params['travel'], 1.5);
       expect(sides[1].params['who'], 'role2s');
-      expect(sides[1].params['turn'], 'clockwise');
-      expect(sides[1].params['amount'], 0.5);
+      expect(sides[1].params['direction'], 'clockwise');
+      expect(sides[1].params['travel'], 0.5);
     });
 
     test('zig zag', () {
       final f = _parse('partners zig left zag right');
       expect(f.move, 'zig_zag');
-      expect(f.params['turn'], 'left');
+      expect(f.params['slide'], 'left');
     });
 
     test('box circulate', () {
@@ -653,7 +653,7 @@ void main() {
         'facing star clockwise 3 places with ones putting their right hands in and backing up',
       );
       expect(f.move, 'facing_star');
-      expect(f.params['turn'], 'clockwise');
+      expect(f.params['direction'], 'clockwise');
       expect(f.params['places'], 3);
       expect(f.params['who'], 'ones');
     });
@@ -661,10 +661,10 @@ void main() {
     test('poussette', () {
       final f = _parse('half poussette - ones pull neighbors back then right');
       expect(f.move, 'poussette');
-      expect(f.params['half'], 'half');
+      expect(f.params['fraction'], 'half');
       expect(f.params['who'], 'ones');
       expect(f.params['whom'], 'neighbors');
-      expect(f.params['turn'], 'clockwise');
+      expect(f.params['direction'], 'clockwise');
     });
 
     test('cross trails', () {
@@ -673,7 +673,7 @@ void main() {
       );
       expect(f.move, 'cross_trails');
       expect(f.params['who'], 'partners');
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
       expect(f.params['shoulder'], 'right');
       expect(f.params['who2'], 'neighbors');
     });
@@ -737,7 +737,7 @@ void main() {
       final f = _parse('ones figure 8 above');
       expect(f.move, 'figure_8');
       expect(f.params['who'], 'ones');
-      expect(f.params['dir'], 'above');
+      expect(f.params['where'], 'above');
     });
 
     test('square through', () {
@@ -781,7 +781,7 @@ void main() {
           'form an ocean wave - ladles by right hands and neighbors by left hands',
         );
         expect(f.move, 'form_short_waves');
-        expect(f.params['dir'], 'across');
+        expect(f.params['axis'], 'across');
         expect(f.params['center'], 'role2s');
         expect(f.params['centerHand'], 'right');
         expect(f.params['sides'], 'neighbors');
@@ -928,14 +928,14 @@ void main() {
       expect(f.move, 'allemande');
       expect(f.params['who'], 'role2s');
       expect(f.params['hand'], 'right');
-      expect(f.params['turn'], 1.5);
+      expect(f.params['travel'], 1.5);
       expect(f.note, "- don't let go");
     });
 
     test('allemande note without a dash separator', () {
       final f = _parse('neighbors allemande left ¾ to long wavy lines');
       expect(f.move, 'allemande');
-      expect(f.params['turn'], 0.75);
+      expect(f.params['travel'], 0.75);
       expect(f.note, 'to long wavy lines');
     });
 
@@ -975,20 +975,20 @@ void main() {
       expect(f.params['balance'], isTrue);
     });
 
-    test('<who> balance & pull by → pull_by_dancers with balance', () {
+    test('<who> balance & pull by → pull_by with balance', () {
       final f = _parse('gentlespoons balance & pull by right');
-      expect(f.move, 'pull_by_dancers');
+      expect(f.move, 'pull_by');
       expect(f.params['who'], 'role1s');
       expect(f.params['balance'], isTrue);
       expect(f.params['hand'], 'right');
     });
 
-    test('balance & pull by <hand> <dir> → pull_by_direction with balance', () {
+    test('balance & pull by <hand> <dir> → pull_by with balance', () {
       final f = _parse('balance & pull by right across');
-      expect(f.move, 'pull_by_direction');
+      expect(f.move, 'pull_by');
       expect(f.params['balance'], isTrue);
       expect(f.params['hand'], 'right');
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
     });
 
     test('balance & box circulate → box_circulate with balance', () {
@@ -1162,7 +1162,7 @@ void main() {
     test('pass through across still consumes the direction (regression)', () {
       final f = _parse('pass through across');
       expect(f.move, 'pass_through');
-      expect(f.params['dir'], 'across');
+      expect(f.params['where'], 'across');
       expect(f.note, isNull);
     });
 
@@ -1171,7 +1171,7 @@ void main() {
       expect(f.isCustom, isFalse);
       expect(f.move, 'chain');
       expect(f.params['who'], 'role2s');
-      expect(f.params['dir'], 'leftDiagonal');
+      expect(f.params['where'], 'leftDiagonal');
       expect(f.note, 'to shadow');
     });
 
@@ -1179,7 +1179,7 @@ void main() {
       final f = _parse('ladles chain');
       expect(f.move, 'chain');
       expect(f.params['who'], 'role2s');
-      expect(f.params.containsKey('dir'), isFalse);
+      expect(f.params.containsKey('where'), isFalse);
       expect(f.note, isNull);
     });
 
@@ -1189,7 +1189,7 @@ void main() {
       expect(f.move, 'allemande');
       expect(f.params['who'], 'prevNeighbors');
       expect(f.params['hand'], 'left');
-      expect(f.params['turn'], 1.0);
+      expect(f.params['travel'], 1.0);
     });
   });
 
@@ -1218,10 +1218,10 @@ void main() {
       expect(sides.map((s) => s.move), ['allemande', 'orbit']);
       expect(sides[0].params['who'], 'role2s');
       expect(sides[0].params['hand'], 'left');
-      expect(sides[0].params['turn'], 1.5);
+      expect(sides[0].params['travel'], 1.5);
       expect(sides[1].params['who'], 'role1s');
-      expect(sides[1].params['turn'], 'clockwise');
-      expect(sides[1].params['amount'], 0.5);
+      expect(sides[1].params['direction'], 'clockwise');
+      expect(sides[1].params['travel'], 0.5);
     });
 
     test('box circulate dual-clause (issue #585, Folklife Frolic A2/B1) '
@@ -1519,7 +1519,7 @@ void main() {
       // Verbatim rendered text from contradb.com/dances/3403.
       var f = _parse('1st neighbors balance & pull by right');
       expect(f.isCustom, isFalse);
-      expect(f.move, 'pull_by_dancers');
+      expect(f.move, 'pull_by');
       expect(f.params['who'], 'neighbors');
 
       f = _parse('2nd neighbors pull by left');

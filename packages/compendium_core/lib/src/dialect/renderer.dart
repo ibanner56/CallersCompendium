@@ -238,7 +238,11 @@ class FigureRenderer {
         (figure.move == 'box_circulate' &&
             !figure.params.containsKey('balance'));
     if (showBalance) {
-      final placement = _balancePlacement[figure.move];
+      final placement = figure.move == 'pull_by'
+          ? (_isUnspecified(params['who'])
+                ? _BalancePlacement.leading
+                : _BalancePlacement.afterWho)
+          : _balancePlacement[figure.move];
       if (placement != null) {
         final connective = _renderPrefix('balance', verbose);
         if (placement == _BalancePlacement.leading) {
@@ -395,20 +399,29 @@ class FigureRenderer {
       final wording = _resolvedMoveWording(figure, dialect, def.id, params);
       if (_isUsableMoveWording(wording)) {
         final displayBase = _displayBaseRenderers[def.id];
+        final wordingSlots = _renderTemplateSlots(
+          figure,
+          def,
+          params,
+          dialect,
+          verbose,
+          decimals,
+          forCanonical: false,
+          includeSilencedDefaults: true,
+        );
         final displayTemplate = displayBase != null
-            ? displayBase(this, def, params, dialect, verbose, decimals)
-            : _displayTemplate(
-                _renderTemplateSlots(
-                  figure,
+            ? _displayTemplate({
+                ...displayBase(
+                  this,
                   def,
                   params,
                   dialect,
                   verbose,
                   decimals,
-                  forCanonical: false,
-                ),
-                wording!,
-              );
+                ).slots,
+                ...wordingSlots,
+              }, wording!)
+            : _displayTemplate(wordingSlots, wording!);
         final line = _assembleDisplayTemplate((
           slots: displayTemplate.slots,
           template: wording!,
@@ -486,9 +499,9 @@ class FigureRenderer {
         // `dir=='across'` figure (reachable from pre-v30 singleFile+across
         // imports) is KEPT but no longer rendered — an accepted, deliberate
         // data-shape divergence, not a migration.
-        final dirRaw = params['dir'];
+        final dirRaw = params['where'];
         final dir = _displayScalar(dirRaw);
-        final turnRaw = params['turn'];
+        final turnRaw = params['direction'];
         final turn = _isUnspecified(turnRaw) ? '' : _displayScalar(turnRaw);
         final destRaw = params['destination'];
         final dest =
@@ -539,7 +552,7 @@ class FigureRenderer {
         // `callersbox_figure_dialect.dart:1316-1365`) as a searchable token.
         // Clockwise = left (contra convention: circling left travels
         // clockwise).
-        final turnRaw = params['turn'];
+        final turnRaw = params['direction'];
         final turn = _displayScalar(turnRaw);
         final spinWord = turnRaw == 'left'
             ? 'clockwise'
@@ -594,6 +607,7 @@ class FigureRenderer {
     bool verbose,
     bool decimals, {
     required bool forCanonical,
+    bool includeSilencedDefaults = false,
   }) {
     final alias = taxonomy.aliases[figure.move];
     final displayName = alias?.displayName ?? def.displayName;
@@ -640,7 +654,9 @@ class FigureRenderer {
       }
       // Display-only omission of a param whose value equals its silenced
       // default (direction/facing) or the move's default subject.
-      if (!forCanonical && _isDisplaySilenced(def, name, params[name])) {
+      if (!forCanonical &&
+          !includeSilencedDefaults &&
+          _isDisplaySilenced(def, name, params[name])) {
         slots[name] = '';
         continue;
       }
@@ -1454,11 +1470,11 @@ class FigureRenderer {
   /// forward`, etc.).
   static const Map<String, String> _silencedDefaultParams = {
     // ContraDB set_direction_along → silences default 'along'.
-    'pull_by_direction': 'dir',
+    'pull_by': 'where',
     // ContraDB set_direction_across/acrossish → silences default 'across'.
-    'right_left_through': 'dir',
-    'chain': 'dir',
-    'promenade': 'dir',
+    'right_left_through': 'where',
+    'chain': 'where',
+    'promenade': 'where',
     // ContraDB march_forward → silences the "forward" facing default.
     'down_the_hall': 'facing',
     'up_the_hall': 'facing',
@@ -1585,15 +1601,15 @@ class FigureRenderer {
       final who = r._subjectWho(params, dialect);
       final half = r._renderValue(
         'half',
-        params['half'],
-        def.params['half'],
+        params['fraction'],
+        def.params['fraction'],
         dialect,
         verbose,
         decimals,
         false,
       );
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final direction = params['dir'];
+      final direction = params['where'];
       final directionWho = params['who'] ?? def.params['who']?.defaultValue;
       final directionClause = switch (direction) {
         'above' => 'up between ${r._invertPair(directionWho, dialect)}',
@@ -1663,7 +1679,7 @@ class FigureRenderer {
       // An unexpected direction value humanizes after the move (surfacing
       // malformed data) rather than silently vanishing.
       final direction = _displayChoice(directionRaw);
-      final turnRaw = params['turn'];
+      final turnRaw = params['travel'];
       final turn = turnRaw is num
           ? (verbose
                 ? _formatRotationVerbose(turnRaw)
@@ -1673,7 +1689,7 @@ class FigureRenderer {
           : _displayScalar(turnRaw);
       final modifier = direction == 'mirror' ? 'mirror ' : '';
       final renderedDirection = direction == 'mirror' ? '' : direction;
-      final faceRaw = params['face'];
+      final faceRaw = params['endFacing'];
       // Allow-listed exactly like `swing.endFacing` (v16): an unknown or
       // tolerantly-decoded token renders NO clause rather than being injected
       // into the line as "to face <garbage>". A facing is a closed cardinal
@@ -1760,7 +1776,7 @@ class FigureRenderer {
     // it as a trailing "with <subject>" (singular, per PR1). The ender clause is
     // appended separately by [_summarySuffix].
     'zig_zag': (r, def, params, dialect, verbose, decimals) {
-      final turnRaw = params['turn'];
+      final turnRaw = params['slide'];
       final turn = turnRaw is String
           ? turnRaw
           : turnRaw == null
@@ -1834,7 +1850,7 @@ class FigureRenderer {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final dir = _displayChoice(params['direction']);
       final dirWord = dir.isEmpty ? '' : ' $dir';
-      final turn = params['turn'];
+      final turn = params['travel'];
       final turnWord = (turn is num && turn != 1.0)
           ? (verbose
                 ? _formatRotationVerbose(turn)
@@ -1913,7 +1929,7 @@ class FigureRenderer {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
       final swho = r._displaySubject(params['who'], dialect);
       final swho2 = r._displaySubject(params['who2'], dialect);
-      final dir = params['dir'];
+      final dir = params['where'];
       final firstDir = dir == null
           ? ''
           : '${_humanize(dir.toString())} the set';
@@ -1956,10 +1972,10 @@ class FigureRenderer {
     // half/full fraction word leads the clause.
     'poussette': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final half = _displayScalar(params['half']);
+      final half = _displayScalar(params['fraction']);
       final swho = r._displaySubject(params['who'], dialect);
       final swhom = r._displaySubject(params['whom'], dialect);
-      final turn = params['turn'];
+      final turn = params['direction'];
       final turnWord = turn == 'clockwise'
           ? 'back then left'
           : turn == 'counterclockwise'
@@ -1986,7 +2002,7 @@ class FigureRenderer {
     // the default (clockwise) is identical either way.
     'facing_star': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final turn = params['turn'];
+      final turn = params['direction'];
       final turnWord = _displayScalar(turn);
       final hand = turn == 'counterclockwise'
           ? 'right'
@@ -2078,7 +2094,7 @@ class FigureRenderer {
       final pass2 = params['pass2'];
       final sfirst = r._subjectToken(pass1, dialect);
       final length = params['length'];
-      final dir = params['dir'];
+      final dir = params['where'];
       final sdir2 = (dir == 'across' || dir == null) ? '' : _displayScalar(dir);
       final usesUntil =
           length == 'lessThanHalf' || length == 'betweenHalfAndFull';
@@ -2344,7 +2360,7 @@ class FigureRenderer {
     // trailing " and balance" clause (product wording; not ContraDB's pre-dash
     // "& balance").
     'pass_the_ocean': (r, def, params, dialect, verbose, decimals) {
-      final dirRaw = params['dir'];
+      final dirRaw = params['where'];
       final dirWord = (dirRaw == null || dirRaw == 'across')
           ? ''
           : _humanize(dirRaw.toString());
@@ -2460,10 +2476,10 @@ class FigureRenderer {
     // merely equalling its own default, unlike display.
     'promenade': (r, def, params, dialect, verbose, decimals) {
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final dirRaw = params['dir'];
-      final turnRaw = params['turn'];
-      final dirDefault = def.params['dir']?.defaultValue;
-      final turnDefault = def.params['turn']?.defaultValue;
+      final dirRaw = params['where'];
+      final turnRaw = params['direction'];
+      final dirDefault = def.params['where']?.defaultValue;
+      final turnDefault = def.params['direction']?.defaultValue;
       final destRaw = params['destination'];
       // v30 (#989): destination rendering re-gated from `singleFile==true` to
       // `dir != 'across'` (see the taxonomy doc comment on
@@ -2543,7 +2559,7 @@ class FigureRenderer {
         // here is REMOVED (see the taxonomy doc comment on `circle.singleFile`
         // for why, and where the spin word moved to instead: the canonical
         // parenthetical, not display).
-        final turnRaw = params['turn'];
+        final turnRaw = params['direction'];
         final turn = _displayScalar(turnRaw);
         final move = r._renderMoveName(
           def.id,
@@ -2559,7 +2575,7 @@ class FigureRenderer {
         }, '{prefix} {move} {turn} {places}');
       }
       final move = r._renderMoveName(def.id, def.displayName, params, dialect);
-      final turnRaw = params['turn'];
+      final turnRaw = params['direction'];
       final turn = _displayScalar(turnRaw);
       return _displayTemplate({
         'move': move,
@@ -2580,7 +2596,7 @@ class FigureRenderer {
       final shoulderClause = (shoulder is String && shoulder != 'right')
           ? '$shoulder shoulders'
           : '';
-      final dir = params['dir'];
+      final dir = params['where'];
       // Silence the default 'along' direction (ContraDB set_direction_along).
       final dirClause = (dir is String && dir != 'along') ? _humanize(dir) : '';
       return _displayTemplate({
@@ -2647,13 +2663,12 @@ class FigureRenderer {
   static const Map<String, _BalancePlacement> _balancePlacement = {
     // `words(sbalance, smove)` / `words(sbal, smove, …)` — balance first.
     'petronella': _BalancePlacement.leading,
-    'pull_by_direction': _BalancePlacement.leading,
+    'pull_by': _BalancePlacement.leading,
     // `words(sbalance, swho2, smove, sdir)` — balance before the subject.
     'rory_o_more': _BalancePlacement.leading,
     // `words(sbal, smove, "-", details)` — balance first.
     'box_circulate': _BalancePlacement.leading,
     // `words(swho, sbal, smove, sspin)` — subject, then balance before move.
-    'pull_by_dancers': _BalancePlacement.afterWho,
     // `words(swho, thand, sbalance, smove)` — subject, (hand,) then balance
     // before the move. Our terse '{who} {move}' template omits the hand
     // regardless of balance, so the hand omission is pre-existing base behavior;

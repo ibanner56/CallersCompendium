@@ -35,6 +35,7 @@ import 'package:compendium_core/src/storage/database.dart'
         VenueProvenanceCompanion,
         VenuesCompanion,
         taxonomyV34CanonicalRebuildDoneKey,
+        taxonomyV35FigureNormalizationDoneKey,
         kSectionRuleVersion;
 import 'package:drift/drift.dart' show Value, Variable;
 import 'package:drift/native.dart';
@@ -488,6 +489,72 @@ void main() {
         expect(dance.figures[2].assumedSubject, isTrue);
       },
     );
+  });
+
+  group('taxonomy v35 figure normalization', () {
+    test('rewrites legacy keys and nested meanwhile figures', () async {
+      final db = CompendiumDatabase(NativeDatabase.memory());
+      final repos = CompendiumRepositories(db, contraTaxonomy);
+      addTearDown(db.close);
+
+      final legacyFigures = [
+        Figure(
+          move: 'pull_by_dancers',
+          params: const {'who': 'partners', 'hand': 'left'},
+        ),
+        Figure.meanwhile(
+          figures: [
+            Figure(
+              move: 'circle',
+              params: const {'turn': 'left', 'beats': 8},
+            ),
+            Figure(move: 'swing'),
+          ],
+          beats: 8,
+        ),
+      ];
+      await repos.dances.create(
+        Dance(
+          id: 'v35-normalization',
+          title: 'v35 normalization',
+          figures: legacyFigures,
+          createdAt: DateTime.utc(2026),
+          updatedAt: DateTime.utc(2026),
+        ),
+      );
+      await db.customUpdate(
+        'UPDATE dances SET figures_json = ? WHERE id = ?',
+        variables: [
+          Variable<String>(encodeFigures(legacyFigures)),
+          Variable<String>('v35-normalization'),
+        ],
+        updates: {db.dances},
+      );
+      await repos.settings.set(taxonomyV35FigureNormalizationDoneKey, 'false');
+
+      await repos.ensureMigrated();
+
+      final dance = (await repos.dances.getById('v35-normalization'))!;
+      expect(dance.figures[0].move, 'pull_by');
+      expect(dance.figures[0].params, {'who': 'partners', 'hand': 'left'});
+      final circle = dance.figures[1].subFigures.firstWhere(
+        (figure) => figure.move == 'circle',
+      );
+      expect(
+        circle.params['direction'],
+        'left',
+      );
+      expect(circle.params.containsKey('turn'), isFalse);
+      final marker = await db
+          .customSelect(
+            'SELECT value_json FROM settings WHERE key = ?',
+            variables: [
+              Variable.withString(taxonomyV35FigureNormalizationDoneKey),
+            ],
+          )
+          .getSingle();
+      expect(marker.read<String>('value_json'), 'true');
+    });
   });
 
   group('purge-corruption repair (#429/#466)', () {

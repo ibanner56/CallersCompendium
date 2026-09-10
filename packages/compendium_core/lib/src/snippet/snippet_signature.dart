@@ -10,7 +10,37 @@ import '../taxonomy/taxonomy.dart';
 /// library stores per-figure step descriptions. Any change to how signatures are
 /// derived changes those keys, so it is an explicit, versioned migration — bump
 /// this and migrate stored keys, never change the rules silently.
-const int kFigureSnippetSignatureVersion = 1;
+const int kFigureSnippetSignatureVersion = 2;
+
+/// Migrates a v1 signature without needing to reconstruct a [Figure].
+String migrateFigureSnippetSignature(String signature) {
+  final open = signature.indexOf('(');
+  final move = open < 0 ? signature : signature.substring(0, open);
+  final body = open < 0 ? null : signature.substring(open);
+  final migratedMove = switch (move) {
+    'pull_by_dancers' || 'pull_by_direction' => 'pull_by',
+    _ => move,
+  };
+  if (body == null) return migratedMove;
+  final renames = <String, String>{
+    'turn': switch (migratedMove) {
+      'circle' || 'facing_star' => 'direction',
+      'promenade' || 'orbit' => 'direction',
+      'poussette' => 'direction',
+      _ => 'travel',
+    },
+    'dir': 'where',
+    'half': 'fraction',
+    'amount': 'travel',
+    'face': 'endFacing',
+    'hand': migratedMove == 'form_long_waves' ? 'whomHand' : 'hand',
+  };
+  final migratedBody = body.replaceAllMapped(
+    RegExp(r'([a-zA-Z_][a-zA-Z0-9_]*)='),
+    (match) => '${renames[match.group(1)] ?? match.group(1)}=',
+  );
+  return '$migratedMove$migratedBody';
+}
 
 /// Derives the **normalized figure signature** used as the global
 /// walkthrough-snippet library key for [figure] (#411, owner-locked design).

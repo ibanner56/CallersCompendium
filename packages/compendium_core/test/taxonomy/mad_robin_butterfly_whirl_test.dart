@@ -37,14 +37,14 @@ void main() {
       parseFigureLines(rawText, beats: beats, frontEnd: tcbFigureFrontEnd);
 
   group('taxonomy', () {
-    test('contraTaxonomyVersion is 34', () {
-      expect(contraTaxonomyVersion, 34);
-      expect(tax.version, 34);
+    test('contraTaxonomyVersion is 35', () {
+      expect(contraTaxonomyVersion, 35);
+      expect(tax.version, 35);
     });
 
-    test('mad_robin gains direction + whom, keeping who/turn/beats', () {
+    test('mad_robin gains direction + whom, keeping who/travel/beats', () {
       final def = tax.resolve('mad_robin')!;
-      expect(def.params.keys, ['who', 'turn', 'direction', 'whom', 'beats']);
+      expect(def.params.keys, ['who', 'travel', 'direction', 'whom', 'beats']);
       expect(def.params['who']!.defaultValue, 'role2s');
       expect(def.params['who']!.choices, [
         'everyone',
@@ -76,7 +76,7 @@ void main() {
         ParamVocab.unspecified,
       ]);
       expect(def.params['who']!.validate(ParamVocab.unspecified), isTrue);
-      expect(def.params['turn']!.defaultValue, 1.0);
+      expect(def.params['travel']!.defaultValue, 1.0);
       // Issue #739: the NATURAL kind. `direction` wore `ParamKind.choice` from
       // v20 until #726/#736 (editor + validator) and #746 (search facet) taught
       // all three consumers of the kind + `choices` contract to read
@@ -170,7 +170,7 @@ void main() {
             move: 'mad_robin',
             params: const {
               'who': 'role1s',
-              'turn': 1.5,
+              'travel': 1.5,
               'direction': 'counterclockwise',
               'whom': 'nextNeighbors',
               'beats': 8,
@@ -233,7 +233,7 @@ void main() {
   group('renderCanonical carries mad robin defaults and sentinels', () {
     final cases = <String, Figure>{
       'role2s mad robin once': Figure(move: 'mad_robin'),
-      'role2s mad robin 1½': Figure(move: 'mad_robin', params: {'turn': 1.5}),
+      'role2s mad robin 1½': Figure(move: 'mad_robin', params: {'travel': 1.5}),
       'neighbors mad robin once': Figure(
         move: 'mad_robin',
         params: {'who': 'neighbors'},
@@ -292,7 +292,7 @@ void main() {
             move: 'mad_robin',
             params: const {
               'direction': 'clockwise',
-              'turn': 1.5,
+              'travel': 1.5,
               'whom': 'neighbors',
             },
           ),
@@ -355,7 +355,7 @@ void main() {
             move: 'mad_robin',
             params: const {
               'direction': 'counterclockwise',
-              'turn': 1.5,
+              'travel': 1.5,
               'whom': 'partners',
             },
           ),
@@ -367,7 +367,7 @@ void main() {
 
     test('mad robin keeps the v19 bare "<turn> around" clause', () {
       expect(
-        renderer.render(Figure(move: 'mad_robin', params: {'turn': 1.5}), d),
+        renderer.render(Figure(move: 'mad_robin', params: {'travel': 1.5}), d),
         'mad robin 1½ around, role2s in front',
       );
     });
@@ -426,7 +426,7 @@ void main() {
       expect(f.params['whom'], 'neighbors');
       // TCB never states the in-front role, so it is explicit but unspecified.
       expect(f.params['who'], ParamVocab.unspecified);
-      expect(f.params.containsKey('turn'), isFalse);
+      expect(f.params.containsKey('travel'), isFalse);
       expect(f.beats, 8);
     });
 
@@ -443,17 +443,17 @@ void main() {
       expect(f.params['whom'], 'nextNeighbors');
     });
 
-    test('"Mad robin clockwise 1 & 1/2 around neighbor" → turn 1.5', () {
+    test('"Mad robin clockwise 1 & 1/2 around neighbor" → travel 1.5', () {
       final f = parseTcb('Mad robin clockwise 1 & 1/2 around neighbor')!;
       expect(f.move, 'mad_robin');
-      expect(f.params['turn'], 1.5);
+      expect(f.params['travel'], 1.5);
       expect(f.params['whom'], 'neighbors');
     });
 
-    test('"Mad robin clockwise 1/2 around partner" → turn 0.5', () {
+    test('"Mad robin clockwise 1/2 around partner" → travel 0.5', () {
       final f = parseTcb('Mad robin clockwise 1/2 around partner', beats: 3)!;
       expect(f.move, 'mad_robin');
-      expect(f.params['turn'], 0.5);
+      expect(f.params['travel'], 0.5);
       expect(f.params['direction'], 'clockwise');
     });
 

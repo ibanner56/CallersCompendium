@@ -1509,7 +1509,7 @@ FigureMatch? _singleFileCircleRecognizer(String scrubbed) {
     return null;
   }
 
-  final params = <String, Object?>{'turn': turn, 'singleFile': true};
+  final params = <String, Object?>{'direction': turn, 'singleFile': true};
 
   // Optionally consume a places count. The regex is ordered so that slash
   // fractions (3/4) and glyph fractions (¾) match as units before the
@@ -2871,7 +2871,7 @@ FigureMatch? _hey(String scrubbed) {
     return null;
   }
 
-  final params = <String, Object?>{'length': length, 'dir': ?dir};
+  final params = <String, Object?>{'length': length, 'where': ?dir};
   final maxRicoSlot = _heyMaxRicoSlot(length);
   String? shoulderBase; // the shoulder implied at ODD positions.
   String? pass1;
@@ -3070,7 +3070,7 @@ List<Figure>? grandRightAndLeftFromPassList(
     final figures = <Figure>[];
     for (var i = 0; i < passes.length; i++) {
       final figure = Figure(
-        move: 'pull_by_dancers',
+        move: 'pull_by',
         params: {
           'who': passes[i].who,
           'hand': passes[i].hand,
