@@ -66,20 +66,14 @@ FigureReparseOutcome reparseImportGapFigures(
 
   for (var i = 0; i < figures.length; i++) {
     final figure = figures[i];
-    Figure? replacement;
-    var sideCount = 0;
-    if (figure.isMeanwhile) {
-      final result = _tryUpgradeMeanwhile(figure, taxonomy);
-      replacement = result?.figure;
-      sideCount = result?.count ?? 0;
-    } else {
-      replacement = _tryUpgrade(figure, taxonomy);
-      sideCount = replacement != null ? 1 : 0;
-    }
+    final result = figure.isContainer
+        ? _tryUpgradeContainer(figure, taxonomy)
+        : _tryUpgradeLeaf(figure, taxonomy);
+    final replacement = result?.figure;
     if (replacement == null) continue;
     rewritten ??= List<Figure>.of(figures);
     rewritten[i] = replacement;
-    upgraded += sideCount;
+    upgraded += result!.count;
   }
 
   return FigureReparseOutcome(
@@ -88,38 +82,45 @@ FigureReparseOutcome reparseImportGapFigures(
   );
 }
 
-/// Recurses into a [Figure.isMeanwhile] container, calling [_tryUpgrade] on
-/// each concurrent side. If any side upgrades, rebuilds the container
-/// preserving the container's [Figure.beats] — the group total is the
-/// authoritative section-math count and must not be replaced by side beats.
+/// Recurses into either structural container, calling [_tryUpgrade] on each
+/// leaf and itself on each legal opposite-kind child. If any descendant
+/// upgrades, rebuilds the container preserving the container's [Figure.beats] —
+/// the group total is the authoritative section-math count and must not be
+/// replaced by child beats.
 ///
-/// A side whose re-parse itself yields a [Figure.isMeanwhile] is **declined**
-/// (left unchanged) rather than nested or flattened. Nesting violates the
-/// flat-only invariant; flattening would splice sides that share a different
-/// beat total into this container, silently corrupting section maths.
+/// A replacement that would create same-kind or deeper nesting is **declined**
+/// (left unchanged) rather than nested or flattened. Flattening would splice
+/// children that share a different beat total into this container, silently
+/// corrupting section maths.
 ///
-/// [upgradedCount] in the returned record counts upgraded *sides*, consistent
-/// with the top-level counter semantics (each custom figure that structures = 1).
+/// [upgradedCount] in the returned record counts upgraded custom descendants,
+/// consistent with the top-level counter semantics.
 ///
-/// Returns `null` when [figure] is not a meanwhile, or when no side upgrades.
-({Figure figure, int count})? _tryUpgradeMeanwhile(
+/// Returns `null` when [figure] is not a container, or when no child upgrades.
+({Figure figure, int count})? _tryUpgradeContainer(
   Figure figure,
   Taxonomy? taxonomy,
 ) {
-  if (!figure.isMeanwhile) return null;
-  final sides = figure.subFigures;
-  List<Figure>? newSides;
+  if (!figure.isContainer) return null;
+  final children = figure.subFigures;
+  List<Figure>? newChildren;
   var upgraded = 0;
-  for (var i = 0; i < sides.length; i++) {
-    final replacement = _tryUpgrade(sides[i], taxonomy);
-    // Decline a meanwhile replacement: nesting violates the flat-only
-    // invariant, and flattening would corrupt section beat totals.
-    if (replacement == null || replacement.isMeanwhile) continue;
-    newSides ??= List<Figure>.of(sides);
-    newSides[i] = replacement;
-    upgraded++;
+  for (var i = 0; i < children.length; i++) {
+    final child = children[i];
+    final result = child.isContainer
+        ? _tryUpgradeContainer(child, taxonomy)
+        : _tryUpgradeLeaf(child, taxonomy);
+    final replacement = result?.figure;
+    if (replacement == null ||
+        (replacement.isContainer &&
+            !_isLegalContainerChild(figure, replacement))) {
+      continue;
+    }
+    newChildren ??= List<Figure>.of(children);
+    newChildren[i] = replacement;
+    upgraded += result!.count;
   }
-  if (newSides == null) return null;
+  if (newChildren == null) return null;
   return (
     // Use copyWith so every field the container may carry — walkthroughOverride,
     // customOrigin, assumedSubject, schemaVersion, and any future params — is
@@ -129,11 +130,24 @@ FigureReparseOutcome reparseImportGapFigures(
     figure: figure.copyWith(
       params: {
         ...figure.params,
-        'figures': List<Figure>.unmodifiable(newSides),
+        'figures': List<Figure>.unmodifiable(newChildren),
       },
     ),
     count: upgraded,
   );
+}
+
+bool _isLegalContainerChild(Figure parent, Figure child) {
+  if (!child.isContainer || child.move == parent.move) return false;
+  return child.subFigures.every((grandchild) => !grandchild.isContainer);
+}
+
+({Figure figure, int count})? _tryUpgradeLeaf(
+  Figure figure,
+  Taxonomy? taxonomy,
+) {
+  final replacement = _tryUpgrade(figure, taxonomy);
+  return replacement == null ? null : (figure: replacement, count: 1);
 }
 
 /// Returns a structured replacement for [figure] if it is an import-gap custom

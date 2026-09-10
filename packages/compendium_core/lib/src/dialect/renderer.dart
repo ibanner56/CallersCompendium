@@ -745,11 +745,17 @@ class FigureRenderer {
     }
     return rendered.replaceFirst(
       sourceName,
-      isTakeOnly ? 'taking' : _gerundiveMoveName(def.id, renderedName),
+      isTakeOnly
+          ? 'taking'
+          : _gerundiveMoveName(figure.move, def.id, renderedName),
     );
   }
 
-  String _gerundiveMoveName(String moveId, String displayName) {
+  String _gerundiveMoveName(
+    String moveId,
+    String resolvedMoveId,
+    String displayName,
+  ) {
     // Display names are not necessarily verb phrases: several taxonomy moves
     // are named after a figure, formation, or destination. Keep those forms
     // explicit instead of attaching `-ing` to an arbitrary final token.
@@ -793,9 +799,20 @@ class FigureRenderer {
       'stand_still': 'standing still',
       'turn_single': 'turning single',
       'up_the_hall': 'going up the hall',
+      // Aliases must retain their authored wording rather than inheriting the
+      // resolved target's gerund (for example, see_saw -> do_si_do).
+      'meltdown_swing': 'doing a meltdown swing',
+      'pull_by_dancers': 'pulling by',
+      'pull_by_direction': 'pulling by',
+      'see_saw': 'seesawing',
+      'swat_the_flea': 'swatting the flea',
     };
     final explicit = explicitGerundives[moveId];
     if (explicit != null) return explicit;
+    // Keep the resolved id in the signature so callers cannot accidentally
+    // discard alias identity when selecting a future target-specific mapping.
+    final resolvedExplicit = explicitGerundives[resolvedMoveId];
+    if (resolvedExplicit != null) return resolvedExplicit;
     final words = displayName.split(' ');
     if (words.isEmpty) return displayName;
     final last = words.removeLast();

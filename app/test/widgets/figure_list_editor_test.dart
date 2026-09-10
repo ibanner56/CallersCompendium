@@ -1214,6 +1214,74 @@ void main() {
     expect(modifier.modifierFigures!.first.meanwhileSides!.first.move, 'orbit');
   });
 
+  testWidgets('nested container menu can ungroup within the parent cap', (
+    tester,
+  ) async {
+    final nested = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        FigureDraft(move: 'orbit'),
+      ],
+    )..params['beats'] = 16;
+    final drafts = <FigureDraft>[modifier];
+
+    await _pump(tester, drafts);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-menu')));
+    await tester.pumpAndSettle();
+
+    final ungroup = find.byKey(
+      const ValueKey('figure-0-nested-0-0-ungroup-container'),
+    );
+    expect(ungroup, findsOneWidget);
+    await tester.tap(ungroup);
+    await tester.pumpAndSettle();
+
+    expect(modifier.modifierFigures, hasLength(3));
+    expect(modifier.modifierFigures![0].move, 'swing');
+    expect(modifier.modifierFigures![1].move, 'roll_away');
+    expect(modifier.modifierFigures![2].move, 'orbit');
+  });
+
+  testWidgets('nested container ungroup is hidden when it would exceed cap', (
+    tester,
+  ) async {
+    final nested = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(move: 'swing'),
+        FigureDraft(move: 'roll_away'),
+      ],
+    )..params['beats'] = 8;
+    final modifier = FigureDraft(
+      modifierFigures: [
+        nested,
+        for (var i = 0; i < kMaxMeanwhileSides - 1; i++)
+          FigureDraft(move: 'orbit'),
+      ],
+    )..params['beats'] = 16;
+
+    await _pump(tester, [modifier]);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-menu')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('figure-0-nested-0-0-ungroup-container')),
+      findsNothing,
+    );
+    expect(modifier.modifierFigures, hasLength(kMaxMeanwhileSides));
+  });
+
   testWidgets('modifier child editors expose role-specific removal text', (
     tester,
   ) async {

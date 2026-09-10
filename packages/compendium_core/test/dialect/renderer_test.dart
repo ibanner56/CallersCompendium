@@ -1322,6 +1322,23 @@ void main() {
           contains('taking'),
         );
       });
+
+      test('modifier gerundives preserve authored alias wording', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'see_saw'),
+            Figure(move: 'swat_the_flea'),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('seesawing'));
+        expect(rendered, contains('swatting the flea'));
+        expect(rendered, isNot(contains('doing-si-do')));
+        expect(rendered, isNot(contains('boxing the gnat')));
+      });
     });
 
     group('hey length', () {

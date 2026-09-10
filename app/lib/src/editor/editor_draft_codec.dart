@@ -461,6 +461,13 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(
   if (containerKind != null && containerKind == parentContainerKind) {
     throw const FormatException('figureDraft containers must alternate kinds');
   }
+  if (containerKind != null &&
+      children is List &&
+      children.length > kMaxMeanwhileSides) {
+    throw FormatException(
+      'figureDraft.children exceeds the $kMaxMeanwhileSides-child limit',
+    );
+  }
   final parsedChildren = children is List
       ? [
           for (final child in children)

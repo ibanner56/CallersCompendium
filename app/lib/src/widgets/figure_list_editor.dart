@@ -2141,6 +2141,14 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                   onChanged: widget.onChanged,
                                   onAdd: () {},
                                   onDelete: (_) => _removeSide(i),
+                                  onUngroupContainer:
+                                      _canUngroupNestedContainer(sides, i)
+                                      ? (nested) => _ungroupNestedContainer(
+                                          sides,
+                                          i,
+                                          nested,
+                                        )
+                                      : null,
                                   allowAdding: false,
                                   allowDuplicating: false,
                                   showPhraseStructure: false,
@@ -2273,6 +2281,36 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     final sides = widget.draft.meanwhileSides ?? widget.draft.modifierFigures!;
     final side = sides.removeAt(oldIndex);
     sides.insert(newIndex, side);
+    widget.onChanged();
+  }
+
+  bool _canUngroupNestedContainer(List<FigureDraft> sides, int index) {
+    if (index < 0 || index >= sides.length) return false;
+    final nested = sides[index];
+    if (!nested.isContainerDraft) return false;
+    final children = nested.meanwhileSides ?? nested.modifierFigures;
+    return children != null &&
+        children.length >= 2 &&
+        sides.length - 1 + children.length <= kMaxMeanwhileSides;
+  }
+
+  void _ungroupNestedContainer(
+    List<FigureDraft> sides,
+    int index,
+    FigureDraft nested,
+  ) {
+    if (index < 0 ||
+        index >= sides.length ||
+        !identical(sides[index], nested) ||
+        !_canUngroupNestedContainer(sides, index)) {
+      return;
+    }
+    final children = List<FigureDraft>.of(
+      nested.meanwhileSides ?? nested.modifierFigures!,
+    );
+    sides
+      ..removeAt(index)
+      ..insertAll(index, children);
     widget.onChanged();
   }
 

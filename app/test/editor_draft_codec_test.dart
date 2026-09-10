@@ -144,6 +144,40 @@ void main() {
       expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
     });
 
+    test('rejects structural containers with more than six children', () {
+      final raw =
+          jsonDecode(
+                encodeDraft(
+                  _minimalSnapshot(
+                    figureDrafts: [
+                      FigureDraftSnapshot(
+                        id: 'root',
+                        move: null,
+                        params: const {},
+                        note: '',
+                        progression: false,
+                        schemaVersion: figureSchemaVersion,
+                        modifierFigures: [
+                          for (var i = 0; i < kMaxMeanwhileSides + 1; i++)
+                            FigureDraftSnapshot(
+                              id: 'child-$i',
+                              move: 'swing',
+                              params: const {},
+                              note: '',
+                              progression: false,
+                              schemaVersion: figureSchemaVersion,
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              )
+              as Map<String, Object?>;
+
+      expect(() => decodeDraft(raw), throwsA(isA<FormatException>()));
+    });
+
     test('encodes and decodes reverse progression improper formation', () {
       final reverse = _minimalSnapshot(
         formationShape: FormationShape.reverseProgressionImproper,
