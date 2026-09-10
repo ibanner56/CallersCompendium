@@ -602,6 +602,43 @@ class AppLocalizationsFr extends AppLocalizations {
       'Prérempli dans les nouveaux programmes ; modifiable par programme.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Programme de départ';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danses et notes ajoutées aux programmes créés manuellement.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Ajouter une danse';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Danse';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Ajouter une pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Texte de la note';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Note du caller (facultatif)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Monter';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Descendre';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Danse indisponible ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Orchestre par défaut';
 
   @override
@@ -1070,6 +1107,26 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Lieux répétés dans l’historique des appels';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Afficher les principaux lieux où une danse a été appelée plusieurs fois. Régler sur 0 pour masquer ce résumé.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count lieux',
+      one: '1 lieu',
+      zero: 'Ne pas afficher',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Accessibilité';
@@ -2243,6 +2300,17 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get danceCallingHistoryError =>
       'Impossible de charger l\'historique des soirées.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Appelée $count fois à $venue',
+      one: 'Appelée 1 fois à $venue',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Afficher les termes canoniques';

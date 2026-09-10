@@ -441,7 +441,7 @@ fvm dart run packages/compendium_core/tool/generate_data_classification_doc.dart
 
 Declared in `app/lib`; classified here so the catalogue has one source of truth. `settings.value_json` is `deviceLocal` at the column level so a blanket sync cannot happen by accident — these entries decide what actually travels.
 
-**69 settings keys**: 54 shareable, 7 device-local, 6 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
+**71 settings keys**: 56 shareable, 7 device-local, 6 device-scoped, 1 protocol-identifier, 1 access-control-data. 3 personal data by category.
 
 | Key | Category | Subject | Egress | Why |
 | --- | --- | --- | --- | --- |
@@ -481,6 +481,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `default_program_band` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often their own band. Personal data, shareable for the same reason as programs.band. |
 | `default_program_caller` | `pd:Name` | app user | shareable | A performer name the user pre-fills onto new programs — most often themselves. Personal data, shareable for the same reason as programs.caller. |
 | `default_program_sort` | `dpv:NonPersonalData` | app user | shareable |  |
+| `default_starting_program` | `dpv:NonPersonalData` | app user | shareable | User-authored semantic slot template for manually created programs. It contains selected dance references and caller notes, so it travels with the user preference in local backups. |
 | `first_day_of_week` | `dpv:NonPersonalData` | app user | shareable |  |
 | `formation_color_overrides` | `dpv:NonPersonalData` | app user | shareable |  |
 | `free_text_entry` | `dpv:NonPersonalData` | app user | shareable |  |
@@ -510,6 +511,7 @@ Declared in `app/lib`; classified here so the catalogue has one source of truth.
 | `update_auto_check` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_beta_channel` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
 | `update_dismissed_version` | `dpv:NonPersonalData` | — | **device-local** | Non-shareable installation state intentionally retained in a user-controlled local backup, but not sent to project infrastructure. |
+| `venue_call_count` | `dpv:NonPersonalData` | app user | shareable |  |
 | `venue_entity_mode` | `dpv:NonPersonalData` | app user | shareable |  |
 | `verbose_figure_rendering` | `dpv:NonPersonalData` | app user | shareable |  |
 | `walkthrough_snippets` | `dpv:NonPersonalData` | app user | shareable |  |

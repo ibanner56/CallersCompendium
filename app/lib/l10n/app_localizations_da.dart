@@ -591,6 +591,43 @@ class AppLocalizationsDa extends AppLocalizations {
       'Udfyldes i nye programmer; kan redigeres per program.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogram';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Danse og noter, der føjes til manuelt oprettede programmer.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tilføj en dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Note';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Tilføj pause';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notetekst';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-note (valgfri)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Flyt op';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Flyt ned';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Utilgængelig dans ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standardband';
 
   @override
@@ -1043,6 +1080,26 @@ class AppLocalizationsDa extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Når den er slået fra, og der er valgt en standardcaller, omfatter kaldshistorik og antal programmer ledet af den caller samt programmer uden registreret caller (behandlet som dine egne). Når den er slået til — eller når der ikke er valgt en standardcaller — spores alle programmer, der indeholder dansen.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Gentagne spillesteder i dansehistorikken';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Vis de øverste spillesteder, hvor en dans blev kaldt mere end én gang. Sæt til 0 for at skjule denne oversigt.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count spillesteder',
+      one: '1 spillested',
+      zero: 'Vis ikke',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Tilgængelighed';
@@ -2208,6 +2265,17 @@ class AppLocalizationsDa extends AppLocalizations {
 
   @override
   String get danceCallingHistoryError => 'Kunne ikke indlæse kaldehistorikken.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Kaldt $count gange på $venue',
+      one: 'Kaldt 1 gang på $venue',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Vis kanoniske termer';

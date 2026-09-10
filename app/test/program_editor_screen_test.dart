@@ -439,14 +439,12 @@ void main() {
 
   testWidgets('create requires a title', (tester) async {
     final repos = openTestRepositories();
-    String? savedId;
-    await _pump(tester, repos, onSaved: (id) => savedId = id);
+    await _pump(tester, repos);
 
     await tester.tap(find.byKey(const ValueKey('save-program')));
     await tester.pumpAndSettle();
 
     expect(find.text('A title is required.'), findsOneWidget);
-    expect(savedId, isNull);
     expect(await repos.programs.listAll(), isEmpty);
   });
 
@@ -676,9 +674,9 @@ void main() {
 
   testWidgets('adds a dance slot from the inline picker', (tester) async {
     final repos = openTestRepositories();
+    String? savedId;
     await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
     await repos.programs.create(_program(id: 'p1', title: 'Night'));
-    String? savedId;
     await _pumpBuilder(
       tester,
       repos,
@@ -3707,6 +3705,47 @@ void main() {
       isEmpty,
     );
   });
+
+  testWidgets(
+    'starting program template seeds valid entries with fresh slots',
+    (tester) async {
+      final repos = openTestRepositories();
+      String? savedId;
+      await repos.dances.create(_dance(id: 'd1', title: 'Chase the Squirrel'));
+      await repos.settings.set(
+        kDefaultStartingProgramKey,
+        encodeStartingProgramTemplate([
+          const StartingProgramTemplateEntry(
+            danceId: 'd1',
+            text: 'Guest caller',
+          ),
+          const StartingProgramTemplateEntry(danceId: 'missing'),
+          const StartingProgramTemplateEntry(text: Program.breakSlotText),
+        ]),
+      );
+
+      await _pump(tester, repos, onSaved: (id) => savedId = id);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Chase the Squirrel'), findsOneWidget);
+      expect(find.text(Program.breakSlotText), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('program-title')),
+        'Template test',
+      );
+      await tester.tap(find.byKey(const ValueKey('save-program')));
+      await tester.pumpAndSettle();
+      expect(savedId, isNotNull);
+      final saved = await repos.programs.getById(savedId!);
+      expect(saved, isNotNull);
+      expect(saved!.slots, hasLength(2));
+      expect(saved.slots.map((slot) => slot.position), [0, 1]);
+      expect(saved.slots.map((slot) => slot.id).toSet(), hasLength(2));
+      expect(saved.slots.first.danceId, 'd1');
+      expect(saved.slots.first.text, 'Guest caller');
+      expect(saved.slots.last.text, Program.breakSlotText);
+    },
+  );
 
   // Pins the two feedback channels #796 must not disturb. The picker's new
   // row-level confirmation exists because the modal *sheet* covers the

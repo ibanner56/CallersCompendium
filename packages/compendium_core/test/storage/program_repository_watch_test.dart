@@ -57,6 +57,31 @@ void main() {
   );
 
   group('watchCallingHistoryForDance', () {
+    test('derives venue counts from matching records', () async {
+      await programs.create(
+        program(
+          id: 'p1',
+          slots: [
+            ProgramSlot(id: 's1', position: 0, danceId: 'd1'),
+            ProgramSlot(id: 's2', position: 1, danceId: 'd1'),
+          ],
+        ).copyWith(venue: '  Town   Hall '),
+      );
+      await programs.create(
+        program(
+          id: 'p2',
+          slots: [ProgramSlot(id: 's3', position: 0, danceId: 'd1')],
+        ).copyWith(venue: 'town hall'),
+      );
+
+      final history = await programs.watchCallingHistoryForDance('d1').first;
+
+      expect(history.venueCounts, hasLength(1));
+      expect(history.venueCounts.single.venueId, isNull);
+      expect(history.venueCounts.single.venue, 'Town Hall');
+      expect(history.venueCounts.single.count, 3);
+    });
+
     test('emits the current history immediately on listen', () async {
       await programs.create(
         program(

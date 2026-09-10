@@ -11,6 +11,7 @@ import '../../data/program_auto_commit_scope.dart';
 import '../../data/repositories_scope.dart';
 import '../../data/require_performed_for_history_scope.dart';
 import '../../data/track_history_for_all_callers_scope.dart';
+import '../../data/venue_call_count_scope.dart';
 import '../../data/venue_entity_mode_scope.dart';
 import '../../theme/keyboard_dismiss.dart';
 import '../../widgets/section_header.dart';
@@ -46,6 +47,9 @@ class _ProgramSectionState extends State<ProgramSection> {
   bool? _autoCommitProgramChanges;
   bool _autoCommitRequested = false;
   bool _autoCommitUserSet = false;
+  int? _venueCallCount;
+  bool _venueCallCountRequested = false;
+  bool _venueCallCountUserSet = false;
 
   /// Lazily loads the persisted auto-size preference the first time this section
   /// is built (avoids reading settings in `initState`). A late read must not
@@ -161,8 +165,36 @@ class _ProgramSectionState extends State<ProgramSection> {
     if (scoped != null) {
       ProgramAutoCommitScope.notifierOf(context).value = value;
     }
+
     final repos = RepositoriesScope.of(context);
     await repos.settings.set(kAutoCommitProgramChangesKey, value);
+  }
+
+  void _ensureVenueCallCountLoaded(BuildContext context) {
+    if (_venueCallCountRequested) return;
+    _venueCallCountRequested = true;
+    final repos = RepositoriesScope.of(context);
+    repos.settings
+        .get(kVenueCallCountKey)
+        .then((value) {
+          if (!mounted || _venueCallCountUserSet) return;
+          setState(() => _venueCallCount = venueCallCountFromStored(value));
+        })
+        .catchError((_) {
+          // diagnostics: silent — invalid or unavailable preference uses default.
+          if (!mounted || _venueCallCountUserSet) return;
+          setState(() => _venueCallCount = kVenueCallCountDefault);
+        });
+  }
+
+  Future<void> _onVenueCallCountChanged(int value) async {
+    setState(() {
+      _venueCallCountUserSet = true;
+      _venueCallCount = value;
+    });
+    VenueCallCountScope.notifierOf(context).value = value;
+    final repos = RepositoriesScope.of(context);
+    await repos.settings.set(kVenueCallCountKey, value);
   }
 
   /// Opens the venue manager (browse/create/edit/delete reusable venues).
@@ -220,6 +252,7 @@ class _ProgramSectionState extends State<ProgramSection> {
   Widget build(BuildContext context) {
     _ensureAutoSizeLoaded(context);
     _ensureIndividualTimerLoaded(context);
+    _ensureVenueCallCountLoaded(context);
     _ensureProgramSlotCallerNotesLoaded(context);
     final scopedAutoCommit = ProgramAutoCommitScope.maybeOf(context);
     if (scopedAutoCommit == null) _ensureAutoCommitLoaded(context);
@@ -243,6 +276,8 @@ class _ProgramSectionState extends State<ProgramSection> {
       onRequirePerformedForHistoryChanged: _onRequirePerformedForHistoryChanged,
       trackHistoryForAllCallers: TrackHistoryForAllCallersScope.of(context),
       onTrackHistoryForAllCallersChanged: _onTrackHistoryForAllCallersChanged,
+      venueCallCount: _venueCallCount ?? kVenueCallCountDefault,
+      onVenueCallCountChanged: _onVenueCallCountChanged,
     );
   }
 }
@@ -270,6 +305,8 @@ class _ProgramView extends StatelessWidget {
     required this.onRequirePerformedForHistoryChanged,
     required this.trackHistoryForAllCallers,
     required this.onTrackHistoryForAllCallersChanged,
+    required this.venueCallCount,
+    required this.onVenueCallCountChanged,
   });
 
   final bool venueEntityMode;
@@ -299,6 +336,8 @@ class _ProgramView extends StatelessWidget {
   final ValueChanged<bool> onRequirePerformedForHistoryChanged;
   final bool trackHistoryForAllCallers;
   final ValueChanged<bool> onTrackHistoryForAllCallersChanged;
+  final int venueCallCount;
+  final ValueChanged<int> onVenueCallCountChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -388,6 +427,25 @@ class _ProgramView extends StatelessWidget {
           title: Text(l10n.settingsGeneralTrackHistoryForAllCallersTitle),
           subtitle: Text(l10n.settingsGeneralTrackHistoryForAllCallersSubtitle),
           isThreeLine: true,
+        ),
+        ListTile(
+          key: const ValueKey('general-venue-call-count'),
+          title: Text(l10n.settingsProgramVenueCallCountTitle),
+          subtitle: Text(l10n.settingsProgramVenueCallCountSubtitle),
+          isThreeLine: true,
+          trailing: DropdownButton<int>(
+            value: venueCallCount,
+            onChanged: (value) {
+              if (value != null) onVenueCallCountChanged(value);
+            },
+            items: [
+              for (var count = 0; count <= kVenueCallCountMax; count++)
+                DropdownMenuItem(
+                  value: count,
+                  child: Text(l10n.settingsProgramVenueCallCountOption(count)),
+                ),
+            ],
+          ),
         ),
       ],
     );

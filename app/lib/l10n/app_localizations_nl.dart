@@ -589,6 +589,43 @@ class AppLocalizationsNl extends AppLocalizations {
       'Vooraf ingevuld in nieuwe programma\'s; aanpasbaar per programma.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogramma';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Dansen en notities die aan handmatig gemaakte programma\'s worden toegevoegd.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Een dans toevoegen';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Dans';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Notitie';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Pauze toevoegen';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Tekst van notitie';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Notitie van caller (optioneel)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Omhoog';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Omlaag';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Niet-beschikbare dans ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standaard band';
 
   @override
@@ -1052,6 +1089,26 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Als dit uit staat en er een standaardcaller is ingesteld, bevatten de callerhistorie en de aantallen programma’s die door die caller zijn geleid, plus programma’s zonder geregistreerde caller (behandeld als uw eigen). Als dit aan staat — of als er geen standaardcaller is ingesteld — wordt elk programma dat de dans bevat bijgehouden.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Herhaalde locaties in de belgeschiedenis';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Toon de belangrijkste locaties waar een dans meer dan één keer is gecalld. Stel in op 0 om dit overzicht te verbergen.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count locaties',
+      one: '1 locatie',
+      zero: 'Niet tonen',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Toegankelijkheid';
@@ -2222,6 +2279,17 @@ class AppLocalizationsNl extends AppLocalizations {
 
   @override
   String get danceCallingHistoryError => 'Kan de callgeschiedenis niet laden.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count keer gecalld bij $venue',
+      one: '1 keer gecalld bij $venue',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Canonieke termen tonen';

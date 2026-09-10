@@ -1094,6 +1094,72 @@ abstract class AppLocalizations {
   /// **'Prefilled into new programs; editable per program.'**
   String get settingsDefaultsPrefilledHelper;
 
+  /// Title for the reusable program template in Program defaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting program'**
+  String get settingsDefaultsStartingProgramTitle;
+
+  /// Explanation of the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance and note entries added to manually created programs.'**
+  String get settingsDefaultsStartingProgramSubtitle;
+
+  /// Title for the dance picker used by the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a dance'**
+  String get settingsDefaultsStartingProgramPickerTitle;
+
+  /// Button to add a dance to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Dance'**
+  String get settingsDefaultsStartingProgramAddDance;
+
+  /// Button to add a text note to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get settingsDefaultsStartingProgramAddText;
+
+  /// Tooltip for adding a break to the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Add break'**
+  String get settingsDefaultsStartingProgramAddBreak;
+
+  /// Input label for a new text note in the starting program template.
+  ///
+  /// In en, this message translates to:
+  /// **'Note text'**
+  String get settingsDefaultsStartingProgramTextLabel;
+
+  /// Input label for an optional note attached to a dance entry.
+  ///
+  /// In en, this message translates to:
+  /// **'Caller note (optional)'**
+  String get settingsDefaultsStartingProgramNoteLabel;
+
+  /// Tooltip for moving a starting-program entry up.
+  ///
+  /// In en, this message translates to:
+  /// **'Move up'**
+  String get settingsDefaultsStartingProgramMoveUp;
+
+  /// Tooltip for moving a starting-program entry down.
+  ///
+  /// In en, this message translates to:
+  /// **'Move down'**
+  String get settingsDefaultsStartingProgramMoveDown;
+
+  /// Fallback label for a starting-program dance reference no longer in the collection.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable dance ({id})'**
+  String settingsDefaultsStartingProgramUnavailableDance(String id);
+
   /// Text-field label for the default band prefilled into new programs.
   ///
   /// In en, this message translates to:
@@ -1861,6 +1927,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'When off and a default caller is set, calling history and counts include programs led by that caller plus any programs with no caller recorded (treated as your own). When on — or when no default caller is set — every program that contains the dance is tracked.'**
   String get settingsGeneralTrackHistoryForAllCallersSubtitle;
+
+  /// Title of the Program setting controlling how many venues with repeated calls appear in a dance's calling-history summary.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeated venues in calling history'**
+  String get settingsProgramVenueCallCountTitle;
+
+  /// Subtitle explaining the repeated-venue calling-history setting.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the top venues where a dance was called more than once. Set to 0 to hide this summary.'**
+  String get settingsProgramVenueCallCountSubtitle;
+
+  /// Dropdown option for the number of repeated venues shown in calling history.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Don\'t show} =1{1 venue} other{{count} venues}}'**
+  String settingsProgramVenueCallCountOption(num count);
 
   /// General settings section header for accessibility preferences.
   ///
@@ -3739,6 +3823,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not load the calling history.'**
   String get danceCallingHistoryError;
+
+  /// Repeated-venue calling-history summary item.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Called 1 time at {venue}} other{Called {count} times at {venue}}}'**
+  String danceVenueCallCount(int count, String venue);
 
   /// Accessible label for the toggle that shows canonical (undialected) figure terms.
   ///

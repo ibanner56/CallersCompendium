@@ -2,9 +2,16 @@ import 'package:compendium_app/src/data/aggressive_beats_update_scope.dart'
     show kAggressiveBeatsUpdateKey;
 import 'package:compendium_app/src/data/backup_settings_schema.dart';
 import 'package:compendium_app/src/data/display_defaults.dart'
-    show kCanonicalFigureTextKey;
+    show
+        encodeStartingProgramTemplate,
+        kCanonicalFigureTextKey,
+        kDefaultStartingProgramKey,
+        StartingProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
-    show kProgramMatrixColumnsKey, kShowIndividualPerformTimerKey;
+    show
+        kProgramMatrixColumnsKey,
+        kShowIndividualPerformTimerKey,
+        kVenueCallCountKey;
 import 'package:compendium_core/compendium_core.dart' show MatrixColumnConfig;
 import 'package:compendium_app/src/data/soft_delete_retention.dart'
     show kSoftDeleteRetentionKey;
@@ -22,6 +29,38 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('validateBackupSettingValue (issue #609)', () {
+    test(
+      'starting program templates require the validated versioned shape',
+      () {
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            encodeStartingProgramTemplate([
+              const StartingProgramTemplateEntry(
+                danceId: 'dance-1',
+                text: 'Caller note',
+              ),
+            ]),
+          ),
+          isTrue,
+        );
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            '{"version":1,"slots":[{"id":"persisted"}]}',
+          ),
+          isFalse,
+        );
+        expect(
+          validateBackupSettingValue(
+            kDefaultStartingProgramKey,
+            '{"version":1,"slots":[{}]}',
+          ),
+          isFalse,
+        );
+      },
+    );
+
     test('program caller-note visibility setting accepts only bools', () {
       expect(
         validateBackupSettingValue(kShowProgramSlotCallerNotesKey, true),
@@ -40,6 +79,7 @@ void main() {
         isFalse,
       );
     });
+
     test('bool keys accept only bools', () {
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, true), isTrue);
       expect(validateBackupSettingValue(kSortIgnoreArticlesKey, false), isTrue);
@@ -158,6 +198,15 @@ void main() {
         validateBackupSettingValue(kSoftDeleteRetentionKey, '30'),
         isFalse,
       );
+    });
+
+    test('venue call count accepts only bounded ints', () {
+      expect(validateBackupSettingValue(kVenueCallCountKey, 0), isTrue);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 10), isTrue);
+      expect(validateBackupSettingValue(kVenueCallCountKey, -1), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 11), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, 1.5), isFalse);
+      expect(validateBackupSettingValue(kVenueCallCountKey, '3'), isFalse);
     });
 
     test('map-blob keys accept only maps', () {

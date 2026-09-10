@@ -656,6 +656,50 @@
   "@settingsDefaultsPrefilledHelper": {
     "x-sourceSha256": "c02385b75a59383fbbb2ad8fe7fcd9f72bfa6101f4f628b8c1860a081a678fef"
   },
+  "settingsDefaultsStartingProgramTitle": "Programme de départ",
+  "@settingsDefaultsStartingProgramTitle": {
+    "x-sourceSha256": "d43a18c5072c7c93f504cb049a3aaa925ee72aded0ece0cdfbbd0a623c312d6f"
+  },
+  "settingsDefaultsStartingProgramSubtitle": "Danses et notes ajoutées aux programmes créés manuellement.",
+  "@settingsDefaultsStartingProgramSubtitle": {
+    "x-sourceSha256": "5263ff112c8931c2a4483aad83d69af9478ace82f9f0606180306ef902ddddd3"
+  },
+  "settingsDefaultsStartingProgramPickerTitle": "Ajouter une danse",
+  "@settingsDefaultsStartingProgramPickerTitle": {
+    "x-sourceSha256": "162eb23854f7ecaf9a9fe6662f96f732bace7ea5999b540e4b6e4b189d0a01b1"
+  },
+  "settingsDefaultsStartingProgramAddDance": "Danse",
+  "@settingsDefaultsStartingProgramAddDance": {
+    "x-sourceSha256": "23d2d73543f9d7d92ac704296e5ee744037f5f4c938e21abf2c17002c4e9ba71"
+  },
+  "settingsDefaultsStartingProgramAddText": "Note",
+  "@settingsDefaultsStartingProgramAddText": {
+    "x-sourceSha256": "d8da2c49df39d91df7ecd199b92da7bf264f026242ccc69b08daeadfe587c45b"
+  },
+  "settingsDefaultsStartingProgramAddBreak": "Ajouter une pause",
+  "@settingsDefaultsStartingProgramAddBreak": {
+    "x-sourceSha256": "7d6ad44637b1bd724b5c7defdab64e78e25805878c2326c5ba4a81e1b48bb50c"
+  },
+  "settingsDefaultsStartingProgramTextLabel": "Texte de la note",
+  "@settingsDefaultsStartingProgramTextLabel": {
+    "x-sourceSha256": "369e75791f2d58551e3a06b30954568b580ba9c5871e07481d9b9c8a61abacfb"
+  },
+  "settingsDefaultsStartingProgramNoteLabel": "Note du caller (facultatif)",
+  "@settingsDefaultsStartingProgramNoteLabel": {
+    "x-sourceSha256": "72124dc9dd25c16e0c8da9a2e6c5c2866e09fd6de4519906f4193cb4bfe2e013"
+  },
+  "settingsDefaultsStartingProgramMoveUp": "Monter",
+  "@settingsDefaultsStartingProgramMoveUp": {
+    "x-sourceSha256": "c66feb5eb8f217c76bfb0f1b41e3ee73ab41cb9959fae8284911bd3ad3816086"
+  },
+  "settingsDefaultsStartingProgramMoveDown": "Descendre",
+  "@settingsDefaultsStartingProgramMoveDown": {
+    "x-sourceSha256": "40bb50da160cdc21d6029a927b68f92b07fd450688e609826cbc70d202db96da"
+  },
+  "settingsDefaultsStartingProgramUnavailableDance": "Danse indisponible ({id})",
+  "@settingsDefaultsStartingProgramUnavailableDance": {
+    "x-sourceSha256": "122b8b4b37adce5ff3e76dd2a1ae9e43e0654d93954e1b9d698af939d849fcd7"
+  },
   "settingsDefaultsBandLabel": "Orchestre par défaut",
   "@settingsDefaultsBandLabel": {
     "x-sourceSha256": "c7318a8e4e71c43fe5a7cc0c176c889334d9caeeecd2bb34e1c8aaf3bc31a25e"
@@ -1167,6 +1211,18 @@
   "settingsGeneralTrackHistoryForAllCallersSubtitle": "Lorsque cette option est désactivée et qu’un caller par défaut est défini, l’historique d’appel et les comptes incluent les programmes menés par ce caller ainsi que les programmes sans caller enregistré (considérés comme les vôtres). Lorsqu’elle est activée — ou qu’aucun caller par défaut n’est défini — chaque programme contenant la danse est suivi.",
   "@settingsGeneralTrackHistoryForAllCallersSubtitle": {
     "x-sourceSha256": "b07a802d076006a8e3c62ad016048de051cc378c847bff0a8bf97bba3dcf0b02"
+  },
+  "settingsProgramVenueCallCountTitle": "Lieux répétés dans l’historique des appels",
+  "@settingsProgramVenueCallCountTitle": {
+    "x-sourceSha256": "fdf9b29bd90c4ed9bfad0d1d18525a867fb36abb1e2d5058d7b9a4cfdf57df39"
+  },
+  "settingsProgramVenueCallCountSubtitle": "Afficher les principaux lieux où une danse a été appelée plusieurs fois. Régler sur 0 pour masquer ce résumé.",
+  "@settingsProgramVenueCallCountSubtitle": {
+    "x-sourceSha256": "aa9efc3dea7ac205d403fd1c8f083f90f715db2ce595232f4e8897346042cc44"
+  },
+  "settingsProgramVenueCallCountOption": "{count, plural, =0{Ne pas afficher} =1{1 lieu} other{{count} lieux}}",
+  "@settingsProgramVenueCallCountOption": {
+    "x-sourceSha256": "1c0cfc72e21f8c2822ac39f1e745a46fad5fe0ec3d19811be896910962f1925b"
   },
   "settingsGeneralAccessibilityHeader": "Accessibilité",
   "@settingsGeneralAccessibilityHeader": {
@@ -2419,6 +2475,10 @@
   "danceCallingHistoryError": "Impossible de charger l'historique des soirées.",
   "@danceCallingHistoryError": {
     "x-sourceSha256": "5b904ba8025bb80c5193a39f3c7f73cde1abae09c07a25f743e7206318a76e08"
+  },
+  "danceVenueCallCount": "{count, plural, =1{Appelée 1 fois à {venue}} other{Appelée {count} fois à {venue}}}",
+  "@danceVenueCallCount": {
+    "x-sourceSha256": "0046b9ca011ff24c3e6640bd63f208089cd477cee692ff4cceccdcf06ca835e1"
   },
   "danceShowCanonicalTerms": "Afficher les termes canoniques",
   "@danceShowCanonicalTerms": {

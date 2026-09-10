@@ -596,6 +596,43 @@ class AppLocalizationsDe extends AppLocalizations {
       'In neuen Programmen vorausgefüllt; pro Programm bearbeitbar.';
 
   @override
+  String get settingsDefaultsStartingProgramTitle => 'Startprogramm';
+
+  @override
+  String get settingsDefaultsStartingProgramSubtitle =>
+      'Tänze und Notizen, die zu manuell erstellten Programmen hinzugefügt werden.';
+
+  @override
+  String get settingsDefaultsStartingProgramPickerTitle => 'Tanz hinzufügen';
+
+  @override
+  String get settingsDefaultsStartingProgramAddDance => 'Tanz';
+
+  @override
+  String get settingsDefaultsStartingProgramAddText => 'Notiz';
+
+  @override
+  String get settingsDefaultsStartingProgramAddBreak => 'Pause hinzufügen';
+
+  @override
+  String get settingsDefaultsStartingProgramTextLabel => 'Notiztext';
+
+  @override
+  String get settingsDefaultsStartingProgramNoteLabel =>
+      'Caller-Notiz (optional)';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveUp => 'Nach oben';
+
+  @override
+  String get settingsDefaultsStartingProgramMoveDown => 'Nach unten';
+
+  @override
+  String settingsDefaultsStartingProgramUnavailableDance(String id) {
+    return 'Nicht verfügbarer Tanz ($id)';
+  }
+
+  @override
   String get settingsDefaultsBandLabel => 'Standard-Band';
 
   @override
@@ -1062,6 +1099,26 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get settingsGeneralTrackHistoryForAllCallersSubtitle =>
       'Wenn aus und ein Standard-Caller festgelegt ist, enthalten Calling-Verlauf und Zählungen Programme, die von diesem Caller geleitet wurden, sowie Programme ohne eingetragenen Caller (die als Ihre eigenen gezählt werden). Wenn ein — oder wenn kein Standard-Caller festgelegt ist — wird jedes Programm erfasst, das den Tanz enthält.';
+
+  @override
+  String get settingsProgramVenueCallCountTitle =>
+      'Mehrfach genutzte Veranstaltungsorte im Anrufverlauf';
+
+  @override
+  String get settingsProgramVenueCallCountSubtitle =>
+      'Die wichtigsten Veranstaltungsorte anzeigen, an denen ein Tanz mehr als einmal aufgerufen wurde. Auf 0 setzen, um diese Übersicht auszublenden.';
+
+  @override
+  String settingsProgramVenueCallCountOption(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count Veranstaltungsorte',
+      one: '1 Veranstaltungsort',
+      zero: 'Nicht anzeigen',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get settingsGeneralAccessibilityHeader => 'Barrierefreiheit';
@@ -2237,6 +2294,17 @@ class AppLocalizationsDe extends AppLocalizations {
   @override
   String get danceCallingHistoryError =>
       'Der Ansageverlauf konnte nicht geladen werden.';
+
+  @override
+  String danceVenueCallCount(int count, String venue) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count-mal an $venue aufgerufen',
+      one: '1-mal an $venue aufgerufen',
+    );
+    return '$_temp0';
+  }
 
   @override
   String get danceShowCanonicalTerms => 'Kanonische Begriffe anzeigen';
