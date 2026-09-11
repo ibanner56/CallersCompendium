@@ -464,8 +464,8 @@ void main() {
         );
         final expectedFts = [
           expectedCanonical[0],
+          'mad robin once counterclockwise partners meanwhile partners swing',
           expectedCanonical[1],
-          'meanwhile partners swing mad robin once counterclockwise partners',
           expectedCanonical[2],
           expectedCanonical[3],
         ].join(' ');

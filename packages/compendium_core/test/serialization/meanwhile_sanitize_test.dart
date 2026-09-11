@@ -91,6 +91,33 @@ void main() {
     }
   });
 
+  test('drops malformed nested children without dropping the dance', () {
+    final archive = archiveWith({
+      'move': modifierMove,
+      'params': {
+        'beats': 16,
+        'figures': [
+          {'move': 'swing'},
+          {'move': 'swing', 'params': []},
+          {
+            'move': customMove,
+            'params': {'text': 'turn'},
+          },
+        ],
+      },
+    });
+
+    final result = decodeArchive(jsonEncode(archive));
+    expect(result.hasErrors, isFalse, reason: result.errors.join('\n'));
+    expect(result.archive.dances, hasLength(1));
+    expect(
+      result.archive.dances.single.figures.single.subFigures.map(
+        (figure) => figure.move,
+      ),
+      ['swing', customMove],
+    );
+  });
+
   test('clamps a hostile oversized side count without failing the import', () {
     final sides = [
       for (var i = 0; i < kMaxMeanwhileSides + 20; i++)

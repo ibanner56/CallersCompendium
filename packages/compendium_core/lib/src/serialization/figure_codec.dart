@@ -169,17 +169,22 @@ List<Figure> _decodeContainerChildren(
     if (children.length >= kMaxMeanwhileSides) break;
     if (entry is! Map) continue; // ignore junk; never fabricate
     final map = entry.cast<String, Object?>();
-    final childMove = map['move'];
-    if (childMove is String &&
-        (childMove == meanwhileMove || childMove == modifierMove)) {
-      if (childMove == parentMove) continue;
-      final child = _figureFromJson(map, depth + 1);
-      if (child.isContainer && child.subFigures.isNotEmpty) {
-        children.add(child);
+    try {
+      final childMove = map['move'];
+      if (childMove is String &&
+          (childMove == meanwhileMove || childMove == modifierMove)) {
+        if (childMove == parentMove) continue;
+        final child = _figureFromJson(map, depth + 1);
+        if (child.isContainer && child.subFigures.isNotEmpty) {
+          children.add(child);
+        }
+        continue;
       }
-      continue;
+      children.add(_figureFromJson(map, depth + 1));
+    } on FormatException {
+      // A malformed child must not discard its valid siblings or the containing
+      // figure. This codec is tolerant at structural boundaries.
     }
-    children.add(_figureFromJson(map, depth + 1));
   }
   return children;
 }
