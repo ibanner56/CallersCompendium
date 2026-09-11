@@ -6,8 +6,9 @@ free/offline tooling constraint. Run directly::
 
     python3 tools/release/test_gen_release_metadata.py
 
-Focus: prove the ``--extra-file`` addition folds non-binary assets (the SBOM)
-into ``SHA256SUMS`` ONLY, while the 6-binary behavior (both ``SHA256SUMS`` binary
+Focus: prove release metadata carries the codename used by the landing page and
+the ``--extra-file`` addition folds non-binary assets (the SBOM) into
+``SHA256SUMS`` ONLY, while the 6-binary behavior (both ``SHA256SUMS`` binary
 lines and the ``<channel>.json`` manifest) stays byte-identical to before.
 """
 
@@ -68,6 +69,18 @@ def _cases() -> None:
         assert base_lines == sorted(base_lines)
         for name, content in BINARIES.items():
             assert f"{_sha(content)}  {name}" in base_lines
+
+        coded_sums, coded_manifest = g.build_metadata(
+            version=VERSION,
+            tag=TAG,
+            channel="stable",
+            repo=REPO,
+            dist=dist,
+            pub_date=PUB_DATE,
+            codename="Allemande Left",
+        )
+        assert coded_sums == base_sums
+        assert coded_manifest["codename"] == "Allemande Left"
 
         # 2. Manifest lists the primary artifact per (platform, arch):
         #    AppImage over tar.gz, dmg over zip, exe over zip.
@@ -185,8 +198,9 @@ def _cases() -> None:
         except SystemExit as exc:
             assert "name contract" in str(exc)
 
-    # 8. End-to-end via main(): --extra-file writes the SBOM into SHA256SUMS on
-    #    disk but leaves the manifest binary-only.
+    # 8. End-to-end via main(): --codename is copied into the manifest and
+    #    --extra-file writes the SBOM into SHA256SUMS while leaving the manifest
+    #    binary-only.
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         dist = _mkdist(tmp)
@@ -195,6 +209,7 @@ def _cases() -> None:
         rc = g.main([
             "--version", VERSION, "--tag", TAG, "--channel", "stable",
             "--repo", REPO, "--dist", str(dist), "--pub-date", PUB_DATE,
+            "--codename", "Allemande Left",
             "--extra-file", str(sbom),
         ])
         assert rc == 0
@@ -203,6 +218,7 @@ def _cases() -> None:
         manifest = json.loads((dist / "stable.json").read_text(encoding="utf-8"))
         asset_names = [a["url"].rsplit("/", 1)[-1] for a in manifest["artifacts"]]
         assert not any("sbom" in n for n in asset_names)
+        assert manifest["codename"] == "Allemande Left"
 
 
 def main() -> int:

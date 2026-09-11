@@ -330,17 +330,18 @@ class AppLocalizationsJa extends AppLocalizations {
       '© The Caller\'s Compendium contributors. AGPL-3.0のもとで使用許諾。';
 
   @override
-  String settingsAboutVersion(String version) {
-    return 'バージョン $version';
+  String settingsAboutVersion(String version, String codename) {
+    return 'バージョン $version、「$codename」';
   }
 
   @override
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   ) {
-    return '$appName · バージョン $version · $license';
+    return '$appName · バージョン $version、「$codename」 · $license';
   }
 
   @override

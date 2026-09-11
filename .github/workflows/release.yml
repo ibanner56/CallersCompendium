@@ -1347,6 +1347,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --dist dist \
             --pub-date "${{ needs.meta.outputs.pub_date }}" \
+            --codename "${{ needs.meta.outputs.codename }}" \
             --extra-file "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
 
       # The manifest signature is a publication gate. An unsigned or stale
