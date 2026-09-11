@@ -14,7 +14,8 @@ Figure _circle() => parseFreeTextFigureEntry('circle left 3/4').single;
 Figure _meanwhile() =>
     Figure.meanwhile(figures: [_swing(), _circle()], beats: 16);
 
-Figure _modifier() => Figure.modifier(figures: [_swing(), _circle()], beats: 16);
+Figure _modifier() =>
+    Figure.modifier(figures: [_swing(), _circle()], beats: 16);
 
 void main() {
   group('normalizeShorthandToken', () {
@@ -184,35 +185,32 @@ void main() {
       expect(decoded.mappings.single.token, 'bns');
     });
 
-    test('accepts meanwhile and modifier containers, including legal nesting', () {
-      final original = ShorthandMappings([
-        ShorthandMapping(
-          token: 'layered',
-          figures: [
-            Figure.meanwhile(
-              figures: [_swing(), _modifier()],
-              beats: 16,
-            ),
-            Figure.modifier(
-              figures: [_swing(), _meanwhile()],
-              beats: 16,
-            ),
-          ],
-        ),
-      ]);
+    test(
+      'accepts meanwhile and modifier containers, including legal nesting',
+      () {
+        final original = ShorthandMappings([
+          ShorthandMapping(
+            token: 'layered',
+            figures: [
+              Figure.meanwhile(figures: [_swing(), _modifier()], beats: 16),
+              Figure.modifier(figures: [_swing(), _meanwhile()], beats: 16),
+            ],
+          ),
+        ]);
 
-      final decoded = ShorthandMappings.decode(
-        original.encode(),
-        taxonomy: contraTaxonomy,
-      );
+        final decoded = ShorthandMappings.decode(
+          original.encode(),
+          taxonomy: contraTaxonomy,
+        );
 
-      expect(decoded.mappings, hasLength(1));
-      final figures = decoded.mappings.single.figures;
-      expect(figures[0].isMeanwhile, isTrue);
-      expect(figures[0].subFigures[1].isModifier, isTrue);
-      expect(figures[1].isModifier, isTrue);
-      expect(figures[1].subFigures[1].isMeanwhile, isTrue);
-    });
+        expect(decoded.mappings, hasLength(1));
+        final figures = decoded.mappings.single.figures;
+        expect(figures[0].isMeanwhile, isTrue);
+        expect(figures[0].subFigures[1].isModifier, isTrue);
+        expect(figures[1].isModifier, isTrue);
+        expect(figures[1].subFigures[1].isMeanwhile, isTrue);
+      },
+    );
   });
 
   // invalid-fixture: this deliberately decodes a v34 figure to verify the persisted shorthand compatibility boundary
