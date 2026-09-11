@@ -105,9 +105,8 @@ class _ShorthandMappingEditorScreenState
   }
 
   Future<String?> _addMeanwhile() async {
-    final group = FigureDraft(
-      meanwhileSides: [FigureDraft(), FigureDraft()],
-    )..params['beats'] = 0;
+    final group = FigureDraft(meanwhileSides: [FigureDraft(), FigureDraft()])
+      ..params['beats'] = 0;
     setState(() {
       _drafts.add(group);
       _error = null;
@@ -116,9 +115,8 @@ class _ShorthandMappingEditorScreenState
   }
 
   Future<String?> _addModifier() async {
-    final group = FigureDraft(
-      modifierFigures: [FigureDraft(), FigureDraft()],
-    )..params['beats'] = 0;
+    final group = FigureDraft(modifierFigures: [FigureDraft(), FigureDraft()])
+      ..params['beats'] = 0;
     setState(() {
       _drafts.add(group);
       _error = null;
