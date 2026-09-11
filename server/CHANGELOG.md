@@ -10,6 +10,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Added
 
+- Serve a dedicated static status page from the Apache root instead of the
+  default Apache homepage.
 - Add the W16 Linux host-network Docker and Apache deployment reference,
   trusted real-client address resolution, and safe operational alerts.
 - Add a supported break-glass manifest read command that records its separate
@@ -30,6 +32,8 @@ the app and of `compendium_core`; version headings below refer to
 
 ### Fixed
 
+- Include Apache's required error message field in the reference error-log
+  format.
 - Serialize store deletion with durable filesystem cleanup retries, preserve
   stale-epoch blob uploads for later collection, and return `400` for malformed
   gzip request bodies.
