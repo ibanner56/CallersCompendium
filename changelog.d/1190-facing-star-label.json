@@ -1,9 +1,0 @@
-{
-  "id": "1190-facing-star-label",
-  "user_visible": true,
-  "app": {
-    "fixed": [
-      "You now see “backing up” instead of “who” for the facing star dancer parameter in figure entry, search, defaults, and matrix controls."
-    ]
-  }
-}
