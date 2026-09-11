@@ -6,6 +6,8 @@ https_port=${2:-443}
 http_port=${3:-80}
 credential=${ATHENAEUM_CREDENTIAL:?set ATHENAEUM_CREDENTIAL to a new encoded sync credential}
 http_body=$(mktemp)
+status_body=$(mktemp)
+health_body=$(mktemp)
 https_headers=$(mktemp)
 https_post_body=$(mktemp)
 https_get_body=$(mktemp)
@@ -54,7 +56,8 @@ cleanup() {
   else
     rm -f "$cleanup_failures"
   fi
-  rm -f "$http_body" "$https_headers" "$https_post_body" "$https_get_body" \
+  rm -f "$http_body" "$status_body" "$health_body" "$https_headers" \
+    "$https_post_body" "$https_get_body" \
     "$large_body" "$oversized_body" "$raw_body" "$compressed_body" \
     "$compressed_boundary_raw" "$compressed_boundary" \
     "$boundary_response" \
@@ -70,6 +73,16 @@ if ! awk '
   END { exit(found ? 0 : 1) }
 ' "$apache_config"; then
   echo "active Apache vhost must contain Proxy100Continue Off" >&2
+  exit 1
+fi
+if ! awk '
+  /^[[:space:]]*#/ { next }
+  /^[[:space:]]*ErrorLog[[:space:]]+"\|\/usr\/local\/sbin\/athenaeum-error-log[[:space:]]/ {
+    redacted++
+  }
+  END { exit(redacted == 2 ? 0 : 1) }
+' "$apache_config"; then
+  echo "active Apache vhost must use the request-target redacting error logger" >&2
   exit 1
 fi
 
@@ -97,6 +110,30 @@ expect_json_status() {
     exit 1
   fi
 }
+
+status_code=$(
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
+    --output "$status_body" --write-out '%{http_code}' \
+    "${https_url}/" || true
+)
+if [ "$status_code" != 200 ] ||
+  ! grep -Fq '<h1>Athenaeum Device Sync</h1>' "$status_body"; then
+  echo "HTTPS root did not return the Athenaeum status page (HTTP ${status_code:-000})" >&2
+  exit 1
+fi
+echo "HTTPS root status page: passed"
+
+health_status=$(
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
+    --output "$health_body" --write-out '%{http_code}' \
+    "${https_url}/heartbeat" || true
+)
+if [ "$health_status" != 200 ] ||
+  ! grep -Fq '"status":"ok"' "$health_body"; then
+  echo "HTTPS health check did not report the running service (HTTP ${health_status:-000})" >&2
+  exit 1
+fi
+echo "HTTPS health check: passed"
 
 http_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \

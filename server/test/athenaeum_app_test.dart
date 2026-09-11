@@ -42,6 +42,76 @@ void main() {
     await dataDirectory.delete(recursive: true);
   });
 
+  test(
+    'health check reports application readiness without credentials',
+    () async {
+      final request = await client.getUrl(_uri('/heartbeat'));
+      final response = await request.close();
+      expect(response.statusCode, 200);
+      expect(response.headers.value('cache-control'), 'no-store');
+      expect(jsonDecode(await response.body()), {'status': 'ok'});
+    },
+  );
+
+  for (final failingDatabase in ['primary', 'break-glass', 'diagnostic']) {
+    test('health check rejects a closed $failingDatabase database', () async {
+      final failingDataDirectory = await Directory.systemTemp.createTemp(
+        'athenaeum-health-test-',
+      );
+      final failingConfig = AthenaeumConfig(
+        dataDirectory: failingDataDirectory.path,
+        pepper: List<int>.filled(32, 0x42),
+      );
+      final database = sqlite3.openInMemory();
+      final breakGlassDatabase = sqlite3.openInMemory();
+      final diagnosticDatabase = sqlite3.openInMemory();
+      final failingApp = AthenaeumApp(
+        config: failingConfig,
+        store: AthenaeumStore(
+          config: failingConfig,
+          database: database,
+          breakGlassDatabase: breakGlassDatabase,
+          diagnosticDatabase: diagnosticDatabase,
+        ),
+      );
+      final failingServer = await shelf_io.serve(
+        failingApp.handler,
+        InternetAddress.loopbackIPv4,
+        0,
+      );
+      final failingClient = HttpClient();
+      var databaseClosed = false;
+      var breakGlassDatabaseClosed = false;
+      var diagnosticDatabaseClosed = false;
+      try {
+        switch (failingDatabase) {
+          case 'primary':
+            database.close();
+            databaseClosed = true;
+          case 'break-glass':
+            breakGlassDatabase.close();
+            breakGlassDatabaseClosed = true;
+          case 'diagnostic':
+            diagnosticDatabase.close();
+            diagnosticDatabaseClosed = true;
+        }
+        final request = await failingClient.getUrl(
+          Uri.http('127.0.0.1:${failingServer.port}', '/heartbeat'),
+        );
+        final response = await request.close();
+        await response.drain<void>();
+        expect(response.statusCode, isNot(200));
+      } finally {
+        failingClient.close(force: true);
+        await failingServer.close(force: true);
+        if (!databaseClosed) database.close();
+        if (!breakGlassDatabaseClosed) breakGlassDatabase.close();
+        if (!diagnosticDatabaseClosed) diagnosticDatabase.close();
+        await failingDataDirectory.delete(recursive: true);
+      }
+    });
+  }
+
   test('C2 loopback round trip preserves manifest and blob bytes', () async {
     final created = await _send('POST', '/v1/store', syncId: syncId);
     expect(created.statusCode, 201);
