@@ -234,7 +234,7 @@ class AthenaeumApp {
 
   Future<Response> call(Request request) async {
     final segments = request.url.pathSegments;
-    if (segments.length == 1 && segments.first == 'healthz') {
+    if (segments.length == 1 && segments.first == 'heartbeat') {
       return _healthRoute(request);
     }
     try {

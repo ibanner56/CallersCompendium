@@ -75,6 +75,16 @@ if ! awk '
   echo "active Apache vhost must contain Proxy100Continue Off" >&2
   exit 1
 fi
+if ! awk '
+  /^[[:space:]]*#/ { next }
+  /^[[:space:]]*ErrorLog[[:space:]]+"\|\/usr\/local\/sbin\/athenaeum-error-log[[:space:]]/ {
+    redacted++
+  }
+  END { exit(redacted == 2 ? 0 : 1) }
+' "$apache_config"; then
+  echo "active Apache vhost must use the request-target redacting error logger" >&2
+  exit 1
+fi
 
 expect_status() {
   expected=$1
@@ -116,7 +126,7 @@ echo "HTTPS root status page: passed"
 health_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --output "$health_body" --write-out '%{http_code}' \
-    "${https_url}/healthz" || true
+    "${https_url}/heartbeat" || true
 )
 if [ "$health_status" != 200 ] ||
   ! grep -Fq '"status":"ok"' "$health_body"; then

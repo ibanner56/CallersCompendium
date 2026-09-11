@@ -174,7 +174,7 @@
 
     <script>
       const badge = document.getElementById("service-status");
-      fetch("/healthz", { cache: "no-store", credentials: "omit" })
+      fetch("/heartbeat", { cache: "no-store", credentials: "omit" })
         .then((response) => {
           if (!response.ok) throw new Error("health check failed");
           return response.json();

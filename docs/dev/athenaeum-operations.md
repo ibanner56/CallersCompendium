@@ -55,10 +55,12 @@ the loopback-only forwarded-address trust boundary.
    docker build --file server/Dockerfile --tag callers-compendium-athenaeum:0.1 .
    ```
 
-4. Install the status page and copy `server/deploy/athenaeum.conf` into
-   Apache's sites directory:
+4. Install the redacting error logger and status page, then copy
+   `server/deploy/athenaeum.conf` into Apache's sites directory:
 
    ```sh
+   sudo install -m 755 server/deploy/athenaeum-error-log \
+     /usr/local/sbin/athenaeum-error-log
    sudo install -d -m 755 /var/www/athenaeum
    sudo install -m 644 server/deploy/status/index.html \
      /var/www/athenaeum/index.html
@@ -68,7 +70,7 @@ the loopback-only forwarded-address trust boundary.
    install a matching certificate, enable the site, and reload Apache. The
    `:80` vhost may serve ACME challenges, but `/v1` must remain refused and must
    never redirect or proxy. Both vhosts serve the status page at `/` and proxy
-   the credential-free `/healthz` liveness check; only the TLS vhost proxies
+   the credential-free `/heartbeat` liveness check; only the TLS vhost proxies
    `/v1/`.
 5. Start the container with host networking and the persistent volume:
 
