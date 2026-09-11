@@ -23,6 +23,39 @@ core version. They are left that way deliberately — do not renumber them.
 
 _Nothing yet._
 
+## [0.5.0] - 2026-09-11
+
+### Added
+
+- Classify the individual Perform timer preference as a shareable user setting.
+- Add author-scoped full-text search over the existing derived author index.
+- Add author-aware ContraDB search request bodies using the fixed choreographer filter.
+- Add an opt-in display renderer for canonical wording of supported discouraged dance terms.
+- Classify the program Perform caller-note display preference as a shareable user setting.
+- Expose derived per-venue calling-history counts alongside the existing dance history stream.
+
+### Changed
+
+- Ship the v35 taxonomy contract and compatibility normalization for legacy figures.
+- Route normalized formation detail independently across the CallersBox and ContraDB adapters, retaining unclassified source text and ContraDB HTML/JSON preambles.
+- Change the mad robin subject default to role2s and preserve unspecified subjects for Callers Box imports.
+- Callers Box imports now preserve the Reverse progression improper formation as a first-class shape.
+- Classify meanwhile side defaults in the privacy registry so their shareability is enforced consistently.
+- Persist and render bounded modifier containers with alternating meanwhile nesting.
+- Replace the fixed DanceLevel enum with a persisted ordered difficulty vocabulary that carries stable IDs through storage, archive compatibility, and Device Sync tombstones.
+- Classify the default starting-program preference as a shareable app-user setting in the privacy registry.
+- Split ProgramSlot planned timing into nullable walkthrough and dance minutes with archive, import, sync, and database migration compatibility.
+- Derive numbered program sections from every break while preserving the first/second calling-history projection.
+
+### Fixed
+
+- Add an atomic conditional rollback for performed stamps created by a bulk mark action.
+- Decode CallersBox Circulate crossing subjects and explicit loop directions as box_circulate parameters.
+- Correct CallersBox roll-away role assignment and repair legacy stored figures with a provenance-scoped migration.
+- Retain structured ricochet flags when parsing rendered ContraDB hey figures.
+- Add live-dance tag reference queries and transactionally garbage-collect tags during physical dance deletion without breaking soft-delete or restoration semantics.
+- Recognize ContraDB's inline hall ender phrases in the figure importer.
+
 ## [0.4.0] - 2026-09-03
 
 ### Added

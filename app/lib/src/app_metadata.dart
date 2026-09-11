@@ -18,7 +18,7 @@ const String kAppTagline =
     'Your dances, your dialect — in the hall or on the road.';
 
 /// Marketing/display version. Mirror the exact `version:` in `app/pubspec.yaml`.
-const String kAppVersion = '0.3.1';
+const String kAppVersion = '0.4.0';
 
 /// Release identity the strict updater compares with manifest versions.
 ///
