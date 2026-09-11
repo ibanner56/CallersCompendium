@@ -217,9 +217,9 @@ class FigureDraft {
   }
 
   /// Builds the immutable figure, or `null` when no move is chosen yet (or,
-  /// for a meanwhile group, when fewer than 2 sides can be materialized —
-  /// an in-progress group never corrupts the saved dance; it simply isn't
-  /// written until it is ready).
+  /// for a structural container, when fewer than 2 children can be
+  /// materialized — an in-progress container never corrupts the saved dance; it
+  /// simply isn't written until it is ready).
   ///
   /// [canonicalizeNote] is applied to [note] (after trimming, if the default
   /// is used) before it is persisted onto the built [Figure]. This model is
@@ -232,7 +232,7 @@ class FigureDraft {
   Figure? toFigure({String Function(String) canonicalizeNote = _trimNote}) {
     final children = meanwhileSides ?? modifierFigures;
     if (children != null) {
-      // Never silently drop a side that the user has started authoring
+      // Never silently drop a child that the user has started authoring
       // (#679 review): only a genuinely untouched placeholder side (no move,
       // no note/params/walkthrough override) is skipped. An incomplete nested
       // container cannot be represented as a custom leaf without losing its
