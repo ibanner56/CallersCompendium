@@ -11,6 +11,17 @@ Figure _swing({String who = 'neighbors', int beats = 16}) =>
 /// A taxonomy-valid circle (used as a second figure in multi-figure mappings).
 Figure _circle() => parseFreeTextFigureEntry('circle left 3/4').single;
 
+Figure _meanwhile() =>
+    Figure.meanwhile(figures: [_swing(), _circle()], beats: 16);
+
+Figure _modifier() =>
+    Figure.modifier(figures: [_swing(), _circle()], beats: 16);
+
+Map<String, Object?> _containerJson(String move, List<Object?> children) => {
+  'move': move,
+  'params': {'beats': 16, 'figures': children},
+};
+
 void main() {
   group('normalizeShorthandToken', () {
     test('trims and lowercases', () {
@@ -177,6 +188,77 @@ void main() {
       );
       expect(decoded.mappings, hasLength(1));
       expect(decoded.mappings.single.token, 'bns');
+    });
+
+    test(
+      'accepts meanwhile and modifier containers, including legal nesting',
+      () {
+        final original = ShorthandMappings([
+          ShorthandMapping(
+            token: 'layered',
+            figures: [
+              Figure.meanwhile(figures: [_swing(), _modifier()], beats: 16),
+              Figure.modifier(figures: [_swing(), _meanwhile()], beats: 16),
+            ],
+          ),
+        ]);
+
+        final decoded = ShorthandMappings.decode(
+          original.encode(),
+          taxonomy: contraTaxonomy,
+        );
+
+        expect(decoded.mappings, hasLength(1));
+        final figures = decoded.mappings.single.figures;
+        expect(figures[0].isMeanwhile, isTrue);
+        expect(figures[0].subFigures[1].isModifier, isTrue);
+        expect(figures[1].isModifier, isTrue);
+        expect(figures[1].subFigures[1].isMeanwhile, isTrue);
+      },
+    );
+
+    test('rejects malformed structural trees before tolerant decoding', () {
+      final validSwing = figureToJson(_swing());
+      final cases = <String, Map<String, Object?>>{
+        'over-cap': _containerJson(
+          meanwhileMove,
+          List<Object?>.generate(7, (_) => figureToJson(_swing())),
+        ),
+        'malformed-child': _containerJson(meanwhileMove, [
+          validSwing,
+          {'move': modifierMove, 'params': <Object?>[]},
+        ]),
+        'same-kind-child': _containerJson(meanwhileMove, [
+          validSwing,
+          _containerJson(meanwhileMove, [
+            figureToJson(_swing()),
+            figureToJson(_circle()),
+          ]),
+        ]),
+        'over-depth': _containerJson(meanwhileMove, [
+          validSwing,
+          _containerJson(modifierMove, [
+            figureToJson(_swing()),
+            _containerJson(meanwhileMove, [
+              figureToJson(_swing()),
+              figureToJson(_circle()),
+            ]),
+          ]),
+        ]),
+      };
+
+      for (final entry in cases.entries) {
+        final decoded = ShorthandMappings.decode(
+          jsonEncode([
+            {
+              'token': entry.key,
+              'figures': [entry.value],
+            },
+          ]),
+          taxonomy: contraTaxonomy,
+        );
+        expect(decoded.mappings, isEmpty, reason: entry.key);
+      }
     });
   });
 
