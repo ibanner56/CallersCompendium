@@ -63,7 +63,7 @@ the loopback-only forwarded-address trust boundary.
      /usr/local/sbin/athenaeum-error-log
    sudo install -d -m 755 /var/www/athenaeum
    sudo install -m 644 server/deploy/status/index.html \
-     /var/www/athenaeum/index.html
+     server/deploy/status/icon.svg /var/www/athenaeum/
    ```
 
    Replace `sync.example.invalid` in the vhost with the deployment hostname,

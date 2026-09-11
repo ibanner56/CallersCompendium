@@ -123,6 +123,17 @@ if [ "$status_code" != 200 ] ||
 fi
 echo "HTTPS root status page: passed"
 
+icon_status=$(
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
+    --output "$status_body" --write-out '%{http_code}' \
+    "${https_url}/icon.svg" || true
+)
+if [ "$icon_status" != 200 ] || ! grep -Fq '<svg' "$status_body"; then
+  echo "HTTPS status page icon did not return the app icon (HTTP ${icon_status:-000})" >&2
+  exit 1
+fi
+echo "HTTPS status page icon: passed"
+
 health_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \
     --output "$health_body" --write-out '%{http_code}' \

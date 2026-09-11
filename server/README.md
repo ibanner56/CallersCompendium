@@ -51,9 +51,9 @@ with host networking. Apache must proxy only HTTPS `/v1/` requests to
 `127.0.0.1:33333`; the plaintext `:80` vhost must refuse `/v1` rather than
 redirecting it. The reference vhost serves the static status page at `/` from
 `/var/www/athenaeum`, proxies the credential-free `/heartbeat` liveness check,
-and proxies the API under `/v1/` only over HTTPS. Install
-[`deploy/status/index.html`](deploy/status/index.html) at that document root
-before enabling the vhost. The reference vhost is
+and proxies the API under `/v1/` only over HTTPS. Install the status page and
+its [`deploy/status/icon.svg`](deploy/status/icon.svg) app icon at that
+document root before enabling the vhost. The reference vhost is
 [`deploy/athenaeum.conf`](deploy/athenaeum.conf), and the image is built with
 `server/Dockerfile` from the repository root.
 
