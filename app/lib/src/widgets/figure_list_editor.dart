@@ -68,6 +68,7 @@ class FigureListEditor extends StatefulWidget {
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
+    this.allowNestedContainerSelection = true,
     this.keyPrefix = 'figure',
   });
 
@@ -205,6 +206,11 @@ class FigureListEditor extends StatefulWidget {
 
   /// Whether phrase labels and the beat summary are shown.
   final bool showPhraseStructure;
+
+  /// Whether ordinary children may be converted into the one legal opposite
+  /// container kind. Nested editors at the maximum depth disable this so the
+  /// selector cannot create a third structural level.
+  final bool allowNestedContainerSelection;
 
   /// Prefix for widget keys when multiple editors share one screen.
   final String keyPrefix;
@@ -715,6 +721,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         draggable: draggable,
         isOpen: _openDraftId == draft.id,
         rowFocusNode: _rowFocusNode(draft.id),
+        allowNestedContainerSelection: widget.allowNestedContainerSelection,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -1062,6 +1069,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.onSnippetCommitted,
     this.showWordingOverride = false,
     this.canonicalizeDiscouragedTerms = false,
+    this.allowNestedContainerSelection = true,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
     this.onCollapseMeanwhileGroup,
@@ -1140,6 +1148,7 @@ class _FigureDraftCard extends StatefulWidget {
   final void Function(FigureDraft draft)? onSnippetCommitted;
 
   final bool showWordingOverride;
+  final bool allowNestedContainerSelection;
 
   /// Resolved "group with next" action for THIS row (#590/#593), already
   /// accounting for adjacency/flat-only conditions (see
@@ -1174,6 +1183,30 @@ void _seedChainHand(String moveId, Map<String, Object?> params) {
   if (who is! String) return;
   final hand = chainHandForWho(who);
   if (hand != null) params['hand'] = hand;
+}
+
+/// Replaces an ordinary draft with a minimally valid modifier draft while
+/// preserving the selected figure as the core. The editor keeps the same
+/// parent object so callers only need the usual [onChanged] rebuild.
+void _initializeModifierContainer(FigureDraft draft) {
+  if (draft.isContainerDraft) return;
+  final core = draft.clone();
+  final beats = draft.beats;
+  final beatsTouched = draft.beatsTouched;
+  draft.move = null;
+  draft.params
+    ..clear()
+    ..['beats'] = beats;
+  draft
+    ..note = ''
+    ..progression = false
+    ..beatsTouched = beatsTouched
+    ..assumedSubject = false
+    ..customOrigin = CustomOrigin.userEntered
+    ..walkthroughOverride = null
+    ..wordingOverride = null
+    ..meanwhileSides = null
+    ..modifierFigures = [core, FigureDraft()];
 }
 
 class _FigureDraftCardState extends State<_FigureDraftCard> {
@@ -1265,6 +1298,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       _seedChainHand(moveId, widget.draft.params);
     }
     _showMoreOptions = false;
+    widget.onChanged();
+  }
+
+  void _selectModifier() {
+    _initializeModifierContainer(widget.draft);
     widget.onChanged();
   }
 
@@ -1908,7 +1946,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 dialect: widget.dialect,
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
-                onSelected: (option) => _selectMove(option.id),
+                includeModifier: true,
+                onSelected: (option) => option.kind == MoveOptionKind.modifier
+                    ? _selectModifier()
+                    : _selectMove(option.id),
                 onCustomSubmitted: _createCustom,
                 onCleared: _clearMove,
               ),
@@ -2158,6 +2199,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                           nested,
                                         )
                                       : null,
+                                  allowNestedContainerSelection: false,
                                   allowAdding: false,
                                   allowDuplicating: false,
                                   showPhraseStructure: false,
@@ -2183,6 +2225,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             moveParamDefaults: widget.moveParamDefaults,
                             showWordingOverride: widget.showWordingOverride,
                             onChanged: widget.onChanged,
+                            includeModifier:
+                                !isModifier &&
+                                widget.allowNestedContainerSelection,
                             onMoveUp: i == 0
                                 ? null
                                 : () => _reorderSide(i, i - 1),
@@ -2776,6 +2821,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
     this.mixer = false,
     this.moveParamDefaults,
     this.showWordingOverride = false,
+    this.includeModifier = false,
     required this.onChanged,
     this.onMoveUp,
     this.onMoveDown,
@@ -2798,6 +2844,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
 
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool showWordingOverride;
+  final bool includeModifier;
   final VoidCallback onChanged;
 
   /// Null when this side is already first/last within the group.
@@ -2843,6 +2890,11 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
       _seedChainHand(moveId, draft.params);
     }
+    widget.onChanged();
+  }
+
+  void _selectModifier() {
+    _initializeModifierContainer(widget.draft);
     widget.onChanged();
   }
 
@@ -3019,7 +3071,10 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               dialect: widget.dialect,
               initialText: moveText,
               autofocus: false,
-              onSelected: (option) => _selectMove(option.id),
+              includeModifier: widget.includeModifier,
+              onSelected: (option) => option.kind == MoveOptionKind.modifier
+                  ? _selectModifier()
+                  : _selectMove(option.id),
               onCustomSubmitted: _createCustom,
               onCleared: _clearMove,
             ),

@@ -355,6 +355,20 @@ void main() {
     expect(find.text('backing up'), findsOneWidget);
   });
 
+  testWidgets('move selector initializes modifier children', (tester) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts);
+    await _selectMove(tester, 0, 'modifier', modifierMove);
+
+    final modifier = drafts.single;
+    expect(modifier.isModifierGroup, isTrue);
+    expect(modifier.modifierFigures, hasLength(2));
+    expect(
+      modifier.modifierFigures!.every((child) => child.move == null),
+      isTrue,
+    );
+  });
+
   testWidgets('wording override is opt-in, previews, trims, and resets', (
     tester,
   ) async {
