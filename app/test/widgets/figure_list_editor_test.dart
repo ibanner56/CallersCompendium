@@ -1329,6 +1329,43 @@ void main() {
     expect(modifier.modifierFigures!.first.isContainerDraft, isFalse);
   });
 
+  testWidgets('nested collapse rejects an illegal alternating-kind promotion', (
+    tester,
+  ) async {
+    final nestedMeanwhile = FigureDraft(
+      meanwhileSides: [
+        FigureDraft(),
+        FigureDraft(move: 'swing'),
+      ],
+    )..params['beats'] = 8;
+    final nestedModifier = FigureDraft(
+      modifierFigures: [
+        FigureDraft(move: 'orbit'),
+        nestedMeanwhile,
+      ],
+    )..params['beats'] = 16;
+    final outerMeanwhile = FigureDraft(
+      meanwhileSides: [
+        nestedModifier,
+        FigureDraft(move: 'swing'),
+      ],
+    )..params['beats'] = 24;
+
+    await _pump(tester, [outerMeanwhile]);
+    await _openFigure(tester, 0);
+    await tester.tap(find.byKey(const ValueKey('figure-0-nested-0-0-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey('figure-0-nested-0-0-side-0-remove')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(outerMeanwhile.meanwhileSides!.first, same(nestedModifier));
+    expect(nestedModifier.isModifierGroup, isTrue);
+    expect(nestedModifier.modifierFigures, hasLength(2));
+    expect(() => outerMeanwhile.toFigure(), returnsNormally);
+  });
+
   testWidgets('nested container menu can ungroup within the parent cap', (
     tester,
   ) async {

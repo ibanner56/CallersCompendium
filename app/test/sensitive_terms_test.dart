@@ -45,6 +45,28 @@ void main() {
             move: customMove,
             params: const {'text': 'gypsy meltdown with Robin', 'beats': 8},
           ),
+          Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              testFigure(
+                move: customMove,
+                params: const {'text': 'nested modifier custom text'},
+                note: 'nested modifier note',
+              ),
+            ],
+            beats: 16,
+          ),
+          Figure.meanwhile(
+            figures: [
+              testFigure(
+                move: customMove,
+                params: const {'text': 'nested meanwhile custom text'},
+                note: 'nested meanwhile note',
+              ),
+              Figure(move: 'swing'),
+            ],
+            beats: 8,
+          ),
           Figure(move: 'swing', note: 'scoop them up gently'),
         ],
         customFields: [
@@ -89,6 +111,10 @@ void main() {
       'watch the timing on B2',
       'Whiskey Before Breakfast',
       'gypsy meltdown with Robin', // custom figure params['text']
+      'nested modifier custom text', // nested custom figure params['text']
+      'nested modifier note', // nested figure note
+      'nested meanwhile custom text', // nested custom figure params['text']
+      'nested meanwhile note', // nested figure note
       'scoop them up gently', // figure note
       'commissioned for Sam', // custom-field value
       // Custom-field definitions.

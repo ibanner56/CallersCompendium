@@ -2393,6 +2393,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         !identical(sides[index], groupDraft)) {
       return;
     }
+    if (!remainingSide.canNestInContainer(
+      modifierParent: widget.draft.isModifierGroup,
+    )) {
+      return;
+    }
     sides[index] = remainingSide;
     widget.onChanged();
   }
