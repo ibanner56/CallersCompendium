@@ -2,6 +2,7 @@ import 'package:compendium_core/compendium_core.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:compendium_app/src/editor/editor_draft_codec.dart';
+import 'package:compendium_app/src/editor/figure_draft.dart';
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/screens/dance_editor/dance_editor_controller.dart';
 
@@ -943,6 +944,130 @@ void main() {
         expect(controller.figureDrafts[0].meanwhileSides, hasLength(2));
       },
     );
+
+    test('groupFigureWithNext permits a modifier inside meanwhile', () async {
+      final repos = openTestRepositories();
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'My Dance',
+          figures: [
+            Figure.modifier(
+              beats: 8,
+              figures: [
+                Figure(move: 'swing'),
+                Figure(move: 'balance'),
+              ],
+            ),
+            Figure(move: 'balance'),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+        fieldDefs: const [],
+      );
+
+      controller.groupFigureWithNext(controller.figureDrafts.first);
+
+      expect(controller.figureDrafts.single.isMeanwhileGroup, isTrue);
+      expect(
+        controller.figureDrafts.single.meanwhileSides!.first.isModifierGroup,
+        isTrue,
+      );
+    });
+
+    test(
+      'groupFigureWithNextAsModifier permits meanwhile inside modifier',
+      () async {
+        final repos = openTestRepositories();
+        final controller = DanceEditorController(
+          repositories: repos,
+          danceId: 'd1',
+          dialect: Dialect.larksRobins,
+        );
+        addTearDown(controller.dispose);
+        await controller.load(
+          dance: Dance(
+            id: 'd1',
+            title: 'My Dance',
+            figures: [
+              Figure.meanwhile(
+                beats: 8,
+                figures: [
+                  Figure(move: 'swing'),
+                  Figure(move: 'balance'),
+                ],
+              ),
+              Figure(move: 'balance'),
+            ],
+            createdAt: now,
+            updatedAt: now,
+          ),
+          fieldDefs: const [],
+        );
+
+        controller.groupFigureWithNextAsModifier(controller.figureDrafts.first);
+
+        expect(controller.figureDrafts.single.isModifierGroup, isTrue);
+        expect(
+          controller
+              .figureDrafts
+              .single
+              .modifierFigures!
+              .first
+              .isMeanwhileGroup,
+          isTrue,
+        );
+      },
+    );
+
+    test('grouping rejects a third structural container level', () async {
+      final repos = openTestRepositories();
+      final controller = DanceEditorController(
+        repositories: repos,
+        danceId: 'd1',
+        dialect: Dialect.larksRobins,
+      );
+      addTearDown(controller.dispose);
+      await controller.load(
+        dance: Dance(
+          id: 'd1',
+          title: 'My Dance',
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'balance'),
+          ],
+          createdAt: now,
+          updatedAt: now,
+        ),
+        fieldDefs: const [],
+      );
+      final nested = FigureDraft(
+        modifierFigures: [
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing'),
+              FigureDraft(move: 'balance'),
+            ],
+          ),
+          FigureDraft(move: 'balance'),
+        ],
+      );
+      controller.figureDrafts
+        ..clear()
+        ..addAll([nested, FigureDraft(move: 'swing')]);
+
+      controller.groupFigureWithNextAsModifier(nested);
+
+      expect(controller.figureDrafts, hasLength(2));
+      expect(controller.figureDrafts.first, same(nested));
+    });
   });
 
   group('insertFreeTextFigures (#419)', () {

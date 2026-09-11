@@ -626,6 +626,10 @@ class CompendiumRepositories {
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
       );
+      rebuiltThisCall = await _emitModifierContainerCanonicalTextIfNeeded(
+        alreadyRebuilt: rebuiltThisCall,
+        onProgress: onDerivedRebuildProgress,
+      );
       rebuiltThisCall = await _backfillChainHandIfNeeded(
         alreadyRebuilt: rebuiltThisCall,
         onProgress: onDerivedRebuildProgress,
@@ -1285,7 +1289,8 @@ class CompendiumRepositories {
   }
 
   /// Rewrites legacy v34 figure ids and parameter keys, including nested
-  /// `meanwhile` children, then rebuilds the derived figure/search indexes.
+  /// structural-container children, then rebuilds the derived figure/search
+  /// indexes.
   Future<bool> _normaliseTaxonomyV35FiguresIfNeeded({
     required bool alreadyRebuilt,
     DerivedRebuildProgressCallback? onProgress,
@@ -1377,6 +1382,27 @@ class CompendiumRepositories {
     }
     await _writeSweepMarker(taxonomyV35FigureNormalizationDoneKey, 'true');
     return alreadyRebuilt || rebuildOwed;
+  }
+
+  Future<bool> _emitModifierContainerCanonicalTextIfNeeded({
+    bool alreadyRebuilt = false,
+    DerivedRebuildProgressCallback? onProgress,
+  }) async {
+    final done = await db
+        .customSelect(
+          'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
+          variables: [
+            Variable.withString(modifierContainerCanonicalRebuildDoneKey),
+          ],
+        )
+        .get();
+    if (done.isNotEmpty) return alreadyRebuilt;
+
+    if (!alreadyRebuilt) {
+      await runDerivedRebuild(onProgress: onProgress);
+    }
+    await _writeSweepMarker(modifierContainerCanonicalRebuildDoneKey, '"done"');
+    return true;
   }
 
   /// One-time backfill of `chain.hand` from the role-implied side (#976,

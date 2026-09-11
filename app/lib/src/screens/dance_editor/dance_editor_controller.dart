@@ -89,8 +89,8 @@ class DanceEditorController extends ChangeNotifier {
   String _canonicalizeNote(String typed) =>
       canonicalizeText(typed.trim(), _activeDialect);
 
-  /// Renders every [FigureDraft.note] in [drafts] (recursing into meanwhile
-  /// [FigureDraft.meanwhileSides]) from canonical storage into the active
+  /// Renders every [FigureDraft.note] in [drafts] (recursing into structural
+  /// container children) from canonical storage into the active
   /// dialect via [_renderNote], so `draft.note` holds active-dialect text while
   /// being edited. Called once, right after each site that seeds `figureDrafts`
   /// via [FigureDraft.fromFigure] (issue #715 — figure notes were previously
@@ -100,6 +100,9 @@ class DanceEditorController extends ChangeNotifier {
       draft.note = _renderNote(draft.note);
       if (draft.meanwhileSides case final sides?) {
         _renderNotesRecursively(sides);
+      }
+      if (draft.modifierFigures case final children?) {
+        _renderNotesRecursively(children);
       }
     }
   }
@@ -1115,6 +1118,36 @@ class DanceEditorController extends ChangeNotifier {
     return group.id;
   }
 
+  /// Inserts a modifier draft, seeding its core/modifier children from the
+  /// separate Defaults preference.
+  Future<String?> addModifier() async {
+    if (_disposed) return null;
+    Object? stored;
+    try {
+      stored = await _repos.settings.get(kDefaultModifierFiguresKey);
+      // diagnostics: silent — insertion uses the safe modifier-default fallback
+    } catch (_) {}
+    if (_disposed) return null;
+    final configured = modifierFiguresFromStored(stored);
+    final children = [
+      for (final figure in configured) FigureDraft.fromFigure(figure),
+    ];
+    if (children.isEmpty) {
+      children.addAll([FigureDraft(), FigureDraft()]);
+    } else if (children.length == 1) {
+      children.add(FigureDraft());
+    }
+    final group = FigureDraft(modifierFigures: children);
+    group.params['beats'] = children.first.beats;
+    _renderNotesRecursively([group]);
+    figureDrafts.add(group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+    return group.id;
+  }
+
   /// Inserts the figure(s) parsed from one free-text entry line at the end of
   /// the list (issue #419, opt-in "Free-text entry"). Each parsed [Figure] —
   /// a matched taxonomy figure or an unparsed [CustomOrigin.importGap] custom —
@@ -1171,19 +1204,17 @@ class DanceEditorController extends ChangeNotifier {
   /// Merges [draft] (a top-level figure row) with the row immediately after
   /// it into ONE new meanwhile group draft (#590/#593): both are demoted to
   /// concurrent sides, seeded with the first side's beats (the user edits the
-  /// shared count afterward). No-op if [draft] isn't found, is already the
-  /// last row, or either row is already a meanwhile group — [FigureListEditor]
-  /// only ever offers this action when neither condition holds, but the
-  /// flat-only invariant is enforced HERE too (#679 review) so it doesn't
-  /// depend solely on the menu item's visibility guard; a caller invoking this
-  /// directly (or a future UI path that forgets the check) can never nest a
-  /// meanwhile inside a meanwhile.
+  /// shared count afterward). Existing modifier groups may be nested as
+  /// concurrent sides, but only when they contain no further container.
   void groupFigureWithNext(FigureDraft draft) {
     final index = figureDrafts.indexOf(draft);
     if (index == -1 || index >= figureDrafts.length - 1) return;
     final first = figureDrafts[index];
     final second = figureDrafts[index + 1];
-    if (first.isMeanwhileGroup || second.isMeanwhileGroup) return;
+    if (!first.canNestInContainer(modifierParent: false) ||
+        !second.canNestInContainer(modifierParent: false)) {
+      return;
+    }
     final group = FigureDraft(meanwhileSides: [first, second]);
     group.params['beats'] = first.beats;
     group.beatsTouched = first.beatsTouched;
@@ -1191,6 +1222,79 @@ class DanceEditorController extends ChangeNotifier {
       ..removeAt(index + 1)
       ..removeAt(index)
       ..insert(index, group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  /// Groups a top-level figure with the following row as an ordered modifier
+  /// container. Existing meanwhile groups may be nested as ordered children
+  /// when they contain no further container.
+  void groupFigureWithNextAsModifier(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || index >= figureDrafts.length - 1) return;
+    final first = figureDrafts[index];
+    final second = figureDrafts[index + 1];
+    if (!first.canNestInContainer(modifierParent: true) ||
+        !second.canNestInContainer(modifierParent: true)) {
+      return;
+    }
+    final group = FigureDraft(modifierFigures: [first, second]);
+    group.params['beats'] = first.beats;
+    group.beatsTouched = first.beatsTouched;
+    figureDrafts
+      ..removeAt(index + 1)
+      ..removeAt(index)
+      ..insert(index, group);
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void convertContainerToMeanwhile(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || !draft.isModifierGroup) return;
+    final children = draft.modifierFigures;
+    if (children == null || children.any((child) => child.isContainerDraft)) {
+      return;
+    }
+    draft
+      ..meanwhileSides = children
+      ..modifierFigures = null;
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void convertContainerToModifier(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || !draft.isMeanwhileGroup) return;
+    final children = draft.meanwhileSides;
+    if (children == null || children.any((child) => child.isContainerDraft)) {
+      return;
+    }
+    draft
+      ..modifierFigures = children
+      ..meanwhileSides = null;
+    recomputeWarnings();
+    pushUndoNow();
+    scheduleAutosave();
+    _notify();
+  }
+
+  void ungroupContainer(FigureDraft draft) {
+    final index = figureDrafts.indexOf(draft);
+    if (index == -1 || !draft.isContainerDraft) return;
+    final children = List<FigureDraft>.of(
+      draft.meanwhileSides ?? draft.modifierFigures ?? const <FigureDraft>[],
+    );
+    if (children.length < 2) return;
+    figureDrafts
+      ..removeAt(index)
+      ..insertAll(index, children);
     recomputeWarnings();
     pushUndoNow();
     scheduleAutosave();

@@ -5,6 +5,7 @@ import 'package:compendium_app/src/data/display_defaults.dart'
     show
         encodeStartingProgramTemplate,
         kCanonicalFigureTextKey,
+        kDefaultModifierFiguresKey,
         kDefaultStartingProgramKey,
         StartingProgramTemplateEntry;
 import 'package:compendium_app/src/screens/settings/settings_keys.dart'
@@ -157,6 +158,28 @@ void main() {
       expect(validateBackupSettingValue(kAppThemeKey, 123), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, true), isFalse);
       expect(validateBackupSettingValue(kAppThemeKey, {'x': 1}), isFalse);
+    });
+
+    test('modifier defaults accept only encoded figure strings', () {
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, '[]'),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(
+          kDefaultModifierFiguresKey,
+          '[{"move":"swing"}]',
+        ),
+        isTrue,
+      );
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, []),
+        isFalse,
+      );
+      expect(
+        validateBackupSettingValue(kDefaultModifierFiguresKey, true),
+        isFalse,
+      );
     });
 
     test(

@@ -8,6 +8,10 @@
   "@danceEditorAddedMeanwhileAnnouncement": {
     "x-sourceSha256": "8e45bc8c30a0603904bd6b08fd02f381d1f3ef7c8c97633033cc6e38d032df9d"
   },
+  "danceEditorAddedModifierAnnouncement": "Et modifier-element blev tilføjet.",
+  "@danceEditorAddedModifierAnnouncement": {
+    "x-sourceSha256": "a7ec5355066df0d57228e379f6e1940cf455d2f61b6afd75b30ad440742341e4"
+  },
   "navCollection": "Samling",
   "@navCollection": {
     "x-sourceSha256": "7b790708ff1b171315a152018f3712e8c71c82f4f9000635f77a1336c34f1893"
@@ -19,6 +23,14 @@
   "settingsDefaultsMeanwhileSubtitle": "De sidefigurer, der indsættes, når du tilføjer et meanwhile-element. Ryd listen for to tomme sider; én konfigureret side får en tom ledsagerside. Du kan redigere elementet efter indsættelsen.",
   "@settingsDefaultsMeanwhileSubtitle": {
     "x-sourceSha256": "fd52415a558ae2a3b71aec64d34d88e66dbb87e764af095eddf7880b8de71bfc"
+  },
+  "settingsDefaultsModifierTitle": "Standardindstillinger for modifikatorer",
+  "@settingsDefaultsModifierTitle": {
+    "x-sourceSha256": "e953fe49deb48c17949122234454ce594d54e7211a133235929ad5e15d76f5e7"
+  },
+  "settingsDefaultsModifierSubtitle": "De figurer, der indsættes, når du tilføjer en modifikatorkontejner. Ryd den for to tomme figurer; én konfigureret figur får én tom ledsager.",
+  "@settingsDefaultsModifierSubtitle": {
+    "x-sourceSha256": "59243c9062bcdd632ba22b74111ef1096a94ab93de5d7ad21889567dca460763"
   },
   "navPrograms": "Programmer",
   "@navPrograms": {
@@ -5588,6 +5600,10 @@
   "@danceEditorAddMeanwhile": {
     "x-sourceSha256": "3d8e36f40c970f8731ce8f6056556c8d842bb2f51faf4d774c2c63dec18d03cb"
   },
+  "danceEditorAddModifier": "Tilføj modifikator",
+  "@danceEditorAddModifier": {
+    "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
+  },
   "danceEditorPasteAtEndOfFigureList": "Indsæt i slutningen af figurlisten",
   "@danceEditorPasteAtEndOfFigureList": {
     "x-sourceSha256": "5fb0b2b7335edd026fe96ab368850eb36c66826ba99ec38674181575aa24c07c"
@@ -5660,6 +5676,62 @@
   "@danceEditorGroupWithNext": {
     "x-sourceSha256": "dc34c0f319507937f94950afc08a884226c87a7eb291e261c722152c4203451a"
   },
+  "danceEditorGroupWithNextAsModifier": "Gruppér med næste som modifikator",
+  "@danceEditorGroupWithNextAsModifier": {
+    "x-sourceSha256": "dc0b3085a82f4025e2497ae817772e58592dedf8fa206a04f8a6fd01cd2c9177"
+  },
+  "danceEditorConvertToMeanwhile": "Konvertér til meanwhile",
+  "@danceEditorConvertToMeanwhile": {
+    "x-sourceSha256": "c9efabb132e41899d095163d93026cd838ce238a4a4cbafa6f6a3ab1efbd6f1e"
+  },
+  "danceEditorConvertToModifier": "Konvertér til modifier",
+  "@danceEditorConvertToModifier": {
+    "x-sourceSha256": "d472575eb0ce29ca55b563b8be186114c56e7cada317484cb17d604f9ce51ccc"
+  },
+  "danceEditorUngroupMeanwhile": "Ophæv meanwhile-gruppering",
+  "@danceEditorUngroupMeanwhile": {
+    "x-sourceSha256": "5efde75b4147394c5e486cc900c3b195ce11afcdc5c52dc69eb76796dbff6502"
+  },
+  "danceEditorUngroupModifier": "Ophæv modifier-gruppering",
+  "@danceEditorUngroupModifier": {
+    "x-sourceSha256": "bfe76e0aa465b4517d011bd395490f9e997539c3ee67f58b12839d7746d4c152"
+  },
+  "danceEditorModifierGroupLabel": "{count, plural, other{Modifikator ({count} figurer)}}",
+  "@danceEditorModifierGroupLabel": {
+    "x-sourceSha256": "5fbaec7eb90bb422be9b4c33a4dc92db129cae61869384f857c3779a7d09d10b"
+  },
+  "danceEditorModifierGroupSemantic": "Modifikatorgruppe, {count, plural, =1{1 figur} other{{count} figurer}}, {beats, plural, =1{1 slag} other{{beats} slag}}.",
+  "@danceEditorModifierGroupSemantic": {
+    "x-sourceSha256": "cd51d1dc40abb37be2cffa2a77bcd1e183374a5c89b26312f31a2223b03784f5"
+  },
+  "danceEditorAddModifierChild": "Tilføj modifikator",
+  "@danceEditorAddModifierChild": {
+    "x-sourceSha256": "9a9d65205220dac752ca53d4344a80df8c3a695d430c300f0c82eb793261e884"
+  },
+  "danceEditorModifierCoreLabel": "Kerne",
+  "@danceEditorModifierCoreLabel": {
+    "x-sourceSha256": "70ea1983c983deacc1b61805aea3d43648afd932f346fb2e5d9b15facd4035c2"
+  },
+  "danceEditorModifierChildLabel": "Modifier",
+  "@danceEditorModifierChildLabel": {
+    "x-sourceSha256": "42e37604b638b62790fde6210fe9af90567961220206ec36e2739e075c85a7ae"
+  },
+  "danceEditorModifierCoreSemantic": "Kernefigur i modifier-gruppe.",
+  "@danceEditorModifierCoreSemantic": {
+    "x-sourceSha256": "53f5ef9b783ec30dd69e4eb51333f0688e737627334e311081e83e2236d90bb5"
+  },
+  "danceEditorModifierChildSemantic": "Modifierfigur {number} af {total}.",
+  "@danceEditorModifierChildSemantic": {
+    "x-sourceSha256": "e6e69c89629a50eefb521524515708a5d7b62d71c565372b086bac4d3811a524"
+  },
+  "danceEditorRemoveModifierCore": "Fjern kernefigur",
+  "@danceEditorRemoveModifierCore": {
+    "x-sourceSha256": "52c053f2494266fc5563c8ab384c8b966a36fe150a4ee5ca712e9bfa589743ea"
+  },
+  "danceEditorRemoveModifierChild": "Fjern modifierfigur",
+  "@danceEditorRemoveModifierChild": {
+    "x-sourceSha256": "40e4cd57b4f043e19b125bf547d62b0df9c36a635212d752b0194a739defb192"
+  },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Samtidig ({count} sider)}}",
   "@danceEditorMeanwhileGroupLabel": {
     "x-sourceSha256": "182377025ac57fc5f2a7008a610a8c7a268dda54f8f347f02758ccdc58a73dc1"
@@ -5687,6 +5759,10 @@
   "danceEditorMeanwhileSidesCapReached": "Maksimalt {max} samtidige figurer.",
   "@danceEditorMeanwhileSidesCapReached": {
     "x-sourceSha256": "b04f2bb612932cbe221e8ee973c09d661fe37cb05afbbc2d4b387b8696fa9d51"
+  },
+  "danceEditorModifierChildrenCapReached": "Maksimalt {max} ordnede modifikatorfigurer.",
+  "@danceEditorModifierChildrenCapReached": {
+    "x-sourceSha256": "d657262be366dec047ac516293020642046665ec8d8b0dd625af800d795b2eb4"
   },
   "danceEditorUnrecognizedMoveReadOnly": "Ukendt bevægelse „{move}“ – ikke i denne versions taksonomi. Vist som skrivebeskyttet, så dens data er bevaret; den kan redigeres normalt igen, hvis bevægelsen kendes. Du kan stadig omarrangere eller slette den.",
   "@danceEditorUnrecognizedMoveReadOnly": {

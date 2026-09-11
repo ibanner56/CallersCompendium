@@ -3861,7 +3861,7 @@ On `PUT /v1/blobs/{hash}` the server:
 3. streams and hashes, aborting if the running total exceeds the cap;
 4. rejects with `400` if the computed hash differs from the path;
 5. parses as JSON with a depth cap (a server-side bound — the codec's
-   `kMaxMeanwhileDepth` guards figure nesting, not parse depth);
+   `kMaxContainerDepth` (2) guards structural figure nesting, not parse depth);
 6. **validates every key against a per-kind allow-list, rejecting anything not
    on it** with `422`.
 
@@ -4032,7 +4032,7 @@ Every limit is enforced **before** allocation, streaming-abort style, following
 | Blobs per store | 100,000 | ~8x the largest known corpus. |
 | Bytes per store | 250 MB | ~15x a full Caller's Box import. |
 | Devices per store | 32 | Generous for a person; bounds manifest fan-out. |
-| JSON parse depth | 32 | **New bound.** The codec has no general depth cap; `kMaxMeanwhileDepth` (4) bounds *figure* nesting only, so the server needs its own guard against deeply-nested JSON. |
+| JSON parse depth | 32 | **New bound.** The codec has no general depth cap; `kMaxContainerDepth` (2) bounds *figure* nesting only, so the server needs its own guard against deeply-nested JSON. |
 | Decompressed size | 10x compressed, cap 32 MB | Decompression bomb. |
 | Request rate | per-IP and per-store | Brute force. |
 

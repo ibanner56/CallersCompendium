@@ -415,11 +415,105 @@ void main() {
         },
       );
 
+      test('recurses through a modifier container', () {
+        final container = Figure.modifier(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('Circle left 3/4', beats: 8),
+          ],
+          beats: 16,
+        );
+
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 2);
+        expect(result.figures.single.isModifier, isTrue);
+        expect(result.figures.single.subFigures[0].move, 'swing');
+        expect(result.figures.single.subFigures[1].move, 'circle');
+      });
+
+      test('recurses through a modifier containing a meanwhile', () {
+        final nested = Figure.meanwhile(
+          figures: [
+            importGap('Neighbor swing', beats: 8),
+            importGap('give and take', beats: 8),
+          ],
+          beats: 8,
+        );
+        final container = Figure.modifier(
+          figures: [nested, importGap('Circle left 3/4', beats: 8)],
+          beats: 16,
+        );
+
+        final result = reparseImportGapFigures([container]);
+
+        expect(result.upgradedCount, 2);
+        final rebuilt = result.figures.single;
+        expect(rebuilt.isModifier, isTrue);
+        expect(rebuilt.subFigures[0].isMeanwhile, isTrue);
+        expect(rebuilt.subFigures[0].subFigures[0].move, 'swing');
+        expect(rebuilt.subFigures[1].move, 'circle');
+      });
+
+      test(
+        'recurses through alternating meanwhile and modifier containers',
+        () {
+          final nested = Figure.modifier(
+            figures: [
+              importGap('Neighbor swing', beats: 8),
+              importGap('give and take', beats: 8),
+            ],
+            beats: 8,
+          );
+          final container = Figure.meanwhile(
+            figures: [nested, importGap('Circle left 3/4', beats: 8)],
+            beats: 16,
+          );
+
+          final result = reparseImportGapFigures([container]);
+
+          expect(result.upgradedCount, 2);
+          final rebuilt = result.figures.single;
+          expect(rebuilt.isMeanwhile, isTrue);
+          expect(rebuilt.subFigures[0].isModifier, isTrue);
+          expect(rebuilt.subFigures[0].subFigures[0].move, 'swing');
+          expect(rebuilt.subFigures[1].move, 'circle');
+        },
+      );
+
+      test(
+        'keeps sibling upgrades when a nested structural reparse exceeds depth',
+        () {
+          final nested = Figure.modifier(
+            figures: [
+              importGap('Neighbor swing', beats: 8),
+              importGap('Balance || swing', beats: 8),
+            ],
+            beats: 8,
+          );
+          final container = Figure.meanwhile(
+            figures: [nested, importGap('Circle left 3/4', beats: 8)],
+            beats: 16,
+          );
+
+          final result = reparseImportGapFigures([container]);
+
+          expect(result.upgradedCount, 2);
+          final rebuilt = result.figures.single;
+          final rebuiltNested = rebuilt.subFigures.first;
+          expect(rebuilt.isMeanwhile, isTrue);
+          expect(rebuiltNested.isModifier, isTrue);
+          expect(rebuiltNested.subFigures.first.move, 'swing');
+          expect(rebuiltNested.subFigures.last.isCustom, isTrue);
+          expect(rebuilt.subFigures.last.move, 'circle');
+        },
+      );
+
       // A custom side whose stored text re-parses to a meanwhile is declined
-      // (left as-is). Nesting violates the flat-only invariant; flattening
-      // would corrupt section beat totals. The isMeanwhile guard in
-      // _tryUpgradeMeanwhile catches this; removing it causes a nested
-      // meanwhile to appear in the output, and this test goes red.
+      // (left as-is). Same-kind nesting violates the container invariant;
+      // flattening would corrupt section beat totals. The structural-child
+      // legality check catches this; removing it causes a nested meanwhile to
+      // appear in the output, and this test goes red.
       test('declines a side whose re-parse yields a meanwhile — '
           'leaves it as custom rather than nesting or flattening', () {
         // "Balance || swing" re-parses to a meanwhile via the ||/while fan-out.

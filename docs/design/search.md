@@ -228,22 +228,27 @@ distinct paths, because `FigureNot` lives in `FigureQuery`, not `DanceFilter`:
 Dance-level boolean negation of any *other* predicate stays `NotFilter(<child>)` →
 `NOT (<child>)` (see Combinators below).
 
-#### `meanwhile` containers are flattened per constituent (#590)
+#### Structural containers are flattened per leaf constituent (#590/#1198)
 
-A `meanwhile` container figure holds ≥2 concurrent sub-figures. The indexer
-(`_insertDerivedRows`) does **not** index the container as a `meanwhile` move;
-instead it **flattens** it, emitting one `dance_figures` row per concurrent side
-(each side's `move`, `params_json`, `canonicalText`) and appending each side's
-canonical text to `dance_fts.figures_text`. So every constituent stays
-individually matchable — a `FigureLeaf` matches either side, and FTS matches
-either side's text. `idx` runs over the **flattened** constituent stream (the
-`{dance_id, idx}` primary key requires distinct idx per row), so the container's
-sides occupy consecutive slots in order; the container itself supplies their
-shared section/beat placement. A second column, `group_idx`, is **shared** by
-every row flattened from one top-level figure (all concurrent sides of a
-container included) and is monotonic across top-level figures; it is what the
-`ThenFilter` operator correlates on (see below), so simultaneous sides — which share a
-group — are never read as sequential.
+A structural container figure holds ≥2 children. The indexer
+(`_insertDerivedRows`) emits one `dance_figures` row per **leaf** child, so
+every constituent stays individually matchable — a `FigureLeaf` matches either
+side of a `meanwhile` or any leaf in a `modifier`, and FTS matches each leaf's
+canonical text. `idx` runs over this flattened constituent stream (the
+`{dance_id, idx}` primary key requires distinct idx per row), preserving child
+order; the top-level container supplies shared section/beat placement.
+
+The outer container's structural canonical render is also appended once to
+`dance_fts.figures_text` and `dance_substring_fts.figures_text`. This preserves
+searchability of structural tokens such as `meanwhile` and `modifier` without
+trying to JSON-encode in-memory nested `Figure` values. A second column,
+`group_idx`, is **shared** by every leaf flattened from one top-level figure
+(including leaves below an opposite nested container) and is monotonic across
+top-level figures; it is what the `ThenFilter` operator correlates on (see
+below), so simultaneous leaves — which share a group — are never read as
+sequential. Ordered modifier children likewise remain one group for `Then`
+purposes; their order is represented by child order within the structural
+canonical text, not by sequential top-level groups.
 
 **Concurrency vs. sequence in `ThenFilter` (#748, was a #590 limitation).** Because a
 container's concurrent sides get consecutive `idx` values, a positional

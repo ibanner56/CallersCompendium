@@ -3,14 +3,23 @@ import 'package:flutter/material.dart';
 
 import 'responsive_autocomplete.dart';
 
-/// One selectable entry in a [MoveAutocomplete]: either a canonical move or an
-/// alias. [id] is what gets stored on the figure/query (a move id or an alias
-/// id), so aliases keep their own identity (a "see saw" stays a see saw).
+/// The kind of entry selected from a [MoveAutocomplete].
+enum MoveOptionKind { move, modifier }
+
+/// One selectable entry in a [MoveAutocomplete]: either a canonical move, an
+/// alias, or an enabled structural option. [id] is what gets stored on the
+/// figure/query (a move id, an alias id, or a structural move id), so aliases
+/// keep their own identity (a "see saw" stays a see saw).
 class MoveOption {
-  const MoveOption({required this.id, required this.displayName});
+  const MoveOption({
+    required this.id,
+    required this.displayName,
+    this.kind = MoveOptionKind.move,
+  });
 
   final String id;
   final String displayName;
+  final MoveOptionKind kind;
 }
 
 /// A keyboard-first type-ahead move picker over a [Taxonomy]'s moves (and,
@@ -29,6 +38,8 @@ class MoveAutocomplete extends StatefulWidget {
     this.onCleared,
     this.onCustomSubmitted,
     this.includeAliases = true,
+    this.includeModifier = false,
+    this.modifierOptionLabel = 'modifier',
     this.hintText = 'e.g. swing',
     this.labelText = 'Move',
     this.autofocus = false,
@@ -60,6 +71,16 @@ class MoveAutocomplete extends StatefulWidget {
   final ValueChanged<String>? onCustomSubmitted;
 
   final bool includeAliases;
+
+  /// Whether to offer the structural `modifier` option alongside taxonomy
+  /// moves. Callers that enable this must handle [MoveOptionKind.modifier] by
+  /// creating a container draft rather than storing [modifierMove] as a
+  /// leaf move.
+  final bool includeModifier;
+
+  /// Label shown for the optional structural modifier entry.
+  final String modifierOptionLabel;
+
   final String hintText;
   final String labelText;
   final bool autofocus;
@@ -89,6 +110,18 @@ class _MoveAutocompleteState extends State<MoveAutocomplete> {
     }
 
     final options = <MoveOption>[
+      if (widget.includeModifier &&
+          matches(
+            modifierMove,
+            widget.modifierOptionLabel,
+            widget.modifierOptionLabel,
+            const [],
+          ))
+        MoveOption(
+          id: modifierMove,
+          displayName: widget.modifierOptionLabel,
+          kind: MoveOptionKind.modifier,
+        ),
       for (final m in widget.taxonomy.moves.values)
         if (matches(
           m.id,

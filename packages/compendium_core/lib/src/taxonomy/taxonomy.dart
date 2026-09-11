@@ -168,12 +168,12 @@ class Taxonomy {
 
   /// Converts v34 move ids and parameter keys to the v35 representation.
   ///
-  /// This is intentionally recursive: `meanwhile` stores child figures in
-  /// `params['figures']`, and imports/restores use the same write path as
-  /// ordinary edits.
+  /// This is intentionally recursive: structural containers store child
+  /// figures in `params['figures']`, and imports/restores use the same write
+  /// path as ordinary edits.
   Figure normalizeFigureV35(Figure figure) {
     List<Figure>? children;
-    if (figure.isMeanwhile) {
+    if (figure.isContainer) {
       final originalChildren = figure.subFigures;
       for (var i = 0; i < originalChildren.length; i++) {
         final child = originalChildren[i];

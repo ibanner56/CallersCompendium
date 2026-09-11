@@ -14,6 +14,7 @@ import 'display_defaults.dart'
         kDefaultCollectionSortKey,
         kDefaultDanceDetailRenderingKey,
         kDefaultDanceFiguresTemplateKey,
+        kDefaultModifierFiguresKey,
         kDefaultMeanwhileSideFiguresKey,
         kDefaultDanceFormKey,
         kDefaultDanceFormationShapeKey,
@@ -119,6 +120,7 @@ final Map<String, bool Function(Object?)> _backupSettingValidators = {
     kDefaultDanceProgressionKey,
     kDefaultDanceFiguresTemplateKey,
     kDefaultMeanwhileSideFiguresKey,
+    kDefaultModifierFiguresKey,
     kDefaultMoveParamOverridesKey,
   ])
     key: _isString,

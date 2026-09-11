@@ -8,6 +8,10 @@
   "@danceEditorAddedMeanwhileAnnouncement": {
     "description": "Screen-reader announcement after adding a meanwhile container."
   },
+  "danceEditorAddedModifierAnnouncement": "Added a modifier container.",
+  "@danceEditorAddedModifierAnnouncement": {
+    "description": "Screen-reader announcement after adding a modifier container."
+  },
   "navCollection": "Collection",
   "@navCollection": {
     "description": "Bottom/rail navigation label for the dance collection destination."
@@ -19,6 +23,14 @@
   "settingsDefaultsMeanwhileSubtitle": "The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.",
   "@settingsDefaultsMeanwhileSubtitle": {
     "description": "Explanation for the default meanwhile side-figure editor."
+  },
+  "settingsDefaultsModifierTitle": "Modifier defaults",
+  "@settingsDefaultsModifierTitle": {
+    "description": "Sub-heading for default modifier figures."
+  },
+  "settingsDefaultsModifierSubtitle": "The figures seeded when you add a modifier container. Clear it for two blank figures; one configured figure gets one blank companion.",
+  "@settingsDefaultsModifierSubtitle": {
+    "description": "Explanation for the default modifier-figure editor."
   },
   "navPrograms": "Programs",
   "@navPrograms": {
@@ -7301,6 +7313,10 @@
   "@danceEditorAddMeanwhile": {
     "description": "Menu item label for adding an empty meanwhile container."
   },
+  "danceEditorAddModifier": "Add modifier",
+  "@danceEditorAddModifier": {
+    "description": "Menu item label for adding an empty modifier container."
+  },
   "danceEditorPasteAtEndOfFigureList": "Paste at end of figure list",
   "@danceEditorPasteAtEndOfFigureList": {
     "description": "Semantics label for pasting a cut figure at the end of the list."
@@ -7427,6 +7443,72 @@
   "@danceEditorGroupWithNext": {
     "description": "Menu item label that groups this figure row with the one immediately after it into a meanwhile (concurrent) group (#593). Hidden when there is no next row or either row is already a meanwhile group."
   },
+  "danceEditorGroupWithNextAsModifier": "Group with next as modifier",
+  "@danceEditorGroupWithNextAsModifier": {
+    "description": "Menu item label that groups this figure row with the one immediately after it into an ordered modifier group."
+  },
+  "danceEditorConvertToMeanwhile": "Convert to meanwhile",
+  "@danceEditorConvertToMeanwhile": {
+    "description": "Menu item label for converting a flat modifier group into a meanwhile group."
+  },
+  "danceEditorConvertToModifier": "Convert to modifier",
+  "@danceEditorConvertToModifier": {
+    "description": "Menu item label for converting a flat meanwhile group into a modifier group."
+  },
+  "danceEditorUngroupMeanwhile": "Ungroup meanwhile",
+  "@danceEditorUngroupMeanwhile": {
+    "description": "Menu item label for replacing a meanwhile group with its child figures."
+  },
+  "danceEditorUngroupModifier": "Ungroup modifier",
+  "@danceEditorUngroupModifier": {
+    "description": "Menu item label for replacing a modifier group with its child figures."
+  },
+  "danceEditorModifierGroupLabel": "{count, plural, other{Modifier ({count} figures)}}",
+  "@danceEditorModifierGroupLabel": {
+    "description": "Visible heading for a modifier group's expanded editor."
+  },
+  "danceEditorModifierGroupSemantic": "Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.",
+  "@danceEditorModifierGroupSemantic": {
+    "description": "Accessibility label for a modifier group."
+  },
+  "danceEditorAddModifierChild": "Add modifier",
+  "@danceEditorAddModifierChild": {
+    "description": "Button label for adding another figure to a modifier group."
+  },
+  "danceEditorModifierCoreLabel": "Core",
+  "@danceEditorModifierCoreLabel": {
+    "description": "Visible label for the first figure in a modifier group."
+  },
+  "danceEditorModifierChildLabel": "Modifier",
+  "@danceEditorModifierChildLabel": {
+    "description": "Visible label for a non-core figure in a modifier group."
+  },
+  "danceEditorModifierCoreSemantic": "Core figure in modifier group.",
+  "@danceEditorModifierCoreSemantic": {
+    "description": "Accessibility label for the first figure in a modifier group."
+  },
+  "danceEditorModifierChildSemantic": "Modifier figure {number} of {total}.",
+  "@danceEditorModifierChildSemantic": {
+    "description": "Accessibility label for a non-core figure in a modifier group.",
+    "placeholders": {
+      "number": {
+        "type": "int",
+        "example": "2"
+      },
+      "total": {
+        "type": "int",
+        "example": "3"
+      }
+    }
+  },
+  "danceEditorRemoveModifierCore": "Remove core figure",
+  "@danceEditorRemoveModifierCore": {
+    "description": "Removal tooltip for the core figure in a modifier group."
+  },
+  "danceEditorRemoveModifierChild": "Remove modifier figure",
+  "@danceEditorRemoveModifierChild": {
+    "description": "Removal tooltip for a non-core figure in a modifier group."
+  },
   "danceEditorMeanwhileGroupLabel": "{count, plural, other{Meanwhile ({count} sides)}}",
   "@danceEditorMeanwhileGroupLabel": {
     "description": "Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).",
@@ -7486,6 +7568,16 @@
   "danceEditorMeanwhileSidesCapReached": "Maximum of {max} concurrent figures.",
   "@danceEditorMeanwhileSidesCapReached": {
     "description": "Inline message shown in place of the add-side button once a meanwhile group has reached the maximum allowed number of concurrent sides.",
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "example": "6"
+      }
+    }
+  },
+  "danceEditorModifierChildrenCapReached": "Maximum of {max} ordered modifier figures.",
+  "@danceEditorModifierChildrenCapReached": {
+    "description": "Inline message shown in place of the add-child button once a modifier has reached the maximum allowed number of ordered children.",
     "placeholders": {
       "max": {
         "type": "int",

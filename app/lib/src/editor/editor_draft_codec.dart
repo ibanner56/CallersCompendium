@@ -56,7 +56,9 @@ const String kDanceEditorDraftKeyPrefix = 'editor_draft:';
 /// remain accepted and map to the fixed shipped IDs. It also adds staged inline
 /// tag payloads so provisional tag IDs survive autosave and can be upserted
 /// when the dance is eventually saved.
-const _kDraftVersion = 12;
+///
+/// v12 -> v13: adds recursive structural-container children to figure drafts.
+const _kDraftVersion = 13;
 
 // ---------------------------------------------------------------------------
 // Encode
@@ -65,10 +67,10 @@ const _kDraftVersion = 12;
 /// Serialises [snapshot] to a JSON string suitable for storage in
 /// [SettingsRepository].
 ///
-/// Schema (v12):
+/// Schema (v13):
 /// ```jsonc
 /// {
-///   "v": 12,
+///   "v": 13,
 ///   "title": "...", "hook": "...", "notes": "...",
 ///   "walkthrough": "...",
 ///   "phrase": "...", "formationDetail": "...",
@@ -156,25 +158,7 @@ String encodeDraft(EditorSnapshot snapshot) {
       ],
     'customValues': snapshot.customValues,
     'figureDrafts': [
-      for (final d in snapshot.figureDrafts)
-        {
-          'id': d.id,
-          'move': d.move,
-          'params': d.params,
-          'note': d.note,
-          'progression': d.progression,
-          'sv': d.schemaVersion,
-          if (d.assumedSubject) 'assumedSubject': true,
-          // Persist only the non-default (importGap) origin so an ordinary
-          // authored figure's JSON is unchanged; decode is tolerant (#419).
-          if (d.customOrigin == CustomOrigin.importGap)
-            'customOrigin': 'importGap',
-          if (d.walkthroughOverride != null &&
-              d.walkthroughOverride!.trim().isNotEmpty)
-            'walkthroughOverride': d.walkthroughOverride,
-          if (d.wordingOverride != null && d.wordingOverride!.trim().isNotEmpty)
-            'wordingOverride': d.wordingOverride,
-        },
+      for (final d in snapshot.figureDrafts) _figureDraftJson(d),
     ],
   });
 }
@@ -186,7 +170,8 @@ String encodeDraft(EditorSnapshot snapshot) {
 /// Deserialises a draft JSON value (as returned by [SettingsRepository.get])
 /// back into an [EditorSnapshot].
 ///
-/// Accepts **v1 and v2** drafts (forward-compatible read):
+/// Accepts drafts with schema versions **v1 through v13** (forward-compatible
+/// read):
 /// - v1 has URL-kind links only (no `targetDanceId`). Since v1 couldn't create
 ///   relatedDance links, missing `targetDanceId` fields decode as `null` —
 ///   a v1 draft loads intact as a valid draft with only URL-kind links.
@@ -432,7 +417,11 @@ List<FigureDraftSnapshot> _parseFigureDrafts(Object? raw) {
   return [for (final e in raw) _parseFigureDraftSnapshot(e)];
 }
 
-FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
+FigureDraftSnapshot _parseFigureDraftSnapshot(
+  Object? e, {
+  int containerDepth = 0,
+  String? parentContainerKind,
+}) {
   if (e is! Map) {
     throw const FormatException('figureDraft entry must be an object');
   }
@@ -448,6 +437,50 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
       parsedParams[entry.key.toString()] = entry.value;
     }
   }
+  final containerKind = m['containerKind'];
+  if (containerKind != null &&
+      containerKind != meanwhileMove &&
+      containerKind != modifierMove) {
+    throw FormatException(
+      'figureDraft.containerKind is invalid: $containerKind',
+    );
+  }
+  final children = m['children'];
+  if (containerKind == null && children != null) {
+    throw const FormatException(
+      'figureDraft.children requires a structural container kind',
+    );
+  }
+  if (containerKind != null && children is! List) {
+    throw const FormatException(
+      'figureDraft.children must be an array for structural containers',
+    );
+  }
+  if (containerKind != null && containerDepth >= kMaxContainerDepth) {
+    throw const FormatException('figureDraft container depth is too deep');
+  }
+  if (containerKind != null && containerKind == parentContainerKind) {
+    throw const FormatException('figureDraft containers must alternate kinds');
+  }
+  if (containerKind != null &&
+      children is List &&
+      children.length > kMaxMeanwhileSides) {
+    throw FormatException(
+      'figureDraft.children exceeds the $kMaxMeanwhileSides-child limit',
+    );
+  }
+  final parsedChildren = children is List
+      ? [
+          for (final child in children)
+            _parseFigureDraftSnapshot(
+              child,
+              containerDepth: containerKind == null
+                  ? containerDepth
+                  : containerDepth + 1,
+              parentContainerKind: containerKind as String?,
+            ),
+        ]
+      : null;
   final note = _str(m, 'note');
   final progression = m['progression'];
   if (progression is! bool) {
@@ -482,7 +515,40 @@ FigureDraftSnapshot _parseFigureDraftSnapshot(Object? e) {
     // Additive/tolerant (#411): absent/blank/non-string → no override.
     walkthroughOverride: _optSnippet(m['walkthroughOverride']),
     wordingOverride: _optSnippet(m['wordingOverride']),
+    meanwhileSides: containerKind == meanwhileMove ? parsedChildren : null,
+    modifierFigures: containerKind == modifierMove ? parsedChildren : null,
   );
+}
+
+Map<String, Object?> _figureDraftJson(FigureDraftSnapshot draft) {
+  final children = draft.meanwhileSides ?? draft.modifierFigures;
+  final params = Map<String, Object?>.of(draft.params);
+  if (children != null) {
+    params.remove('figures');
+  }
+  return {
+    'id': draft.id,
+    'move': draft.move,
+    'params': params,
+    'note': draft.note,
+    'progression': draft.progression,
+    'sv': draft.schemaVersion,
+    if (draft.assumedSubject) 'assumedSubject': true,
+    if (draft.customOrigin == CustomOrigin.importGap)
+      'customOrigin': 'importGap',
+    if (draft.walkthroughOverride != null &&
+        draft.walkthroughOverride!.trim().isNotEmpty)
+      'walkthroughOverride': draft.walkthroughOverride,
+    if (draft.wordingOverride != null &&
+        draft.wordingOverride!.trim().isNotEmpty)
+      'wordingOverride': draft.wordingOverride,
+    if (children != null) ...{
+      'containerKind': draft.modifierFigures == null
+          ? meanwhileMove
+          : modifierMove,
+      'children': [for (final child in children) _figureDraftJson(child)],
+    },
+  };
 }
 
 /// Reads an optional walkthrough snippet override: a non-blank string

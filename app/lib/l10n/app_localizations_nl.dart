@@ -16,6 +16,10 @@ class AppLocalizationsNl extends AppLocalizations {
       'Een meanwhile-container is toegevoegd.';
 
   @override
+  String get danceEditorAddedModifierAnnouncement =>
+      'Een modifier-container is toegevoegd.';
+
+  @override
   String get navCollection => 'Collectie';
 
   @override
@@ -25,6 +29,14 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String get settingsDefaultsMeanwhileSubtitle =>
       'De zijfiguren die worden ingevoegd wanneer je een meanwhile-container toevoegt. Maak de lijst leeg voor twee lege zijden; bij één ingestelde zijde wordt een lege tweede zijde toegevoegd. Je kunt de container na het invoegen bewerken.';
+
+  @override
+  String get settingsDefaultsModifierTitle =>
+      'Standaardinstellingen voor modifiers';
+
+  @override
+  String get settingsDefaultsModifierSubtitle =>
+      'De figuren die worden ingevoegd wanneer je een modifiercontainer toevoegt. Wis dit voor twee lege figuren; bij één ingestelde figuur wordt één lege begeleider toegevoegd.';
 
   @override
   String get navPrograms => 'Programma\'s';
@@ -5592,6 +5604,9 @@ class AppLocalizationsNl extends AppLocalizations {
   String get danceEditorAddMeanwhile => 'Meanwhile toevoegen';
 
   @override
+  String get danceEditorAddModifier => 'Modifier toevoegen';
+
+  @override
   String get danceEditorPasteAtEndOfFigureList =>
       'Plakken aan het einde van de figurenlijst';
 
@@ -5688,6 +5703,72 @@ class AppLocalizationsNl extends AppLocalizations {
       'Groeperen met volgende als gelijktijdig';
 
   @override
+  String get danceEditorGroupWithNextAsModifier =>
+      'Met volgende groeperen als modifier';
+
+  @override
+  String get danceEditorConvertToMeanwhile => 'Omzetten naar meanwhile';
+
+  @override
+  String get danceEditorConvertToModifier => 'Omzetten naar modifier';
+
+  @override
+  String get danceEditorUngroupMeanwhile => 'Meanwhile-groepering opheffen';
+
+  @override
+  String get danceEditorUngroupModifier => 'Modifier-groepering opheffen';
+
+  @override
+  String danceEditorModifierGroupLabel(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Modifier ($count figuren)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String danceEditorModifierGroupSemantic(num beats, num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count figuren',
+      one: '1 figuur',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      beats,
+      locale: localeName,
+      other: '$beats tellen',
+      one: '1 tel',
+    );
+    return 'Modifiergroep, $_temp0, $_temp1.';
+  }
+
+  @override
+  String get danceEditorAddModifierChild => 'Modifier toevoegen';
+
+  @override
+  String get danceEditorModifierCoreLabel => 'Kern';
+
+  @override
+  String get danceEditorModifierChildLabel => 'Modifier';
+
+  @override
+  String get danceEditorModifierCoreSemantic => 'Kernfiguur in modifiergroep.';
+
+  @override
+  String danceEditorModifierChildSemantic(int number, int total) {
+    return 'Modifierfiguur $number van $total.';
+  }
+
+  @override
+  String get danceEditorRemoveModifierCore => 'Kernfiguur verwijderen';
+
+  @override
+  String get danceEditorRemoveModifierChild => 'Modifierfiguur verwijderen';
+
+  @override
   String danceEditorMeanwhileGroupLabel(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,
@@ -5733,6 +5814,11 @@ class AppLocalizationsNl extends AppLocalizations {
   @override
   String danceEditorMeanwhileSidesCapReached(int max) {
     return 'Maximaal $max gelijktijdige figuren.';
+  }
+
+  @override
+  String danceEditorModifierChildrenCapReached(int max) {
+    return 'Maximaal $max geordende modifierfiguren.';
   }
 
   @override

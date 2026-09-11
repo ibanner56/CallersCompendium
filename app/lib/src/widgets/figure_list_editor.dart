@@ -45,7 +45,7 @@ class FigureListEditor extends StatefulWidget {
     required this.onChanged,
     required this.onAdd,
     required this.onDelete,
-    required this.onReorder,
+    this.onReorder,
     this.onDuplicate,
     this.dialect,
     this.mixer = false,
@@ -58,11 +58,18 @@ class FigureListEditor extends StatefulWidget {
     this.showWordingOverride = false,
     this.canonicalizeDiscouragedTerms = false,
     this.onGroupWithNext,
+    this.onGroupWithNextAsModifier,
     this.onCollapseMeanwhileGroup,
+    this.onConvertToMeanwhile,
+    this.onConvertToModifier,
+    this.onUngroupContainer,
     this.onAddMeanwhile,
+    this.onAddModifier,
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
+    this.allowModifierSelection = true,
+    this.allowNestedContainerSelection = true,
     this.keyPrefix = 'figure',
   });
 
@@ -113,7 +120,9 @@ class FigureListEditor extends StatefulWidget {
   /// final item = list.removeAt(oldIndex);
   /// list.insert(newIndex, item); // newIndex already adjusted
   /// ```
-  final void Function(int oldIndex, int newIndex) onReorder;
+  /// `null` disables the inner reorderable list, which is used for nested
+  /// container editors whose parent owns the ordering controls.
+  final void Function(int oldIndex, int newIndex)? onReorder;
 
   /// When true (issue #419, opt-in "Free-text entry"), the Add flow opens a
   /// single free-text field instead of appending a blank structured draft: the
@@ -167,6 +176,9 @@ class FigureListEditor extends StatefulWidget {
   /// [onDuplicate] — existing callers stay source-compatible.
   final ValueChanged<FigureDraft>? onGroupWithNext;
 
+  /// Groups [draft] with the following row as a modifier container.
+  final ValueChanged<FigureDraft>? onGroupWithNextAsModifier;
+
   /// Collapses a meanwhile group back to a plain figure (#593): called when a
   /// 2-side group has one of its sides removed, leaving [remainingSide]. The
   /// caller replaces [groupDraft]'s top-level list slot with [remainingSide].
@@ -175,11 +187,17 @@ class FigureListEditor extends StatefulWidget {
   /// a group is created).
   final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
   onCollapseMeanwhileGroup;
+  final ValueChanged<FigureDraft>? onConvertToMeanwhile;
+  final ValueChanged<FigureDraft>? onConvertToModifier;
+  final ValueChanged<FigureDraft>? onUngroupContainer;
 
   /// Adds a new meanwhile container draft through the list-level Add menu and
   /// returns the inserted draft's id. When `null`, the existing single Add
   /// button is retained.
   final Future<String?> Function()? onAddMeanwhile;
+
+  /// Adds a new modifier container through the list-level Add menu.
+  final Future<String?> Function()? onAddModifier;
 
   /// Whether list-level insertion affordances are available.
   final bool allowAdding;
@@ -189,6 +207,16 @@ class FigureListEditor extends StatefulWidget {
 
   /// Whether phrase labels and the beat summary are shown.
   final bool showPhraseStructure;
+
+  /// Whether ordinary figure editors offer the structural `modifier` option.
+  /// Settings lists whose persistence accepts ordinary figures only disable
+  /// this affordance.
+  final bool allowModifierSelection;
+
+  /// Whether ordinary children may be converted into the one legal opposite
+  /// container kind. Nested editors at the maximum depth disable this so the
+  /// selector cannot create a third structural level.
+  final bool allowNestedContainerSelection;
 
   /// Prefix for widget keys when multiple editors share one screen.
   final String keyPrefix;
@@ -280,7 +308,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       _dismissFreeText(focusAddButton: widget.allowAdding);
     }
 
-    _openPendingMeanwhileDraft(rebuild: false);
+    _openPendingMeanwhileDraft(rebuild: false, modifier: false);
   }
 
   @override
@@ -329,6 +357,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
   void _paste(int beforeIndex) {
     final cutId = _cutDraftId;
     if (cutId == null) return;
+    final onReorder = widget.onReorder;
+    if (onReorder == null) return;
     final cutIndex = widget.drafts.indexWhere((d) => d.id == cutId);
     if (cutIndex == -1) {
       setState(() => _cutDraftId = null);
@@ -338,7 +368,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     // After removing the cut item, the insertion point shifts down by one if
     // beforeIndex is after the cut item.
     final finalPos = beforeIndex > cutIndex ? beforeIndex - 1 : beforeIndex;
-    widget.onReorder(cutIndex, finalPos);
+    onReorder(cutIndex, finalPos);
     _announce(_l10n.danceEditorFigurePastedAnnouncement(finalPos + 1));
   }
 
@@ -348,8 +378,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
   /// keyboard users can chain Alt+Arrow / menu moves.
   void _reorder(int oldIndex, int newIndex, {bool refocus = false}) {
     if (oldIndex < 0 || oldIndex >= widget.drafts.length) return;
+    final onReorder = widget.onReorder;
+    if (onReorder == null) return;
     final movedId = widget.drafts[oldIndex].id;
-    widget.onReorder(oldIndex, newIndex);
+    onReorder(oldIndex, newIndex);
     _announce(
       _l10n.danceEditorFigureMovedAnnouncement(
         newIndex + 1,
@@ -429,10 +461,22 @@ class _FigureListEditorState extends State<FigureListEditor> {
     final draftId = await onAddMeanwhile();
     if (!mounted || draftId == null) return;
     _pendingMeanwhileDraftIds.add(draftId);
-    _openPendingMeanwhileDraft(rebuild: true);
+    _openPendingMeanwhileDraft(rebuild: true, modifier: false);
   }
 
-  void _openPendingMeanwhileDraft({required bool rebuild}) {
+  Future<void> _addModifier() async {
+    final onAddModifier = widget.onAddModifier;
+    if (!widget.allowAdding || onAddModifier == null) return;
+    final draftId = await onAddModifier();
+    if (!mounted || draftId == null) return;
+    _pendingMeanwhileDraftIds.add(draftId);
+    _openPendingMeanwhileDraft(rebuild: true, modifier: true);
+  }
+
+  void _openPendingMeanwhileDraft({
+    required bool rebuild,
+    required bool modifier,
+  }) {
     final ready = _pendingMeanwhileDraftIds
         .where((id) => widget.drafts.any((draft) => draft.id == id))
         .toList();
@@ -447,13 +491,18 @@ class _FigureListEditorState extends State<FigureListEditor> {
       openDraft();
     }
     _ensureVisibleSoon(draftId);
-    _announce(_l10n.danceEditorAddedMeanwhileAnnouncement);
+    _announce(
+      modifier
+          ? _l10n.danceEditorAddedModifierAnnouncement
+          : _l10n.danceEditorAddedMeanwhileAnnouncement,
+    );
   }
 
   Widget _buildAddAffordance(BuildContext context, {required bool empty}) {
     if (!widget.allowAdding) return const SizedBox.shrink();
     final l10n = AppLocalizations.of(context);
     final onAddMeanwhile = widget.onAddMeanwhile;
+    final onAddModifier = widget.onAddModifier;
     final addButton = empty
         ? FilledButton.icon(
             focusNode: _addButtonFocusNode,
@@ -467,7 +516,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
             icon: const Icon(Icons.add),
             label: Text(l10n.danceEditorAddFigure),
           );
-    if (onAddMeanwhile == null) {
+    if (onAddMeanwhile == null && onAddModifier == null) {
       return KeyedSubtree(key: _key('add'), child: addButton);
     }
 
@@ -494,11 +543,18 @@ class _FigureListEditorState extends State<FigureListEditor> {
           onPressed: _addFigure,
           child: Text(l10n.danceEditorAddFigure),
         ),
-        MenuItemButton(
-          key: _key('add-meanwhile'),
-          onPressed: _addMeanwhile,
-          child: Text(l10n.danceEditorAddMeanwhile),
-        ),
+        if (onAddMeanwhile != null)
+          MenuItemButton(
+            key: _key('add-meanwhile'),
+            onPressed: _addMeanwhile,
+            child: Text(l10n.danceEditorAddMeanwhile),
+          ),
+        if (onAddModifier != null)
+          MenuItemButton(
+            key: _key('add-modifier'),
+            onPressed: _addModifier,
+            child: Text(l10n.danceEditorAddModifier),
+          ),
       ],
     );
   }
@@ -612,7 +668,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
       );
     }
 
-    // Derive a phrase label per move-bearing draft or meanwhile container by
+    // Derive a phrase label per move-bearing draft or structural container by
     // walking cumulative beats, mirroring deriveSections while keeping the
     // draft↔row map.
     // `sectionStart` marks the first figure of each section so the label gutter
@@ -626,7 +682,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
     String? lastLabel;
     if (widget.showPhraseStructure) {
       for (final draft in drafts) {
-        if (draft.move == null && !draft.isMeanwhileGroup) {
+        if (draft.move == null && !draft.isContainerDraft) {
           labels[draft.id] = null;
           sectionStart[draft.id] = false;
           continue;
@@ -671,6 +727,8 @@ class _FigureListEditorState extends State<FigureListEditor> {
         draggable: draggable,
         isOpen: _openDraftId == draft.id,
         rowFocusNode: _rowFocusNode(draft.id),
+        allowModifierSelection: widget.allowModifierSelection,
+        allowNestedContainerSelection: widget.allowNestedContainerSelection,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
         onClose: () => _closeDraft(draft.id),
@@ -679,22 +737,51 @@ class _FigureListEditorState extends State<FigureListEditor> {
         onDuplicate: widget.onDuplicate == null || !widget.allowDuplicating
             ? null
             : () => _duplicate(i),
-        onMoveUp: i == 0 ? null : () => _reorder(i, i - 1, refocus: true),
-        onMoveDown: i == drafts.length - 1
+        onMoveUp: widget.onReorder == null || i == 0
+            ? null
+            : () => _reorder(i, i - 1, refocus: true),
+        onMoveDown: widget.onReorder == null || i == drafts.length - 1
             ? null
             : () => _reorder(i, i + 1, refocus: true),
-        onCut: isCutCard ? null : () => _startCut(draft.id),
+        onCut: widget.onReorder == null || isCutCard
+            ? null
+            : () => _startCut(draft.id),
         snippetLibraryDefaultFor: widget.snippetLibraryDefaultFor,
         onSnippetCommitted: widget.onSnippetCommitted,
         showWordingOverride: widget.showWordingOverride,
         onGroupWithNext:
             (widget.onGroupWithNext == null ||
-                draft.isMeanwhileGroup ||
                 i == drafts.length - 1 ||
-                drafts[i + 1].isMeanwhileGroup)
+                !draft.canNestInContainer(modifierParent: false) ||
+                !drafts[i + 1].canNestInContainer(modifierParent: false))
             ? null
             : () => widget.onGroupWithNext!(draft),
+        onGroupWithNextAsModifier:
+            (widget.onGroupWithNextAsModifier == null ||
+                i == drafts.length - 1 ||
+                !draft.canNestInContainer(modifierParent: true) ||
+                !drafts[i + 1].canNestInContainer(modifierParent: true))
+            ? null
+            : () => widget.onGroupWithNextAsModifier!(draft),
         onCollapseMeanwhileGroup: widget.onCollapseMeanwhileGroup,
+        onConvertToMeanwhile:
+            widget.onConvertToMeanwhile == null ||
+                !draft.isModifierGroup ||
+                draft.modifierFigures == null ||
+                draft.modifierFigures!.any((child) => child.isContainerDraft)
+            ? null
+            : () => widget.onConvertToMeanwhile!(draft),
+        onConvertToModifier:
+            widget.onConvertToModifier == null ||
+                !draft.isMeanwhileGroup ||
+                draft.meanwhileSides == null ||
+                draft.meanwhileSides!.any((child) => child.isContainerDraft)
+            ? null
+            : () => widget.onConvertToModifier!(draft),
+        onUngroupContainer:
+            widget.onUngroupContainer == null || !draft.isContainerDraft
+            ? null
+            : () => widget.onUngroupContainer!(draft),
         keyPrefix: widget.keyPrefix,
       );
     }
@@ -743,7 +830,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         //    (a paste button inserted into a ReorderableListView would shift
         //    every drag-handle index beyond it — reviewer comment #4).
         // -------------------------------------------------------------------
-        if (_cutDraftId == null)
+        if (_cutDraftId == null && widget.onReorder != null)
           ReorderableListView(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -754,7 +841,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
                 buildCard(i, draggable: true),
             ],
           )
-        else
+        else if (_cutDraftId != null)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -778,6 +865,14 @@ class _FigureListEditorState extends State<FigureListEditor> {
                     onPaste: () => _paste(i + 1),
                   ),
               ],
+            ],
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var i = 0; i < drafts.length; i++)
+                buildCard(i, draggable: false),
             ],
           ),
         const SizedBox(height: 8),
@@ -898,6 +993,10 @@ String _figureDisplayName(
 ) {
   final sides = draft.meanwhileSides;
   if (sides != null) return l10n.danceEditorMeanwhileGroupLabel(sides.length);
+  final modifiers = draft.modifierFigures;
+  if (modifiers != null) {
+    return l10n.danceEditorModifierGroupLabel(modifiers.length);
+  }
   final move = draft.move;
   if (move == null) return l10n.danceEditorEmptyFigureName;
   if (move == customMove) {
@@ -979,8 +1078,14 @@ class _FigureDraftCard extends StatefulWidget {
     this.onSnippetCommitted,
     this.showWordingOverride = false,
     this.canonicalizeDiscouragedTerms = false,
+    this.allowModifierSelection = true,
+    this.allowNestedContainerSelection = true,
     this.onGroupWithNext,
+    this.onGroupWithNextAsModifier,
     this.onCollapseMeanwhileGroup,
+    this.onConvertToMeanwhile,
+    this.onConvertToModifier,
+    this.onUngroupContainer,
     this.keyPrefix = 'figure',
   });
 
@@ -1053,16 +1158,23 @@ class _FigureDraftCard extends StatefulWidget {
   final void Function(FigureDraft draft)? onSnippetCommitted;
 
   final bool showWordingOverride;
+  final bool allowModifierSelection;
+  final bool allowNestedContainerSelection;
 
   /// Resolved "group with next" action for THIS row (#590/#593), already
   /// accounting for adjacency/flat-only conditions (see
   /// [FigureListEditor.onGroupWithNext]). `null` hides the menu item.
   final VoidCallback? onGroupWithNext;
 
+  final VoidCallback? onGroupWithNextAsModifier;
+
   /// Collapses [draft] (when it `isMeanwhileGroup`) back to a plain figure.
   /// See [FigureListEditor.onCollapseMeanwhileGroup].
   final void Function(FigureDraft groupDraft, FigureDraft remainingSide)?
   onCollapseMeanwhileGroup;
+  final VoidCallback? onConvertToMeanwhile;
+  final VoidCallback? onConvertToModifier;
+  final VoidCallback? onUngroupContainer;
   final String keyPrefix;
 
   @override
@@ -1082,6 +1194,30 @@ void _seedChainHand(String moveId, Map<String, Object?> params) {
   if (who is! String) return;
   final hand = chainHandForWho(who);
   if (hand != null) params['hand'] = hand;
+}
+
+/// Replaces an ordinary draft with a minimally valid modifier draft while
+/// preserving the selected figure as the core. The editor keeps the same
+/// parent object so callers only need the usual [onChanged] rebuild.
+void _initializeModifierContainer(FigureDraft draft) {
+  if (draft.isContainerDraft) return;
+  final core = draft.clone();
+  final beats = draft.beats;
+  final beatsTouched = draft.beatsTouched;
+  draft.move = null;
+  draft.params
+    ..clear()
+    ..['beats'] = beats;
+  draft
+    ..note = ''
+    ..progression = false
+    ..beatsTouched = beatsTouched
+    ..assumedSubject = false
+    ..customOrigin = CustomOrigin.userEntered
+    ..walkthroughOverride = null
+    ..wordingOverride = null
+    ..meanwhileSides = null
+    ..modifierFigures = [core, FigureDraft()];
 }
 
 class _FigureDraftCardState extends State<_FigureDraftCard> {
@@ -1173,6 +1309,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
       _seedChainHand(moveId, widget.draft.params);
     }
     _showMoreOptions = false;
+    widget.onChanged();
+  }
+
+  void _selectModifier() {
+    _initializeModifierContainer(widget.draft);
     widget.onChanged();
   }
 
@@ -1691,6 +1832,38 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
             leadingIcon: const Icon(Icons.call_split, size: 18),
             child: Text(l10n.danceEditorGroupWithNext),
           ),
+        if (widget.onGroupWithNextAsModifier != null)
+          MenuItemButton(
+            key: _key('group-with-next-modifier'),
+            onPressed: widget.onGroupWithNextAsModifier,
+            leadingIcon: const Icon(Icons.tune, size: 18),
+            child: Text(l10n.danceEditorGroupWithNextAsModifier),
+          ),
+        if (widget.onConvertToMeanwhile != null)
+          MenuItemButton(
+            key: _key('convert-to-meanwhile'),
+            onPressed: widget.onConvertToMeanwhile,
+            leadingIcon: const Icon(Icons.sync_alt, size: 18),
+            child: Text(l10n.danceEditorConvertToMeanwhile),
+          ),
+        if (widget.onConvertToModifier != null)
+          MenuItemButton(
+            key: _key('convert-to-modifier'),
+            onPressed: widget.onConvertToModifier,
+            leadingIcon: const Icon(Icons.tune, size: 18),
+            child: Text(l10n.danceEditorConvertToModifier),
+          ),
+        if (widget.onUngroupContainer != null)
+          MenuItemButton(
+            key: _key('ungroup-container'),
+            onPressed: widget.onUngroupContainer,
+            leadingIcon: const Icon(Icons.call_merge, size: 18),
+            child: Text(
+              draft.isModifierGroup
+                  ? l10n.danceEditorUngroupModifier
+                  : l10n.danceEditorUngroupMeanwhile,
+            ),
+          ),
         MenuItemButton(
           key: _key('toggle-progression'),
           onPressed: _toggleProgression,
@@ -1725,8 +1898,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildEditor(BuildContext context) {
     final theme = Theme.of(context);
     final draft = widget.draft;
-    if (draft.isMeanwhileGroup) {
-      return _buildMeanwhileGroupEditor(context);
+    if (draft.isContainerDraft) {
+      return _buildContainerEditor(context);
     }
     final move = draft.move;
     final def = move == null ? null : widget.taxonomy.resolve(move);
@@ -1784,7 +1957,10 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 dialect: widget.dialect,
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
-                onSelected: (option) => _selectMove(option.id),
+                includeModifier: widget.allowModifierSelection,
+                onSelected: (option) => option.kind == MoveOptionKind.modifier
+                    ? _selectModifier()
+                    : _selectMove(option.id),
                 onCustomSubmitted: _createCustom,
                 onCleared: _clearMove,
               ),
@@ -1842,19 +2018,20 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
     );
   }
 
-  // --- Meanwhile group editor (#590/#593) -----------------------------------
+  // --- Structural container editor (#590/#593/#1198) ------------------------
 
-  /// Expanded editor for a **meanwhile group** draft: one shared Beats field
-  /// (the container's single count — never per-side) followed by each
-  /// concurrent side's own editor row, an add-side control (capped at
-  /// [kMaxMeanwhileSides]), and per-side move/remove controls. Structurally
-  /// enforces flat-only: [_MeanwhileSideEditor] offers no "group" affordance
-  /// of its own, so a side can never itself become a meanwhile group.
-  Widget _buildMeanwhileGroupEditor(BuildContext context) {
+  /// Expanded editor for a structural container draft: one shared Beats field
+  /// (the container's single count — never per-child) followed by each
+  /// ordered child editor, an add-child control (capped at
+  /// [kMaxMeanwhileSides]), and per-child move/remove controls. Ordinary
+  /// children use [_MeanwhileSideEditor]; a legal opposite-kind nested
+  /// container is delegated to a nested [FigureListEditor].
+  Widget _buildContainerEditor(BuildContext context) {
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    final sides = draft.meanwhileSides!;
+    final sides = draft.meanwhileSides ?? draft.modifierFigures!;
+    final isModifier = draft.isModifierGroup;
     final keyPrefix = '${widget.keyPrefix}-${widget.index}';
     return Focus(
       canRequestFocus: false,
@@ -1870,10 +2047,15 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
           padding: const EdgeInsets.all(12),
           child: Semantics(
             container: true,
-            label: l10n.danceEditorMeanwhileGroupSemantic(
-              sides.length,
-              draft.beats,
-            ),
+            label: isModifier
+                ? l10n.danceEditorModifierGroupSemantic(
+                    draft.beats,
+                    sides.length,
+                  )
+                : l10n.danceEditorMeanwhileGroupSemantic(
+                    sides.length,
+                    draft.beats,
+                  ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1887,7 +2069,9 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        l10n.danceEditorMeanwhileGroupLabel(sides.length),
+                        isModifier
+                            ? l10n.danceEditorModifierGroupLabel(sides.length)
+                            : l10n.danceEditorMeanwhileGroupLabel(sides.length),
                         style: theme.textTheme.titleSmall,
                       ),
                     ),
@@ -1899,7 +2083,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 // own beats field (see [_MeanwhileSideEditor]), so there is
                 // only ever one beats control visible for the whole group.
                 FigureParamEditor(
-                  keyPrefix: '$keyPrefix-meanwhile',
+                  keyPrefix:
+                      '$keyPrefix-${isModifier ? 'modifier' : 'meanwhile'}',
                   paramKey: 'beats',
                   spec: const ParamSpec(ParamKind.beats, defaultValue: 0),
                   dialect: widget.dialect,
@@ -1916,24 +2101,158 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 for (var i = 0; i < sides.length; i++)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: _MeanwhileSideEditor(
-                      key: ValueKey('meanwhile-side-${sides[i].id}'),
-                      keyPrefix: '$keyPrefix-side-$i',
-                      sideNumber: i + 1,
-                      totalSides: sides.length,
-                      draft: sides[i],
-                      taxonomy: widget.taxonomy,
-                      dialect: widget.dialect,
-                      mixer: widget.mixer,
-                      moveParamDefaults: widget.moveParamDefaults,
-                      showWordingOverride: widget.showWordingOverride,
-                      onChanged: widget.onChanged,
-                      onMoveUp: i == 0 ? null : () => _reorderSide(i, i - 1),
-                      onMoveDown: i == sides.length - 1
-                          ? null
-                          : () => _reorderSide(i, i + 1),
-                      onRemove: () => _removeSide(i),
-                    ),
+                    child: sides[i].isContainerDraft
+                        ? Semantics(
+                            container: true,
+                            label: isModifier && i == 0
+                                ? l10n.danceEditorModifierCoreSemantic
+                                : isModifier
+                                ? l10n.danceEditorModifierChildSemantic(
+                                    i + 1,
+                                    sides.length,
+                                  )
+                                : l10n.danceEditorMeanwhileSideSemantic(
+                                    i + 1,
+                                    sides.length,
+                                  ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        isModifier && i == 0
+                                            ? l10n.danceEditorModifierCoreLabel
+                                            : isModifier
+                                            ? l10n.danceEditorModifierChildLabel
+                                            : l10n.danceEditorMeanwhileSideLabel(
+                                                i + 1,
+                                              ),
+                                        style: theme.textTheme.labelLarge,
+                                      ),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey(
+                                        '$keyPrefix-nested-$i-move-up',
+                                      ),
+                                      tooltip: l10n.danceEditorMoveUp,
+                                      icon: const Icon(
+                                        Icons.arrow_upward,
+                                        size: 18,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: i == 0
+                                          ? null
+                                          : () => _reorderSide(i, i - 1),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey(
+                                        '$keyPrefix-nested-$i-move-down',
+                                      ),
+                                      tooltip: l10n.danceEditorMoveDown,
+                                      icon: const Icon(
+                                        Icons.arrow_downward,
+                                        size: 18,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: i == sides.length - 1
+                                          ? null
+                                          : () => _reorderSide(i, i + 1),
+                                    ),
+                                    IconButton(
+                                      key: ValueKey(
+                                        '$keyPrefix-nested-$i-remove',
+                                      ),
+                                      tooltip: isModifier
+                                          ? i == 0
+                                                ? l10n.danceEditorRemoveModifierCore
+                                                : l10n.danceEditorRemoveModifierChild
+                                          : l10n.danceEditorRemoveMeanwhileSide,
+                                      icon: Icon(
+                                        Icons.remove_circle_outline,
+                                        size: 18,
+                                        color: theme.colorScheme.error,
+                                      ),
+                                      visualDensity: VisualDensity.compact,
+                                      onPressed: () => _removeSide(i),
+                                    ),
+                                  ],
+                                ),
+                                FigureListEditor(
+                                  key: ValueKey(
+                                    'nested-container-${sides[i].id}',
+                                  ),
+                                  drafts: [sides[i]],
+                                  taxonomy: widget.taxonomy,
+                                  phraseStructure: PhraseStructure.standard,
+                                  dialect: widget.dialect,
+                                  mixer: widget.mixer,
+                                  moveParamDefaults: widget.moveParamDefaults,
+                                  showWordingOverride:
+                                      widget.showWordingOverride,
+                                  onChanged: widget.onChanged,
+                                  onAdd: () {},
+                                  onDelete: (_) => _removeSide(i),
+                                  onCollapseMeanwhileGroup:
+                                      (groupDraft, remainingSide) =>
+                                          _collapseNestedContainer(
+                                            sides,
+                                            i,
+                                            groupDraft,
+                                            remainingSide,
+                                          ),
+                                  // A nested container must remain the
+                                  // opposite kind from its parent; converting
+                                  // it would create invalid same-kind nesting.
+                                  // Ungroup is the legal structural escape
+                                  // hatch for this menu.
+                                  onUngroupContainer:
+                                      _canUngroupNestedContainer(sides, i)
+                                      ? (nested) => _ungroupNestedContainer(
+                                          sides,
+                                          i,
+                                          nested,
+                                        )
+                                      : null,
+                                  allowNestedContainerSelection: false,
+                                  allowAdding: false,
+                                  allowDuplicating: false,
+                                  showPhraseStructure: false,
+                                  keyPrefix: '$keyPrefix-nested-$i',
+                                ),
+                              ],
+                            ),
+                          )
+                        : _MeanwhileSideEditor(
+                            key: ValueKey('meanwhile-side-${sides[i].id}'),
+                            keyPrefix: '$keyPrefix-side-$i',
+                            sideNumber: i + 1,
+                            totalSides: sides.length,
+                            modifierRole: isModifier
+                                ? i == 0
+                                      ? _ModifierRole.core
+                                      : _ModifierRole.modifier
+                                : null,
+                            draft: sides[i],
+                            taxonomy: widget.taxonomy,
+                            dialect: widget.dialect,
+                            mixer: widget.mixer,
+                            moveParamDefaults: widget.moveParamDefaults,
+                            showWordingOverride: widget.showWordingOverride,
+                            onChanged: widget.onChanged,
+                            includeModifier:
+                                widget.allowModifierSelection &&
+                                !isModifier &&
+                                widget.allowNestedContainerSelection,
+                            onMoveUp: i == 0
+                                ? null
+                                : () => _reorderSide(i, i - 1),
+                            onMoveDown: i == sides.length - 1
+                                ? null
+                                : () => _reorderSide(i, i + 1),
+                            onRemove: () => _removeSide(i),
+                          ),
                   ),
                 if (sides.length < kMaxMeanwhileSides)
                   Align(
@@ -1942,17 +2261,27 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                       key: ValueKey('$keyPrefix-add-side'),
                       onPressed: _addSide,
                       icon: const Icon(Icons.add),
-                      label: Text(l10n.danceEditorAddMeanwhileSide),
+                      label: Text(
+                        isModifier
+                            ? l10n.danceEditorAddModifierChild
+                            : l10n.danceEditorAddMeanwhileSide,
+                      ),
                     ),
                   )
                 else
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Text(
-                      l10n.danceEditorMeanwhileSidesCapReached(
-                        kMaxMeanwhileSides,
+                      isModifier
+                          ? l10n.danceEditorModifierChildrenCapReached(
+                              kMaxMeanwhileSides,
+                            )
+                          : l10n.danceEditorMeanwhileSidesCapReached(
+                              kMaxMeanwhileSides,
+                            ),
+                      key: ValueKey(
+                        '$keyPrefix-${isModifier ? 'modifier' : 'meanwhile'}-cap',
                       ),
-                      key: ValueKey('$keyPrefix-meanwhile-cap'),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.error,
                       ),
@@ -1969,7 +2298,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// Appends a fresh blank side, capped at [kMaxMeanwhileSides] — the add-side
   /// button is already hidden at the cap, so this is a defensive no-op guard.
   void _addSide() {
-    final sides = widget.draft.meanwhileSides!;
+    final sides = widget.draft.meanwhileSides ?? widget.draft.modifierFigures!;
     if (sides.length >= kMaxMeanwhileSides) return;
     sides.add(FigureDraft());
     widget.onChanged();
@@ -1990,7 +2319,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// silently no-op on those hosts (#679 review).
   void _removeSide(int index) {
     final draft = widget.draft;
-    final sides = draft.meanwhileSides!;
+    final sides = draft.meanwhileSides ?? draft.modifierFigures!;
     if (index < 0 || index >= sides.length) return;
     if (sides.length <= 2) {
       final remaining = sides[index == 0 ? 1 : 0];
@@ -2008,7 +2337,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
         ..customOrigin = remaining.customOrigin
         ..walkthroughOverride = remaining.walkthroughOverride
         ..wordingOverride = remaining.wordingOverride
-        ..meanwhileSides = null;
+        ..meanwhileSides = null
+        ..modifierFigures = null;
       draft.params
         ..clear()
         ..addAll(remaining.params);
@@ -2023,9 +2353,59 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   /// their own drag handle to avoid nesting a second reorderable region inside
   /// the outer [ReorderableListView]).
   void _reorderSide(int oldIndex, int newIndex) {
-    final sides = widget.draft.meanwhileSides!;
+    final sides = widget.draft.meanwhileSides ?? widget.draft.modifierFigures!;
     final side = sides.removeAt(oldIndex);
     sides.insert(newIndex, side);
+    widget.onChanged();
+  }
+
+  bool _canUngroupNestedContainer(List<FigureDraft> sides, int index) {
+    if (index < 0 || index >= sides.length) return false;
+    final nested = sides[index];
+    if (!nested.isContainerDraft) return false;
+    final children = nested.meanwhileSides ?? nested.modifierFigures;
+    return children != null &&
+        children.length >= 2 &&
+        sides.length - 1 + children.length <= kMaxMeanwhileSides;
+  }
+
+  void _ungroupNestedContainer(
+    List<FigureDraft> sides,
+    int index,
+    FigureDraft nested,
+  ) {
+    if (index < 0 ||
+        index >= sides.length ||
+        !identical(sides[index], nested) ||
+        !_canUngroupNestedContainer(sides, index)) {
+      return;
+    }
+    final children = List<FigureDraft>.of(
+      nested.meanwhileSides ?? nested.modifierFigures!,
+    );
+    sides
+      ..removeAt(index)
+      ..insertAll(index, children);
+    widget.onChanged();
+  }
+
+  void _collapseNestedContainer(
+    List<FigureDraft> sides,
+    int index,
+    FigureDraft groupDraft,
+    FigureDraft remainingSide,
+  ) {
+    if (index < 0 ||
+        index >= sides.length ||
+        !identical(sides[index], groupDraft)) {
+      return;
+    }
+    if (!remainingSide.canNestInContainer(
+      modifierParent: widget.draft.isModifierGroup,
+    )) {
+      return;
+    }
+    sides[index] = remainingSide;
     widget.onChanged();
   }
 
@@ -2342,7 +2722,8 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
   Widget _buildWordingOverride(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final draft = widget.draft;
-    if (draft.move == null || draft.move == customMove) {
+    if ((draft.move == null && !draft.isContainerDraft) ||
+        draft.move == customMove) {
       return const SizedBox.shrink();
     }
     final value = draft.wordingOverride ?? '';
@@ -2440,26 +2821,29 @@ void wrapSelectionWith(TextEditingController controller, String delimiter) {
 // _MeanwhileSideEditor (#590/#593)
 // ---------------------------------------------------------------------------
 
-/// Editor for ONE concurrent side of a meanwhile group: an ordinary
-/// move-picker + param editors + note, reusing the same widgets
-/// [_FigureDraftCard] uses for a top-level figure, but with its own key
-/// namespace (so a group's sides never collide with the outer row's keys)
-/// and NO "group"/beats affordances of its own — a side is always flat (#590
-/// flat-only invariant) and its own `beats` param is display-only (the
-/// group's single shared beats field is authoritative), so both are omitted
-/// here at the UI boundary rather than relying on the model to reject them.
+enum _ModifierRole { core, modifier }
+
+/// Editor for ONE ordinary child of a structural container: a move-picker +
+/// param editors + note, reusing the same widgets [_FigureDraftCard] uses for
+/// a top-level figure, but with its own key namespace (so a container's
+/// children never collide with the outer row's keys). It has NO "group"/beats
+/// affordances of its own — nested containers are rendered by a nested
+/// [FigureListEditor], and an ordinary child's `beats` is display-only because
+/// the parent container's shared beats field is authoritative.
 class _MeanwhileSideEditor extends StatefulWidget {
   const _MeanwhileSideEditor({
     super.key,
     required this.keyPrefix,
     required this.sideNumber,
     required this.totalSides,
+    this.modifierRole,
     required this.draft,
     required this.taxonomy,
     required this.dialect,
     this.mixer = false,
     this.moveParamDefaults,
     this.showWordingOverride = false,
+    this.includeModifier = false,
     required this.onChanged,
     this.onMoveUp,
     this.onMoveDown,
@@ -2472,6 +2856,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
   /// 1-based position among the group's sides (for labels/semantics).
   final int sideNumber;
   final int totalSides;
+  final _ModifierRole? modifierRole;
   final FigureDraft draft;
   final Taxonomy taxonomy;
   final Dialect dialect;
@@ -2481,6 +2866,7 @@ class _MeanwhileSideEditor extends StatefulWidget {
 
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool showWordingOverride;
+  final bool includeModifier;
   final VoidCallback onChanged;
 
   /// Null when this side is already first/last within the group.
@@ -2526,6 +2912,11 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
     if (chainOverrides == null || !chainOverrides.containsKey('hand')) {
       _seedChainHand(moveId, draft.params);
     }
+    widget.onChanged();
+  }
+
+  void _selectModifier() {
+    _initializeModifierContainer(widget.draft);
     widget.onChanged();
   }
 
@@ -2631,10 +3022,17 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
 
     return Semantics(
       container: true,
-      label: l10n.danceEditorMeanwhileSideSemantic(
-        widget.sideNumber,
-        widget.totalSides,
-      ),
+      label: switch (widget.modifierRole) {
+        _ModifierRole.core => l10n.danceEditorModifierCoreSemantic,
+        _ModifierRole.modifier => l10n.danceEditorModifierChildSemantic(
+          widget.sideNumber,
+          widget.totalSides,
+        ),
+        null => l10n.danceEditorMeanwhileSideSemantic(
+          widget.sideNumber,
+          widget.totalSides,
+        ),
+      },
       child: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
@@ -2647,10 +3045,14 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
             Row(
               children: [
                 Expanded(
-                  child: Text(
-                    l10n.danceEditorMeanwhileSideLabel(widget.sideNumber),
-                    style: theme.textTheme.labelLarge,
-                  ),
+                  child: Text(switch (widget.modifierRole) {
+                    _ModifierRole.core => l10n.danceEditorModifierCoreLabel,
+                    _ModifierRole.modifier =>
+                      l10n.danceEditorModifierChildLabel,
+                    null => l10n.danceEditorMeanwhileSideLabel(
+                      widget.sideNumber,
+                    ),
+                  }, style: theme.textTheme.labelLarge),
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-move-up'),
@@ -2668,7 +3070,12 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
                 ),
                 IconButton(
                   key: ValueKey('${widget.keyPrefix}-remove'),
-                  tooltip: l10n.danceEditorRemoveMeanwhileSide,
+                  tooltip: switch (widget.modifierRole) {
+                    _ModifierRole.core => l10n.danceEditorRemoveModifierCore,
+                    _ModifierRole.modifier =>
+                      l10n.danceEditorRemoveModifierChild,
+                    null => l10n.danceEditorRemoveMeanwhileSide,
+                  },
                   icon: Icon(
                     Icons.remove_circle_outline,
                     size: 18,
@@ -2686,7 +3093,10 @@ class _MeanwhileSideEditorState extends State<_MeanwhileSideEditor> {
               dialect: widget.dialect,
               initialText: moveText,
               autofocus: false,
-              onSelected: (option) => _selectMove(option.id),
+              includeModifier: widget.includeModifier,
+              onSelected: (option) => option.kind == MoveOptionKind.modifier
+                  ? _selectModifier()
+                  : _selectMove(option.id),
               onCustomSubmitted: _createCustom,
               onCleared: _clearMove,
             ),

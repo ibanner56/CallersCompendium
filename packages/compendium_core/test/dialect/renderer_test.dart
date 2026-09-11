@@ -1179,6 +1179,278 @@ void main() {
       });
     });
 
+    group('modifier children', () {
+      test('summary includes secondary choreography on a modifier child', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'down_the_hall', params: {'ender': 'circle'}),
+          ],
+          beats: 16,
+        );
+        expect(renderer.renderSummary(figure, d), contains('bend into a ring'));
+        expect(
+          renderer.renderSummary(figure, d, verbose: true),
+          contains('bend into a ring'),
+        );
+      });
+
+      test('canonical discouraged terms reach a modifier child', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            testFigure(
+              move: customMove,
+              params: {'text': 'Gypsy with the gents'},
+            ),
+          ],
+          beats: 16,
+        );
+        expect(
+          renderer.renderSummaryWithCanonicalDiscouragedTerms(figure, larks),
+          contains('Shoulder round with the larks'),
+        );
+      });
+
+      test('a meanwhile modifier core retains nested summary details', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'down_the_hall', params: {'ender': 'circle'}),
+                Figure(move: 'swing'),
+              ],
+              beats: 16,
+            ),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+        );
+        expect(renderer.renderSummary(figure, d), contains('bend into a ring'));
+      });
+
+      test('modifier wording overrides replace every display render', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+          wordingOverride: 'ROLE1S call together',
+        );
+
+        expect(renderer.render(figure, larks), 'LARKS call together');
+        expect(renderer.renderVerbose(figure, larks), 'LARKS call together');
+        expect(renderer.renderSummary(figure, larks), 'LARKS call together');
+        expect(
+          renderer.renderCanonical(figure),
+          'partners swing modifier neighbors roll away partners',
+        );
+      });
+
+      test('modifier gerunds preserve dialect move substitutions', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+        );
+        final dialect = Dialect(
+          name: 'Custom',
+          moves: const {'roll_away': 'turn away'},
+        );
+
+        final rendered = renderer.renderSummary(figure, dialect);
+        expect(rendered, contains('turning away'));
+        expect(rendered, isNot(contains('rolling away')));
+      });
+
+      test(
+        'take-only give-and-take stays gerundized under a custom dialect',
+        () {
+          final figure = Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'give_and_take', params: {'give': false}),
+            ],
+            beats: 16,
+          );
+          final dialect = Dialect(
+            name: 'Custom give-and-take',
+            moves: const {'give_and_take': 'hand off and receive'},
+          );
+
+          expect(
+            renderer.renderSummary(figure, dialect),
+            contains('taking partner'),
+          );
+        },
+      );
+
+      test('nested meanwhile modifier child honors its wording override', () {
+        final nested = Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 16,
+          wordingOverride: 'ROLE2S call this together',
+        );
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            nested,
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, larks),
+          'partner swing, ROBINS call this together',
+        );
+      });
+
+      test(
+        'custom modifier children keep authored text over wording overrides',
+        () {
+          final figure = Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              testFigure(
+                move: customMove,
+                params: {'text': 'authored custom text'},
+              ).copyWith(wordingOverride: 'replacement wording'),
+            ],
+            beats: 16,
+          );
+
+          final rendered = renderer.renderSummary(figure, larks);
+          expect(rendered, 'partner swing, authored custom text');
+          expect(rendered, isNot(contains('replacement wording')));
+        },
+      );
+
+      test('modifier gerundives use verb-aware multiword forms', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'box_the_gnat'),
+            Figure(move: 'balance_the_ring'),
+            Figure(move: 'arch_and_dive'),
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, Dialect.canonical),
+          'partner swing, partner boxing the gnat, balancing the ring, and '
+          'ones arching and diving',
+        );
+      });
+
+      test('modifier gerundives preserve noun phrases and destinations', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'down_the_hall'),
+            Figure(move: 'right_left_through'),
+            Figure(move: 'long_lines'),
+            Figure(move: 'figure_8'),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('going down the hall'));
+        expect(rendered, contains('passing right left through'));
+        expect(rendered, contains('forming long lines'));
+        expect(rendered, contains('doing a figure 8'));
+      });
+
+      test('modifier gerundive inflects take-only give and take', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'give_and_take', params: {'give': false}),
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, Dialect.canonical),
+          contains('taking'),
+        );
+      });
+
+      test('modifier gerundives preserve authored alias wording', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'see_saw'),
+            Figure(move: 'swat_the_flea'),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('seesawing'));
+        expect(rendered, contains('swatting the flea'));
+        expect(rendered, isNot(contains('doing-si-do')));
+        expect(rendered, isNot(contains('boxing the gnat')));
+      });
+
+      test('modifier gerundives cover remaining verb phrases', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'turn_as_couples'),
+            Figure(move: 'turn_alone'),
+            Figure(move: 'star', params: const {'hand': 'right'}),
+            Figure(move: 'zig_zag'),
+          ],
+          beats: 16,
+        );
+
+        final rendered = renderer.renderSummary(figure, Dialect.canonical);
+        expect(rendered, contains('turning as couples'));
+        expect(rendered, contains('turning alone'));
+        expect(rendered, contains('starring'));
+        expect(rendered, contains('zigging'));
+        expect(rendered, contains('zagging'));
+
+        final nounFigure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'hey'),
+            Figure(move: 'poussette'),
+          ],
+          beats: 16,
+        );
+        final nounRendered = renderer.renderSummary(
+          nounFigure,
+          Dialect.canonical,
+        );
+        expect(nounRendered, contains('doing a hey'));
+        expect(nounRendered, contains('doing a poussette'));
+      });
+
+      test('modifier gerundives use the canonical pull-by phrasal verb', () {
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'pull_by'),
+          ],
+          beats: 16,
+        );
+
+        expect(
+          renderer.renderSummary(figure, Dialect.canonical),
+          contains('pulling by'),
+        );
+      });
+    });
+
     group('hey length', () {
       // PR3 moved the hey length into the display base line (see the PR3 group
       // + `_displayBaseRenderers['hey']`); `_summarySuffix` no longer appends a

@@ -681,13 +681,13 @@ List<Figure> _figuresFromJson(Object? raw) {
 /// spoofing characters (issue #444). The structural `move` key and non-string
 /// params (e.g. numeric `beats`) are left untouched.
 ///
-/// For a `meanwhile` container (#590) this **recurses** into each nested
-/// sub-figure in `params['figures']` so a nested side cannot smuggle unsanitized
-/// free text past the one-level scrub, and enforces the structural caps
-/// defensively against untrusted recursive input (OWASP): the side count is
-/// clamped to [kMaxMeanwhileSides] and recursion is bounded by
-/// [kMaxMeanwhileDepth] (flat-only), with any pathologically deep remainder
-/// dropped. Parse-never-fails: it clamps/scrubs, it never throws.
+/// For a structural container (`meanwhile` or `modifier`) this **recurses** into
+/// each nested child in `params['figures']` so a nested child cannot smuggle
+/// unsanitized free text past the one-level scrub, and enforces the structural
+/// caps defensively against untrusted recursive input (OWASP): the child count
+/// is clamped to [kMaxMeanwhileSides] and recursion is bounded by
+/// [kMaxContainerDepth], with any pathologically deep remainder dropped.
+/// Parse-never-fails: it clamps/scrubs, it never throws.
 Map<String, Object?> _sanitizeFigureJson(
   Map<String, Object?> m, [
   int depth = 0,
@@ -714,15 +714,15 @@ Map<String, Object?> _sanitizeFigureJson(
             ? sanitizeImportedText(entry.value as String)
             : entry.value,
     };
-    // Recurse into nested meanwhile sides (untrusted recursive structure):
-    // scrub each side's free text, cap the side count, and bound depth so a
-    // deeply-nested payload can't exhaust the stack. `figures` is only a
-    // reserved structural key for the meanwhile container, so scope the
-    // recursion to that move — a future taxonomy move (or external data) that
-    // uses a `figures` param for a different purpose must not be rewritten.
+    // Recurse into nested structural children (untrusted recursive structure):
+    // scrub each child's free text, cap the child count, and bound depth so a
+    // deeply-nested payload cannot exhaust the stack. `figures` is reserved for
+    // the two structural container moves; a future taxonomy move that happens
+    // to use a `figures` param must not be rewritten.
     final sides = sanitizedParams['figures'];
-    if (out['move'] == meanwhileMove && sides is List) {
-      if (depth >= kMaxMeanwhileDepth) {
+    final move = out['move'];
+    if ((move == meanwhileMove || move == modifierMove) && sides is List) {
+      if (depth >= kMaxContainerDepth) {
         sanitizedParams['figures'] = const <Object?>[];
       } else {
         final scrubbed = <Object?>[];

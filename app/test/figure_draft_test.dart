@@ -244,4 +244,99 @@ void main() {
       expect(figure.subFigures, hasLength(kMaxMeanwhileSides));
     });
   });
+
+  group('FigureDraft modifier round-trip (#1198)', () {
+    test('materializes ordered modifier children', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll'),
+        ],
+      )..params['beats'] = 8;
+
+      final figure = draft.toFigure();
+      expect(figure, isNotNull);
+      expect(figure!.isModifier, isTrue);
+      expect(figure.subFigures.map((child) => child.move), ['swing', 'roll']);
+    });
+
+    test('does not materialize a partial modifier container', () {
+      final draft = FigureDraft(modifierFigures: [FigureDraft(move: 'swing')])
+        ..params['beats'] = 8;
+      expect(draft.toFigure(), isNull);
+    });
+
+    test('does not promote a later modifier past a blank core', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(),
+          FigureDraft(move: 'roll_away'),
+          FigureDraft(move: 'swing'),
+        ],
+      )..params['beats'] = 8;
+
+      expect(draft.toFigure(), isNull);
+    });
+
+    test('preserves alternating nested containers', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing'),
+              FigureDraft(move: 'roll'),
+            ],
+          ),
+          FigureDraft(move: 'allemande'),
+        ],
+      )..params['beats'] = 8;
+      expect(draft.toFigure()!.subFigures.first.isMeanwhile, isTrue);
+    });
+
+    test('does not flatten an incomplete nested container', () {
+      final draft = FigureDraft(
+        modifierFigures: [
+          FigureDraft(
+            meanwhileSides: [
+              FigureDraft(move: 'swing'),
+              FigureDraft(),
+            ],
+          )..params['beats'] = 8,
+          FigureDraft(move: 'roll'),
+        ],
+      )..params['beats'] = 8;
+      expect(draft.toFigure(), isNull);
+    });
+
+    test('preserves unknown container parameters on open/save', () {
+      final draft = FigureDraft(
+        params: {'beats': 8, 'future': 'keep-me'},
+        modifierFigures: [
+          FigureDraft(move: 'swing'),
+          FigureDraft(move: 'roll'),
+        ],
+      );
+
+      expect(draft.toFigure()!.params['future'], 'keep-me');
+    });
+
+    test('preserves container metadata on open/save', () {
+      final original =
+          Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              Figure(move: 'roll_away'),
+            ],
+            beats: 8,
+          ).copyWith(
+            schemaVersion: 7,
+            customOrigin: CustomOrigin.importGap,
+            assumedSubject: true,
+            walkthroughOverride: 'walk this through',
+            wordingOverride: 'use this wording',
+          );
+
+      expect(FigureDraft.fromFigure(original).toFigure(), original);
+    });
+  });
 }

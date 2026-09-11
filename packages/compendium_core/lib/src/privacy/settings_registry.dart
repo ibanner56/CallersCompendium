@@ -59,6 +59,7 @@ final Map<String, DataClassification> settingsClassifications = {
   'default_move_param_overrides': _preference,
   'default_dance_figures_template': _preference,
   'default_meanwhile_side_figures': _preference,
+  'default_modifier_figures': _preference,
 
   // -- Appearance and accessibility ----------------------------------------
   'active_custom_theme': _preference,
@@ -201,6 +202,7 @@ final Map<String, DataClassification> settingsClassifications = {
   '__shareable_text_normalisation_scope__': _backupLocalState,
   '__taxonomy_v33_canonical_rebuild_done__': _installState,
   '__taxonomy_v34_canonical_rebuild_done__': _installState,
+  '__modifier_container_canonical_rebuild_done__': _installState,
   '__taxonomy_v35_figure_normalization_done__': _installState,
   '__callersbox_roll_away_role_repair_done__': _installState,
 };

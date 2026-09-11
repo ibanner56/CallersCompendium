@@ -1277,6 +1277,67 @@ void main() {
       expect(stored, hasLength(1));
       expect(stored.single.move, 'swing');
     });
+
+    testWidgets('Modifier defaults honor free-text entry and persist figures', (
+      tester,
+    ) async {
+      final repos = openTestRepositories();
+      await repos.settings.set(kFreeTextEntryKey, true);
+      await repos.settings.set(kDefaultModifierFiguresKey, '[]');
+
+      await _pumpDefaults(tester, repos);
+      await tester.binding.setSurfaceSize(const Size(1200, 3000));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('modifier-default-free-text-field')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('modifier-default-free-text-field')),
+        'Neighbor swing',
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('modifier-default-free-text-submit')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        modifierFiguresFromStored(
+          await repos.settings.get(kDefaultModifierFiguresKey),
+        ),
+        hasLength(1),
+      );
+    });
+
+    testWidgets(
+      'Modifier defaults preserve an empty template when its core is blank',
+      (tester) async {
+        final repos = openTestRepositories();
+        await repos.settings.set(kDefaultModifierFiguresKey, '[]');
+
+        await _pumpDefaults(tester, repos);
+        await tester.binding.setSurfaceSize(const Size(1200, 3000));
+        await tester.pumpAndSettle();
+        await _scrollTo(tester, const ValueKey('modifier-default-add'));
+
+        await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('modifier-default-add')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('figure-1-move-input')),
+          'roll away',
+        );
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await tester.pumpAndSettle();
+
+        expect(await repos.settings.get(kDefaultModifierFiguresKey), '[]');
+      },
+    );
   });
 
   testWidgets(

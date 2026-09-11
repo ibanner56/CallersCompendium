@@ -251,6 +251,12 @@ const String taxonomyV33CanonicalRebuildDoneKey =
 const String taxonomyV34CanonicalRebuildDoneKey =
     '__taxonomy_v34_canonical_rebuild_done__';
 
+/// Settings key for the one-time canonical/FTS rebuild owed by the modifier
+/// container structural tokens. Existing figures gain searchable canonical
+/// container text without changing their source JSON.
+const String modifierContainerCanonicalRebuildDoneKey =
+    '__modifier_container_canonical_rebuild_done__';
+
 /// Settings key marking that persisted figures have been normalized to the
 /// taxonomy v35 parameter names and move ids.
 const String taxonomyV35FigureNormalizationDoneKey =

@@ -27,6 +27,7 @@ import 'package:compendium_core/src/storage/database.dart'
         compactDosidoSeesawCanonicalRebuildDoneKey,
         gripSingleFileCanonicalInclusionDoneKey,
         inversePairNormalisationDoneKey,
+        modifierContainerCanonicalRebuildDoneKey,
         promenadeTurnCircleWordingCanonicalRebuildDoneKey,
         purgeCorruptionRepairDoneKey,
         sectionRuleVersionKey,
@@ -198,6 +199,7 @@ void main() {
           gripSingleFileCanonicalInclusionDoneKey,
           promenadeTurnCircleWordingCanonicalRebuildDoneKey,
           compactDosidoSeesawCanonicalRebuildDoneKey,
+          modifierContainerCanonicalRebuildDoneKey,
           chainHandBackfillDoneKey,
         ]) {
           await repos.settings.set(key, 'done');
@@ -460,13 +462,20 @@ void main() {
           rows.map((row) => row.read<String>('canonical_text')).toList(),
           expectedCanonical,
         );
+        final expectedFts = [
+          expectedCanonical[0],
+          'mad robin once counterclockwise partners meanwhile partners swing',
+          expectedCanonical[1],
+          expectedCanonical[2],
+          expectedCanonical[3],
+        ].join(' ');
         final fts = await db
             .customSelect(
               'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
               variables: [Variable<String>('v34-canonical')],
             )
             .getSingle();
-        expect(fts.read<String>('figures_text'), expectedCanonical.join(' '));
+        expect(fts.read<String>('figures_text'), expectedFts);
         final pendingAfterRetry = await db
             .customSelect(
               'SELECT 1 FROM settings WHERE key = ? AND deleted_at IS NULL',
@@ -492,9 +501,95 @@ void main() {
     );
   });
 
+  group('modifier container canonical rebuild', () {
+    test(
+      'refreshes structural canonical and FTS text once when marker is absent',
+      () async {
+        final db = CompendiumDatabase(NativeDatabase.memory());
+        final repos = _CountingRepositories(db, contraTaxonomy);
+        addTearDown(db.close);
+
+        final figure = Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure.meanwhile(
+              figures: [
+                Figure(move: 'petronella'),
+                Figure(move: 'circle'),
+              ],
+              beats: 8,
+            ),
+          ],
+          beats: 8,
+        );
+        await repos.dances.create(
+          Dance(
+            id: 'modifier-canonical-rebuild',
+            title: 'Modifier canonical rebuild',
+            figures: [figure],
+            createdAt: DateTime.utc(2026),
+            updatedAt: DateTime.utc(2026),
+          ),
+        );
+        await _markPre1192SweepsComplete(repos);
+        await repos.settings.remove(modifierContainerCanonicalRebuildDoneKey);
+        await db.customUpdate(
+          'UPDATE dance_figures SET canonical_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale canonical'),
+            Variable<String>('modifier-canonical-rebuild'),
+          ],
+        );
+        await db.customUpdate(
+          'UPDATE dance_fts SET figures_text = ? WHERE dance_id = ?',
+          variables: [
+            Variable<String>('stale FTS'),
+            Variable<String>('modifier-canonical-rebuild'),
+          ],
+        );
+
+        final expected = FigureRenderer(contraTaxonomy).renderCanonical(figure);
+        await repos.ensureMigrated();
+
+        final indexed = await db
+            .customSelect(
+              'SELECT canonical_text FROM dance_figures WHERE dance_id = ?',
+              variables: [Variable<String>('modifier-canonical-rebuild')],
+            )
+            .get();
+        expect(
+          indexed.map((row) => row.read<String>('canonical_text')),
+          containsAll(['partners swing', 'petronella', 'circle left 4 places']),
+        );
+        final fts = await db
+            .customSelect(
+              'SELECT figures_text FROM dance_fts WHERE dance_id = ?',
+              variables: [Variable<String>('modifier-canonical-rebuild')],
+            )
+            .getSingle();
+        expect(fts.read<String>('figures_text'), contains(expected));
+
+        final marker = await db
+            .customSelect(
+              'SELECT value_json FROM settings WHERE key = ? '
+              'AND deleted_at IS NULL',
+              variables: [
+                Variable<String>(modifierContainerCanonicalRebuildDoneKey),
+              ],
+            )
+            .getSingle();
+        expect(marker.read<String>('value_json'), '"done"');
+
+        final rebuilds = repos.rebuildAttempts;
+        await repos.ensureMigrated();
+        expect(repos.rebuildAttempts, rebuilds);
+      },
+    );
+  });
+
   group('taxonomy v35 figure normalization', () {
     // invalid-fixture: these figures deliberately use the pre-v35 persisted vocabulary
-    test('rewrites legacy keys and nested meanwhile figures', () async {
+    test('rewrites legacy keys and nested structural figures', () async {
       final db = CompendiumDatabase(NativeDatabase.memory());
       final repos = CompendiumRepositories(db, contraTaxonomy);
       addTearDown(db.close);
@@ -508,6 +603,25 @@ void main() {
           figures: [
             Figure(move: 'circle', params: const {'turn': 'left', 'beats': 8}),
             Figure(move: 'swing'),
+          ],
+          beats: 8,
+        ),
+        Figure.modifier(
+          figures: [
+            Figure(
+              move: 'pull_by_dancers',
+              params: const {'who': 'partners', 'hand': 'left'},
+            ),
+            Figure.meanwhile(
+              figures: [
+                Figure(
+                  move: 'circle',
+                  params: const {'turn': 'left', 'beats': 8},
+                ),
+                Figure(move: 'swing'),
+              ],
+              beats: 8,
+            ),
           ],
           beats: 8,
         ),
@@ -541,6 +655,11 @@ void main() {
       );
       expect(circle.params['direction'], 'left');
       expect(circle.params.containsKey('turn'), isFalse);
+      final modifier = dance.figures[2];
+      expect(modifier.subFigures.first.move, 'pull_by');
+      final nestedCircle = modifier.subFigures[1].subFigures.first;
+      expect(nestedCircle.params['direction'], 'left');
+      expect(nestedCircle.params.containsKey('turn'), isFalse);
       final marker = await db
           .customSelect(
             'SELECT value_json FROM settings WHERE key = ?',
@@ -2414,6 +2533,7 @@ Future<void> _markPre1192SweepsComplete(CompendiumRepositories repos) async {
     compactDosidoSeesawCanonicalRebuildDoneKey,
     taxonomyV33CanonicalRebuildDoneKey,
     taxonomyV34CanonicalRebuildDoneKey,
+    modifierContainerCanonicalRebuildDoneKey,
     chainHandBackfillDoneKey,
   ]) {
     await repos.settings.set(key, 'done');

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_app/src/data/display_defaults.dart';
 import 'package:compendium_app/src/search/collection_query.dart';
 import 'package:compendium_app/src/search/program_sort.dart';
@@ -270,6 +272,40 @@ void main() {
       final restored = meanwhileSideFiguresFromStored(encodeFigures([nested]));
       expect(restored, hasLength(2));
       expect(restored.every((figure) => figure.move == 'stand_still'), isTrue);
+
+      final modifier = Figure.modifier(figures: sides, beats: 8);
+      final modifierRestored = meanwhileSideFiguresFromStored(
+        encodeFigures([modifier]),
+      );
+      expect(modifierRestored, hasLength(2));
+      expect(
+        modifierRestored.every((figure) => figure.move == 'stand_still'),
+        isTrue,
+      );
+    });
+
+    test('the meanwhile encoder drops every structural figure', () {
+      final encoded = encodeMeanwhileSideFigures([
+        Figure.meanwhile(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 8,
+        ),
+        Figure.modifier(
+          figures: [
+            Figure(move: 'swing'),
+            Figure(move: 'roll_away'),
+          ],
+          beats: 8,
+        ),
+        Figure(move: 'swing'),
+      ]);
+
+      expect(jsonDecode(encoded), [
+        {'schemaVersion': 1, 'move': 'swing'},
+      ]);
     });
 
     test('normalizes legacy identifiers in ordinary side defaults', () {
@@ -281,6 +317,24 @@ void main() {
       );
       expect(restored.single.params['direction'], 'left');
       expect(restored.single.params, isNot(contains('turn')));
+    });
+  });
+
+  group('modifier defaults (#1198)', () {
+    test('normalize legacy identifiers in ordinary modifier defaults', () {
+      final restored = modifierFiguresFromStored(
+        encodeFigures([
+          // invalid-fixture: these exercise persisted v34 identifiers.
+          Figure(move: 'circle', params: const {'turn': 'left'}),
+          // invalid-fixture: this exercises a persisted v34 move identifier.
+          Figure(move: 'pull_by_dancers', params: const {'dir': 'across'}),
+        ]),
+      );
+
+      expect(restored[0].params['direction'], 'left');
+      expect(restored[0].params, isNot(contains('turn')));
+      expect(restored[1].move, 'pull_by');
+      expect(restored[1].params['where'], 'across');
     });
   });
 

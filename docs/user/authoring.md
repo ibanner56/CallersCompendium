@@ -128,6 +128,7 @@ Each figure row has a drag handle and an actions menu:
 | **Cut** | Lifts the figure out, ready to place elsewhere |
 | **Duplicate** | Adds an identical figure |
 | **Group with next as meanwhile** | Joins it to the next figure as simultaneous action |
+| **Group with next as modifier** | Makes the first figure the core and the next figure a modifier |
 | **Mark progression** / **Clear progression** | Sets or clears the progression |
 | **Delete** | Removes the figure |
 
@@ -154,6 +155,15 @@ editor draft until at least two sides contain enough information to save.
 Inside the group, each side is labelled **Side 1**, **Side 2**, and so on, and has
 its own controls to move up, move down, or **Remove this side**. **Add side** adds
 another concurrent figure, up to a maximum the app states when you reach it.
+
+### Modifier figures
+
+Use **Group with next as modifier** when one figure describes the main action
+and the next describes how it is performed. The first figure is the core and
+later figures are ordered modifiers. **Add modifier** creates an editable
+modifier container seeded from the modifier defaults in [Settings](./settings.md#dance-authoring-defaults).
+Modifier and meanwhile containers can alternate once for nested structure; the
+app rejects deeper or same-kind nesting.
 
 ### Keep an eye on the beats
 

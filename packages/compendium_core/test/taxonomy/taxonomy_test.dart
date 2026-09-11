@@ -370,6 +370,31 @@ void main() {
       expect(tax.normalizeFigureV35(figure), same(figure));
     });
 
+    // invalid-fixture: these figures deliberately use the pre-v35 vocabulary
+    // inside alternating structural containers.
+    test('normalizes nested modifier and meanwhile children', () {
+      final figure = Figure.modifier(
+        beats: 8,
+        figures: [
+          Figure(move: 'pull_by_dancers', params: const {'dir': 'across'}),
+          Figure.meanwhile(
+            beats: 8,
+            figures: [
+              Figure(move: 'circle', params: const {'turn': 'left'}),
+              Figure(move: 'swing'),
+            ],
+          ),
+        ],
+      );
+
+      final normalized = tax.normalizeFigureV35(figure);
+
+      expect(normalized.subFigures.first.move, 'pull_by');
+      final circle = normalized.subFigures[1].subFigures.first;
+      expect(circle.params['direction'], 'left');
+      expect(circle.params, isNot(contains('turn')));
+    });
+
     test('unknown move preserves an authored beats and passes params through '
         '(#358)', () {
       // invalid-fixture: move is deliberately outside the taxonomy — alias pins take effect but figure params still win

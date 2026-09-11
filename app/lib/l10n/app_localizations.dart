@@ -118,6 +118,12 @@ abstract class AppLocalizations {
   /// **'Added a meanwhile container.'**
   String get danceEditorAddedMeanwhileAnnouncement;
 
+  /// Screen-reader announcement after adding a modifier container.
+  ///
+  /// In en, this message translates to:
+  /// **'Added a modifier container.'**
+  String get danceEditorAddedModifierAnnouncement;
+
   /// Bottom/rail navigation label for the dance collection destination.
   ///
   /// In en, this message translates to:
@@ -135,6 +141,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The side figures seeded when you add a meanwhile container. Clear it for two blank sides; one configured side gets one blank companion. You can edit the container after insertion.'**
   String get settingsDefaultsMeanwhileSubtitle;
+
+  /// Sub-heading for default modifier figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Modifier defaults'**
+  String get settingsDefaultsModifierTitle;
+
+  /// Explanation for the default modifier-figure editor.
+  ///
+  /// In en, this message translates to:
+  /// **'The figures seeded when you add a modifier container. Clear it for two blank figures; one configured figure gets one blank companion.'**
+  String get settingsDefaultsModifierSubtitle;
 
   /// Bottom/rail navigation label for the programs destination.
   ///
@@ -8538,6 +8556,12 @@ abstract class AppLocalizations {
   /// **'Add meanwhile'**
   String get danceEditorAddMeanwhile;
 
+  /// Menu item label for adding an empty modifier container.
+  ///
+  /// In en, this message translates to:
+  /// **'Add modifier'**
+  String get danceEditorAddModifier;
+
   /// Semantics label for pasting a cut figure at the end of the list.
   ///
   /// In en, this message translates to:
@@ -8657,6 +8681,90 @@ abstract class AppLocalizations {
   /// **'Group with next as meanwhile'**
   String get danceEditorGroupWithNext;
 
+  /// Menu item label that groups this figure row with the one immediately after it into an ordered modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Group with next as modifier'**
+  String get danceEditorGroupWithNextAsModifier;
+
+  /// Menu item label for converting a flat modifier group into a meanwhile group.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to meanwhile'**
+  String get danceEditorConvertToMeanwhile;
+
+  /// Menu item label for converting a flat meanwhile group into a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Convert to modifier'**
+  String get danceEditorConvertToModifier;
+
+  /// Menu item label for replacing a meanwhile group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup meanwhile'**
+  String get danceEditorUngroupMeanwhile;
+
+  /// Menu item label for replacing a modifier group with its child figures.
+  ///
+  /// In en, this message translates to:
+  /// **'Ungroup modifier'**
+  String get danceEditorUngroupModifier;
+
+  /// Visible heading for a modifier group's expanded editor.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, other{Modifier ({count} figures)}}'**
+  String danceEditorModifierGroupLabel(num count);
+
+  /// Accessibility label for a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Modifier group, {count, plural, =1{1 figure} other{{count} figures}}, {beats, plural, =1{1 beat} other{{beats} beats}}.'**
+  String danceEditorModifierGroupSemantic(num beats, num count);
+
+  /// Button label for adding another figure to a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Add modifier'**
+  String get danceEditorAddModifierChild;
+
+  /// Visible label for the first figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Core'**
+  String get danceEditorModifierCoreLabel;
+
+  /// Visible label for a non-core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Modifier'**
+  String get danceEditorModifierChildLabel;
+
+  /// Accessibility label for the first figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Core figure in modifier group.'**
+  String get danceEditorModifierCoreSemantic;
+
+  /// Accessibility label for a non-core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Modifier figure {number} of {total}.'**
+  String danceEditorModifierChildSemantic(int number, int total);
+
+  /// Removal tooltip for the core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove core figure'**
+  String get danceEditorRemoveModifierCore;
+
+  /// Removal tooltip for a non-core figure in a modifier group.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove modifier figure'**
+  String get danceEditorRemoveModifierChild;
+
   /// Visible heading for a meanwhile group's expanded editor and its display name elsewhere (drag handle, cut banner, duplicate announcement).
   ///
   /// In en, this message translates to:
@@ -8698,6 +8806,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Maximum of {max} concurrent figures.'**
   String danceEditorMeanwhileSidesCapReached(int max);
+
+  /// Inline message shown in place of the add-child button once a modifier has reached the maximum allowed number of ordered children.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum of {max} ordered modifier figures.'**
+  String danceEditorModifierChildrenCapReached(int max);
 
   /// Read-only explanation for a figure whose move id is not in the active taxonomy.
   ///

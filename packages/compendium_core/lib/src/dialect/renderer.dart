@@ -203,6 +203,21 @@ class FigureRenderer {
             canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
           );
     if (override != null) return override;
+    if (figure.isMeanwhile) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return meanwhileMove;
+      return children
+          .map(
+            (child) => _renderSummary(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+          )
+          .join(' while ');
+    }
     if (!figure.isCustom &&
         _resolvedMoveWording(figure, dialect) != null &&
         !figure.isMeanwhile) {
@@ -383,6 +398,49 @@ class FigureRenderer {
       );
       if (override != null) return override;
     }
+    if (figure.isModifier) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return modifierMove;
+      final core = forCanonical
+          ? _render(
+              children.first,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              forCanonical: true,
+            )
+          : _renderSummary(
+              children.first,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            );
+      final modifiers = children
+          .skip(1)
+          .map(
+            (child) => _renderModifierChild(
+              child,
+              dialect,
+              verbose: verbose,
+              decimals: decimals,
+              forCanonical: forCanonical,
+              canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+            ),
+          );
+      if (forCanonical) {
+        return [core, ...modifiers].join(' $modifierMove ');
+      }
+      final renderedModifiers = modifiers.toList();
+      if (renderedModifiers.isEmpty) return core;
+      final suffix = renderedModifiers.length == 1
+          ? renderedModifiers.single
+          : renderedModifiers.length == 2
+          ? '${renderedModifiers.first} and ${renderedModifiers.last}'
+          : '${renderedModifiers.take(renderedModifiers.length - 1).join(', ')}, and ${renderedModifiers.last}';
+      return '$core, $suffix';
+    }
+
     final def = taxonomy.resolve(figure.move);
     if (def == null) {
       // Unknown move: fall back to the raw id so nothing is silently lost.
@@ -598,6 +656,199 @@ class FigureRenderer {
     return (!forCanonical && figure.assumedSubject)
         ? _spliceAssumedSubjectMarker(line)
         : _stripSubjectMark(line);
+  }
+
+  String _renderModifierChild(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    required bool forCanonical,
+    required bool canonicalizeDiscouragedTerms,
+  }) {
+    if (forCanonical) {
+      return _render(
+        figure,
+        dialect,
+        verbose: verbose,
+        decimals: decimals,
+        forCanonical: true,
+      );
+    }
+    final override = figure.isCustom
+        ? null
+        : _renderWordingOverride(
+            figure,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          );
+    if (override != null) return override;
+    if (figure.isMeanwhile) {
+      final children = figure.subFigures;
+      if (children.isEmpty) return meanwhileMove;
+      final rendered = [
+        _renderGerundive(
+          children.first,
+          dialect,
+          verbose: verbose,
+          decimals: decimals,
+          canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+        ),
+        for (final child in children.skip(1))
+          _renderSummary(
+            child,
+            dialect,
+            verbose: verbose,
+            decimals: decimals,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          ),
+      ];
+      return rendered.join(' while ');
+    }
+    return _renderGerundive(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+  }
+
+  String _renderGerundive(
+    Figure figure,
+    Dialect dialect, {
+    required bool verbose,
+    required bool decimals,
+    bool canonicalizeDiscouragedTerms = false,
+  }) {
+    final rendered = _renderSummary(
+      figure,
+      dialect,
+      verbose: verbose,
+      decimals: decimals,
+      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+    );
+    if (figure.isCustom || figure.isContainer) return rendered;
+    final def = taxonomy.resolve(figure.move);
+    if (def == null) return rendered;
+    final displayName =
+        taxonomy.aliases[figure.move]?.displayName ?? def.displayName;
+    final renderedName = _renderMoveName(
+      def.id,
+      displayName,
+      figure.params,
+      dialect,
+    );
+    final hasDialectMoveSubstitution = dialect.moves.containsKey(def.id);
+    final isTakeOnly =
+        def.id == 'give_and_take' && figure.params['give'] == false;
+    final sourceName = isTakeOnly ? 'take' : renderedName;
+    if (sourceName.isEmpty || !rendered.contains(sourceName)) {
+      return _gerundiveRenderedFallback(figure.move, rendered);
+    }
+    return rendered.replaceFirst(
+      sourceName,
+      isTakeOnly
+          ? 'taking'
+          : hasDialectMoveSubstitution
+          ? _gerundiveDialectMoveName(renderedName)
+          : _gerundiveMoveName(figure.move, def.id, renderedName),
+    );
+  }
+
+  String _gerundiveDialectMoveName(String renderedName) {
+    final words = renderedName.split(' ');
+    if (words.isEmpty) return renderedName;
+    final first = words.removeAt(0);
+    final stem = first.endsWith('e') && !first.endsWith('ee')
+        ? first.substring(0, first.length - 1)
+        : first;
+    words.insert(0, '${stem}ing');
+    return words.join(' ');
+  }
+
+  String _gerundiveMoveName(
+    String moveId,
+    String resolvedMoveId,
+    String displayName,
+  ) {
+    // Display names are not necessarily verb phrases: several taxonomy moves
+    // are named after a figure, formation, or destination. Keep those forms
+    // explicit instead of attaching `-ing` to an arbitrary final token.
+    const explicitGerundives = <String, String>{
+      'arch_and_dive': 'arching and diving',
+      'balance_the_ring': 'balancing the ring',
+      'box_the_gnat': 'boxing the gnat',
+      'box_circulate': 'circulating the box',
+      'butterfly_whirl': 'doing a butterfly whirl',
+      'california_twirl': 'doing a California twirl',
+      'contra_corners': 'doing contra corners',
+      'cross_trails': 'crossing trails',
+      'dolphin_hey': 'doing a dolphin hey',
+      'down_the_hall': 'going down the hall',
+      'do_si_do': 'doing-si-do',
+      'fall_back': 'falling back',
+      'facing_star': 'doing a facing star',
+      'figure_8': 'doing a figure 8',
+      'form_a_long_wave': 'forming a long wave',
+      'form_long_waves': 'forming long waves',
+      'form_short_waves': 'forming short waves',
+      'give_and_take': 'giving and taking',
+      'hey': 'doing a hey',
+      'lead_up_the_center': 'leading up the center',
+      'long_lines': 'forming long lines',
+      'mad_robin': 'doing a mad robin',
+      'pass_through': 'passing through',
+      'pass_the_ocean': 'passing the ocean',
+      'pass_by': 'passing by',
+      'petronella': 'doing a petronella',
+      'poussette': 'doing a poussette',
+      'revolving_door': 'doing a revolving door',
+      'roll_away': 'rolling away',
+      'right_left_through': 'passing right left through',
+      'rory_o_more': "doing a Rory O'More",
+      'set': 'setting',
+      'slide': 'sliding',
+      'slide_along_set': 'sliding along the set',
+      'slice': 'taking',
+      'square_through': 'squaring through',
+      'star_promenade': 'doing a star promenade',
+      'star_through': 'starring through',
+      'stand_still': 'standing still',
+      'star': 'starring',
+      'turn_single': 'turning single',
+      'turn_alone': 'turning alone',
+      'turn_as_couples': 'turning as couples',
+      'up_the_hall': 'going up the hall',
+      'pull_by': 'pulling by',
+      // Aliases must retain their authored wording rather than inheriting the
+      // resolved target's gerund (for example, see_saw -> do_si_do).
+      'meltdown_swing': 'doing a meltdown swing',
+      'pull_by_dancers': 'pulling by',
+      'pull_by_direction': 'pulling by',
+      'see_saw': 'seesawing',
+      'swat_the_flea': 'swatting the flea',
+    };
+    final explicit = explicitGerundives[moveId];
+    if (explicit != null) return explicit;
+    // Keep the resolved id in the signature so callers cannot accidentally
+    // discard alias identity when selecting a future target-specific mapping.
+    final resolvedExplicit = explicitGerundives[resolvedMoveId];
+    if (resolvedExplicit != null) return resolvedExplicit;
+    final words = displayName.split(' ');
+    if (words.isEmpty) return displayName;
+    final last = words.removeLast();
+    final stem = last.endsWith('e') && !last.endsWith('ee')
+        ? last.substring(0, last.length - 1)
+        : last;
+    words.add('${stem}ing');
+    return words.join(' ');
+  }
+
+  String _gerundiveRenderedFallback(String moveId, String rendered) {
+    if (moveId != 'zig_zag') return rendered;
+    final zigged = rendered.replaceFirst(RegExp(r'\bzig\b'), 'zigging');
+    return zigged.replaceFirst(RegExp(r'\bzag\b'), 'and zagging');
   }
 
   Map<String, String> _renderTemplateSlots(
