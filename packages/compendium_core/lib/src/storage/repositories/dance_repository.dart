@@ -117,7 +117,8 @@ class DanceRepository {
   Dance normaliseMoveIdsPublic(Dance dance) => _normaliseMoveIds(dance);
 
   /// Returns [dance] with the retired `star_promenade.hand` param stripped from
-  /// every figure that still carries it, recursing into `meanwhile` sides.
+  /// every figure that still carries it, recursing into structural-container
+  /// sub-figures.
   /// Returns the original [dance] unchanged when nothing carries it (avoiding
   /// an allocation, and letting the caller skip the write entirely).
   ///
@@ -158,8 +159,9 @@ class DanceRepository {
   }
 
   /// Normalizes legacy assumed TCB `mad_robin` subjects, recursing into
-  /// `meanwhile` sides. Only figures with an assumed subject and no explicit
-  /// `who` are changed; explicit values remain user/source-authored facts.
+  /// structural-container sub-figures. Only figures with an assumed subject and
+  /// no explicit `who` are changed; explicit values remain user/source-authored
+  /// facts.
   Dance normaliseTaxonomyV34Public(Dance dance) {
     List<Figure>? normalised;
     final figures = dance.figures;
@@ -253,8 +255,8 @@ class DanceRepository {
   }
 
   /// Strips a single figure's retired `star_promenade.hand`, recursing into
-  /// `meanwhile` sub-figures. Returns the original [figure] unchanged when
-  /// nothing needs stripping.
+  /// structural-container sub-figures. Returns the original [figure] unchanged
+  /// when nothing needs stripping.
   Figure _stripStarPromenadeHand(Figure figure) {
     if (figure.isContainer) {
       List<Figure>? subs;
@@ -283,9 +285,9 @@ class DanceRepository {
 
   /// Returns [dance] with the role-implied `hand` written into every `chain`
   /// figure that names a `who` of `role1s`/`role2s` but stores no `hand` yet,
-  /// recursing into `meanwhile` sides. Returns the original [dance] unchanged
-  /// when nothing needs backfilling (avoiding an allocation, and letting the
-  /// caller skip the write entirely).
+  /// recursing into structural-container sub-figures. Returns the original
+  /// [dance] unchanged when nothing needs backfilling (avoiding an allocation,
+  /// and letting the caller skip the write entirely).
   ///
   /// Used by the one-time pass in
   /// [CompendiumRepositories._backfillChainHandIfNeeded] (#976, taxonomy v28).
@@ -306,9 +308,9 @@ class DanceRepository {
   }
 
   /// Repairs the legacy CallersBox `roll_away` subject/relationship assignment
-  /// (#1192), recursing into `meanwhile` sides. The caller must scope this pass
-  /// to CallersBox provenance; this transformer only recognizes the exact
-  /// persisted figure shape emitted by the buggy parser.
+  /// (#1192), recursing into structural-container sub-figures. The caller must
+  /// scope this pass to CallersBox provenance; this transformer only recognizes
+  /// the exact persisted figure shape emitted by the buggy parser.
   Dance repairLegacyCallersBoxRollAwayPublic(Dance dance) {
     final repaired = repairLegacyCallersBoxRollAwayFiguresPublic(dance.figures);
     if (identical(repaired, dance.figures)) return dance;
@@ -392,9 +394,9 @@ class DanceRepository {
     return parsed;
   }
 
-  /// Backfills a single figure's `chain.hand`, recursing into `meanwhile`
-  /// sub-figures. Returns the original [figure] unchanged when nothing needs
-  /// backfilling.
+  /// Backfills a single figure's `chain.hand`, recursing into
+  /// structural-container sub-figures. Returns the original [figure] unchanged
+  /// when nothing needs backfilling.
   Figure _backfillChainHand(Figure figure) {
     if (figure.isContainer) {
       List<Figure>? subs;

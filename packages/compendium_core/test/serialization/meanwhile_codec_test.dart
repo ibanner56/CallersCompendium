@@ -146,6 +146,27 @@ void main() {
       expect(decoded.subFigures.map((f) => f.move), ['orbit', 'petronella']);
     });
 
+    test(
+      'skips nested children that violate Figure constructor constraints',
+      () {
+        final decoded = figureFromJson(
+          meanwhileJson([
+            {'move': 'orbit'},
+            {
+              'move': '',
+              'params': {'beats': 8},
+            },
+            {
+              'move': 'swing',
+              'params': {'beats': -1},
+            },
+            {'move': 'petronella'},
+          ]),
+        );
+        expect(decoded.subFigures.map((f) => f.move), ['orbit', 'petronella']);
+      },
+    );
+
     test('an unknown-move side rides along verbatim (prefer-custom)', () {
       // An unrecognized side is kept as-is; the parse never fails and nothing is
       // fabricated. (Mapping unknown import lines to `custom` is the import

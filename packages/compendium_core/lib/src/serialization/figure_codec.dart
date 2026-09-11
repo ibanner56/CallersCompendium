@@ -184,6 +184,8 @@ List<Figure> _decodeContainerChildren(
     } on FormatException {
       // A malformed child must not discard its valid siblings or the containing
       // figure. This codec is tolerant at structural boundaries.
+    } on ArgumentError {
+      // Figure validation reports malformed child values as ArgumentError.
     }
   }
   return children;
