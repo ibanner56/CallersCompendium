@@ -265,10 +265,17 @@ and produces no Android artifact.
    > message.
 3. **Land the compiled release preparation on `main` first, then tag `main`'s tip.** Steps 1–2 edit
    tracked files, so they go through a PR like any other change — the release is
-   tagged from `main`, never from the release branch. This repo squash-merges, so
-   what you want is the post-merge tip of `main` (a single-parent commit, not a
-   two-parent merge commit). After the PR merges, re-fetch — the `origin/main`
-   you fetched before opening the PR is now stale:
+   tagged from `main`, never from the release branch. Use
+   `docs(release): prepare vX.Y.Z` for a stable release or
+   `docs(release): prepare vX.Y.Z-beta` for a beta release as both the
+   release-preparation commit subject and pull request title; the merged #937
+   precedent used `docs(release): prepare v0.1.0-beta.7`. Never use
+   `chore(release)` unless a maintainer explicitly overrides the convention.
+   This applies even when preparation changes version literals, issue-template
+   metadata, or generated changelogs. This repo squash-merges, so what you want
+   is the post-merge tip of `main` (a single-parent commit, not a two-parent
+   merge commit). After the PR merges, re-fetch — the `origin/main` you fetched
+   before opening the PR is now stale:
 
    ```sh
    git fetch origin main
