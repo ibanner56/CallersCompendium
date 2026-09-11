@@ -47,8 +47,21 @@ def main() -> None:
         "      # The manifest signature is a publication gate.",
     )
     assert "          RELEASE_CODENAME: ${{ needs.meta.outputs.codename }}" in metadata_step
+    assert "metadata_args=(" in metadata_step
+    assert "gen_release_metadata.py --help" in metadata_step
+    assert 'metadata_args+=(--codename "$RELEASE_CODENAME")' in metadata_step
+    assert 'gen_release_metadata.py "${metadata_args[@]}"' in metadata_step
     assert '--codename "$RELEASE_CODENAME"' in metadata_step
     assert '--codename "${{ needs.meta.outputs.codename }}"' not in metadata_step
+
+    build_job = _job_section(text, "build")
+    assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
+    assert (
+        build_job.count(
+            '--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME"'
+        )
+        == 6
+    )
 
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"

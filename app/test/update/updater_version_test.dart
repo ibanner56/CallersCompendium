@@ -6,6 +6,9 @@ void main() {
   const releaseBuildVersion = String.fromEnvironment(
     'CALLERS_COMPENDIUM_RELEASE_VERSION',
   );
+  const releaseBuildCodename = String.fromEnvironment(
+    'CALLERS_COMPENDIUM_RELEASE_CODENAME',
+  );
 
   test('the updater identity follows the release-build seam', () {
     expect(
@@ -13,5 +16,12 @@ void main() {
       releaseBuildVersion.isEmpty ? kAppVersion : releaseBuildVersion,
     );
     expect(SemVer.tryParse(kUpdaterVersion), isNotNull);
+  });
+
+  test('the About codename follows the release-build seam', () {
+    expect(
+      kAppCodename,
+      releaseBuildCodename.isEmpty ? 'Allemande Left' : releaseBuildCodename,
+    );
   });
 }
