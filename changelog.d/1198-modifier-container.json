@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "added": [
-      "You can author ordered modifier containers, preserve them through backups and exports, and configure the figures seeded by Add modifier in Settings."
+      "You can author ordered modifier containers, use bounded meanwhile/modifier containers in shorthand mappings, preserve them through backups and exports, and configure the figures seeded by Add modifier in Settings."
     ]
   },
   "core": {

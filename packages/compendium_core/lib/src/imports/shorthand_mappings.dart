@@ -86,9 +86,10 @@ class ShorthandMapping {
 ///
 /// Shipped with ZERO built-in mappings ([empty]). Persisted as user config and
 /// therefore treated as untrusted input on decode: [decode] is bounded,
-/// never-throws, validates every target figure against the shipped taxonomy,
-/// and drops any corrupt/partial mapping entirely so it can never yield a
-/// fabricated figure — the same posture as the import and dialect decode paths.
+/// never-throws, validates ordinary targets against the shipped taxonomy and
+/// structural targets against their bounded model, and drops any
+/// corrupt/partial mapping entirely so it can never yield a fabricated figure
+/// — the same posture as the import and dialect decode paths.
 @immutable
 class ShorthandMappings {
   ShorthandMappings(List<ShorthandMapping> mappings)
@@ -150,7 +151,9 @@ class ShorthandMappings {
   ///   FIRST occurrence and drop the rest;
   /// - `figures` must be a non-empty `List` no longer than
   ///   [maxShorthandTargetFigures], and EVERY figure must decode structurally
-  ///   AND pass [Taxonomy.validateFigure] with no error-severity issues
+  ///   AND pass taxonomy validation with no error-severity issues. Structural
+  ///   containers are validated against their bounded alternating-child model,
+  ///   while their ordinary descendants use [Taxonomy.validateFigure]
   ///   (unknown move, unknown/extra param key, out-of-range or non-conforming
   ///   value all reject);
   /// - if ANY figure in a mapping is invalid, the WHOLE mapping is ignored so a
@@ -216,7 +219,9 @@ class ShorthandMappings {
   /// Structurally decodes one figure and validates it against [taxonomy],
   /// returning `null` on any structural error, any decode throw, or any
   /// error-severity validation issue (unknown move, unknown param, out-of-range
-  /// / non-conforming value). Never throws.
+  /// / non-conforming value). Structural containers are not taxonomy moves, so
+  /// they are checked recursively against the same bounded alternating-child
+  /// invariant enforced by [Figure.meanwhile]/[Figure.modifier]. Never throws.
   static Figure? _decodeFigure(Object? raw, {required Taxonomy taxonomy}) {
     if (raw is! Map) return null;
     Figure figure;
@@ -226,8 +231,40 @@ class ShorthandMappings {
       return null;
     }
     final normalized = taxonomy.normalizeFigureV35(figure);
-    final issues = taxonomy.validateFigure(normalized);
-    final hasError = issues.any((i) => i.severity == ValidationSeverity.error);
-    return hasError ? null : normalized;
+    return _passesValidation(normalized, taxonomy) ? normalized : null;
+  }
+
+  static bool _passesValidation(
+    Figure figure,
+    Taxonomy taxonomy, {
+    int depth = 0,
+  }) {
+    if (figure.isContainer) {
+      if (depth >= kMaxContainerDepth) return false;
+      final rawChildren = figure.params['figures'];
+      final children = figure.subFigures;
+      final beats = figure.params['beats'];
+      if (rawChildren is! List ||
+          rawChildren.length != children.length ||
+          children.length < 2 ||
+          children.length > kMaxMeanwhileSides ||
+          beats is! int ||
+          beats < 0) {
+        return false;
+      }
+
+      return children.every((child) {
+        if (child.isContainer) {
+          final expectedMove = figure.isMeanwhile
+              ? modifierMove
+              : meanwhileMove;
+          if (child.move != expectedMove) return false;
+        }
+        return _passesValidation(child, taxonomy, depth: depth + 1);
+      });
+    }
+
+    final issues = taxonomy.validateFigure(figure);
+    return !issues.any((i) => i.severity == ValidationSeverity.error);
   }
 }
