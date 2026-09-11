@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Status and connection information for the Caller's Compendium Device Sync service.">
+  <title>Athenaeum Device Sync - Status</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --background: #f6f7fb;
+      --card: #fff;
+      --text: #1b1d2a;
+      --muted: #5d6275;
+      --line: #dfe2ec;
+      --accent: #3b4cca;
+      --ok: #217a45;
+      --ok-background: #e2f4e8;
+      --pending: #8a5a12;
+      --pending-background: #fbecd6;
+      --offline: #a33a3a;
+      --offline-background: #fbe3e3;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --background: #151722;
+        --card: #202331;
+        --text: #f2f3f8;
+        --muted: #b4b8c8;
+        --line: #3a3e51;
+        --accent: #aab3ff;
+        --ok: #8fe0a6;
+        --ok-background: #193524;
+        --pending: #f0c580;
+        --pending-background: #3a2c12;
+        --offline: #ff9b9b;
+        --offline-background: #432525;
+      }
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--background);
+      color: var(--text);
+      font: 1rem/1.6 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100% - 2rem, 44rem);
+      margin: 0 auto;
+      padding: 4rem 0;
+    }
+
+    header { margin-bottom: 2rem; }
+
+    h1, h2 { line-height: 1.2; }
+    h1 { margin: 0; font-size: clamp(2rem, 7vw, 3.25rem); }
+    h2 { margin: 0; font-size: 1.2rem; }
+
+    .lede {
+      margin: 1rem 0 0;
+      color: var(--muted);
+      font-size: 1.15rem;
+    }
+
+    .card {
+      padding: 1.5rem;
+      border: 1px solid var(--line);
+      border-radius: .75rem;
+      background: var(--card);
+      box-shadow: 0 .75rem 2rem rgb(20 25 50 / 8%);
+    }
+
+    .card-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: .45rem;
+      padding: .25rem .65rem;
+      border-radius: 999px;
+      background: var(--ok-background);
+      color: var(--ok);
+      font-size: .85rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status.pending {
+      background: var(--pending-background);
+      color: var(--pending);
+    }
+
+    .status.offline {
+      background: var(--offline-background);
+      color: var(--offline);
+    }
+
+    .status::before {
+      width: .55rem;
+      height: .55rem;
+      border-radius: 50%;
+      background: currentColor;
+      content: "";
+    }
+
+    dl { margin: 0; }
+    dl div {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: .75rem 0;
+      border-top: 1px solid var(--line);
+    }
+    dt { font-weight: 700; }
+    dd { margin: 0; color: var(--muted); text-align: right; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    footer {
+      margin-top: 1.5rem;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    a { color: var(--accent); }
+
+    @media (max-width: 30rem) {
+      .card-heading, dl div { align-items: flex-start; flex-direction: column; }
+      dd { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Athenaeum Device Sync</h1>
+      <p class="lede">Status and connection information for the shared sync service.</p>
+    </header>
+
+    <section class="card" aria-labelledby="status-heading">
+      <div class="card-heading">
+        <h2 id="status-heading">Service status</h2>
+        <span class="status pending" id="service-status" role="status" aria-live="polite">Checking...</span>
+      </div>
+      <dl>
+        <div>
+          <dt>Sync API</dt>
+          <dd><code>/v1/</code> over HTTPS</dd>
+        </div>
+        <div>
+          <dt>Authentication</dt>
+          <dd>Device credentials required</dd>
+        </div>
+        <div>
+          <dt>Data handling</dt>
+          <dd>Encrypted in transit; no web dashboard</dd>
+        </div>
+      </dl>
+    </section>
+
+    <noscript>
+      <p>Enable JavaScript to check whether the sync service is reachable.</p>
+    </noscript>
+
+    <script>
+      const badge = document.getElementById("service-status");
+      fetch("/heartbeat", { cache: "no-store", credentials: "omit" })
+        .then((response) => {
+          if (!response.ok) throw new Error("health check failed");
+          return response.json();
+        })
+        .then((health) => {
+          if (health.status !== "ok") throw new Error("health check failed");
+          badge.className = "status";
+          badge.textContent = "Operational";
+        })
+        .catch(() => {
+          badge.className = "status offline";
+          badge.textContent = "Unavailable";
+        });
+    </script>
+
+    <footer>
+      <p>This endpoint is used by Caller's Compendium for Device Sync. The
+        <a href="https://github.com/ibanner56/CallersCompendium">project source</a>
+        contains the protocol and deployment documentation.</p>
+    </footer>
+  </main>
+</body>
+</html>
