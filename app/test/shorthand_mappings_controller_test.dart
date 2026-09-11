@@ -62,6 +62,29 @@ void main() {
     expect(store[1].move, 'circle');
   });
 
+  test('upsert preserves meanwhile and modifier targets across reload', () async {
+    final repos = openTestRepositories();
+    final controller = ShorthandMappingsController(repos.settings);
+    addTearDown(controller.dispose);
+
+    final modifier = Figure.modifier(
+      figures: [_swing(), Figure.meanwhile(figures: [_swing(), _swing()], beats: 16)],
+      beats: 16,
+    );
+    await controller.upsert(
+      ShorthandMapping(token: 'layered', figures: [modifier]),
+    );
+
+    final reloaded = ShorthandMappingsController(repos.settings);
+    addTearDown(reloaded.dispose);
+    await reloaded.load();
+
+    expect(reloaded.mappings, hasLength(1));
+    final restored = reloaded.mappings.single.figures.single;
+    expect(restored.isModifier, isTrue);
+    expect(restored.subFigures[1].isMeanwhile, isTrue);
+  });
+
   test('upsert rejects a case-insensitive duplicate token', () async {
     final repos = openTestRepositories();
     final controller = ShorthandMappingsController(repos.settings);

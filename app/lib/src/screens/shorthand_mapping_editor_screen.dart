@@ -10,8 +10,9 @@ import '../widgets/figure_list_editor.dart';
 /// modeled on `dialect_editor_screen.dart`. A shorthand [token] (left) is typed
 /// into a text field; the ordered figure(s) it expands to (right) are authored
 /// with the SAME structured [FigureListEditor] used for normal figure entry, so
-/// params and taxonomy validation are identical to hand-built figures — there
-/// is no separate lightweight picker to keep in sync.
+/// ordinary-figure params and taxonomy validation stay identical to hand-built
+/// figures, while bounded `meanwhile`/`modifier` containers use the same
+/// structural editor — there is no separate lightweight picker to keep in sync.
 ///
 /// On Save the token is validated (non-empty, bounded length, and unique
 /// case-insensitively against [existingTokens]) and the drafts are committed to
@@ -101,6 +102,28 @@ class _ShorthandMappingEditorScreenState
       _drafts.add(FigureDraft());
       _error = null;
     });
+  }
+
+  Future<String?> _addMeanwhile() async {
+    final group = FigureDraft(
+      meanwhileSides: [FigureDraft(), FigureDraft()],
+    )..params['beats'] = 0;
+    setState(() {
+      _drafts.add(group);
+      _error = null;
+    });
+    return group.id;
+  }
+
+  Future<String?> _addModifier() async {
+    final group = FigureDraft(
+      modifierFigures: [FigureDraft(), FigureDraft()],
+    )..params['beats'] = 0;
+    setState(() {
+      _drafts.add(group);
+      _error = null;
+    });
+    return group.id;
   }
 
   void _deleteFigure(FigureDraft draft) {
@@ -199,9 +222,12 @@ class _ShorthandMappingEditorScreenState
               dialect: ActiveDialectScope.of(context),
               onChanged: _onFiguresChanged,
               onAdd: _addFigure,
+              onAddMeanwhile: _addMeanwhile,
+              onAddModifier: _addModifier,
               onDelete: _deleteFigure,
               onDuplicate: _duplicateFigure,
               onReorder: _reorderFigure,
+              allowModifierSelection: true,
             ),
           ),
           const SizedBox(height: 24),
