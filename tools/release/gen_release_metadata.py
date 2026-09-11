@@ -165,8 +165,10 @@ def build_metadata(
         "pubDate": pub_date,
         "artifacts": artifacts,
     }
-    if codename is not None:
-        manifest["codename"] = codename
+    # Legacy tags use the tag itself as a release-title fallback, not a codename.
+    normalized_codename = codename.strip() if codename else ""
+    if normalized_codename and normalized_codename != tag:
+        manifest["codename"] = normalized_codename
 
     sums_text = "\n".join(sorted(sums_lines)) + "\n"
     return sums_text, manifest
