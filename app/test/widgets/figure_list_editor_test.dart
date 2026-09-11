@@ -49,6 +49,7 @@ class _Host extends StatefulWidget {
     Taxonomy? taxonomy,
     this.phrase = PhraseStructure.standard,
     this.wireDuplicate = true,
+    this.wireReorder = true,
     this.moveParamDefaults,
     this.mixer = false,
     this.freeTextEntry = false,
@@ -69,6 +70,7 @@ class _Host extends StatefulWidget {
   final Taxonomy taxonomy;
   final PhraseStructure phrase;
   final bool wireDuplicate;
+  final bool wireReorder;
   final Map<String, Map<String, Object?>>? moveParamDefaults;
   final bool mixer;
   final bool freeTextEntry;
@@ -188,10 +190,12 @@ class _HostState extends State<_Host> {
                       );
                     })
                   : null,
-              onReorder: (oldIndex, newIndex) => setState(() {
-                final draft = widget.drafts.removeAt(oldIndex);
-                widget.drafts.insert(newIndex, draft);
-              }),
+              onReorder: widget.wireReorder
+                  ? (oldIndex, newIndex) => setState(() {
+                      final draft = widget.drafts.removeAt(oldIndex);
+                      widget.drafts.insert(newIndex, draft);
+                    })
+                  : null,
               onGroupWithNext: widget.wireMeanwhile
                   ? (draft) => setState(() {
                       final index = widget.drafts.indexOf(draft);
@@ -231,6 +235,7 @@ Future<void> _pump(
   List<FigureDraft> drafts, {
   PhraseStructure phrase = PhraseStructure.standard,
   bool wireDuplicate = true,
+  bool wireReorder = true,
   Map<String, Map<String, Object?>>? moveParamDefaults,
   bool mixer = false,
   bool freeTextEntry = false,
@@ -260,6 +265,7 @@ Future<void> _pump(
       taxonomy: taxonomy,
       phrase: phrase,
       wireDuplicate: wireDuplicate,
+      wireReorder: wireReorder,
       moveParamDefaults: moveParamDefaults,
       mixer: mixer,
       freeTextEntry: freeTextEntry,
@@ -2122,6 +2128,34 @@ void main() {
       find.byKey(const ValueKey('figure-0-move-down')),
     );
     expect(downBtn0.onPressed, isNotNull);
+  });
+
+  testWidgets('move actions are disabled when reordering is not wired', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[
+      FigureDraft(move: 'swing', params: {'beats': 8}),
+      FigureDraft(move: 'balance', params: {'beats': 4}),
+    ];
+    await _pump(tester, drafts, wireReorder: false);
+
+    await _openMenu(tester, 1);
+    expect(
+      tester
+          .widget<MenuItemButton>(
+            find.byKey(const ValueKey('figure-1-move-up')),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(
+      tester
+          .widget<MenuItemButton>(
+            find.byKey(const ValueKey('figure-1-move-down')),
+          )
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets('move-up menu item reorders the draft list', (tester) async {

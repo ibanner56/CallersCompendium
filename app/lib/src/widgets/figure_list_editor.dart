@@ -737,8 +737,10 @@ class _FigureListEditorState extends State<FigureListEditor> {
         onDuplicate: widget.onDuplicate == null || !widget.allowDuplicating
             ? null
             : () => _duplicate(i),
-        onMoveUp: i == 0 ? null : () => _reorder(i, i - 1, refocus: true),
-        onMoveDown: i == drafts.length - 1
+        onMoveUp: widget.onReorder == null || i == 0
+            ? null
+            : () => _reorder(i, i - 1, refocus: true),
+        onMoveDown: widget.onReorder == null || i == drafts.length - 1
             ? null
             : () => _reorder(i, i + 1, refocus: true),
         onCut: widget.onReorder == null || isCutCard
@@ -2200,6 +2202,11 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                                             groupDraft,
                                             remainingSide,
                                           ),
+                                  // A nested container must remain the
+                                  // opposite kind from its parent; converting
+                                  // it would create invalid same-kind nesting.
+                                  // Ungroup is the legal structural escape
+                                  // hatch for this menu.
                                   onUngroupContainer:
                                       _canUngroupNestedContainer(sides, i)
                                       ? (nested) => _ungroupNestedContainer(
