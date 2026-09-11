@@ -376,13 +376,13 @@
   "@settingsAboutLegalese": {
     "x-sourceSha256": "421d74cc334c06b8d4e9167e67423e586dd421f4dab9aa9402409d68936b9eb1"
   },
-  "settingsAboutVersion": "Version {version}",
+  "settingsAboutVersion": "Version {version}, “{codename}”",
   "@settingsAboutVersion": {
-    "x-sourceSha256": "a18745121bb8af6d1a0c689cfb3c2a2245d10d5fe3b37ff37c8b69fd74773dfa"
+    "x-sourceSha256": "e184327d69c4ddde92f360392e7b4531b66fe13c876d431bf792928c96345c90"
   },
-  "settingsAboutVersionLine": "{appName} · Version {version} · {license}",
+  "settingsAboutVersionLine": "{appName} · Version {version}, “{codename}” · {license}",
   "@settingsAboutVersionLine": {
-    "x-sourceSha256": "a6b621e4dd0b65a6af4d683d3340664038cb7dbb42939f019fc2fb5fd548cf3d"
+    "x-sourceSha256": "b887a5a35346c520190e4b1d03ad90641600fd9275b2928c60191ddc56cc5042"
   },
   "settingsUpdatesHeader": "Opdateringer",
   "@settingsUpdatesHeader": {

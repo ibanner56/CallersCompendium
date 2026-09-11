@@ -101,6 +101,11 @@ Field rules:
   `kUpdaterVersion` (`app/lib/src/app_metadata.dart`). Release builds inject the
   tag's SemVer identity there so a beta compares as `X.Y.Z-beta`, while the
   visible `kAppVersion` and `app/pubspec.yaml` remain bare `X.Y.Z`.
+- `codename` — optional display-only release name resolved from the annotated
+  tag. Release Flutter builds receive the same value through
+  `CALLERS_COMPENDIUM_RELEASE_CODENAME`; local and development builds use the
+  source fallback. When present, GitHub Pages renders it alongside the version;
+  the update client ignores this field.
 - `releaseNotesUrl` — opened via the existing `launchExternalUrl` seam from the
   update banner.
 - `pubDate` — RFC3339 UTC; also reused verbatim when generating the appcast.

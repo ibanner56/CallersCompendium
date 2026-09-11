@@ -134,6 +134,7 @@ class _AboutView extends StatelessWidget {
             l10n.settingsAboutVersionLine(
               kAppName,
               kAppVersion,
+              kAppCodename,
               kAppLicenseSpdx,
             ),
             style: theme.textTheme.bodySmall?.copyWith(
@@ -177,7 +178,7 @@ class _AboutBrandHeader extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xxs),
           Text(
-            l10n.settingsAboutVersion(kAppVersion),
+            l10n.settingsAboutVersion(kAppVersion, kAppCodename),
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,

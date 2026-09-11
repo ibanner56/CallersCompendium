@@ -670,19 +670,20 @@ abstract class AppLocalizations {
   /// **'© The Caller’s Compendium contributors. Licensed under AGPL-3.0.'**
   String get settingsAboutLegalese;
 
-  /// Version line under the app wordmark in the About header.
+  /// Version and release-codename line under the app wordmark in the About header. The codename is a proper noun kept verbatim.
   ///
   /// In en, this message translates to:
-  /// **'Version {version}'**
-  String settingsAboutVersion(String version);
+  /// **'Version {version}, “{codename}”'**
+  String settingsAboutVersion(String version, String codename);
 
-  /// One-line footer at the bottom of the About section combining the app name, version, and license identifier. All three values are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
+  /// One-line footer at the bottom of the About section combining the app name, version, release codename, and license identifier. The app name, version, codename, and license are proper nouns / identifiers kept verbatim; only the word 'Version' is translatable.
   ///
   /// In en, this message translates to:
-  /// **'{appName} · Version {version} · {license}'**
+  /// **'{appName} · Version {version}, “{codename}” · {license}'**
   String settingsAboutVersionLine(
     String appName,
     String version,
+    String codename,
     String license,
   );
 
