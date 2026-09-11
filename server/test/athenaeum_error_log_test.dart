@@ -13,7 +13,7 @@ void main() {
     });
 
     final process = await Process.start('sh', [
-      'server/deploy/athenaeum-error-log',
+      _deploymentScriptPath(),
       output.path,
     ]);
     process.stdin
@@ -32,4 +32,13 @@ void main() {
       '[redacted Apache error]\n',
     );
   });
+}
+
+String _deploymentScriptPath() {
+  const relativePath = 'deploy/athenaeum-error-log';
+  final packageRelative = File(relativePath);
+  if (packageRelative.existsSync()) return packageRelative.path;
+  final repositoryRelative = File('server/$relativePath');
+  if (repositoryRelative.existsSync()) return repositoryRelative.path;
+  throw StateError('could not locate $relativePath');
 }
