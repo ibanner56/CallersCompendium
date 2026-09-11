@@ -42,6 +42,17 @@ void main() {
     await dataDirectory.delete(recursive: true);
   });
 
+  test(
+    'health check reports application readiness without credentials',
+    () async {
+      final request = await client.getUrl(_uri('/healthz'));
+      final response = await request.close();
+      expect(response.statusCode, 200);
+      expect(response.headers.value('cache-control'), 'no-store');
+      expect(jsonDecode(await response.body()), {'status': 'ok'});
+    },
+  );
+
   test('C2 loopback round trip preserves manifest and blob bytes', () async {
     final created = await _send('POST', '/v1/store', syncId: syncId);
     expect(created.statusCode, 201);

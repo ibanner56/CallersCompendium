@@ -7,6 +7,7 @@ http_port=${3:-80}
 credential=${ATHENAEUM_CREDENTIAL:?set ATHENAEUM_CREDENTIAL to a new encoded sync credential}
 http_body=$(mktemp)
 status_body=$(mktemp)
+health_body=$(mktemp)
 https_headers=$(mktemp)
 https_post_body=$(mktemp)
 https_get_body=$(mktemp)
@@ -55,8 +56,8 @@ cleanup() {
   else
     rm -f "$cleanup_failures"
   fi
-  rm -f "$http_body" "$status_body" "$https_headers" "$https_post_body" \
-    "$https_get_body" \
+  rm -f "$http_body" "$status_body" "$health_body" "$https_headers" \
+    "$https_post_body" "$https_get_body" \
     "$large_body" "$oversized_body" "$raw_body" "$compressed_body" \
     "$compressed_boundary_raw" "$compressed_boundary" \
     "$boundary_response" \
@@ -111,6 +112,18 @@ if [ "$status_code" != 200 ] ||
   exit 1
 fi
 echo "HTTPS root status page: passed"
+
+health_status=$(
+  curl_local --silent --show-error --max-time 10 --max-redirs 0 \
+    --output "$health_body" --write-out '%{http_code}' \
+    "${https_url}/healthz" || true
+)
+if [ "$health_status" != 200 ] ||
+  ! grep -Fq '"status":"ok"' "$health_body"; then
+  echo "HTTPS health check did not report the running service (HTTP ${health_status:-000})" >&2
+  exit 1
+fi
+echo "HTTPS health check: passed"
 
 http_status=$(
   curl_local --silent --show-error --max-time 10 --max-redirs 0 \

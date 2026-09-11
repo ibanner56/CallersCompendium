@@ -12,6 +12,8 @@ the app and of `compendium_core`; version headings below refer to
 
 - Serve a dedicated static status page from the Apache root instead of the
   default Apache homepage.
+- Add a credential-free `/healthz` readiness endpoint and use it to back the
+  public status badge.
 - Add the W16 Linux host-network Docker and Apache deployment reference,
   trusted real-client address resolution, and safe operational alerts.
 - Add a supported break-glass manifest read command that records its separate

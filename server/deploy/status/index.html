@@ -16,6 +16,10 @@
       --accent: #3b4cca;
       --ok: #217a45;
       --ok-background: #e2f4e8;
+      --pending: #8a5a12;
+      --pending-background: #fbecd6;
+      --offline: #a33a3a;
+      --offline-background: #fbe3e3;
     }
 
     @media (prefers-color-scheme: dark) {
@@ -28,6 +32,10 @@
         --accent: #aab3ff;
         --ok: #8fe0a6;
         --ok-background: #193524;
+        --pending: #f0c580;
+        --pending-background: #3a2c12;
+        --offline: #ff9b9b;
+        --offline-background: #432525;
       }
     }
 
@@ -88,6 +96,16 @@
       white-space: nowrap;
     }
 
+    .status.pending {
+      background: var(--pending-background);
+      color: var(--pending);
+    }
+
+    .status.offline {
+      background: var(--offline-background);
+      color: var(--offline);
+    }
+
     .status::before {
       width: .55rem;
       height: .55rem;
@@ -132,7 +150,7 @@
     <section class="card" aria-labelledby="status-heading">
       <div class="card-heading">
         <h2 id="status-heading">Service status</h2>
-        <span class="status">Online</span>
+        <span class="status pending" id="service-status" role="status" aria-live="polite">Checking...</span>
       </div>
       <dl>
         <div>
@@ -149,6 +167,28 @@
         </div>
       </dl>
     </section>
+
+    <noscript>
+      <p>Enable JavaScript to check whether the sync service is reachable.</p>
+    </noscript>
+
+    <script>
+      const badge = document.getElementById("service-status");
+      fetch("/healthz", { cache: "no-store", credentials: "omit" })
+        .then((response) => {
+          if (!response.ok) throw new Error("health check failed");
+          return response.json();
+        })
+        .then((health) => {
+          if (health.status !== "ok") throw new Error("health check failed");
+          badge.className = "status";
+          badge.textContent = "Operational";
+        })
+        .catch(() => {
+          badge.className = "status offline";
+          badge.textContent = "Unavailable";
+        });
+    </script>
 
     <footer>
       <p>This endpoint is used by Caller's Compendium for Device Sync. The

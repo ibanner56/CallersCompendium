@@ -233,6 +233,10 @@ class AthenaeumApp {
   Handler get handler => call;
 
   Future<Response> call(Request request) async {
+    final segments = request.url.pathSegments;
+    if (segments.length == 1 && segments.first == 'healthz') {
+      return _healthRoute(request);
+    }
     try {
       store.retryPendingDeletions();
     } on Object catch (error) {
@@ -240,7 +244,6 @@ class AthenaeumApp {
         'Athenaeum request cleanup retry failed (${error.runtimeType})',
       );
     }
-    final segments = request.url.pathSegments;
     if (segments.length < 2 || segments.first != 'v1') {
       return _jsonResponse(404, {'error': 'not found'});
     }
@@ -264,6 +267,19 @@ class AthenaeumApp {
       _logFailure(request, error);
       return _jsonResponse(error.status, {'error': error.message});
     }
+  }
+
+  Response _healthRoute(Request request) {
+    if (request.method != 'GET') return _methodNotAllowed(const ['GET']);
+    store.checkHealth();
+    return Response(
+      200,
+      body: jsonEncode({'status': 'ok'}),
+      headers: {
+        'cache-control': 'no-store',
+        'content-type': 'application/json',
+      },
+    );
   }
 
   Future<Response> _storeRoute(Request request, List<String> segments) async {

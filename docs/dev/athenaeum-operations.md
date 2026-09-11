@@ -67,8 +67,9 @@ the loopback-only forwarded-address trust boundary.
    Replace `sync.example.invalid` in the vhost with the deployment hostname,
    install a matching certificate, enable the site, and reload Apache. The
    `:80` vhost may serve ACME challenges, but `/v1` must remain refused and must
-   never redirect or proxy. Both vhosts serve the status page at `/`; only the
-   TLS vhost proxies `/v1/`.
+   never redirect or proxy. Both vhosts serve the status page at `/` and proxy
+   the credential-free `/healthz` liveness check; only the TLS vhost proxies
+   `/v1/`.
 5. Start the container with host networking and the persistent volume:
 
    ```sh
