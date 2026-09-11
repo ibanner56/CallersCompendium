@@ -98,7 +98,7 @@ void main() {
         'beats': 16,
         'figures': [
           {'move': 'swing'},
-          {'move': 'swing', 'params': []},
+          {'move': 'swing', 'params': <Object?>[]},
           {
             'move': customMove,
             'params': {'text': 'turn'},
