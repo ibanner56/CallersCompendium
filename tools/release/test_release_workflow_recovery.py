@@ -41,6 +41,15 @@ def main() -> None:
     assert 'if [ "$GITHUB_REF" != "refs/heads/main" ]; then' in text
     assert "::error::existing-tag recovery must be dispatched from main" in text
 
+    metadata_step = _section(
+        text,
+        "      - name: Generate SHA256SUMS + channel manifests",
+        "      # The manifest signature is a publication gate.",
+    )
+    assert "          RELEASE_CODENAME: ${{ needs.meta.outputs.codename }}" in metadata_step
+    assert '--codename "$RELEASE_CODENAME"' in metadata_step
+    assert '--codename "${{ needs.meta.outputs.codename }}"' not in metadata_step
+
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"
     )

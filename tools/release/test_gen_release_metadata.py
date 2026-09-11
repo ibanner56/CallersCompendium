@@ -82,6 +82,30 @@ def _cases() -> None:
         assert coded_sums == base_sums
         assert coded_manifest["codename"] == "Allemande Left"
 
+        empty_coded_sums, empty_coded_manifest = g.build_metadata(
+            version=VERSION,
+            tag=TAG,
+            channel="stable",
+            repo=REPO,
+            dist=dist,
+            pub_date=PUB_DATE,
+            codename="",
+        )
+        assert empty_coded_sums == base_sums
+        assert "codename" not in empty_coded_manifest
+
+        fallback_sums, fallback_manifest = g.build_metadata(
+            version=VERSION,
+            tag=TAG,
+            channel="stable",
+            repo=REPO,
+            dist=dist,
+            pub_date=PUB_DATE,
+            codename=TAG,
+        )
+        assert fallback_sums == base_sums
+        assert "codename" not in fallback_manifest
+
         # 2. Manifest lists the primary artifact per (platform, arch):
         #    AppImage over tar.gz, dmg over zip, exe over zip.
         primaries = {
