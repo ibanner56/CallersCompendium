@@ -224,6 +224,7 @@ class ShorthandMappings {
   /// invariant enforced by [Figure.meanwhile]/[Figure.modifier]. Never throws.
   static Figure? _decodeFigure(Object? raw, {required Taxonomy taxonomy}) {
     if (raw is! Map) return null;
+    if (!_passesRawStructuralShape(raw)) return null;
     Figure figure;
     try {
       figure = figureFromJson(raw.cast<String, Object?>());
@@ -234,6 +235,57 @@ class ShorthandMappings {
     return _passesValidation(normalized, taxonomy) ? normalized : null;
   }
 
+  /// Checks the persisted structural tree before the tolerant figure codec can
+  /// drop malformed, same-kind, over-cap, or over-depth children.
+  static bool _passesRawStructuralShape(Object? raw, {int depth = 0}) {
+    if (raw is! Map) return false;
+    final move = raw['move'];
+    if (move is! String) return false;
+    if (move != meanwhileMove && move != modifierMove) {
+      try {
+        figureFromJson(raw.cast<String, Object?>());
+        return true;
+      } catch (_) {
+        return false;
+      }
+    }
+
+    if (depth >= kMaxContainerDepth) return false;
+    final params = raw['params'];
+    if (params is! Map) return false;
+    final rawChildren = params['figures'];
+    final beats = params['beats'];
+    if (rawChildren is! List ||
+        rawChildren.length < 2 ||
+        rawChildren.length > kMaxMeanwhileSides ||
+        beats is! int ||
+        beats < 0) {
+      return false;
+    }
+
+    final expectedChildMove = move == meanwhileMove
+        ? modifierMove
+        : meanwhileMove;
+    for (final rawChild in rawChildren) {
+      if (rawChild is! Map) return false;
+      final childMove = rawChild['move'];
+      if (childMove is! String) return false;
+      if (childMove == meanwhileMove || childMove == modifierMove) {
+        if (childMove != expectedChildMove ||
+            !_passesRawStructuralShape(rawChild, depth: depth + 1)) {
+          return false;
+        }
+      } else {
+        try {
+          figureFromJson(rawChild.cast<String, Object?>());
+        } catch (_) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   static bool _passesValidation(
     Figure figure,
     Taxonomy taxonomy, {
@@ -241,11 +293,9 @@ class ShorthandMappings {
   }) {
     if (figure.isContainer) {
       if (depth >= kMaxContainerDepth) return false;
-      final rawChildren = figure.params['figures'];
       final children = figure.subFigures;
       final beats = figure.params['beats'];
-      if (rawChildren is! List ||
-          rawChildren.length != children.length ||
+      if (figure.params['figures'] is! List ||
           children.length < 2 ||
           children.length > kMaxMeanwhileSides ||
           beats is! int ||

@@ -17,6 +17,11 @@ Figure _meanwhile() =>
 Figure _modifier() =>
     Figure.modifier(figures: [_swing(), _circle()], beats: 16);
 
+Map<String, Object?> _containerJson(String move, List<Object?> children) => {
+  'move': move,
+  'params': {'beats': 16, 'figures': children},
+};
+
 void main() {
   group('normalizeShorthandToken', () {
     test('trims and lowercases', () {
@@ -211,6 +216,50 @@ void main() {
         expect(figures[1].subFigures[1].isMeanwhile, isTrue);
       },
     );
+
+    test('rejects malformed structural trees before tolerant decoding', () {
+      final validSwing = figureToJson(_swing());
+      final cases = <String, Map<String, Object?>>{
+        'over-cap': _containerJson(
+          meanwhileMove,
+          List<Object?>.generate(7, (_) => figureToJson(_swing())),
+        ),
+        'malformed-child': _containerJson(meanwhileMove, [
+          validSwing,
+          {'move': modifierMove, 'params': <Object?>[]},
+        ]),
+        'same-kind-child': _containerJson(meanwhileMove, [
+          validSwing,
+          _containerJson(meanwhileMove, [
+            figureToJson(_swing()),
+            figureToJson(_circle()),
+          ]),
+        ]),
+        'over-depth': _containerJson(meanwhileMove, [
+          validSwing,
+          _containerJson(modifierMove, [
+            figureToJson(_swing()),
+            _containerJson(meanwhileMove, [
+              figureToJson(_swing()),
+              figureToJson(_circle()),
+            ]),
+          ]),
+        ]),
+      };
+
+      for (final entry in cases.entries) {
+        final decoded = ShorthandMappings.decode(
+          jsonEncode([
+            {
+              'token': entry.key,
+              'figures': [entry.value],
+            },
+          ]),
+          taxonomy: contraTaxonomy,
+        );
+        expect(decoded.mappings, isEmpty, reason: entry.key);
+      }
+    });
   });
 
   // invalid-fixture: this deliberately decodes a v34 figure to verify the persisted shorthand compatibility boundary
