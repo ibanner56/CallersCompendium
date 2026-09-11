@@ -1624,6 +1624,7 @@ class _DefaultsView extends StatelessWidget {
                 allowAdding: meanwhileSideDrafts.length < kMaxMeanwhileSides,
                 allowDuplicating:
                     meanwhileSideDrafts.length < kMaxMeanwhileSides,
+                allowModifierSelection: false,
                 showPhraseStructure: false,
                 keyPrefix: 'meanwhile-side',
               ),
@@ -1669,6 +1670,7 @@ class _DefaultsView extends StatelessWidget {
                 onReorder: onModifierReorder,
                 allowAdding: modifierDrafts.length < kMaxModifierFigures,
                 allowDuplicating: modifierDrafts.length < kMaxModifierFigures,
+                allowModifierSelection: false,
                 showPhraseStructure: false,
                 keyPrefix: 'modifier-default',
               ),

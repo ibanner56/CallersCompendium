@@ -1311,6 +1311,26 @@ void main() {
         );
       });
 
+      test(
+        'custom modifier children keep authored text over wording overrides',
+        () {
+          final figure = Figure.modifier(
+            figures: [
+              Figure(move: 'swing'),
+              testFigure(
+                move: customMove,
+                params: {'text': 'authored custom text'},
+              ).copyWith(wordingOverride: 'replacement wording'),
+            ],
+            beats: 16,
+          );
+
+          final rendered = renderer.renderSummary(figure, larks);
+          expect(rendered, 'partner swing, authored custom text');
+          expect(rendered, isNot(contains('replacement wording')));
+        },
+      );
+
       test('modifier gerundives use verb-aware multiword forms', () {
         final figure = Figure.modifier(
           figures: [

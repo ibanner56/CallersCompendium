@@ -59,6 +59,7 @@ class _Host extends StatefulWidget {
     this.freeTextAdder,
     this.allowAdding = true,
     this.allowDuplicating = true,
+    this.allowModifierSelection = true,
     this.showPhraseStructure = true,
     this.aggressiveBeatsUpdate = false,
     this.showWordingOverride = false,
@@ -78,6 +79,7 @@ class _Host extends StatefulWidget {
   final int Function(List<Figure> figures)? freeTextAdder;
   final bool allowAdding;
   final bool allowDuplicating;
+  final bool allowModifierSelection;
   final bool showPhraseStructure;
 
   /// Wraps the editor in an [AggressiveBeatsUpdateScope] set to this value
@@ -131,6 +133,7 @@ class _HostState extends State<_Host> {
               showWordingOverride: widget.showWordingOverride,
               allowAdding: widget.allowAdding,
               allowDuplicating: widget.allowDuplicating,
+              allowModifierSelection: widget.allowModifierSelection,
               showPhraseStructure: widget.showPhraseStructure,
               onChanged: () => setState(() {}),
               onAdd: () => setState(() => widget.drafts.add(FigureDraft())),
@@ -238,6 +241,7 @@ Future<void> _pump(
   int Function(List<Figure> figures)? freeTextAdder,
   bool allowAdding = true,
   bool allowDuplicating = true,
+  bool allowModifierSelection = true,
   bool showPhraseStructure = true,
   bool aggressiveBeatsUpdate = false,
   bool showWordingOverride = false,
@@ -266,6 +270,7 @@ Future<void> _pump(
       freeTextAdder: freeTextAdder,
       allowAdding: allowAdding,
       allowDuplicating: allowDuplicating,
+      allowModifierSelection: allowModifierSelection,
       showPhraseStructure: showPhraseStructure,
       aggressiveBeatsUpdate: aggressiveBeatsUpdate,
       showWordingOverride: showWordingOverride,
@@ -366,6 +371,24 @@ void main() {
     expect(
       modifier.modifierFigures!.every((child) => child.move == null),
       isTrue,
+    );
+  });
+
+  testWidgets('ordinary-only editors hide the modifier selector option', (
+    tester,
+  ) async {
+    final drafts = <FigureDraft>[FigureDraft()];
+    await _pump(tester, drafts, allowModifierSelection: false);
+    await _openFigure(tester, 0);
+    await tester.enterText(
+      find.byKey(const ValueKey('figure-0-move-input')),
+      'modifier',
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('figure-0-move-option-modifier')),
+      findsNothing,
     );
   });
 

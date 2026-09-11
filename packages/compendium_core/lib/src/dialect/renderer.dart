@@ -675,11 +675,13 @@ class FigureRenderer {
         forCanonical: true,
       );
     }
-    final override = _renderWordingOverride(
-      figure,
-      dialect,
-      canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
-    );
+    final override = figure.isCustom
+        ? null
+        : _renderWordingOverride(
+            figure,
+            dialect,
+            canonicalizeDiscouragedTerms: canonicalizeDiscouragedTerms,
+          );
     if (override != null) return override;
     if (figure.isMeanwhile) {
       final children = figure.subFigures;

@@ -68,6 +68,7 @@ class FigureListEditor extends StatefulWidget {
     this.allowAdding = true,
     this.allowDuplicating = true,
     this.showPhraseStructure = true,
+    this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
     this.keyPrefix = 'figure',
   });
@@ -206,6 +207,11 @@ class FigureListEditor extends StatefulWidget {
 
   /// Whether phrase labels and the beat summary are shown.
   final bool showPhraseStructure;
+
+  /// Whether ordinary figure editors offer the structural `modifier` option.
+  /// Settings lists whose persistence accepts ordinary figures only disable
+  /// this affordance.
+  final bool allowModifierSelection;
 
   /// Whether ordinary children may be converted into the one legal opposite
   /// container kind. Nested editors at the maximum depth disable this so the
@@ -721,6 +727,7 @@ class _FigureListEditorState extends State<FigureListEditor> {
         draggable: draggable,
         isOpen: _openDraftId == draft.id,
         rowFocusNode: _rowFocusNode(draft.id),
+        allowModifierSelection: widget.allowModifierSelection,
         allowNestedContainerSelection: widget.allowNestedContainerSelection,
         onChanged: widget.onChanged,
         onActivate: () => _toggleDraft(draft.id),
@@ -1069,6 +1076,7 @@ class _FigureDraftCard extends StatefulWidget {
     this.onSnippetCommitted,
     this.showWordingOverride = false,
     this.canonicalizeDiscouragedTerms = false,
+    this.allowModifierSelection = true,
     this.allowNestedContainerSelection = true,
     this.onGroupWithNext,
     this.onGroupWithNextAsModifier,
@@ -1148,6 +1156,7 @@ class _FigureDraftCard extends StatefulWidget {
   final void Function(FigureDraft draft)? onSnippetCommitted;
 
   final bool showWordingOverride;
+  final bool allowModifierSelection;
   final bool allowNestedContainerSelection;
 
   /// Resolved "group with next" action for THIS row (#590/#593), already
@@ -1946,7 +1955,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                 dialect: widget.dialect,
                 initialText: moveText,
                 autofocus: move == null || move == _standStillMove,
-                includeModifier: true,
+                includeModifier: widget.allowModifierSelection,
                 onSelected: (option) => option.kind == MoveOptionKind.modifier
                     ? _selectModifier()
                     : _selectMove(option.id),
@@ -2226,6 +2235,7 @@ class _FigureDraftCardState extends State<_FigureDraftCard> {
                             showWordingOverride: widget.showWordingOverride,
                             onChanged: widget.onChanged,
                             includeModifier:
+                                widget.allowModifierSelection &&
                                 !isModifier &&
                                 widget.allowNestedContainerSelection,
                             onMoveUp: i == 0
