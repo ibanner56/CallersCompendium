@@ -134,8 +134,10 @@ and produces no Android artifact.
    - **Never put a suffix in pubspec.** Both `vX.Y.Z-beta` and `vX.Y.Z` build
      `X.Y.Z`; the tag alone selects the channel. Every release-platform Flutter
      build receives the tag-derived identity through
-     `CALLERS_COMPENDIUM_RELEASE_VERSION`, so the updater compares
-     `X.Y.Z-beta` for beta artifacts even though pubspec remains bare.
+     `CALLERS_COMPENDIUM_RELEASE_VERSION` and
+     `CALLERS_COMPENDIUM_RELEASE_CODENAME`, so the updater compares
+     `X.Y.Z-beta` for beta artifacts and the About page uses the tag codename
+     even though pubspec remains bare.
    - The updater keeps strict SemVer ordering without a custom comparator:
      `X.Y.Z-beta` is newer than older cores/betas but lower than `X.Y.Z`.
    - A bare beta core must not have any older non-identical prerelease tag. The

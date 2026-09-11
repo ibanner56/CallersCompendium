@@ -54,14 +54,15 @@ def main() -> None:
     assert '--codename "$RELEASE_CODENAME"' in metadata_step
     assert '--codename "${{ needs.meta.outputs.codename }}"' not in metadata_step
 
+    codename_define = (
+        '--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME"'
+    )
+    assert text.count(codename_define) == 6
+
     build_job = _job_section(text, "build")
     assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_job
-    assert (
-        build_job.count(
-            '--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME"'
-        )
-        == 6
-    )
+    build_windows_job = _job_section(text, "build_windows")
+    assert "      CODENAME: ${{ needs.meta.outputs.codename }}" in build_windows_job
 
     assert text.count("ref: ${{ needs.meta.outputs.release_ref }}") == 4, (
         "build, Windows, publish, and Pages jobs must all check out the release ref"

@@ -294,6 +294,7 @@ jobs:
     env:
       VERSION: ${{ needs.meta.outputs.version }}
       ANDROID_VERSION_CODE: ${{ needs.meta.outputs.android_version_code }}
+      CODENAME: ${{ needs.meta.outputs.codename }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -442,7 +443,14 @@ jobs:
       - name: Build Linux release bundle
         if: matrix.platform == 'linux'
         working-directory: app
-        run: flutter build linux --release --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build linux --release \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
 
       - name: Package Linux (tar.gz + AppImage)
         if: matrix.platform == 'linux'
@@ -490,7 +498,14 @@ jobs:
       - name: Build macOS release bundle
         if: matrix.platform == 'macos'
         working-directory: app
-        run: flutter build macos --release --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build macos --release \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
 
       # UNSIGNED path (secrets absent): byte-for-byte identical to the previous
       # behaviour — a ditto zip + an hdiutil drag-to-Applications dmg, no deps.
@@ -897,8 +912,13 @@ jobs:
           # 1) Flutter build — populates Generated.xcconfig (incl. the build
           #    number) and compiles the Dart/asset bundle. --no-codesign because
           #    signing happens once, at export (step 3).
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
           flutter build ios --release --no-codesign --build-number="${build_number}" \
-            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
 
           # 2) Archive WITHOUT signing. No -allowProvisioningUpdates (that flag
           #    is what authorizes Xcode to create portal resources) and no API
@@ -1041,8 +1061,13 @@ jobs:
         # The code is derived from the resolved tag: radix-1000 SemVer core
         # packing plus a channel bit (beta < stable for one core).
         run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
           flutter build apk --release --build-number="$ANDROID_VERSION_CODE" \
-            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
 
       - name: Package Android (signed APK)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -1066,8 +1091,13 @@ jobs:
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
         working-directory: app
         run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
           flutter build appbundle --release --build-number="$ANDROID_VERSION_CODE" \
-            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
 
       - name: Package Android (signed .aab)
         if: matrix.platform == 'android' && steps.android_signing.outputs.signing == 'configured'
@@ -1121,6 +1151,7 @@ jobs:
       id-token: write  # Azure Trusted Signing uses GitHub OIDC
     env:
       VERSION: ${{ needs.meta.outputs.version }}
+      CODENAME: ${{ needs.meta.outputs.codename }}
     environment: release-signing
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -1169,7 +1200,14 @@ jobs:
       # --- Windows: zip (portable) + Inno Setup installer ------------------
       - name: Build Windows release bundle
         working-directory: app
-        run: flutter build windows --release --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION"
+        run: |
+          codename_define=()
+          if [ -n "${CODENAME:-}" ]; then
+            codename_define+=(--dart-define=CALLERS_COMPENDIUM_RELEASE_CODENAME="$CODENAME")
+          fi
+          flutter build windows --release \
+            --dart-define=CALLERS_COMPENDIUM_RELEASE_VERSION="$VERSION" \
+            "${codename_define[@]}"
 
       - name: Azure Login
         if: steps.windows_signing.outputs.signing == 'configured'
@@ -1342,15 +1380,28 @@ jobs:
           RELEASE_CODENAME: ${{ needs.meta.outputs.codename }}
         run: |
           set -euo pipefail
-          python3 tools/release/gen_release_metadata.py \
-            --version "${{ needs.meta.outputs.version }}" \
-            --tag "${{ needs.meta.outputs.tag }}" \
-            --channel "${{ needs.meta.outputs.channel }}" \
-            --repo "${{ github.repository }}" \
-            --dist dist \
-            --pub-date "${{ needs.meta.outputs.pub_date }}" \
-            --codename "$RELEASE_CODENAME" \
-            --extra-file "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
+          metadata_args=(
+            --version "${{ needs.meta.outputs.version }}"
+            --tag "${{ needs.meta.outputs.tag }}"
+            --channel "${{ needs.meta.outputs.channel }}"
+            --repo "${{ github.repository }}"
+            --dist dist
+            --pub-date "${{ needs.meta.outputs.pub_date }}"
+          )
+          if ! metadata_help="$(
+            python3 tools/release/gen_release_metadata.py --help 2>&1
+          )"; then
+            echo "::error::could not inspect the release metadata generator"
+            exit 1
+          fi
+          if grep -Fq -- "--codename" <<<"$metadata_help"; then
+            metadata_args+=(--codename "$RELEASE_CODENAME")
+          fi
+          metadata_args+=(
+            --extra-file
+            "dist/sbom-${{ needs.meta.outputs.version }}.cdx.json"
+          )
+          python3 tools/release/gen_release_metadata.py "${metadata_args[@]}"
 
       # The manifest signature is a publication gate. An unsigned or stale
       # signature makes clients fail closed, so absent signing material fails.

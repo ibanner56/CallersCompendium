@@ -20,9 +20,15 @@ const String kAppTagline =
 /// Marketing/display version. Mirror the exact `version:` in `app/pubspec.yaml`.
 const String kAppVersion = '0.4.0';
 
-/// Human-facing release codename. Mirror the `Release codename` line in the
-/// annotated release tag for this version.
-const String kAppCodename = 'Allemande Left';
+/// Human-facing release codename.
+///
+/// Release builds inject the resolved annotated-tag codename through
+/// `CALLERS_COMPENDIUM_RELEASE_CODENAME`; local and development builds use the
+/// current release codename as a fallback.
+const String kAppCodename = String.fromEnvironment(
+  'CALLERS_COMPENDIUM_RELEASE_CODENAME',
+  defaultValue: 'Allemande Left',
+);
 
 /// Release identity the strict updater compares with manifest versions.
 ///
