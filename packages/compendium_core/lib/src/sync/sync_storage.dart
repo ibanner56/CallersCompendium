@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 
 import '../model/choreographer.dart';
@@ -23,6 +25,7 @@ import '../storage/repositories/sync_local_repository.dart';
 import '../storage/shareable_text.dart';
 import 'sync_apply.dart';
 import 'sync_codec.dart';
+import 'sync_id.dart';
 import 'sync_merge.dart';
 import 'sync_record_kind.dart';
 import 'sync_report.dart';
@@ -60,12 +63,11 @@ final class CompendiumSyncStorage
   Future<SyncStorageSnapshot> snapshot({
     String? syncId,
   }) => repositories.transaction(() async {
+    final usedVerifiers = syncId == null
+        ? const <_StoredSyncIdentityVerifier>[]
+        : await _loadUsedIdentityVerifiers(syncId);
     final baseline = await repositories.syncLocal.snapshotBaseline();
     final baselineState = await repositories.syncLocal.getBaselineState();
-    final lastUsedMarker = syncId == null
-        ? null
-        : await repositories.settings.get(syncLastUsedFingerprintKey);
-    final usedFingerprints = _decodeUsedFingerprints(lastUsedMarker);
     final local = <SyncRecordAddress, SyncMergeCandidate?>{};
     final customFields = await repositories.customFieldDefs
         .listAllWithDeleted();
@@ -279,20 +281,43 @@ final class CompendiumSyncStorage
       epoch: baselineState?.epoch,
       previouslyUsed:
           syncId != null &&
-          usedFingerprints.contains(syncIdentityFingerprint(syncId)),
+          usedVerifiers.any((verifier) => verifier.matches(syncId)),
       local: local,
       baseline: baseline,
     );
   });
 
   Future<void> markSyncUsed(String syncId) async {
-    final fingerprints = _decodeUsedFingerprints(
-      await repositories.settings.get(syncLastUsedFingerprintKey),
-    )..add(syncIdentityFingerprint(syncId));
+    final verifiers = await _loadUsedIdentityVerifiers(syncId);
+    if (verifiers.any((verifier) => verifier.matches(syncId))) return;
+    final next = [...verifiers, _StoredSyncIdentityVerifier.create(syncId)];
+    final encoded = next.map((verifier) => verifier.toJson()).toList()
+      ..sort(
+        (left, right) => (left['verifier']! as String).compareTo(
+          right['verifier']! as String,
+        ),
+      );
+    await repositories.settings.set(syncLastUsedFingerprintKey, encoded);
+  }
+
+  Future<List<_StoredSyncIdentityVerifier>> _loadUsedIdentityVerifiers(
+    String? syncId,
+  ) async {
+    final marker = await repositories.settings.get(syncLastUsedFingerprintKey);
+    final verifiers = _decodeUsedIdentityVerifiers(marker);
+    final legacyFingerprints = _decodeLegacyIdentityFingerprints(marker);
+    if (legacyFingerprints.isEmpty) return verifiers;
+
+    final migrated = [...verifiers];
+    if (syncId != null &&
+        legacyFingerprints.contains(_legacyIdentityFingerprint(syncId))) {
+      migrated.add(_StoredSyncIdentityVerifier.create(syncId));
+    }
     await repositories.settings.set(
       syncLastUsedFingerprintKey,
-      fingerprints.toList()..sort(),
+      migrated.map((verifier) => verifier.toJson()).toList(),
     );
+    return migrated;
   }
 
   @override
@@ -1450,16 +1475,119 @@ final class CompendiumSyncStorage
 }
 
 /// Device-local marker for configured sync identities that completed a
-/// publication. The raw bearer credentials are never stored in this marker.
+/// publication. The marker stores salted, slow credential verifiers rather
+/// than the raw bearer credentials or a fast unsalted hash.
 const syncLastUsedFingerprintKey = 'sync_last_used_fingerprint';
 
-String syncIdentityFingerprint(String syncId) => sha256Hex(utf8.encode(syncId));
+const _syncIdentityVerifierAlgorithm = 'pbkdf2-sha256';
+const _syncIdentityKdfIterations = 600000;
+const _syncIdentitySaltBytes = 16;
+const _syncIdentityVerifierBytes = 32;
+final _syncIdentityRandom = Random.secure();
 
-Set<String> _decodeUsedFingerprints(Object? marker) => switch (marker) {
-  String value when value.isNotEmpty => {value},
-  List<Object?> values => {
-    for (final value in values)
-      if (value is String && value.isNotEmpty) value,
-  },
-  _ => <String>{},
-};
+final class _StoredSyncIdentityVerifier {
+  const _StoredSyncIdentityVerifier({
+    required this.salt,
+    required this.verifier,
+  });
+
+  factory _StoredSyncIdentityVerifier.create(String syncId) {
+    final salt = List<int>.generate(
+      _syncIdentitySaltBytes,
+      (_) => _syncIdentityRandom.nextInt(256),
+    );
+    return _StoredSyncIdentityVerifier(
+      salt: salt,
+      verifier: _deriveSyncIdentityVerifier(syncId, salt),
+    );
+  }
+
+  final List<int> salt;
+  final List<int> verifier;
+
+  bool matches(String syncId) =>
+      _constantTimeEquals(verifier, _deriveSyncIdentityVerifier(syncId, salt));
+
+  Map<String, Object?> toJson() => {
+    'algorithm': _syncIdentityVerifierAlgorithm,
+    'iterations': _syncIdentityKdfIterations,
+    'salt': _encodeVerifierBytes(salt),
+    'verifier': _encodeVerifierBytes(verifier),
+  };
+}
+
+List<_StoredSyncIdentityVerifier> _decodeUsedIdentityVerifiers(Object? marker) {
+  if (marker is! List) return [];
+  final decoded = <_StoredSyncIdentityVerifier>[];
+  for (final value in marker) {
+    if (value is! Map ||
+        value['algorithm'] != _syncIdentityVerifierAlgorithm ||
+        value['iterations'] != _syncIdentityKdfIterations ||
+        value['salt'] is! String ||
+        value['verifier'] is! String) {
+      continue;
+    }
+    final salt = _decodeVerifierBytes(
+      value['salt'] as String,
+      expectedLength: _syncIdentitySaltBytes,
+    );
+    final verifier = _decodeVerifierBytes(
+      value['verifier'] as String,
+      expectedLength: _syncIdentityVerifierBytes,
+    );
+    if (salt == null || verifier == null) continue;
+    decoded.add(_StoredSyncIdentityVerifier(salt: salt, verifier: verifier));
+  }
+  return decoded;
+}
+
+Set<String> _decodeLegacyIdentityFingerprints(Object? marker) =>
+    switch (marker) {
+      String value when value.isNotEmpty => {value},
+      List<Object?> values => {
+        for (final value in values)
+          if (value is String && value.isNotEmpty) value,
+      },
+      _ => <String>{},
+    };
+
+String _legacyIdentityFingerprint(String syncId) =>
+    sha256Hex(utf8.encode(normalizeSyncId(syncId)));
+
+List<int> _deriveSyncIdentityVerifier(String syncId, List<int> salt) {
+  final hmac = Hmac(sha256, utf8.encode(normalizeSyncId(syncId)));
+  var block = hmac.convert([...salt, 0, 0, 0, 1]).bytes;
+  final derived = List<int>.from(block);
+  for (var iteration = 1; iteration < _syncIdentityKdfIterations; iteration++) {
+    block = hmac.convert(block).bytes;
+    for (var index = 0; index < derived.length; index++) {
+      derived[index] ^= block[index];
+    }
+  }
+  return derived;
+}
+
+String _encodeVerifierBytes(List<int> bytes) =>
+    base64Url.encode(bytes).replaceAll('=', '');
+
+List<int>? _decodeVerifierBytes(String value, {required int expectedLength}) {
+  if (value.isEmpty || !RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(value)) {
+    return null;
+  }
+  try {
+    final padding = (4 - value.length % 4) % 4;
+    final decoded = base64Url.decode('$value${'=' * padding}');
+    return decoded.length == expectedLength ? decoded : null;
+  } on FormatException {
+    return null;
+  }
+}
+
+bool _constantTimeEquals(List<int> left, List<int> right) {
+  var difference = left.length ^ right.length;
+  final length = min(left.length, right.length);
+  for (var index = 0; index < length; index++) {
+    difference |= left[index] ^ right[index];
+  }
+  return difference == 0;
+}

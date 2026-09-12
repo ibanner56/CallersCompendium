@@ -563,6 +563,7 @@ transmitting it *is* the authorisation for the request carrying it:
 | `sync_wifi_only` | A per-device network policy; a laptop and a phone want different answers. |
 | `sync_exclude_imports` | Governs what *this* device uploads. |
 | `sync_last_synced_at` | Local state. |
+| `sync_last_used_fingerprint` | Salted, slow credential verifiers used only to distinguish a previously used sync ID after detach. They are credential-derived, device-scoped, never transmitted or adopted, and excluded from backups. |
 
 The rule is simple enough to state as one: **sync configuration is never itself
 synced** — `sync_device_id` included, which travels as a routing key without
@@ -2965,9 +2966,11 @@ sync ID entirely, so re-enabling is a fresh attach.
    prior success can explain disappearance and offer replacement, but it still
    cannot create without confirmation.
 3. **Fresh attach**, always, on first attach for this ID, on re-attach after
-   detach, and on `409`. Detaching **forgets the sync ID entirely**: no list of
-   previously-attached IDs is kept, so re-attaching cannot resurrect a stale
-   baseline.
+   detach, and on `409`. Detaching **forgets the sync ID entirely**: no
+   recoverable list of previously-attached IDs is kept. A salted, slow local
+   verifier set remains only to distinguish prior use of an ID from a first
+   attach when the collection has disappeared; it cannot reconstruct the
+   credential and is not backed up or transmitted.
 4. Upload every local record; download every remote record. **Inbound rejection
    applies here as in steady state** — a blob whose `existenceAt` or `updatedAt`
    is out of window is refused and reported, rather than admitted because this is
@@ -3369,12 +3372,12 @@ would break repair silently and without resembling a sync change at the point it
 was added. Any new write is checked against this the way new write paths are
 checked against the discriminator rule above.
 
-5. `POST /v1/blobs/missing` with the hashes to upload; `PUT` only what is
-   missing.
-6. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
+5. `GET /v1/blobs/{hash}` for each needed hash. **Verify the hash before
    applying.**
-7. Apply in one transaction, **read-modify-write** (below). Rebuild derived
+6. Apply in one transaction, **read-modify-write** (below). Rebuild derived
    indexes.
+7. Recompute the local manifest from the post-apply state. `POST
+   /v1/blobs/missing`; `PUT` only what is missing from that final manifest.
 8. `PUT /v1/manifests/{self}`.
 9. Store the new baseline. A record's entry advances only where a peer's
    manifest was observed to carry **this device's current content hash** — an

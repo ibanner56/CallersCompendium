@@ -141,13 +141,14 @@ final Map<String, DataClassification> settingsClassifications = {
         'restored from a backup.',
   ),
   'sync_last_used_fingerprint': const DataClassification(
-    term: DpvTerm.nonPersonal,
-    subject: DataSubject.none,
+    term: DpvTerm.unclassifiedPersonal,
+    subject: DataSubject.appUser,
     egress: EgressClass.deviceScoped,
     note:
-        'A set of one-way local markers used only to distinguish previously '
-        'used configured sync identities after detach; it is never transmitted, '
-        'adopted from a peer, or restored from a backup.',
+        'A set of salted, slow credential verifiers used only to distinguish '
+        'previously used configured sync identities after detach; the '
+        'credential-derived values are never transmitted, adopted from a peer, '
+        'or restored from a backup.',
   ),
 
   // -- Programs and performance --------------------------------------------

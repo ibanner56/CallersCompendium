@@ -131,6 +131,7 @@ const String kSyncIdKey = 'sync_id';
 /// is minted locally and is never adopted from a peer or included in backups.
 const String kSyncDeviceIdKey = 'sync_device_id';
 
-/// Device-local set of fingerprints for every sync identity that completed a
-/// publication. It is never included in backups or sync record content.
+/// Device-local set of salted, slow credential verifiers for every sync
+/// identity that completed a publication. It is never included in backups or
+/// sync record content.
 const String kSyncLastUsedFingerprintKey = 'sync_last_used_fingerprint';

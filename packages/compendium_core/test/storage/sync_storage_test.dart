@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:compendium_core/compendium_core.dart';
 import 'package:compendium_core/src/serialization/archive_entity_codec.dart';
 import 'package:compendium_core/src/storage/database.dart';
@@ -90,6 +92,36 @@ void main() {
       await storage.markSyncUsed('sync-b');
 
       expect((await storage.snapshot(syncId: 'sync-a')).previouslyUsed, isTrue);
+      expect((await storage.snapshot(syncId: 'sync-b')).previouslyUsed, isTrue);
+    },
+  );
+
+  test(
+    'stores salted slow verifiers and migrates legacy fast markers',
+    () async {
+      await repositories.settings.set(syncLastUsedFingerprintKey, [
+        sha256Hex(utf8.encode('sync-a')),
+      ]);
+
+      expect((await storage.snapshot(syncId: 'sync-a')).previouslyUsed, isTrue);
+
+      final marker = await repositories.settings.get(
+        syncLastUsedFingerprintKey,
+      );
+      final entries = (marker! as List).cast<Object?>();
+      expect(entries, hasLength(1));
+      final verifier = (entries.single as Map).cast<String, Object?>();
+      expect(verifier['algorithm'], 'pbkdf2-sha256');
+      expect(verifier['iterations'], 600000);
+      expect(verifier['salt'], isA<String>());
+      expect(verifier['verifier'], isA<String>());
+      expect(verifier['verifier'], isNot(sha256Hex(utf8.encode('sync-a'))));
+
+      await storage.markSyncUsed('sync-b');
+      final migrated = await repositories.settings.get(
+        syncLastUsedFingerprintKey,
+      );
+      expect((migrated! as List), hasLength(2));
       expect((await storage.snapshot(syncId: 'sync-b')).previouslyUsed, isTrue);
     },
   );
