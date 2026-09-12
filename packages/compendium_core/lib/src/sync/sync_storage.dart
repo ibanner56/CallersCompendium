@@ -359,7 +359,6 @@ final class CompendiumSyncStorage
     final classificationIssue = await _invalidCustomFieldClassification(
       record,
       entity,
-      inboundLiveAddresses: inboundLiveAddresses,
       inboundAddresses: inboundAddresses,
       inboundRecords: inboundRecords,
     );
@@ -1001,14 +1000,11 @@ final class CompendiumSyncStorage
   Future<String?> _invalidCustomFieldClassification(
     SyncApplyRecord record,
     Object entity, {
-    required Set<SyncRecordAddress> inboundLiveAddresses,
     required Set<SyncRecordAddress> inboundAddresses,
     required Map<SyncRecordAddress, SyncApplyRecord> inboundRecords,
   }) async {
     if (record.address.kind == SyncRecordKind.customFieldDef) {
-      if (record.deletedAt == null &&
-          entity is CustomFieldDef &&
-          !entity.shareable) {
+      if (entity is CustomFieldDef && !entity.shareable) {
         return 'Inbound custom-field definition '
             '"${record.address.recordId}" is not shareable.';
       }
@@ -1023,9 +1019,8 @@ final class CompendiumSyncStorage
         kind: SyncRecordKind.customFieldDef,
         recordId: value.fieldId,
       );
-      if (inboundLiveAddresses.contains(address)) {
-        final inbound = inboundRecords[address];
-        if (inbound == null) continue;
+      final inbound = inboundRecords[address];
+      if (inbound != null) {
         try {
           final definition =
               _decodeEntity(SyncRecordKind.customFieldDef, inbound.body)
@@ -1040,12 +1035,9 @@ final class CompendiumSyncStorage
           // The malformed definition receives its own malformed-record report.
         }
       } else if (!inboundAddresses.contains(address)) {
-        final row =
-            await (_db.select(_db.customFieldDefs)..where(
-                  (table) =>
-                      table.id.equals(value.fieldId) & table.deletedAt.isNull(),
-                ))
-                .getSingleOrNull();
+        final row = await (_db.select(
+          _db.customFieldDefs,
+        )..where((table) => table.id.equals(value.fieldId))).getSingleOrNull();
         final definition = row == null
             ? null
             : CustomFieldDefRepository.toModel(row);

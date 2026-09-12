@@ -1081,6 +1081,15 @@ void main() {
         createdAt: stamp,
         updatedAt: stamp,
       );
+      final sameBatchDance = Dance(
+        id: 'dance-with-inbound-private-field',
+        title: 'Same-batch dance',
+        customFields: [
+          CustomFieldValue(fieldId: inboundDefinition.id, value: 'private'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
 
       final result = await const SyncApplyEngine().apply(
         candidates: [
@@ -1112,6 +1121,20 @@ void main() {
               ),
             ),
           ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: sameBatchDance.id,
+              updatedAt: stamp,
+              deletedAt: null,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                sameBatchDance,
+                allowedCustomFieldIds: {inboundDefinition.id},
+              ),
+            ),
+          ),
         ],
         storage: storage,
       );
@@ -1123,13 +1146,143 @@ void main() {
               (report) => report.code == SyncReportCode.invalidClassification,
             )
             .map((report) => report.recordId),
-        containsAll([inboundDefinition.id, inboundDance.id]),
+        containsAll([inboundDefinition.id, inboundDance.id, sameBatchDance.id]),
       );
       expect(
         await repositories.customFieldDefs.getById(inboundDefinition.id),
         isNull,
       );
       expect(await repositories.dances.getById(inboundDance.id), isNull);
+      expect(await repositories.dances.getById(sameBatchDance.id), isNull);
+    },
+  );
+
+  test(
+    'rejects tombstoned non-shareable custom-field definitions and values',
+    () async {
+      final stamp = DateTime.utc(2025, 1, 2, 12);
+      final tombstoneStamp = stamp.add(const Duration(minutes: 1));
+      final localDefinition = CustomFieldDef(
+        id: 'local-tombstoned-private-field',
+        key: 'local_tombstoned_private_field',
+        label: 'Local tombstoned private field',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      final inboundDefinition = CustomFieldDef(
+        id: 'inbound-tombstoned-private-field',
+        key: 'inbound_tombstoned_private_field',
+        label: 'Inbound tombstoned private field',
+        type: CustomFieldType.text,
+        shareable: false,
+      );
+      // ignore: unused_result
+      await repositories.customFieldDefs.upsert(localDefinition, at: stamp);
+      await (db.update(
+        db.customFieldDefs,
+      )..where((row) => row.id.equals(localDefinition.id))).write(
+        CustomFieldDefsCompanion(
+          deletedAt: Value(tombstoneStamp),
+          existenceAt: Value(tombstoneStamp),
+        ),
+      );
+      final localTombstonedDance = Dance(
+        id: 'dance-with-local-tombstoned-private-field',
+        title: 'Local tombstoned dance',
+        customFields: [
+          CustomFieldValue(fieldId: localDefinition.id, value: 'private'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+      final inboundTombstonedDance = Dance(
+        id: 'dance-with-inbound-tombstoned-private-field',
+        title: 'Inbound tombstoned dance',
+        customFields: [
+          CustomFieldValue(fieldId: inboundDefinition.id, value: 'private'),
+        ],
+        createdAt: stamp,
+        updatedAt: stamp,
+      );
+
+      final result = await const SyncApplyEngine().apply(
+        candidates: [
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.customFieldDef,
+              id: inboundDefinition.id,
+              updatedAt: tombstoneStamp,
+              deletedAt: tombstoneStamp,
+              existenceAt: stamp,
+              body: archiveCustomFieldDefToJson(
+                inboundDefinition,
+                includeShareable: true,
+                includeOptionalFields: true,
+              ),
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: localTombstonedDance.id,
+              updatedAt: tombstoneStamp,
+              deletedAt: tombstoneStamp,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                localTombstonedDance,
+                allowedCustomFieldIds: {localDefinition.id},
+              ),
+            ),
+          ),
+          SyncMergeCandidate(
+            blob: SyncRecordBlob(
+              kind: SyncRecordKind.dance,
+              id: inboundTombstonedDance.id,
+              updatedAt: tombstoneStamp,
+              deletedAt: tombstoneStamp,
+              existenceAt: stamp,
+              body: syncBodyForEntity(
+                SyncRecordKind.dance,
+                inboundTombstonedDance,
+                allowedCustomFieldIds: {inboundDefinition.id},
+              ),
+            ),
+          ),
+        ],
+        storage: storage,
+      );
+
+      expect(result.applied, isEmpty);
+      expect(
+        result.reports
+            .where(
+              (report) => report.code == SyncReportCode.invalidClassification,
+            )
+            .map((report) => report.recordId),
+        containsAll([
+          inboundDefinition.id,
+          localTombstonedDance.id,
+          inboundTombstonedDance.id,
+        ]),
+      );
+      expect(
+        await repositories.customFieldDefs.getById(inboundDefinition.id),
+        isNull,
+      );
+      expect(
+        await repositories.dances.getById(localTombstonedDance.id),
+        isNull,
+      );
+      expect(
+        await repositories.dances.getById(inboundTombstonedDance.id),
+        isNull,
+      );
+      final localRow = await (db.select(
+        db.customFieldDefs,
+      )..where((row) => row.id.equals(localDefinition.id))).getSingle();
+      expect(localRow.shareable, isFalse);
+      expect(localRow.deletedAt?.toUtc(), tombstoneStamp);
     },
   );
 
