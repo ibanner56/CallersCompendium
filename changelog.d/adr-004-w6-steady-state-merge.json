@@ -3,7 +3,7 @@
   "user_visible": true,
   "app": {
     "changed": [
-      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, protects newer local edits from stale inbound snapshots, negotiates only final-manifest blobs after apply, rejects inbound non-shareable custom-field data, settles pending work before shutdown, stops before publication until local attach state exists, reuses unchanged peer manifests and verified blobs, and pauses for confirmation instead of silently recreating a missing collection."
+      "Device Sync now converges steady-state edits through one guarded pass, queues at most one follow-up, protects newer local edits from stale inbound snapshots, negotiates only final-manifest blobs after apply, rejects inbound non-shareable custom-field data, settles pending work before shutdown, stops before publication until local attach state exists, reuses unchanged peer manifests and verified blobs, and pauses for confirmation instead of silently recreating a missing collection. Malformed persisted Device Sync configuration no longer prevents the rest of the app from starting."
     ]
   },
   "core": {
