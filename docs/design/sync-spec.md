@@ -2571,11 +2571,13 @@ trigger.
 **What a failure guarantees, stated precisely, because the obvious wording is
 false.** The guarantee is that no pass leaves a *partial* apply: §6.7's apply is
 one transaction, so it either commits whole or not at all. It is **not** that a
-failed pass leaves local data untouched. §6.3 commits that transaction at step
-7 and publishes at step 8, so a network error or an epoch `409` between them
-leaves local data legitimately changed by a pass that then failed. That is
-correct behaviour and MUST NOT be undone: the applied content was validly
-merged, and rolling it back would discard a peer's record on a transport error.
+failed pass leaves local data untouched. §6.3 applies and commits that
+transaction at step 6, uploads blobs missing from the post-apply final
+manifest at step 7, and publishes at step 8, so a network error or an epoch
+`409` between them leaves local data legitimately changed by a pass that then
+failed. That is correct behaviour and MUST NOT be undone: the applied content
+was validly merged, and rolling it back would discard a peer's record on a
+transport error.
 What the failure leaves unadvanced is the **published manifest and the
 baseline** — step 9 runs only after step 8 — so the next pass republishes and
 converges. The ordering cannot be reversed to make the two atomic, because

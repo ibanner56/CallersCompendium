@@ -3710,8 +3710,9 @@ manifest `PUT`, and during the sweep, unreferenced blobs for that store are
 deleted. Mark-and-sweep scoped to one store is cheap; no global scan.
 
 **Reachability alone is not a safe collection rule, and the first draft of this
-section used it as one.** The client uploads blobs at step 5 and publishes its
-manifest at step 8, with a full download-and-apply in between, so every upload
+section used it as one.** The client downloads records at step 5, applies them
+in one transaction at step 6, uploads blobs missing from the post-apply final
+manifest at step 7, and publishes its manifest at step 8, so every upload
 spends a window referenced by no manifest at all. A concurrent peer's manifest
 `PUT` during that window triggers store-scoped GC and deletes a blob that is
 about to be published; the hourly sweep does the same thing with one device.
