@@ -71,7 +71,7 @@ abstract interface class SyncCoordinatorStore implements SyncApplyStorage {
 /// semantics live in [CompendiumSyncStorage], while this layer owns only the
 /// coordinator's baseline/publication lifecycle.
 final class CompendiumSyncCoordinatorStore
-    implements SyncCoordinatorStore, SyncApplyReportingStorage {
+    implements SyncCoordinatorStore, SyncApplyBatchStorage {
   CompendiumSyncCoordinatorStore(
     CompendiumRepositories repositories, {
     this.syncId,
@@ -121,12 +121,25 @@ final class CompendiumSyncCoordinatorStore
   Future<void> write(SyncApplyRecord record) => storage.write(record);
 
   @override
-  Future<SyncReport?> validateInboundReferences(SyncApplyRecord record) =>
-      storage.validateInboundReferences(record);
+  Future<SyncReport?> validateInboundReferences(
+    SyncApplyRecord record, {
+    Set<SyncRecordAddress> inboundAddresses = const {},
+  }) => storage.validateInboundReferences(
+    record,
+    inboundAddresses: inboundAddresses,
+  );
 
   @override
   Future<SyncReport?> writeWithReport(SyncApplyRecord record) =>
       storage.writeWithReport(record);
+
+  @override
+  Future<SyncReport?> writeParentWithReport(SyncApplyRecord record) =>
+      storage.writeParentWithReport(record);
+
+  @override
+  Future<SyncReport?> writeJoinsWithReport(SyncApplyRecord record) =>
+      storage.writeJoinsWithReport(record);
 
   @override
   Future<void> rebuildDerivedIndexes() => storage.rebuildDerivedIndexes();
