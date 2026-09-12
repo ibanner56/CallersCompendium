@@ -450,24 +450,61 @@ class SyncApplyEngine {
     }
 
     final parentWritten = <SyncApplyRecord>[];
-    for (final record in eligible) {
-      try {
-        final report = await storage.writeParentWithReport(record);
-        if (report != null) reports.add(report);
-        parentWritten.add(record);
-      } on FormatException catch (error) {
-        reports.add(
-          _writeReport(record, SyncReportCode.malformedRecord, '$error'),
-        );
-      } on ArgumentError catch (error) {
-        reports.add(
-          _writeReport(record, SyncReportCode.malformedRecord, '$error'),
-        );
-      } on StateError catch (error) {
-        reports.add(
-          _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
-        );
+    final parentWrittenByAddress = <SyncRecordAddress, SyncApplyRecord>{};
+    var groupStart = 0;
+    while (groupStart < eligible.length) {
+      final kind = eligible[groupStart].address.kind;
+      var groupEnd = groupStart + 1;
+      while (groupEnd < eligible.length &&
+          eligible[groupEnd].address.kind == kind) {
+        groupEnd++;
       }
+      final group = eligible.sublist(groupStart, groupEnd);
+      final availableRecords = <SyncRecordAddress, SyncApplyRecord>{
+        ...parentWrittenByAddress,
+        for (final record in group) record.address: record,
+      };
+      final availableAddresses = availableRecords.keys.toSet();
+      final availableLiveAddresses = {
+        for (final record in availableRecords.values)
+          if (record.deletedAt == null) record.address,
+      };
+      final ready = <SyncApplyRecord>[];
+      for (final record in group) {
+        final referenceReport = await storage.validateInboundReferences(
+          record,
+          inboundLiveAddresses: availableLiveAddresses,
+          inboundAddresses: availableAddresses,
+          inboundRecords: availableRecords,
+        );
+        if (referenceReport == null) {
+          ready.add(record);
+        } else {
+          reports.add(referenceReport);
+        }
+      }
+
+      for (final record in ready) {
+        try {
+          final report = await storage.writeParentWithReport(record);
+          if (report != null) reports.add(report);
+          parentWritten.add(record);
+          parentWrittenByAddress[record.address] = record;
+        } on FormatException catch (error) {
+          reports.add(
+            _writeReport(record, SyncReportCode.malformedRecord, '$error'),
+          );
+        } on ArgumentError catch (error) {
+          reports.add(
+            _writeReport(record, SyncReportCode.malformedRecord, '$error'),
+          );
+        } on StateError catch (error) {
+          reports.add(
+            _writeReport(record, SyncReportCode.unresolvedReference, '$error'),
+          );
+        }
+      }
+      groupStart = groupEnd;
     }
 
     for (final record in parentWritten) {
